@@ -4,6 +4,8 @@
 
 `services/sso-frontend` is rebuilt from Next.js to Vue 3 + Vite while keeping a same-service Node BFF. The BFF keeps OIDC/PKCE, token exchange, refresh-token handling, logout revocation, encrypted httpOnly cookies, and admin API proxying outside browser code.
 
+The root login experience now ports the previous Next.js UI into Vue instead of using the temporary "Secure operation console" layout. This keeps the legacy `Dev-SSO` card, `Masuk` copy, password-reset link, registration link, footer links, and theme toggle on the latest Vue stack.
+
 ## Target Stack
 
 - Vue 3.5.33
@@ -19,6 +21,8 @@
 - Session cookies keep the `__Secure-` prefix, `HttpOnly`, `Secure`, and `SameSite=Strict`.
 - `/healthz` stays available for Compose, Traefik, and deploy smoke gates.
 - Backend API/OIDC Traefik priority remains higher than frontend catch-all routing.
+- `/auth/password-reset` and `/auth/register` remain server-side redirects to the identity UI and preserve `login_hint`.
+- Theme colors and typography pass the automated WCAG theme gate.
 
 ## Zero-Downtime Lifecycle
 
@@ -55,6 +59,7 @@ Latest VPS deployment:
 - `npm run test`
 - `npm run build`
 - `npm run smoke`
+- `npm run wcag:theme`
 - `./scripts/validate-devops-lifecycle.sh`
 - `./scripts/validate-laravel-vue-lifecycle.sh`
 - `docker compose --env-file .env.dev.example -f docker-compose.dev.yml config --services`

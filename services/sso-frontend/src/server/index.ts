@@ -6,7 +6,13 @@ import { extname, join, normalize, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { getConfig } from './config.js'
 import { handleAdminApi, handleSession, redirectForLegacyError } from './admin-handlers.js'
-import { handleCallback, handleLogin, handleLogout, handleRefresh } from './auth-handlers.js'
+import {
+  handleCallback,
+  handleIdentityUiRedirect,
+  handleLogin,
+  handleLogout,
+  handleRefresh,
+} from './auth-handlers.js'
 import type { AppResponse } from './response.js'
 import { json, methodNotAllowed, send, text } from './response.js'
 
@@ -40,6 +46,12 @@ async function route(request: IncomingMessage, requestUrl: URL): Promise<AppResp
   if (pathname === '/healthz') return text(200, 'ok\n', { 'cache-control': 'no-store' })
 
   if (pathname === '/auth/login') return method === 'GET' ? handleLogin(requestUrl) : methodNotAllowed()
+  if (pathname === '/auth/password-reset') {
+    return method === 'GET' ? handleIdentityUiRedirect(requestUrl, 'password/reset') : methodNotAllowed()
+  }
+  if (pathname === '/auth/register') {
+    return method === 'GET' ? handleIdentityUiRedirect(requestUrl, 'register') : methodNotAllowed()
+  }
   if (pathname === '/auth/callback') {
     return method === 'GET' ? handleCallback(request, requestUrl) : methodNotAllowed()
   }

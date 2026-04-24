@@ -20,7 +20,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="app-shell">
+  <div class="app-shell" :class="{ 'app-shell--auth': !admin.isAuthenticated }">
     <aside v-if="admin.isAuthenticated" class="sidebar" aria-label="Admin navigation">
       <RouterLink class="brand" to="/dashboard">
         <ShieldCheck :size="22" aria-hidden="true" />

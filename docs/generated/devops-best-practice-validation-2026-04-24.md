@@ -20,6 +20,8 @@ This evidence pack validates that Project SSO has an automated software lifecycl
 - The Node BFF owns `/auth/login`, `/auth/callback`, `/auth/refresh`, `/api/session`, `/api/admin/*`, and `/healthz`.
 - PKCE generation, ID token verification, encrypted session cookies, and admin API proxying remain server-side.
 - Browser code does not write tokens to local storage, session storage, or `document.cookie`.
+- The previous Next.js root login UI is ported into Vue and no longer uses the temporary migration layout.
+- WCAG-oriented theme validation checks text contrast, non-text contrast, focus affordances, and typography constraints.
 - The Dockerfile builds from lockfile, runs production build, drops root, and starts the compiled BFF.
 - Compose, CI, and direct VPS deploy all pass `VITE_SSO_BASE_URL`, `VITE_ADMIN_BASE_URL`, and `VITE_CLIENT_ID`.
 - Direct VPS deploy creates rollback tags, updates only touched services, preserves two frontend replicas, waits for all expected replicas to become healthy, and smokes HTTPS through local reverse proxy resolution.
@@ -41,6 +43,7 @@ Local validation passed:
 - `npm run test`
 - `npm run build`
 - `npm run smoke`
+- `npm run wcag:theme`
 - `docker compose --env-file .env.dev.example -f docker-compose.dev.yml config --services`
 - `terraform fmt -check -recursive`
 - `terraform init -backend=false`
@@ -67,6 +70,7 @@ Live VPS validation completed:
 | --- | --- | --- |
 | Version control and CI | Pass | GitHub Actions CI runs frontend/backend QA, Docker image builds, image scanning, provenance, and SBOM gates. |
 | Container lifecycle | Pass | Node 22 image, lockfile install, non-root runtime, health endpoint, immutable image tags. |
+| Frontend UX parity | Pass | Vue root login ports the previous Next UI and has automated WCAG color/typography validation. |
 | Release control | Pass | CD has production environment gate and does not cancel in-flight deployments. |
 | Rollback | Pass | Manual rollback workflow and VPS rollback script require explicit target tag. Direct deploy creates rollback image tags. |
 | Zero-downtime update | Conditional pass | Live topology now has two healthy frontend replicas and direct deploy preserves that scale. The first single-replica Compose recreate produced one observed non-200 sample, so strict zero downtime is only accepted for future promotions after a multi-replica/blue-green rollout test is green. |
