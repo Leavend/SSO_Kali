@@ -4,7 +4,7 @@ locals {
     immutable_image_tag = true
     rollback_required   = true
     smoke_required      = true
-    traffic_gate = {
+    traffic_gate        = {
       backend_priority = 200
       vue_canary_path  = "/__vue-preview"
       vue_priority     = 175
