@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
@@ -6,11 +6,15 @@ import { execFileSync } from "node:child_process";
 const fixture = join(tmpdir(), "zitadel-locale-alias-");
 const root = mkdtempSync(fixture);
 const bundleFile = join(root, "3072.js");
+const enChunkFile = join(root, "41662.js");
 
 const source =
-  'exports.modules={93072:(a,b,c)=>{let k=(0,i.A)(async()=>{let a=await (0,j.UL)(),b="en",g=await (0,j.b3)(),{serviceConfig:i}=(0,e.G)(g),k=await (await (0,j.b3)()).get(d.xU);if(k){let a=k.split(",")[0].split("-")[0];d.gq.map(a=>a.code).includes(a)&&(b=a)}let l=a?.get(d.WU);l&&l.value&&d.gq.map(a=>a.code).includes(l.value)&&(b=l.value);let m=g.get("x-zitadel-i18n-organization")||"",n={};try{let a=await (0,f.uy)({serviceConfig:i,locale:b,organization:m});a&&(n=a)}catch(a){console.warn("Error fetching custom translations:",a)}let o=n,p=(await c(41662)(`./${b}.json`)).default,q=(await c(41662)("./en.json")).default;return{locale:b,messages:h().all([q,p,o])}})}};';
+  'exports.modules={41662:(a,b,c)=>{var d={"./en.json":[93072,41662],"./de.json":[93073,41662],"./fr.json":[93074,41662]};function e(a){return c(d[a][0])}e.keys=()=>Object.keys(d),a.exports=e}};';
+const enChunkSource =
+  '"use strict";exports.id=41662,exports.ids=[41662],exports.modules={93072:a=>{a.exports=JSON.parse(\'{"common":{"title":"Login with Zitadel"},"loginname":{"title":"Welcome back!"}}\')}};';
 
 writeFileSync(bundleFile, source);
+writeFileSync(enChunkFile, enChunkSource);
 
 execFileSync("node", [
   "/Users/leavend/Desktop/Project_SSO/infra/zitadel-login/patch-login-locale-alias.mjs",
@@ -18,19 +22,21 @@ execFileSync("node", [
 ]);
 
 const patched = readFileSync(bundleFile, "utf8");
+const idChunkFile = join(root, "44444.js");
+const idChunk = existsSync(idChunkFile) ? readFileSync(idChunkFile, "utf8") : "";
 
 rmSync(root, { recursive: true, force: true });
 
-if (!patched.includes('"id"===b?"en":b')) {
-  throw new Error("Expected Indonesian locale alias to be injected.");
+if (!patched.includes('"./id.json"')) {
+  throw new Error("Expected Indonesian locale map entry to be injected.");
 }
 
-if (patched.includes('locale:b,organization:m')) {
-  throw new Error("Expected custom translation lookup to use the safe locale alias.");
+if (!patched.includes("devsso-id-locale-injected")) {
+  throw new Error("Expected Indonesian locale marker to be injected.");
 }
 
-if (patched.includes('`./${b}.json`')) {
-  throw new Error("Expected locale JSON import to use the safe locale alias.");
+if (!idChunk.includes("Login dengan Zitadel")) {
+  throw new Error("Expected generated Indonesian locale chunk to use the copy patch marker.");
 }
 
 console.log("Validated login locale alias patch.");

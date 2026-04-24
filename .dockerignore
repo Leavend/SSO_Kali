@@ -1,0 +1,16 @@
+.git
+.github
+.DS_Store
+**/.DS_Store
+**/node_modules
+**/vendor
+**/dist
+**/coverage
+**/.cache
+**/.tmp
+test-results
+*.log
+.env
+.env.*
+.secrets
+tmp

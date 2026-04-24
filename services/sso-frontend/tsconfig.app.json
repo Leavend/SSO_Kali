@@ -5,7 +5,8 @@
     "types": ["vite/client"],
     "paths": {
       "@/*": ["./src/web/*"],
-      "@shared/*": ["./src/shared/*"]
+      "@shared/*": ["./src/shared/*"],
+      "@parent-ui/*": ["../../packages/dev-sso-parent-ui/*"]
     }
   },
   "include": ["src/web/**/*.ts", "src/web/**/*.vue", "src/shared/**/*.ts"]

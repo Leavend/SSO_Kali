@@ -79,6 +79,8 @@ async function collectPagePayload(page, payload) {
   payload.back = await textFor(page, "back");
   payload.submit = await textFor(page, "submit");
   payload.languages = await visibleLanguages(page);
+  payload.footer = await page.locator("#devsso-footer").innerText().then((text) => text.replace(/\s+/g, " ").trim());
+  payload.visibleThemeToggleCount = await visibleThemeToggleCount(page);
   await page.screenshot({ path: payload.screenshot, fullPage: true });
 }
 
@@ -101,7 +103,7 @@ function selectorMap() {
     heading: ["h1", "main h1", "form h1"],
     description: ["p", "main p"],
     label: ["label", "main label"],
-    register: ["text=Buat akun baru", "text=Create new account"],
+    register: ["text=Daftar Sekarang", "text=Register Now"],
     back: ["button:has-text(\"Kembali\")", "button:has-text(\"Back\")"],
     submit: ["button:has-text(\"Lanjutkan\")", "button:has-text(\"Continue\")"],
   };
@@ -110,6 +112,18 @@ function selectorMap() {
 async function visibleLanguages(page) {
   const text = await page.locator("body").innerText();
   return knownLanguages().filter((label) => text.includes(label));
+}
+
+async function visibleThemeToggleCount(page) {
+  return await page.evaluate(() => {
+    return [...document.querySelectorAll("button")].filter((button) => {
+      const rect = button.getBoundingClientRect();
+      const style = getComputedStyle(button);
+      const isVisible = rect.width > 0 && rect.height > 0 && style.display !== "none" && style.visibility !== "hidden";
+      const label = `${button.id} ${button.getAttribute("aria-label") || ""} ${button.getAttribute("title") || ""}`;
+      return isVisible && /devsso-theme-toggle|theme|dark|light/i.test(label);
+    }).length;
+  });
 }
 
 function knownLanguages() {
@@ -147,6 +161,8 @@ function assertContract(locale, payload) {
   assertEqual(`${locale}.back`, payload.back, expected.back);
   assertEqual(`${locale}.submit`, payload.submit, expected.submit);
   assertArray(`${locale}.languages`, payload.languages, expected.languages);
+  assertEqual(`${locale}.footer`, payload.footer, "© 2026 Dev-SSO . Terms . Privacy . Docs");
+  assertEqual(`${locale}.visibleThemeToggleCount`, payload.visibleThemeToggleCount, 1);
   assertArray(`${locale}.consoleErrors`, payload.consoleErrors, []);
   assertArray(`${locale}.pageErrors`, payload.pageErrors, []);
 }
@@ -185,6 +201,8 @@ function createPayload(locale) {
     back: "",
     submit: "",
     languages: [],
+    footer: "",
+    visibleThemeToggleCount: 0,
     consoleErrors: [],
     pageErrors: [],
     screenshot: screenshotPath(locale),

@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { Layers } from 'lucide-vue-next'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import ThemeToggle from '@/components/ThemeToggle.vue'
+import { identityActionHref } from '@parent-ui/auth-shell.mjs'
+import AuthShell from '@/components/auth/AuthShell.vue'
 
 const route = useRoute()
 const email = ref('')
 const loading = ref(false)
+let loadingResetTimer: number | undefined
 
 const returnTo = computed(() => {
   const value = route.query.return_to
@@ -21,77 +22,85 @@ function submit(): void {
   loading.value = true
   const params = new URLSearchParams({ return_to: returnTo.value })
   params.set('login_hint', email.value.trim())
-  window.location.assign(`/auth/login?${params.toString()}`)
+  const target = `/auth/login?${params.toString()}`
+  clearLoadingResetTimer()
+  loadingResetTimer = window.setTimeout(resetLoading, 8000)
+  window.location.assign(target)
 }
 
-function identityActionHref(path: string, value: string): string {
-  const trimmed = value.trim()
-  if (!trimmed) return path
-
-  const params = new URLSearchParams({ login_hint: trimmed })
-  return `${path}?${params.toString()}`
+function resetLoading(): void {
+  loading.value = false
+  clearLoadingResetTimer()
 }
+
+function clearLoadingResetTimer(): void {
+  if (loadingResetTimer !== undefined) {
+    window.clearTimeout(loadingResetTimer)
+    loadingResetTimer = undefined
+  }
+}
+
+function resetLoadingAfterIdentityReturn(): void {
+  resetLoading()
+}
+
+function resetLoadingWhenVisible(): void {
+  if (document.visibilityState === 'visible') {
+    resetLoading()
+  }
+}
+
+onMounted(() => {
+  resetLoading()
+  window.addEventListener('pageshow', resetLoadingAfterIdentityReturn)
+  window.addEventListener('focus', resetLoadingAfterIdentityReturn)
+  document.addEventListener('visibilitychange', resetLoadingWhenVisible)
+})
+
+onBeforeUnmount(() => {
+  clearLoadingResetTimer()
+  window.removeEventListener('pageshow', resetLoadingAfterIdentityReturn)
+  window.removeEventListener('focus', resetLoadingAfterIdentityReturn)
+  document.removeEventListener('visibilitychange', resetLoadingWhenVisible)
+})
 </script>
 
 <template>
-  <section class="legacy-login" aria-labelledby="login-title">
-    <div class="theme-toggle-anchor">
-      <ThemeToggle />
-    </div>
+  <AuthShell labelledby="login-title">
+    <form class="signin-card" @submit.prevent="submit">
+      <h1 id="login-title">Masuk</h1>
+      <p>Masukkan email yang terdaftar untuk melanjutkan.</p>
 
-    <div class="legacy-login__frame">
-      <div class="legacy-login__header">
-        <div class="legacy-login__mark" aria-hidden="true">
-          <Layers :size="20" stroke-width="2.2" />
-        </div>
-        <p>Dev-SSO</p>
+      <div class="field-group">
+        <label for="login-email">Email <span aria-hidden="true">*</span></label>
+        <input
+          id="login-email"
+          v-model="email"
+          name="email"
+          type="email"
+          autocomplete="username"
+          autofocus
+          required
+          placeholder="user@company.com"
+          :disabled="loading"
+        />
       </div>
 
-      <form class="signin-card" @submit.prevent="submit">
-        <h1 id="login-title">Masuk</h1>
-        <p>Masukkan email yang terdaftar untuk melanjutkan.</p>
-
-        <div class="field-group">
-          <label for="login-email">Email <span aria-hidden="true">*</span></label>
-          <input
-            id="login-email"
-            v-model="email"
-            name="email"
-            type="email"
-            autocomplete="username"
-            autofocus
-            required
-            placeholder="user@company.com"
-            :disabled="loading"
-          />
-        </div>
-
-        <div class="signin-actions">
-          <a :href="passwordResetHref">Lupa kata sandi?</a>
-          <button class="signin-submit" type="submit" :disabled="loading || !email.trim()">
-            <span v-if="loading" class="loading-inline">
-              <span class="spinner" aria-hidden="true" />
-              Loading...
-            </span>
-            <span v-else>Lanjutkan</span>
-          </button>
-        </div>
-      </form>
-
-      <div class="register-card">
-        Belum memiliki akun?
-        <a :href="registerHref">Daftar Sekarang</a>
+      <div class="signin-actions">
+        <a :href="passwordResetHref">Lupa kata sandi?</a>
+        <button class="signin-submit" type="submit" :disabled="loading || !email.trim()">
+          <span v-if="loading" class="loading-inline">
+            <span class="spinner" aria-hidden="true" />
+            Loading...
+          </span>
+          <span v-else>Lanjutkan</span>
+        </button>
       </div>
-    </div>
+    </form>
 
-    <footer class="auth-footer" aria-label="Legal links">
-      <span>&copy; 2026 Dev-SSO</span>
-      <span aria-hidden="true">.</span>
-      <a href="#">Terms</a>
-      <span aria-hidden="true">.</span>
-      <a href="#">Privacy</a>
-      <span aria-hidden="true">.</span>
-      <a href="#">Docs</a>
-    </footer>
-  </section>
+    <div class="register-card">
+      Belum memiliki akun?
+      <a :href="registerHref">Daftar Sekarang</a>
+    </div>
+  </AuthShell>
 </template>

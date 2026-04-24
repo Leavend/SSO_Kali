@@ -1,12 +1,13 @@
 FROM node:22-alpine AS deps
 WORKDIR /app
-COPY package.json package-lock.json ./
+COPY services/sso-frontend/package.json services/sso-frontend/package-lock.json ./
 RUN npm ci --ignore-scripts
 
 FROM node:22-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+COPY services/sso-frontend/ .
+COPY packages/dev-sso-parent-ui/ /packages/dev-sso-parent-ui/
 ARG VITE_SSO_BASE_URL
 ARG VITE_ADMIN_BASE_URL
 ARG VITE_CLIENT_ID

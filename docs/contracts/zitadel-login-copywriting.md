@@ -12,8 +12,8 @@
 
 | Scenario | Indonesian | English |
 | --- | --- | --- |
-| Login title | `Masuk ke Dev-SSO` | `Sign in to Dev-SSO` |
-| Login description | `Gunakan akun Anda untuk masuk dengan aman.` | `Use your account to sign in securely.` |
+| Login title | `Masuk` | `Sign in` |
+| Login description | `Masukkan email yang terdaftar untuk melanjutkan.` | `Enter the registered email to continue.` |
 | Register title | `Buat akun` | `Create account` |
 | Register description | `Buat akun Dev-SSO Anda.` | `Create your Dev-SSO account.` |
 | Password setup title | `Atur kata sandi` | `Set password` |
@@ -27,7 +27,7 @@
 | --- | --- | --- |
 | Continue | `Lanjutkan` | `Continue` |
 | Back | `Kembali` | `Back` |
-| Register | `Buat akun baru` | `Create new account` |
+| Register | `Daftar Sekarang` | `Register Now` |
 | Sign in | `Masuk` | `Sign in` |
 | Reset password | `Atur ulang kata sandi` | `Reset password` |
 | Allow | `Izinkan` | `Allow` |
@@ -37,7 +37,7 @@
 
 | Field | Indonesian | English |
 | --- | --- | --- |
-| Login name | `Email atau username` | `Email or username` |
+| Login name | `Email` | `Email` |
 | First name | `Nama depan` | `First name` |
 | Last name | `Nama belakang` | `Last name` |
 | Password | `Kata sandi` | `Password` |

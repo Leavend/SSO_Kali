@@ -3,13 +3,14 @@
  * Injects the Dev-SSO theme toggle button (sun/moon) into the ZITADEL login
  * pages by appending a self-executing <script> block to EVERY .html file in
  * the Next.js build output. The injected script:
- * 1. Creates a fixed-position toggle button at bottom-right
- * 2. Reads/writes the 'sso-theme' localStorage key (same as SSO frontend)
- * 3. Toggles the `dark` class on <html> (which ZITADEL's v2 login uses)
- * 4. Uses the exact same sun/moon SVG icons as ThemeToggle.tsx
+ * 1. Creates one parent Dev-SSO toggle button at bottom-right
+ * 2. Removes/hides ZITADEL's native two-button light/dark switch
+ * 3. Toggles the `dark` class and `data-theme` attribute on <html>
+ * 4. Injects the parent Dev-SSO footer from the shared UI contract
  */
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { AUTH_SHELL, renderFooterHtml, themeIconSvg } from "../../packages/dev-sso-parent-ui/auth-shell.mjs";
 
 const root = process.argv[2];
 const marker = "<!-- Dev-SSO Toggle -->";
@@ -55,62 +56,117 @@ function patchFile(location) {
 }
 
 function buildToggleScript() {
-  // This is a self-executing function that will be appended to the JS bundle.
-  // It waits for DOM ready, then injects our custom toggle.
+  const runtimeConfig = {
+    attr: AUTH_SHELL.theme.attribute,
+    darkClass: AUTH_SHELL.theme.darkClass,
+    defaultTheme: AUTH_SHELL.theme.defaultTheme,
+    footerHtml: renderFooterHtml(),
+    footerId: AUTH_SHELL.footer.id,
+    lightLabel: AUTH_SHELL.theme.lightLabel,
+    darkLabel: AUTH_SHELL.theme.darkLabel,
+    moonSvg: themeIconSvg("light"),
+    sunSvg: themeIconSvg("dark"),
+    toggleId: AUTH_SHELL.theme.toggleId,
+  };
+
   return `;(function(){
 if(typeof window==="undefined"||window.__devssoToggleInjected)return;
 window.__devssoToggleInjected=true;
 
-var STORAGE_KEY="sso-theme";
+var CONFIG=${JSON.stringify(runtimeConfig)};
+var btn=null;
+var observer=null;
 
 function getTheme(){
-  try{var t=localStorage.getItem(STORAGE_KEY);if(t==="light"||t==="dark")return t;}catch(e){}
-  return "light";
+  if(document.documentElement.classList.contains(CONFIG.darkClass))return "dark";
+  return document.documentElement.getAttribute(CONFIG.attr)==="dark"?"dark":CONFIG.defaultTheme;
 }
 
 function applyTheme(t){
-  document.documentElement.classList.toggle("dark",t==="dark");
-  document.documentElement.setAttribute("data-theme",t);
-  try{localStorage.setItem(STORAGE_KEY,t);}catch(e){}
+  t=t==="dark"?"dark":"light";
+  document.documentElement.classList.toggle(CONFIG.darkClass,t==="dark");
+  document.documentElement.setAttribute(CONFIG.attr,t);
   updateIcon(t);
 }
 
-var sunSVG='<svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd"/></svg>';
-var moonSVG='<svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/></svg>';
-
-var btn=null;
-
 function updateIcon(t){
   if(!btn)return;
-  btn.innerHTML=t==="dark"?sunSVG:moonSVG;
-  btn.setAttribute("aria-label",t==="dark"?"Switch to light theme":"Switch to dark theme");
+  btn.innerHTML=t==="dark"?CONFIG.sunSvg:CONFIG.moonSvg;
+  btn.setAttribute("aria-label",t==="dark"?CONFIG.lightLabel:CONFIG.darkLabel);
 }
 
-function createToggle(){
-  // --- Footer (identical to SignInForm.tsx footer) ---
-  if(!document.getElementById("devsso-footer")){
-    var footer=document.createElement("div");
-    footer.id="devsso-footer";
-    footer.innerHTML='<span>\\u00A9 2026 Dev-SSO</span><span>\\u00B7</span><a href="#">Terms</a><span>\\u00B7</span><a href="#">Privacy</a><span>\\u00B7</span><a href="#">Docs</a>';
-    document.body.appendChild(footer);
+function upsertFooter(){
+  var existing=document.getElementById(CONFIG.footerId);
+  if(existing){
+    existing.outerHTML=CONFIG.footerHtml;
+    return;
   }
+  var host=document.createElement("div");
+  host.innerHTML=CONFIG.footerHtml;
+  if(host.firstElementChild)document.body.appendChild(host.firstElementChild);
+}
 
-  // --- Toggle button (identical to ThemeToggle.tsx) ---
-  btn=document.createElement("button");
-  btn.type="button";
-  btn.id="devsso-theme-toggle";
-  btn.addEventListener("click",function(){
+function upsertToggle(){
+  btn=document.getElementById(CONFIG.toggleId);
+  if(!btn){
+    btn=document.createElement("button");
+    btn.type="button";
+    btn.id=CONFIG.toggleId;
+    document.body.appendChild(btn);
+  }
+  btn.className="theme-toggle";
+  btn.setAttribute("data-devsso-parent-ui","theme-toggle");
+  btn.onclick=function(){
     var current=getTheme();
     applyTheme(current==="dark"?"light":"dark");
-  });
-  document.body.appendChild(btn);
+  };
   applyTheme(getTheme());
 }
 
+function hideNativeThemeSwitches(){
+  var buttons=Array.prototype.slice.call(document.querySelectorAll("button"));
+  buttons.forEach(function(button){
+    if(button.id===CONFIG.toggleId)return;
+    var label=(button.getAttribute("aria-label")||button.getAttribute("title")||"").toLowerCase();
+    var className=String(button.className||"").toLowerCase();
+    var text=(button.textContent||"").replace(/\\s+/g,"").toLowerCase();
+    var hasThemeLabel=/dark|light|theme|tema|mode|appearance/.test(label);
+    var svgOnly=!!button.querySelector("svg")&&text.length===0;
+    var parent=button.parentElement;
+    var siblingButtons=parent?parent.querySelectorAll("button").length:0;
+    var rect=button.getBoundingClientRect();
+    var nearBottomRight=rect.right>window.innerWidth-280&&rect.bottom>window.innerHeight-280;
+    var classLooksNative=/w-8|h-8|space-x-1|rounded-full/.test(className);
+
+    if(hasThemeLabel||(svgOnly&&siblingButtons>1&&nearBottomRight)||classLooksNative&&siblingButtons>1&&nearBottomRight){
+      var target=siblingButtons>1&&parent&&!parent.contains(btn)?parent:button;
+      target.setAttribute("data-devsso-native-theme-hidden","true");
+      target.style.setProperty("display","none","important");
+    }
+  });
+}
+
+function startObserver(){
+  if(observer||!document.body||typeof MutationObserver==="undefined")return;
+  observer=new MutationObserver(function(){
+    hideNativeThemeSwitches();
+  });
+  observer.observe(document.body,{childList:true,subtree:true});
+}
+
+function createParentChrome(){
+  upsertFooter();
+  upsertToggle();
+  hideNativeThemeSwitches();
+  startObserver();
+  window.setTimeout(hideNativeThemeSwitches,100);
+  window.setTimeout(hideNativeThemeSwitches,600);
+}
+
 if(document.readyState==="loading"){
-  document.addEventListener("DOMContentLoaded",createToggle);
+  document.addEventListener("DOMContentLoaded",createParentChrome);
 }else{
-  createToggle();
+  createParentChrome();
 }
 })();`;
 }

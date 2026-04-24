@@ -11,6 +11,7 @@ on:
       - "charts/**"
       - "docs/runbooks/**"
       - "docs/generated/**"
+      - "packages/dev-sso-parent-ui/**"
       - "services/sso-frontend/**"
   push:
     branches: [main]
@@ -22,6 +23,7 @@ on:
       - "charts/**"
       - "docs/runbooks/**"
       - "docs/generated/**"
+      - "packages/dev-sso-parent-ui/**"
       - "services/sso-frontend/**"
   workflow_dispatch:
 

@@ -1,5 +1,5 @@
 import { mount } from '@vue/test-utils'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import LoginView from '../web/views/LoginView.vue'
 
 vi.mock('vue-router', () => ({
@@ -7,6 +7,10 @@ vi.mock('vue-router', () => ({
 }))
 
 describe('LoginView', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
   it('keeps the legacy Next login experience copy and actions in Vue', async () => {
     const wrapper = mount(LoginView)
 
@@ -25,5 +29,23 @@ describe('LoginView', () => {
     expect(wrapper.find('a[href^="/auth/register"]').attributes('href')).toBe(
       '/auth/register?login_hint=admin%40example.com',
     )
+    expect(wrapper.find('#devsso-theme-toggle').exists()).toBe(true)
+    expect(wrapper.find('footer.auth-footer').text()).toContain('© 2026 Dev-SSO')
+    expect(wrapper.find('footer.auth-footer').text()).toContain('Terms')
+  })
+
+  it('resets the submit loading state when the browser returns from identity UI', async () => {
+    const wrapper = mount(LoginView)
+
+    await wrapper.find('input[type="email"]').setValue('admin@example.com')
+    await wrapper.find('form').trigger('submit')
+
+    expect(wrapper.text()).toContain('Loading...')
+
+    window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }))
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.text()).toContain('Lanjutkan')
+    expect(wrapper.text()).not.toContain('Loading...')
   })
 })

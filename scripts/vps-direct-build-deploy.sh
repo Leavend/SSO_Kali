@@ -85,7 +85,7 @@ rollback_compose() {
 
 desired_scale() {
   case "$1" in
-    sso-frontend|sso-admin-vue) printf '%s' "$MIN_REPLICAS" ;;
+    sso-frontend|sso-admin-vue|zitadel-login) printf '%s' "$MIN_REPLICAS" ;;
     *) printf '1' ;;
   esac
 }
@@ -174,10 +174,11 @@ build_service_image() {
       log "  building $svc as $image"
       docker build --pull \
         -t "$image" \
+        -f "$PROJECT_DIR/services/sso-frontend/Dockerfile" \
         --build-arg "VITE_SSO_BASE_URL=$(env_value SSO_BASE_URL)" \
         --build-arg "VITE_ADMIN_BASE_URL=$(env_value ADMIN_PANEL_BASE_URL)" \
         --build-arg "VITE_CLIENT_ID=$(env_value ADMIN_PANEL_CLIENT_ID sso-admin-panel)" \
-        "$PROJECT_DIR/services/sso-frontend" 2>&1 | tee -a "$DEPLOY_LOG"
+        "$PROJECT_DIR" 2>&1 | tee -a "$DEPLOY_LOG"
       ;;
     sso-admin-vue)
       log "  building $svc as $image"
@@ -188,6 +189,14 @@ build_service_image() {
         --build-arg "VITE_SSO_BASE_URL=$(env_value SSO_BASE_URL)" \
         --build-arg "VITE_ZITADEL_ISSUER_URL=$(env_value ZITADEL_ISSUER)" \
         "$PROJECT_DIR/services/sso-admin-vue" 2>&1 | tee -a "$DEPLOY_LOG"
+      ;;
+    zitadel-login)
+      log "  building $svc as $image"
+      docker build --pull \
+        -t "$image" \
+        -f "$PROJECT_DIR/infra/zitadel-login/Dockerfile" \
+        --build-arg "ZITADEL_VERSION=$(env_value ZITADEL_VERSION v4.11.0)" \
+        "$PROJECT_DIR" 2>&1 | tee -a "$DEPLOY_LOG"
       ;;
     *)
       fail "Direct docker build is not mapped for service: $svc"
@@ -261,6 +270,7 @@ for svc in "${SERVICES[@]}"; do
 done
 
 SSO_DOMAIN=$(env_value SSO_DOMAIN)
+ZITADEL_DOMAIN=$(env_value ZITADEL_DOMAIN)
 SSO_ADMIN_VUE_BASE_PATH=$(env_value SSO_ADMIN_VUE_BASE_PATH /__vue-preview)
 
 log "Running smoke checks"
@@ -268,6 +278,9 @@ smoke_check "SSO Discovery" "https://${SSO_DOMAIN}/.well-known/openid-configurat
 smoke_check "Admin Panel" "https://${SSO_DOMAIN}/" "^200$" "$SSO_DOMAIN" || rollback_once "Smoke check failed: Admin Panel"
 if printf '%s\n' "${SERVICES[@]}" | grep -Fxq "sso-admin-vue"; then
   smoke_check "Vue Admin Canary" "https://${SSO_DOMAIN}${SSO_ADMIN_VUE_BASE_PATH}/healthz" "^200$" "$SSO_DOMAIN" || rollback_once "Smoke check failed: Vue Admin Canary"
+fi
+if printf '%s\n' "${SERVICES[@]}" | grep -Fxq "zitadel-login"; then
+  smoke_check "Zitadel Login UI" "https://${ZITADEL_DOMAIN}/ui/v2/login" "^200$" "$ZITADEL_DOMAIN" || rollback_once "Smoke check failed: Zitadel Login UI"
 fi
 
 echo "$TAG" > /tmp/.sso-direct-deploy-tag

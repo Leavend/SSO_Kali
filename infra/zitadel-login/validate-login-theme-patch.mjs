@@ -15,10 +15,13 @@ try {
   const patched = readFileSync(fixture, "utf8");
   assertIncludes(patched, "Dev-SSO Theme Overrides");
   assertIncludes(patched, "html.dark");
-  assertIncludes(patched, '--devsso-primary: #4f46e5;');
-  assertIncludes(patched, '--devsso-accent: #14b8a6;');
+  assertIncludes(patched, "--devsso-primary: #2563eb;");
+  assertIncludes(patched, "--devsso-primary-soft: #eaf1fd;");
+  assertIncludes(patched, "--devsso-font: Inter, ui-sans-serif");
   assertIncludes(patched, 'button[data-testid="submit-button"]');
-  assertIncludes(patched, 'button.w-8.h-8');
+  assertIncludes(patched, 'data-devsso-native-theme-hidden="true"');
+  assertIncludes(patched, "#devsso-theme-toggle");
+  assertIncludes(patched, "#devsso-footer");
   assertIncludes(patched, 'div[class*="max-w-[440px]"] > div');
   assertIncludes(patched, '@media (max-width: 640px)');
   console.log("login theme patch validation passed");
