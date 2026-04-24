@@ -216,7 +216,7 @@ require_text ".github/workflows/ci.yml" 'VITE_CLIENT_ID=' "CI image build passes
 require_text "scripts/vps-direct-build-deploy.sh" 'VITE_SSO_BASE_URL' "Direct deploy passes Vue SSO base URL"
 require_text "scripts/vps-direct-build-deploy.sh" 'VITE_ADMIN_BASE_URL' "Direct deploy passes Vue admin base URL"
 require_text "scripts/vps-direct-build-deploy.sh" 'VITE_CLIENT_ID' "Direct deploy passes Vue client ID"
-require_text "scripts/vps-direct-build-deploy.sh" 'Zitadel Login UI' "Direct deploy smokes hosted ZITADEL login UI when parent UI changes"
+require_text "scripts/vps-direct-build-deploy.sh" 'Zitadel Login Health' "Direct deploy smokes hosted ZITADEL login health when parent UI changes"
 require_text "scripts/vps-direct-build-deploy.sh" 'ROLLBACK_TAG="rollback-\$\{TAG\}"' "Direct deploy creates rollback image tag"
 require_text "scripts/vps-direct-build-deploy.sh" 'wait_healthy "\$svc" 180' "Direct deploy health-gates runtime update"
 require_text "scripts/vps-direct-build-deploy.sh" '--resolve "\$host:443:127\.0\.0\.1"' "Direct deploy smokes HTTPS through local reverse proxy"

@@ -144,7 +144,7 @@ require_text "scripts/vps-direct-build-deploy.sh" 'wait_healthy "\$svc" 180' "Di
 require_text "scripts/vps-direct-build-deploy.sh" '--resolve "\$host:443:127\.0\.0\.1"' "Direct VPS deploy smokes HTTPS through the local reverse proxy"
 require_text "scripts/vps-direct-build-deploy.sh" 'Vue Admin Canary' "Direct VPS deploy smokes Vue canary"
 require_text "scripts/vps-direct-build-deploy.sh" 'ZITADEL_VERSION' "Direct VPS deploy can rebuild the hosted ZITADEL login image"
-require_text "scripts/vps-direct-build-deploy.sh" 'Zitadel Login UI' "Direct VPS deploy smokes hosted ZITADEL login UI"
+require_text "scripts/vps-direct-build-deploy.sh" 'Zitadel Login Health' "Direct VPS deploy smokes hosted ZITADEL login health"
 
 require_text "infra/terraform/environments/dev-sso/main.tf" 'zero_downtime_release_contract' "Terraform catalog captures zero-downtime release contract"
 require_text "infra/terraform/environments/dev-sso/variables.tf" 'required_runtime_services' "Terraform catalog captures required runtime services"

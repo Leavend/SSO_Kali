@@ -280,7 +280,7 @@ if printf '%s\n' "${SERVICES[@]}" | grep -Fxq "sso-admin-vue"; then
   smoke_check "Vue Admin Canary" "https://${SSO_DOMAIN}${SSO_ADMIN_VUE_BASE_PATH}/healthz" "^200$" "$SSO_DOMAIN" || rollback_once "Smoke check failed: Vue Admin Canary"
 fi
 if printf '%s\n' "${SERVICES[@]}" | grep -Fxq "zitadel-login"; then
-  smoke_check "Zitadel Login UI" "https://${ZITADEL_DOMAIN}/ui/v2/login" "^200$" "$ZITADEL_DOMAIN" || rollback_once "Smoke check failed: Zitadel Login UI"
+  smoke_check "Zitadel Login Health" "https://${ZITADEL_DOMAIN}/ui/v2/login/healthy" "^200$" "$ZITADEL_DOMAIN" || rollback_once "Smoke check failed: Zitadel Login Health"
 fi
 
 echo "$TAG" > /tmp/.sso-direct-deploy-tag
