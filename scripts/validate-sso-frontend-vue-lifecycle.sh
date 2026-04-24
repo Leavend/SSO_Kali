@@ -219,6 +219,7 @@ require_text "scripts/vps-direct-build-deploy.sh" 'VITE_CLIENT_ID' "Direct deplo
 require_text "scripts/vps-direct-build-deploy.sh" 'Zitadel Login Health' "Direct deploy smokes hosted ZITADEL login health when parent UI changes"
 require_text "scripts/vps-direct-build-deploy.sh" 'ROLLBACK_TAG="rollback-\$\{TAG\}"' "Direct deploy creates rollback image tag"
 require_text "scripts/vps-direct-build-deploy.sh" 'prewarm_green_replicas' "Direct deploy prewarms green replicas before Compose recreate"
+require_text "scripts/vps-direct-build-deploy.sh" 'GREEN_DRAIN_SECONDS' "Direct deploy drains green replicas before cleanup"
 require_text "scripts/vps-direct-build-deploy.sh" 'wait_healthy "\$svc" 180' "Direct deploy health-gates runtime update"
 require_text "scripts/vps-direct-build-deploy.sh" '--resolve "\$host:443:127\.0\.0\.1"' "Direct deploy smokes HTTPS through local reverse proxy"
 

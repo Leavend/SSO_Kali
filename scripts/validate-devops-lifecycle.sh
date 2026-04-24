@@ -147,6 +147,7 @@ require_text "scripts/vps-direct-build-deploy.sh" 'ZITADEL_VERSION' "Direct VPS 
 require_text "scripts/vps-direct-build-deploy.sh" 'Zitadel Login Health' "Direct VPS deploy smokes hosted ZITADEL login health"
 require_text "scripts/vps-direct-build-deploy.sh" 'prewarm_green_replicas' "Direct VPS deploy prewarms green replicas before Compose recreate"
 require_text "scripts/vps-direct-build-deploy.sh" 'cleanup_green_for_service' "Direct VPS deploy removes temporary green replicas after health gate"
+require_text "scripts/vps-direct-build-deploy.sh" 'GREEN_DRAIN_SECONDS' "Direct VPS deploy drains temporary green replicas before cleanup"
 
 require_text "infra/terraform/environments/dev-sso/main.tf" 'zero_downtime_release_contract' "Terraform catalog captures zero-downtime release contract"
 require_text "infra/terraform/environments/dev-sso/variables.tf" 'required_runtime_services' "Terraform catalog captures required runtime services"
