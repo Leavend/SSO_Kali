@@ -24,12 +24,12 @@
 
 1. Build immutable image tag for `sso-frontend`.
 2. Retag the currently running image to `rollback-${TAG}` before runtime change.
-3. Update only the touched frontend service.
-4. Wait until the container healthcheck passes.
+3. Update only the touched frontend service while preserving two frontend replicas.
+4. Wait until every expected replica healthcheck passes.
 5. Smoke HTTPS through local Traefik using `--resolve`.
 6. Keep the prior image tag until the post-deploy window closes.
 
-On the current single-container Compose deployment, this is health-gated low-downtime deployment. Strict zero downtime requires either parallel blue/green services behind Traefik or two replicas during promotion.
+The live VPS has been lifted from single-replica frontend Compose to two healthy replicas for `sso-frontend` and `sso-admin-vue`. The direct deploy script now keeps that scale during update and rollback. The first single-replica recreate produced one observed non-200 root sample, so strict zero downtime for future promotions must be proven with a multi-replica or blue/green rollout monitor before being treated as production-grade.
 
 ## Rollback
 
@@ -41,6 +41,12 @@ scripts/vps-rollback.sh <target-tag>
 ```
 
 The direct deploy script now passes `VITE_SSO_BASE_URL`, `VITE_ADMIN_BASE_URL`, and `VITE_CLIENT_ID` for the rebuilt Vue frontend image.
+
+Latest VPS deployment:
+
+- Active tag: `direct-20260424204601-40a46b8`
+- Rollback tag: `rollback-direct-20260424204601-40a46b8`
+- Live services: two healthy `sso-frontend` replicas and two healthy `sso-admin-vue` replicas
 
 ## Validation Evidence
 
