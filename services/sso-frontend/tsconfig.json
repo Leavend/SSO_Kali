@@ -1,47 +1,8 @@
 {
-  "compilerOptions": {
-    "target": "ES2017",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
-    "allowJs": false,
-    "skipLibCheck": false,
-    "strict": true,
-    "exactOptionalPropertyTypes": true,
-    "noEmit": true,
-    "noFallthroughCasesInSwitch": true,
-    "noUncheckedIndexedAccess": true,
-    "esModuleInterop": true,
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "jsx": "react-jsx",
-    "incremental": true,
-    "forceConsistentCasingInFileNames": true,
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
-    "paths": {
-      "@/*": [
-        "./src/*"
-      ]
-    }
-  },
-  "include": [
-    "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
-    ".next/types/**/*.ts",
-    "**/*.mts",
-    ".next/dev/types/**/*.ts"
-  ],
-  "exclude": [
-    "node_modules",
-    ".next/dev/**"
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.server.json" },
+    { "path": "./tsconfig.vitest.json" }
   ]
 }

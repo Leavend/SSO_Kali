@@ -122,7 +122,17 @@ jobs:
       - name: Production build
         run: npm run build
         env:
+          VITE_SSO_BASE_URL: https://placeholder.local
+          VITE_ADMIN_BASE_URL: https://placeholder.local
+          VITE_CLIENT_ID: sso-admin-panel
           NEXT_PUBLIC_SSO_BASE_URL: https://placeholder.local
+          NEXT_PUBLIC_SSO_ISSUER: https://placeholder.local
+          NEXT_PUBLIC_AUTHORIZE_URL: https://placeholder.local/authorize
+          NEXT_PUBLIC_CALLBACK_URL: https://placeholder.local/auth/callback
+          NEXT_PUBLIC_CLIENT_ID: prototype-app-a
+
+      - name: Production smoke test
+        run: npm run --if-present smoke
 
   # ─── Job 3: Build & Push Docker Images ─────────────────────────────────────
   build-images:
@@ -149,7 +159,9 @@ jobs:
             context: ./services/sso-frontend
             dockerfile: ./services/sso-frontend/Dockerfile
             build-args: |
-              NEXT_PUBLIC_SSO_BASE_URL=${{ vars.SSO_BASE_URL || 'https://dev-sso.timeh.my.id' }}
+              VITE_SSO_BASE_URL=${{ vars.SSO_BASE_URL || 'https://dev-sso.timeh.my.id' }}
+              VITE_ADMIN_BASE_URL=${{ vars.ADMIN_PANEL_BASE_URL || vars.SSO_BASE_URL || 'https://dev-sso.timeh.my.id' }}
+              VITE_CLIENT_ID=${{ vars.ADMIN_PANEL_CLIENT_ID || 'sso-admin-panel' }}
           - name: sso-admin-vue
             context: ./services/sso-admin-vue
             dockerfile: ./services/sso-admin-vue/Dockerfile

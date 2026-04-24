@@ -175,7 +175,7 @@ has_text "docker-compose.dev.yml" 'image: sso-dev-sso-admin-vue:${APP_IMAGE_TAG:
 has_text "docker-compose.dev.yml" 'traefik.http.middlewares.sso-admin-vue-strip.stripprefix.prefixes=${SSO_ADMIN_VUE_BASE_PATH:-/__vue-preview}' "Vue canary strips preview prefix before static serving"
 has_text "docker-compose.dev.yml" 'traefik.http.routers.sso-admin-vue.priority=175' "Vue canary priority stays below backend API routes"
 has_text "docker-compose.dev.yml" 'traefik.http.routers.sso-backend.priority=200' "Backend API/OIDC router remains highest priority"
-has_text "docker-compose.dev.yml" 'traefik.http.routers.sso-frontend.priority=50' "Next.js frontend remains root catch-all during canary"
+has_text "docker-compose.dev.yml" 'traefik.http.routers.sso-frontend.priority=50' "Primary SSO frontend remains root catch-all during canary"
 
 has_text "scripts/deploy.sh" 'admin-vue-only' "Top-level deploy supports admin-vue-only mode"
 has_text "deploy-remote.sh" 'admin-vue-only) bring_up_admin_vue' "Remote deploy can update Vue canary only"

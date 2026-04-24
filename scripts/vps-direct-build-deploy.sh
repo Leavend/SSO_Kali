@@ -151,7 +151,9 @@ build_service_image() {
       log "  building $svc as $image"
       docker build --pull \
         -t "$image" \
-        --build-arg "NEXT_PUBLIC_SSO_BASE_URL=$(env_value SSO_BASE_URL)" \
+        --build-arg "VITE_SSO_BASE_URL=$(env_value SSO_BASE_URL)" \
+        --build-arg "VITE_ADMIN_BASE_URL=$(env_value ADMIN_PANEL_BASE_URL)" \
+        --build-arg "VITE_CLIENT_ID=$(env_value ADMIN_PANEL_CLIENT_ID sso-admin-panel)" \
         "$PROJECT_DIR/services/sso-frontend" 2>&1 | tee -a "$DEPLOY_LOG"
       ;;
     sso-admin-vue)
