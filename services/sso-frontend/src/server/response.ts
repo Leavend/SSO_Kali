@@ -31,13 +31,18 @@ export function text(status: number, body: string, headers: Record<string, Heade
   }
 }
 
-export function redirect(location: string, cookies: readonly string[] = []): AppResponse {
+export function redirect(
+  location: string,
+  cookies: readonly string[] = [],
+  headers: Record<string, HeaderValue> = {},
+): AppResponse {
   return {
     status: 302,
     headers: {
       location,
       'cache-control': 'no-store, no-cache, private, max-age=0',
       ...(cookies.length > 0 ? { 'set-cookie': cookies } : {}),
+      ...headers,
     },
   }
 }

@@ -10,6 +10,7 @@ export type AdminConfig = {
   readonly redirectUri: string
   readonly adminApiUrl: string
   readonly appBaseUrl: string
+  readonly identityUiBaseUrl: string
   readonly port: number
 }
 
@@ -31,6 +32,7 @@ export function getConfig(): AdminConfig {
     redirectUri: `${appBase}/auth/callback`,
     adminApiUrl: env('SSO_INTERNAL_ADMIN_API_URL') ?? `${base}/admin/api`,
     appBaseUrl: appBase,
+    identityUiBaseUrl: ensureTrailingSlash(env('SSO_IDENTITY_UI_BASE_URL') ?? `${base}/ui/v2/login/`),
     port: Number(env('PORT') ?? 3000),
   }
 }
@@ -38,4 +40,8 @@ export function getConfig(): AdminConfig {
 function env(name: string): string | undefined {
   const value = process.env[name]
   return value && value.length > 0 ? value : undefined
+}
+
+function ensureTrailingSlash(value: string): string {
+  return value.endsWith('/') ? value : `${value}/`
 }

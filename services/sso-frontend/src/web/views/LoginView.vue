@@ -1,56 +1,97 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { ArrowRight, KeyRound, ShieldCheck } from 'lucide-vue-next'
+import { Layers } from 'lucide-vue-next'
 import { useRoute } from 'vue-router'
-import { useAdminStore } from '@/stores/admin'
+import ThemeToggle from '@/components/ThemeToggle.vue'
 
 const route = useRoute()
-const admin = useAdminStore()
 const email = ref('')
+const loading = ref(false)
 
 const returnTo = computed(() => {
   const value = route.query.return_to
   return typeof value === 'string' && value.startsWith('/') && !value.startsWith('//') ? value : '/dashboard'
 })
 
+const passwordResetHref = computed(() => identityActionHref('/auth/password-reset', email.value))
+const registerHref = computed(() => identityActionHref('/auth/register', email.value))
+
 function submit(): void {
+  if (!email.value.trim()) return
+  loading.value = true
   const params = new URLSearchParams({ return_to: returnTo.value })
-  if (email.value.trim()) params.set('login_hint', email.value.trim())
+  params.set('login_hint', email.value.trim())
   window.location.assign(`/auth/login?${params.toString()}`)
+}
+
+function identityActionHref(path: string, value: string): string {
+  const trimmed = value.trim()
+  if (!trimmed) return path
+
+  const params = new URLSearchParams({ login_hint: trimmed })
+  return `${path}?${params.toString()}`
 }
 </script>
 
 <template>
-  <section class="login-layout">
-    <div class="login-copy">
-      <ShieldCheck :size="38" aria-hidden="true" />
-      <span>SSO Admin</span>
-      <h1>Secure operation console</h1>
-      <p>Vue 3 admin surface with server-side OIDC boundary, encrypted httpOnly session, and controlled admin API access.</p>
+  <section class="legacy-login" aria-labelledby="login-title">
+    <div class="theme-toggle-anchor">
+      <ThemeToggle />
     </div>
 
-    <form class="login-panel" @submit.prevent="submit">
-      <div class="login-panel__header">
-        <KeyRound :size="22" aria-hidden="true" />
-        <div>
-          <h2>Admin login</h2>
-          <p>Session broker remains on the backend.</p>
+    <div class="legacy-login__frame">
+      <div class="legacy-login__header">
+        <div class="legacy-login__mark" aria-hidden="true">
+          <Layers :size="20" stroke-width="2.2" />
         </div>
+        <p>Dev-SSO</p>
       </div>
 
-      <label>
-        Email
-        <input v-model="email" type="email" autocomplete="username" placeholder="admin@example.com" />
-      </label>
+      <form class="signin-card" @submit.prevent="submit">
+        <h1 id="login-title">Masuk</h1>
+        <p>Masukkan email yang terdaftar untuk melanjutkan.</p>
 
-      <button class="button button--primary" type="submit">
-        Continue
-        <ArrowRight :size="18" aria-hidden="true" />
-      </button>
+        <div class="field-group">
+          <label for="login-email">Email <span aria-hidden="true">*</span></label>
+          <input
+            id="login-email"
+            v-model="email"
+            name="email"
+            type="email"
+            autocomplete="username"
+            autofocus
+            required
+            placeholder="user@company.com"
+            :disabled="loading"
+          />
+        </div>
 
-      <RouterLink v-if="admin.isAuthenticated" class="button button--secondary" to="/dashboard">
-        Open dashboard
-      </RouterLink>
-    </form>
+        <div class="signin-actions">
+          <a :href="passwordResetHref">Lupa kata sandi?</a>
+          <button class="signin-submit" type="submit" :disabled="loading || !email.trim()">
+            <span v-if="loading" class="loading-inline">
+              <span class="spinner" aria-hidden="true" />
+              Loading...
+            </span>
+            <span v-else>Lanjutkan</span>
+          </button>
+        </div>
+      </form>
+
+      <div class="register-card">
+        Belum memiliki akun?
+        <a :href="registerHref">Daftar Sekarang</a>
+      </div>
+    </div>
+
+    <footer class="auth-footer" aria-label="Legal links">
+      <span>&copy; 2026 Dev-SSO</span>
+      <span aria-hidden="true">.</span>
+      <a href="#">Terms</a>
+      <span aria-hidden="true">.</span>
+      <a href="#">Privacy</a>
+      <span aria-hidden="true">.</span>
+      <a href="#">Docs</a>
+    </footer>
   </section>
 </template>

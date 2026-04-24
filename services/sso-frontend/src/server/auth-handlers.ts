@@ -63,6 +63,21 @@ export async function handleLogin(requestUrl: URL): Promise<AppResponse> {
   ])
 }
 
+export function handleIdentityUiRedirect(requestUrl: URL, relativePath: string): AppResponse {
+  const config = getConfig()
+  const target = new URL(relativePath, config.identityUiBaseUrl)
+  const loginHint = requestUrl.searchParams.get('login_hint')
+
+  if (loginHint) {
+    target.searchParams.set('login_hint', loginHint)
+  }
+
+  return redirect(target.toString(), undefined, {
+    'cache-control': 'no-store, no-cache, private, max-age=0',
+    'x-content-type-options': 'nosniff',
+  })
+}
+
 export async function handleCallback(request: IncomingMessage, requestUrl: URL): Promise<AppResponse> {
   const config = getConfig()
   const params = readCallbackParams(requestUrl)
