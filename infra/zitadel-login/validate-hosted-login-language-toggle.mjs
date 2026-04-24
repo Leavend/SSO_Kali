@@ -28,11 +28,11 @@ async function runAudit() {
     payload.initial = await readSnapshot(page);
     payload.screenshotInitial = join(outputDir, "language-initial-id.png");
     await page.screenshot({ path: payload.screenshotInitial, fullPage: true });
-    await selectLanguage(page, "English", "Sign in to Dev-SSO");
+    await selectLanguage(page, "English", "Sign in");
     payload.english = await readSnapshot(page);
     payload.screenshotEnglish = join(outputDir, "language-en.png");
     await page.screenshot({ path: payload.screenshotEnglish, fullPage: true });
-    await selectLanguage(page, "Bahasa Indonesia", "Masuk ke Dev-SSO");
+    await selectLanguage(page, "Bahasa Indonesia", "Masuk");
     payload.indonesian = await readSnapshot(page);
     payload.screenshotIndonesian = join(outputDir, "language-id.png");
     await page.screenshot({ path: payload.screenshotIndonesian, fullPage: true });
@@ -74,20 +74,20 @@ async function readSnapshot(page) {
 function assertPayload(payload) {
   assertEmpty("consoleErrors", payload.consoleErrors);
   assertEmpty("pageErrors", payload.pageErrors);
-  assertValue("initial.title", payload.initial.title, "Masuk ke Dev-SSO");
-  assertValue("english.title", payload.english.title, "Sign in to Dev-SSO");
-  assertValue("english.heading", payload.english.heading, "Sign in to Dev-SSO");
-  assertValue("english.description", payload.english.description, "Use your account to sign in securely.");
-  assertValue("english.label", payload.english.label, "Email or username");
+  assertValue("initial.title", payload.initial.title, "Masuk");
+  assertValue("english.title", payload.english.title, "Sign in");
+  assertValue("english.heading", payload.english.heading, "Sign in");
+  assertValue("english.description", payload.english.description, "Enter the registered email to continue.");
+  assertValue("english.label", payload.english.label, "Email");
   assertIncludes("english.currentLanguage", payload.english.currentLanguage, "English");
-  assertValue("indonesian.title", payload.indonesian.title, "Masuk ke Dev-SSO");
-  assertValue("indonesian.heading", payload.indonesian.heading, "Masuk ke Dev-SSO");
+  assertValue("indonesian.title", payload.indonesian.title, "Masuk");
+  assertValue("indonesian.heading", payload.indonesian.heading, "Masuk");
   assertValue(
     "indonesian.description",
     payload.indonesian.description,
-    "Gunakan akun Anda untuk masuk dengan aman.",
+    "Masukkan email yang terdaftar untuk melanjutkan.",
   );
-  assertValue("indonesian.label", payload.indonesian.label, "Email atau username");
+  assertValue("indonesian.label", payload.indonesian.label, "Email");
   assertIncludes("indonesian.currentLanguage", payload.indonesian.currentLanguage, "Bahasa Indonesia");
 }
 

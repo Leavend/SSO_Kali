@@ -421,7 +421,8 @@ services:
   sso-frontend:
     image: sso-dev-sso-frontend:${APP_IMAGE_TAG:-local}
     build:
-      context: ./services/sso-frontend
+      context: .
+      dockerfile: ./services/sso-frontend/Dockerfile
       args:
         VITE_SSO_BASE_URL: ${SSO_BASE_URL}
         VITE_ADMIN_BASE_URL: ${ADMIN_PANEL_BASE_URL}

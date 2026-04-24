@@ -27,6 +27,7 @@ COPY ./infra/zitadel-login/patch-login-toggle.mjs /tmp/patch-login-toggle.mjs
 COPY ./infra/zitadel-login/patch-login-signedin-redirect.mjs /tmp/patch-login-signedin-redirect.mjs
 COPY ./infra/zitadel-login/login-copy-catalog.mjs /tmp/login-copy-catalog.mjs
 COPY ./infra/zitadel-login/login-copy-residual.mjs /tmp/login-copy-residual.mjs
+COPY ./packages/dev-sso-parent-ui/ /packages/dev-sso-parent-ui/
 COPY ./infra/zitadel-login/assets/ /app/apps/login/public/
 
 RUN node /tmp/patch-login-locale-alias.mjs /app/apps/login/.next \

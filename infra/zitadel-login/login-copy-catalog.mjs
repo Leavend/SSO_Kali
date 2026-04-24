@@ -17,12 +17,12 @@ export const translationValueReplacements = [
 ];
 
 const indonesianExactValueReplacements = [
-  ["Login with Zitadel", "Masuk ke Dev-SSO"],
-  ["Welcome back!", "Masuk ke Dev-SSO"],
-  ["Enter your login data.", "Gunakan akun Anda untuk masuk dengan aman."],
-  ["Loginname", "Email atau username"],
-  ["Register new user", "Buat akun baru"],
-  ["Register", "Buat akun"],
+  ["Login with Zitadel", "Masuk"],
+  ["Welcome back!", "Masuk"],
+  ["Enter your login data.", "Masukkan email yang terdaftar untuk melanjutkan."],
+  ["Loginname", "Email"],
+  ["Register new user", "Daftar Sekarang"],
+  ["Register", "Daftar"],
   ["Create your ZITADEL account.", "Buat akun Dev-SSO Anda."],
   ["Create your Zitadel account.", "Buat akun Dev-SSO Anda."],
   ["Select the method you would like to authenticate", "Pilih metode masuk yang ingin digunakan"],
@@ -162,12 +162,12 @@ const indonesianExactValueReplacements = [
 ];
 
 const englishExactValueReplacements = [
-  ["Login with Zitadel", "Sign in to Dev-SSO"],
-  ["Welcome back!", "Sign in to Dev-SSO"],
-  ["Enter your login data.", "Use your account to sign in securely."],
-  ["Loginname", "Email or username"],
-  ["Register new user", "Create new account"],
-  ["Register", "Create account"],
+  ["Login with Zitadel", "Sign in"],
+  ["Welcome back!", "Sign in"],
+  ["Enter your login data.", "Enter the registered email to continue."],
+  ["Loginname", "Email"],
+  ["Register new user", "Register Now"],
+  ["Register", "Register"],
   ["Create your ZITADEL account.", "Create your Dev-SSO account."],
   ["Create your Zitadel account.", "Create your Dev-SSO account."],
   ["Select the method you would like to authenticate", "Choose the sign-in method you want to use"],

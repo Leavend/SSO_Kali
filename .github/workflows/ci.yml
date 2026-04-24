@@ -156,7 +156,7 @@ jobs:
             context: ./services/sso-backend
             dockerfile: ./services/sso-backend/Dockerfile
           - name: sso-frontend
-            context: ./services/sso-frontend
+            context: .
             dockerfile: ./services/sso-frontend/Dockerfile
             build-args: |
               VITE_SSO_BASE_URL=${{ vars.SSO_BASE_URL || 'https://dev-sso.timeh.my.id' }}

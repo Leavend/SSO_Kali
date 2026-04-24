@@ -28,20 +28,16 @@ async function runAudit() {
 
     payload.before = await readThemeSnapshot(page);
 
-    // Use our custom #devsso-theme-toggle (ZITADEL's built-in is hidden)
     const toggle = devssoToggle(page);
 
-    // Click toggle to switch theme
     await toggle.click();
     await page.waitForTimeout(400);
     payload.afterFirstClick = await readThemeSnapshot(page);
 
-    // Click again to switch back
     await toggle.click();
     await page.waitForTimeout(400);
     payload.afterSecondClick = await readThemeSnapshot(page);
 
-    // Determine which snapshot is light/dark by checking data-theme
     if (payload.afterFirstClick.dataTheme === "light") {
       payload.light = payload.afterFirstClick;
       payload.dark = payload.afterSecondClick;
@@ -96,20 +92,29 @@ async function readThemeSnapshot(page) {
     const wrapper = document.querySelector('body div[class*="min-h-screen"]');
     const title = document.querySelector("h1");
     const toggle = document.getElementById("devsso-theme-toggle");
+    const footer = document.getElementById("devsso-footer");
+    const visibleThemeToggleCount = [...document.querySelectorAll("button")].filter((button) => {
+      const rect = button.getBoundingClientRect();
+      const style = getComputedStyle(button);
+      const isVisible = rect.width > 0 && rect.height > 0 && style.display !== "none" && style.visibility !== "hidden";
+      const label = `${button.id} ${button.getAttribute("aria-label") || ""} ${button.getAttribute("title") || ""}`;
+      return isVisible && /devsso-theme-toggle|theme|dark|light/i.test(label);
+    }).length;
 
     return {
       htmlClass: html.className,
       dataTheme: html.getAttribute("data-theme") || "",
-      theme: localStorage.getItem("sso-theme"),
       hasDarkClass: html.classList.contains("dark"),
       wrapperBackgroundImage: wrapper ? getComputedStyle(wrapper).backgroundImage : null,
       wrapperColor: wrapper ? getComputedStyle(wrapper).color : null,
       titleSize: title ? getComputedStyle(title).fontSize : null,
       titleText: title ? title.textContent.trim() : "",
+      footerText: footer ? footer.innerText.replace(/\s+/g, " ").trim() : "",
       togglePresent: !!toggle,
       toggleWidth: toggle ? getComputedStyle(toggle).width : null,
       toggleHeight: toggle ? getComputedStyle(toggle).height : null,
       toggleDisplay: toggle ? getComputedStyle(toggle).display : null,
+      visibleThemeToggleCount,
     };
   });
 }
@@ -117,19 +122,18 @@ async function readThemeSnapshot(page) {
 function assertSnapshots(payload) {
   assertEmpty("consoleErrors", payload.consoleErrors);
   assertEmpty("pageErrors", payload.pageErrors);
-  assertValue("light.theme", payload.light.theme, "light");
-  assertValue("dark.theme", payload.dark.theme, "dark");
+  assertValue("light.dataTheme", payload.light.dataTheme, "light");
+  assertValue("dark.dataTheme", payload.dark.dataTheme, "dark");
   assertIncludes("dark.htmlClass", payload.dark.htmlClass, "dark");
-  assertNotEqual(
-    "wrapper background light/dark",
-    payload.light.wrapperBackgroundImage,
-    payload.dark.wrapperBackgroundImage,
-  );
-  // Verify our custom toggle is present and visible
+  assertNotEqual("wrapper color light/dark", payload.light.wrapperColor, payload.dark.wrapperColor);
   assertValue("light.togglePresent", payload.light.togglePresent, true);
   assertValue("dark.togglePresent", payload.dark.togglePresent, true);
   assertValue("light.toggleDisplay", payload.light.toggleDisplay, "flex");
   assertValue("dark.toggleDisplay", payload.dark.toggleDisplay, "flex");
+  assertValue("light.visibleThemeToggleCount", payload.light.visibleThemeToggleCount, 1);
+  assertValue("dark.visibleThemeToggleCount", payload.dark.visibleThemeToggleCount, 1);
+  assertValue("light.footerText", payload.light.footerText, "© 2026 Dev-SSO . Terms . Privacy . Docs");
+  assertValue("dark.footerText", payload.dark.footerText, "© 2026 Dev-SSO . Terms . Privacy . Docs");
   assertToggleSizing(payload.light);
   assertToggleSizing(payload.dark);
 }
