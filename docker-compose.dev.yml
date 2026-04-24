@@ -423,14 +423,16 @@ services:
     build:
       context: ./services/sso-frontend
       args:
-        NEXT_PUBLIC_SSO_BASE_URL: ${SSO_BASE_URL}
+        VITE_SSO_BASE_URL: ${SSO_BASE_URL}
+        VITE_ADMIN_BASE_URL: ${ADMIN_PANEL_BASE_URL}
+        VITE_CLIENT_ID: ${ADMIN_PANEL_CLIENT_ID}
     restart: unless-stopped
     init: true
     environment:
       NODE_ENV: production
-      NEXT_PUBLIC_SSO_BASE_URL: ${SSO_BASE_URL}
-      NEXT_PUBLIC_APP_BASE_URL: ${ADMIN_PANEL_BASE_URL}
-      NEXT_PUBLIC_CLIENT_ID: ${ADMIN_PANEL_CLIENT_ID}
+      VITE_SSO_BASE_URL: ${SSO_BASE_URL}
+      VITE_ADMIN_BASE_URL: ${ADMIN_PANEL_BASE_URL}
+      VITE_CLIENT_ID: ${ADMIN_PANEL_CLIENT_ID}
       SSO_IDENTITY_UI_BASE_URL: ${ZITADEL_ISSUER}/ui/v2/login
       SSO_INTERNAL_TOKEN_URL: ${SSO_INTERNAL_BASE_URL}/token
       SSO_INTERNAL_JWKS_URL: ${SSO_INTERNAL_BASE_URL}/jwks
@@ -441,7 +443,7 @@ services:
     healthcheck:
       test:
         - CMD-SHELL
-        - wget -q -O - http://127.0.0.1:3000 >/dev/null
+        - wget -q -O - http://127.0.0.1:3000/healthz >/dev/null
       interval: 20s
       timeout: 10s
       retries: 10
