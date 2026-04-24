@@ -14,6 +14,8 @@ PROJECT_DIR="/opt/sso-prototype-dev"
 SERVICES=(sso-frontend sso-admin-vue)
 PRUNE_BUILD_CACHE=0
 MIN_REPLICAS="${MIN_REPLICAS:-2}"
+GREEN_DRAIN_SECONDS="${GREEN_DRAIN_SECONDS:-30}"
+GREEN_STOP_GRACE_SECONDS="${GREEN_STOP_GRACE_SECONDS:-20}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -31,6 +33,8 @@ done
 
 [[ -n "$TAG" ]] || { echo "ERROR: --tag required"; exit 1; }
 [[ "$MIN_REPLICAS" =~ ^[1-9][0-9]*$ ]] || { echo "ERROR: MIN_REPLICAS must be a positive integer"; exit 1; }
+[[ "$GREEN_DRAIN_SECONDS" =~ ^[0-9]+$ ]] || { echo "ERROR: GREEN_DRAIN_SECONDS must be a non-negative integer"; exit 1; }
+[[ "$GREEN_STOP_GRACE_SECONDS" =~ ^[0-9]+$ ]] || { echo "ERROR: GREEN_STOP_GRACE_SECONDS must be a non-negative integer"; exit 1; }
 
 COMPOSE_FILE="$PROJECT_DIR/docker-compose.dev.yml"
 ENV_FILE="$PROJECT_DIR/.env.dev"
@@ -270,9 +274,14 @@ wait_green_healthy() {
 
 cleanup_green_for_service() {
   local svc="$1" kept=() name
+  if [ "${#GREEN_CONTAINERS[@]}" -gt 0 ] && [ "$GREEN_DRAIN_SECONDS" -gt 0 ]; then
+    log "  draining green $svc replicas for ${GREEN_DRAIN_SECONDS}s before cleanup"
+    sleep "$GREEN_DRAIN_SECONDS"
+  fi
   for name in "${GREEN_CONTAINERS[@]}"; do
     if [[ "$name" == "sso-green-${svc}-"* ]]; then
-      docker rm -f "$name" >/dev/null 2>&1 || true
+      docker stop --time "$GREEN_STOP_GRACE_SECONDS" "$name" >/dev/null 2>&1 || true
+      docker rm "$name" >/dev/null 2>&1 || true
     else
       kept+=("$name")
     fi
