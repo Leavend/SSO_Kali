@@ -19,7 +19,7 @@ variable "zitadel_domain" {
 variable "app_domains" {
   description = "Application domains that consume the SSO broker."
   type        = set(string)
-  default = [
+  default     = [
     "app-a.timeh.my.id",
     "app-b.timeh.my.id",
   ]
@@ -34,7 +34,7 @@ variable "vps_project_dir" {
 variable "release_channels" {
   description = "Permitted release channels for deployment promotion."
   type        = set(string)
-  default = [
+  default     = [
     "canary",
     "production",
     "rollback",
@@ -44,7 +44,7 @@ variable "release_channels" {
 variable "required_runtime_services" {
   description = "Runtime services that must be present before full-stack rollout."
   type        = set(string)
-  default = [
+  default     = [
     "proxy",
     "postgres",
     "redis",
