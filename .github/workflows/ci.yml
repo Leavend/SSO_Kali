@@ -77,7 +77,7 @@ jobs:
         run: vendor/bin/pest
         env:
           APP_ENV: testing
-          APP_KEY: base64:dGVzdGluZ2tleXRoYXRpczMyYnl0ZXNsb25n
+          APP_KEY: base64:MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
 
   # ─── Job 2: Node.js Frontend Tests ────────────────────────────────────────
   test-frontend:
