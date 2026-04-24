@@ -1,0 +1,28 @@
+applications:
+  proxy:
+    image: traefik:v3.6.8
+    port: 80
+  postgres:
+    image: postgres:17.2-alpine
+    port: 5432
+  redis:
+    image: redis:7.4.2-alpine
+    port: 6379
+  zitadel-api:
+    image: ghcr.io/zitadel/zitadel:v4.11.0
+    port: 8080
+  zitadel-login:
+    image: ghcr.io/zitadel/zitadel-login:v4.11.0
+    port: 3000
+  sso-backend:
+    image: local/sso-backend:latest
+    port: 8000
+  sso-frontend:
+    image: local/sso-frontend:latest
+    port: 3000
+  app-a-next:
+    image: local/app-a-next:latest
+    port: 3000
+  app-b-laravel:
+    image: local/app-b-laravel:latest
+    port: 8000

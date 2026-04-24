@@ -1,0 +1,139 @@
+{
+  "common": {
+    "title": "Masuk ke Dev-SSO",
+    "back": "Kembali"
+  },
+  "loginName": {
+    "title": "Masuk ke Dev-SSO",
+    "description": "Gunakan akun Anda untuk masuk dengan aman.",
+    "labels": {
+      "loginName": "Email atau username"
+    },
+    "register": "Buat akun baru",
+    "submit": "Lanjutkan",
+    "required": {
+      "loginName": "Masukkan email atau username Anda."
+    }
+  },
+  "register": {
+    "title": "Buat akun",
+    "description": "Buat akun Dev-SSO Anda.",
+    "selectMethod": "Pilih metode masuk yang ingin digunakan",
+    "noMethodAvailableWarning": "Metode masuk belum tersedia. Hubungi administrator Anda.",
+    "agreeTo": "Untuk membuat akun, Anda perlu menyetujui syarat layanan dan pemberitahuan privasi.",
+    "termsOfService": "Syarat Layanan",
+    "privacyPolicy": "Pemberitahuan Privasi",
+    "submit": "Lanjutkan",
+    "labels": {
+      "firstname": "Nama depan",
+      "lastname": "Nama belakang",
+      "email": "Email"
+    },
+    "required": {
+      "firstname": "Kolom ini wajib diisi.",
+      "lastname": "Kolom ini wajib diisi.",
+      "email": "Kolom ini wajib diisi."
+    },
+    "password": {
+      "title": "Atur kata sandi",
+      "description": "Buat kata sandi yang kuat untuk akun Dev-SSO Anda.",
+      "submit": "Lanjutkan",
+      "labels": {
+        "password": "Kata sandi",
+        "confirmPassword": "Konfirmasi kata sandi"
+      },
+      "required": {
+        "password": "Masukkan kata sandi.",
+        "confirmPassword": "Konfirmasi kata sandi Anda."
+      }
+    }
+  },
+  "password": {
+    "verify": {
+      "title": "Kata sandi",
+      "description": "Masukkan kata sandi Anda untuk melanjutkan.",
+      "labels": {
+        "password": "Kata sandi"
+      },
+      "required": {
+        "password": "Kolom ini wajib diisi."
+      },
+      "resetPassword": "Atur ulang kata sandi",
+      "submit": "Lanjutkan"
+    },
+    "set": {
+      "title": "Atur kata sandi",
+      "description": "Buat kata sandi yang kuat untuk akun Dev-SSO Anda.",
+      "labels": {
+        "code": "Kode",
+        "newPassword": "Kata sandi baru",
+        "confirmPassword": "Konfirmasi kata sandi"
+      },
+      "required": {
+        "code": "Kolom ini wajib diisi.",
+        "newPassword": "Masukkan kata sandi.",
+        "confirmPassword": "Konfirmasi kata sandi Anda."
+      },
+      "codeSent": "Kode telah dikirim ke alamat email Anda.",
+      "noCodeReceived": "Belum menerima kode?",
+      "resend": "Kirim ulang kode",
+      "submit": "Lanjutkan"
+    },
+    "change": {
+      "title": "Ubah kata sandi",
+      "description": "Buat kata sandi baru untuk akun Dev-SSO Anda.",
+      "labels": {
+        "newPassword": "Kata sandi baru",
+        "confirmPassword": "Konfirmasi kata sandi"
+      },
+      "required": {
+        "newPassword": "Masukkan kata sandi baru.",
+        "confirmPassword": "Konfirmasi kata sandi Anda."
+      },
+      "submit": "Lanjutkan"
+    }
+  },
+  "selectFactor": {
+    "title": "Verifikasi tambahan",
+    "description": "Pilih metode verifikasi untuk melanjutkan."
+  },
+  "authenticator": {
+    "title": "Pilih metode verifikasi",
+    "description": "Pilih metode yang ingin digunakan untuk melanjutkan.",
+    "noMethodsAvailable": "Belum ada metode verifikasi yang tersedia.",
+    "allSetup": "Metode verifikasi sudah dikonfigurasi."
+  },
+  "verify": {
+    "successTitle": "Akun terverifikasi",
+    "successDescription": "Akun Anda berhasil diverifikasi.",
+    "verify": {
+      "title": "Verifikasi akun",
+      "description": "Masukkan kode verifikasi yang dikirim ke email Anda.",
+      "noCodeReceived": "Belum menerima kode?",
+      "resendCode": "Kirim ulang kode",
+      "codeSent": "Kode baru telah dikirim ke alamat email Anda.",
+      "submit": "Lanjutkan",
+      "labels": {
+        "code": "Kode"
+      },
+      "required": {
+        "code": "Kolom ini wajib diisi."
+      }
+    }
+  },
+  "device": {
+    "request": {
+      "submit": "Izinkan",
+      "deny": "Tolak",
+      "disclaimer": "Dengan memilih Izinkan, Anda mengizinkan {appName} dan Dev-SSO menggunakan informasi Anda sesuai syarat dan pemberitahuan privasi masing-masing. Akses ini dapat dicabut kapan saja."
+    }
+  },
+  "error": {
+    "sessionExpired": "Sesi masuk Anda telah berakhir. Silakan mulai lagi.",
+    "failedLoading": "Halaman masuk tidak dapat dimuat. Silakan coba lagi.",
+    "tryagain": "Coba lagi",
+    "unknownContext": "Alur masuk ini tidak dapat dilanjutkan. Silakan mulai lagi.",
+    "noDeviceRequest": "Permintaan masuk perangkat tidak ditemukan.",
+    "noUserCode": "Kode perangkat diperlukan untuk melanjutkan."
+  }
+}

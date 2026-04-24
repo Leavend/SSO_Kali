@@ -1,0 +1,246 @@
+# ==============================================================================
+# CI Pipeline — SSO Prototype
+#
+# Runs on every push to main and all pull requests.
+# 3 parallel jobs: test-backend, test-frontend, build-images
+# Images are pushed to GHCR only on main branch (after tests pass).
+# ==============================================================================
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}/sso-prototype
+
+# Cancel in-progress runs for the same branch/PR
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ─── Job 1: PHP Backend Tests ──────────────────────────────────────────────
+  test-backend:
+    name: "Backend QA (PHP 8.4)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    strategy:
+      fail-fast: true
+      matrix:
+        component:
+          - { name: sso-backend,   path: services/sso-backend }
+          - { name: app-b-laravel, path: apps/app-b-laravel }
+
+    defaults:
+      run:
+        working-directory: ${{ matrix.component.path }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          extensions: mbstring, pdo_pgsql, redis, intl, bcmath
+          coverage: none
+          tools: composer:v2
+
+      - name: Cache Composer
+        uses: actions/cache@v4
+        with:
+          path: ${{ matrix.component.path }}/vendor
+          key: composer-${{ matrix.component.name }}-${{ hashFiles(format('{0}/composer.lock', matrix.component.path)) }}
+          restore-keys: composer-${{ matrix.component.name }}-
+
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist --optimize-autoloader
+
+      - name: Prepare Laravel runtime directories
+        run: mkdir -p storage/app storage/framework/cache storage/framework/sessions storage/framework/testing storage/framework/views storage/logs bootstrap/cache
+
+      - name: Pint (code style)
+        run: vendor/bin/pint --test
+
+      - name: PHPStan (static analysis)
+        run: vendor/bin/phpstan analyse --level=5 --memory-limit=512M --no-progress
+
+      - name: Pest (unit tests)
+        run: vendor/bin/pest
+        env:
+          APP_ENV: testing
+          APP_KEY: base64:dGVzdGluZ2tleXRoYXRpczMyYnl0ZXNsb25n
+
+  # ─── Job 2: Node.js Frontend Tests ────────────────────────────────────────
+  test-frontend:
+    name: "Frontend QA (Node 22)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    strategy:
+      fail-fast: true
+      matrix:
+        component:
+          - { name: sso-frontend, path: services/sso-frontend }
+          - { name: sso-admin-vue, path: services/sso-admin-vue }
+          - { name: app-a-next,   path: apps/app-a-next }
+
+    defaults:
+      run:
+        working-directory: ${{ matrix.component.path }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: ${{ matrix.component.path }}/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript (strict type check)
+        run: npm run typecheck
+
+      - name: ESLint (code quality)
+        run: npm run lint
+
+      - name: Vitest (unit tests)
+        run: npm run test
+
+      - name: Production build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SSO_BASE_URL: https://placeholder.local
+
+  # ─── Job 3: Build & Push Docker Images ─────────────────────────────────────
+  build-images:
+    name: "Build & Push Images"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [test-backend, test-frontend]
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - name: sso-backend
+            context: ./services/sso-backend
+            dockerfile: ./services/sso-backend/Dockerfile
+          - name: sso-frontend
+            context: ./services/sso-frontend
+            dockerfile: ./services/sso-frontend/Dockerfile
+            build-args: |
+              NEXT_PUBLIC_SSO_BASE_URL=${{ vars.SSO_BASE_URL || 'https://dev-sso.timeh.my.id' }}
+          - name: sso-admin-vue
+            context: ./services/sso-admin-vue
+            dockerfile: ./services/sso-admin-vue/Dockerfile
+            build-args: |
+              VITE_ADMIN_BASE_URL=${{ vars.SSO_BASE_URL || 'https://dev-sso.timeh.my.id' }}
+              VITE_PUBLIC_BASE_PATH=${{ vars.SSO_ADMIN_VUE_BASE_PATH || '/__vue-preview' }}
+              VITE_SSO_BASE_URL=${{ vars.SSO_BASE_URL || 'https://dev-sso.timeh.my.id' }}
+              VITE_ZITADEL_ISSUER_URL=${{ vars.ZITADEL_ISSUER || 'https://id.dev-sso.timeh.my.id' }}
+          - name: zitadel-login
+            context: .
+            dockerfile: ./infra/zitadel-login/Dockerfile
+            build-args: |
+              ZITADEL_VERSION=${{ vars.ZITADEL_VERSION || 'v4.11.0' }}
+          - name: app-a-next
+            context: ./apps/app-a-next
+            dockerfile: ./apps/app-a-next/Dockerfile
+          - name: app-b-laravel
+            context: ./apps/app-b-laravel
+            dockerfile: ./apps/app-b-laravel/Dockerfile
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_PREFIX }}/${{ matrix.image.name }}
+          tags: |
+            # SHA tag for every build (immutable)
+            type=sha,prefix=sha-,format=short
+            # Semver tags on release (v1.2.3 → 1.2.3, 1.2, 1)
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            # Branch name for main
+            type=ref,event=branch
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.image.context }}
+          file: ${{ matrix.image.dockerfile }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: ${{ matrix.image.build-args || '' }}
+          cache-from: type=gha,scope=${{ matrix.image.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image.name }}
+          sbom: true
+          provenance: mode=max
+
+      - name: Select primary image tag
+        id: image_ref
+        run: |
+          image_tag="$(echo "${{ steps.meta.outputs.tags }}" | head -n 1)"
+          echo "image=${image_tag}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify image
+        run: |
+          IMAGE_TAG="${{ steps.image_ref.outputs.image }}"
+          docker pull "$IMAGE_TAG"
+          echo "✅ Verified: $IMAGE_TAG"
+
+      - name: Docker Scout CVE scan
+        id: docker-scout
+        uses: docker/scout-action@v1.20.4
+        continue-on-error: true
+        with:
+          command: cves
+          image: ${{ steps.image_ref.outputs.image }}
+          only-severities: critical,high
+          only-fixed: true
+          sarif-file: docker-scout-${{ matrix.image.name }}.sarif
+          summary: true
+          write-comment: false
+          dockerhub-user: ${{ secrets.DOCKERHUB_USER }}
+          dockerhub-password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Upload Docker Scout SARIF
+        if: always() && hashFiles(format('docker-scout-{0}.sarif', matrix.image.name)) != ''
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: docker-scout-${{ matrix.image.name }}.sarif
+          category: docker-scout-${{ matrix.image.name }}

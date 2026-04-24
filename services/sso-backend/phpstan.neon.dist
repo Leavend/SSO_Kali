@@ -1,0 +1,14 @@
+includes:
+  - vendor/larastan/larastan/extension.neon
+  - vendor/pestphp/pest/extension.neon
+
+parameters:
+  level: 5
+  universalObjectCratesClasses:
+    - Pest\Mixins\Expectation
+  paths:
+    - app
+    - config
+    - database
+    - routes
+    - tests

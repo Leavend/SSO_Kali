@@ -1,0 +1,15 @@
+environment     = "dev"
+primary_domain  = "dev-sso.timeh.my.id"
+zitadel_domain  = "id.dev-sso.timeh.my.id"
+vps_project_dir = "/opt/sso-prototype-dev"
+
+app_domains = [
+  "app-a.timeh.my.id",
+  "app-b.timeh.my.id",
+]
+
+release_channels = [
+  "canary",
+  "production",
+  "rollback",
+]

@@ -1,0 +1,36 @@
+name: KPI Canary Pass Window
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  kpi-canary-pass-window:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install observability lint dependencies
+        run: python3 -m pip install --disable-pip-version-check PyYAML
+
+      - name: Run KPI canary window gate
+        env:
+          PROMETHEUS_BASE_URL: ${{ secrets.PROMETHEUS_BASE_URL }}
+          PROMETHEUS_BEARER_TOKEN: ${{ secrets.PROMETHEUS_BEARER_TOKEN }}
+          CANARY_WINDOW_HOURS: '72'
+          PROMETHEUS_STEP_SECONDS: '300'
+        run: bash infra/qa/run-kpi-canary-pass-window.sh
+
+      - name: Upload KPI canary evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kpi-canary-pass-window-evidence
+          path: |
+            test-results/kpi-canary-pass-window/**

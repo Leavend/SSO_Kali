@@ -1,0 +1,34 @@
+{
+  "series": {
+    "proxy_uptime_ratio": [
+      { "timestamp": "2026-04-02T00:00:00+00:00", "value": 0.999 },
+      { "timestamp": "2026-04-03T00:00:00+00:00", "value": 0.998 },
+      { "timestamp": "2026-04-04T00:00:00+00:00", "value": 0.997 }
+    ],
+    "token_validation_p95_seconds": [
+      { "timestamp": "2026-04-02T00:00:00+00:00", "value": 0.31 },
+      { "timestamp": "2026-04-03T00:00:00+00:00", "value": 0.45 },
+      { "timestamp": "2026-04-04T00:00:00+00:00", "value": 0.51 }
+    ],
+    "broker_jwks_cache_hit_ratio": [
+      { "timestamp": "2026-04-02T00:00:00+00:00", "value": 0.97 },
+      { "timestamp": "2026-04-03T00:00:00+00:00", "value": 0.96 },
+      { "timestamp": "2026-04-04T00:00:00+00:00", "value": 0.95 }
+    ],
+    "logout_success_ratio": [
+      { "timestamp": "2026-04-02T00:00:00+00:00", "value": 1.0 },
+      { "timestamp": "2026-04-03T00:00:00+00:00", "value": 0.995 },
+      { "timestamp": "2026-04-04T00:00:00+00:00", "value": 0.992 }
+    ],
+    "identity_reconciliation_status": [
+      { "timestamp": "2026-04-02T00:00:00+00:00", "value": 1.0 },
+      { "timestamp": "2026-04-03T00:00:00+00:00", "value": 1.0 },
+      { "timestamp": "2026-04-04T00:00:00+00:00", "value": 1.0 }
+    ],
+    "identity_reconciliation_mismatch_total": [
+      { "timestamp": "2026-04-02T00:00:00+00:00", "value": 0.0 },
+      { "timestamp": "2026-04-03T00:00:00+00:00", "value": 0.0 },
+      { "timestamp": "2026-04-04T00:00:00+00:00", "value": 0.0 }
+    ]
+  }
+}

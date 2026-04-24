@@ -1,0 +1,12 @@
+.env
+.env.*
+.git
+.gitignore
+.next
+node_modules
+*.md
+*.test.ts
+*.test.tsx
+vitest.config.ts
+coverage
+.vscode

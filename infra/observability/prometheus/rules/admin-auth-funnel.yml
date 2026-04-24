@@ -1,0 +1,62 @@
+groups:
+  - name: admin-auth-funnel-recording-rules
+    rules:
+      - record: sso_admin_login_success_ratio
+        expr: |
+          increase(sso_admin_login_success_total[15m])
+          /
+          clamp_min(increase(sso_admin_login_started_total[15m]), 1)
+
+      - record: sso_admin_forbidden_ratio
+        expr: |
+          increase(sso_admin_forbidden_total[15m])
+          /
+          clamp_min(increase(sso_admin_login_started_total[15m]), 1)
+
+      - record: sso_admin_reauth_required_ratio
+        expr: |
+          increase(sso_admin_reauth_required_total[15m])
+          /
+          clamp_min(increase(sso_admin_login_started_total[15m]), 1)
+
+  - name: admin-auth-funnel-alert-rules
+    rules:
+      - alert: SsoAdminLoginSuccessRatioLow
+        expr: increase(sso_admin_login_started_total[15m]) >= 5 and sso_admin_login_success_ratio < 0.80
+        for: 10m
+        labels:
+          severity: warning
+          service: admin-auth
+        annotations:
+          summary: Admin login success ratio is low
+          description: Admin login success ratio dropped below 80% during the last 15 minutes.
+
+      - alert: SsoAdminInvalidCredentialsSpike
+        expr: increase(sso_admin_invalid_credentials_total[15m]) > 20
+        for: 10m
+        labels:
+          severity: warning
+          service: admin-auth
+        annotations:
+          summary: Admin invalid credential failures spiked
+          description: Invalid credential outcomes exceeded 20 events in the last 15 minutes.
+
+      - alert: SsoAdminForbiddenSpike
+        expr: increase(sso_admin_forbidden_total[15m]) > 10
+        for: 10m
+        labels:
+          severity: warning
+          service: admin-auth
+        annotations:
+          summary: Admin forbidden responses spiked
+          description: Forbidden admin outcomes exceeded 10 events in the last 15 minutes.
+
+      - alert: SsoAdminReauthRequiredSpike
+        expr: increase(sso_admin_reauth_required_total[15m]) > 15
+        for: 10m
+        labels:
+          severity: warning
+          service: admin-auth
+        annotations:
+          summary: Admin reauthentication prompts spiked
+          description: Reauthentication-required outcomes exceeded 15 events in the last 15 minutes.

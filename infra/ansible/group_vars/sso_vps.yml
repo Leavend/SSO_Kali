@@ -1,0 +1,22 @@
+---
+sso_project_dir: /opt/sso-prototype-dev
+sso_compose_file: /opt/sso-prototype-dev/docker-compose.dev.yml
+sso_env_file: /opt/sso-prototype-dev/.env.dev
+sso_public_base_url: https://dev-sso.timeh.my.id
+sso_vue_canary_path: /__vue-preview
+sso_firewall_allowed_tcp_ports:
+  - 22
+  - 80
+  - 443
+sso_required_services:
+  - proxy
+  - postgres
+  - redis
+  - zitadel-api
+  - zitadel-login
+  - sso-backend
+  - sso-backend-worker
+  - sso-frontend
+  - sso-admin-vue
+  - app-a-next
+  - app-b-laravel

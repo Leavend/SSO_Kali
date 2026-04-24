@@ -1,0 +1,66 @@
+<?php
+
+declare(strict_types=1);
+
+use App\Http\Controllers\Oidc\AdminPanelBackChannelLogoutController;
+use App\Http\Controllers\Oidc\AuthorizeController;
+use App\Http\Controllers\Oidc\BrokerCallbackController;
+use App\Http\Controllers\Oidc\DiscoveryController;
+use App\Http\Controllers\Oidc\JwksController;
+use App\Http\Controllers\Oidc\RevocationController;
+use App\Http\Controllers\Oidc\SessionLogoutController;
+use App\Http\Controllers\Oidc\SessionRegistrationController;
+use App\Http\Controllers\Oidc\TokenController;
+use App\Http\Controllers\Oidc\UserInfoController;
+use App\Http\Controllers\Resource\ProfileController;
+use App\Http\Controllers\System\HealthController;
+use App\Http\Middleware\ApplyPublicCacheToMetadata;
+use App\Http\Middleware\ValidateTokenOrigin;
+use App\Services\Oidc\DownstreamClientRegistry;
+use App\Services\Oidc\PrototypeOidcCatalog;
+use App\Support\Responses\PrototypeJsonResponse;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Route;
+
+Route::get('/', function (
+    PrototypeOidcCatalog $catalog,
+    DownstreamClientRegistry $clients,
+): JsonResponse {
+    if (! in_array(app()->environment(), ['local', 'testing'], true)) {
+        return PrototypeJsonResponse::ok(['service' => 'sso-backend', 'status' => 'ok']);
+    }
+
+    return PrototypeJsonResponse::ok([
+        'service' => 'sso-backend',
+        'engine' => config('sso.engine'),
+        'issuer' => config('sso.issuer'),
+        'endpoints' => $catalog->summary(),
+        'registered_clients' => $clients->ids(),
+    ]);
+});
+
+Route::get('/health', HealthController::class);
+Route::get('/.well-known/openid-configuration', DiscoveryController::class)->middleware(ApplyPublicCacheToMetadata::class.':300');
+Route::get('/.well-known/jwks.json', JwksController::class)->middleware(ApplyPublicCacheToMetadata::class.':300');
+Route::get('/jwks', JwksController::class)->middleware(ApplyPublicCacheToMetadata::class.':300');
+Route::post('/token', TokenController::class)->middleware(['throttle:oidc-token', ValidateTokenOrigin::class]);
+Route::match(['get', 'post'], '/userinfo', UserInfoController::class)->middleware('throttle:oidc-resource');
+Route::post('/revocation', RevocationController::class)->middleware('throttle:oidc-token');
+Route::post('/connect/register-session', SessionRegistrationController::class)->middleware('throttle:oidc-callback');
+Route::post('/connect/logout', SessionLogoutController::class)->middleware('throttle:oidc-callback');
+Route::post('/connect/backchannel/admin-panel/logout', AdminPanelBackChannelLogoutController::class)->middleware('throttle:oidc-callback');
+Route::get('/api/profile', ProfileController::class)->middleware('throttle:oidc-resource');
+
+Route::middleware('throttle:oidc-authorize')->group(function (): void {
+    Route::get('/authorize', AuthorizeController::class);
+});
+
+Route::middleware('throttle:oidc-callback')->group(function (): void {
+    Route::get('/callbacks/zitadel', BrokerCallbackController::class);
+});
+
+Route::prefix('/oauth2')->group(function (): void {
+    Route::middleware('throttle:oidc-authorize')->get('/authorize', AuthorizeController::class);
+    Route::post('/token', TokenController::class)->middleware(['throttle:oidc-token', ValidateTokenOrigin::class]);
+    Route::post('/revocation', RevocationController::class)->middleware('throttle:oidc-token');
+});

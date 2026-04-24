@@ -1,0 +1,113 @@
+name: DevOps Lifecycle
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/**"
+      - "infra/**"
+      - "scripts/**"
+      - "docker-compose*.yml"
+      - "charts/**"
+      - "docs/runbooks/**"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/**"
+      - "infra/**"
+      - "scripts/**"
+      - "docker-compose*.yml"
+      - "charts/**"
+      - "docs/runbooks/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: devops-lifecycle-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lifecycle-gates:
+    name: DevOps lifecycle gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate DevOps lifecycle contract
+        run: ./scripts/validate-devops-lifecycle.sh
+
+      - name: Validate SRE coexistence policy
+        run: ./infra/sre/check-coexistence-policy.sh
+
+      - name: Validate zero-downtime migration policy
+        run: ./infra/sre/check-zero-downtime-migration-policy.sh
+
+      - name: Validate observability assets
+        run: ./infra/sre/check-observability-assets.sh
+
+  terraform:
+    name: Terraform static validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    defaults:
+      run:
+        working-directory: infra/terraform/environments/dev-sso
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: Terraform fmt
+        run: terraform fmt -check -recursive
+
+      - name: Terraform init
+        run: terraform init -backend=false
+
+      - name: Terraform validate
+        run: terraform validate
+
+  ansible:
+    name: Ansible syntax validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    defaults:
+      run:
+        working-directory: infra/ansible
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Ansible core
+        run: python -m pip install --upgrade ansible-core
+
+      - name: Ansible syntax check
+        run: ansible-playbook --syntax-check playbooks/devops-preflight.yml
+
+  helm:
+    name: Helm chart validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+
+      - name: Helm lint
+        run: helm lint charts/sso-prototype

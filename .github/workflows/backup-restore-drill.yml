@@ -1,0 +1,48 @@
+name: Backup Restore Drill
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 2 * * 6"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backup-restore-drill
+  cancel-in-progress: false
+
+jobs:
+  restore-drill:
+    runs-on: self-hosted
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Execute control-plane backup and restore drill
+        env:
+          BACKUP_COMPOSE_FILE: ${{ vars.SSO_BACKUP_COMPOSE_FILE || 'docker-compose.dev.yml' }}
+          BACKUP_ENV_FILE: ${{ secrets.SSO_ENV_FILE_PATH }}
+          BACKUP_ROOT: ${{ github.workspace }}/.artifacts/backup-drills
+          BACKUP_STATUS_FILE: ${{ github.workspace }}/.artifacts/backup-drills/backup-status.env
+        run: |
+          set -euo pipefail
+          chmod +x infra/backup/*.sh infra/sre/check-backup-drill-assets.sh
+          infra/sre/check-backup-drill-assets.sh
+          infra/backup/create-control-plane-backup.sh
+          latest_backup="$(find "${BACKUP_ROOT}" -mindepth 1 -maxdepth 1 -type d | sort | tail -n1)"
+          infra/backup/run-restore-drill.sh --backup-dir "${latest_backup}"
+
+      - name: Upload drill evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: backup-restore-drill-evidence
+          path: |
+            .artifacts/backup-drills/**/manifest.env
+            .artifacts/backup-drills/**/source-snapshot.env
+            .artifacts/backup-drills/**/target-snapshot.env
+            .artifacts/backup-drills/**/comparison.env
+            .artifacts/backup-drills/**/evidence.md
+            .artifacts/backup-drills/**/reconciliation-report.md
+
