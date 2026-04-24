@@ -22,7 +22,7 @@ This evidence pack validates that Project SSO has an automated software lifecycl
 - Browser code does not write tokens to local storage, session storage, or `document.cookie`.
 - The Dockerfile builds from lockfile, runs production build, drops root, and starts the compiled BFF.
 - Compose, CI, and direct VPS deploy all pass `VITE_SSO_BASE_URL`, `VITE_ADMIN_BASE_URL`, and `VITE_CLIENT_ID`.
-- Direct VPS deploy creates rollback tags, updates only touched services, waits for health, and smokes HTTPS through local reverse proxy resolution.
+- Direct VPS deploy creates rollback tags, updates only touched services, preserves two frontend replicas, waits for all expected replicas to become healthy, and smokes HTTPS through local reverse proxy resolution.
 
 The DevOps lifecycle workflow now also triggers when `services/sso-frontend/**` changes.
 
@@ -50,6 +50,17 @@ Local validation passed:
 - `docker buildx build --load -t sso-dev-sso-frontend:buildx-validate ... services/sso-frontend`
 - Runtime container smoke for `sso-dev-sso-frontend:buildx-validate`: `/healthz` and `/dashboard` returned HTTP 200.
 
+Live VPS validation completed:
+
+- GitHub Actions CI: `40a46b8f54254790c1a2ca15b6507e16739e991e` completed successfully.
+- DevOps Lifecycle workflow: `40a46b8f54254790c1a2ca15b6507e16739e991e` completed successfully.
+- Direct VPS deploy tag: `direct-20260424204601-40a46b8`.
+- Rollback image tag: `rollback-direct-20260424204601-40a46b8`.
+- VPS deploy log: `/var/log/sso-direct-build-deploy-20260424124602.log`.
+- Post-deploy smokes returned HTTP 200 for discovery, root admin panel, and Vue admin canary.
+- `sso-frontend` and `sso-admin-vue` were scaled to two healthy replicas each using the same immutable tag.
+- Scale monitor returned 9/9 HTTP 200 samples during replica expansion.
+
 ## Lifecycle Assessment
 
 | Area | Status | Evidence |
@@ -58,7 +69,7 @@ Local validation passed:
 | Container lifecycle | Pass | Node 22 image, lockfile install, non-root runtime, health endpoint, immutable image tags. |
 | Release control | Pass | CD has production environment gate and does not cancel in-flight deployments. |
 | Rollback | Pass | Manual rollback workflow and VPS rollback script require explicit target tag. Direct deploy creates rollback image tags. |
-| Zero-downtime update | Conditional pass | Health-gated updates and reverse-proxy smoke are in place. Strict zero downtime requires blue/green services or at least two replicas. |
+| Zero-downtime update | Conditional pass | Live topology now has two healthy frontend replicas and direct deploy preserves that scale. The first single-replica Compose recreate produced one observed non-200 sample, so strict zero downtime is only accepted for future promotions after a multi-replica/blue-green rollout test is green. |
 | IaC and config management | Pass in CI | Terraform, Ansible, and Helm static validation are wired into GitHub Actions. |
 | Observability | Pass | Prometheus rules, Grafana dashboards, Alertmanager receivers, and KPI exporter validation are present. |
 | Secret management | Partial | Runtime secrets are environment-driven; build args are public Vite config only. Next maturity step is Vault/OIDC-backed secret retrieval for deployment credentials. |
@@ -67,4 +78,5 @@ Local validation passed:
 ## Residual Risk
 
 - Colima/Docker, Terraform, Ansible, Helm, Docker Compose, and Docker Buildx are now active on the workstation and were used for local validation.
-- Current VPS Compose deployment is single-instance per frontend service. It is health-gated and rollback-safe, but strict zero downtime needs blue/green routing or multi-replica orchestration.
+- The first direct deploy ran from a single-replica Compose state and produced one observed root-route non-200 sample while recreating `sso-frontend`. Runtime was immediately recovered by health gates and smoke tests, and live frontend services are now two-replica/healthy to reduce this risk on the next promotion.
+- Compose still does not provide the same formal rollout guarantees as Kubernetes Deployments. For production-grade strict zero downtime, keep the two-replica Compose posture as the VPS floor and move the release controller to blue/green routing or Kubernetes rolling updates with `maxUnavailable=0`.

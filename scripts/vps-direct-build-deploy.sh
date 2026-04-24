@@ -13,6 +13,7 @@ TAG=""
 PROJECT_DIR="/opt/sso-prototype-dev"
 SERVICES=(sso-frontend sso-admin-vue)
 PRUNE_BUILD_CACHE=0
+MIN_REPLICAS="${MIN_REPLICAS:-2}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -29,6 +30,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 [[ -n "$TAG" ]] || { echo "ERROR: --tag required"; exit 1; }
+[[ "$MIN_REPLICAS" =~ ^[1-9][0-9]*$ ]] || { echo "ERROR: MIN_REPLICAS must be a positive integer"; exit 1; }
 
 COMPOSE_FILE="$PROJECT_DIR/docker-compose.dev.yml"
 ENV_FILE="$PROJECT_DIR/.env.dev"
@@ -81,24 +83,45 @@ rollback_compose() {
   APP_IMAGE_TAG="$ROLLBACK_TAG" docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "$@"
 }
 
+desired_scale() {
+  case "$1" in
+    sso-frontend|sso-admin-vue) printf '%s' "$MIN_REPLICAS" ;;
+    *) printf '1' ;;
+  esac
+}
+
 wait_healthy() {
-  local svc="$1" timeout="${2:-180}" elapsed=0 status="starting" cid
+  local svc="$1" timeout="${2:-180}" elapsed=0 desired status cid all_healthy
+  local -a cids=()
+  desired="$(desired_scale "$svc")"
+
   while [ "$elapsed" -lt "$timeout" ]; do
-    cid=$(compose ps -q "$svc" 2>/dev/null || true)
-    if [ -n "$cid" ]; then
-      status=$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$cid" 2>/dev/null || echo "unknown")
-      case "$status" in
-        healthy|running) log "  $svc is $status"; return 0 ;;
-        unhealthy|exited|dead)
-          warn "  $svc entered $status"
-          docker logs --tail 40 "$cid" 2>&1 | tee -a "$DEPLOY_LOG" || true
-          return 1
-          ;;
-      esac
+    mapfile -t cids < <(compose ps -q "$svc" 2>/dev/null || true)
+
+    if [ "${#cids[@]}" -ge "$desired" ]; then
+      all_healthy=1
+      for cid in "${cids[@]}"; do
+        status=$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$cid" 2>/dev/null || echo "unknown")
+        case "$status" in
+          healthy|running) ;;
+          unhealthy|exited|dead)
+            warn "  $svc replica $cid entered $status"
+            docker logs --tail 40 "$cid" 2>&1 | tee -a "$DEPLOY_LOG" || true
+            return 1
+            ;;
+          *) all_healthy=0 ;;
+        esac
+      done
+
+      if [ "$all_healthy" -eq 1 ]; then
+        log "  $svc has ${#cids[@]} healthy replica(s)"
+        return 0
+      fi
     fi
+
     sleep 5
     elapsed=$((elapsed + 5))
-    [ $((elapsed % 20)) -eq 0 ] && log "  [${elapsed}s] $svc: $status"
+    [ $((elapsed % 20)) -eq 0 ] && log "  [${elapsed}s] $svc: waiting for ${desired} healthy replica(s)"
   done
 
   warn "  $svc timed out after ${timeout}s"
@@ -134,7 +157,7 @@ rollback() {
   for svc in "${TOUCHED_SERVICES[@]}"; do
     if [ -n "${LOCAL_IMAGE_MAP[$svc]:-}" ] && docker image inspect "${LOCAL_IMAGE_MAP[$svc]}:${ROLLBACK_TAG}" >/dev/null 2>&1; then
       warn "  rolling back $svc to ${ROLLBACK_TAG}"
-      rollback_compose up -d --no-deps "$svc" 2>&1 | tee -a "$DEPLOY_LOG" || true
+      rollback_compose up -d --no-deps --scale "$svc=$(desired_scale "$svc")" "$svc" 2>&1 | tee -a "$DEPLOY_LOG" || true
       wait_healthy "$svc" 120 || true
     elif [ "$svc" = "sso-admin-vue" ]; then
       warn "  stopping canary $svc because no previous image exists"
@@ -216,7 +239,7 @@ fi
 
 log "Snapshotting current images for rollback tag: $ROLLBACK_TAG"
 for svc in "${SERVICES[@]}"; do
-  cid=$(compose ps -q "$svc" 2>/dev/null || true)
+  cid=$(compose ps -q "$svc" 2>/dev/null | head -n 1 || true)
   if [ -n "$cid" ]; then
     image_id=$(docker inspect --format '{{.Image}}' "$cid")
     docker tag "$image_id" "${LOCAL_IMAGE_MAP[$svc]}:${ROLLBACK_TAG}"
@@ -232,7 +255,7 @@ build_selected_images || rollback_once "Image build failed"
 log "Rolling update with health gates"
 for svc in "${SERVICES[@]}"; do
   log "  updating $svc"
-  compose up -d --no-deps "$svc" 2>&1 | tee -a "$DEPLOY_LOG" || rollback_once "Service update failed: $svc"
+  compose up -d --no-deps --scale "$svc=$(desired_scale "$svc")" "$svc" 2>&1 | tee -a "$DEPLOY_LOG" || rollback_once "Service update failed: $svc"
   TOUCHED_SERVICES+=("$svc")
   wait_healthy "$svc" 180 || rollback_once "Health gate failed: $svc"
 done
