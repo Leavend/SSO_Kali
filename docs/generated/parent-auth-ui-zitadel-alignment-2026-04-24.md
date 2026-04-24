@@ -45,7 +45,7 @@ service:
 - immutable local tag build
 - rollback snapshot tag before update
 - health-gated update
-- HTTPS smoke through the local reverse proxy
+- HTTPS health smoke through the local reverse proxy
 - optional two-replica scale via `MIN_REPLICAS`
 
 ## Validation Evidence
