@@ -1,0 +1,45 @@
+name: OIDC E2E via Proxy Chain
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  oidc-e2e-via-proxy-chain:
+    runs-on: ubuntu-latest
+    env:
+      PLAYWRIGHT_PROXY_APP_A_BASE_URL: ${{ secrets.PLAYWRIGHT_PROXY_APP_A_BASE_URL }}
+      PLAYWRIGHT_PROXY_BROKER_BASE_URL: ${{ secrets.PLAYWRIGHT_PROXY_BROKER_BASE_URL }}
+      PLAYWRIGHT_PROXY_IDP_BASE_URL: ${{ secrets.PLAYWRIGHT_PROXY_IDP_BASE_URL }}
+      PLAYWRIGHT_PROXY_CLIENT_ID: ${{ secrets.PLAYWRIGHT_PROXY_CLIENT_ID }}
+      PLAYWRIGHT_SSO_PASSWORD: ${{ secrets.PLAYWRIGHT_SSO_PASSWORD }}
+      PLAYWRIGHT_SSO_USERNAME: ${{ secrets.PLAYWRIGHT_SSO_USERNAME }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/app-a-next/package-lock.json
+
+      - name: Install App A dependencies
+        working-directory: apps/app-a-next
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        working-directory: apps/app-a-next
+        run: npx playwright install --with-deps chromium
+
+      - name: Run OIDC proxy-chain release gate
+        run: bash infra/qa/run-oidc-proxy-chain-e2e.sh
+
+      - name: Upload OIDC proxy-chain evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: oidc-proxy-chain-evidence
+          path: |
+            apps/app-a-next/test-results/**

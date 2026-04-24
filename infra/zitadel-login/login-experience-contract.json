@@ -1,0 +1,22 @@
+{
+  "id": {
+    "title": "Masuk ke Dev-SSO",
+    "heading": "Masuk ke Dev-SSO",
+    "description": "Gunakan akun Anda untuk masuk dengan aman.",
+    "label": "Email atau username",
+    "register": "Buat akun baru",
+    "back": "Kembali",
+    "submit": "Lanjutkan",
+    "languages": ["Bahasa Indonesia", "English"]
+  },
+  "en": {
+    "title": "Sign in to Dev-SSO",
+    "heading": "Sign in to Dev-SSO",
+    "description": "Use your account to sign in securely.",
+    "label": "Email or username",
+    "register": "Create new account",
+    "back": "Back",
+    "submit": "Continue",
+    "languages": ["Bahasa Indonesia", "English"]
+  }
+}

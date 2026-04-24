@@ -1,0 +1,638 @@
+name: ${COMPOSE_PROJECT_NAME}
+
+x-proxy-limits: &proxy-limits
+  cpus: "0.25"
+  mem_limit: 128m
+  deploy:
+    resources:
+      limits:
+        cpus: "0.25"
+        memory: 128M
+
+x-small-web-limits: &small-web-limits
+  cpus: "0.50"
+  mem_limit: 256m
+  deploy:
+    resources:
+      limits:
+        cpus: "0.50"
+        memory: 256M
+
+x-medium-php-limits: &medium-php-limits
+  cpus: "0.75"
+  mem_limit: 512m
+  deploy:
+    resources:
+      limits:
+        cpus: "0.75"
+        memory: 512M
+
+x-sso-backend-env: &sso-backend-env
+  APP_ENV: ${APP_ENV}
+  APP_DEBUG: ${APP_DEBUG}
+  APP_KEY: ${SSO_BACKEND_APP_KEY}
+  APP_URL: ${SSO_BASE_URL}
+  LOG_LEVEL: ${LOG_LEVEL}
+  DB_CONNECTION: pgsql
+  DB_HOST: postgres
+  DB_PORT: 5432
+  DB_DATABASE: ${SSO_BACKEND_DB}
+  DB_USERNAME: ${SSO_BACKEND_DB_USER:-${POSTGRES_ADMIN_USER}}
+  DB_PASSWORD: ${SSO_BACKEND_DB_PASSWORD:-${POSTGRES_ADMIN_PASSWORD}}
+  CACHE_STORE: redis
+  SESSION_DRIVER: redis
+  SESSION_COOKIE: ${SSO_BACKEND_SESSION_COOKIE}
+  SESSION_SECURE_COOKIE: ${SESSION_SECURE_COOKIE}
+  SESSION_SAME_SITE: ${SESSION_SAME_SITE}
+  QUEUE_CONNECTION: ${QUEUE_CONNECTION:-database}
+  DB_QUEUE_CONNECTION: ${DB_QUEUE_CONNECTION:-pgsql}
+  DB_QUEUE_TABLE: ${DB_QUEUE_TABLE:-jobs}
+  DB_QUEUE: ${DB_QUEUE:-default}
+  REDIS_CLIENT: phpredis
+  REDIS_HOST: redis
+  REDIS_PASSWORD: ${REDIS_PASSWORD}
+  REDIS_PORT: 6379
+  REDIS_DB: 2
+  REDIS_CACHE_DB: 3
+  SSO_BASE_URL: ${SSO_BASE_URL}
+  SSO_ISSUER: ${SSO_ISSUER}
+  SSO_RESOURCE_AUDIENCE: ${SSO_RESOURCE_AUDIENCE}
+  ZITADEL_ISSUER: ${ZITADEL_ISSUER}
+  ZITADEL_BROKER_PUBLIC_ISSUER: ${ZITADEL_BROKER_PUBLIC_ISSUER}
+  ZITADEL_BROKER_INTERNAL_ISSUER: ${ZITADEL_BROKER_INTERNAL_ISSUER}
+  ZITADEL_BROKER_CLIENT_ID: ${ZITADEL_BROKER_CLIENT_ID}
+  ZITADEL_BROKER_CLIENT_SECRET: ${ZITADEL_BROKER_CLIENT_SECRET}
+  ZITADEL_BROKER_REDIRECT_URI: ${ZITADEL_BROKER_REDIRECT_URI}
+  ZITADEL_BROKER_SCOPE: ${ZITADEL_BROKER_SCOPE}
+  OIDC_SIGNING_ALG: ${OIDC_SIGNING_ALG}
+  OIDC_SIGNING_KID: ${OIDC_SIGNING_KID}
+  OIDC_PRIVATE_KEY_PATH: ${OIDC_PRIVATE_KEY_PATH}
+  OIDC_PUBLIC_KEY_PATH: ${OIDC_PUBLIC_KEY_PATH}
+  OIDC_ACCESS_TOKEN_TTL: ${OIDC_ACCESS_TOKEN_TTL}
+  OIDC_ID_TOKEN_TTL: ${OIDC_ID_TOKEN_TTL}
+  OIDC_REFRESH_TOKEN_TTL_DAYS: ${OIDC_REFRESH_TOKEN_TTL_DAYS}
+  OIDC_REFRESH_TOKEN_FAMILY_TTL_DAYS: ${OIDC_REFRESH_TOKEN_FAMILY_TTL_DAYS:-90}
+  OIDC_AUTH_REQUEST_TTL: ${OIDC_AUTH_REQUEST_TTL}
+  OIDC_AUTHORIZATION_CODE_TTL: ${OIDC_AUTHORIZATION_CODE_TTL}
+  APP_A_CLIENT_ID: ${APP_A_CLIENT_ID}
+  APP_A_REDIRECT_URI: ${APP_A_REDIRECT_URI}
+  APP_A_POST_LOGOUT_REDIRECT_URI: ${APP_A_POST_LOGOUT_REDIRECT_URI}
+  APP_A_BACKCHANNEL_LOGOUT_URI: ${APP_A_BACKCHANNEL_LOGOUT_URI}
+  APP_B_CLIENT_ID: ${APP_B_CLIENT_ID}
+  APP_B_CLIENT_SECRET_HASH: ${APP_B_CLIENT_SECRET_HASH}
+  APP_B_REDIRECT_URI: ${APP_B_REDIRECT_URI}
+  APP_B_POST_LOGOUT_REDIRECT_URI: ${APP_B_POST_LOGOUT_REDIRECT_URI}
+  APP_B_BACKCHANNEL_LOGOUT_URI: ${APP_B_BACKCHANNEL_LOGOUT_URI}
+  ADMIN_PANEL_CLIENT_ID: ${ADMIN_PANEL_CLIENT_ID}
+  ADMIN_PANEL_REDIRECT_URI: ${ADMIN_PANEL_REDIRECT_URI}
+  ADMIN_PANEL_POST_LOGOUT_REDIRECT_URI: ${ADMIN_PANEL_POST_LOGOUT_REDIRECT_URI}
+  ADMIN_PANEL_BACKCHANNEL_LOGOUT_URI: ${ADMIN_PANEL_BACKCHANNEL_LOGOUT_URI:-${SSO_INTERNAL_BASE_URL}/connect/backchannel/admin-panel/logout}
+  ADMIN_PANEL_ADMIN_EMAIL: ${ADMIN_PANEL_ADMIN_EMAIL}
+  ADMIN_PANEL_SESSION_MANAGEMENT_ROLES: ${ADMIN_PANEL_SESSION_MANAGEMENT_ROLES}
+  ADMIN_PANEL_REQUIRE_MFA: ${ADMIN_PANEL_REQUIRE_MFA}
+  ADMIN_PANEL_MFA_ACCEPTED_AMR: ${ADMIN_PANEL_MFA_ACCEPTED_AMR}
+  TELESCOPE_ENABLED: ${TELESCOPE_ENABLED}
+  TELESCOPE_DOMAIN: ${TELESCOPE_DOMAIN}
+  TELESCOPE_ALLOWED_ENVIRONMENTS: ${TELESCOPE_ALLOWED_ENVIRONMENTS}
+  TELESCOPE_ALLOWED_IPS: ${TELESCOPE_ALLOWED_IPS}
+  TELESCOPE_ALLOWED_HOSTS: ${TELESCOPE_ALLOWED_HOSTS}
+  TELESCOPE_BASIC_AUTH_USER: ${TELESCOPE_BASIC_AUTH_USER}
+  TELESCOPE_BASIC_AUTH_PASSWORD: ${TELESCOPE_BASIC_AUTH_PASSWORD}
+  TELESCOPE_RECORD_ALL: ${TELESCOPE_RECORD_ALL}
+  TELESCOPE_PRUNE_HOURS: ${TELESCOPE_PRUNE_HOURS}
+  TELESCOPE_LOG_LEVEL: ${TELESCOPE_LOG_LEVEL}
+  TELESCOPE_QUERY_WATCHER_SLOW_MS: ${TELESCOPE_QUERY_WATCHER_SLOW_MS}
+  TELESCOPE_RESPONSE_SIZE_LIMIT: ${TELESCOPE_RESPONSE_SIZE_LIMIT}
+
+x-postgres-limits: &postgres-limits
+  cpus: "1.00"
+  mem_limit: 768m
+  deploy:
+    resources:
+      limits:
+        cpus: "1.00"
+        memory: 768M
+
+x-zitadel-limits: &zitadel-limits
+  cpus: "1.00"
+  mem_limit: 768m
+  deploy:
+    resources:
+      limits:
+        cpus: "1.00"
+        memory: 768M
+
+services:
+  proxy:
+    image: ${TRAEFIK_IMAGE}
+    restart: unless-stopped
+    init: true
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=sso-dev
+      - --entrypoints.web.address=:80
+      - --entrypoints.web.forwardedheaders.insecure=false
+      - --entrypoints.web.forwardedheaders.trustedips=127.0.0.1/32,::1/128,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
+      - --entrypoints.websecure.address=:443
+      - --entrypoints.websecure.forwardedheaders.insecure=false
+      - --entrypoints.websecure.forwardedheaders.trustedips=127.0.0.1/32,::1/128,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
+      - --api.dashboard=${TRAEFIK_DASHBOARD_ENABLED}
+      - --api.insecure=false
+      - --ping=true
+      - --ping.entrypoint=web
+      - --log.level=${TRAEFIK_LOG_LEVEL}
+      - --accesslog=${TRAEFIK_ACCESSLOG_ENABLED}
+    ports:
+      - ${PROXY_HTTP_BIND_IP}:${PROXY_HTTP_PUBLISHED_PORT}:80
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      sso-backend:
+        condition: service_healthy
+      sso-frontend:
+        condition: service_healthy
+      zitadel-api:
+        condition: service_healthy
+      zitadel-login:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -q -O - http://127.0.0.1/ping >/dev/null
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - proxy-edge
+      - sso-dev
+    <<: *proxy-limits
+
+  postgres:
+    image: ${POSTGRES_IMAGE}
+    restart: unless-stopped
+    init: true
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_ADMIN_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD}
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -d ${POSTGRES_DB} -U ${POSTGRES_ADMIN_USER}
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    volumes:
+      - postgres-data:/var/lib/postgresql/data:rw
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - sso-dev
+    <<: *postgres-limits
+
+  redis:
+    image: ${REDIS_IMAGE}
+    restart: unless-stopped
+    init: true
+    command:
+      - redis-server
+      - --requirepass
+      - ${REDIS_PASSWORD}
+      - --appendonly
+      - "yes"
+      - --save
+      - "60 1000"
+      - --maxmemory
+      - 192mb
+      - --maxmemory-policy
+      - allkeys-lru
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - REDISCLI_AUTH=$$REDIS_PASSWORD redis-cli ping
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    networks:
+      - sso-dev
+    <<: *small-web-limits
+
+  zitadel-api:
+    image: sso-dev-zitadel:${ZITADEL_VERSION}
+    build:
+      context: .
+      dockerfile: ./infra/zitadel/Dockerfile
+      args:
+        ZITADEL_VERSION: ${ZITADEL_VERSION}
+    restart: unless-stopped
+    init: true
+    command:
+      - start-from-init
+      - --masterkey
+      - ${ZITADEL_MASTERKEY}
+    environment:
+      ZITADEL_PORT: 8080
+      ZITADEL_EXTERNALDOMAIN: ${ZITADEL_DOMAIN}
+      ZITADEL_EXTERNALPORT: ${ZITADEL_EXTERNALPORT}
+      ZITADEL_EXTERNALSECURE: ${ZITADEL_EXTERNALSECURE}
+      ZITADEL_TLS_ENABLED: "false"
+      ZITADEL_DATABASE_POSTGRES_HOST: postgres
+      ZITADEL_DATABASE_POSTGRES_PORT: 5432
+      ZITADEL_DATABASE_POSTGRES_DATABASE: ${POSTGRES_DB}
+      ZITADEL_DATABASE_POSTGRES_USER_USERNAME: ${POSTGRES_ADMIN_USER}
+      ZITADEL_DATABASE_POSTGRES_USER_PASSWORD: ${POSTGRES_ADMIN_PASSWORD}
+      ZITADEL_DATABASE_POSTGRES_USER_SSL_MODE: disable
+      ZITADEL_DATABASE_POSTGRES_ADMIN_USERNAME: ${POSTGRES_ADMIN_USER}
+      ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD: ${POSTGRES_ADMIN_PASSWORD}
+      ZITADEL_DATABASE_POSTGRES_ADMIN_SSL_MODE: disable
+      ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORDCHANGEREQUIRED: "false"
+      ZITADEL_FIRSTINSTANCE_MACHINEKEYPATH: ${ZITADEL_FIRSTINSTANCE_MACHINEKEYPATH}
+      ZITADEL_FIRSTINSTANCE_PATPATH: ${ZITADEL_FIRSTINSTANCE_PATPATH}
+      ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_USERNAME: ${ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_USERNAME}
+      ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_NAME: ${ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_NAME}
+      ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINEKEY_EXPIRATIONDATE: ${ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINEKEY_EXPIRATIONDATE}
+      ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINEKEY_TYPE: ${ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINEKEY_TYPE}
+      ZITADEL_FIRSTINSTANCE_ORG_MACHINE_PAT_EXPIRATIONDATE: ${ZITADEL_FIRSTINSTANCE_ORG_MACHINE_PAT_EXPIRATIONDATE}
+      ZITADEL_FIRSTINSTANCE_LOGINCLIENTPATPATH: /zitadel/bootstrap/login-client.pat
+      ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_MACHINE_USERNAME: login-client
+      ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_MACHINE_NAME: Prototype Login Client
+      ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_PAT_EXPIRATIONDATE: ${LOGIN_CLIENT_PAT_EXPIRATION}
+      ZITADEL_LOGSTORE_ACCESS_STDOUT_ENABLED: ${ZITADEL_ACCESS_LOG_STDOUT_ENABLED}
+      ZITADEL_CACHES_CONNECTORS_REDIS_ENABLED: ${ZITADEL_CACHES_CONNECTORS_REDIS_ENABLED}
+      ZITADEL_CACHES_CONNECTORS_REDIS_NETWORK: ${ZITADEL_CACHES_CONNECTORS_REDIS_NETWORK}
+      ZITADEL_CACHES_CONNECTORS_REDIS_ADDR: ${ZITADEL_CACHES_CONNECTORS_REDIS_ADDR}
+      ZITADEL_CACHES_CONNECTORS_REDIS_USERNAME: ${ZITADEL_CACHES_CONNECTORS_REDIS_USERNAME}
+      ZITADEL_CACHES_CONNECTORS_REDIS_PASSWORD: ${REDIS_PASSWORD}
+      ZITADEL_CACHES_INSTANCE_CONNECTOR: ${ZITADEL_CACHES_INSTANCE_CONNECTOR}
+      ZITADEL_CACHES_MILESTONES_CONNECTOR: ${ZITADEL_CACHES_MILESTONES_CONNECTOR}
+      ZITADEL_CACHES_ORGANIZATION_CONNECTOR: ${ZITADEL_CACHES_ORGANIZATION_CONNECTOR}
+    healthcheck:
+      test:
+        - CMD
+        - /usr/local/bin/zitadel
+        - ready
+      interval: 15s
+      timeout: 10s
+      retries: 12
+      start_period: 30s
+    volumes:
+      - zitadel-bootstrap:/zitadel/bootstrap:rw
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - sso-dev
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=sso-dev
+      - traefik.http.services.zitadel-api.loadbalancer.server.port=8080
+      - traefik.http.services.zitadel-api.loadbalancer.server.scheme=h2c
+      - traefik.http.routers.zitadel-canonical.rule=Host(`${ZITADEL_DOMAIN}`)
+      - traefik.http.routers.zitadel-canonical.entrypoints=web
+      - traefik.http.routers.zitadel-canonical.service=zitadel-api
+      - traefik.http.routers.zitadel-canonical.priority=100
+    <<: *zitadel-limits
+
+  zitadel-login:
+    image: sso-dev-zitadel-login:${APP_IMAGE_TAG:-local}
+    build:
+      context: .
+      dockerfile: ./infra/zitadel-login/Dockerfile
+      args:
+        ZITADEL_VERSION: ${ZITADEL_VERSION}
+    restart: unless-stopped
+    init: true
+    environment:
+      ZITADEL_API_URL: http://zitadel-api:8080
+      AUDIENCE: https://${ZITADEL_DOMAIN}
+      ZITADEL_ORG: ""
+      NEXT_PUBLIC_BASE_PATH: /ui/v2/login
+      NODE_ENV: production
+      CUSTOM_REQUEST_HEADERS: Host:${ZITADEL_DOMAIN},x-zitadel-instance-host:${ZITADEL_DOMAIN},x-zitadel-public-host:${ZITADEL_DOMAIN},X-Forwarded-Proto:https
+      ZITADEL_SERVICE_USER_TOKEN_FILE: /zitadel/bootstrap/login-client.pat
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -q -O - http://127.0.0.1:3000/ui/v2/login > /dev/null
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    depends_on:
+      zitadel-api:
+        condition: service_healthy
+    volumes:
+      - zitadel-bootstrap:/zitadel/bootstrap:ro
+    networks:
+      - sso-dev
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=sso-dev
+      - traefik.http.services.zitadel-login.loadbalancer.server.port=3000
+      - traefik.http.routers.zitadel-login.rule=Host(`${ZITADEL_DOMAIN}`) && PathPrefix(`/ui/v2/login`)
+      - traefik.http.routers.zitadel-login.entrypoints=web
+      - traefik.http.routers.zitadel-login.service=zitadel-login
+      - traefik.http.routers.zitadel-login.priority=150
+    <<: *small-web-limits
+
+
+  sso-backend:
+    image: sso-dev-sso-backend:${APP_IMAGE_TAG:-local}
+    build:
+      context: ./services/sso-backend
+    restart: unless-stopped
+    init: true
+    environment: *sso-backend-env
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -q -O - http://127.0.0.1:8000/.well-known/openid-configuration >/dev/null
+      interval: 20s
+      timeout: 10s
+      retries: 10
+      start_period: 40s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      zitadel-api:
+        condition: service_healthy
+    volumes:
+      - sso-backend-storage:/app/storage
+      - ./.secrets/oidc:/app/storage/app/oidc:ro
+    networks:
+      - sso-dev
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=sso-dev
+      - traefik.http.services.sso-backend.loadbalancer.server.port=8000
+      # OIDC + Admin API paths → sso-backend (higher priority)
+      - traefik.http.routers.sso-backend.rule=Host(`${SSO_DOMAIN}`) && (PathPrefix(`/authorize`) || PathPrefix(`/token`) || PathPrefix(`/userinfo`) || PathPrefix(`/jwks`) || PathPrefix(`/revocation`) || PathPrefix(`/connect`) || PathPrefix(`/callbacks`) || PathPrefix(`/oauth2`) || PathPrefix(`/.well-known`) || PathPrefix(`/api/profile`) || PathPrefix(`/admin/api`) || PathPrefix(`/health`) || PathPrefix(`/up`))
+      - traefik.http.routers.sso-backend.entrypoints=web
+      - traefik.http.routers.sso-backend.service=sso-backend
+      - traefik.http.routers.sso-backend.priority=200
+      - traefik.http.routers.sso-backend-telescope.rule=Host(`${DEBUG_SSO_DOMAIN}`) && (PathPrefix(`/telescope`) || PathPrefix(`/vendor/telescope`))
+      - traefik.http.routers.sso-backend-telescope.entrypoints=web
+      - traefik.http.routers.sso-backend-telescope.service=sso-backend
+      - traefik.http.routers.sso-backend-telescope.priority=250
+    <<: *medium-php-limits
+
+  sso-backend-worker:
+    image: sso-dev-sso-backend:${APP_IMAGE_TAG:-local}
+    build:
+      context: ./services/sso-backend
+    restart: unless-stopped
+    init: true
+    command:
+      - sh
+      - -lc
+      - php artisan queue:work ${QUEUE_CONNECTION:-database} --queue=backchannel-logout,default --tries=3 --backoff=10,30,90 --sleep=3 --timeout=120 --max-jobs=500 --max-time=3600
+    environment: *sso-backend-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      sso-backend:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - "tr '\\000' ' ' </proc/1/cmdline | grep -q 'queue:work'"
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+    volumes:
+      - sso-backend-storage:/app/storage
+      - ./.secrets/oidc:/app/storage/app/oidc:ro
+    networks:
+      - sso-dev
+    <<: *medium-php-limits
+
+  sso-frontend:
+    image: sso-dev-sso-frontend:${APP_IMAGE_TAG:-local}
+    build:
+      context: ./services/sso-frontend
+      args:
+        NEXT_PUBLIC_SSO_BASE_URL: ${SSO_BASE_URL}
+    restart: unless-stopped
+    init: true
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_SSO_BASE_URL: ${SSO_BASE_URL}
+      NEXT_PUBLIC_APP_BASE_URL: ${ADMIN_PANEL_BASE_URL}
+      NEXT_PUBLIC_CLIENT_ID: ${ADMIN_PANEL_CLIENT_ID}
+      SSO_IDENTITY_UI_BASE_URL: ${ZITADEL_ISSUER}/ui/v2/login
+      SSO_INTERNAL_TOKEN_URL: ${SSO_INTERNAL_BASE_URL}/token
+      SSO_INTERNAL_JWKS_URL: ${SSO_INTERNAL_BASE_URL}/jwks
+      SSO_INTERNAL_ADMIN_API_URL: ${SSO_INTERNAL_BASE_URL}/admin/api
+      SSO_INTERNAL_BASE_URL: ${SSO_INTERNAL_BASE_URL}
+      SSO_FRONTEND_REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/6
+      SESSION_ENCRYPTION_SECRET: ${ADMIN_PANEL_SESSION_SECRET}
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -q -O - http://127.0.0.1:3000 >/dev/null
+      interval: 20s
+      timeout: 10s
+      retries: 10
+      start_period: 45s
+    depends_on:
+      sso-backend:
+        condition: service_healthy
+    networks:
+      - sso-dev
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=sso-dev
+      - traefik.http.services.sso-frontend.loadbalancer.server.port=3000
+      # Catch-all for SSO_DOMAIN → Admin Panel UI (lower priority)
+      - traefik.http.routers.sso-frontend.rule=Host(`${SSO_DOMAIN}`)
+      - traefik.http.routers.sso-frontend.entrypoints=web
+      - traefik.http.routers.sso-frontend.service=sso-frontend
+      - traefik.http.routers.sso-frontend.priority=50
+    <<: *small-web-limits
+
+  sso-admin-vue:
+    image: sso-dev-sso-admin-vue:${APP_IMAGE_TAG:-local}
+    build:
+      context: ./services/sso-admin-vue
+      args:
+        VITE_ADMIN_BASE_URL: ${ADMIN_PANEL_BASE_URL}
+        VITE_PUBLIC_BASE_PATH: ${SSO_ADMIN_VUE_BASE_PATH:-/__vue-preview}
+        VITE_SSO_BASE_URL: ${SSO_BASE_URL}
+        VITE_ZITADEL_ISSUER_URL: ${ZITADEL_ISSUER}
+    restart: unless-stopped
+    init: true
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -q -O - http://127.0.0.1:8080/healthz >/dev/null
+      interval: 20s
+      timeout: 10s
+      retries: 10
+      start_period: 20s
+    depends_on:
+      sso-backend:
+        condition: service_healthy
+    networks:
+      - sso-dev
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=sso-dev
+      - traefik.http.services.sso-admin-vue.loadbalancer.server.port=8080
+      - traefik.http.middlewares.sso-admin-vue-strip.stripprefix.prefixes=${SSO_ADMIN_VUE_BASE_PATH:-/__vue-preview}
+      - traefik.http.routers.sso-admin-vue.rule=Host(`${SSO_DOMAIN}`) && PathPrefix(`${SSO_ADMIN_VUE_BASE_PATH:-/__vue-preview}`)
+      - traefik.http.routers.sso-admin-vue.entrypoints=web
+      - traefik.http.routers.sso-admin-vue.middlewares=sso-admin-vue-strip
+      - traefik.http.routers.sso-admin-vue.service=sso-admin-vue
+      - traefik.http.routers.sso-admin-vue.priority=175
+    <<: *small-web-limits
+
+  app-a-next:
+    image: sso-dev-app-a-next:${APP_IMAGE_TAG:-local}
+    build:
+      context: ./apps/app-a-next
+    restart: unless-stopped
+    init: true
+    command:
+      - sh
+      - -lc
+      - npm run start -- --hostname 0.0.0.0 --port 3000
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_APP_NAME: Dummy App A
+      NEXT_PUBLIC_SSO_ISSUER: ${SSO_ISSUER}
+      NEXT_PUBLIC_AUTHORIZE_URL: ${SSO_BASE_URL}/authorize
+      NEXT_PUBLIC_CALLBACK_URL: ${APP_A_REDIRECT_URI}
+      NEXT_PUBLIC_CLIENT_ID: ${APP_A_CLIENT_ID}
+      APP_BASE_URL: ${APP_A_BASE_URL}
+      SSO_TOKEN_URL: ${SSO_INTERNAL_BASE_URL}/token
+      SSO_PROFILE_URL: ${SSO_INTERNAL_BASE_URL}/api/profile
+      SSO_REGISTER_SESSION_URL: ${SSO_INTERNAL_BASE_URL}/connect/register-session
+      SSO_LOGOUT_URL: ${SSO_INTERNAL_BASE_URL}/connect/logout
+      SSO_JWKS_URL: ${SSO_INTERNAL_BASE_URL}/jwks
+      REDIS_URL: ${APP_A_REDIS_URL}
+      APP_SESSION_COOKIE_NAME: ${APP_A_SESSION_COOKIE_NAME}
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -q -O - http://127.0.0.1:3000 >/dev/null
+      interval: 20s
+      timeout: 10s
+      retries: 10
+      start_period: 45s
+    depends_on:
+      redis:
+        condition: service_healthy
+      sso-backend:
+        condition: service_healthy
+    networks:
+      - sso-dev
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=sso-dev
+      - traefik.http.services.app-a-next.loadbalancer.server.port=3000
+      - traefik.http.routers.app-a-next.rule=Host(`${APP_A_DOMAIN}`)
+      - traefik.http.routers.app-a-next.entrypoints=web
+      - traefik.http.routers.app-a-next.service=app-a-next
+      - traefik.http.routers.app-a-next.priority=100
+    <<: *small-web-limits
+
+  app-b-laravel:
+    image: sso-dev-app-b-laravel:${APP_IMAGE_TAG:-local}
+    build:
+      context: ./apps/app-b-laravel
+    restart: unless-stopped
+    init: true
+    command:
+      - sh
+      - -lc
+      - mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=8000
+    environment:
+      APP_ENV: ${APP_ENV}
+      APP_DEBUG: ${APP_DEBUG}
+      APP_KEY: ${APP_B_APP_KEY}
+      APP_URL: ${APP_B_BASE_URL}
+      LOG_LEVEL: ${LOG_LEVEL}
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: ${APP_B_DB}
+      DB_USERNAME: ${APP_B_DB_USER:-${POSTGRES_ADMIN_USER}}
+      DB_PASSWORD: ${APP_B_DB_PASSWORD:-${POSTGRES_ADMIN_PASSWORD}}
+      CACHE_STORE: redis
+      SESSION_DRIVER: database
+      SESSION_DOMAIN: ${APP_B_SESSION_DOMAIN}
+      SESSION_SECURE_COOKIE: ${SESSION_SECURE_COOKIE}
+      SESSION_SAME_SITE: ${SESSION_SAME_SITE}
+      REDIS_CLIENT: predis
+      REDIS_HOST: redis
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      REDIS_PORT: 6379
+      REDIS_DB: 4
+      REDIS_CACHE_DB: 5
+      SSO_PUBLIC_ISSUER: ${SSO_ISSUER}
+      SSO_INTERNAL_BASE_URL: ${SSO_INTERNAL_BASE_URL}
+      SSO_CLIENT_ID: ${APP_B_CLIENT_ID}
+      SSO_CLIENT_SECRET: ${APP_B_CLIENT_SECRET}
+      SSO_REDIRECT_URI: ${APP_B_REDIRECT_URI}
+      SSO_LOGOUT_REDIRECT_URI: ${APP_B_POST_LOGOUT_REDIRECT_URI}
+      SSO_JWKS_URL: ${SSO_INTERNAL_BASE_URL}/jwks
+      RESOURCE_API_BASE_URL: ${RESOURCE_API_BASE_URL}
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -q -O - http://127.0.0.1:8000 >/dev/null
+      interval: 20s
+      timeout: 10s
+      retries: 10
+      start_period: 40s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      sso-backend:
+        condition: service_healthy
+    volumes:
+      - app-b-storage:/app/storage
+    networks:
+      - sso-dev
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=sso-dev
+      - traefik.http.services.app-b-laravel.loadbalancer.server.port=8000
+      - traefik.http.routers.app-b-laravel.rule=Host(`${APP_B_DOMAIN}`)
+      - traefik.http.routers.app-b-laravel.entrypoints=web
+      - traefik.http.routers.app-b-laravel.service=app-b-laravel
+      - traefik.http.routers.app-b-laravel.priority=100
+    <<: *medium-php-limits
+
+networks:
+  proxy-edge:
+    name: sso-dev-proxy-edge
+    driver: bridge
+  sso-dev:
+    name: sso-dev
+    driver: bridge
+    internal: true
+
+volumes:
+  postgres-data:
+    name: sso-dev-postgres-data
+  zitadel-bootstrap:
+    name: sso-dev-zitadel-bootstrap
+  sso-backend-storage:
+    name: sso-dev-sso-backend-storage
+  app-b-storage:
+    name: sso-dev-app-b-storage

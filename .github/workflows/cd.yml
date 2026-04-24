@@ -1,0 +1,105 @@
+# ==============================================================================
+# CD Pipeline — Zero-Downtime Deployment
+#
+# Triggered on semantic version tags (v*).
+# Pulls pre-built images from GHCR, deploys to VPS with rolling updates,
+# Traefik healthcheck-gated traffic switching, and smoke tests.
+# ==============================================================================
+name: CD
+
+on:
+  push:
+    tags: ["v*"]
+
+  # Allow manual deployment of any tag
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Image tag to deploy (e.g., v1.2.3 or sha-abc1234)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: read
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}/sso-prototype
+  VPS_HOST: ${{ secrets.VPS_HOST }}
+  VPS_USER: ${{ secrets.VPS_USER }}
+  VPS_PROJECT_DIR: ${{ secrets.VPS_PROJECT_DIR || '/opt/sso-prototype-dev' }}
+
+concurrency:
+  group: cd-production
+  cancel-in-progress: false  # Never cancel in-progress deploys
+
+jobs:
+  deploy:
+    name: "Deploy to VPS"
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Determine deploy tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+          echo "sha_short=$(echo $GITHUB_SHA | head -c 7)" >> "$GITHUB_OUTPUT"
+
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ env.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Prepare remote release bundle directory
+        run: |
+          ssh -i ~/.ssh/deploy_key "${{ env.VPS_USER }}@${{ env.VPS_HOST }}" \
+            "mkdir -p /tmp/_deploy_scripts /tmp/_deploy_bundle"
+
+      - name: Sync deploy scripts and Compose control plane to VPS
+        run: |
+          rsync -avz --progress \
+            -e "ssh -i ~/.ssh/deploy_key" \
+            scripts/vps-deploy.sh \
+            scripts/vps-rollback.sh \
+            "${{ env.VPS_USER }}@${{ env.VPS_HOST }}:/tmp/_deploy_scripts/"
+
+          rsync -avz --progress \
+            -e "ssh -i ~/.ssh/deploy_key" \
+            docker-compose.dev.yml \
+            "${{ env.VPS_USER }}@${{ env.VPS_HOST }}:/tmp/_deploy_bundle/"
+
+      - name: Install Compose control plane on VPS
+        run: |
+          ssh -i ~/.ssh/deploy_key "${{ env.VPS_USER }}@${{ env.VPS_HOST }}" \
+            "set -eu
+             backup='${{ env.VPS_PROJECT_DIR }}/docker-compose.dev.yml.pre-${{ steps.tag.outputs.sha_short }}'
+             if [ -f '${{ env.VPS_PROJECT_DIR }}/docker-compose.dev.yml' ]; then
+               sudo cp '${{ env.VPS_PROJECT_DIR }}/docker-compose.dev.yml' \"\$backup\"
+             fi
+             sudo install -m 0644 /tmp/_deploy_bundle/docker-compose.dev.yml '${{ env.VPS_PROJECT_DIR }}/docker-compose.dev.yml'"
+
+      - name: Execute zero-downtime deploy
+        run: |
+          ssh -i ~/.ssh/deploy_key "${{ env.VPS_USER }}@${{ env.VPS_HOST }}" \
+            "sudo bash /tmp/_deploy_scripts/vps-deploy.sh \
+              --tag '${{ steps.tag.outputs.tag }}' \
+              --registry '${{ env.IMAGE_PREFIX }}' \
+              --project-dir '${{ env.VPS_PROJECT_DIR }}' \
+              --sha '${{ steps.tag.outputs.sha_short }}'"
+        env:
+          DEPLOY_TAG: ${{ steps.tag.outputs.tag }}
+
+      - name: Cleanup SSH key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key

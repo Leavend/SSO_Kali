@@ -1,0 +1,117 @@
+---
+- name: Dev SSO VPS DevOps preflight
+  hosts: sso_vps
+  gather_facts: false
+  become: false
+
+  tasks:
+    - name: Validate required control-plane variables
+      ansible.builtin.assert:
+        that:
+          - sso_project_dir is defined
+          - sso_compose_file is defined
+          - sso_env_file is defined
+          - sso_public_base_url is defined
+          - sso_vue_canary_path is defined
+          - sso_firewall_allowed_tcp_ports is defined
+          - sso_required_services | length > 0
+        quiet: true
+
+    - name: Check Docker engine availability
+      ansible.builtin.command: docker --version
+      changed_when: false
+
+    - name: Check Docker Compose availability
+      ansible.builtin.command: docker compose version
+      changed_when: false
+
+    - name: Check Nginx availability
+      ansible.builtin.command: nginx -v
+      changed_when: false
+
+    - name: Check firewall baseline with ufw when available
+      ansible.builtin.command: ufw status numbered
+      changed_when: false
+      failed_when: false
+      register: sso_ufw_status
+
+    - name: Check firewall baseline with nftables when available
+      ansible.builtin.command: nft list ruleset
+      changed_when: false
+      failed_when: false
+      register: sso_nft_status
+
+    - name: Assert at least one firewall inspection command is available
+      ansible.builtin.assert:
+        that:
+          - sso_ufw_status.rc == 0 or sso_nft_status.rc == 0
+        fail_msg: "Neither ufw nor nftables inspection is available on this host."
+
+    - name: Check project directory exists
+      ansible.builtin.stat:
+        path: "{{ sso_project_dir }}"
+      register: sso_project_dir_stat
+
+    - name: Assert project directory is present
+      ansible.builtin.assert:
+        that:
+          - sso_project_dir_stat.stat.exists
+          - sso_project_dir_stat.stat.isdir
+        fail_msg: "SSO project directory is missing: {{ sso_project_dir }}"
+
+    - name: Check Compose control-plane file exists
+      ansible.builtin.stat:
+        path: "{{ sso_compose_file }}"
+      register: sso_compose_file_stat
+
+    - name: Assert Compose control-plane file is present
+      ansible.builtin.assert:
+        that:
+          - sso_compose_file_stat.stat.exists
+          - sso_compose_file_stat.stat.isreg
+        fail_msg: "Compose control-plane file is missing: {{ sso_compose_file }}"
+
+    - name: Render Compose services
+      ansible.builtin.command:
+        argv:
+          - docker
+          - compose
+          - --env-file
+          - "{{ sso_env_file }}"
+          - -f
+          - "{{ sso_compose_file }}"
+          - config
+          - --services
+      changed_when: false
+      register: sso_compose_services
+
+    - name: Assert required services exist in Compose
+      ansible.builtin.assert:
+        that:
+          - item in sso_compose_services.stdout_lines
+        fail_msg: "Compose control plane does not define required service: {{ item }}"
+      loop: "{{ sso_required_services }}"
+
+    - name: Smoke public SSO health endpoint
+      ansible.builtin.uri:
+        url: "{{ sso_public_base_url }}/health"
+        method: GET
+        status_code: 200
+        return_content: false
+        timeout: 15
+
+    - name: Smoke public OIDC discovery endpoint
+      ansible.builtin.uri:
+        url: "{{ sso_public_base_url }}/.well-known/openid-configuration"
+        method: GET
+        status_code: 200
+        return_content: false
+        timeout: 15
+
+    - name: Smoke Vue canary health endpoint
+      ansible.builtin.uri:
+        url: "{{ sso_public_base_url }}{{ sso_vue_canary_path }}/healthz"
+        method: GET
+        status_code: 200
+        return_content: false
+        timeout: 15

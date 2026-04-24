@@ -1,0 +1,46 @@
+name: Back-Channel Logout Gate
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  backchannel-logout-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+
+      - name: Install broker dependencies
+        working-directory: services/sso-backend
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Install App B dependencies
+        working-directory: apps/app-b-laravel
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Install App A dependencies
+        working-directory: apps/app-a-next
+        run: npm ci
+
+      - name: Run back-channel logout gate
+        run: bash infra/qa/run-backchannel-logout-gate.sh
+
+      - name: Upload back-channel logout evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backchannel-logout-evidence
+          path: |
+            test-results/backchannel-logout-gate/**

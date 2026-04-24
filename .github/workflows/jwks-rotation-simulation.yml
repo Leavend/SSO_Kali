@@ -1,0 +1,42 @@
+name: JWKS Rotation Simulation
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  jwks-rotation-simulation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+
+      - name: Install broker dependencies
+        working-directory: services/sso-backend
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Install App B dependencies
+        working-directory: apps/app-b-laravel
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Run JWKS rotation simulation gate
+        run: bash infra/qa/run-jwks-rotation-simulation.sh
+
+      - name: Upload JWKS rotation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jwks-rotation-simulation-evidence
+          path: |
+            test-results/jwks-rotation-simulation/**

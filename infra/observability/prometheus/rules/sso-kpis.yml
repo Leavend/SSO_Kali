@@ -1,0 +1,109 @@
+groups:
+  - name: sso-recording-rules
+    rules:
+      - record: sso_proxy_uptime_ratio
+        expr: avg by (job) (probe_success{job="sso-public-blackbox"})
+
+      - record: sso_token_validation_p95_seconds
+        expr: histogram_quantile(0.95, sum by (le, service) (rate(traefik_service_request_duration_seconds_bucket{service=~".*sso-backend.*"}[5m])))
+
+      - record: sso_logout_success_ratio
+        expr: |
+          sum(rate(sso_logout_success_total[5m]))
+          /
+          clamp_min(
+            sum(rate(sso_logout_success_total[5m])) + sum(rate(sso_logout_failure_total[5m])),
+            1
+          )
+
+  - name: sso-alert-rules
+    rules:
+      - alert: SsoProxyBlackboxDown
+        expr: probe_success{job="sso-public-blackbox"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: sso-ingress
+        annotations:
+          summary: SSO public endpoint is down
+          description: Blackbox probing failed for {{ $labels.instance }}.
+
+      - alert: SsoTokenValidationLatencyHigh
+        expr: sso_token_validation_p95_seconds > 0.75
+        for: 10m
+        labels:
+          severity: warning
+          service: sso-backend
+        annotations:
+          summary: SSO token validation latency is elevated
+          description: p95 request duration for sso-backend exceeded 750ms.
+
+      - alert: SsoJwksCacheHitRatioLow
+        expr: sso_jwks_cache_hit_ratio{component="broker"} < 0.90
+        for: 15m
+        labels:
+          severity: warning
+          service: jwks
+        annotations:
+          summary: Broker JWKS cache hit ratio is low
+          description: JWKS cache hit ratio dropped below 90% for the broker.
+
+      - alert: SsoJwksRefreshFailures
+        expr: increase(sso_jwks_refresh_fail_total{component="broker"}[15m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          service: jwks
+        annotations:
+          summary: Broker JWKS refresh failures detected
+          description: JWKS refresh failures were observed in the last 15 minutes.
+
+      - alert: SsoLogoutSuccessRateLow
+        expr: sso_logout_success_ratio < 0.99
+        for: 10m
+        labels:
+          severity: warning
+          service: logout
+        annotations:
+          summary: Logout success rate is below target
+          description: Central logout success ratio dropped below 99%.
+
+      - alert: SsoIdentityReconciliationMismatch
+        expr: sso_identity_reconciliation_mismatch_total > 0
+        for: 10m
+        labels:
+          severity: critical
+          service: identity-reconciliation
+        annotations:
+          summary: Identity reconciliation mismatch detected
+          description: Canonical identity reconciliation reported mismatches in the backing store.
+
+      - alert: SsoBackupFailureDetected
+        expr: sso_backup_status{scope="control_plane"} == 0
+        for: 10m
+        labels:
+          severity: critical
+          service: backup
+        annotations:
+          summary: Control-plane backup failed
+          description: The latest control-plane backup finished in a failed state.
+
+      - alert: SsoBackupStale
+        expr: sso_backup_last_success_timestamp_seconds{scope="control_plane"} > 0 and (time() - sso_backup_last_success_timestamp_seconds{scope="control_plane"} > 129600)
+        for: 15m
+        labels:
+          severity: warning
+          service: backup
+        annotations:
+          summary: Control-plane backup is stale
+          description: No successful control-plane backup has completed in the last 36 hours.
+
+      - alert: SsoRestoreDrillFailed
+        expr: sso_restore_drill_status{scope="staging"} == 0 or sso_restore_drill_mismatch_total{scope="staging"} > 0
+        for: 10m
+        labels:
+          severity: critical
+          service: restore-drill
+        annotations:
+          summary: Backup restore drill failed
+          description: The latest staging restore drill failed or reported reconciliation mismatches.

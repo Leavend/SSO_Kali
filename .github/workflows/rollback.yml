@@ -1,0 +1,72 @@
+# ==============================================================================
+# Rollback Pipeline — Instant Revert
+#
+# Manual workflow dispatch. Reverts to a specified image tag in < 30 seconds.
+# No rebuild required — pulls pre-existing images from GHCR.
+# ==============================================================================
+name: Rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_tag:
+        description: "Target tag to rollback to (e.g., v1.1.0 or sha-abc1234)"
+        required: true
+        type: string
+      reason:
+        description: "Reason for rollback"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: read
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}/sso-prototype
+  VPS_HOST: ${{ secrets.VPS_HOST }}
+  VPS_USER: ${{ secrets.VPS_USER }}
+  VPS_PROJECT_DIR: ${{ secrets.VPS_PROJECT_DIR || '/opt/sso-prototype-dev' }}
+
+jobs:
+  rollback:
+    name: "🔄 Rollback to ${{ inputs.target_tag }}"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ env.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Prepare remote rollback script directory
+        run: |
+          ssh -i ~/.ssh/deploy_key "${{ env.VPS_USER }}@${{ env.VPS_HOST }}" \
+            "mkdir -p /tmp/_deploy_scripts"
+
+      - name: Sync rollback script
+        run: |
+          rsync -avz -e "ssh -i ~/.ssh/deploy_key" \
+            scripts/vps-rollback.sh \
+            "${{ env.VPS_USER }}@${{ env.VPS_HOST }}:/tmp/_deploy_scripts/"
+
+      - name: Execute rollback
+        run: |
+          echo "🔄 Rolling back to ${{ inputs.target_tag }}"
+          echo "📝 Reason: ${{ inputs.reason }}"
+          ssh -i ~/.ssh/deploy_key "${{ env.VPS_USER }}@${{ env.VPS_HOST }}" \
+            "sudo bash /tmp/_deploy_scripts/vps-rollback.sh \
+              --tag '${{ inputs.target_tag }}' \
+              --registry '${{ env.IMAGE_PREFIX }}' \
+              --project-dir '${{ env.VPS_PROJECT_DIR }}'"
+
+      - name: Cleanup
+        if: always()
+        run: rm -f ~/.ssh/deploy_key

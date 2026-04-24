@@ -1,0 +1,36 @@
+name: Cookie Prefix Compliance
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  cookie-prefix-compliance:
+    runs-on: ubuntu-latest
+    env:
+      COOKIE_COMPLIANCE_ADMIN_BASE_URL: ${{ secrets.COOKIE_COMPLIANCE_ADMIN_BASE_URL }}
+      COOKIE_COMPLIANCE_APP_A_BASE_URL: ${{ secrets.COOKIE_COMPLIANCE_APP_A_BASE_URL }}
+      COOKIE_COMPLIANCE_BROKER_BASE_URL: ${{ secrets.COOKIE_COMPLIANCE_BROKER_BASE_URL }}
+      COOKIE_COMPLIANCE_CLIENT_ID: ${{ secrets.COOKIE_COMPLIANCE_CLIENT_ID }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run cookie parser unit tests
+        run: node --test tools/qa/assert-host-cookie-header.test.mjs
+
+      - name: Run __Host- cookie compliance gate
+        run: bash infra/qa/run-cookie-prefix-compliance.sh
+
+      - name: Upload cookie compliance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cookie-prefix-compliance-evidence
+          path: |
+            test-results/cookie-prefix-compliance/**

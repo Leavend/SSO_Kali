@@ -1,0 +1,333 @@
+name: sso-prototype
+
+services:
+  proxy:
+    image: ${TRAEFIK_IMAGE}
+    restart: unless-stopped
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=zitadel
+      - --entrypoints.web.address=:80
+      - --api.dashboard=${TRAEFIK_DASHBOARD_ENABLED}
+      - --api.insecure=false
+      - --ping=true
+      - --ping.entrypoint=web
+      - --log.level=${TRAEFIK_LOG_LEVEL}
+      - --accesslog=${TRAEFIK_ACCESSLOG_ENABLED}
+    ports:
+      - ${PROXY_HTTP_PUBLISHED_PORT}:80
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      zitadel-api:
+        condition: service_healthy
+      zitadel-login:
+        condition: service_healthy
+    networks:
+      - zitadel
+
+  postgres:
+    image: ${POSTGRES_IMAGE}
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD}
+      POSTGRES_USER: ${POSTGRES_ADMIN_USER}
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -d ${POSTGRES_DB} -U ${POSTGRES_ADMIN_USER}
+      interval: 10s
+      timeout: 30s
+      retries: 10
+      start_period: 20s
+    volumes:
+      - postgres-data:/var/lib/postgresql/data:rw
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - zitadel
+
+  redis:
+    image: ${REDIS_IMAGE}
+    restart: unless-stopped
+    command:
+      - redis-server
+      - --requirepass
+      - ${REDIS_PASSWORD}
+      - --appendonly
+      - "yes"
+      - --save
+      - "60 1000"
+      - --maxmemory
+      - 192mb
+      - --maxmemory-policy
+      - allkeys-lru
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - REDISCLI_AUTH=$$REDIS_PASSWORD redis-cli ping
+      interval: 10s
+      timeout: 30s
+      retries: 10
+      start_period: 10s
+    volumes:
+      - redis-data:/data:rw
+    networks:
+      - zitadel
+
+  zitadel-api:
+    image: ghcr.io/zitadel/zitadel:${ZITADEL_VERSION}
+    restart: unless-stopped
+    user: "0"
+    command: start-from-init --masterkey "${ZITADEL_MASTERKEY}"
+    environment:
+      ZITADEL_PORT: 8080
+      ZITADEL_EXTERNALDOMAIN: ${ZITADEL_DOMAIN}
+      ZITADEL_EXTERNALPORT: ${ZITADEL_EXTERNALPORT}
+      ZITADEL_EXTERNALSECURE: ${ZITADEL_EXTERNALSECURE}
+      ZITADEL_TLS_ENABLED: false
+      ZITADEL_DATABASE_POSTGRES_DSN: ${ZITADEL_DATABASE_POSTGRES_DSN}
+      ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORDCHANGEREQUIRED: false
+      ZITADEL_FIRSTINSTANCE_LOGINCLIENTPATPATH: /zitadel/bootstrap/login-client.pat
+      ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_MACHINE_USERNAME: login-client
+      ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_MACHINE_NAME: Prototype Login Client
+      ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_PAT_EXPIRATIONDATE: ${LOGIN_CLIENT_PAT_EXPIRATION}
+      ZITADEL_DEFAULTINSTANCE_FEATURES_LOGINV2_REQUIRED: true
+      ZITADEL_DEFAULTINSTANCE_FEATURES_LOGINV2_BASEURI: ${ZITADEL_PUBLIC_SCHEME}://${ZITADEL_DOMAIN}:${ZITADEL_EXTERNALPORT}/ui/v2/login/
+      ZITADEL_OIDC_DEFAULTLOGINURLV2: ${ZITADEL_PUBLIC_SCHEME}://${ZITADEL_DOMAIN}:${ZITADEL_EXTERNALPORT}/ui/v2/login/login?authRequest=
+      ZITADEL_OIDC_DEFAULTLOGOUTURLV2: ${ZITADEL_PUBLIC_SCHEME}://${ZITADEL_DOMAIN}:${ZITADEL_EXTERNALPORT}/ui/v2/login/logout?post_logout_redirect=
+      ZITADEL_LOGSTORE_ACCESS_STDOUT_ENABLED: ${ZITADEL_ACCESS_LOG_STDOUT_ENABLED}
+      ZITADEL_CACHES_CONNECTORS_REDIS_ENABLED: ${ZITADEL_CACHES_CONNECTORS_REDIS_ENABLED}
+      ZITADEL_CACHES_CONNECTORS_REDIS_URL: ${ZITADEL_CACHES_CONNECTORS_REDIS_URL}
+      ZITADEL_CACHES_INSTANCE_CONNECTOR: ${ZITADEL_CACHES_INSTANCE_CONNECTOR}
+      ZITADEL_CACHES_MILESTONES_CONNECTOR: ${ZITADEL_CACHES_MILESTONES_CONNECTOR}
+      ZITADEL_CACHES_ORGANIZATION_CONNECTOR: ${ZITADEL_CACHES_ORGANIZATION_CONNECTOR}
+    healthcheck:
+      test:
+        - CMD
+        - /app/zitadel
+        - ready
+      interval: 10s
+      timeout: 30s
+      retries: 12
+      start_period: 20s
+    volumes:
+      - zitadel-bootstrap:/zitadel/bootstrap:rw
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - zitadel
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=zitadel
+      - traefik.http.services.zitadel-api.loadbalancer.server.port=8080
+      - traefik.http.services.zitadel-api.loadbalancer.server.scheme=h2c
+      - traefik.http.middlewares.zitadel-strip-api.stripprefix.prefixes=/api
+      - traefik.http.middlewares.zitadel-strip-api.stripprefix.forceSlash=false
+      - traefik.http.routers.zitadel-api-alias.rule=Host(`${ZITADEL_DOMAIN}`) && PathPrefix(`/api`)
+      - traefik.http.routers.zitadel-api-alias.entrypoints=web
+      - traefik.http.routers.zitadel-api-alias.middlewares=zitadel-strip-api
+      - traefik.http.routers.zitadel-api-alias.service=zitadel-api
+      - traefik.http.routers.zitadel-api-alias.priority=200
+      - traefik.http.routers.zitadel-canonical.rule=Host(`${ZITADEL_DOMAIN}`) && !PathPrefix(`/ui/v2/login`) && !PathPrefix(`/api`) && !Path(`/`)
+      - traefik.http.routers.zitadel-canonical.entrypoints=web
+      - traefik.http.routers.zitadel-canonical.service=zitadel-api
+      - traefik.http.routers.zitadel-canonical.priority=100
+
+  zitadel-login:
+    image: ghcr.io/zitadel/zitadel-login:${ZITADEL_VERSION}
+    restart: unless-stopped
+    user: "0"
+    environment:
+      ZITADEL_API_URL: http://zitadel-api:8080
+      NEXT_PUBLIC_BASE_PATH: /ui/v2/login
+      ZITADEL_SERVICE_USER_TOKEN_FILE: /zitadel/bootstrap/login-client.pat
+      CUSTOM_REQUEST_HEADERS: Host:${ZITADEL_DOMAIN},X-Forwarded-Proto:${ZITADEL_PUBLIC_SCHEME}
+    healthcheck:
+      test:
+        - CMD
+        - /bin/sh
+        - -c
+        - node /app/healthcheck.mjs http://localhost:3000/ui/v2/login/healthy
+      interval: 10s
+      timeout: 30s
+      retries: 12
+      start_period: 20s
+    volumes:
+      - zitadel-bootstrap:/zitadel/bootstrap:ro
+    depends_on:
+      zitadel-api:
+        condition: service_healthy
+    networks:
+      - zitadel
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=zitadel
+      - traefik.http.services.zitadel-login.loadbalancer.server.port=3000
+      - traefik.http.middlewares.zitadel-root-rewrite.replacepath.path=/ui/v2/login/
+      - traefik.http.routers.zitadel-root.rule=Host(`${ZITADEL_DOMAIN}`) && Path(`/`)
+      - traefik.http.routers.zitadel-root.entrypoints=web
+      - traefik.http.routers.zitadel-root.middlewares=zitadel-root-rewrite
+      - traefik.http.routers.zitadel-root.service=zitadel-login
+      - traefik.http.routers.zitadel-root.priority=400
+      - traefik.http.routers.zitadel-login.rule=Host(`${ZITADEL_DOMAIN}`) && PathPrefix(`/ui/v2/login`)
+      - traefik.http.routers.zitadel-login.entrypoints=web
+      - traefik.http.routers.zitadel-login.service=zitadel-login
+      - traefik.http.routers.zitadel-login.priority=250
+
+  sso-backend:
+    build:
+      context: ./services/sso-backend
+    restart: unless-stopped
+    environment:
+      APP_ENV: local
+      APP_DEBUG: true
+      APP_URL: http://localhost:${SSO_BACKEND_PORT}
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: ${SSO_BACKEND_DB}
+      DB_USERNAME: ${POSTGRES_ADMIN_USER}
+      DB_PASSWORD: ${POSTGRES_ADMIN_PASSWORD}
+      CACHE_STORE: redis
+      SESSION_DRIVER: redis
+      REDIS_CLIENT: predis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      SSO_BASE_URL: ${SSO_BASE_URL}
+      SSO_ISSUER: ${SSO_ISSUER}
+      SSO_RESOURCE_AUDIENCE: ${SSO_RESOURCE_AUDIENCE}
+      ZITADEL_ISSUER: ${ZITADEL_ISSUER}
+      ZITADEL_BROKER_PUBLIC_ISSUER: ${ZITADEL_BROKER_PUBLIC_ISSUER}
+      ZITADEL_BROKER_INTERNAL_ISSUER: ${ZITADEL_BROKER_INTERNAL_ISSUER}
+      ZITADEL_BROKER_CLIENT_ID: ${ZITADEL_BROKER_CLIENT_ID}
+      ZITADEL_BROKER_CLIENT_SECRET: ${ZITADEL_BROKER_CLIENT_SECRET}
+      ZITADEL_BROKER_REDIRECT_URI: ${ZITADEL_BROKER_REDIRECT_URI}
+      ZITADEL_BROKER_SCOPE: ${ZITADEL_BROKER_SCOPE}
+      OIDC_SIGNING_ALG: ${OIDC_SIGNING_ALG}
+      OIDC_ACCESS_TOKEN_TTL: ${OIDC_ACCESS_TOKEN_TTL}
+      OIDC_ID_TOKEN_TTL: ${OIDC_ID_TOKEN_TTL}
+      OIDC_REFRESH_TOKEN_TTL_DAYS: ${OIDC_REFRESH_TOKEN_TTL_DAYS}
+      APP_A_CLIENT_ID: ${APP_A_CLIENT_ID}
+      APP_A_REDIRECT_URI: ${APP_A_REDIRECT_URI}
+      APP_A_POST_LOGOUT_REDIRECT_URI: ${APP_A_POST_LOGOUT_REDIRECT_URI}
+      APP_A_BACKCHANNEL_LOGOUT_URI: ${APP_A_BACKCHANNEL_LOGOUT_URI}
+      APP_B_CLIENT_ID: ${APP_B_CLIENT_ID}
+      APP_B_CLIENT_SECRET: ${APP_B_CLIENT_SECRET}
+      APP_B_REDIRECT_URI: ${APP_B_REDIRECT_URI}
+      APP_B_POST_LOGOUT_REDIRECT_URI: ${APP_B_POST_LOGOUT_REDIRECT_URI}
+      APP_B_BACKCHANNEL_LOGOUT_URI: ${APP_B_BACKCHANNEL_LOGOUT_URI}
+      ADMIN_PANEL_CLIENT_ID: ${ADMIN_PANEL_CLIENT_ID}
+      ADMIN_PANEL_REDIRECT_URI: ${ADMIN_PANEL_REDIRECT_URI}
+      ADMIN_PANEL_POST_LOGOUT_REDIRECT_URI: ${ADMIN_PANEL_POST_LOGOUT_REDIRECT_URI}
+    ports:
+      - ${SSO_BACKEND_PORT}:8000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      zitadel-api:
+        condition: service_healthy
+    networks:
+      - zitadel
+
+  sso-frontend:
+    build:
+      context: ./services/sso-frontend
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_SSO_BASE_URL: ${SSO_BASE_URL}
+      NEXT_PUBLIC_APP_BASE_URL: ${ADMIN_PANEL_BASE_URL}
+      NEXT_PUBLIC_CLIENT_ID: ${ADMIN_PANEL_CLIENT_ID}
+      SSO_IDENTITY_UI_BASE_URL: ${ZITADEL_ISSUER}/ui/v2/login
+      SSO_INTERNAL_TOKEN_URL: ${SSO_INTERNAL_BASE_URL}/token
+      SSO_INTERNAL_JWKS_URL: ${SSO_INTERNAL_BASE_URL}/jwks
+      SSO_INTERNAL_ADMIN_API_URL: ${SSO_INTERNAL_BASE_URL}/admin/api
+    ports:
+      - ${SSO_FRONTEND_PORT}:3000
+    depends_on:
+      sso-backend:
+        condition: service_started
+    networks:
+      - zitadel
+
+  app-a-next:
+    build:
+      context: ./apps/app-a-next
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_APP_NAME: Dummy App A
+      NEXT_PUBLIC_SSO_ISSUER: http://localhost:${SSO_BACKEND_PORT}
+      NEXT_PUBLIC_AUTHORIZE_URL: http://localhost:${SSO_BACKEND_PORT}/authorize
+      NEXT_PUBLIC_CALLBACK_URL: ${APP_A_REDIRECT_URI}
+      NEXT_PUBLIC_CLIENT_ID: ${APP_A_CLIENT_ID}
+      APP_BASE_URL: ${APP_A_BASE_URL}
+      SSO_TOKEN_URL: ${SSO_INTERNAL_BASE_URL}/token
+      SSO_PROFILE_URL: ${SSO_INTERNAL_BASE_URL}/api/profile
+      SSO_REGISTER_SESSION_URL: ${SSO_INTERNAL_BASE_URL}/connect/register-session
+      SSO_LOGOUT_URL: ${SSO_INTERNAL_BASE_URL}/connect/logout
+      SSO_JWKS_URL: ${SSO_INTERNAL_BASE_URL}/jwks
+      REDIS_URL: ${APP_A_REDIS_URL}
+      APP_SESSION_COOKIE_NAME: app-a-session
+    ports:
+      - ${APP_A_PORT}:3000
+    depends_on:
+      redis:
+        condition: service_healthy
+      sso-backend:
+        condition: service_started
+    networks:
+      - zitadel
+
+  app-b-laravel:
+    build:
+      context: ./apps/app-b-laravel
+    restart: unless-stopped
+    environment:
+      APP_ENV: local
+      APP_DEBUG: true
+      APP_URL: http://localhost:${APP_B_PORT}
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: ${APP_B_DB}
+      DB_USERNAME: ${POSTGRES_ADMIN_USER}
+      DB_PASSWORD: ${POSTGRES_ADMIN_PASSWORD}
+      CACHE_STORE: redis
+      SESSION_DRIVER: database
+      REDIS_CLIENT: predis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      SSO_PUBLIC_ISSUER: http://localhost:${SSO_BACKEND_PORT}
+      SSO_INTERNAL_BASE_URL: ${SSO_INTERNAL_BASE_URL}
+      SSO_CLIENT_ID: ${APP_B_CLIENT_ID}
+      SSO_CLIENT_SECRET: ${APP_B_CLIENT_SECRET}
+      SSO_REDIRECT_URI: ${APP_B_REDIRECT_URI}
+      SSO_LOGOUT_REDIRECT_URI: ${APP_B_POST_LOGOUT_REDIRECT_URI}
+      SSO_JWKS_URL: ${SSO_INTERNAL_BASE_URL}/jwks
+      RESOURCE_API_BASE_URL: ${RESOURCE_API_BASE_URL}
+    ports:
+      - ${APP_B_PORT}:8000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      sso-backend:
+        condition: service_started
+    networks:
+      - zitadel
+
+networks:
+  zitadel:
+    name: zitadel
+
+volumes:
+  postgres-data:
+  redis-data:
+  zitadel-bootstrap:

@@ -1,0 +1,14 @@
+{{- range $name, $app := .Values.applications }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ printf "%s-%s" $.Release.Name $name | trunc 63 | trimSuffix "-" }}
+spec:
+  selector:
+    app.kubernetes.io/name: {{ $name }}
+  ports:
+    - name: http
+      port: {{ $app.port }}
+      targetPort: {{ $app.port }}
+---
+{{- end }}

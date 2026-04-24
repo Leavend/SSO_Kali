@@ -1,0 +1,2 @@
+CREATE DATABASE sso_backend;
+CREATE DATABASE app_b;

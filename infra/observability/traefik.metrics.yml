@@ -1,0 +1,10 @@
+entryPoints:
+  metrics:
+    address: ":9100"
+
+metrics:
+  prometheus:
+    entryPoint: metrics
+    addEntryPointsLabels: true
+    addRoutersLabels: true
+    addServicesLabels: true
