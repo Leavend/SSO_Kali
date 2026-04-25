@@ -18,7 +18,7 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}/sso-prototype
+  IMAGE_PREFIX: ghcr.io/leavend/sso-prototype
 
 # Cancel in-progress runs for the same branch/PR
 concurrency:
@@ -36,7 +36,7 @@ jobs:
       fail-fast: true
       matrix:
         component:
-          - { name: sso-backend,   path: services/sso-backend }
+          - { name: sso-backend, path: services/sso-backend }
           - { name: app-b-laravel, path: apps/app-b-laravel }
 
     defaults:
@@ -91,7 +91,7 @@ jobs:
         component:
           - { name: sso-frontend, path: services/sso-frontend }
           - { name: sso-admin-vue, path: services/sso-admin-vue }
-          - { name: app-a-next,   path: apps/app-a-next }
+          - { name: app-a-next, path: apps/app-a-next }
 
     defaults:
       run:
