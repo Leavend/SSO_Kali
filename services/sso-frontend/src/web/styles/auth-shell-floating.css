@@ -1,6 +1,6 @@
 .legacy-login {
   --auth-frame-width: min(100%, 448px);
-  --theme-toggle-edge-top: max(16px, calc(env(safe-area-inset-top, 0px) + 16px));
+  --theme-toggle-edge-bottom: max(72px, calc(env(safe-area-inset-bottom, 0px) + 72px));
   --theme-toggle-edge-right: max(16px, calc(env(safe-area-inset-right, 0px) + 20px));
 }
 
@@ -10,9 +10,9 @@
 
 .theme-toggle-anchor {
   position: fixed;
-  top: var(--theme-toggle-edge-top);
   right: var(--theme-toggle-edge-right);
-  bottom: auto;
+  bottom: var(--theme-toggle-edge-bottom);
+  top: auto;
   z-index: 30;
   display: flex;
   align-items: center;
@@ -30,7 +30,7 @@
 
 @media (max-width: 640px) {
   .legacy-login {
-    --theme-toggle-edge-top: max(12px, calc(env(safe-area-inset-top, 0px) + 12px));
+    --theme-toggle-edge-bottom: max(84px, calc(env(safe-area-inset-bottom, 0px) + 84px));
     --theme-toggle-edge-right: max(12px, calc(env(safe-area-inset-right, 0px) + 12px));
   }
 }

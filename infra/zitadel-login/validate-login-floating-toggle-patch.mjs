@@ -20,13 +20,15 @@ try {
   assertIncludes(patchedJs, 'shell.appendChild(host)');
   assertIncludes(patchedJs, 'theme-toggle-host');
   assertIncludes(patchedJs, "ensureParentChrome");
+  assertIncludes(patchedJs, "__devssoToggleVersion");
+  assertIncludes(patchedJs, "bottom-right");
   assertIncludes(patchedCss, "#devsso-theme-float");
   assertIncludes(patchedCss, "position: fixed");
-  assertIncludes(patchedCss, "--devsso-theme-edge-top");
+  assertIncludes(patchedCss, "--devsso-theme-edge-bottom");
   assertIncludes(patchedCss, "--devsso-theme-edge-right");
   assertIncludes(patchedCss, "display: flex");
   assertIncludes(patchedCss, "justify-content: flex-end");
-  assertIncludes(patchedCss, "bottom: auto");
+  assertIncludes(patchedCss, "top: auto");
   assertIncludes(patchedCss, "transform: none");
 
   console.log("login floating toggle patch validation passed");
@@ -35,9 +37,10 @@ try {
 }
 
 function prepareJsFixture() {
-  const file = join(root, "static", "chunks", "app", "(login)", "page.js");
+  const file = join(root, "static", "chunks", "app", "(login)", "password", "page.js");
   mkdirSync(join(root, "static", "chunks", "app", "(login)"), { recursive: true });
-  writeFileSync(file, 'const ui="headlessui-listbox-button";');
+  mkdirSync(join(root, "static", "chunks", "app", "(login)", "password"), { recursive: true });
+  writeFileSync(file, 'const ui="password-page";');
   return file;
 }
 
