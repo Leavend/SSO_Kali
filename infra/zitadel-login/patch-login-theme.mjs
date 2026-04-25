@@ -254,9 +254,13 @@ body button[data-testid="submit-button"]:not(:disabled):focus-visible {
 }
 body button[data-testid="submit-button"]:disabled {
   background: var(--devsso-primary-soft) !important;
-  color: var(--devsso-text-secondary) !important;
-  opacity: 0.4 !important;
+  color: var(--devsso-primary) !important;
+  opacity: 0.48 !important;
   cursor: not-allowed;
+}
+body button[data-testid="submit-button"] *,
+body button[data-testid="back-button"] * {
+  color: inherit !important;
 }
 
 /* Back / Kembali — ghost/outline style */
@@ -265,12 +269,12 @@ body button[data-testid="back-button"] {
   padding: 0 20px !important;
   border: 1px solid var(--devsso-border) !important;
   background: transparent !important;
-  color: var(--devsso-text) !important;
+  color: var(--devsso-primary) !important;
 }
 body button[data-testid="back-button"]:hover {
   background: var(--devsso-primary-soft) !important;
   border-color: var(--devsso-primary) !important;
-  color: var(--devsso-primary) !important;
+  color: var(--devsso-primary-hover) !important;
 }
 body button[data-testid="back-button"]:focus-visible {
   outline: none !important;
@@ -430,7 +434,7 @@ body button[aria-label*="light" i]:not(#devsso-theme-toggle) {
 
 function buildFooter() {
   return `
-/* Footer — real HTML, identical to SignInForm.tsx */
+/* Footer — real HTML, identical to the Vue parent AuthFooter contract */
 #devsso-footer {
   position: fixed !important;
   bottom: 0 !important;
@@ -446,23 +450,22 @@ function buildFooter() {
   font-family: var(--devsso-font) !important;
   font-size: 12px !important;
   font-weight: 400 !important;
-  color: var(--devsso-text-secondary) !important;
-  opacity: 0.78 !important;
+  color: color-mix(in srgb, var(--devsso-text-secondary) 78%, transparent) !important;
   line-height: 1.5 !important;
   letter-spacing: 0 !important;
   pointer-events: auto !important;
 }
 
 #devsso-footer a {
-  color: inherit !important;
+  color: var(--devsso-primary) !important;
+  font-weight: 700 !important;
   text-decoration: none !important;
   transition: color 0.15s ease !important;
   font-size: inherit !important;
 }
 
 #devsso-footer a:hover {
-  color: var(--devsso-text-secondary) !important;
-  opacity: 1 !important;
+  color: var(--devsso-primary-hover) !important;
 }`.trim();
 }
 

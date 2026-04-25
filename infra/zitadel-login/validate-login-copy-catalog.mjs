@@ -253,7 +253,7 @@ const expected = {
       "Une vérification supplémentaire est requise pour continuer.",
   },
   id: {
-    commonTitle: "Masuk dengan Dev-SSO",
+    commonTitle: "Masuk",
     registerDescription: "Buat akun Dev-SSO Anda.",
     couldNotRegisterUser:
       "Kami tidak dapat menyelesaikan pendaftaran. Akun dengan detail ini mungkin sudah ada. Silakan masuk atau atur ulang kata sandi Anda.",

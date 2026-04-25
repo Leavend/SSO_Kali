@@ -58,6 +58,13 @@ function patchFile(location) {
 function buildToggleScript() {
   const runtimeConfig = {
     attr: AUTH_SHELL.theme.attribute,
+    copyMap: {
+      "Login dengan Dev-SSO": "Masuk",
+      "Masuk dengan Dev-SSO": "Masuk",
+      "Masuk ke Dev-SSO": "Masuk",
+      "Login with Dev-SSO": "Sign in",
+      "Sign in to Dev-SSO": "Sign in",
+    },
     darkClass: AUTH_SHELL.theme.darkClass,
     defaultTheme: AUTH_SHELL.theme.defaultTheme,
     footerHtml: renderFooterHtml(),
@@ -123,6 +130,15 @@ function upsertToggle(){
   applyTheme(getTheme());
 }
 
+function normalizeCopy(){
+  var map=CONFIG.copyMap||{};
+  if(map[document.title])document.title=map[document.title];
+  Array.prototype.slice.call(document.querySelectorAll("h1")).forEach(function(node){
+    var text=(node.textContent||"").replace(/\\s+/g," ").trim();
+    if(map[text])node.textContent=map[text];
+  });
+}
+
 function hideNativeThemeSwitches(){
   var buttons=Array.prototype.slice.call(document.querySelectorAll("button"));
   buttons.forEach(function(button){
@@ -149,6 +165,7 @@ function hideNativeThemeSwitches(){
 function startObserver(){
   if(observer||!document.body||typeof MutationObserver==="undefined")return;
   observer=new MutationObserver(function(){
+    normalizeCopy();
     hideNativeThemeSwitches();
   });
   observer.observe(document.body,{childList:true,subtree:true});
@@ -157,8 +174,11 @@ function startObserver(){
 function createParentChrome(){
   upsertFooter();
   upsertToggle();
+  normalizeCopy();
   hideNativeThemeSwitches();
   startObserver();
+  window.setTimeout(normalizeCopy,100);
+  window.setTimeout(normalizeCopy,600);
   window.setTimeout(hideNativeThemeSwitches,100);
   window.setTimeout(hideNativeThemeSwitches,600);
 }

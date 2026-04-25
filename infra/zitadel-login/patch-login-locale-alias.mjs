@@ -97,7 +97,7 @@ function applyPatches() {
   // The en.json chunk has the ORIGINAL ZITADEL titles (e.g. "Login with Zitadel" / "Welcome back!").
   // We set the common.title to a value that localeMarkers.id recognizes.
   const EN_TITLE_MARKERS = ["Login with Zitadel", "Welcome back!"];
-  const ID_TITLE_MARKER = "Login dengan Zitadel"; // Must match localeMarkers.id
+  const ID_TITLE_MARKER = "Masuk dengan Zitadel"; // Must match localeMarkers.id and copy down to "Masuk"
 
   // Build a chunk that exports all needed module IDs with the same JSON content
   // First, get the JSON content from one of the en chunks

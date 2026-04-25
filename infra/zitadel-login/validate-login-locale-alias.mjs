@@ -35,7 +35,7 @@ if (!patched.includes("devsso-id-locale-injected")) {
   throw new Error("Expected Indonesian locale marker to be injected.");
 }
 
-if (!idChunk.includes("Login dengan Zitadel")) {
+if (!idChunk.includes("Masuk dengan Zitadel")) {
   throw new Error("Expected generated Indonesian locale chunk to use the copy patch marker.");
 }
 
