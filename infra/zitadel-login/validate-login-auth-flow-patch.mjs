@@ -75,6 +75,13 @@ function assertUrlPrivacy(output) {
   assertIncludes(output, 'wrap("pushState")');
   assertIncludes(output, 'wrap("replaceState")');
   assertIncludes(output, "6000");
+
+  // Validate injected runtime JS is syntactically valid (catches regex escaping bugs)
+  try {
+    new Function(output);
+  } catch (error) {
+    throw new Error(`URL privacy runtime has invalid syntax: ${error.message}`);
+  }
 }
 
 function assertIncludes(value, expected) {

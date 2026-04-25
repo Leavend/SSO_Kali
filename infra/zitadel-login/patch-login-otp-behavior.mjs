@@ -14,6 +14,10 @@ const messages = Object.freeze({
   "The code is invalid": "Kode verifikasi tidak valid. Periksa kode lalu coba lagi.",
   "This field is required": "Kolom ini wajib diisi.",
 });
+
+// Pre-compiled regex — .source injected into runtime to avoid escaping issues.
+const OTP_PATH_RE = /\/otp\//;
+
 const runtime = `${marker}
 ;(function(){
 if(typeof window==="undefined"||window.__devssoOtpBehaviorInjected)return;
@@ -30,7 +34,7 @@ function ensureStyle(){
 }
 
 function isOtpPage(){
-  return /\\/otp\\//.test(location.pathname)||/Verifikasi 2 Langkah|Verify 2-Factor/i.test(document.body.textContent||"");
+  return /${OTP_PATH_RE.source}/.test(location.pathname)||/Verifikasi 2 Langkah|Verify 2-Factor/i.test(document.body.textContent||"");
 }
 
 function visible(el){
