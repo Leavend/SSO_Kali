@@ -56,6 +56,17 @@ compose() {
 # Services that use custom-built images (order matters: deps first)
 APP_SERVICES=(sso-backend sso-backend-worker sso-frontend sso-admin-vue zitadel-login app-a-next app-b-laravel)
 
+# Core services that trigger hard rollback if unhealthy
+CORE_SERVICES=(sso-backend sso-backend-worker sso-frontend sso-admin-vue zitadel-login)
+
+is_core_service() {
+  local svc="$1"
+  for core in "${CORE_SERVICES[@]}"; do
+    [[ "$core" == "$svc" ]] && return 0
+  done
+  return 1
+}
+
 # Map service name → image name in registry
 declare -A IMAGE_MAP=(
   [sso-backend]="sso-backend"
@@ -185,15 +196,21 @@ wait_healthy() {
 }
 
 DEPLOY_FAILED=0
+DOWNSTREAM_WARN=0
 
 for svc in "${APP_SERVICES[@]}"; do
   log "  Updating $svc..."
   compose up -d --no-deps "$svc" 2>&1 | tee -a "$DEPLOY_LOG"
 
   if ! wait_healthy "$svc" 180; then
-    DEPLOY_FAILED=1
-    warn "Service $svc failed healthcheck — triggering rollback"
-    break
+    if is_core_service "$svc"; then
+      DEPLOY_FAILED=1
+      warn "Core service $svc failed healthcheck — triggering rollback"
+      break
+    else
+      DOWNSTREAM_WARN=1
+      warn "Downstream app $svc unhealthy — continuing (non-critical)"
+    fi
   fi
 done
 
