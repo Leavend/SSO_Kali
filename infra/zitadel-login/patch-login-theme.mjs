@@ -84,7 +84,6 @@ body {
   transition: background-color 0.25s ease, color 0.25s ease;
 }
 
-/* Force parent Dev-SSO font on ALL elements — override Tailwind font-sans */
 *, *::before, *::after {
   font-family: var(--devsso-font) !important;
 }
@@ -211,7 +210,6 @@ body input[aria-invalid="true"]:focus-visible {
 
 function buildButtons() {
   return `
-/* Base structural reset for all form buttons */
 body button[class*="border-button-light-border"],
 body button[data-testid="submit-button"],
 body button[data-devsso-action="submit"],
@@ -234,7 +232,6 @@ body button[class*="rounded-full"][class*="flex"][class*="items-center"] {
   transition: color 0.16s ease, background-color 0.16s ease, border-color 0.16s ease, transform 0.16s ease;
 }
 
-/* Submit / Lanjutkan — matches SSO accent-soft style */
 body button[data-testid="submit-button"],
 body button[data-devsso-action="submit"] {
   min-width: 120px !important;
@@ -272,7 +269,6 @@ body button[data-devsso-action="back"] * {
   color: inherit !important;
 }
 
-/* Back / Kembali — ghost/outline style */
 body button[data-testid="back-button"],
 body button[data-devsso-action="back"] {
   min-width: 100px !important;
@@ -293,7 +289,6 @@ body button[data-devsso-action="back"]:focus-visible {
   box-shadow: 0 0 0 2px var(--devsso-primary), 0 0 0 4px var(--devsso-ring) !important;
 }
 
-/* Text link buttons — register, reset, resend */
 body button[data-testid="register-button"],
 body button[data-testid="reset-button"],
 body button[data-testid="resend-button"] {
@@ -313,7 +308,6 @@ body button[data-testid="resend-button"]:hover {
   color: var(--devsso-primary-hover) !important;
 }
 
-/* Password button (alternative method) */
 body button[data-testid="password-button"] {
   width: 100% !important;
   padding: 0 16px !important;
@@ -326,7 +320,6 @@ body button[data-testid="password-button"]:hover {
   border-color: var(--devsso-primary) !important;
 }
 
-/* Deny button */
 body button[data-testid="deny-button"] {
   min-width: 100px !important;
   padding: 0 20px !important;
@@ -339,7 +332,6 @@ body button[data-testid="deny-button"]:hover {
   border-color: #ef4444 !important;
 }
 
-/* IDP / Social buttons */
 body button[data-testid="idp-button"] {
   border: 1px solid var(--devsso-border) !important;
   background: var(--devsso-surface-strong) !important;
@@ -351,7 +343,6 @@ body button[data-testid="idp-button"]:hover {
   border-color: var(--devsso-primary) !important;
 }
 
-/* Link styling */
 body a[class*="text-primary"] {
   color: var(--devsso-link) !important;
   font-weight: 600 !important;
@@ -360,7 +351,6 @@ body a[class*="text-primary"]:hover {
   color: var(--devsso-primary-hover) !important;
 }
 
-/* Button container alignment */
 body div[class*="max-w-[440px]"] div[class*="flex"][class*="justify-between"],
 body div[class*="max-w-[440px]"] div[class*="flex"][class*="items-center"][class*="justify-end"],
 body div[class*="max-w-[440px]"] form div[class*="flex"][class*="w-full"]:has(> button[data-testid]) {
@@ -374,7 +364,6 @@ body div[class*="max-w-[440px]"] form div[class*="flex"][class*="w-full"]:has(> 
 
 function buildUtilityArea() {
   return `
-/* Hide the language picker */
 body [id^="headlessui-listbox-button-"],
 body [id^="headlessui-listbox-options-"],
 body [role="listbox"] {
@@ -384,16 +373,9 @@ body div.w-32:has([id^="headlessui-listbox-button-"]) {
   display: none !important;
 }
 
-/* Hide ZITADEL's built-in light/dark theme toggle pill selector —
-   we use our own #devsso-theme-toggle instead.
-   Source: apps/login/src/components/theme-switch.tsx
-   Structure: div.flex.space-x-1.p-1 > button.w-8.h-8 (×2)
-   The roundness class varies (rounded-full, rounded-lg, etc.) so we
-   match on the structural flex+space-x-1+p-1 wrapper only. */
 body div[class*="flex"][class*="space-x-1"][class*="p-1"]:has(> button.w-8) {
   display: none !important;
 }
-/* Fallback: hide any w-8 h-8 sun/moon buttons that survive the :has check */
 body div[class*="space-x-1"][class*="p-1"] > button.w-8.h-8 {
   display: none !important;
 }
@@ -403,7 +385,6 @@ body button[aria-label*="light" i]:not(#devsso-theme-toggle) {
   display: none !important;
 }
 
-/* Dev-SSO injected theme toggle — shared with the parent ThemeToggle.vue contract */
 #devsso-theme-toggle {
   position: fixed !important;
   bottom: 58px !important;

@@ -1,4 +1,11 @@
 export const residualExactValueReplacements = [
+  ["Code is required", "Kode wajib diisi."],
+  ["Could not verify OTP code", "Kode verifikasi tidak valid. Periksa kode lalu coba lagi."],
+  ["Could not verify code", "Kode verifikasi tidak valid. Periksa kode lalu coba lagi."],
+  ["Could not verify TOTP code", "Kode verifikasi tidak valid. Periksa kode lalu coba lagi."],
+  ["Invalid code", "Kode verifikasi tidak valid. Periksa kode lalu coba lagi."],
+  ["Invalid OTP code", "Kode verifikasi tidak valid. Periksa kode lalu coba lagi."],
+  ["The code is invalid", "Kode verifikasi tidak valid. Periksa kode lalu coba lagi."],
   ["Login dengan Dev-SSO", "Masuk"],
   ["Masuk dengan Dev-SSO", "Masuk"],
   ["Masuk ke Dev-SSO", "Masuk"],
