@@ -24,8 +24,10 @@ COPY ./infra/zitadel-login/patch-login-language.mjs /tmp/patch-login-language.mj
 COPY ./infra/zitadel-login/patch-login-locale-alias.mjs /tmp/patch-login-locale-alias.mjs
 COPY ./infra/zitadel-login/patch-login-theme.mjs /tmp/patch-login-theme.mjs
 COPY ./infra/zitadel-login/patch-login-toggle.mjs /tmp/patch-login-toggle.mjs
+COPY ./infra/zitadel-login/patch-login-otp-behavior.mjs /tmp/patch-login-otp-behavior.mjs
 COPY ./infra/zitadel-login/patch-login-signedin-redirect.mjs /tmp/patch-login-signedin-redirect.mjs
 COPY ./infra/zitadel-login/login-copy-catalog.mjs /tmp/login-copy-catalog.mjs
+COPY ./infra/zitadel-login/login-copy-errors.mjs /tmp/login-copy-errors.mjs
 COPY ./infra/zitadel-login/login-copy-residual.mjs /tmp/login-copy-residual.mjs
 COPY ./packages/dev-sso-parent-ui/ /packages/dev-sso-parent-ui/
 COPY ./infra/zitadel-login/assets/ /app/apps/login/public/
@@ -35,8 +37,9 @@ RUN node /tmp/patch-login-locale-alias.mjs /app/apps/login/.next \
     && node /tmp/patch-login-language.mjs /app/apps/login/.next \
     && node /tmp/patch-login-theme.mjs /app/apps/login/.next \
     && node /tmp/patch-login-toggle.mjs /app/apps/login/.next \
+    && node /tmp/patch-login-otp-behavior.mjs /app/apps/login/.next \
     && node /tmp/patch-login-signedin-redirect.mjs /app/apps/login/.next \
-    && rm -f /tmp/patch-login-copy.mjs /tmp/patch-login-language.mjs /tmp/patch-login-locale-alias.mjs /tmp/patch-login-theme.mjs /tmp/patch-login-toggle.mjs /tmp/patch-login-signedin-redirect.mjs /tmp/login-copy-catalog.mjs /tmp/login-copy-residual.mjs
+    && rm -f /tmp/patch-login-copy.mjs /tmp/patch-login-language.mjs /tmp/patch-login-locale-alias.mjs /tmp/patch-login-theme.mjs /tmp/patch-login-toggle.mjs /tmp/patch-login-otp-behavior.mjs /tmp/patch-login-signedin-redirect.mjs /tmp/login-copy-catalog.mjs /tmp/login-copy-errors.mjs /tmp/login-copy-residual.mjs
 
 RUN mkdir -p /.env-file \
     && touch /.env-file/.env \
