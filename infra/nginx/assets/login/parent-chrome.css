@@ -67,6 +67,39 @@ body button[aria-label*="light" i]:not(#devsso-theme-toggle) {
   display: none !important;
 }
 
+button[data-devsso-loading="true"],
+a[data-devsso-loading="true"] {
+  cursor: progress !important;
+  opacity: 0.86 !important;
+  pointer-events: none !important;
+}
+
+button[data-devsso-loading="true"] .devsso-loading-label,
+a[data-devsso-loading="true"] .devsso-loading-label {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  min-width: 112px !important;
+}
+
+button[data-devsso-loading="true"] .devsso-loading-label::before,
+a[data-devsso-loading="true"] .devsso-loading-label::before {
+  width: 16px !important;
+  height: 16px !important;
+  border: 2px solid currentColor !important;
+  border-top-color: transparent !important;
+  border-radius: 999px !important;
+  content: "" !important;
+  animation: devsso-spin 0.72s linear infinite !important;
+}
+
+@keyframes devsso-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @media (max-width: 640px) {
   #devsso-theme-float {
     right: max(12px, calc(env(safe-area-inset-right, 0px) + 12px)) !important;
