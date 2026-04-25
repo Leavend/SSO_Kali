@@ -17,7 +17,9 @@ try {
   assertIncludes(patched, "button.click()");
   assertIncludes(patched, "Kode verifikasi tidak valid");
   assertIncludes(patched, "Could not verify OTP code");
-  assertIncludes(patched, "node.children.length>0");
+  assertIncludes(patched, "data-devsso-error-message");
+  assertIncludes(patched, "scheduleSync");
+  assertNotIncludes(patched, "MutationObserver");
   console.log("login OTP behavior patch validation passed");
 } finally {
   rmSync(workspace, { force: true, recursive: true });
@@ -26,5 +28,11 @@ try {
 function assertIncludes(source, value) {
   if (!source.includes(value)) {
     throw new Error(`Missing expected OTP behavior marker: ${value}`);
+  }
+}
+
+function assertNotIncludes(source, value) {
+  if (source.includes(value)) {
+    throw new Error(`Unexpected OTP behavior marker: ${value}`);
   }
 }

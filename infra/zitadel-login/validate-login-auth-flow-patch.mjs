@@ -64,12 +64,15 @@ function assertAuthFlow(route, client) {
 function assertUrlPrivacy(output) {
   assertIncludes(output, "__devssoUrlPrivacyInjected");
   assertIncludes(output, "__devssoUrlPrivacyVersion");
-  assertIncludes(output, "20260425-auth-flow-v2");
+  assertIncludes(output, "20260425-dom-safe-v2");
   assertIncludes(output, "devssoLoginContext");
   assertIncludes(output, "recoverSignedIn");
+  assertIncludes(output, "cleanTarget");
+  assertIncludes(output, "FLOW_KEYS");
+  assertNotIncludes(output, "restoreForSubmit");
   assertIncludes(output, 'wrap("pushState")');
   assertIncludes(output, 'wrap("replaceState")');
-  assertIncludes(output, "10000");
+  assertIncludes(output, "6000");
 }
 
 function assertIncludes(value, expected) {
