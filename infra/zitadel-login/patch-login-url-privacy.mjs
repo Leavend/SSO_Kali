@@ -16,6 +16,11 @@ const sensitiveKeys = [
   "userId",
 ];
 
+// Pre-compiled regex — .source is injected into the runtime template literal.
+// This avoids fragile multi-layer escaping (source → template → file → browser).
+const LOGIN_PATH_RE = /(^|\/)ui\/v2\/login(\/|$)|\/(accounts|idp|login|otp|passkey|password|signedin|verify)(\/|$)/;
+const SIGNEDIN_PATH_RE = /(^|\/)signedin(\/|$)/;
+
 if (!root) {
   throw new Error("Expected the extracted login bundle path as the first argument.");
 }
@@ -65,8 +70,8 @@ var CONTEXT_KEY="devssoLoginContext";
 var RECOVERY_KEY="devssoSignedinRecovery";
 var TTL=15*60*1000;
 var replaceState=history.replaceState.bind(history);
-function isLoginPath(){return /(^|\\\\/)ui\\/v2\\/login(\\/|$)|\\/(accounts|idp|login|otp|passkey|password|signedin|verify)(\\/|$)/.test(location.pathname);}
-function isSignedInPath(){return /(^|\\\\/)signedin(\\/|$)/.test(location.pathname);}
+function isLoginPath(){return /${LOGIN_PATH_RE.source}/.test(location.pathname);}
+function isSignedInPath(){return /${SIGNEDIN_PATH_RE.source}/.test(location.pathname);}
 function fresh(value){return value&&Date.now()-Number(value.savedAt||0)<TTL;}
 function readContext(){try{var value=JSON.parse(sessionStorage.getItem(CONTEXT_KEY)||"null");return fresh(value)?value:null;}catch(error){return null;}}
 function writeContext(value){try{sessionStorage.setItem(CONTEXT_KEY,JSON.stringify(value));}catch(error){}}
