@@ -41,8 +41,8 @@ body div[class*="min-h-screen"] {
 }
 
 body div[class*="max-w-[440px]"] {
-  width: min(100%, 440px) !important;
-  max-width: calc(100vw - 24px) !important;
+  width: min(100%, 420px) !important;
+  max-width: min(420px, calc(100vw - 32px)) !important;
   box-sizing: border-box !important;
 }
 
