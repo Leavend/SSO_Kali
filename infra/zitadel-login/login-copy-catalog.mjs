@@ -19,6 +19,9 @@ export const translationValueReplacements = [
 const indonesianExactValueReplacements = [
   ["Login with Zitadel", "Masuk"],
   ["Welcome back!", "Masuk"],
+  ["Login dengan Zitadel", "Masuk"],
+  ["Masuk dengan Zitadel", "Masuk"],
+  ["Masuk ke Zitadel", "Masuk"],
   ["Enter your login data.", "Masukkan email yang terdaftar untuk melanjutkan."],
   ["Loginname", "Email"],
   ["Register new user", "Daftar Sekarang"],
@@ -164,6 +167,8 @@ const indonesianExactValueReplacements = [
 const englishExactValueReplacements = [
   ["Login with Zitadel", "Sign in"],
   ["Welcome back!", "Sign in"],
+  ["Login with Dev-SSO", "Sign in"],
+  ["Sign in to Dev-SSO", "Sign in"],
   ["Enter your login data.", "Enter the registered email to continue."],
   ["Loginname", "Email"],
   ["Register new user", "Register Now"],

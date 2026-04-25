@@ -14,6 +14,18 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
+    include: ['src/**/*.{test,spec}.ts'],
+    exclude: [
+      '.next/**',
+      '.codex-temp/**',
+      'out/**',
+      'build/**',
+      'dist/**',
+      'coverage/**',
+      'node_modules/**',
+      'test-results/**',
+      'e2e/**',
+    ],
     globals: true,
   },
 })

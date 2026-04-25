@@ -11,7 +11,7 @@
     "build:server": "tsc --build tsconfig.server.json --force",
     "start": "node dist/server/server/index.js",
     "lint": "run-s lint:eslint security:broker security:storage wcag:theme",
-    "lint:eslint": "eslint .",
+    "lint:eslint": "eslint src eslint.config.ts vite.config.ts vitest.config.ts",
     "security:broker": "node ../../tools/frontend-security/check-broker-boundary.mjs .",
     "security:storage": "node ../../tools/frontend-security/check-browser-storage-policy.mjs .",
     "wcag:theme": "node scripts/check-wcag-theme.mjs",

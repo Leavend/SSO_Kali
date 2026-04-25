@@ -19,9 +19,15 @@ try {
   assertIncludes(patched, "--devsso-primary-soft: #eaf1fd;");
   assertIncludes(patched, "--devsso-font: Inter, ui-sans-serif");
   assertIncludes(patched, 'button[data-testid="submit-button"]');
+  assertIncludes(patched, 'button[data-testid="submit-button"] *');
+  assertIncludes(patched, 'button[data-testid="back-button"] *');
+  assertIncludes(patched, 'body button[data-testid="back-button"]');
+  assertIncludes(patched, "color: var(--devsso-primary) !important;");
   assertIncludes(patched, 'data-devsso-native-theme-hidden="true"');
   assertIncludes(patched, "#devsso-theme-toggle");
   assertIncludes(patched, "#devsso-footer");
+  assertIncludes(patched, "#devsso-footer a");
+  assertIncludes(patched, "font-weight: 700 !important;");
   assertIncludes(patched, 'div[class*="max-w-[440px]"] > div');
   assertIncludes(patched, '@media (max-width: 640px)');
   console.log("login theme patch validation passed");
