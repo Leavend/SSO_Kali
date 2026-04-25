@@ -147,8 +147,8 @@ function assertSnapshots(payload) {
   assertValue("dark.togglePresent", payload.dark.togglePresent, true);
   assertValue("light.toggleHostPresent", payload.light.toggleHostPresent, true);
   assertValue("dark.toggleHostPresent", payload.dark.toggleHostPresent, true);
-  assertValue("light.toggleHostPosition", payload.light.toggleHostPosition, "relative");
-  assertValue("dark.toggleHostPosition", payload.dark.toggleHostPosition, "relative");
+  assertValue("light.toggleHostPosition", payload.light.toggleHostPosition, "fixed");
+  assertValue("dark.toggleHostPosition", payload.dark.toggleHostPosition, "fixed");
   assertValue("light.toggleDisplay", payload.light.toggleDisplay, "flex");
   assertValue("dark.toggleDisplay", payload.dark.toggleDisplay, "flex");
   assertValue("light.visibleThemeToggleCount", payload.light.visibleThemeToggleCount, 1);
