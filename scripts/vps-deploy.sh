@@ -239,9 +239,9 @@ smoke_check() {
   local host="${4:-}"
   local code
   if [ -n "$host" ]; then
-    code=$(curl -ksS -H "Host: $host" -o /dev/null -w '%{http_code}' --max-time 15 "$url" || echo "000")
+    code=$(curl -LksS -H "Host: $host" -o /dev/null -w '%{http_code}' --max-time 15 "$url" || echo "000")
   else
-    code=$(curl -ksS -o /dev/null -w '%{http_code}' --max-time 15 "$url" || echo "000")
+    code=$(curl -LksS -o /dev/null -w '%{http_code}' --max-time 15 "$url" || echo "000")
   fi
 
   if [[ "$code" =~ $pattern ]]; then
