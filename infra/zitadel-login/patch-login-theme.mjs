@@ -104,8 +104,8 @@ body div[class*="min-h-screen"] {
 function buildCardLayout() {
   return `
 body div[class*="max-w-[440px]"] {
-  width: min(100%, 448px) !important;
-  max-width: 448px !important;
+  width: min(100%, 420px) !important;
+  max-width: min(420px, calc(100vw - 32px)) !important;
   padding-inline: 0 !important;
 }
 

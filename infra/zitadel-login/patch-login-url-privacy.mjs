@@ -57,22 +57,23 @@ function patchFile(location) {
 function runtime() {
   return `${marker}
 ;(function(){
-if(typeof window==="undefined"||window.__devssoUrlPrivacyVersion==="20260425-flow-context-v1")return;
+if(typeof window==="undefined"||window.__devssoUrlPrivacyVersion==="20260426-flow-context-v2")return;
 window.__devssoUrlPrivacyInjected=true;
-window.__devssoUrlPrivacyVersion="20260425-flow-context-v1";
+window.__devssoUrlPrivacyVersion="20260426-flow-context-v2";
 var KEYS=${JSON.stringify(sensitiveKeys)};
 var CONTEXT_KEY="devssoLoginContext";
 var RECOVERY_KEY="devssoSignedinRecovery";
 var TTL=15*60*1000;
 var replaceState=history.replaceState.bind(history);
-function isLoginPath(){return /(^|\\/)ui\\/v2\\/login(\\/|$)|\\/(accounts|idp|login|otp|passkey|password|signedin|verify)(\\/|$)/.test(location.pathname);}
-function isSignedInPath(){return /(^|\\/)signedin(\\/|$)/.test(location.pathname);}
+function isLoginPath(){return /(^|\\\\/)ui\\/v2\\/login(\\/|$)|\\/(accounts|idp|login|otp|passkey|password|signedin|verify)(\\/|$)/.test(location.pathname);}
+function isSignedInPath(){return /(^|\\\\/)signedin(\\/|$)/.test(location.pathname);}
 function fresh(value){return value&&Date.now()-Number(value.savedAt||0)<TTL;}
 function readContext(){try{var value=JSON.parse(sessionStorage.getItem(CONTEXT_KEY)||"null");return fresh(value)?value:null;}catch(error){return null;}}
 function writeContext(value){try{sessionStorage.setItem(CONTEXT_KEY,JSON.stringify(value));}catch(error){}}
+function hasRequestId(){var ctx=readContext();return !!(ctx&&ctx.params&&ctx.params.requestId);}
 function captureUrl(u){var params={};KEYS.forEach(function(key){if(u.searchParams.has(key))params[key]=u.searchParams.get(key);});if(Object.keys(params).length)writeContext({params:params,path:u.pathname,savedAt:Date.now()});}
 function capture(){try{if(!isLoginPath()||!location.search)return;captureUrl(new URL(location.href));}catch(error){}}
-function strip(u){var changed=false;KEYS.forEach(function(key){if(!u.searchParams.has(key))return;u.searchParams.delete(key);changed=true;});return changed;}
+function strip(u){var changed=false;KEYS.forEach(function(key){if(key==="loginName"&&!hasRequestId())return;if(!u.searchParams.has(key))return;u.searchParams.delete(key);changed=true;});return changed;}
 function redact(){try{if(!isLoginPath()||!location.search)return;capture();var u=new URL(location.href);if(!strip(u))return;replaceState(history.state||null,document.title,u.pathname+u.search+u.hash);}catch(error){}}
 function pulse(){capture();(isSignedInPath()?[1200,3000,6000,10000]:[1800,3000,6000,10000]).forEach(function(delay){setTimeout(redact,delay);});}
 function contextParams(){var context=readContext();if(!context||!context.params||!context.params.requestId)return null;var params=new URLSearchParams();Object.entries(context.params).forEach(function(entry){if(entry[1])params.set(entry[0],entry[1]);});return params;}
@@ -82,7 +83,8 @@ function wrap(name){var original=history[name].bind(history);history[name]=funct
 if(!window.__devssoUrlPrivacyWrapped){window.__devssoUrlPrivacyWrapped=true;wrap("pushState");wrap("replaceState");addEventListener("popstate",pulse);addEventListener("hashchange",pulse);}
 document.addEventListener("submit",restoreForSubmit,true);
 document.addEventListener("click",function(event){var button=event.target&&event.target.closest&&event.target.closest("button");if(button&&!button.disabled&&/(Lanjutkan|Continue|Masuk|Sign in|Verifikasi|Verify)/i.test(button.textContent||""))restoreForSubmit();},true);
-if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",pulse,{once:true});else pulse();
+function afterHydration(fn){if(typeof requestIdleCallback!=="undefined"){requestIdleCallback(fn,{timeout:3000});}else{setTimeout(fn,2000);}}
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",function(){afterHydration(pulse);},{once:true});else afterHydration(pulse);
 setTimeout(recoverSignedIn,1600);
 })();`;
 }
