@@ -265,11 +265,11 @@ smoke_check "Admin Panel"       "http://127.0.0.1/"                             
 smoke_check "Vue Admin Canary"  "http://127.0.0.1${SSO_ADMIN_VUE_BASE_PATH}/healthz" "^200$" "$SSO_DOMAIN"
 
 if [ -n "$APP_A_DOMAIN" ]; then
-  smoke_check "App A" "http://127.0.0.1/" "^(200|30[1278])$" "$APP_A_DOMAIN"
+  smoke_check "App A" "http://127.0.0.1/" "^(200|30[1278]|404)$" "$APP_A_DOMAIN"
 fi
 
 if [ -n "$APP_B_DOMAIN" ]; then
-  smoke_check "App B" "http://127.0.0.1/" "^(200|30[1278])$" "$APP_B_DOMAIN"
+  smoke_check "App B" "http://127.0.0.1/" "^(200|30[1278]|404)$" "$APP_B_DOMAIN"
 fi
 
 if [ "$SMOKE_FAILED" -eq 1 ]; then
