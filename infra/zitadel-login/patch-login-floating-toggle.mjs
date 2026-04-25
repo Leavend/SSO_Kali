@@ -37,8 +37,8 @@ function css() {
   return `
 #${AUTH_SHELL.theme.toggleHostId} {
   position: fixed !important;
-  top: 16px !important;
-  right: 16px !important;
+  bottom: 58px !important;
+  right: 20px !important;
   z-index: 24 !important;
   display: block !important;
   width: auto !important;
@@ -56,8 +56,8 @@ function css() {
 
 @media (max-width: 640px) {
   #${AUTH_SHELL.theme.toggleHostId} {
-    top: 12px !important;
-    right: 12px !important;
+    bottom: 72px !important;
+    right: 16px !important;
   }
 }`.trim();
 }

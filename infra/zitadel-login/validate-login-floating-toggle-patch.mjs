@@ -22,8 +22,8 @@ try {
   assertIncludes(patchedJs, "ensureParentChrome");
   assertIncludes(patchedCss, "#devsso-theme-float");
   assertIncludes(patchedCss, "position: fixed");
-  assertIncludes(patchedCss, "top: 16px");
-  assertIncludes(patchedCss, "right: 16px");
+  assertIncludes(patchedCss, "bottom: 58px");
+  assertIncludes(patchedCss, "right: 20px");
   assertIncludes(patchedCss, "transform: none");
 
   console.log("login floating toggle patch validation passed");

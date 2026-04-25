@@ -392,8 +392,8 @@ body button[aria-label*="light" i]:not(#devsso-theme-toggle) {
 
 #devsso-theme-toggle {
   position: fixed !important;
-  top: 16px !important;
-  right: 16px !important;
+  bottom: 58px !important;
+  right: 20px !important;
   z-index: 50 !important;
   display: flex !important;
   align-items: center !important;
@@ -482,8 +482,8 @@ function buildResponsiveRules() {
   }
 
   #devsso-theme-toggle {
-    top: 12px !important;
-    right: 12px !important;
+    bottom: 72px !important;
+    right: 16px !important;
     width: 36px !important;
     height: 36px !important;
   }
