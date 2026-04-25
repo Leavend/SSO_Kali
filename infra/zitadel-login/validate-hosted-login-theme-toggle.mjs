@@ -92,7 +92,9 @@ async function readThemeSnapshot(page) {
     const wrapper = document.querySelector('body div[class*="min-h-screen"]');
     const title = document.querySelector("h1");
     const toggle = document.getElementById("devsso-theme-toggle");
+    const toggleHost = document.getElementById("devsso-theme-float");
     const footer = document.getElementById("devsso-footer");
+    const card = document.querySelector('body div[class*="max-w-[440px]"] > div:first-child');
     const visibleThemeToggleCount = [...document.querySelectorAll("button")].filter((button) => {
       const rect = button.getBoundingClientRect();
       const style = getComputedStyle(button);
@@ -100,6 +102,9 @@ async function readThemeSnapshot(page) {
       const label = `${button.id} ${button.getAttribute("aria-label") || ""} ${button.getAttribute("title") || ""}`;
       return isVisible && /devsso-theme-toggle|theme|dark|light/i.test(label);
     }).length;
+    const toggleRect = toggle?.getBoundingClientRect();
+    const footerRect = footer?.getBoundingClientRect();
+    const cardRect = card?.getBoundingClientRect();
 
     return {
       htmlClass: html.className,
@@ -111,12 +116,24 @@ async function readThemeSnapshot(page) {
       titleText: title ? title.textContent.trim() : "",
       footerText: footer ? footer.innerText.replace(/\s+/g, " ").trim() : "",
       togglePresent: !!toggle,
+      toggleHostPresent: !!toggleHost,
+      toggleHostPosition: toggleHost ? getComputedStyle(toggleHost).position : null,
       toggleWidth: toggle ? getComputedStyle(toggle).width : null,
       toggleHeight: toggle ? getComputedStyle(toggle).height : null,
       toggleDisplay: toggle ? getComputedStyle(toggle).display : null,
+      toggleOverlapsFooter: overlaps(toggleRect, footerRect),
+      toggleOverlapsCard: overlaps(toggleRect, cardRect),
       visibleThemeToggleCount,
     };
   });
+}
+
+function overlaps(a, b) {
+  if (!a || !b) {
+    return false;
+  }
+
+  return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
 }
 
 function assertSnapshots(payload) {
@@ -128,12 +145,20 @@ function assertSnapshots(payload) {
   assertNotEqual("wrapper color light/dark", payload.light.wrapperColor, payload.dark.wrapperColor);
   assertValue("light.togglePresent", payload.light.togglePresent, true);
   assertValue("dark.togglePresent", payload.dark.togglePresent, true);
+  assertValue("light.toggleHostPresent", payload.light.toggleHostPresent, true);
+  assertValue("dark.toggleHostPresent", payload.dark.toggleHostPresent, true);
+  assertValue("light.toggleHostPosition", payload.light.toggleHostPosition, "sticky");
+  assertValue("dark.toggleHostPosition", payload.dark.toggleHostPosition, "sticky");
   assertValue("light.toggleDisplay", payload.light.toggleDisplay, "flex");
   assertValue("dark.toggleDisplay", payload.dark.toggleDisplay, "flex");
   assertValue("light.visibleThemeToggleCount", payload.light.visibleThemeToggleCount, 1);
   assertValue("dark.visibleThemeToggleCount", payload.dark.visibleThemeToggleCount, 1);
   assertValue("light.footerText", payload.light.footerText, "© 2026 Dev-SSO . Terms . Privacy . Docs");
   assertValue("dark.footerText", payload.dark.footerText, "© 2026 Dev-SSO . Terms . Privacy . Docs");
+  assertValue("light.toggleOverlapsFooter", payload.light.toggleOverlapsFooter, false);
+  assertValue("dark.toggleOverlapsFooter", payload.dark.toggleOverlapsFooter, false);
+  assertValue("light.toggleOverlapsCard", payload.light.toggleOverlapsCard, false);
+  assertValue("dark.toggleOverlapsCard", payload.dark.toggleOverlapsCard, false);
   assertToggleSizing(payload.light);
   assertToggleSizing(payload.dark);
 }

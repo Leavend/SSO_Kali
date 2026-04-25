@@ -73,6 +73,8 @@ function buildToggleScript() {
     darkLabel: AUTH_SHELL.theme.darkLabel,
     moonSvg: themeIconSvg("light"),
     sunSvg: themeIconSvg("dark"),
+    toggleHostClass: AUTH_SHELL.theme.toggleHostClass,
+    toggleHostId: AUTH_SHELL.theme.toggleHostId,
     toggleId: AUTH_SHELL.theme.toggleId,
   };
 
@@ -114,13 +116,14 @@ function upsertFooter(){
 }
 
 function upsertToggle(){
+  var host=resolveToggleHost();
   btn=document.getElementById(CONFIG.toggleId);
   if(!btn){
     btn=document.createElement("button");
     btn.type="button";
     btn.id=CONFIG.toggleId;
-    document.body.appendChild(btn);
   }
+  if(btn.parentElement!==host)host.appendChild(btn);
   btn.className="theme-toggle";
   btn.setAttribute("data-devsso-parent-ui","theme-toggle");
   btn.onclick=function(){
@@ -128,6 +131,23 @@ function upsertToggle(){
     applyTheme(current==="dark"?"light":"dark");
   };
   applyTheme(getTheme());
+}
+
+function resolveToggleHost(){
+  var host=document.getElementById(CONFIG.toggleHostId);
+  var shell=findShell();
+  if(!host){
+    host=document.createElement("div");
+    host.id=CONFIG.toggleHostId;
+  }
+  host.className=CONFIG.toggleHostClass;
+  host.setAttribute("data-devsso-parent-ui","theme-toggle-host");
+  if(host.parentElement!==shell)shell.prepend(host);
+  return host;
+}
+
+function findShell(){
+  return document.querySelector('body div[class*="min-h-screen"]')||document.body;
 }
 
 function normalizeCopy(){

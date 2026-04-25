@@ -40,6 +40,9 @@ COMPOSE_FILE="$PROJECT_DIR/docker-compose.dev.yml"
 ENV_FILE="$PROJECT_DIR/.env.dev"
 DEPLOY_LOG="/var/log/sso-direct-build-deploy-$(date +%Y%m%d%H%M%S).log"
 ROLLBACK_TAG="rollback-${TAG}"
+STATE_DIR="${STATE_DIR:-${HOME:-/tmp}/.cache/sso-direct-deploy}"
+DEPLOY_TAG_FILE="${DEPLOY_TAG_FILE:-$STATE_DIR/last-deploy-tag}"
+ROLLBACK_TAG_FILE="${ROLLBACK_TAG_FILE:-$STATE_DIR/last-rollback-tag}"
 ROLLBACK_STARTED=0
 TOUCHED_SERVICES=()
 GREEN_CONTAINERS=()
@@ -402,6 +405,7 @@ log "Services: ${SERVICES[*]}"
 
 [[ -f "$COMPOSE_FILE" ]] || fail "Missing Compose file: $COMPOSE_FILE"
 [[ -f "$ENV_FILE" ]] || fail "Missing env file: $ENV_FILE"
+mkdir -p "$STATE_DIR"
 
 cd "$PROJECT_DIR"
 
@@ -457,8 +461,8 @@ if printf '%s\n' "${SERVICES[@]}" | grep -Fxq "zitadel-login"; then
   smoke_check "Zitadel Login Health" "https://${ZITADEL_DOMAIN}/ui/v2/login/healthy" "^200$" "$ZITADEL_DOMAIN" || rollback_once "Smoke check failed: Zitadel Login Health"
 fi
 
-echo "$TAG" > /tmp/.sso-direct-deploy-tag
-echo "$ROLLBACK_TAG" > /tmp/.sso-direct-rollback-tag
+echo "$TAG" > "$DEPLOY_TAG_FILE"
+echo "$ROLLBACK_TAG" > "$ROLLBACK_TAG_FILE"
 
 trap - ERR
 

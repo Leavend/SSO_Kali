@@ -1,0 +1,44 @@
+.legacy-login {
+  --auth-frame-width: min(100%, 448px);
+  --theme-toggle-rail-offset: clamp(12px, 4vw, 20px);
+  --theme-toggle-top-offset: max(16px, calc(env(safe-area-inset-top, 0px) + 12px));
+  --theme-toggle-float-lift: 56px;
+}
+
+.legacy-login__frame {
+  width: var(--auth-frame-width);
+}
+
+.theme-toggle-anchor {
+  position: sticky;
+  top: var(--theme-toggle-top-offset);
+  z-index: 12;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  justify-self: stretch;
+  align-self: start;
+  width: var(--auth-frame-width);
+  height: 0;
+  margin: 0 auto;
+  pointer-events: none;
+}
+
+.theme-toggle-anchor > .theme-toggle {
+  position: relative;
+  margin-inline-end: var(--theme-toggle-rail-offset);
+  pointer-events: auto;
+  transform: translateY(calc(-1 * var(--theme-toggle-float-lift)));
+  box-shadow: 0 14px 36px color-mix(in srgb, var(--shadow) 72%, transparent);
+}
+
+@media (max-width: 640px) {
+  .legacy-login {
+    --theme-toggle-top-offset: max(12px, calc(env(safe-area-inset-top, 0px) + 8px));
+    --theme-toggle-float-lift: 52px;
+  }
+
+  .theme-toggle-anchor > .theme-toggle {
+    margin-inline-end: 0;
+  }
+}

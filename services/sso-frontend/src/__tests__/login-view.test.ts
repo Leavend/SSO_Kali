@@ -30,6 +30,7 @@ describe('LoginView', () => {
       '/auth/register?login_hint=admin%40example.com',
     )
     expect(wrapper.find('#devsso-theme-toggle').exists()).toBe(true)
+    expect(wrapper.find('#devsso-theme-float.theme-toggle-anchor').exists()).toBe(true)
     expect(wrapper.find('footer.auth-footer').text()).toContain('© 2026 Dev-SSO')
     expect(wrapper.find('footer.auth-footer').text()).toContain('Terms')
   })

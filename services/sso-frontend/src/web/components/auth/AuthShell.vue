@@ -16,7 +16,10 @@ withDefaults(
 
 <template>
   <section class="legacy-login" :aria-labelledby="labelledby">
-    <div class="theme-toggle-anchor">
+    <div
+      :id="AUTH_SHELL.theme.toggleHostId"
+      :class="AUTH_SHELL.theme.toggleHostClass"
+    >
       <ThemeToggle />
     </div>
 

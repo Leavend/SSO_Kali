@@ -29,7 +29,7 @@ function applyTheme(value: Theme): void {
 <template>
   <button
     :id="AUTH_SHELL.theme.toggleId"
-    class="theme-toggle"
+    :class="AUTH_SHELL.theme.toggleClass"
     type="button"
     :aria-label="isDark ? AUTH_SHELL.theme.lightLabel : AUTH_SHELL.theme.darkLabel"
     @click="toggleTheme"

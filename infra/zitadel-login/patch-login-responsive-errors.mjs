@@ -83,9 +83,11 @@ body [role="alert"] span {
     flex: 1 1 132px !important;
     min-width: 132px !important;
   }
-  #devsso-theme-toggle {
-    bottom: 78px !important;
-    right: 12px !important;
+  #devsso-theme-float {
+    width: min(calc(100vw - 24px), 100%) !important;
+  }
+  #devsso-theme-float #devsso-theme-toggle {
+    margin-inline-end: 0 !important;
   }
   #devsso-footer {
     padding: 10px 12px 14px !important;
