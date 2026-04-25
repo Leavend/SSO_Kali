@@ -22,8 +22,11 @@ try {
   assertIncludes(patchedJs, "ensureParentChrome");
   assertIncludes(patchedCss, "#devsso-theme-float");
   assertIncludes(patchedCss, "position: fixed");
-  assertIncludes(patchedCss, "bottom: 58px");
-  assertIncludes(patchedCss, "right: 20px");
+  assertIncludes(patchedCss, "--devsso-theme-edge-top");
+  assertIncludes(patchedCss, "--devsso-theme-edge-right");
+  assertIncludes(patchedCss, "display: flex");
+  assertIncludes(patchedCss, "justify-content: flex-end");
+  assertIncludes(patchedCss, "bottom: auto");
   assertIncludes(patchedCss, "transform: none");
 
   console.log("login floating toggle patch validation passed");
