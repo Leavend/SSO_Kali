@@ -139,6 +139,19 @@ function normalizeCopy(){
   });
 }
 
+function normalizeButtons(){
+  Array.prototype.slice.call(document.querySelectorAll("button")).forEach(function(button){
+    if(button.id===CONFIG.toggleId)return;
+    var text=(button.textContent||"").replace(/\\s+/g," ").trim();
+    if(/^(Kembali|Back)$/.test(text)){
+      button.setAttribute("data-devsso-action","back");
+    }
+    if(/^(Lanjutkan|Continue)$/.test(text)){
+      button.setAttribute("data-devsso-action","submit");
+    }
+  });
+}
+
 function hideNativeThemeSwitches(){
   var buttons=Array.prototype.slice.call(document.querySelectorAll("button"));
   buttons.forEach(function(button){
@@ -166,6 +179,7 @@ function startObserver(){
   if(observer||!document.body||typeof MutationObserver==="undefined")return;
   observer=new MutationObserver(function(){
     normalizeCopy();
+    normalizeButtons();
     hideNativeThemeSwitches();
   });
   observer.observe(document.body,{childList:true,subtree:true});
@@ -175,10 +189,13 @@ function createParentChrome(){
   upsertFooter();
   upsertToggle();
   normalizeCopy();
+  normalizeButtons();
   hideNativeThemeSwitches();
   startObserver();
   window.setTimeout(normalizeCopy,100);
   window.setTimeout(normalizeCopy,600);
+  window.setTimeout(normalizeButtons,100);
+  window.setTimeout(normalizeButtons,600);
   window.setTimeout(hideNativeThemeSwitches,100);
   window.setTimeout(hideNativeThemeSwitches,600);
 }

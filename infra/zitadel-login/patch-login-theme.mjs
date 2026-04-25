@@ -214,7 +214,9 @@ function buildButtons() {
 /* Base structural reset for all form buttons */
 body button[class*="border-button-light-border"],
 body button[data-testid="submit-button"],
+body button[data-devsso-action="submit"],
 body button[data-testid="back-button"],
+body button[data-devsso-action="back"],
 body button[data-testid="password-button"],
 body button[data-testid="deny-button"],
 body button[data-testid="idp-button"],
@@ -233,50 +235,60 @@ body button[class*="rounded-full"][class*="flex"][class*="items-center"] {
 }
 
 /* Submit / Lanjutkan — matches SSO accent-soft style */
-body button[data-testid="submit-button"] {
+body button[data-testid="submit-button"],
+body button[data-devsso-action="submit"] {
   min-width: 120px !important;
   padding: 0 20px !important;
   border: none !important;
   box-shadow: none !important;
 }
-body button[data-testid="submit-button"]:not(:disabled) {
+body button[data-testid="submit-button"]:not(:disabled),
+body button[data-devsso-action="submit"]:not(:disabled) {
   background: var(--devsso-primary-soft) !important;
   color: var(--devsso-primary) !important;
 }
-body button[data-testid="submit-button"]:not(:disabled):hover {
+body button[data-testid="submit-button"]:not(:disabled):hover,
+body button[data-devsso-action="submit"]:not(:disabled):hover {
   background: var(--devsso-primary) !important;
   color: var(--devsso-primary-contrast) !important;
   transform: translateY(-1px);
 }
-body button[data-testid="submit-button"]:not(:disabled):focus-visible {
+body button[data-testid="submit-button"]:not(:disabled):focus-visible,
+body button[data-devsso-action="submit"]:not(:disabled):focus-visible {
   outline: none !important;
   box-shadow: 0 0 0 2px var(--devsso-primary), 0 0 0 4px var(--devsso-ring) !important;
 }
-body button[data-testid="submit-button"]:disabled {
+body button[data-testid="submit-button"]:disabled,
+body button[data-devsso-action="submit"]:disabled {
   background: var(--devsso-primary-soft) !important;
   color: var(--devsso-primary) !important;
   opacity: 0.48 !important;
   cursor: not-allowed;
 }
 body button[data-testid="submit-button"] *,
-body button[data-testid="back-button"] * {
+body button[data-devsso-action="submit"] *,
+body button[data-testid="back-button"] *,
+body button[data-devsso-action="back"] * {
   color: inherit !important;
 }
 
 /* Back / Kembali — ghost/outline style */
-body button[data-testid="back-button"] {
+body button[data-testid="back-button"],
+body button[data-devsso-action="back"] {
   min-width: 100px !important;
   padding: 0 20px !important;
   border: 1px solid var(--devsso-border) !important;
   background: transparent !important;
   color: var(--devsso-primary) !important;
 }
-body button[data-testid="back-button"]:hover {
+body button[data-testid="back-button"]:hover,
+body button[data-devsso-action="back"]:hover {
   background: var(--devsso-primary-soft) !important;
   border-color: var(--devsso-primary) !important;
   color: var(--devsso-primary-hover) !important;
 }
-body button[data-testid="back-button"]:focus-visible {
+body button[data-testid="back-button"]:focus-visible,
+body button[data-devsso-action="back"]:focus-visible {
   outline: none !important;
   box-shadow: 0 0 0 2px var(--devsso-primary), 0 0 0 4px var(--devsso-ring) !important;
 }

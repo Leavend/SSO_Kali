@@ -19,8 +19,11 @@ try {
   assertIncludes(patched, "--devsso-primary-soft: #eaf1fd;");
   assertIncludes(patched, "--devsso-font: Inter, ui-sans-serif");
   assertIncludes(patched, 'button[data-testid="submit-button"]');
+  assertIncludes(patched, 'button[data-devsso-action="submit"]');
   assertIncludes(patched, 'button[data-testid="submit-button"] *');
+  assertIncludes(patched, 'button[data-devsso-action="submit"] *');
   assertIncludes(patched, 'button[data-testid="back-button"] *');
+  assertIncludes(patched, 'button[data-devsso-action="back"] *');
   assertIncludes(patched, 'body button[data-testid="back-button"]');
   assertIncludes(patched, "color: var(--devsso-primary) !important;");
   assertIncludes(patched, 'data-devsso-native-theme-hidden="true"');
