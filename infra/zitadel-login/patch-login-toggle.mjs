@@ -46,13 +46,19 @@ function patchFile(location) {
   if (original.includes("__devssoToggleInjected")) {
     return; // Already patched
   }
-  // Only patch files that contain the theme toggle rendering logic
-  if (!original.includes("headlessui-listbox-button")) {
+  if (!shouldPatch(location, original)) {
     return;
   }
   const patched = original + "\n" + toggleScript;
   writeFileSync(location, patched);
   changedFiles += 1;
+}
+
+function shouldPatch(location, original) {
+  if (original.includes("headlessui-listbox-button")) {
+    return true;
+  }
+  return location.includes("/static/chunks/app/(login)/");
 }
 
 function buildToggleScript() {
@@ -79,8 +85,11 @@ function buildToggleScript() {
   };
 
   return `;(function(){
-if(typeof window==="undefined"||window.__devssoToggleInjected)return;
+var VERSION="20260425-bottom-right-v1";
+if(typeof window==="undefined")return;
+if(window.__devssoToggleVersion===VERSION)return;
 window.__devssoToggleInjected=true;
+window.__devssoToggleVersion=VERSION;
 
 var CONFIG=${JSON.stringify(runtimeConfig)};
 var btn=null;
@@ -227,6 +236,9 @@ function createParentChrome(){
   window.setTimeout(normalizeButtons,600);
   window.setTimeout(hideNativeThemeSwitches,100);
   window.setTimeout(hideNativeThemeSwitches,600);
+  window.setTimeout(ensureParentChrome,100);
+  window.setTimeout(ensureParentChrome,600);
+  window.setTimeout(ensureParentChrome,1500);
 }
 
 if(document.readyState==="loading"){

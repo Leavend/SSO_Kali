@@ -36,15 +36,15 @@ function patchFile(location) {
 function css() {
   return `
 body div[class*="min-h-screen"] {
-  --devsso-theme-edge-top: max(16px, calc(env(safe-area-inset-top, 0px) + 16px));
+  --devsso-theme-edge-bottom: max(72px, calc(env(safe-area-inset-bottom, 0px) + 72px));
   --devsso-theme-edge-right: max(16px, calc(env(safe-area-inset-right, 0px) + 20px));
 }
 
 #${AUTH_SHELL.theme.toggleHostId} {
   position: fixed !important;
-  top: var(--devsso-theme-edge-top) !important;
   right: var(--devsso-theme-edge-right) !important;
-  bottom: auto !important;
+  bottom: var(--devsso-theme-edge-bottom) !important;
+  top: auto !important;
   z-index: 40 !important;
   display: flex !important;
   align-items: center !important;
@@ -64,7 +64,7 @@ body div[class*="min-h-screen"] {
 
 @media (max-width: 640px) {
   body div[class*="min-h-screen"] {
-    --devsso-theme-edge-top: max(12px, calc(env(safe-area-inset-top, 0px) + 12px));
+    --devsso-theme-edge-bottom: max(84px, calc(env(safe-area-inset-bottom, 0px) + 84px));
     --devsso-theme-edge-right: max(12px, calc(env(safe-area-inset-right, 0px) + 12px));
   }
 }`.trim();
