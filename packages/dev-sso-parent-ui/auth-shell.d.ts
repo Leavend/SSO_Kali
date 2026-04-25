@@ -35,6 +35,8 @@ export declare const AUTH_SHELL: {
     readonly defaultTheme: Theme;
     readonly attribute: "data-theme";
     readonly darkClass: "dark";
+    readonly toggleHostId: "devsso-theme-float";
+    readonly toggleHostClass: "theme-toggle-anchor";
     readonly toggleId: "devsso-theme-toggle";
     readonly toggleClass: "theme-toggle";
     readonly lightLabel: string;

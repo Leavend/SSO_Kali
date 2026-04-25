@@ -19,6 +19,8 @@ export const AUTH_SHELL = Object.freeze({
     defaultTheme: "light",
     attribute: "data-theme",
     darkClass: "dark",
+    toggleHostId: "devsso-theme-float",
+    toggleHostClass: "theme-toggle-anchor",
     toggleId: "devsso-theme-toggle",
     toggleClass: "theme-toggle",
     lightLabel: "Switch to light theme",
