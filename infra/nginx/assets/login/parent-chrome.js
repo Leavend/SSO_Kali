@@ -1,6 +1,6 @@
 (() => {
-  const VERSION = "20260425-dom-safe-v2";
-  const URL_PRIVACY_VERSION = "20260425-dom-safe-v2";
+  const VERSION = "20260425-flow-context-v1";
+  const URL_PRIVACY_VERSION = "20260425-flow-context-v1";
   const CONTEXT_KEY = "devssoLoginContext";
   const CONTEXT_TTL_MS = 15 * 60 * 1000;
   const RECOVERY_KEY = "devssoSignedinRecovery";
@@ -21,7 +21,6 @@
     "sessionId",
     "userId",
   ];
-  const FLOW_KEYS = ["organization", "requestId"];
   const rawReplaceState = history.replaceState.bind(history);
 
   const SUN =
@@ -110,10 +109,6 @@
     return /(^|\/)ui\/v2\/login(\/|$)/.test(location.pathname);
   }
 
-  function isLoginTarget(pathname) {
-    return /(^|\/)ui\/v2\/login(\/|$)/.test(pathname);
-  }
-
   function isSignedInPath() {
     return /(^|\/)signedin(\/|$)/.test(location.pathname);
   }
@@ -163,25 +158,6 @@
     return changed;
   }
 
-  function removeNonFlowParams(url) {
-    let changed = false;
-
-    SENSITIVE_KEYS.forEach((key) => {
-      if (FLOW_KEYS.includes(key) || !url.searchParams.has(key)) return;
-      url.searchParams.delete(key);
-      changed = true;
-    });
-    return changed;
-  }
-
-  function cleanNavigationUrl(value) {
-    const url = new URL(String(value), location.href);
-    if (!isLoginTarget(url.pathname) || !url.search) return value;
-    captureUrlContext(url);
-    if (!removeNonFlowParams(url)) return value;
-    return `${url.pathname}${url.search}${url.hash}`;
-  }
-
   function redactCurrentUrl() {
     if (!isLoginPath() || !location.search) return;
 
@@ -198,6 +174,13 @@
     delays.forEach((delay) => {
       window.setTimeout(redactCurrentUrl, delay);
     });
+  }
+
+  function restoreCurrentUrlForSubmit() {
+    if (!isLoginPath() || location.search) return;
+    const params = contextSearchParams();
+    if (!params) return;
+    rawReplaceState(history.state || null, document.title, `${location.pathname}?${params}${location.hash}`);
   }
 
   function contextSearchParams() {
@@ -230,7 +213,11 @@
     const original = history[name].bind(history);
 
     history[name] = (...args) => {
-      if (args.length > 2) args[2] = cleanNavigationUrl(args[2]);
+      if (args.length > 2) {
+        try {
+          captureUrlContext(new URL(String(args[2]), location.href));
+        } catch (error) {}
+      }
       const result = original(...args);
       pulseUrlPrivacy();
       return result;
@@ -289,6 +276,7 @@
   }
 
   function onSubmitCapture(event) {
+    restoreCurrentUrlForSubmit();
     const button = event.submitter || event.target?.querySelector('button[type="submit"]');
     setButtonLoading(button);
   }
@@ -298,6 +286,7 @@
     if (!target || !target.closest) return;
     const button = target.closest("button");
     if (!button || button.disabled || !isPrimaryAction(button)) return;
+    restoreCurrentUrlForSubmit();
     setButtonLoading(button);
   }
 

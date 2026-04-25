@@ -34,6 +34,31 @@ function patchFile(location) {
 
 function css() {
   return `
+body div[class*="min-h-screen"] {
+  min-height: 100svh !important;
+  padding: clamp(16px, 4vw, 32px) 12px 104px !important;
+  box-sizing: border-box !important;
+}
+
+body div[class*="max-w-[440px]"] {
+  width: min(100%, 440px) !important;
+  max-width: calc(100vw - 24px) !important;
+  box-sizing: border-box !important;
+}
+
+body div[class*="max-w-[440px]"] > div[class*="rounded"] {
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+body div[class*="max-w-[440px]"] form,
+body div[class*="max-w-[440px]"] label,
+body div[class*="max-w-[440px]"] input {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
 body div[class*="py-4"]:has(div[class*="border-yellow"]),
 body div[class*="py-4"]:has([role="alert"]),
 body div[class*="max-w-[440px]"] div[class*="border-yellow"] {
@@ -71,6 +96,9 @@ body [role="alert"] span {
   }
   body div[class*="max-w-[440px]"] > div:first-child {
     padding: 22px 18px !important;
+  }
+  body div[class*="max-w-[440px]"] > div[class*="rounded"] {
+    padding-inline: clamp(16px, 5vw, 24px) !important;
   }
   body div[class*="max-w-[440px]"] form div[class*="flex"][class*="w-full"] {
     flex-wrap: wrap !important;
