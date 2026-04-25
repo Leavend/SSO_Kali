@@ -176,9 +176,13 @@ require_text "infra/zitadel-login/patch-login-toggle.mjs" '__devssoToggleVersion
 require_text "infra/nginx/snippets/id-dev-sso-login-locale-reload.conf" 'parent-chrome\.js' "Nginx injects parent chrome fallback for direct ZITADEL login routes"
 require_text "infra/nginx/assets/login/parent-chrome.css" 'bottom: max\(72px' "Nginx parent chrome fallback pins toggle to the bottom safe area"
 require_text "infra/nginx/assets/login/parent-chrome.js" '__devssoToggleVersion' "Nginx parent chrome fallback exposes cache-bust version"
+require_text "infra/nginx/assets/login/parent-chrome.js" '__devssoUrlPrivacyVersion' "Nginx parent chrome fallback redacts sensitive login query parameters"
+require_text "infra/zitadel-login/patch-login-url-privacy.mjs" 'wrap\("pushState"\)' "Hosted login URL privacy patch tracks SPA history updates"
+require_text "infra/zitadel-login/patch-login-url-privacy.mjs" '10000' "Hosted login URL privacy patch keeps redacting delayed route rewrites"
 require_text "infra/nginx/dev-sso.timeh.my.id.chained.conf" 'Clear-Site-Data "\\"cache\\""' "Nginx clears stale immutable ZITADEL login chunks after UI patch deploys"
 require_text "infra/nginx/dev-sso.timeh.my.id.chained.conf" '/ui/v2/login/_next/static/' "Nginx disables immutable cache for patched ZITADEL login assets"
 require_text "infra/nginx/dev-sso.timeh.my.id.chained.conf" '/_devsso/login/parent-chrome\.js' "Nginx serves parent chrome fallback assets with explicit no-store route"
+require_text "infra/nginx/dev-sso.timeh.my.id.chained.conf" 'Referrer-Policy "no-referrer"' "Nginx suppresses Referer leakage from hosted login pages"
 require_text "infra/zitadel-login/patch-login-signedin-redirect.mjs" 'completeFlowOrGetUrl' "Hosted login auth-flow patch strips noisy client debug logs"
 require_text "infra/zitadel-login/patch-login-signedin-redirect.mjs" 'loginRouteSuffix' "Hosted login V2 auth patch is scoped to the server login route"
 node infra/zitadel-login/validate-login-floating-toggle-patch.mjs

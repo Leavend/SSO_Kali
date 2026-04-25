@@ -1,10 +1,24 @@
 (() => {
   const VERSION = "20260425-bottom-right-v1";
+  const URL_PRIVACY_VERSION = "20260425-url-privacy-v1";
   const IDS = {
     footer: "devsso-footer",
     host: "devsso-theme-float",
     toggle: "devsso-theme-toggle",
   };
+  const SENSITIVE_KEYS = [
+    "authRequest",
+    "code",
+    "codeId",
+    "idpIntent",
+    "loginName",
+    "organization",
+    "prompt",
+    "requestId",
+    "sessionId",
+    "userId",
+  ];
+  const rawReplaceState = history.replaceState.bind(history);
 
   const SUN =
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg>';
@@ -103,6 +117,57 @@
     });
   }
 
+  function isLoginPath() {
+    return /(^|\/)ui\/v2\/login(\/|$)/.test(location.pathname);
+  }
+
+  function removeSensitiveParams(url) {
+    let changed = false;
+
+    SENSITIVE_KEYS.forEach((key) => {
+      if (!url.searchParams.has(key)) return;
+      url.searchParams.delete(key);
+      changed = true;
+    });
+    return changed;
+  }
+
+  function redactCurrentUrl() {
+    if (!isLoginPath() || !location.search) return;
+
+    const url = new URL(location.href);
+    if (!removeSensitiveParams(url)) return;
+    rawReplaceState(history.state || null, document.title, `${url.pathname}${url.search}${url.hash}`);
+    window.__devssoUrlPrivacyVersion = URL_PRIVACY_VERSION;
+  }
+
+  function pulseUrlPrivacy() {
+    [250, 750, 1500, 3000, 6000, 10000].forEach((delay) => {
+      window.setTimeout(redactCurrentUrl, delay);
+    });
+  }
+
+  function wrapHistoryMethod(name) {
+    const original = history[name].bind(history);
+
+    history[name] = (...args) => {
+      const result = original(...args);
+      pulseUrlPrivacy();
+      return result;
+    };
+  }
+
+  function startUrlPrivacy() {
+    if (window.__devssoUrlPrivacyWrapped) return;
+
+    window.__devssoUrlPrivacyWrapped = true;
+    wrapHistoryMethod("pushState");
+    wrapHistoryMethod("replaceState");
+    window.addEventListener("popstate", pulseUrlPrivacy);
+    window.addEventListener("hashchange", pulseUrlPrivacy);
+    pulseUrlPrivacy();
+  }
+
   function startObserver() {
     if (!window.MutationObserver || window.__devssoParentChromeObserver) return;
 
@@ -117,6 +182,7 @@
     ensureParentChrome();
     schedule();
     startObserver();
+    startUrlPrivacy();
   }
 
   if (document.readyState === "loading") {

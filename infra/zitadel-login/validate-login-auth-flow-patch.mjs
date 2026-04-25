@@ -15,7 +15,7 @@ try {
   assertAuthFlow(route, client);
 
   run("patch-login-url-privacy.mjs");
-  assertIncludes(readFileSync(client, "utf8"), "__devssoUrlPrivacyInjected");
+  assertUrlPrivacy(readFileSync(client, "utf8"));
 
   run("patch-login-responsive-errors.mjs");
   assertIncludes(readFileSync(css, "utf8"), "Dev-SSO Responsive Error States");
@@ -59,6 +59,15 @@ function assertAuthFlow(route, client) {
   assertIncludes(routeOutput, 'replace(/^(?:oidc_|V2_)/,"")');
   assertNotIncludes(clientOutput, "completeFlowOrGetUrl called with");
   assertNotIncludes(clientOutput, 'startsWith("V2_")');
+}
+
+function assertUrlPrivacy(output) {
+  assertIncludes(output, "__devssoUrlPrivacyInjected");
+  assertIncludes(output, "__devssoUrlPrivacyVersion");
+  assertIncludes(output, "20260425-url-privacy-v1");
+  assertIncludes(output, 'wrap("pushState")');
+  assertIncludes(output, 'wrap("replaceState")');
+  assertIncludes(output, "10000");
 }
 
 function assertIncludes(value, expected) {
