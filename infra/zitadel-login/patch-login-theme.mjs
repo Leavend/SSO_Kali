@@ -1,13 +1,18 @@
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { AUTH_SHELL, renderCssVariables } from "../../packages/dev-sso-parent-ui/auth-shell.mjs";
+import {
+  AUTH_SHELL,
+  renderCssVariables,
+} from "../../packages/dev-sso-parent-ui/auth-shell.mjs";
 
 const root = process.argv[2];
 const marker = "/* Dev-SSO Theme Overrides */";
 const themeOverrides = buildThemeOverrides();
 
 if (!root) {
-  throw new Error("Expected the extracted login bundle path as the first argument.");
+  throw new Error(
+    "Expected the extracted login bundle path as the first argument.",
+  );
 }
 
 let changedFiles = 0;
@@ -387,8 +392,8 @@ body button[aria-label*="light" i]:not(#devsso-theme-toggle) {
 
 #devsso-theme-toggle {
   position: fixed !important;
-  bottom: 58px !important;
-  right: 20px !important;
+  top: 16px !important;
+  right: 16px !important;
   z-index: 50 !important;
   display: flex !important;
   align-items: center !important;
@@ -474,6 +479,13 @@ function buildResponsiveRules() {
 
   body div[class*="max-w-[440px]"] h1 {
     font-size: 1.375rem !important;
+  }
+
+  #devsso-theme-toggle {
+    top: 12px !important;
+    right: 12px !important;
+    width: 36px !important;
+    height: 36px !important;
   }
 }
 
