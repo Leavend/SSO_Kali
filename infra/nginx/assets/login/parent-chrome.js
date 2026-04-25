@@ -1,6 +1,6 @@
 (() => {
-  const VERSION = "20260425-bottom-right-v1";
-  const URL_PRIVACY_VERSION = "20260425-auth-flow-v2";
+  const VERSION = "20260425-dom-safe-v2";
+  const URL_PRIVACY_VERSION = "20260425-dom-safe-v2";
   const CONTEXT_KEY = "devssoLoginContext";
   const CONTEXT_TTL_MS = 15 * 60 * 1000;
   const RECOVERY_KEY = "devssoSignedinRecovery";
@@ -21,6 +21,7 @@
     "sessionId",
     "userId",
   ];
+  const FLOW_KEYS = ["organization", "requestId"];
   const rawReplaceState = history.replaceState.bind(history);
 
   const SUN =
@@ -60,21 +61,17 @@
     document.body.appendChild(footer);
   }
 
-  function findShell() {
-    return document.querySelector('body div[class*="min-h-screen"]') || document.body;
-  }
-
   function ensureHost() {
-    const shell = findShell();
     let host = document.getElementById(IDS.host);
 
     if (!host) {
       host = document.createElement("div");
       host.id = IDS.host;
+      document.body.appendChild(host);
     }
     host.className = "theme-toggle-anchor";
     host.dataset.devssoParentUi = "theme-toggle-host";
-    if (host.parentElement !== shell) shell.appendChild(host);
+    if (host.parentElement !== document.body) document.body.appendChild(host);
     return host;
   }
 
@@ -94,22 +91,11 @@
     applyTheme(currentTheme());
   }
 
-  function hideNativeThemeSwitches() {
-    document.querySelectorAll("button").forEach((button) => {
-      if (button.id === IDS.toggle) return;
-
-      const label = `${button.getAttribute("aria-label") || ""} ${button.title || ""}`;
-      if (!/(dark|light|theme|tema|mode|appearance)/i.test(label)) return;
-      button.dataset.devssoNativeThemeHidden = "true";
-    });
-  }
-
   function ensureParentChrome() {
     if (!document.body) return;
 
     ensureFooter();
     ensureToggle();
-    hideNativeThemeSwitches();
     window.__devssoToggleInjected = true;
     window.__devssoToggleVersion = VERSION;
   }
@@ -122,6 +108,10 @@
 
   function isLoginPath() {
     return /(^|\/)ui\/v2\/login(\/|$)/.test(location.pathname);
+  }
+
+  function isLoginTarget(pathname) {
+    return /(^|\/)ui\/v2\/login(\/|$)/.test(pathname);
   }
 
   function isSignedInPath() {
@@ -150,6 +140,10 @@
   function captureContext() {
     if (!isLoginPath() || !location.search) return;
     const url = new URL(location.href);
+    captureUrlContext(url);
+  }
+
+  function captureUrlContext(url) {
     const params = {};
     SENSITIVE_KEYS.forEach((key) => {
       if (url.searchParams.has(key)) params[key] = url.searchParams.get(key);
@@ -169,6 +163,25 @@
     return changed;
   }
 
+  function removeNonFlowParams(url) {
+    let changed = false;
+
+    SENSITIVE_KEYS.forEach((key) => {
+      if (FLOW_KEYS.includes(key) || !url.searchParams.has(key)) return;
+      url.searchParams.delete(key);
+      changed = true;
+    });
+    return changed;
+  }
+
+  function cleanNavigationUrl(value) {
+    const url = new URL(String(value), location.href);
+    if (!isLoginTarget(url.pathname) || !url.search) return value;
+    captureUrlContext(url);
+    if (!removeNonFlowParams(url)) return value;
+    return `${url.pathname}${url.search}${url.hash}`;
+  }
+
   function redactCurrentUrl() {
     if (!isLoginPath() || !location.search) return;
 
@@ -180,7 +193,7 @@
   }
 
   function pulseUrlPrivacy() {
-    const delays = isSignedInPath() ? [1200, 3000, 6000, 10000] : [250, 750, 1500, 3000, 6000, 10000];
+    const delays = isSignedInPath() ? [1200, 3000, 6000, 10000] : [1800, 3000, 6000, 10000];
     captureContext();
     delays.forEach((delay) => {
       window.setTimeout(redactCurrentUrl, delay);
@@ -195,13 +208,6 @@
       if (value) params.set(key, value);
     });
     return params;
-  }
-
-  function restoreCurrentUrlForSubmit() {
-    if (!isLoginPath() || location.search) return;
-    const params = contextSearchParams();
-    if (!params) return;
-    rawReplaceState(history.state || null, document.title, `${location.pathname}?${params}${location.hash}`);
   }
 
   function completeStoredFlow() {
@@ -224,6 +230,7 @@
     const original = history[name].bind(history);
 
     history[name] = (...args) => {
+      if (args.length > 2) args[2] = cleanNavigationUrl(args[2]);
       const result = original(...args);
       pulseUrlPrivacy();
       return result;
@@ -241,6 +248,11 @@
     pulseUrlPrivacy();
   }
 
+  function startParentChrome() {
+    ensureParentChrome();
+    schedule();
+  }
+
   function isPrimaryAction(element) {
     const text = (element.textContent || "").replace(/\s+/g, " ").trim();
     return /(Lanjutkan|Continue|Masuk|Sign in|Verifikasi|Verify)/i.test(text);
@@ -251,15 +263,17 @@
     button.dataset.devssoLabel = button.textContent || "";
     button.dataset.devssoLoading = "true";
     button.setAttribute("aria-busy", "true");
-    button.innerHTML = '<span class="devsso-loading-label">Memproses...</span>';
+    button.style.setProperty("color", "transparent", "important");
+    button.style.setProperty("text-shadow", "none", "important");
     window.setTimeout(() => clearButtonLoading(button), 12000);
   }
 
   function clearButtonLoading(button) {
     if (!button || button.dataset.devssoLoading !== "true") return;
     button.removeAttribute("aria-busy");
-    button.dataset.devssoLoading = "false";
-    button.textContent = button.dataset.devssoLabel || "Lanjutkan";
+    delete button.dataset.devssoLoading;
+    button.style.removeProperty("color");
+    button.style.removeProperty("text-shadow");
   }
 
   function clearLoadingButtons() {
@@ -275,7 +289,6 @@
   }
 
   function onSubmitCapture(event) {
-    restoreCurrentUrlForSubmit();
     const button = event.submitter || event.target?.querySelector('button[type="submit"]');
     setButtonLoading(button);
   }
@@ -288,23 +301,11 @@
     setButtonLoading(button);
   }
 
-  function startObserver() {
-    if (!window.MutationObserver || window.__devssoParentChromeObserver) return;
-
-    window.__devssoParentChromeObserver = new MutationObserver(ensureParentChrome);
-    window.__devssoParentChromeObserver.observe(document.documentElement, {
-      childList: true,
-      subtree: true,
-    });
-  }
-
   function boot() {
-    ensureParentChrome();
-    schedule();
-    startObserver();
     startUrlPrivacy();
     bindLoadingState();
     startSignedInRecovery();
+    window.setTimeout(startParentChrome, 1200);
   }
 
   if (document.readyState === "loading") {

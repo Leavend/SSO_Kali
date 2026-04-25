@@ -16,6 +16,8 @@ PRUNE_BUILD_CACHE=0
 MIN_REPLICAS="${MIN_REPLICAS:-2}"
 GREEN_DRAIN_SECONDS="${GREEN_DRAIN_SECONDS:-30}"
 GREEN_STOP_GRACE_SECONDS="${GREEN_STOP_GRACE_SECONDS:-20}"
+SMOKE_RETRIES="${SMOKE_RETRIES:-5}"
+SMOKE_RETRY_SECONDS="${SMOKE_RETRY_SECONDS:-6}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -35,6 +37,8 @@ done
 [[ "$MIN_REPLICAS" =~ ^[1-9][0-9]*$ ]] || { echo "ERROR: MIN_REPLICAS must be a positive integer"; exit 1; }
 [[ "$GREEN_DRAIN_SECONDS" =~ ^[0-9]+$ ]] || { echo "ERROR: GREEN_DRAIN_SECONDS must be a non-negative integer"; exit 1; }
 [[ "$GREEN_STOP_GRACE_SECONDS" =~ ^[0-9]+$ ]] || { echo "ERROR: GREEN_STOP_GRACE_SECONDS must be a non-negative integer"; exit 1; }
+[[ "$SMOKE_RETRIES" =~ ^[1-9][0-9]*$ ]] || { echo "ERROR: SMOKE_RETRIES must be a positive integer"; exit 1; }
+[[ "$SMOKE_RETRY_SECONDS" =~ ^[0-9]+$ ]] || { echo "ERROR: SMOKE_RETRY_SECONDS must be a non-negative integer"; exit 1; }
 
 COMPOSE_FILE="$PROJECT_DIR/docker-compose.dev.yml"
 ENV_FILE="$PROJECT_DIR/.env.dev"
@@ -136,7 +140,7 @@ wait_healthy() {
   return 1
 }
 
-smoke_check() {
+smoke_status() {
   local label="$1" url="$2" pattern="$3" host="${4:-}" code
   if [ -n "$host" ] && [[ "$url" == https://* ]]; then
     code=$(curl -ksSL --resolve "$host:443:127.0.0.1" -o /dev/null -w '%{http_code}' --max-time 15 "$url" || echo "000")
@@ -152,6 +156,20 @@ smoke_check() {
   fi
 
   warn "  $label: HTTP $code (expected $pattern)"
+  return 1
+}
+
+smoke_check() {
+  local label="$1" url="$2" pattern="$3" host="${4:-}" attempt
+
+  for attempt in $(seq 1 "$SMOKE_RETRIES"); do
+    smoke_status "$label" "$url" "$pattern" "$host" && return 0
+    if [ "$attempt" -lt "$SMOKE_RETRIES" ]; then
+      warn "  $label: retrying smoke check in ${SMOKE_RETRY_SECONDS}s (${attempt}/${SMOKE_RETRIES})"
+      sleep "$SMOKE_RETRY_SECONDS"
+    fi
+  done
+
   return 1
 }
 

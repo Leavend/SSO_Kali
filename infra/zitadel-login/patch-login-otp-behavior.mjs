@@ -21,6 +21,14 @@ window.__devssoOtpBehaviorInjected=true;
 var CONFIG=${JSON.stringify({ codeLength, messages })};
 var state={lastCode:"",timer:null};
 
+function ensureStyle(){
+  if(document.getElementById("devsso-otp-i18n-style"))return;
+  var style=document.createElement("style");
+  style.id="devsso-otp-i18n-style";
+  style.textContent='[data-devsso-error-message]{color:transparent!important;position:relative!important}[data-devsso-error-message]::after{content:attr(data-devsso-error-message);color:#a16207!important;inset:0;position:absolute!important;white-space:normal!important}';
+  document.head.appendChild(style);
+}
+
 function isOtpPage(){
   return /\\/otp\\//.test(location.pathname)||/Verifikasi 2 Langkah|Verify 2-Factor/i.test(document.body.textContent||"");
 }
@@ -76,11 +84,18 @@ function translate(value){
   return CONFIG.messages[text]||CONFIG.messages[Object.keys(CONFIG.messages).find(function(key){return text.includes(key);})]||"";
 }
 
+function decorateError(node){
+  if(node.children.length>0)return;
+  var next=translate(node.textContent);
+  if(!next)return;
+  node.dataset.devssoErrorMessage=next;
+  node.setAttribute("aria-label",next);
+}
+
 function translateErrors(){
+  ensureStyle();
   Array.prototype.slice.call(document.querySelectorAll('[role="alert"],[aria-live],p,span,div')).forEach(function(node){
-    if(node.children.length>0)return;
-    var next=translate(node.textContent);
-    if(next)node.textContent=next;
+    decorateError(node);
   });
 }
 
@@ -90,13 +105,16 @@ function syncOtp(){
   codeInputs().forEach(bindInput);
 }
 
-function startObserver(){
-  if(!document.body||typeof MutationObserver==="undefined")return;
-  new MutationObserver(syncOtp).observe(document.body,{childList:true,subtree:true,characterData:true});
+function scheduleSync(){
+  [1200,1800,3000,6000,10000].forEach(function(delay){
+    setTimeout(syncOtp,delay);
+  });
 }
 
 function boot(){
-  syncOtp();startObserver();setTimeout(syncOtp,300);setTimeout(syncOtp,1000);
+  scheduleSync();
+  document.addEventListener("submit",scheduleSync,true);
+  document.addEventListener("click",scheduleSync,true);
 }
 
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot);
