@@ -38,20 +38,21 @@ function css() {
 body div[class*="min-h-screen"] {
   --devsso-theme-rail-width: min(calc(100% - 32px), 448px);
   --devsso-theme-rail-offset: clamp(12px, 4vw, 20px);
-  --devsso-theme-top-offset: max(16px, calc(env(safe-area-inset-top, 0px) + 12px));
-  --devsso-theme-float-lift: 56px;
+  --devsso-theme-flow-gap: clamp(12px, 2vh, 18px);
 }
 
 #${AUTH_SHELL.theme.toggleHostId} {
-  position: sticky !important;
-  top: var(--devsso-theme-top-offset) !important;
+  position: relative !important;
+  inset: auto !important;
   z-index: 24 !important;
   display: flex !important;
-  align-items: flex-start !important;
+  align-items: center !important;
   justify-content: flex-end !important;
+  flex: 0 0 auto !important;
+  align-self: center !important;
   width: var(--devsso-theme-rail-width) !important;
-  height: 0 !important;
-  margin: 0 auto !important;
+  min-height: 40px !important;
+  margin: var(--devsso-theme-flow-gap) auto 0 !important;
   pointer-events: none !important;
 }
 
@@ -60,14 +61,14 @@ body div[class*="min-h-screen"] {
   inset: auto !important;
   margin-inline-end: var(--devsso-theme-rail-offset) !important;
   pointer-events: auto !important;
-  transform: translateY(calc(-1 * var(--devsso-theme-float-lift))) !important;
+  transform: none !important;
   box-shadow: 0 14px 36px color-mix(in srgb, var(--devsso-shadow) 72%, transparent) !important;
 }
 
 @media (max-width: 640px) {
   body div[class*="min-h-screen"] {
-    --devsso-theme-top-offset: max(12px, calc(env(safe-area-inset-top, 0px) + 8px));
-    --devsso-theme-float-lift: 52px;
+    --devsso-theme-rail-offset: 0px;
+    --devsso-theme-flow-gap: 14px;
   }
 
   #${AUTH_SHELL.theme.toggleHostId} #${AUTH_SHELL.theme.toggleId} {

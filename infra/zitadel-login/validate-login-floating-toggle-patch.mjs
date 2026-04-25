@@ -17,12 +17,13 @@ try {
   const patchedCss = readFileSync(cssFile, "utf8");
 
   assertIncludes(patchedJs, "toggleHostId");
-  assertIncludes(patchedJs, 'shell.prepend(host)');
+  assertIncludes(patchedJs, 'shell.appendChild(host)');
   assertIncludes(patchedJs, 'theme-toggle-host');
+  assertIncludes(patchedJs, "ensureParentChrome");
   assertIncludes(patchedCss, "#devsso-theme-float");
-  assertIncludes(patchedCss, "position: sticky");
-  assertIncludes(patchedCss, "height: 0");
-  assertIncludes(patchedCss, "translateY");
+  assertIncludes(patchedCss, "position: relative");
+  assertIncludes(patchedCss, "min-height: 40px");
+  assertIncludes(patchedCss, "transform: none");
 
   console.log("login floating toggle patch validation passed");
 } finally {

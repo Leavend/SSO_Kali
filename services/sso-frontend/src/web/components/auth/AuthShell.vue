@@ -16,13 +16,6 @@ withDefaults(
 
 <template>
   <section class="legacy-login" :aria-labelledby="labelledby">
-    <div
-      :id="AUTH_SHELL.theme.toggleHostId"
-      :class="AUTH_SHELL.theme.toggleHostClass"
-    >
-      <ThemeToggle />
-    </div>
-
     <div class="legacy-login__frame">
       <div class="legacy-login__header">
         <div class="legacy-login__mark" aria-hidden="true">
@@ -32,6 +25,13 @@ withDefaults(
       </div>
 
       <slot />
+    </div>
+
+    <div
+      :id="AUTH_SHELL.theme.toggleHostId"
+      :class="AUTH_SHELL.theme.toggleHostClass"
+    >
+      <ThemeToggle />
     </div>
 
     <AuthFooter />

@@ -142,7 +142,7 @@ function resolveToggleHost(){
   }
   host.className=CONFIG.toggleHostClass;
   host.setAttribute("data-devsso-parent-ui","theme-toggle-host");
-  if(host.parentElement!==shell)shell.prepend(host);
+  if(host.parentElement!==shell)shell.appendChild(host);
   return host;
 }
 
@@ -198,11 +198,20 @@ function hideNativeThemeSwitches(){
 function startObserver(){
   if(observer||!document.body||typeof MutationObserver==="undefined")return;
   observer=new MutationObserver(function(){
+    ensureParentChrome();
     normalizeCopy();
     normalizeButtons();
     hideNativeThemeSwitches();
   });
   observer.observe(document.body,{childList:true,subtree:true});
+}
+
+function ensureParentChrome(){
+  if(!document.getElementById(CONFIG.footerId))upsertFooter();
+  var shell=findShell();
+  var host=document.getElementById(CONFIG.toggleHostId);
+  var toggle=document.getElementById(CONFIG.toggleId);
+  if(!host||!toggle||host.parentElement!==shell)upsertToggle();
 }
 
 function createParentChrome(){
