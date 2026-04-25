@@ -61,6 +61,31 @@
   text-decoration: none !important;
 }
 
+body div[class*="min-h-screen"] {
+  min-height: 100svh !important;
+  padding: clamp(16px, 4vw, 32px) 12px 104px !important;
+  box-sizing: border-box !important;
+}
+
+body div[class*="max-w-[440px]"] {
+  width: min(100%, 440px) !important;
+  max-width: calc(100vw - 24px) !important;
+  box-sizing: border-box !important;
+}
+
+body div[class*="max-w-[440px]"] > div[class*="rounded"] {
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+body div[class*="max-w-[440px]"] form,
+body div[class*="max-w-[440px]"] label,
+body div[class*="max-w-[440px]"] input {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
 body [data-devsso-native-theme-hidden="true"],
 body button[aria-label*="dark" i]:not(#devsso-theme-toggle),
 body button[aria-label*="light" i]:not(#devsso-theme-toggle) {
@@ -127,5 +152,13 @@ body a[data-devsso-loading="true"]::before {
   #devsso-theme-float {
     right: max(12px, calc(env(safe-area-inset-right, 0px) + 12px)) !important;
     bottom: max(84px, calc(env(safe-area-inset-bottom, 0px) + 84px)) !important;
+  }
+
+  body div[class*="max-w-[440px]"] {
+    max-width: calc(100vw - 20px) !important;
+  }
+
+  body div[class*="max-w-[440px]"] > div[class*="rounded"] {
+    padding-inline: clamp(16px, 5vw, 24px) !important;
   }
 }
