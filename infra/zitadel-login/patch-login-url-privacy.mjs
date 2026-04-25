@@ -57,12 +57,17 @@ function patchFile(location) {
 function runtime() {
   return `${marker}
 ;(function(){
-if(typeof window==="undefined"||window.__devssoUrlPrivacyInjected)return;
+if(typeof window==="undefined"||window.__devssoUrlPrivacyVersion==="20260425-url-privacy-v1")return;
 window.__devssoUrlPrivacyInjected=true;
+window.__devssoUrlPrivacyVersion="20260425-url-privacy-v1";
 var KEYS=${JSON.stringify(sensitiveKeys)};
+var replaceState=history.replaceState.bind(history);
 function isLoginPath(){return /(^|\\/)ui\\/v2\\/login(\\/|$)|\\/(accounts|idp|login|otp|passkey|password|signedin|verify)(\\/|$)/.test(location.pathname);}
-function redact(){try{if(!isLoginPath()||!location.search)return;var u=new URL(location.href),changed=false;KEYS.forEach(function(key){if(u.searchParams.has(key)){u.searchParams.delete(key);changed=true;}});if(changed)history.replaceState(history.state||null,document.title,u.pathname+u.search+u.hash);}catch(error){}}
-if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",function(){setTimeout(redact,0);},{once:true});else setTimeout(redact,0);
-setTimeout(redact,600);
+function strip(u){var changed=false;KEYS.forEach(function(key){if(!u.searchParams.has(key))return;u.searchParams.delete(key);changed=true;});return changed;}
+function redact(){try{if(!isLoginPath()||!location.search)return;var u=new URL(location.href);if(!strip(u))return;replaceState(history.state||null,document.title,u.pathname+u.search+u.hash);}catch(error){}}
+function pulse(){[250,750,1500,3000,6000,10000].forEach(function(delay){setTimeout(redact,delay);});}
+function wrap(name){var original=history[name].bind(history);history[name]=function(){var result=original.apply(history,arguments);pulse();return result;};}
+if(!window.__devssoUrlPrivacyWrapped){window.__devssoUrlPrivacyWrapped=true;wrap("pushState");wrap("replaceState");addEventListener("popstate",pulse);addEventListener("hashchange",pulse);}
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",pulse,{once:true});else pulse();
 })();`;
 }
