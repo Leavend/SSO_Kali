@@ -35,12 +35,20 @@ function patchFile(location) {
 
 function css() {
   return `
+body div[class*="min-h-screen"] {
+  --devsso-theme-edge-top: max(16px, calc(env(safe-area-inset-top, 0px) + 16px));
+  --devsso-theme-edge-right: max(16px, calc(env(safe-area-inset-right, 0px) + 20px));
+}
+
 #${AUTH_SHELL.theme.toggleHostId} {
   position: fixed !important;
-  bottom: 58px !important;
-  right: 20px !important;
-  z-index: 24 !important;
-  display: block !important;
+  top: var(--devsso-theme-edge-top) !important;
+  right: var(--devsso-theme-edge-right) !important;
+  bottom: auto !important;
+  z-index: 40 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
   width: auto !important;
   height: auto !important;
   pointer-events: none !important;
@@ -55,9 +63,9 @@ function css() {
 }
 
 @media (max-width: 640px) {
-  #${AUTH_SHELL.theme.toggleHostId} {
-    bottom: 72px !important;
-    right: 16px !important;
+  body div[class*="min-h-screen"] {
+    --devsso-theme-edge-top: max(12px, calc(env(safe-area-inset-top, 0px) + 12px));
+    --devsso-theme-edge-right: max(12px, calc(env(safe-area-inset-right, 0px) + 12px));
   }
 }`.trim();
 }
