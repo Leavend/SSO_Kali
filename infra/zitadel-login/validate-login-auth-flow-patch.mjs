@@ -64,7 +64,9 @@ function assertAuthFlow(route, client) {
 function assertUrlPrivacy(output) {
   assertIncludes(output, "__devssoUrlPrivacyInjected");
   assertIncludes(output, "__devssoUrlPrivacyVersion");
-  assertIncludes(output, "20260425-url-privacy-v1");
+  assertIncludes(output, "20260425-auth-flow-v2");
+  assertIncludes(output, "devssoLoginContext");
+  assertIncludes(output, "recoverSignedIn");
   assertIncludes(output, 'wrap("pushState")');
   assertIncludes(output, 'wrap("replaceState")');
   assertIncludes(output, "10000");

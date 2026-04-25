@@ -57,17 +57,30 @@ function patchFile(location) {
 function runtime() {
   return `${marker}
 ;(function(){
-if(typeof window==="undefined"||window.__devssoUrlPrivacyVersion==="20260425-url-privacy-v1")return;
+if(typeof window==="undefined"||window.__devssoUrlPrivacyVersion==="20260425-auth-flow-v2")return;
 window.__devssoUrlPrivacyInjected=true;
-window.__devssoUrlPrivacyVersion="20260425-url-privacy-v1";
+window.__devssoUrlPrivacyVersion="20260425-auth-flow-v2";
 var KEYS=${JSON.stringify(sensitiveKeys)};
+var CONTEXT_KEY="devssoLoginContext";
+var RECOVERY_KEY="devssoSignedinRecovery";
+var TTL=15*60*1000;
 var replaceState=history.replaceState.bind(history);
 function isLoginPath(){return /(^|\\/)ui\\/v2\\/login(\\/|$)|\\/(accounts|idp|login|otp|passkey|password|signedin|verify)(\\/|$)/.test(location.pathname);}
+function isSignedInPath(){return /(^|\\/)signedin(\\/|$)/.test(location.pathname);}
+function fresh(value){return value&&Date.now()-Number(value.savedAt||0)<TTL;}
+function readContext(){try{var value=JSON.parse(sessionStorage.getItem(CONTEXT_KEY)||"null");return fresh(value)?value:null;}catch(error){return null;}}
+function writeContext(value){try{sessionStorage.setItem(CONTEXT_KEY,JSON.stringify(value));}catch(error){}}
+function capture(){try{if(!isLoginPath()||!location.search)return;var u=new URL(location.href),params={};KEYS.forEach(function(key){if(u.searchParams.has(key))params[key]=u.searchParams.get(key);});if(Object.keys(params).length)writeContext({params:params,path:u.pathname,savedAt:Date.now()});}catch(error){}}
 function strip(u){var changed=false;KEYS.forEach(function(key){if(!u.searchParams.has(key))return;u.searchParams.delete(key);changed=true;});return changed;}
-function redact(){try{if(!isLoginPath()||!location.search)return;var u=new URL(location.href);if(!strip(u))return;replaceState(history.state||null,document.title,u.pathname+u.search+u.hash);}catch(error){}}
-function pulse(){[250,750,1500,3000,6000,10000].forEach(function(delay){setTimeout(redact,delay);});}
+function redact(){try{if(!isLoginPath()||!location.search)return;capture();var u=new URL(location.href);if(!strip(u))return;replaceState(history.state||null,document.title,u.pathname+u.search+u.hash);}catch(error){}}
+function pulse(){capture();(isSignedInPath()?[1200,3000,6000,10000]:[250,750,1500,3000,6000,10000]).forEach(function(delay){setTimeout(redact,delay);});}
+function contextParams(){var context=readContext();if(!context||!context.params||!context.params.requestId)return null;var params=new URLSearchParams();Object.entries(context.params).forEach(function(entry){if(entry[1])params.set(entry[0],entry[1]);});return params;}
+function restoreForSubmit(){try{if(!isLoginPath()||location.search)return;var params=contextParams();if(params)replaceState(history.state||null,document.title,location.pathname+"?"+params+location.hash);}catch(error){}}
+function recoverSignedIn(){try{if(!isSignedInPath())return;var params=contextParams();if(!params)return;var requestId=params.get("requestId")||"";if(sessionStorage.getItem(RECOVERY_KEY)===requestId)return;var target=new URLSearchParams({requestId:requestId});if(params.get("organization"))target.set("organization",params.get("organization"));sessionStorage.setItem(RECOVERY_KEY,requestId);location.replace("/login?"+target.toString());}catch(error){}}
 function wrap(name){var original=history[name].bind(history);history[name]=function(){var result=original.apply(history,arguments);pulse();return result;};}
 if(!window.__devssoUrlPrivacyWrapped){window.__devssoUrlPrivacyWrapped=true;wrap("pushState");wrap("replaceState");addEventListener("popstate",pulse);addEventListener("hashchange",pulse);}
+document.addEventListener("submit",restoreForSubmit,true);
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",pulse,{once:true});else pulse();
+setTimeout(recoverSignedIn,1600);
 })();`;
 }

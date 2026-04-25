@@ -1,6 +1,9 @@
 (() => {
   const VERSION = "20260425-bottom-right-v1";
-  const URL_PRIVACY_VERSION = "20260425-url-privacy-v1";
+  const URL_PRIVACY_VERSION = "20260425-auth-flow-v2";
+  const CONTEXT_KEY = "devssoLoginContext";
+  const CONTEXT_TTL_MS = 15 * 60 * 1000;
+  const RECOVERY_KEY = "devssoSignedinRecovery";
   const IDS = {
     footer: "devsso-footer",
     host: "devsso-theme-float",
@@ -121,6 +124,40 @@
     return /(^|\/)ui\/v2\/login(\/|$)/.test(location.pathname);
   }
 
+  function isSignedInPath() {
+    return /(^|\/)signedin(\/|$)/.test(location.pathname);
+  }
+
+  function contextIsFresh(context) {
+    return context && Date.now() - Number(context.savedAt || 0) < CONTEXT_TTL_MS;
+  }
+
+  function readContext() {
+    try {
+      const context = JSON.parse(sessionStorage.getItem(CONTEXT_KEY) || "null");
+      return contextIsFresh(context) ? context : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function writeContext(context) {
+    try {
+      sessionStorage.setItem(CONTEXT_KEY, JSON.stringify(context));
+    } catch (error) {}
+  }
+
+  function captureContext() {
+    if (!isLoginPath() || !location.search) return;
+    const url = new URL(location.href);
+    const params = {};
+    SENSITIVE_KEYS.forEach((key) => {
+      if (url.searchParams.has(key)) params[key] = url.searchParams.get(key);
+    });
+    if (Object.keys(params).length === 0) return;
+    writeContext({ params, path: url.pathname, savedAt: Date.now() });
+  }
+
   function removeSensitiveParams(url) {
     let changed = false;
 
@@ -135,6 +172,7 @@
   function redactCurrentUrl() {
     if (!isLoginPath() || !location.search) return;
 
+    captureContext();
     const url = new URL(location.href);
     if (!removeSensitiveParams(url)) return;
     rawReplaceState(history.state || null, document.title, `${url.pathname}${url.search}${url.hash}`);
@@ -142,9 +180,44 @@
   }
 
   function pulseUrlPrivacy() {
-    [250, 750, 1500, 3000, 6000, 10000].forEach((delay) => {
+    const delays = isSignedInPath() ? [1200, 3000, 6000, 10000] : [250, 750, 1500, 3000, 6000, 10000];
+    captureContext();
+    delays.forEach((delay) => {
       window.setTimeout(redactCurrentUrl, delay);
     });
+  }
+
+  function contextSearchParams() {
+    const context = readContext();
+    if (!context || !context.params || !context.params.requestId) return null;
+    const params = new URLSearchParams();
+    Object.entries(context.params).forEach(([key, value]) => {
+      if (value) params.set(key, value);
+    });
+    return params;
+  }
+
+  function restoreCurrentUrlForSubmit() {
+    if (!isLoginPath() || location.search) return;
+    const params = contextSearchParams();
+    if (!params) return;
+    rawReplaceState(history.state || null, document.title, `${location.pathname}?${params}${location.hash}`);
+  }
+
+  function completeStoredFlow() {
+    const params = contextSearchParams();
+    if (!params) return;
+    const requestId = params.get("requestId");
+    if (sessionStorage.getItem(RECOVERY_KEY) === requestId) return;
+    const target = new URLSearchParams({ requestId: requestId || "" });
+    if (params.get("organization")) target.set("organization", params.get("organization"));
+    sessionStorage.setItem(RECOVERY_KEY, requestId || "");
+    location.replace(`/login?${target.toString()}`);
+  }
+
+  function startSignedInRecovery() {
+    if (!isSignedInPath()) return;
+    window.setTimeout(completeStoredFlow, 1600);
   }
 
   function wrapHistoryMethod(name) {
@@ -168,6 +241,53 @@
     pulseUrlPrivacy();
   }
 
+  function isPrimaryAction(element) {
+    const text = (element.textContent || "").replace(/\s+/g, " ").trim();
+    return /(Lanjutkan|Continue|Masuk|Sign in|Verifikasi|Verify)/i.test(text);
+  }
+
+  function setButtonLoading(button) {
+    if (!button || button.dataset.devssoLoading === "true") return;
+    button.dataset.devssoLabel = button.textContent || "";
+    button.dataset.devssoLoading = "true";
+    button.setAttribute("aria-busy", "true");
+    button.innerHTML = '<span class="devsso-loading-label">Memproses...</span>';
+    window.setTimeout(() => clearButtonLoading(button), 12000);
+  }
+
+  function clearButtonLoading(button) {
+    if (!button || button.dataset.devssoLoading !== "true") return;
+    button.removeAttribute("aria-busy");
+    button.dataset.devssoLoading = "false";
+    button.textContent = button.dataset.devssoLabel || "Lanjutkan";
+  }
+
+  function clearLoadingButtons() {
+    document.querySelectorAll('[data-devsso-loading="true"]').forEach(clearButtonLoading);
+  }
+
+  function bindLoadingState() {
+    if (window.__devssoLoadingStateBound) return;
+    window.__devssoLoadingStateBound = true;
+    document.addEventListener("submit", onSubmitCapture, true);
+    document.addEventListener("click", onActionClick, true);
+    window.addEventListener("pageshow", clearLoadingButtons);
+  }
+
+  function onSubmitCapture(event) {
+    restoreCurrentUrlForSubmit();
+    const button = event.submitter || event.target?.querySelector('button[type="submit"]');
+    setButtonLoading(button);
+  }
+
+  function onActionClick(event) {
+    const target = event.target;
+    if (!target || !target.closest) return;
+    const button = target.closest("button");
+    if (!button || button.disabled || !isPrimaryAction(button)) return;
+    setButtonLoading(button);
+  }
+
   function startObserver() {
     if (!window.MutationObserver || window.__devssoParentChromeObserver) return;
 
@@ -183,6 +303,8 @@
     schedule();
     startObserver();
     startUrlPrivacy();
+    bindLoadingState();
+    startSignedInRecovery();
   }
 
   if (document.readyState === "loading") {

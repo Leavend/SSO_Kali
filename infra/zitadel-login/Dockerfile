@@ -29,6 +29,7 @@ COPY ./infra/zitadel-login/patch-login-otp-behavior.mjs /tmp/patch-login-otp-beh
 COPY ./infra/zitadel-login/patch-login-signedin-redirect.mjs /tmp/patch-login-signedin-redirect.mjs
 COPY ./infra/zitadel-login/patch-login-url-privacy.mjs /tmp/patch-login-url-privacy.mjs
 COPY ./infra/zitadel-login/patch-login-responsive-errors.mjs /tmp/patch-login-responsive-errors.mjs
+COPY ./infra/zitadel-login/patch-login-translation-fallback.mjs /tmp/patch-login-translation-fallback.mjs
 COPY ./infra/zitadel-login/login-copy-catalog.mjs /tmp/login-copy-catalog.mjs
 COPY ./infra/zitadel-login/login-copy-errors.mjs /tmp/login-copy-errors.mjs
 COPY ./infra/zitadel-login/login-copy-residual.mjs /tmp/login-copy-residual.mjs
@@ -45,7 +46,8 @@ RUN node /tmp/patch-login-locale-alias.mjs /app/apps/login/.next \
     && node /tmp/patch-login-otp-behavior.mjs /app/apps/login/.next \
     && node /tmp/patch-login-signedin-redirect.mjs /app/apps/login/.next \
     && node /tmp/patch-login-url-privacy.mjs /app/apps/login/.next \
-    && rm -f /tmp/patch-login-copy.mjs /tmp/patch-login-language.mjs /tmp/patch-login-locale-alias.mjs /tmp/patch-login-theme.mjs /tmp/patch-login-toggle.mjs /tmp/patch-login-floating-toggle.mjs /tmp/patch-login-responsive-errors.mjs /tmp/patch-login-otp-behavior.mjs /tmp/patch-login-signedin-redirect.mjs /tmp/patch-login-url-privacy.mjs /tmp/login-copy-catalog.mjs /tmp/login-copy-errors.mjs /tmp/login-copy-residual.mjs
+    && node /tmp/patch-login-translation-fallback.mjs /app/apps/login/.next \
+    && rm -f /tmp/patch-login-copy.mjs /tmp/patch-login-language.mjs /tmp/patch-login-locale-alias.mjs /tmp/patch-login-theme.mjs /tmp/patch-login-toggle.mjs /tmp/patch-login-floating-toggle.mjs /tmp/patch-login-responsive-errors.mjs /tmp/patch-login-otp-behavior.mjs /tmp/patch-login-signedin-redirect.mjs /tmp/patch-login-url-privacy.mjs /tmp/patch-login-translation-fallback.mjs /tmp/login-copy-catalog.mjs /tmp/login-copy-errors.mjs /tmp/login-copy-residual.mjs
 
 RUN mkdir -p /.env-file \
     && touch /.env-file/.env \
