@@ -25,14 +25,14 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}/sso-prototype
+  IMAGE_PREFIX: ghcr.io/leavend/sso-prototype
   VPS_HOST: ${{ secrets.VPS_HOST }}
   VPS_USER: ${{ secrets.VPS_USER }}
   VPS_PROJECT_DIR: ${{ secrets.VPS_PROJECT_DIR || '/opt/sso-prototype-dev' }}
 
 concurrency:
   group: cd-production
-  cancel-in-progress: false  # Never cancel in-progress deploys
+  cancel-in-progress: false # Never cancel in-progress deploys
 
 jobs:
   deploy:
