@@ -17,6 +17,7 @@ try {
   assertIncludes(patched, "button.click()");
   assertIncludes(patched, "Kode verifikasi tidak valid");
   assertIncludes(patched, "Could not verify OTP code");
+  assertIncludes(patched, "node.children.length>0");
   console.log("login OTP behavior patch validation passed");
 } finally {
   rmSync(workspace, { force: true, recursive: true });

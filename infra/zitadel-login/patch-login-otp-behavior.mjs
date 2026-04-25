@@ -78,7 +78,7 @@ function translate(value){
 
 function translateErrors(){
   Array.prototype.slice.call(document.querySelectorAll('[role="alert"],[aria-live],p,span,div')).forEach(function(node){
-    if(node.children.length>1)return;
+    if(node.children.length>0)return;
     var next=translate(node.textContent);
     if(next)node.textContent=next;
   });
