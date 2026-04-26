@@ -122,8 +122,7 @@
   gap: 7px;
 }
 
-.page-header span,
-.status-badge {
+.page-header span {
   color: var(--admin-accent);
   font-size: 12px;
   font-weight: 800;
@@ -131,7 +130,6 @@
 }
 
 .page-header h1,
-.status-panel h1,
 .login-copy h1 {
   margin: 0;
   font-size: 42px;
@@ -140,7 +138,6 @@
 }
 
 .page-header p,
-.status-panel p,
 .login-copy p,
 .login-panel p {
   margin: 0;
@@ -201,8 +198,7 @@
 
 .stat-tile,
 .panel,
-.login-panel,
-.status-panel {
+.login-panel {
   border: 1px solid var(--admin-line, #d7e1e5);
   border-radius: 8px;
   background: var(--admin-panel, #ffffff);

@@ -249,25 +249,139 @@
   }
 }
 
-.status-panel {
+.status-card {
   display: grid;
-  gap: 16px;
-  width: min(620px, 100%);
-  padding: 28px;
+  gap: 0;
+  width: min(100%, 448px);
+  padding: 32px;
+  border: 1px solid color-mix(in srgb, var(--line) 76%, transparent);
+  border-radius: 16px;
+  background: var(--card);
+  box-shadow: 0 18px 48px var(--shadow);
+  animation: fadeInUp 0.45s ease-out;
 }
 
-.status-actions {
+.status-card__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  margin-bottom: 14px;
+}
+
+.status-card[data-accent='danger'] .status-card__icon {
+  color: var(--status-danger);
+  background: var(--status-danger-soft);
+}
+
+.status-card[data-accent='warning'] .status-card__icon {
+  color: var(--status-warning);
+  background: var(--status-warning-soft);
+}
+
+.status-card[data-accent='accent'] .status-card__icon {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.status-card[data-accent='danger'] {
+  border-color: color-mix(in srgb, var(--status-danger-border) 40%, transparent);
+}
+
+.status-card[data-accent='warning'] {
+  border-color: color-mix(in srgb, var(--status-warning-border) 40%, transparent);
+}
+
+.status-card__badge {
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 8px;
+}
+
+.status-card[data-accent='danger'] .status-card__badge {
+  color: var(--status-danger);
+}
+
+.status-card[data-accent='warning'] .status-card__badge {
+  color: var(--status-warning);
+}
+
+.status-card[data-accent='accent'] .status-card__badge {
+  color: var(--accent);
+}
+
+.status-card h1 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.18;
+  letter-spacing: 0;
+}
+
+.status-card > p {
+  max-width: 340px;
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.status-card__actions {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+  margin-top: 24px;
 }
 
-.status-panel[data-accent='danger'] .status-badge {
-  color: #b42318;
+.status-card__secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  background: transparent;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease;
 }
 
-.status-panel[data-accent='warning'] .status-badge {
-  color: #a15c07;
+.status-card__secondary:hover {
+  background: var(--card-hover);
+  border-color: var(--ink);
+}
+
+.status-card__note {
+  display: block;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid color-mix(in srgb, var(--line) 40%, transparent);
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @media (max-width: 900px) {
@@ -299,7 +413,7 @@
 
 @media (max-width: 640px) {
   .page-header h1,
-  .status-panel h1,
+  .status-card h1,
   .login-copy h1 {
     font-size: 34px;
   }
