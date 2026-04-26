@@ -5,8 +5,7 @@ ARG ZITADEL_VERSION=v4.14.0
 RUN apk add --no-cache ca-certificates curl tar \
     && update-ca-certificates \
     && addgroup --system --gid 1001 nodejs \
-    && adduser --system --uid 1001 nextjs \
-    && rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
+    && adduser --system --uid 1001 nextjs
 
 WORKDIR /tmp
 
@@ -19,6 +18,11 @@ RUN asset="zitadel-login.tar.gz" \
     && tar -xzf "${asset}" -C /app \
     && chmod +x /app/entrypoint.sh \
     && rm -rf /tmp/*
+
+RUN node -e 'const fs=require("fs"); const p="/app/apps/login/package.json"; const j=JSON.parse(fs.readFileSync(p,"utf8")); delete j.devDependencies; fs.writeFileSync(p,JSON.stringify(j,null,2));' \
+    && npm install --prefix /app/apps/login --omit=dev --package-lock=false --no-audit --no-fund --ignore-scripts next@16.2.3 protobufjs@7.5.5 yaml@2.8.3 \
+    && rm -rf /app/node_modules /root/.npm /tmp/* \
+    && rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 
 COPY ./infra/zitadel-login/patch-login-copy.mjs /tmp/patch-login-copy.mjs
 COPY ./infra/zitadel-login/patch-login-language.mjs /tmp/patch-login-language.mjs
