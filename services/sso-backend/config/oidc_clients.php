@@ -42,7 +42,7 @@ return [
             ],
             'backchannel_logout_uri' => env(
                 'ADMIN_PANEL_BACKCHANNEL_LOGOUT_URI',
-                env('APP_URL', 'http://localhost:8200') . '/connect/backchannel/admin-panel/logout',
+                env('APP_URL', 'http://localhost:8200').'/connect/backchannel/admin-panel/logout',
             ),
         ],
     ],
