@@ -59,6 +59,24 @@ reject_text() {
   fi
 }
 
+require_style_text() {
+  local pattern="$1" label="$2"
+  if grep -Ehq -- "$pattern" "$ROOT_DIR"/services/sso-frontend/src/web/styles/*.css; then
+    pass "$label"
+  else
+    fail "$label"
+  fi
+}
+
+reject_style_text() {
+  local pattern="$1" label="$2"
+  if grep -Ehq -- "$pattern" "$ROOT_DIR"/services/sso-frontend/src/web/styles/*.css; then
+    fail "$label"
+  else
+    pass "$label"
+  fi
+}
+
 require_file "services/sso-frontend/package.json"
 require_file "services/sso-frontend/package-lock.json"
 require_file ".dockerignore"
@@ -185,10 +203,10 @@ require_text "services/sso-frontend/src/web/components/auth/AuthFooter.vue" "AUT
 require_text "services/sso-frontend/src/web/components/ThemeToggle.vue" "AUTH_SHELL.theme.toggleId" "Vue theme toggle uses parent UI contract"
 require_text "packages/dev-sso-parent-ui/auth-shell.mjs" "renderFooterHtml" "Parent UI contract can render framework-neutral footer HTML"
 require_text "packages/dev-sso-parent-ui/auth-shell.mjs" "identityActionHref" "Parent UI contract owns identity action link helper"
-require_text "services/sso-frontend/src/web/styles/main.css" "--accent: #2563eb" "Vue theme keeps WCAG AA light accent token"
-require_text "services/sso-frontend/src/web/styles/main.css" "\\[data-theme='dark'\\]" "Vue theme keeps dark-mode token set"
-reject_text "services/sso-frontend/src/web/styles/main.css" "letter-spacing:[[:space:]]*-" "Typography does not use negative letter spacing"
-reject_text "services/sso-frontend/src/web/styles/main.css" "font-size:[^;]*(clamp|vw|vh|vmin|vmax)" "Typography does not scale font size with viewport units"
+require_style_text "--accent: #2563eb" "Vue theme keeps WCAG AA light accent token"
+require_style_text "\\[data-theme='dark'\\]" "Vue theme keeps dark-mode token set"
+reject_style_text "letter-spacing:[[:space:]]*-" "Typography does not use negative letter spacing"
+reject_style_text "font-size:[^;]*(clamp|vw|vh|vmin|vmax)" "Typography does not scale font size with viewport units"
 reject_text "services/sso-frontend/src/web/stores/admin.ts" "localStorage\\.setItem|sessionStorage\\.setItem|document\\.cookie[[:space:]]*=" "Vue client does not persist tokens in browser storage"
 
 require_text "services/sso-frontend/Dockerfile" "FROM node:22-alpine AS deps" "Dockerfile uses Node 22 runtime base"
