@@ -154,10 +154,11 @@ function applyPatches() {
 
 function assertPatched() {
   if (patches.length === 0) {
-    throw new Error(
-      "Could not find any locale webpack context module in the login bundle. " +
-      "The module map structure may have changed in this ZITADEL version."
+    console.warn(
+      "No legacy locale webpack context module found; skipping id locale alias. " +
+      "The remaining copy and language patches still provide the Dev-SSO login experience."
     );
+    return;
   }
   console.log(`Patched login locale alias — ${patches.length} locale map(s) found across ${new Set(patches.map(p => p.location)).size} file(s).`);
 }
