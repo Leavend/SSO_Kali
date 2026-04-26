@@ -197,13 +197,15 @@ rollback() {
 
 supports_green_prewarm() {
   case "$1" in
-    sso-frontend|zitadel-login|zitadel-login-vue) return 0 ;;
+    app-a-next|app-b-laravel|sso-frontend|zitadel-login|zitadel-login-vue) return 0 ;;
     *) return 1 ;;
   esac
 }
 
 health_path() {
   case "$1" in
+    app-a-next) printf '/healthz' ;;
+    app-b-laravel) printf '/health' ;;
     sso-frontend) printf '/healthz' ;;
     zitadel-login) printf '/ui/v2/login/healthy' ;;
     zitadel-login-vue) printf "$(env_value ZITADEL_LOGIN_VUE_BASE_PATH /ui/v2/login-vue)/healthz" ;;
@@ -213,6 +215,7 @@ health_path() {
 
 health_port() {
   case "$1" in
+    app-b-laravel) printf '8000' ;;
     zitadel-login-vue) printf '3010' ;;
     *) printf '3000' ;;
   esac
@@ -371,6 +374,18 @@ build_service_image() {
   local svc="$1" image="${LOCAL_IMAGE_MAP[$svc]}:${TAG}"
 
   case "$svc" in
+    app-a-next)
+      log "  building $svc as $image"
+      docker build --pull \
+        -t "$image" \
+        "$PROJECT_DIR/apps/app-a-next" 2>&1 | tee -a "$DEPLOY_LOG"
+      ;;
+    app-b-laravel)
+      log "  building $svc as $image"
+      docker build --pull \
+        -t "$image" \
+        "$PROJECT_DIR/apps/app-b-laravel" 2>&1 | tee -a "$DEPLOY_LOG"
+      ;;
     sso-frontend)
       log "  building $svc as $image"
       docker build --pull \
@@ -504,6 +519,14 @@ fi
 if printf '%s\n' "${SERVICES[@]}" | grep -Fxq "zitadel-login-vue"; then
   ZITADEL_LOGIN_VUE_BASE_PATH=$(env_value ZITADEL_LOGIN_VUE_BASE_PATH /ui/v2/login-vue)
   smoke_check "Zitadel Vue Login Canary" "https://${ZITADEL_DOMAIN}${ZITADEL_LOGIN_VUE_BASE_PATH}/healthz" "^200$" "$ZITADEL_DOMAIN" || rollback_once "Smoke check failed: Zitadel Vue Login Canary"
+fi
+APP_A_DOMAIN=$(env_value APP_A_DOMAIN)
+APP_B_DOMAIN=$(env_value APP_B_DOMAIN)
+if printf '%s\n' "${SERVICES[@]}" | grep -Fxq "app-a-next"; then
+  smoke_check "App A Health" "https://${APP_A_DOMAIN}/healthz" "^200$" "$APP_A_DOMAIN" || rollback_once "Smoke check failed: App A Health"
+fi
+if printf '%s\n' "${SERVICES[@]}" | grep -Fxq "app-b-laravel"; then
+  smoke_check "App B Health" "https://${APP_B_DOMAIN}/health" "^200$" "$APP_B_DOMAIN" || rollback_once "Smoke check failed: App B Health"
 fi
 
 echo "$TAG" > "$DEPLOY_TAG_FILE"

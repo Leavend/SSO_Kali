@@ -316,7 +316,7 @@ services:
       SSO_LOGOUT_URL: ${SSO_INTERNAL_BASE_URL}/connect/logout
       SSO_JWKS_URL: ${SSO_INTERNAL_BASE_URL}/jwks
       REDIS_URL: ${APP_A_REDIS_URL}
-      APP_SESSION_COOKIE_NAME: app-a-session
+      APP_SESSION_COOKIE_NAME: ${APP_A_SESSION_COOKIE_NAME:-__Host-app-a-session}
     ports:
       - ${APP_A_PORT}:3000
     depends_on:
