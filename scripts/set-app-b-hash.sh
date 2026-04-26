@@ -23,14 +23,24 @@ fi
 
 echo "   Generated: $HASH"
 
-# Backup .env.dev
-BACKUP="$PROJECT_DIR/.env.dev.bak.$(date +%s)"
-sudo cp "$PROJECT_DIR/.env.dev" "$BACKUP"
-echo "   Backup: $BACKUP"
+# Write hash to a temp file to avoid shell expansion of $ signs in argon2id hash
+HASH_FILE=$(mktemp)
+printf '%s' "$HASH" > "$HASH_FILE"
 
-# Remove old entry, add new one using printf to handle $ signs
-sudo sed -i '/^APP_B_CLIENT_SECRET_HASH=/d' "$PROJECT_DIR/.env.dev"
-printf 'APP_B_CLIENT_SECRET_HASH=%s\n' "$HASH" | sudo tee -a "$PROJECT_DIR/.env.dev" > /dev/null
+# Run all write operations in a single sudo session to avoid credential cache expiry
+# Pass HASH_FILE and PROJECT_DIR as environment variables to sudo
+sudo HASH_FILE="$HASH_FILE" PROJECT_DIR="$PROJECT_DIR" bash <<'SUDO_BLOCK'
+set -euo pipefail
+
+HASH=$(cat "$HASH_FILE")
+
+# Backup .env.dev
+cp "$PROJECT_DIR/.env.dev" "$PROJECT_DIR/.env.dev.bak.$(date +%s)"
+echo "   Backup created"
+
+# Remove old entry, add new one
+sed -i '/^APP_B_CLIENT_SECRET_HASH=/d' "$PROJECT_DIR/.env.dev"
+printf 'APP_B_CLIENT_SECRET_HASH=%s\n' "$HASH" >> "$PROJECT_DIR/.env.dev"
 
 echo ""
 echo "=== Verifying ==="
@@ -38,16 +48,20 @@ grep APP_B_CLIENT_SECRET_HASH "$PROJECT_DIR/.env.dev"
 
 echo ""
 echo "=== Restarting sso-backend ==="
-sudo docker compose -f "$PROJECT_DIR/docker-compose.dev.yml" \
+docker compose -f "$PROJECT_DIR/docker-compose.dev.yml" \
   --env-file "$PROJECT_DIR/.env.dev" \
   restart sso-backend
 
 sleep 5
 echo ""
 echo "=== sso-backend status ==="
-sudo docker compose -f "$PROJECT_DIR/docker-compose.dev.yml" \
+docker compose -f "$PROJECT_DIR/docker-compose.dev.yml" \
   --env-file "$PROJECT_DIR/.env.dev" \
   ps sso-backend 2>/dev/null || echo "(status check skipped)"
+SUDO_BLOCK
+
+# Cleanup
+rm -f "$HASH_FILE"
 
 echo ""
 echo "✅ APP_B_CLIENT_SECRET_HASH updated successfully"
