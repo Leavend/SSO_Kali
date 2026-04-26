@@ -20,7 +20,7 @@ return [
         env('APP_B_CLIENT_ID', 'prototype-app-b') => [
             'type' => 'confidential',
             // Default is Argon2id hash for 'prototype-secret' and is only for verifier-side storage.
-            'secret' => env('APP_B_CLIENT_SECRET_HASH', '$argon2id$v=19$m=19456,t=3,p=1$Ui9hNnQ0RmpXeFhPSi9Wbg$fvzSwUUX2UXqGnKlA4lXt+0dSWFLUOzT2VMlPCaVnAw'),
+            'secret' => env('APP_B_CLIENT_SECRET_HASH', '$argon2id$v=19$m=19456,t=3,p=1$LjdEd3dSZERUcjdtcGJhTA$69AablhTFZNWAg7DFVgO7aok3D9GXKESsp2iCnpwpsg'),
             'redirect_uris' => [
                 env('APP_B_REDIRECT_URI', 'http://localhost:8300/auth/callback'),
             ],
@@ -42,7 +42,7 @@ return [
             ],
             'backchannel_logout_uri' => env(
                 'ADMIN_PANEL_BACKCHANNEL_LOGOUT_URI',
-                env('APP_URL', 'http://localhost:8200').'/connect/backchannel/admin-panel/logout',
+                env('APP_URL', 'http://localhost:8200') . '/connect/backchannel/admin-panel/logout',
             ),
         ],
     ],
