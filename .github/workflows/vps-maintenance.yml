@@ -45,19 +45,19 @@ jobs:
         if: inputs.action == 'check-env'
         run: |
           ssh -i ~/.ssh/deploy_key "${{ env.VPS_USER }}@${{ env.VPS_HOST }}" bash <<'REMOTE'
+          PROJECT_DIR="/opt/sso-prototype-dev"
           echo "=== APP_B_CLIENT_SECRET_HASH ==="
-          grep APP_B_CLIENT_SECRET_HASH "$VPS_PROJECT_DIR/.env.dev" 2>/dev/null || echo "NOT SET"
+          grep APP_B_CLIENT_SECRET_HASH "$PROJECT_DIR/.env.dev" 2>/dev/null || echo "NOT SET"
           echo ""
           echo "=== Argon2id env params ==="
-          grep OIDC_CLIENT_SECRET_HASH "$VPS_PROJECT_DIR/.env.dev" 2>/dev/null || echo "NOT SET"
+          grep OIDC_CLIENT_SECRET_HASH "$PROJECT_DIR/.env.dev" 2>/dev/null || echo "NOT SET"
           echo ""
           echo "=== sso-backend status ==="
-          sudo docker compose -f "$VPS_PROJECT_DIR/docker-compose.dev.yml" \
-            --env-file "$VPS_PROJECT_DIR/.env.dev" \
-            ps sso-backend --format 'table {{.Name}}\t{{.Status}}' 2>/dev/null
+          sudo docker compose -f "$PROJECT_DIR/docker-compose.dev.yml" \
+            --env-file "$PROJECT_DIR/.env.dev" \
+            ps sso-backend 2>/dev/null || echo "sso-backend not running"
+          echo "✅ check-env complete"
           REMOTE
-        env:
-          VPS_PROJECT_DIR: ${{ env.VPS_PROJECT_DIR }}
 
       - name: Generate and set APP_B hash
         if: inputs.action == 'set-app-b-hash'
