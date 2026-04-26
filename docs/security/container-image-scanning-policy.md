@@ -17,26 +17,26 @@ Images in scope:
 
 ## Current Mode
 
-Development environment mode is advisory:
+Development environment mode is blocking for release images:
 
 - CI generates SBOM attestations.
 - CI generates max-level provenance attestations.
 - CI runs a SHA-pinned Anchore Grype CVE scan for high/critical fixable
   vulnerabilities.
-- CI fails when the scanner cannot run or cannot generate SARIF evidence.
+- CI fails when the scanner cannot run, cannot generate SARIF evidence, or
+  finds a high/critical fixable vulnerability.
 - CI uploads SARIF output to GitHub Code Scanning.
-- CVE findings remain advisory until the current development baseline is
-  accepted and suppression/exception ownership is documented.
 
-This avoids blocking all releases before the current image vulnerability
-baseline is known.
+This keeps Docker image promotion deterministic without relying on Docker Hub
+entitlement state or mutable scanner action tags.
 
-## Promotion to Blocking Mode
+## Exception Handling
 
-Move from advisory to blocking after the team has accepted a baseline and fixed
-or suppressed known issues with clear justification.
+Temporary exceptions must be explicit, owned, and time-boxed. A release may only
+override this gate for emergency rollback when the target image is already a
+previously deployed known-good tag.
 
-Blocking mode should fail a release when:
+The gate fails a release when:
 
 - critical fixable CVEs are introduced
 - high fixable CVEs are introduced in externally reachable services
@@ -69,10 +69,8 @@ Scanner changes must preserve these controls:
 - no scanner credential is required for normal GHCR image scanning
 - SARIF must be generated for every image in the build matrix
 - scanner execution failure must fail CI
-- vulnerability findings may be advisory only while the accepted baseline is
-  being built
-- production blocking mode must be enabled only after baseline exceptions are
-  documented
+- high/critical fixable findings must fail CI
+- any exception must be documented before the workflow is relaxed
 
 The project must not pass secrets through Docker build args because max
 provenance can expose build argument values.

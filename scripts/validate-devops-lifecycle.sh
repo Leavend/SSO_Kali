@@ -134,7 +134,7 @@ require_text ".github/workflows/ci.yml" 'cache-to: type=gha' "CI uses Docker bui
 require_text ".github/workflows/ci.yml" 'sbom: true' "CI emits container SBOM attestations"
 require_text ".github/workflows/ci.yml" 'provenance: mode=max' "CI emits max provenance attestations"
 require_text ".github/workflows/ci.yml" 'anchore/scan-action@[0-9a-f]{40}' "CI runs a SHA-pinned Grype CVE scan"
-require_text ".github/workflows/ci.yml" 'fail-build: false' "CI keeps current dev vulnerability findings advisory while the baseline is accepted"
+require_text ".github/workflows/ci.yml" 'fail-build: true' "CI blocks high/critical fixable container vulnerabilities"
 require_text ".github/workflows/ci.yml" 'Require Grype SARIF evidence' "CI fails when the vulnerability scanner does not produce evidence"
 require_text ".github/workflows/ci.yml" 'only-fixed: true' "CI scopes image CVE evidence to fixable vulnerabilities"
 require_text ".github/workflows/ci.yml" 'github/codeql-action/upload-sarif@v4' "CI uploads container scan SARIF evidence"

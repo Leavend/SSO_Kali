@@ -1,6 +1,6 @@
 FROM alpine:3.20
 
-ARG ZITADEL_VERSION=v4.11.0
+ARG ZITADEL_VERSION=v4.14.0
 ARG TARGETARCH=amd64
 
 RUN apk add --no-cache ca-certificates curl tar \
