@@ -181,6 +181,10 @@ require_text ".env.dev.example" '^SSO_ADMIN_VUE_BASE_PATH=/__vue-preview$' "Deve
 require_text ".env.dev.example" '^APP_A_SESSION_COOKIE_NAME=__Host-app-a-session$' "App A env example uses hardened __Host cookie prefix"
 require_text ".env.dev.example" '^ZITADEL_LOGIN_ACTIVE_BASE_PATH=/ui/v2/login$' "Development env example keeps hosted login as rollback default"
 require_text ".env.dev.example" '^ZITADEL_LOGIN_VUE_BASE_PATH=/ui/v2/login-vue$' "Development env example exposes Vue ZITADEL login canary base path"
+require_text ".env.dev.example" '^ZITADEL_LOGIN_REQUIRE_TOTP_AFTER_PASSWORD=true$' "Development env keeps Vue login password-to-TOTP flow enabled"
+require_text "docker-compose.dev.yml" 'LOGIN_REQUIRE_TOTP_AFTER_PASSWORD: \$\{ZITADEL_LOGIN_REQUIRE_TOTP_AFTER_PASSWORD:-true\}' "Compose enables password-to-TOTP flow for Vue login"
+require_text "services/zitadel-login-vue/src/server/api-handlers.ts" "nextStep: 'otp'" "Vue login password step routes to authenticator code input"
+require_text "services/zitadel-login-vue/src/web/views/LoginView.vue" 'route\.query\.login_hint' "Vue login consumes OIDC login hint from dev-sso"
 
 require_text "scripts/vps-deploy.sh" 'export APP_IMAGE_TAG="\$TAG"' "Deploy exports deterministic APP_IMAGE_TAG"
 require_text "scripts/vps-deploy.sh" 'compose config --services' "Deploy preflights Compose services"

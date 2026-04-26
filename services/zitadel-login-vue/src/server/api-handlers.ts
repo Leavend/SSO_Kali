@@ -36,8 +36,7 @@ async function handlePassword(request: IncomingMessage, config: RuntimeConfig): 
   const password = passwordFromBody(await readJsonBody(request))
   if (!password) return json(422, { message: LOGIN_MESSAGES.invalidPassword })
   const sessionToken = await updatePassword(config, state.sessionId, password)
-  const nextState = { ...state, sessionToken }
-  return await finalizeOrContinue(config, nextState, 'otp')
+  return await continueAfterPassword(config, { ...state, sessionToken })
 }
 
 async function handleTotp(request: IncomingMessage, config: RuntimeConfig): Promise<AppResponse> {
@@ -61,6 +60,15 @@ async function finalizeOrContinue(config: RuntimeConfig, state: ReturnType<typeo
     }
     throw error
   }
+}
+
+async function continueAfterPassword(config: RuntimeConfig, state: ReturnType<typeof getState>) {
+  if (config.requireTotpAfterPassword) {
+    const value = serializeLoginState(state, config)
+    return json(200, { nextStep: 'otp' }, { 'set-cookie': sessionCookie(value, config) })
+  }
+
+  return await finalizeOrContinue(config, state, 'otp')
 }
 
 function getState(request: IncomingMessage, config: RuntimeConfig) {

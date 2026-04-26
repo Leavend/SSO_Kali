@@ -10,6 +10,7 @@ export interface RuntimeConfig {
   readonly instanceHost: string
   readonly cookieSecret: string
   readonly secureCookies: boolean
+  readonly requireTotpAfterPassword: boolean
   readonly token?: string
   readonly tokenFile?: string
 }
@@ -40,6 +41,7 @@ function loadConfig(): RuntimeConfig {
     instanceHost: env('ZITADEL_INSTANCE_HOST', publicHost),
     cookieSecret: requireSecret(env('LOGIN_COOKIE_SECRET', '')),
     secureCookies: env('SECURE_COOKIES', 'true') !== 'false',
+    requireTotpAfterPassword: env('LOGIN_REQUIRE_TOTP_AFTER_PASSWORD', 'true') !== 'false',
     token: process.env.ZITADEL_SERVICE_USER_TOKEN,
     tokenFile: process.env.ZITADEL_SERVICE_USER_TOKEN_FILE,
   }
