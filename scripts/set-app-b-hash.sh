@@ -8,6 +8,8 @@ set -euo pipefail
 
 PLAINTEXT="${1:-prototype-secret}"
 PROJECT_DIR="/opt/sso-prototype-dev"
+HASH_TMP="/tmp/_argon2id_hash.txt"
+WRITER_TMP="/tmp/_write_hash.sh"
 
 echo "=== Generating Argon2id hash for App-B client secret ==="
 echo "   Memory: 19456 KiB | Time: 3 | Threads: 1"
@@ -23,22 +25,23 @@ fi
 
 echo "   Generated: $HASH"
 
-# Write hash to a temp file to avoid shell expansion of $ signs in argon2id hash
-HASH_FILE=$(mktemp)
-printf '%s' "$HASH" > "$HASH_FILE"
+# Write hash to a known temp file (no dollar-sign expansion issues with printf)
+printf '%s' "$HASH" > "$HASH_TMP"
 
-# Run all write operations in a single sudo session to avoid credential cache expiry
-# Pass HASH_FILE and PROJECT_DIR as environment variables to sudo
-sudo HASH_FILE="$HASH_FILE" PROJECT_DIR="$PROJECT_DIR" bash <<'SUDO_BLOCK'
+# Create a writer script with hardcoded paths that sudo can run
+cat > "$WRITER_TMP" <<'WRITER'
+#!/usr/bin/env bash
 set -euo pipefail
+PROJECT_DIR="/opt/sso-prototype-dev"
+HASH_TMP="/tmp/_argon2id_hash.txt"
 
-HASH=$(cat "$HASH_FILE")
+HASH=$(cat "$HASH_TMP")
 
-# Backup .env.dev
+# Backup
 cp "$PROJECT_DIR/.env.dev" "$PROJECT_DIR/.env.dev.bak.$(date +%s)"
 echo "   Backup created"
 
-# Remove old entry, add new one
+# Remove old entry, write new one
 sed -i '/^APP_B_CLIENT_SECRET_HASH=/d' "$PROJECT_DIR/.env.dev"
 printf 'APP_B_CLIENT_SECRET_HASH=%s\n' "$HASH" >> "$PROJECT_DIR/.env.dev"
 
@@ -58,10 +61,18 @@ echo "=== sso-backend status ==="
 docker compose -f "$PROJECT_DIR/docker-compose.dev.yml" \
   --env-file "$PROJECT_DIR/.env.dev" \
   ps sso-backend 2>/dev/null || echo "(status check skipped)"
-SUDO_BLOCK
 
 # Cleanup
-rm -f "$HASH_FILE"
+rm -f "$HASH_TMP"
+WRITER
+
+chmod +x "$WRITER_TMP"
+
+# Execute with sudo — no env vars needed, all paths are hardcoded in the script
+sudo "$WRITER_TMP"
+
+# Cleanup writer
+rm -f "$WRITER_TMP"
 
 echo ""
 echo "✅ APP_B_CLIENT_SECRET_HASH updated successfully"
