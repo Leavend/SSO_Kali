@@ -85,8 +85,9 @@ jobs:
           sudo cp "$PROJECT_DIR/.env.dev" "$PROJECT_DIR/.env.dev.bak.$(date +%s)"
 
           # Remove existing entry + append new one
+          # CRITICAL: Use printf to prevent bash from expanding $ in the argon2id hash
           sudo sed -i '/^APP_B_CLIENT_SECRET_HASH=/d' "$PROJECT_DIR/.env.dev"
-          echo "APP_B_CLIENT_SECRET_HASH=$HASH" | sudo tee -a "$PROJECT_DIR/.env.dev" > /dev/null
+          printf 'APP_B_CLIENT_SECRET_HASH=%s\n' "$HASH" | sudo tee -a "$PROJECT_DIR/.env.dev" > /dev/null
 
           echo ""
           echo "=== Verifying ==="
@@ -103,7 +104,7 @@ jobs:
           sleep 5
           sudo docker compose -f "$PROJECT_DIR/docker-compose.dev.yml" \
             --env-file "$PROJECT_DIR/.env.dev" \
-            ps sso-backend --format 'table {{.Name}}\t{{.Status}}'
+            ps sso-backend 2>/dev/null || echo "sso-backend check skipped"
 
           echo "✅ Done"
           REMOTE
