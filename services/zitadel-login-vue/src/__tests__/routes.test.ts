@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
-import { normalizeBasePath, sanitizeFlowId, sanitizeLoginName, sanitizeOtpCode, stripBasePath } from '../shared/routes'
+import {
+  normalizeBasePath,
+  sanitizeFlowId,
+  sanitizeLoginHint,
+  sanitizeLoginName,
+  sanitizeOtpCode,
+  stripBasePath,
+} from '../shared/routes'
 
 describe('login route helpers', () => {
   it('normalizes the custom login base path', () => {
@@ -16,6 +23,7 @@ describe('login route helpers', () => {
     expect(sanitizeFlowId('V2_370134305323614212')).toBe('V2_370134305323614212')
     expect(sanitizeFlowId('bad value with spaces')).toBeNull()
     expect(sanitizeLoginName('  user@example.com  ')).toBe('user@example.com')
+    expect(sanitizeLoginHint([' hinted@example.com '])).toBe('hinted@example.com')
     expect(sanitizeOtpCode('12-34 56')).toBe('123456')
   })
 })

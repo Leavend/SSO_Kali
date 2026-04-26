@@ -32,6 +32,11 @@ export function sanitizeLoginName(value: unknown): string {
   return value.trim().slice(0, 254)
 }
 
+export function sanitizeLoginHint(value: unknown): string {
+  if (Array.isArray(value)) return sanitizeLoginName(value[0])
+  return sanitizeLoginName(value)
+}
+
 export function sanitizeOtpCode(value: unknown): string {
   if (typeof value !== 'string') return ''
   return value.replace(/\D/g, '').slice(0, 8)
