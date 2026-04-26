@@ -63,122 +63,117 @@ input {
   outline-offset: 3px;
 }
 
-.auth-screen {
+.legacy-login {
+  position: relative;
   display: grid;
   min-height: 100vh;
-  padding: 112px 24px 82px;
   place-items: center;
-  background: linear-gradient(180deg, #eef4ff 0%, var(--canvas) 38%);
-}
-
-[data-theme='dark'] .auth-screen {
-  background: linear-gradient(180deg, #172033 0%, var(--canvas) 42%);
-}
-
-.auth-card {
-  display: grid;
-  width: min(100%, 420px);
-  min-height: 496px;
-  padding: 36px 34px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--card);
-  box-shadow: 0 28px 60px var(--shadow);
-}
-
-.brand-row {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-  align-self: start;
-}
-
-.brand-row strong,
-.brand-row small {
-  display: block;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  padding: 40px 16px 76px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--accent-soft) 62%, transparent), transparent 54%),
+    var(--canvas);
 }
 
-.brand-row strong {
-  font-size: 14px;
-  font-weight: 800;
+.legacy-login__frame {
+  width: min(100%, 448px);
 }
 
-.brand-row small {
-  max-width: 220px;
-  color: var(--muted);
-  font-size: 10px;
-  font-weight: 700;
+.legacy-login__header {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  margin-bottom: 28px;
 }
 
-.brand-mark {
+.legacy-login__mark {
   display: inline-flex;
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
+  border-radius: 999px;
   color: var(--accent);
   background: var(--accent-soft);
 }
 
-.form-stack {
-  display: grid;
-  gap: 22px;
-  align-self: center;
-}
-
-.form-stack--center {
-  justify-items: center;
-}
-
-.heading-stack {
-  display: grid;
-  gap: 10px;
-  text-align: center;
-}
-
-.heading-stack h1 {
+.legacy-login__header p {
   margin: 0;
-  font-size: 32px;
-  font-weight: 900;
-  line-height: 1.2;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 800;
   letter-spacing: 0;
 }
 
-.heading-stack p {
-  max-width: 330px;
-  margin: 0 auto;
-  color: var(--muted);
-  font-size: 17px;
-  line-height: 1.55;
+.signin-card {
+  display: grid;
+  gap: 0;
+  padding: 32px;
+  border: 1px solid color-mix(in srgb, var(--line) 76%, transparent);
+  border-radius: 16px;
+  background: var(--card);
+  box-shadow: 0 18px 48px var(--shadow);
 }
 
-.field {
+.signin-card--status {
+  gap: 18px;
+  text-align: center;
+}
+
+.signin-card h1 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.18;
+  text-align: center;
+  letter-spacing: 0;
+}
+
+.signin-card > p {
+  max-width: 320px;
+  margin: 8px auto 0;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.field-group {
   display: grid;
   gap: 8px;
+  margin-top: 32px;
 }
 
-.field span {
-  font-size: 15px;
-  font-weight: 800;
+.field-group span {
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 700;
 }
 
-.field input {
-  min-height: 50px;
+.field-group input {
   width: 100%;
+  min-height: 44px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  padding: 0 16px;
+  padding: 0 14px;
   color: var(--ink);
-  background: var(--card);
+  background: transparent;
+  font-size: 15px;
+  transition:
+    border-color 0.16s ease,
+    box-shadow 0.16s ease,
+    background-color 0.16s ease;
 }
 
-.field input::placeholder {
-  color: #8b95a1;
+.field-group input::placeholder {
+  color: color-mix(in srgb, var(--muted) 74%, transparent);
+}
+
+.field-group input:focus {
+  border-color: var(--accent);
+  outline: 0;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 24%, transparent);
 }
 
 .account-pill {
@@ -187,6 +182,7 @@ input {
   align-items: center;
   gap: 12px;
   min-height: 48px;
+  margin-top: 28px;
   padding: 4px 14px 4px 4px;
   border: 1px solid #e5e7eb;
   border-radius: 999px;
@@ -211,57 +207,68 @@ input {
   white-space: nowrap;
 }
 
-.form-actions {
+.signin-actions {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
+  margin-top: 22px;
 }
 
-.form-actions--split {
+.signin-actions--split {
   margin-top: 12px;
 }
 
-.button {
+.signin-submit,
+.signin-secondary {
   display: inline-flex;
-  min-width: 126px;
-  min-height: 50px;
+  min-width: 128px;
+  min-height: 44px;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  border: 1px solid transparent;
   border-radius: 8px;
+  padding: 0 20px;
   cursor: pointer;
+  font-size: 15px;
   font-weight: 800;
+  transition:
+    color 0.16s ease,
+    background-color 0.16s ease,
+    transform 0.16s ease;
 }
 
-.button:disabled {
+.signin-submit:disabled,
+.signin-secondary:disabled {
   cursor: not-allowed;
   opacity: 0.58;
 }
 
-.button--primary {
+.signin-submit {
+  border: 0;
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.signin-submit:hover:not(:disabled) {
   color: var(--accent-contrast);
   background: var(--accent);
+  transform: translateY(-1px);
 }
 
-.button--primary:hover:not(:disabled) {
-  background: var(--accent-hover);
-}
-
-.button--secondary {
+.signin-secondary {
+  border: 1px solid var(--line);
   color: var(--accent);
-  border-color: var(--line);
   background: var(--card);
 }
 
 .link-action {
   color: var(--accent);
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .alert {
-  margin: 0;
+  margin: 18px 0 0;
   padding: 12px 14px;
   border: 1px solid #f59e0b;
   border-radius: 8px;
@@ -317,25 +324,22 @@ input {
 }
 
 @media (max-width: 520px) {
-  .auth-screen {
+  .legacy-login {
+    align-items: start;
+    padding: 34px 16px 104px;
+  }
+
+  .signin-card {
+    padding: 26px 20px;
+  }
+
+  .signin-actions {
     align-items: stretch;
-    padding: 96px 0 96px;
+    flex-direction: column;
   }
 
-  .auth-card {
-    width: 100%;
-    min-height: auto;
-    padding: 32px 28px;
-    border-right: 0;
-    border-left: 0;
-  }
-
-  .form-actions {
-    align-items: stretch;
-    flex-direction: column-reverse;
-  }
-
-  .button {
+  .signin-submit,
+  .signin-secondary {
     width: 100%;
   }
 

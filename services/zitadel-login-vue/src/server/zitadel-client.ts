@@ -20,11 +20,22 @@ interface FinalizeResponse {
   readonly callbackUrl?: string
 }
 
+interface AuthRequestResponse {
+  readonly authRequest?: {
+    readonly loginHint?: string
+  }
+}
+
 export async function createSession(config: RuntimeConfig, loginName: string): Promise<Required<SessionTokenResponse>> {
   const body = { checks: { user: { loginName } } }
   const response = await zitadelJson<SessionTokenResponse>(config, '/v2/sessions', 'POST', body)
   if (!response.sessionId) throw new ZitadelApiError(502, 'missing_session_id', 'ZITADEL did not return sessionId')
   return { sessionId: response.sessionId, sessionToken: response.sessionToken }
+}
+
+export async function getAuthRequestLoginHint(config: RuntimeConfig, authRequest: string): Promise<string> {
+  const response = await zitadelJson<AuthRequestResponse>(config, `/v2/oidc/auth_requests/${authRequest}`, 'GET')
+  return typeof response.authRequest?.loginHint === 'string' ? response.authRequest.loginHint : ''
 }
 
 export async function updatePassword(config: RuntimeConfig, sessionId: string, password: string): Promise<string> {
@@ -51,19 +62,21 @@ export async function finalizeAuthRequest(
   return response.callbackUrl
 }
 
-async function zitadelJson<T>(config: RuntimeConfig, path: string, method: string, body: unknown): Promise<T> {
+async function zitadelJson<T>(config: RuntimeConfig, path: string, method: string, body?: unknown): Promise<T> {
   const response = await fetch(`${config.apiUrl}${path}`, await requestInit(config, method, body))
   const payload = await parsePayload(response)
   if (!response.ok) throw toZitadelError(response.status, payload)
   return payload as T
 }
 
-async function requestInit(config: RuntimeConfig, method: string, body: unknown): Promise<RequestInit> {
-  return {
+async function requestInit(config: RuntimeConfig, method: string, body?: unknown): Promise<RequestInit> {
+  const init: RequestInit = {
     method,
     headers: await requestHeaders(config),
-    body: JSON.stringify(body),
   }
+
+  if (body !== undefined) init.body = JSON.stringify(body)
+  return init
 }
 
 async function requestHeaders(config: RuntimeConfig): Promise<Record<string, string>> {

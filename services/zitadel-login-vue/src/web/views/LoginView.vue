@@ -10,13 +10,32 @@ const route = useRoute()
 const router = useRouter()
 const flow = useLoginFlowStore()
 const loginName = ref('')
+const isResolvingEntry = ref(true)
 
 onMounted(async () => {
-  flow.hydrateFromRoute(route.query.authRequest)
-  loginName.value = routeLoginHint()
-  window.history.replaceState(window.history.state, '', window.location.pathname)
-  if (loginName.value) await submit()
+  await resolveEntryRoute()
 })
+
+async function resolveEntryRoute(): Promise<void> {
+  const authRequest = flow.hydrateFromRoute(route.query.authRequest)
+  const hint = routeLoginHint()
+  window.history.replaceState(window.history.state, '', window.location.pathname)
+  if (hint) return await submitHint(hint)
+  if (authRequest && await submitAuthRequest(authRequest)) return
+  isResolvingEntry.value = false
+}
+
+async function submitHint(value: string): Promise<void> {
+  loginName.value = value
+  await submit()
+  isResolvingEntry.value = false
+}
+
+async function submitAuthRequest(authRequest: string): Promise<boolean> {
+  const next = await flow.submitAuthRequest(authRequest)
+  if (next === 'password') await router.replace({ path: '/password' })
+  return next === 'password'
+}
 
 async function submit(): Promise<void> {
   const next = await flow.submitLoginName(loginName.value)
@@ -30,14 +49,17 @@ function routeLoginHint(): string {
 
 <template>
   <AuthShell>
-    <form class="form-stack" @submit.prevent="submit">
-      <div class="heading-stack">
-        <h1 id="login-title">Masuk</h1>
-        <p>Masukkan email yang terdaftar untuk melanjutkan.</p>
-      </div>
+    <div v-if="isResolvingEntry" class="signin-card signin-card--status" aria-busy="true">
+      <h1 id="login-title">Menyiapkan sesi masuk</h1>
+      <p>Mohon tunggu sebentar.</p>
+    </div>
 
-      <label class="field">
-        <span>Email *</span>
+    <form v-else class="signin-card" @submit.prevent="submit">
+      <h1 id="login-title">Masuk</h1>
+      <p>Masukkan email yang terdaftar untuk melanjutkan.</p>
+
+      <label class="field-group">
+        <span>Email <span aria-hidden="true">*</span></span>
         <input
           v-model="loginName"
           autocomplete="username"
@@ -49,9 +71,9 @@ function routeLoginHint(): string {
 
       <p v-if="flow.errorMessage" class="alert" role="alert">{{ flow.errorMessage }}</p>
 
-      <div class="form-actions">
+      <div class="signin-actions">
         <a class="link-action" href="/auth/password-reset">Lupa kata sandi?</a>
-        <button class="button button--primary" type="submit" :disabled="flow.isLoading">
+        <button class="signin-submit" type="submit" :disabled="flow.isLoading">
           <span>{{ flow.isLoading ? 'Memproses...' : 'Lanjutkan' }}</span>
           <ArrowRight :size="17" aria-hidden="true" />
         </button>

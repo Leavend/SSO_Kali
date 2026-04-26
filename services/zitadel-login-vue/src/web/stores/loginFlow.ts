@@ -5,7 +5,7 @@ import { LOGIN_MESSAGES } from '@shared/messages'
 import { normalizeBasePath, sanitizeFlowId, sanitizeLoginName, sanitizeOtpCode } from '@shared/routes'
 
 interface StepResponse {
-  readonly nextStep?: 'password' | 'otp' | 'signedin'
+  readonly nextStep?: 'login' | 'password' | 'otp' | 'signedin'
   readonly loginName?: string
   readonly redirectUrl?: string
   readonly message?: string
@@ -20,8 +20,15 @@ export const useLoginFlowStore = defineStore('login-flow', () => {
   const isLoading = ref(false)
   const displayName = computed(() => loginName.value || 'akun Anda')
 
-  function hydrateFromRoute(value: unknown): void {
+  function hydrateFromRoute(value: unknown): string | null {
     authRequest.value = sanitizeFlowId(value)
+    return authRequest.value
+  }
+
+  async function submitAuthRequest(value: string): Promise<'login' | 'password' | null> {
+    const response = await postStep('/api/session/auth-request', { authRequest: value })
+    if (response?.loginName) loginName.value = sanitizeLoginName(response.loginName)
+    return response?.nextStep === 'password' ? 'password' : 'login'
   }
 
   async function submitLoginName(value: string): Promise<'password' | null> {
@@ -80,6 +87,7 @@ export const useLoginFlowStore = defineStore('login-flow', () => {
     hydrateFromRoute,
     isLoading,
     loginName,
+    submitAuthRequest,
     submitLoginName,
     submitOtp,
     submitPassword,
