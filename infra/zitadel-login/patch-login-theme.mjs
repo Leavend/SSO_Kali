@@ -47,6 +47,7 @@ function buildThemeOverrides() {
     buildRootSurface(),
     buildCardLayout(),
     buildTypography(),
+    buildAvatarOverrides(),
     buildFields(),
     buildButtons(),
     buildUtilityArea(),
@@ -104,25 +105,28 @@ body div[class*="min-h-screen"] {
 function buildCardLayout() {
   return `
 body div[class*="max-w-[440px]"] {
-  width: min(100%, 420px) !important;
-  max-width: min(420px, calc(100vw - 32px)) !important;
+  width: min(100%, 448px) !important;
+  max-width: min(448px, calc(100vw - 32px)) !important;
   padding-inline: 0 !important;
 }
 
 /* Password / set / change pages: outer container uses max-w-[1100px] */
 body div[class*="max-w-[1100px]"] {
-  max-width: min(420px, calc(100vw - 32px)) !important;
+  max-width: min(448px, calc(100vw - 32px)) !important;
   padding-inline: 0 !important;
 }
 
 /* Button bars use md:max-w-full which overrides 440px on desktop */
 body div[class*="md:max-w-full"][class*="max-w-[440px]"] {
-  max-width: min(420px, calc(100vw - 32px)) !important;
+  max-width: min(448px, calc(100vw - 32px)) !important;
 }
 
 body div[class*="max-w-[440px]"] > div[class*="bg-background-light-500"][class*="rounded-lg"],
 body div[class*="max-w-[440px]"] > div[class*="rounded-lg"][class*="shadow"],
-body div[class*="max-w-[440px]"] > div:first-child {
+body div[class*="max-w-[440px]"] > div:first-child,
+body div[class*="max-w-[1100px]"] > div[class*="bg-background-light-500"][class*="rounded-lg"],
+body div[class*="max-w-[1100px]"] > div[class*="rounded-lg"][class*="shadow"],
+body div[class*="max-w-[1100px]"] > div:first-child {
   border-radius: 16px !important;
   border: 1px solid color-mix(in srgb, var(--devsso-border) 76%, transparent) !important;
   background: var(--devsso-surface) !important;
@@ -131,7 +135,8 @@ body div[class*="max-w-[440px]"] > div:first-child {
   transition: background-color 0.25s ease, box-shadow 0.25s ease;
 }
 
-body div[class*="max-w-[440px]"] img[alt="logo"] {
+body div[class*="max-w-[440px]"] img[alt="logo"],
+body div[class*="max-w-[1100px]"] img[alt="logo"] {
   width: min(100%, 162px) !important;
   height: auto !important;
   margin-bottom: 10px !important;
@@ -140,7 +145,8 @@ body div[class*="max-w-[440px]"] img[alt="logo"] {
 
 function buildTypography() {
   return `
-body div[class*="max-w-[440px]"] h1 {
+body div[class*="max-w-[440px]"] h1,
+body div[class*="max-w-[1100px]"] h1 {
   color: var(--devsso-text) !important;
   font-family: var(--devsso-font) !important;
   font-size: 28px !important;
@@ -151,7 +157,8 @@ body div[class*="max-w-[440px]"] h1 {
   text-align: center !important;
 }
 
-body div[class*="max-w-[440px]"] p.ztdl-p {
+body div[class*="max-w-[440px]"] p.ztdl-p,
+body div[class*="max-w-[1100px]"] p.ztdl-p {
   max-width: 320px !important;
   margin: 8px auto 24px !important;
   color: var(--devsso-text-secondary) !important;
@@ -171,6 +178,59 @@ body label {
 
 body a {
   font-family: var(--devsso-font) !important;
+}`.trim();
+}
+
+function buildAvatarOverrides() {
+  return `
+/* ── Avatar / user-identity row ── */
+/* Avatar circle (initials badge on password page) */
+body div[class*="max-w-[440px]"] div[class*="rounded-full"][class*="flex"][class*="items-center"][class*="justify-center"],
+body div[class*="max-w-[1100px]"] div[class*="rounded-full"][class*="flex"][class*="items-center"][class*="justify-center"] {
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  font-family: var(--devsso-font) !important;
+}
+
+/* Email text next to avatar */
+body div[class*="max-w-[440px]"] span[class*="text-sm"],
+body div[class*="max-w-[440px]"] span[class*="text-base"],
+body div[class*="max-w-[440px]"] span[class*="text-lg"],
+body div[class*="max-w-[1100px]"] span[class*="text-sm"],
+body div[class*="max-w-[1100px]"] span[class*="text-base"],
+body div[class*="max-w-[1100px]"] span[class*="text-lg"] {
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  font-family: var(--devsso-font) !important;
+  color: var(--devsso-text) !important;
+}
+
+/* Avatar + email container row */
+body div[class*="max-w-[440px]"] div[class*="flex"][class*="items-center"][class*="gap-"],
+body div[class*="max-w-[1100px]"] div[class*="flex"][class*="items-center"][class*="gap-"] {
+  gap: 10px !important;
+}
+
+/* Brand name under logo (e.g. "Dev-SSO") */
+body div[class*="max-w-[440px]"] p[class*="text-primary"],
+body div[class*="max-w-[1100px]"] p[class*="text-primary"] {
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  font-family: var(--devsso-font) !important;
+  color: var(--devsso-primary) !important;
+  letter-spacing: 0 !important;
+  margin: 0 !important;
+}
+
+/* Horizontal separator / divider line between sections */
+body div[class*="max-w-[440px]"] hr,
+body div[class*="max-w-[1100px]"] hr,
+body div[class*="max-w-[440px]"] div[class*="border-t"],
+body div[class*="max-w-[1100px]"] div[class*="border-t"] {
+  border-color: color-mix(in srgb, var(--devsso-border) 40%, transparent) !important;
 }`.trim();
 }
 
@@ -369,7 +429,10 @@ body a[class*="text-primary"]:hover {
 
 body div[class*="max-w-[440px]"] div[class*="flex"][class*="justify-between"],
 body div[class*="max-w-[440px]"] div[class*="flex"][class*="items-center"][class*="justify-end"],
-body div[class*="max-w-[440px]"] form div[class*="flex"][class*="w-full"]:has(> button[data-testid]) {
+body div[class*="max-w-[440px]"] form div[class*="flex"][class*="w-full"]:has(> button[data-testid]),
+body div[class*="max-w-[1100px]"] div[class*="flex"][class*="justify-between"],
+body div[class*="max-w-[1100px]"] div[class*="flex"][class*="items-center"][class*="justify-end"],
+body div[class*="max-w-[1100px]"] form div[class*="flex"][class*="w-full"]:has(> button[data-testid]) {
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
@@ -483,12 +546,16 @@ function buildResponsiveRules() {
 @media (max-width: 640px) {
   body div[class*="max-w-[440px]"] > div[class*="bg-background-light-500"][class*="rounded-lg"],
   body div[class*="max-w-[440px]"] > div[class*="rounded-lg"][class*="shadow"],
-  body div[class*="max-w-[440px]"] > div:first-child {
+  body div[class*="max-w-[440px]"] > div:first-child,
+  body div[class*="max-w-[1100px]"] > div[class*="bg-background-light-500"][class*="rounded-lg"],
+  body div[class*="max-w-[1100px]"] > div[class*="rounded-lg"][class*="shadow"],
+  body div[class*="max-w-[1100px]"] > div:first-child {
     padding: 24px 20px !important;
     border-radius: 14px !important;
   }
 
-  body div[class*="max-w-[440px]"] h1 {
+  body div[class*="max-w-[440px]"] h1,
+  body div[class*="max-w-[1100px]"] h1 {
     font-size: 1.375rem !important;
   }
 
