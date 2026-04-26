@@ -21,9 +21,12 @@ Development environment mode is advisory:
 
 - CI generates SBOM attestations.
 - CI generates max-level provenance attestations.
-- CI runs Docker Scout CVE scanning for critical/high fixable CVEs.
-- CI uploads SARIF output to GitHub Code Scanning when available.
-- CVE scan failures do not block the first development baseline.
+- CI runs a SHA-pinned Anchore Grype CVE scan for high/critical fixable
+  vulnerabilities.
+- CI fails when the scanner cannot run or cannot generate SARIF evidence.
+- CI uploads SARIF output to GitHub Code Scanning.
+- CVE findings remain advisory until the current development baseline is
+  accepted and suppression/exception ownership is documented.
 
 This avoids blocking all releases before the current image vulnerability
 baseline is known.
@@ -55,16 +58,21 @@ Release order:
 6. Smoke test.
 7. Roll back by tag if smoke fails.
 
-## Secrets
+## Scanner Supply Chain
 
-Docker Scout may require Docker Hub credentials for some features. Credentials
-must live in GitHub Actions secrets or environment secrets, not build args, not
-repository files, and not VPS shell history.
+The CI workflow uses Anchore Grype through a full commit SHA pin, not a mutable
+major tag. The scan runs locally in the GitHub Actions job and does not require
+Docker Hub entitlement secrets.
 
-Recommended GitHub secrets:
+Scanner changes must preserve these controls:
 
-- `DOCKERHUB_USER`
-- `DOCKERHUB_TOKEN`
+- no scanner credential is required for normal GHCR image scanning
+- SARIF must be generated for every image in the build matrix
+- scanner execution failure must fail CI
+- vulnerability findings may be advisory only while the accepted baseline is
+  being built
+- production blocking mode must be enabled only after baseline exceptions are
+  documented
 
 The project must not pass secrets through Docker build args because max
 provenance can expose build argument values.

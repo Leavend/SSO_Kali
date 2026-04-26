@@ -5,6 +5,9 @@ on:
   schedule:
     - cron: "0 2 * * 6"
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 permissions:
   contents: read
 
@@ -18,7 +21,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Execute control-plane backup and restore drill
         env:
@@ -35,7 +38,7 @@ jobs:
           infra/backup/run-restore-drill.sh --backup-dir "${latest_backup}"
 
       - name: Upload drill evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: backup-restore-drill-evidence
           path: |
@@ -45,4 +48,3 @@ jobs:
             .artifacts/backup-drills/**/comparison.env
             .artifacts/backup-drills/**/evidence.md
             .artifacts/backup-drills/**/reconciliation-report.md
-

@@ -23,6 +23,7 @@ permissions:
   packages: read
 
 env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
   REGISTRY: ghcr.io
   IMAGE_PREFIX: ghcr.io/leavend/sso-prototype
   VPS_HOST: ${{ secrets.VPS_HOST }}
@@ -37,7 +38,7 @@ jobs:
     environment: production
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup SSH
         run: |
