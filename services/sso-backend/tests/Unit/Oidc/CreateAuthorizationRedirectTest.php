@@ -3,7 +3,9 @@
 declare(strict_types=1);
 
 use App\Actions\Oidc\CreateAuthorizationRedirect;
+use App\Services\Oidc\AuthorizationCodeStore;
 use App\Services\Oidc\AuthRequestStore;
+use App\Services\Oidc\BrokerBrowserSession;
 use App\Services\Oidc\DownstreamClientRegistry;
 use App\Services\Oidc\HighAssuranceClientPolicy;
 use App\Services\Oidc\OidcProfileMetrics;
@@ -32,6 +34,8 @@ function authRedirectAction(): CreateAuthorizationRedirect
     return new CreateAuthorizationRedirect(
         app(DownstreamClientRegistry::class),
         app(AuthRequestStore::class),
+        app(AuthorizationCodeStore::class),
+        app(BrokerBrowserSession::class),
         app(HighAssuranceClientPolicy::class),
         app(OidcProfileMetrics::class),
         app(BrokerAuthFlowCookie::class),

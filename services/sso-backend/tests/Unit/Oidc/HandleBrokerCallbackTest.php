@@ -8,6 +8,7 @@ use App\Actions\Oidc\HandleBrokerCallback;
 use App\Services\Oidc\AuthContextFactory;
 use App\Services\Oidc\AuthorizationCodeStore;
 use App\Services\Oidc\AuthRequestStore;
+use App\Services\Oidc\BrokerBrowserSession;
 use App\Services\Oidc\BrokerCallbackSuccessLogger;
 use App\Services\Oidc\LogicalSessionStore;
 use App\Services\Oidc\UserProfileSynchronizer;
@@ -60,6 +61,7 @@ it('completes the broker callback with a verified upstream id token', function (
         $profiles,
         $sessions,
         app(BrokerAuthFlowCookie::class),
+        app(BrokerBrowserSession::class),
         app(BrokerCallbackSuccessLogger::class),
     );
 
@@ -107,6 +109,7 @@ it('rejects the broker callback when the upstream id token signature is invalid'
         $profiles,
         $sessions,
         app(BrokerAuthFlowCookie::class),
+        app(BrokerBrowserSession::class),
         app(BrokerCallbackSuccessLogger::class),
     );
 
@@ -126,6 +129,7 @@ it('redirects browser callbacks with expired broker state back to the downstream
         app(UserProfileSynchronizer::class),
         app(LogicalSessionStore::class),
         app(BrokerAuthFlowCookie::class),
+        app(BrokerBrowserSession::class),
         app(BrokerCallbackSuccessLogger::class),
     );
 

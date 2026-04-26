@@ -42,7 +42,8 @@ done
 
 COMPOSE_FILE="$PROJECT_DIR/docker-compose.dev.yml"
 ENV_FILE="$PROJECT_DIR/.env.dev"
-DEPLOY_LOG="/var/log/sso-direct-build-deploy-$(date +%Y%m%d%H%M%S).log"
+DEFAULT_DEPLOY_LOG_DIR="${DEPLOY_LOG_DIR:-${HOME:-/tmp}}"
+DEPLOY_LOG="${DEPLOY_LOG:-$DEFAULT_DEPLOY_LOG_DIR/sso-direct-build-deploy-$(date +%Y%m%d%H%M%S).log}"
 ROLLBACK_TAG="rollback-${TAG}"
 STATE_DIR="${STATE_DIR:-${HOME:-/tmp}/.cache/sso-direct-deploy}"
 DEPLOY_TAG_FILE="${DEPLOY_TAG_FILE:-$STATE_DIR/last-deploy-tag}"
@@ -197,7 +198,7 @@ rollback() {
 
 supports_green_prewarm() {
   case "$1" in
-    app-a-next|app-b-laravel|sso-frontend|zitadel-login|zitadel-login-vue) return 0 ;;
+    app-a-next|app-b-laravel|sso-frontend|sso-backend|zitadel-login|zitadel-login-vue) return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -206,6 +207,7 @@ health_path() {
   case "$1" in
     app-a-next) printf '/healthz' ;;
     app-b-laravel) printf '/health' ;;
+    sso-backend) printf '/.well-known/openid-configuration' ;;
     sso-frontend) printf '/healthz' ;;
     zitadel-login) printf '/ui/v2/login/healthy' ;;
     zitadel-login-vue) printf "$(env_value ZITADEL_LOGIN_VUE_BASE_PATH /ui/v2/login-vue)/healthz" ;;
@@ -215,7 +217,7 @@ health_path() {
 
 health_port() {
   case "$1" in
-    app-b-laravel) printf '8000' ;;
+    app-b-laravel|sso-backend) printf '8000' ;;
     zitadel-login-vue) printf '3010' ;;
     *) printf '3000' ;;
   esac
@@ -385,6 +387,12 @@ build_service_image() {
       docker build --pull \
         -t "$image" \
         "$PROJECT_DIR/apps/app-b-laravel" 2>&1 | tee -a "$DEPLOY_LOG"
+      ;;
+    sso-backend)
+      log "  building $svc as $image"
+      docker build --pull \
+        -t "$image" \
+        "$PROJECT_DIR/services/sso-backend" 2>&1 | tee -a "$DEPLOY_LOG"
       ;;
     sso-frontend)
       log "  building $svc as $image"
