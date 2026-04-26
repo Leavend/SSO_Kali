@@ -1,27 +1,47 @@
 <script setup lang="ts">
-import { ArrowRight, Home } from 'lucide-vue-next'
-import type { AuthStatusCopy } from '@shared/auth-status'
+import { computed } from "vue";
+import { ArrowRight, Home, ShieldAlert, AlertTriangle } from "lucide-vue-next";
+import type { AuthStatusCopy } from "@shared/auth-status";
 
-defineProps<{
-  readonly copy: AuthStatusCopy
-}>()
+const props = defineProps<{
+  readonly copy: AuthStatusCopy;
+}>();
+
+const icon = computed(() =>
+  props.copy.accent === "danger" ? ShieldAlert : AlertTriangle,
+);
 </script>
 
 <template>
-  <section class="status-panel" :data-accent="copy.accent">
-    <span class="status-badge">{{ copy.badge }}</span>
-    <h1>{{ copy.title }}</h1>
+  <section
+    class="status-card"
+    :data-accent="copy.accent"
+    role="alert"
+    aria-live="polite"
+  >
+    <div class="status-card__icon" aria-hidden="true">
+      <component :is="icon" :size="22" stroke-width="2" />
+    </div>
+
+    <span class="status-card__badge">{{ copy.badge }}</span>
+    <h1 id="status-title">{{ copy.title }}</h1>
     <p>{{ copy.description }}</p>
-    <div class="status-actions">
-      <a class="button button--primary" :href="copy.primaryAction.href">
+
+    <div class="status-card__actions">
+      <a class="signin-submit" :href="copy.primaryAction.href">
         {{ copy.primaryAction.label }}
         <ArrowRight :size="18" aria-hidden="true" />
       </a>
-      <a v-if="copy.secondaryAction" class="button button--secondary" :href="copy.secondaryAction.href">
+      <a
+        v-if="copy.secondaryAction"
+        class="status-card__secondary"
+        :href="copy.secondaryAction.href"
+      >
         <Home :size="18" aria-hidden="true" />
         {{ copy.secondaryAction.label }}
       </a>
     </div>
-    <small v-if="copy.note">{{ copy.note }}</small>
+
+    <small v-if="copy.note" class="status-card__note">{{ copy.note }}</small>
   </section>
 </template>
