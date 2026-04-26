@@ -94,9 +94,9 @@ services:
       ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_MACHINE_NAME: Prototype Login Client
       ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_PAT_EXPIRATIONDATE: ${LOGIN_CLIENT_PAT_EXPIRATION}
       ZITADEL_DEFAULTINSTANCE_FEATURES_LOGINV2_REQUIRED: true
-      ZITADEL_DEFAULTINSTANCE_FEATURES_LOGINV2_BASEURI: ${ZITADEL_PUBLIC_SCHEME}://${ZITADEL_DOMAIN}:${ZITADEL_EXTERNALPORT}/ui/v2/login/
-      ZITADEL_OIDC_DEFAULTLOGINURLV2: ${ZITADEL_PUBLIC_SCHEME}://${ZITADEL_DOMAIN}:${ZITADEL_EXTERNALPORT}/ui/v2/login/login?authRequest=
-      ZITADEL_OIDC_DEFAULTLOGOUTURLV2: ${ZITADEL_PUBLIC_SCHEME}://${ZITADEL_DOMAIN}:${ZITADEL_EXTERNALPORT}/ui/v2/login/logout?post_logout_redirect=
+      ZITADEL_DEFAULTINSTANCE_FEATURES_LOGINV2_BASEURI: ${ZITADEL_PUBLIC_SCHEME}://${ZITADEL_DOMAIN}:${ZITADEL_EXTERNALPORT}${ZITADEL_LOGIN_ACTIVE_BASE_PATH:-/ui/v2/login}/
+      ZITADEL_OIDC_DEFAULTLOGINURLV2: ${ZITADEL_PUBLIC_SCHEME}://${ZITADEL_DOMAIN}:${ZITADEL_EXTERNALPORT}${ZITADEL_LOGIN_ACTIVE_BASE_PATH:-/ui/v2/login}/login?authRequest=
+      ZITADEL_OIDC_DEFAULTLOGOUTURLV2: ${ZITADEL_PUBLIC_SCHEME}://${ZITADEL_DOMAIN}:${ZITADEL_EXTERNALPORT}${ZITADEL_LOGIN_ACTIVE_BASE_PATH:-/ui/v2/login}/logout?post_logout_redirect=
       ZITADEL_LOGSTORE_ACCESS_STDOUT_ENABLED: ${ZITADEL_ACCESS_LOG_STDOUT_ENABLED}
       ZITADEL_CACHES_CONNECTORS_REDIS_ENABLED: ${ZITADEL_CACHES_CONNECTORS_REDIS_ENABLED}
       ZITADEL_CACHES_CONNECTORS_REDIS_URL: ${ZITADEL_CACHES_CONNECTORS_REDIS_URL}
@@ -178,6 +178,49 @@ services:
       - traefik.http.routers.zitadel-login.entrypoints=web
       - traefik.http.routers.zitadel-login.service=zitadel-login
       - traefik.http.routers.zitadel-login.priority=250
+
+  zitadel-login-vue:
+    build:
+      context: .
+      dockerfile: ./services/zitadel-login-vue/Dockerfile
+      args:
+        VITE_PUBLIC_BASE_PATH: ${ZITADEL_LOGIN_VUE_BASE_PATH:-/ui/v2/login-vue}
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3010
+      PUBLIC_BASE_PATH: ${ZITADEL_LOGIN_VUE_BASE_PATH:-/ui/v2/login-vue}
+      ZITADEL_API_URL: http://zitadel-api:8080
+      ZITADEL_PUBLIC_HOST: ${ZITADEL_DOMAIN}
+      ZITADEL_INSTANCE_HOST: ${ZITADEL_DOMAIN}
+      ZITADEL_SERVICE_USER_TOKEN_FILE: /zitadel/bootstrap/login-client.pat
+      LOGIN_COOKIE_SECRET: ${ZITADEL_LOGIN_VUE_COOKIE_SECRET}
+      SECURE_COOKIES: ${ZITADEL_EXTERNALSECURE}
+    healthcheck:
+      test:
+        - CMD
+        - /bin/sh
+        - -c
+        - wget -q -O - http://127.0.0.1:3010${ZITADEL_LOGIN_VUE_BASE_PATH:-/ui/v2/login-vue}/healthz >/dev/null
+      interval: 10s
+      timeout: 30s
+      retries: 12
+      start_period: 20s
+    volumes:
+      - zitadel-bootstrap:/zitadel/bootstrap:ro
+    depends_on:
+      zitadel-api:
+        condition: service_healthy
+    networks:
+      - zitadel
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=zitadel
+      - traefik.http.services.zitadel-login-vue.loadbalancer.server.port=3010
+      - traefik.http.routers.zitadel-login-vue.rule=Host(`${ZITADEL_DOMAIN}`) && PathPrefix(`${ZITADEL_LOGIN_VUE_BASE_PATH:-/ui/v2/login-vue}`)
+      - traefik.http.routers.zitadel-login-vue.entrypoints=web
+      - traefik.http.routers.zitadel-login-vue.service=zitadel-login-vue
+      - traefik.http.routers.zitadel-login-vue.priority=245
 
   sso-backend:
     build:

@@ -1,0 +1,56 @@
+{
+  "name": "zitadel-login-vue",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 5174",
+    "dev:server": "tsx src/server/index.ts",
+    "build": "run-s typecheck build:web build:server",
+    "build:web": "vite build",
+    "build:server": "tsc --build tsconfig.server.json --force",
+    "start": "node dist/server/server/index.js",
+    "lint": "run-s lint:eslint security:storage wcag:theme",
+    "lint:eslint": "eslint src eslint.config.ts vite.config.ts vitest.config.ts",
+    "security:storage": "node ../../tools/frontend-security/check-browser-storage-policy.mjs .",
+    "wcag:theme": "node scripts/check-wcag-theme.mjs",
+    "typecheck": "run-p typecheck:web typecheck:server",
+    "typecheck:web": "vue-tsc --build tsconfig.app.json",
+    "typecheck:server": "tsc -p tsconfig.server.json --noEmit --tsBuildInfoFile ./node_modules/.tmp/tsconfig.server.noemit.tsbuildinfo",
+    "test": "vitest run",
+    "smoke": "node scripts/smoke-built-server.mjs",
+    "preview": "vite preview --host 0.0.0.0 --port 4174"
+  },
+  "dependencies": {
+    "lucide-vue-next": "^1.0.0",
+    "pinia": "^3.0.4",
+    "vue": "^3.5.33",
+    "vue-router": "^5.0.6"
+  },
+  "devDependencies": {
+    "@tsconfig/node24": "^24.0.4",
+    "@types/node": "^24.12.2",
+    "@vitejs/plugin-vue": "^6.0.6",
+    "@vitest/eslint-plugin": "^1.6.16",
+    "@vue/eslint-config-typescript": "^14.7.0",
+    "@vue/test-utils": "^2.4.6",
+    "@vue/tsconfig": "^0.9.1",
+    "eslint": "^10.2.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-oxlint": "~1.60.0",
+    "eslint-plugin-vue": "~10.8.0",
+    "jiti": "^2.6.1",
+    "jsdom": "^29.0.2",
+    "npm-run-all2": "^8.0.4",
+    "oxlint": "~1.60.0",
+    "prettier": "3.8.3",
+    "tsx": "^4.21.0",
+    "typescript": "~6.0.0",
+    "vite": "^8.0.10",
+    "vitest": "^4.1.5",
+    "vue-tsc": "^3.2.7"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}

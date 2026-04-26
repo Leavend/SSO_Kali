@@ -42,7 +42,7 @@ compose() {
   docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "$@"
 }
 
-APP_SERVICES=(sso-backend sso-backend-worker sso-frontend sso-admin-vue zitadel-login app-a-next app-b-laravel)
+APP_SERVICES=(sso-backend sso-backend-worker sso-frontend sso-admin-vue zitadel-login zitadel-login-vue app-a-next app-b-laravel)
 
 declare -A IMAGE_MAP=(
   [sso-backend]="sso-backend"
@@ -50,6 +50,7 @@ declare -A IMAGE_MAP=(
   [sso-frontend]="sso-frontend"
   [sso-admin-vue]="sso-admin-vue"
   [zitadel-login]="zitadel-login"
+  [zitadel-login-vue]="zitadel-login-vue"
   [app-a-next]="app-a-next"
   [app-b-laravel]="app-b-laravel"
 )
@@ -60,6 +61,7 @@ declare -A LOCAL_IMAGE_MAP=(
   [sso-frontend]="sso-dev-sso-frontend"
   [sso-admin-vue]="sso-dev-sso-admin-vue"
   [zitadel-login]="sso-dev-zitadel-login"
+  [zitadel-login-vue]="sso-dev-zitadel-login-vue"
   [app-a-next]="sso-dev-app-a-next"
   [app-b-laravel]="sso-dev-app-b-laravel"
 )
