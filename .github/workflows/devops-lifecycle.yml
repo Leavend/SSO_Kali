@@ -13,6 +13,7 @@ on:
       - "docs/generated/**"
       - "packages/dev-sso-parent-ui/**"
       - "services/sso-frontend/**"
+      - "services/zitadel-login-vue/**"
   push:
     branches: [main]
     paths:
@@ -25,6 +26,7 @@ on:
       - "docs/generated/**"
       - "packages/dev-sso-parent-ui/**"
       - "services/sso-frontend/**"
+      - "services/zitadel-login-vue/**"
   workflow_dispatch:
 
 env:
@@ -51,6 +53,9 @@ jobs:
 
       - name: Validate rebuilt Vue SSO frontend lifecycle
         run: ./scripts/validate-sso-frontend-vue-lifecycle.sh
+
+      - name: Validate ZITADEL Vue login canary lifecycle
+        run: ./scripts/validate-zitadel-login-vue-lifecycle.sh
 
       - name: Validate SRE coexistence policy
         run: ./infra/sre/check-coexistence-policy.sh

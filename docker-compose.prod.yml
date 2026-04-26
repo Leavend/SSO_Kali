@@ -114,6 +114,9 @@ services:
   zitadel-login:
     <<: *runtime-login-budget
 
+  zitadel-login-vue:
+    <<: *runtime-login-budget
+
   sso-backend:
     <<: *runtime-api-budget
 

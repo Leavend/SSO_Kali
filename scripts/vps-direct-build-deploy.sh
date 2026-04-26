@@ -11,7 +11,7 @@ set -Eeuo pipefail
 
 TAG=""
 PROJECT_DIR="/opt/sso-prototype-dev"
-SERVICES=(sso-frontend sso-admin-vue)
+SERVICES=(sso-frontend sso-admin-vue zitadel-login-vue)
 PRUNE_BUILD_CACHE=0
 MIN_REPLICAS="${MIN_REPLICAS:-2}"
 GREEN_DRAIN_SECONDS="${GREEN_DRAIN_SECONDS:-30}"
@@ -57,6 +57,7 @@ declare -A LOCAL_IMAGE_MAP=(
   [sso-frontend]="sso-dev-sso-frontend"
   [sso-admin-vue]="sso-dev-sso-admin-vue"
   [zitadel-login]="sso-dev-zitadel-login"
+  [zitadel-login-vue]="sso-dev-zitadel-login-vue"
   [app-a-next]="sso-dev-app-a-next"
   [app-b-laravel]="sso-dev-app-b-laravel"
 )
@@ -97,7 +98,7 @@ rollback_compose() {
 
 desired_scale() {
   case "$1" in
-    sso-frontend|sso-admin-vue|zitadel-login) printf '%s' "$MIN_REPLICAS" ;;
+    sso-frontend|sso-admin-vue|zitadel-login|zitadel-login-vue) printf '%s' "$MIN_REPLICAS" ;;
     *) printf '1' ;;
   esac
 }
@@ -196,7 +197,7 @@ rollback() {
 
 supports_green_prewarm() {
   case "$1" in
-    sso-frontend|zitadel-login) return 0 ;;
+    sso-frontend|zitadel-login|zitadel-login-vue) return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -205,7 +206,15 @@ health_path() {
   case "$1" in
     sso-frontend) printf '/healthz' ;;
     zitadel-login) printf '/ui/v2/login/healthy' ;;
+    zitadel-login-vue) printf "$(env_value ZITADEL_LOGIN_VUE_BASE_PATH /ui/v2/login-vue)/healthz" ;;
     *) printf '/healthz' ;;
+  esac
+}
+
+health_port() {
+  case "$1" in
+    zitadel-login-vue) printf '3010' ;;
+    *) printf '3000' ;;
   esac
 }
 
@@ -269,11 +278,12 @@ print("\n".join(shlex.quote(value) for value in args))
 }
 
 wait_green_healthy() {
-  local svc="$1" cid="$2" timeout="${3:-180}" elapsed=0 path
+  local svc="$1" cid="$2" timeout="${3:-180}" elapsed=0 path port
   path="$(health_path "$svc")"
+  port="$(health_port "$svc")"
 
   while [ "$elapsed" -lt "$timeout" ]; do
-    if docker exec "$cid" wget -q -O - "http://127.0.0.1:3000${path}" >/dev/null 2>&1; then
+    if docker exec "$cid" wget -q -O - "http://127.0.0.1:${port}${path}" >/dev/null 2>&1; then
       return 0
     fi
 
@@ -389,6 +399,14 @@ build_service_image() {
         --build-arg "ZITADEL_VERSION=$(env_value ZITADEL_VERSION v4.14.0)" \
         "$PROJECT_DIR" 2>&1 | tee -a "$DEPLOY_LOG"
       ;;
+    zitadel-login-vue)
+      log "  building $svc as $image"
+      docker build --pull \
+        -t "$image" \
+        -f "$PROJECT_DIR/services/zitadel-login-vue/Dockerfile" \
+        --build-arg "VITE_PUBLIC_BASE_PATH=$(env_value ZITADEL_LOGIN_VUE_BASE_PATH /ui/v2/login-vue)" \
+        "$PROJECT_DIR" 2>&1 | tee -a "$DEPLOY_LOG"
+      ;;
     *)
       fail "Direct docker build is not mapped for service: $svc"
       ;;
@@ -432,6 +450,11 @@ for svc in "${SERVICES[@]}"; do
   [[ -n "${LOCAL_IMAGE_MAP[$svc]:-}" ]] || fail "Unsupported service: $svc"
   grep -Fxq "$svc" <<<"$required_services" || fail "Compose does not define service: $svc"
 done
+
+if printf '%s\n' "${SERVICES[@]}" | grep -Fxq "zitadel-login-vue"; then
+  secret="$(env_value ZITADEL_LOGIN_VUE_COOKIE_SECRET)"
+  [ "${#secret}" -ge 32 ] && [[ "$secret" != REPLACE_* ]] || fail "ZITADEL_LOGIN_VUE_COOKIE_SECRET must be set before deploying zitadel-login-vue"
+fi
 
 if [ "$PRUNE_BUILD_CACHE" -eq 1 ]; then
   log "Pruning Docker build cache before VPS build"
@@ -477,6 +500,10 @@ if printf '%s\n' "${SERVICES[@]}" | grep -Fxq "sso-admin-vue"; then
 fi
 if printf '%s\n' "${SERVICES[@]}" | grep -Fxq "zitadel-login"; then
   smoke_check "Zitadel Login Health" "https://${ZITADEL_DOMAIN}/ui/v2/login/healthy" "^200$" "$ZITADEL_DOMAIN" || rollback_once "Smoke check failed: Zitadel Login Health"
+fi
+if printf '%s\n' "${SERVICES[@]}" | grep -Fxq "zitadel-login-vue"; then
+  ZITADEL_LOGIN_VUE_BASE_PATH=$(env_value ZITADEL_LOGIN_VUE_BASE_PATH /ui/v2/login-vue)
+  smoke_check "Zitadel Vue Login Canary" "https://${ZITADEL_DOMAIN}${ZITADEL_LOGIN_VUE_BASE_PATH}/healthz" "^200$" "$ZITADEL_DOMAIN" || rollback_once "Smoke check failed: Zitadel Vue Login Canary"
 fi
 
 echo "$TAG" > "$DEPLOY_TAG_FILE"

@@ -54,10 +54,10 @@ compose() {
 }
 
 # Services that use custom-built images (order matters: deps first)
-APP_SERVICES=(sso-backend sso-backend-worker sso-frontend sso-admin-vue zitadel-login app-a-next app-b-laravel)
+APP_SERVICES=(sso-backend sso-backend-worker sso-frontend sso-admin-vue zitadel-login zitadel-login-vue app-a-next app-b-laravel)
 
 # Core services that trigger hard rollback if unhealthy
-CORE_SERVICES=(sso-backend sso-backend-worker sso-frontend sso-admin-vue zitadel-login)
+CORE_SERVICES=(sso-backend sso-backend-worker sso-frontend sso-admin-vue zitadel-login zitadel-login-vue)
 
 is_core_service() {
   local svc="$1"
@@ -74,6 +74,7 @@ declare -A IMAGE_MAP=(
   [sso-frontend]="sso-frontend"
   [sso-admin-vue]="sso-admin-vue"
   [zitadel-login]="zitadel-login"
+  [zitadel-login-vue]="zitadel-login-vue"
   [app-a-next]="app-a-next"
   [app-b-laravel]="app-b-laravel"
 )
@@ -84,6 +85,7 @@ declare -A LOCAL_IMAGE_MAP=(
   [sso-frontend]="sso-dev-sso-frontend"
   [sso-admin-vue]="sso-dev-sso-admin-vue"
   [zitadel-login]="sso-dev-zitadel-login"
+  [zitadel-login-vue]="sso-dev-zitadel-login-vue"
   [app-a-next]="sso-dev-app-a-next"
   [app-b-laravel]="sso-dev-app-b-laravel"
 )
@@ -108,6 +110,10 @@ for svc in "${APP_SERVICES[@]}"; do
     fail "Compose control plane does not define required service: $svc"
   fi
 done
+
+if ! grep -Eq '^ZITADEL_LOGIN_VUE_COOKIE_SECRET=.{32,}$' "$ENV_FILE" || grep -Eq '^ZITADEL_LOGIN_VUE_COOKIE_SECRET=REPLACE_' "$ENV_FILE"; then
+  fail "ZITADEL_LOGIN_VUE_COOKIE_SECRET must be set before deploying zitadel-login-vue"
+fi
 
 log "Preflight complete - Compose control plane is aligned"
 
