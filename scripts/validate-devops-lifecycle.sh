@@ -56,6 +56,15 @@ warn_unless_text() {
   fi
 }
 
+require_absent_text() {
+  local file="$1" pattern="$2" label="$3"
+  if grep -Eq -- "$pattern" "$ROOT_DIR/$file"; then
+    fail "$label"
+  else
+    pass "$label"
+  fi
+}
+
 require_file ".github/workflows/ci.yml"
 require_file ".github/workflows/cd.yml"
 require_file ".github/workflows/rollback.yml"
@@ -110,17 +119,26 @@ require_text ".github/workflows/ci.yml" 'packages: write' "CI image build has pa
 require_text ".github/workflows/ci.yml" 'id-token: write' "CI image build can publish signed provenance"
 require_text ".github/workflows/ci.yml" 'attestations: write' "CI image build can publish attestations"
 require_text ".github/workflows/ci.yml" 'security-events: write' "CI can upload security scanning evidence"
-require_text ".github/workflows/ci.yml" 'docker/build-push-action@v6' "CI uses Docker Buildx build-push action"
+require_text ".github/workflows/ci.yml" 'FORCE_JAVASCRIPT_ACTIONS_TO_NODE24' "CI opts JavaScript actions into Node 24 runtime"
+require_text ".github/workflows/cd.yml" 'FORCE_JAVASCRIPT_ACTIONS_TO_NODE24' "CD opts JavaScript actions into Node 24 runtime"
+require_text ".github/workflows/rollback.yml" 'FORCE_JAVASCRIPT_ACTIONS_TO_NODE24' "Rollback opts JavaScript actions into Node 24 runtime"
+require_text ".github/workflows/ci.yml" 'actions/checkout@v5' "CI uses Node 24-compatible checkout action"
+require_text ".github/workflows/ci.yml" 'actions/setup-node@v6' "CI uses Node 24-compatible setup-node action"
+require_text ".github/workflows/ci.yml" 'actions/cache@v5' "CI uses Node 24-compatible cache action"
+require_text ".github/workflows/ci.yml" 'docker/build-push-action@v7' "CI uses Docker Buildx build-push action"
 require_text ".dockerignore" '\*\*/node_modules' "Docker root context excludes Node dependencies"
 require_text ".dockerignore" '\.secrets' "Docker root context excludes local secrets"
-require_text ".github/workflows/ci.yml" 'docker/metadata-action@v5' "CI uses Docker metadata action"
+require_text ".github/workflows/ci.yml" 'docker/metadata-action@v6' "CI uses Docker metadata action"
 require_text ".github/workflows/ci.yml" 'storage/framework/views' "CI prepares Laravel runtime directories for ephemeral runners"
 require_text ".github/workflows/ci.yml" 'cache-to: type=gha' "CI uses Docker build cache"
 require_text ".github/workflows/ci.yml" 'sbom: true' "CI emits container SBOM attestations"
 require_text ".github/workflows/ci.yml" 'provenance: mode=max' "CI emits max provenance attestations"
-require_text ".github/workflows/ci.yml" 'docker/scout-action@v[0-9]+\.[0-9]+\.[0-9]+' "CI runs a pinned Docker Scout CVE scan"
-require_text ".github/workflows/ci.yml" 'DOCKERHUB_TOKEN' "CI supports Docker Scout authentication through GitHub secrets"
+require_text ".github/workflows/ci.yml" 'anchore/scan-action@[0-9a-f]{40}' "CI runs a SHA-pinned Grype CVE scan"
+require_text ".github/workflows/ci.yml" 'fail-build: false' "CI keeps current dev vulnerability findings advisory while the baseline is accepted"
+require_text ".github/workflows/ci.yml" 'Require Grype SARIF evidence' "CI fails when the vulnerability scanner does not produce evidence"
+require_text ".github/workflows/ci.yml" 'only-fixed: true' "CI scopes image CVE evidence to fixable vulnerabilities"
 require_text ".github/workflows/ci.yml" 'github/codeql-action/upload-sarif@v4' "CI uploads container scan SARIF evidence"
+require_absent_text ".github/workflows/ci.yml" 'docker/scout-action|Docker Scout|DOCKERHUB_TOKEN|dockerhub-' "CI no longer depends on Docker Scout entitlement"
 require_text ".github/workflows/ci.yml" 'sso-admin-vue' "CI builds Vue admin canary image"
 
 require_text ".github/workflows/cd.yml" 'environment: production' "CD requires production environment gate"
@@ -211,11 +229,11 @@ require_text "infra/ansible/playbooks/devops-preflight.yml" '/healthz' "Ansible 
 require_text ".github/workflows/devops-lifecycle.yml" 'validate-devops-lifecycle\.sh' "DevOps workflow runs lifecycle validator"
 require_text ".github/workflows/devops-lifecycle.yml" 'validate-sso-frontend-vue-lifecycle\.sh' "DevOps workflow validates rebuilt Vue SSO frontend"
 require_text ".github/workflows/devops-lifecycle.yml" 'packages/dev-sso-parent-ui/\*\*' "DevOps workflow watches parent UI contract changes"
-require_text ".github/workflows/devops-lifecycle.yml" 'hashicorp/setup-terraform@v3' "DevOps workflow validates Terraform"
+require_text ".github/workflows/devops-lifecycle.yml" 'hashicorp/setup-terraform@v4' "DevOps workflow validates Terraform"
 require_text ".github/workflows/devops-lifecycle.yml" 'ansible-playbook --syntax-check' "DevOps workflow validates Ansible syntax"
 require_text ".github/workflows/devops-lifecycle.yml" 'check-observability-assets\.sh' "DevOps workflow validates observability assets"
 
-warn_unless_text ".github/workflows/ci.yml" 'docker/scout-action|trivy|grype|scan' "Container vulnerability scanning is integrated"
+warn_unless_text ".github/workflows/ci.yml" 'anchore/scan-action|trivy|grype|scan' "Container vulnerability scanning is integrated"
 warn_unless_text ".github/workflows/devops-lifecycle.yml" 'kubeconform|helm lint|ct lint' "Kubernetes/Helm static validation is integrated"
 warn_unless_text "infra/ansible/playbooks/devops-preflight.yml" 'firewall|ufw|nftables' "Host firewall automation is codified"
 warn_unless_text "infra/terraform/environments/dev-sso/main.tf" 'dns|firewall|provider' "Provider-backed DNS/firewall resources are codified"

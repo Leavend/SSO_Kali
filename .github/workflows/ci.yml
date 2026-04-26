@@ -17,6 +17,7 @@ permissions:
   contents: read
 
 env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
   REGISTRY: ghcr.io
   IMAGE_PREFIX: ghcr.io/leavend/sso-prototype
 
@@ -44,7 +45,7 @@ jobs:
         working-directory: ${{ matrix.component.path }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup PHP 8.4
         uses: shivammathur/setup-php@v2
@@ -55,7 +56,7 @@ jobs:
           tools: composer:v2
 
       - name: Cache Composer
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ${{ matrix.component.path }}/vendor
           key: composer-${{ matrix.component.name }}-${{ hashFiles(format('{0}/composer.lock', matrix.component.path)) }}
@@ -98,10 +99,10 @@ jobs:
         working-directory: ${{ matrix.component.path }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup Node 22
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "22"
           cache: npm
@@ -183,21 +184,21 @@ jobs:
             dockerfile: ./apps/app-b-laravel/Dockerfile
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Login to GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Extract metadata
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.IMAGE_PREFIX }}/${{ matrix.image.name }}
           tags: |
@@ -210,7 +211,7 @@ jobs:
             type=ref,event=branch
 
       - name: Build and push
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ${{ matrix.image.context }}
           file: ${{ matrix.image.dockerfile }}
@@ -235,24 +236,24 @@ jobs:
           docker pull "$IMAGE_TAG"
           echo "✅ Verified: $IMAGE_TAG"
 
-      - name: Docker Scout CVE scan
-        id: docker-scout
-        uses: docker/scout-action@v1.20.4
-        continue-on-error: true
+      - name: Grype CVE scan
+        id: grype
+        uses: anchore/scan-action@e1165082ffb1fe366ebaf02d8526e7c4989ea9d2 # v7.4.0
         with:
-          command: cves
           image: ${{ steps.image_ref.outputs.image }}
-          only-severities: critical,high
+          fail-build: false
+          severity-cutoff: high
           only-fixed: true
-          sarif-file: docker-scout-${{ matrix.image.name }}.sarif
-          summary: true
-          write-comment: false
-          dockerhub-user: ${{ secrets.DOCKERHUB_USER }}
-          dockerhub-password: ${{ secrets.DOCKERHUB_TOKEN }}
+          output-format: sarif
+          output-file: grype-${{ matrix.image.name }}.sarif
+          cache-db: true
 
-      - name: Upload Docker Scout SARIF
-        if: always() && hashFiles(format('docker-scout-{0}.sarif', matrix.image.name)) != ''
+      - name: Require Grype SARIF evidence
+        run: test -s "${{ steps.grype.outputs.sarif }}"
+
+      - name: Upload Grype SARIF
+        if: always() && steps.grype.outputs.sarif != ''
         uses: github/codeql-action/upload-sarif@v4
         with:
-          sarif_file: docker-scout-${{ matrix.image.name }}.sarif
-          category: docker-scout-${{ matrix.image.name }}
+          sarif_file: ${{ steps.grype.outputs.sarif }}
+          category: grype-${{ matrix.image.name }}
