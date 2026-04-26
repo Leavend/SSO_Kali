@@ -59,6 +59,9 @@ jobs:
           echo "✅ check-env complete"
           REMOTE
 
+      - uses: actions/checkout@v5
+        if: inputs.action == 'set-app-b-hash'
+
       - name: Generate and set APP_B hash
         if: inputs.action == 'set-app-b-hash'
         run: |
@@ -68,43 +71,11 @@ jobs:
             echo "Using default: prototype-secret"
           fi
 
-          ssh -i ~/.ssh/deploy_key "${{ env.VPS_USER }}@${{ env.VPS_HOST }}" bash -s -- "$PLAINTEXT" <<'REMOTE'
-          set -euo pipefail
-          PLAINTEXT="$1"
-          PROJECT_DIR="/opt/sso-prototype-dev"
+          # Rsync the hash script to VPS
+          rsync -avz -e "ssh -i ~/.ssh/deploy_key" \
+            scripts/set-app-b-hash.sh \
+            "${{ env.VPS_USER }}@${{ env.VPS_HOST }}":/tmp/set-app-b-hash.sh
 
-          echo "=== Generating Argon2id hash ==="
-          HASH=$(sudo docker compose -f "$PROJECT_DIR/docker-compose.dev.yml" \
-            --env-file "$PROJECT_DIR/.env.dev" \
-            exec -T sso-backend php -r \
-            "echo password_hash('$PLAINTEXT', PASSWORD_ARGON2ID, ['memory_cost'=>19456,'time_cost'=>3,'threads'=>1]);")
-
-          echo "Generated hash: $HASH"
-
-          # Backup current .env.dev
-          sudo cp "$PROJECT_DIR/.env.dev" "$PROJECT_DIR/.env.dev.bak.$(date +%s)"
-
-          # Remove existing entry + append new one
-          # CRITICAL: Use printf to prevent bash from expanding $ in the argon2id hash
-          sudo sed -i '/^APP_B_CLIENT_SECRET_HASH=/d' "$PROJECT_DIR/.env.dev"
-          printf 'APP_B_CLIENT_SECRET_HASH=%s\n' "$HASH" | sudo tee -a "$PROJECT_DIR/.env.dev" > /dev/null
-
-          echo ""
-          echo "=== Verifying ==="
-          grep APP_B_CLIENT_SECRET_HASH "$PROJECT_DIR/.env.dev"
-
-          echo ""
-          echo "=== Restarting sso-backend ==="
-          sudo docker compose -f "$PROJECT_DIR/docker-compose.dev.yml" \
-            --env-file "$PROJECT_DIR/.env.dev" \
-            restart sso-backend
-
-          echo ""
-          echo "=== Waiting for healthy ==="
-          sleep 5
-          sudo docker compose -f "$PROJECT_DIR/docker-compose.dev.yml" \
-            --env-file "$PROJECT_DIR/.env.dev" \
-            ps sso-backend 2>/dev/null || echo "sso-backend check skipped"
-
-          echo "✅ Done"
-          REMOTE
+          # Execute remotely
+          ssh -i ~/.ssh/deploy_key "${{ env.VPS_USER }}@${{ env.VPS_HOST }}" \
+            "chmod +x /tmp/set-app-b-hash.sh && /tmp/set-app-b-hash.sh '$PLAINTEXT' && rm -f /tmp/set-app-b-hash.sh"
