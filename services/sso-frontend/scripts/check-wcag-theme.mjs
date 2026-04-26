@@ -1,10 +1,10 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { dirname, join } from 'node:path'
+import { dirname, join, resolve as resolvePath } from 'node:path'
 
 const rootDir = dirname(dirname(fileURLToPath(import.meta.url)))
 const cssPath = join(rootDir, 'src/web/styles/main.css')
-const css = readFileSync(cssPath, 'utf8')
+const css = readCss(cssPath)
 
 const themes = {
   light: readTokens(':root'),
@@ -55,6 +55,18 @@ function readTokens(selector) {
 
   return Object.fromEntries(
     [...match[1].matchAll(/--([a-z-]+):\s*(#[0-9a-f]{3,8})\s*;/gi)].map((entry) => [entry[1], entry[2]]),
+  )
+}
+
+function readCss(filePath, seen = new Set()) {
+  const absolutePath = resolvePath(filePath)
+  if (seen.has(absolutePath)) return ''
+
+  seen.add(absolutePath)
+
+  return readFileSync(absolutePath, 'utf8').replace(
+    /@import\s+['"]([^'"]+)['"]\s*;/g,
+    (_match, importPath) => readCss(join(dirname(absolutePath), importPath), seen),
   )
 }
 

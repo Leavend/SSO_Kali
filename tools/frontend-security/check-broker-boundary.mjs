@@ -96,7 +96,13 @@ function walk(entry) {
 }
 
 function shouldIgnoreDir(entry) {
-  return statSync(entry).isDirectory() && IGNORED_DIRS.has(path.basename(entry));
+  if (!statSync(entry).isDirectory()) {
+    return false;
+  }
+
+  const dirname = path.basename(entry);
+
+  return IGNORED_DIRS.has(dirname) || dirname.startsWith("node_modules.");
 }
 
 function shouldScanFile(file) {

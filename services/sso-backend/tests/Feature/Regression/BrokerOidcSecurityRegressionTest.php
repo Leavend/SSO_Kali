@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Services\Oidc\AuthorizationCodeStore;
 use App\Support\Oidc\Pkce;
 use Tests\TestCase;
 
@@ -35,11 +36,13 @@ it('fails closed for invalid authorize requests in the security regression pack'
 
 it('forces prompt=login and max_age=0 for the admin panel client regression path', function (): void {
     /** @var TestCase $this */
-    $response = $this->get('/authorize?'.http_build_query([
-        ...authorizeParams(),
-        'client_id' => 'sso-admin-panel',
-        'redirect_uri' => 'http://localhost:3000/auth/callback',
-    ]));
+    $response = $this
+        ->withSession(['broker_browser_session' => brokerBrowserSession()])
+        ->get('/authorize?'.http_build_query([
+            ...authorizeParams(),
+            'client_id' => 'sso-admin-panel',
+            'redirect_uri' => 'http://localhost:3000/auth/callback',
+        ]));
 
     $response->assertRedirect();
 
@@ -47,6 +50,27 @@ it('forces prompt=login and max_age=0 for the admin panel client regression path
 
     expect($query['prompt'])->toBe('login')
         ->and($query['max_age'])->toBe('0');
+});
+
+it('reuses a fresh broker browser session for silent app sso', function (): void {
+    /** @var TestCase $this */
+    $response = $this
+        ->withSession(['broker_browser_session' => brokerBrowserSession()])
+        ->get('/authorize?'.http_build_query(authorizeParams(['prompt' => 'none'])));
+
+    $response->assertRedirect();
+
+    $location = (string) $response->headers->get('Location');
+    parse_str((string) parse_url($location, PHP_URL_QUERY), $query);
+
+    $payload = app(AuthorizationCodeStore::class)->pull((string) $query['code']);
+
+    expect($location)->toStartWith('http://localhost:3001/auth/callback?')
+        ->and($query['state'])->toBe('client-state')
+        ->and($query['iss'])->toBe('http://localhost')
+        ->and($payload)->toBeArray()
+        ->and($payload['subject_id'])->toBe('subject-123')
+        ->and($payload['session_id'])->toBe('logical-session-123');
 });
 
 /**
@@ -72,4 +96,18 @@ function authorizeParams(array $replace = [], array $remove = []): array
     }
 
     return [...$params, ...$replace];
+}
+
+/**
+ * @return array<string, mixed>
+ */
+function brokerBrowserSession(): array
+{
+    return [
+        'subject_id' => 'subject-123',
+        'session_id' => 'logical-session-123',
+        'auth_time' => now()->subMinute()->timestamp,
+        'amr' => ['pwd', 'mfa'],
+        'acr' => 'urn:example:loa:2',
+    ];
 }

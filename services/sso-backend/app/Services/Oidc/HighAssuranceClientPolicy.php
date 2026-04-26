@@ -18,7 +18,7 @@ final class HighAssuranceClientPolicy
         return $this->requiresInteractiveLogin($client) ? '0' : null;
     }
 
-    private function requiresInteractiveLogin(DownstreamClient $client): bool
+    public function requiresInteractiveLogin(DownstreamClient $client): bool
     {
         return $client->clientId === $this->adminPanelClientId();
     }

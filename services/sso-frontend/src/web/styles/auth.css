@@ -1,0 +1,353 @@
+.legacy-login {
+  position: relative;
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  overflow: hidden;
+  padding: 40px 16px 76px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--accent-soft) 62%, transparent), transparent 54%),
+    var(--canvas);
+}
+
+.legacy-login__frame {
+  width: min(100%, 448px);
+  animation: fadeInUp 0.45s ease-out;
+}
+
+.legacy-login__header {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  margin-bottom: 28px;
+}
+
+.legacy-login__mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.legacy-login__header p {
+  margin: 0;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.signin-card,
+.register-card {
+  background: var(--card);
+  box-shadow: 0 18px 48px var(--shadow);
+}
+
+.signin-card {
+  display: grid;
+  gap: 0;
+  padding: 32px;
+  border: 1px solid color-mix(in srgb, var(--line) 76%, transparent);
+  border-radius: 16px;
+}
+
+.signin-card h1 {
+  margin: 0;
+  text-align: center;
+  color: var(--ink);
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.18;
+  letter-spacing: 0;
+}
+
+.signin-card > p {
+  max-width: 320px;
+  margin: 8px auto 0;
+  text-align: center;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.field-group {
+  display: grid;
+  gap: 8px;
+  margin-top: 32px;
+}
+
+.field-group label {
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.field-group label span {
+  color: var(--muted);
+}
+
+.field-group input {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 14px;
+  color: var(--ink);
+  background: transparent;
+  font-size: 15px;
+  transition:
+    border-color 0.16s ease,
+    box-shadow 0.16s ease,
+    background-color 0.16s ease;
+}
+
+.field-group input::placeholder {
+  color: color-mix(in srgb, var(--muted) 74%, transparent);
+}
+
+.field-group input:focus {
+  border-color: var(--accent);
+  outline: 0;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 24%, transparent);
+}
+
+.field-group input:disabled {
+  cursor: not-allowed;
+  opacity: 0.68;
+}
+
+.signin-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 22px;
+}
+
+.signin-actions a,
+.register-card a,
+.auth-footer a {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.signin-actions a:hover,
+.register-card a:hover,
+.auth-footer a:hover {
+  color: var(--accent-hover);
+}
+
+.signin-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 128px;
+  min-height: 44px;
+  border: 0;
+  border-radius: 8px;
+  padding: 0 20px;
+  color: var(--accent);
+  background: var(--accent-soft);
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    color 0.16s ease,
+    background-color 0.16s ease,
+    transform 0.16s ease;
+}
+
+.signin-submit:hover:not(:disabled) {
+  color: var(--accent-contrast);
+  background: var(--accent);
+  transform: translateY(-1px);
+}
+
+.signin-submit:disabled {
+  cursor: not-allowed;
+  opacity: 0.56;
+}
+
+.loading-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 3px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 999px;
+  animation: spin 0.8s linear infinite;
+}
+
+.register-card {
+  margin-top: 16px;
+  border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+  border-radius: 16px;
+  padding: 18px 24px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.theme-toggle-anchor {
+  position: fixed;
+  right: 20px;
+  bottom: 58px;
+  z-index: 10;
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  background: var(--card);
+  cursor: pointer;
+  transition:
+    color 0.16s ease,
+    background-color 0.16s ease,
+    border-color 0.16s ease;
+}
+
+.theme-toggle:hover {
+  color: var(--ink);
+  background: var(--card-hover);
+}
+
+.auth-footer {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px 14px;
+  padding: 16px;
+  color: color-mix(in srgb, var(--muted) 78%, transparent);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.status-panel {
+  display: grid;
+  gap: 16px;
+  width: min(620px, 100%);
+  padding: 28px;
+}
+
+.status-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.status-panel[data-accent='danger'] .status-badge {
+  color: #b42318;
+}
+
+.status-panel[data-accent='warning'] .status-badge {
+  color: #a15c07;
+}
+
+@media (max-width: 900px) {
+  .app-shell,
+  .login-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: static;
+    padding: 18px;
+  }
+
+  .nav-list {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .sidebar-footer {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  .stat-grid,
+  .panel-grid,
+  .apps-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .page-header h1,
+  .status-panel h1,
+  .login-copy h1 {
+    font-size: 34px;
+  }
+
+  .legacy-login {
+    align-items: start;
+    padding: 34px 16px 104px;
+  }
+
+  .signin-card {
+    padding: 26px 20px;
+  }
+
+  .signin-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .signin-submit {
+    width: 100%;
+  }
+
+  .theme-toggle-anchor {
+    right: 16px;
+    bottom: 72px;
+  }
+
+  .main-surface {
+    padding: 18px;
+  }
+
+  .nav-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .stat-grid,
+  .panel-grid,
+  .apps-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .data-row,
+  .data-row--sessions {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .data-row--head {
+    display: none;
+  }
+}

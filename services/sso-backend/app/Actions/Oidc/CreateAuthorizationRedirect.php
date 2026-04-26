@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Actions\Oidc;
 
+use App\Services\Oidc\AuthorizationCodeStore;
 use App\Services\Oidc\AuthRequestStore;
+use App\Services\Oidc\BrokerBrowserSession;
 use App\Services\Oidc\DownstreamClientRegistry;
 use App\Services\Oidc\HighAssuranceClientPolicy;
 use App\Services\Oidc\OidcProfileMetrics;
@@ -24,6 +26,8 @@ final class CreateAuthorizationRedirect
     public function __construct(
         private readonly DownstreamClientRegistry $clients,
         private readonly AuthRequestStore $authRequests,
+        private readonly AuthorizationCodeStore $codes,
+        private readonly BrokerBrowserSession $browserSession,
         private readonly HighAssuranceClientPolicy $assurance,
         private readonly OidcProfileMetrics $metrics,
         private readonly BrokerAuthFlowCookie $authFlowCookie,
@@ -45,6 +49,12 @@ final class CreateAuthorizationRedirect
         }
 
         $context = $this->context($request, $client);
+        $browserContext = $this->browserSession->context($request);
+
+        if ($browserContext !== null && $this->canUseBrowserSession($request, $client, $browserContext)) {
+            return $this->localRedirect($context, $browserContext);
+        }
+
         $upstreamState = $this->authRequests->put($context);
 
         if ($upstreamState === null) {
@@ -58,6 +68,34 @@ final class CreateAuthorizationRedirect
         return redirect()
             ->away($this->broker->authorizationUrl($this->upstreamParameters($upstreamState, $context)))
             ->withCookie($this->authFlowCookie->issue($context));
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     */
+    private function canUseBrowserSession(Request $request, DownstreamClient $client, array $context): bool
+    {
+        if ($this->assurance->requiresInteractiveLogin($client)) {
+            return false;
+        }
+
+        if ($this->prompt($request) === 'login') {
+            return false;
+        }
+
+        return $this->maxAgeIsFresh($request, $context);
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     * @param  array<string, mixed>  $browserContext
+     */
+    private function localRedirect(array $context, array $browserContext): RedirectResponse
+    {
+        $payload = [...$context, ...$browserContext];
+        $code = $this->codes->issue($payload);
+
+        return redirect()->away($this->callbackUri((string) $payload['redirect_uri'], $code, $payload));
     }
 
     private function client(Request $request): ?DownstreamClient
@@ -194,6 +232,35 @@ final class CreateAuthorizationRedirect
         $prompt = $request->query('prompt');
 
         return is_string($prompt) && $prompt !== '' ? $prompt : null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     */
+    private function maxAgeIsFresh(Request $request, array $context): bool
+    {
+        $maxAge = $request->query('max_age');
+        if (! is_string($maxAge) || ! ctype_digit($maxAge)) {
+            return true;
+        }
+
+        $authTime = is_int($context['auth_time'] ?? null) ? $context['auth_time'] : 0;
+
+        return $maxAge !== '0' && $authTime > 0 && time() - $authTime <= (int) $maxAge;
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     */
+    private function callbackUri(string $redirectUri, string $code, array $context): string
+    {
+        $query = http_build_query([
+            'code' => $code,
+            'state' => $context['original_state'] ?? null,
+            'iss' => config('sso.issuer'),
+        ]);
+
+        return $redirectUri.(str_contains($redirectUri, '?') ? '&' : '?').$query;
     }
 
     /**

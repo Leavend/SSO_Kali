@@ -7,6 +7,7 @@ namespace App\Actions\Oidc;
 use App\Services\Oidc\AuthContextFactory;
 use App\Services\Oidc\AuthorizationCodeStore;
 use App\Services\Oidc\AuthRequestStore;
+use App\Services\Oidc\BrokerBrowserSession;
 use App\Services\Oidc\BrokerCallbackSuccessLogger;
 use App\Services\Oidc\LogicalSessionStore;
 use App\Services\Oidc\UserProfileSynchronizer;
@@ -31,6 +32,7 @@ final class HandleBrokerCallback
         private readonly UserProfileSynchronizer $profiles,
         private readonly LogicalSessionStore $sessions,
         private readonly BrokerAuthFlowCookie $authFlowCookie,
+        private readonly BrokerBrowserSession $browserSession,
         private readonly BrokerCallbackSuccessLogger $successLogger,
     ) {}
 
@@ -65,7 +67,7 @@ final class HandleBrokerCallback
             return $this->failureRedirect($context, $exception);
         }
 
-        return $this->successRedirect($context, $tokens, $claims, $authContext);
+        return $this->successRedirect($request, $context, $tokens, $claims, $authContext);
     }
 
     private function missingContextResponse(Request $request): JsonResponse|RedirectResponse
@@ -108,10 +110,16 @@ final class HandleBrokerCallback
      * @param  array<string, mixed>  $claims
      * @param  array<string, mixed>  $authContext
      */
-    private function successRedirect(array $context, array $tokens, array $claims, array $authContext): RedirectResponse
-    {
+    private function successRedirect(
+        Request $request,
+        array $context,
+        array $tokens,
+        array $claims,
+        array $authContext,
+    ): RedirectResponse {
         $user = $this->profiles->sync($claims, [...$context, ...$authContext]);
         $logicalSessionId = $this->sessions->current($user->subject_id);
+        $this->browserSession->remember($request, $user->subject_id, $logicalSessionId, $authContext);
         $code = $this->codes->issue($this->authorizationCodePayload(
             $context,
             $tokens,
