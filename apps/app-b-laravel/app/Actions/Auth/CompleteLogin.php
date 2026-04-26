@@ -53,7 +53,8 @@ final class CompleteLogin
             [$tokens, $claims] = $this->tokensAndClaims($code, $transaction);
             $profile = $this->client->profile((string) $tokens['access_token']);
             $this->completeSession($request, $claims, $tokens, $profile);
-        } catch (Throwable) {
+        } catch (Throwable $exception) {
+            report($exception);
             $this->sessions->clearCurrent();
 
             return redirect('/')->with('status', 'Handshake SSO gagal diselesaikan.');

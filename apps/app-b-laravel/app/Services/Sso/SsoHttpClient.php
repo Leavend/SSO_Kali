@@ -26,7 +26,7 @@ final class SsoHttpClient
             $params['prompt'] = $prompt;
         }
 
-        return $this->publicUrl('/authorize').'?'.http_build_query($params);
+        return $this->publicUrl('/authorize') . '?' . http_build_query($params);
     }
 
     /**
@@ -50,8 +50,10 @@ final class SsoHttpClient
     public function profile(string $accessToken): array
     {
         $response = Http::acceptJson()
+            ->timeout(10)
+            ->connectTimeout(5)
             ->withToken($accessToken)
-            ->get(rtrim((string) config('services.resource_api.base_url'), '/').'/api/profile');
+            ->get(rtrim((string) config('services.resource_api.base_url'), '/') . '/api/profile');
 
         return $this->payload($response->successful(), $response->json(), $response->status());
     }
@@ -72,7 +74,7 @@ final class SsoHttpClient
      */
     private function post(string $path, array $body, ?string $accessToken = null): array
     {
-        $request = Http::acceptJson();
+        $request = Http::acceptJson()->timeout(10)->connectTimeout(5);
         $request = $accessToken === null ? $request : $request->withToken($accessToken);
         $response = $request->asJson()->post($this->internalUrl($path), $body);
 
@@ -81,12 +83,12 @@ final class SsoHttpClient
 
     private function publicUrl(string $path): string
     {
-        return rtrim((string) config('services.sso.public_issuer'), '/').$path;
+        return rtrim((string) config('services.sso.public_issuer'), '/') . $path;
     }
 
     private function internalUrl(string $path): string
     {
-        return rtrim((string) config('services.sso.internal_base_url'), '/').$path;
+        return rtrim((string) config('services.sso.internal_base_url'), '/') . $path;
     }
 
     /**
@@ -94,7 +96,7 @@ final class SsoHttpClient
      */
     private function payload(bool $successful, mixed $payload, int $status): array
     {
-        if (! $successful || ! is_array($payload)) {
+        if (!$successful || !is_array($payload)) {
             throw new RuntimeException(sprintf('SSO request failed with status %d.', $status));
         }
 
