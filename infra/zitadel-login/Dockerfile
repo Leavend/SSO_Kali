@@ -1,11 +1,12 @@
 FROM node:24-alpine
 
-ARG ZITADEL_VERSION=v4.11.0
+ARG ZITADEL_VERSION=v4.14.0
 
 RUN apk add --no-cache ca-certificates curl tar \
     && update-ca-certificates \
     && addgroup --system --gid 1001 nodejs \
-    && adduser --system --uid 1001 nextjs
+    && adduser --system --uid 1001 nextjs \
+    && rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 
 WORKDIR /tmp
 

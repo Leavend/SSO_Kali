@@ -386,7 +386,7 @@ build_service_image() {
       docker build --pull \
         -t "$image" \
         -f "$PROJECT_DIR/infra/zitadel-login/Dockerfile" \
-        --build-arg "ZITADEL_VERSION=$(env_value ZITADEL_VERSION v4.11.0)" \
+        --build-arg "ZITADEL_VERSION=$(env_value ZITADEL_VERSION v4.14.0)" \
         "$PROJECT_DIR" 2>&1 | tee -a "$DEPLOY_LOG"
       ;;
     *)

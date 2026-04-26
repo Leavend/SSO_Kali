@@ -175,7 +175,7 @@ jobs:
             context: .
             dockerfile: ./infra/zitadel-login/Dockerfile
             build-args: |
-              ZITADEL_VERSION=${{ vars.ZITADEL_VERSION || 'v4.11.0' }}
+              ZITADEL_VERSION=${{ vars.ZITADEL_VERSION || 'v4.14.0' }}
           - name: app-a-next
             context: ./apps/app-a-next
             dockerfile: ./apps/app-a-next/Dockerfile
@@ -241,12 +241,12 @@ jobs:
         uses: anchore/scan-action@e1165082ffb1fe366ebaf02d8526e7c4989ea9d2 # v7.4.0
         with:
           image: ${{ steps.image_ref.outputs.image }}
-          fail-build: false
+          fail-build: true
           severity-cutoff: high
           only-fixed: true
           output-format: sarif
           output-file: grype-${{ matrix.image.name }}.sarif
-          cache-db: true
+          cache-db: false
 
       - name: Require Grype SARIF evidence
         run: test -s "${{ steps.grype.outputs.sarif }}"

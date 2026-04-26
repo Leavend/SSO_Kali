@@ -21,7 +21,9 @@ FROM node:22-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
-RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 sso
+RUN addgroup --system --gid 1001 nodejs \
+    && adduser --system --uid 1001 sso \
+    && rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 COPY --from=builder --chown=sso:nodejs /app/package.json ./package.json
 COPY --from=builder --chown=sso:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=sso:nodejs /app/dist ./dist
