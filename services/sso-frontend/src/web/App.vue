@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from "vue";
+import { onMounted, onUnmounted, ref, watch } from "vue";
 import { LogOut, Menu, RefreshCw, ShieldCheck, X } from "lucide-vue-next";
 import { RouterLink, RouterView, useRoute } from "vue-router";
 import { useAdminStore } from "./stores/admin";
@@ -24,11 +24,6 @@ function closeSidebar(): void {
   sidebarOpen.value = false;
 }
 
-// Auto-close sidebar on route change (mobile nav UX)
-const stopWatch = route ? undefined : undefined;
-
-// Close sidebar on navigation
-import { watch } from "vue";
 watch(() => route.path, closeSidebar);
 </script>
 
