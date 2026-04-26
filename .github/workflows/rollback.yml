@@ -17,6 +17,15 @@ on:
         description: "Reason for rollback"
         required: true
         type: string
+      login_ui:
+        description: "Login UI after rollback"
+        required: true
+        default: "hosted"
+        type: choice
+        options:
+          - hosted
+          - vue
+          - keep
 
 permissions:
   contents: read
@@ -55,6 +64,7 @@ jobs:
       - name: Sync rollback script
         run: |
           rsync -avz -e "ssh -i ~/.ssh/deploy_key" \
+            scripts/vps-login-ui-cutover.sh \
             scripts/vps-rollback.sh \
             "${{ env.VPS_USER }}@${{ env.VPS_HOST }}:/tmp/_deploy_scripts/"
 
@@ -67,6 +77,15 @@ jobs:
               --tag '${{ inputs.target_tag }}' \
               --registry '${{ env.IMAGE_PREFIX }}' \
               --project-dir '${{ env.VPS_PROJECT_DIR }}'"
+
+      - name: Apply login UI rollback policy
+        if: ${{ inputs.login_ui != 'keep' }}
+        run: |
+          ssh -i ~/.ssh/deploy_key "${{ env.VPS_USER }}@${{ env.VPS_HOST }}" \
+            "sudo bash /tmp/_deploy_scripts/vps-login-ui-cutover.sh \
+              --mode '${{ inputs.login_ui }}' \
+              --project-dir '${{ env.VPS_PROJECT_DIR }}' \
+              --tag '${{ inputs.target_tag }}'"
 
       - name: Cleanup
         if: always()

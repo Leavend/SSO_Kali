@@ -53,6 +53,7 @@ require_file "services/zitadel-login-vue/src/web/views/OtpView.vue"
 require_file "services/zitadel-login-vue/src/web/styles/main.css"
 require_file "services/zitadel-login-vue/scripts/smoke-built-server.mjs"
 require_file "docs/generated/zitadel-vue-login-canary-runbook-2026-04-26.md"
+require_file "scripts/vps-login-ui-cutover.sh"
 
 python3 - <<'PY' "$ROOT_DIR/services/zitadel-login-vue/package.json" "$ROOT_DIR/services/zitadel-login-vue/package-lock.json"
 from __future__ import annotations
@@ -113,6 +114,10 @@ require_text "scripts/vps-direct-build-deploy.sh" 'ZITADEL_LOGIN_VUE_COOKIE_SECR
 require_text "scripts/vps-deploy.sh" 'zitadel-login-vue' "Registry deploy includes Vue login canary"
 require_text "scripts/vps-deploy.sh" 'ZITADEL_LOGIN_VUE_COOKIE_SECRET must be set' "Registry deploy preflights Vue login cookie secret"
 require_text "scripts/vps-deploy.sh" 'ZITADEL Vue Login Canary' "Registry deploy smokes Vue login canary"
+require_text "scripts/vps-login-ui-cutover.sh" 'ZITADEL_LOGIN_ACTIVE_BASE_PATH' "Login UI cutover controls active path through env"
+require_text "scripts/vps-login-ui-cutover.sh" 'ZITADEL_LOGIN_VUE_COOKIE_SECRET must be a strong deployed secret' "Login UI cutover preflights Vue cookie secret"
+require_text "scripts/vps-login-ui-cutover.sh" 'Hosted login rollback' "Login UI cutover keeps hosted rollback smoke"
+require_text "scripts/vps-login-ui-cutover.sh" 'Vue login canary' "Login UI cutover keeps Vue canary smoke"
 require_text "scripts/vps-rollback.sh" 'zitadel-login-vue' "Rollback includes Vue login canary image swap"
 
 printf '[zitadel-login-vue-lifecycle] Completed with %d failure(s)\n' "$FAILURES"

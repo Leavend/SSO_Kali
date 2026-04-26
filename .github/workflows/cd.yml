@@ -76,6 +76,7 @@ jobs:
           rsync -avz --progress \
             -e "ssh -i ~/.ssh/deploy_key" \
             scripts/vps-deploy.sh \
+            scripts/vps-login-ui-cutover.sh \
             scripts/vps-rollback.sh \
             "${{ env.VPS_USER }}@${{ env.VPS_HOST }}:/tmp/_deploy_scripts/"
 
@@ -92,7 +93,11 @@ jobs:
              if [ -f '${{ env.VPS_PROJECT_DIR }}/docker-compose.dev.yml' ]; then
                sudo cp '${{ env.VPS_PROJECT_DIR }}/docker-compose.dev.yml' \"\$backup\"
              fi
-             sudo install -m 0644 /tmp/_deploy_bundle/docker-compose.dev.yml '${{ env.VPS_PROJECT_DIR }}/docker-compose.dev.yml'"
+             sudo install -m 0644 /tmp/_deploy_bundle/docker-compose.dev.yml '${{ env.VPS_PROJECT_DIR }}/docker-compose.dev.yml'
+             sudo install -d -m 0755 '${{ env.VPS_PROJECT_DIR }}/scripts'
+             sudo install -m 0755 /tmp/_deploy_scripts/vps-deploy.sh '${{ env.VPS_PROJECT_DIR }}/scripts/vps-deploy.sh'
+             sudo install -m 0755 /tmp/_deploy_scripts/vps-login-ui-cutover.sh '${{ env.VPS_PROJECT_DIR }}/scripts/vps-login-ui-cutover.sh'
+             sudo install -m 0755 /tmp/_deploy_scripts/vps-rollback.sh '${{ env.VPS_PROJECT_DIR }}/scripts/vps-rollback.sh'"
 
       - name: Execute zero-downtime deploy
         run: |
