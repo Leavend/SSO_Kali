@@ -1,5 +1,5 @@
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join, sep } from "node:path";
+import { basename, join, sep } from "node:path";
 
 const root = process.argv[2];
 const marker = "/* Dev-SSO URL Privacy */";
@@ -25,6 +25,7 @@ if (!root) {
   throw new Error("Expected the extracted login bundle path as the first argument.");
 }
 
+const loginPageChunks = collectLoginPageChunks(root);
 let changedFiles = 0;
 walk(root);
 console.log(`Patched hosted login URL privacy into ${changedFiles} file(s).`);
@@ -45,9 +46,37 @@ function walk(directory) {
 }
 
 function isLoginClientChunk(location) {
-  return location.endsWith(".js")
-    && location.includes(`${sep}static${sep}chunks${sep}app${sep}`)
-    && location.includes(`${sep}(login)${sep}`);
+  if (!location.endsWith(".js")) {
+    return false;
+  }
+
+  if (!location.includes(`${sep}static${sep}chunks${sep}`)) {
+    return false;
+  }
+
+  if (location.includes(`${sep}static${sep}chunks${sep}app${sep}`)) {
+    return location.includes(`${sep}(login)${sep}`);
+  }
+
+  return loginPageChunks.has(basename(location));
+}
+
+function collectLoginPageChunks(directory) {
+  const location = join(directory, "server", "app", "(login)", "page_client-reference-manifest.js");
+  try {
+    return extractChunkNames(readFileSync(location, "utf8"));
+  } catch (error) {
+    return new Set();
+  }
+}
+
+function extractChunkNames(contents) {
+  const chunks = new Set();
+  const chunkPath = /\/ui\/v2\/login\/_next\/static\/chunks\/([^"]+?\.js)"/g;
+  for (const match of contents.matchAll(chunkPath)) {
+    chunks.add(match[1]);
+  }
+  return chunks;
 }
 
 function patchFile(location) {

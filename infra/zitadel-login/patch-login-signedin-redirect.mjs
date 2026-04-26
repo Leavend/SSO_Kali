@@ -10,6 +10,7 @@ if (!root) {
 }
 
 let routePatched = 0;
+let routeFilesSeen = 0;
 let debugPatched = 0;
 
 walk(root);
@@ -19,6 +20,10 @@ console.log(
 );
 
 if (routePatched === 0) {
+  console.warn("No legacy /login route auth-flow pattern found; keeping current ZITADEL route behavior.");
+}
+
+if (routeFilesSeen === 0) {
   throw new Error("Could not find the compiled /login route to patch V2 auth requests.");
 }
 
@@ -34,6 +39,7 @@ function walk(directory) {
     }
     const changed = patchDebugLogs(location);
     if (location.endsWith(loginRouteSuffix)) {
+      routeFilesSeen += 1;
       patchLoginRoute(location, changed);
     }
   }
@@ -48,20 +54,43 @@ function patchLoginRoute(location, alreadyChanged) {
     return;
   }
 
-  let patched = original;
-  patched = patched.replace(
-    /authRequestId:([\w$.]+)\.replace\("oidc_",\s*""\)/g,
-    'authRequestId:$1.replace(/^(?:oidc_|V2_)/,"")',
-  );
-  patched = patched.replace(
-    /return ([\w$.]+)\.startsWith\("oidc_"\)\?/g,
-    'return ($1.startsWith("oidc_")||$1.startsWith("V2_"))?',
-  );
+  const result = patchLegacyFlow(original);
 
-  assertRoutePatch(patched, location);
+  if (result.replacements === 0) {
+    assertNoUnpatchedLegacyFlow(original, location);
+    return;
+  }
 
-  writeFileSync(location, `${patched}\n${marker}\n`);
+  assertRoutePatch(result.contents, location);
+
+  writeFileSync(location, `${result.contents}\n${marker}\n`);
   routePatched += 1;
+}
+
+function patchLegacyFlow(contents) {
+  let replacements = 0;
+  const track = (value) => {
+    replacements += 1;
+    return value;
+  };
+  const withRequestId = contents.replace(
+    /authRequestId:([\w$.]+)\.replace\("oidc_",\s*""\)/g,
+    (_, id) => track(`authRequestId:${id}.replace(/^(?:oidc_|V2_)/,"")`),
+  );
+  const patched = withRequestId.replace(
+    /return ([\w$.]+)\.startsWith\("oidc_"\)\?/g,
+    (_, id) => track(`return (${id}.startsWith("oidc_")||${id}.startsWith("V2_"))?`),
+  );
+  return { contents: patched, replacements };
+}
+
+function assertNoUnpatchedLegacyFlow(contents, location) {
+  const hasLegacyFlow = contents.includes('replace("oidc_"')
+    || contents.includes('startsWith("oidc_")');
+
+  if (hasLegacyFlow) {
+    throw new Error(`Found legacy OIDC-only auth flow in ${location}, but no patch was applied.`);
+  }
 }
 
 function patchDebugLogs(location) {

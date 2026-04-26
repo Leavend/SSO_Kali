@@ -4,7 +4,7 @@ import { join } from "node:path";
 const root = process.argv[2];
 const languageListMarker = "/* Dev-SSO Language Focus */";
 const supportedLocalesPattern =
-  /\[\{name:"English",code:"en"\},\{name:"Deutsch",code:"de"\},\{name:"Italiano",code:"it"\},\{name:"Espa\\xf1ol",code:"es"\},\{name:"Fran\\xe7ais",code:"fr"\},\{name:"Nederlands",code:"nl"\},\{name:"Polski",code:"pl"\},\{name:"简体中文",code:"zh"\},\{name:"Русский",code:"ru"\},\{name:"T\\xfcrk\\xe7e",code:"tr"\},\{name:"日本語",code:"ja"\},\{name:"Українська",code:"uk"\},\{name:"العربية",code:"ar"\}\]/g;
+  /\[\{name:"English",code:"en"\},\{name:"Deutsch",code:"de"\},[\s\S]*?\{name:"العربية",code:"ar"\}\]/g;
 const focusedLanguages =
   '[{name:"Bahasa Indonesia",code:"id"},{name:"English",code:"en"}]';
 
