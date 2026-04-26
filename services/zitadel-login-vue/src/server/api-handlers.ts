@@ -7,10 +7,18 @@ import { clearSessionCookie, LOGIN_SESSION_COOKIE, parseLoginState, serializeLog
 import { readCookie, readJsonBody } from './request.js'
 import type { AppResponse } from './response.js'
 import { json } from './response.js'
-import { createSession, finalizeAuthRequest, updatePassword, updateTotp, ZitadelApiError } from './zitadel-client.js'
+import {
+  createSession,
+  finalizeAuthRequest,
+  getAuthRequestLoginHint,
+  updatePassword,
+  updateTotp,
+  ZitadelApiError,
+} from './zitadel-client.js'
 
 export async function handleApi(request: IncomingMessage, action: string, config: RuntimeConfig): Promise<AppResponse> {
   try {
+    if (action === '/session/auth-request') return await handleAuthRequest(request, config)
     if (action === '/session/user') return await handleUser(request, config)
     if (action === '/session/password') return await handlePassword(request, config)
     if (action === '/session/totp') return await handleTotp(request, config)
@@ -21,12 +29,24 @@ export async function handleApi(request: IncomingMessage, action: string, config
   }
 }
 
+async function handleAuthRequest(request: IncomingMessage, config: RuntimeConfig): Promise<AppResponse> {
+  const authRequest = sanitizeFlowId(authRequestFromBody(await readJsonBody(request)))
+  if (!authRequest) return json(422, { message: LOGIN_MESSAGES.missingFlow })
+  const loginName = sanitizeLoginName(await getAuthRequestLoginHint(config, authRequest))
+  if (!loginName) return json(200, { nextStep: 'login' })
+  return await createIdentifiedSession(config, loginName, authRequest)
+}
+
 async function handleUser(request: IncomingMessage, config: RuntimeConfig): Promise<AppResponse> {
   const body = (await readJsonBody(request)) as Record<string, unknown>
   const loginName = sanitizeLoginName(body.loginName)
   if (!loginName) return json(422, { message: LOGIN_MESSAGES.invalidLoginName })
-  const session = await createSession(config, loginName)
   const authRequest = sanitizeFlowId(body.authRequest)
+  return await createIdentifiedSession(config, loginName, authRequest ?? undefined)
+}
+
+async function createIdentifiedSession(config: RuntimeConfig, loginName: string, authRequest?: string): Promise<AppResponse> {
+  const session = await createSession(config, loginName)
   const value = serializeLoginState({ ...session, loginName, authRequest: authRequest ?? undefined }, config)
   return json(200, { nextStep: 'password', loginName }, { 'set-cookie': sessionCookie(value, config) })
 }
@@ -82,6 +102,10 @@ function passwordFromBody(body: unknown): string {
   if (typeof body !== 'object' || body === null) return ''
   const password = (body as Record<string, unknown>).password
   return typeof password === 'string' ? password : ''
+}
+
+function authRequestFromBody(body: unknown): unknown {
+  return typeof body === 'object' && body !== null ? (body as Record<string, unknown>).authRequest : null
 }
 
 function clearSession(config: RuntimeConfig): AppResponse {

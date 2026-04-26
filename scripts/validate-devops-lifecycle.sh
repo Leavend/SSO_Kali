@@ -184,7 +184,9 @@ require_text ".env.dev.example" '^ZITADEL_LOGIN_VUE_BASE_PATH=/ui/v2/login-vue$'
 require_text ".env.dev.example" '^ZITADEL_LOGIN_REQUIRE_TOTP_AFTER_PASSWORD=true$' "Development env keeps Vue login password-to-TOTP flow enabled"
 require_text "docker-compose.dev.yml" 'LOGIN_REQUIRE_TOTP_AFTER_PASSWORD: \$\{ZITADEL_LOGIN_REQUIRE_TOTP_AFTER_PASSWORD:-true\}' "Compose enables password-to-TOTP flow for Vue login"
 require_text "services/zitadel-login-vue/src/server/api-handlers.ts" "nextStep: 'otp'" "Vue login password step routes to authenticator code input"
-require_text "services/zitadel-login-vue/src/web/views/LoginView.vue" 'route\.query\.login_hint' "Vue login consumes OIDC login hint from dev-sso"
+require_text "services/zitadel-login-vue/src/server/zitadel-client.ts" 'getAuthRequestLoginHint' "Vue login reads OIDC auth request login hint from ZITADEL"
+require_text "services/zitadel-login-vue/src/server/api-handlers.ts" '/session/auth-request' "Vue login starts OIDC requests without a duplicate email step"
+require_text "services/zitadel-login-vue/src/web/views/LoginView.vue" 'submitAuthRequest' "Vue login consumes OIDC auth request before showing email form"
 
 require_text "scripts/vps-deploy.sh" 'export APP_IMAGE_TAG="\$TAG"' "Deploy exports deterministic APP_IMAGE_TAG"
 require_text "scripts/vps-deploy.sh" 'compose config --services' "Deploy preflights Compose services"

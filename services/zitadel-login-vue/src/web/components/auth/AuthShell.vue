@@ -15,20 +15,17 @@ withDefaults(
 </script>
 
 <template>
-  <section class="auth-screen" :aria-labelledby="labelledby">
-    <main class="auth-card">
-      <header class="brand-row">
-        <span class="brand-mark" aria-hidden="true">
+  <section class="legacy-login" :aria-labelledby="labelledby">
+    <div class="legacy-login__frame">
+      <header class="legacy-login__header">
+        <span class="legacy-login__mark" aria-hidden="true">
           <Layers :size="20" stroke-width="2.2" />
         </span>
-        <span>
-          <strong>{{ AUTH_SHELL.brand.name }}</strong>
-          <small>{{ AUTH_SHELL.brand.tagline }}</small>
-        </span>
+        <p>{{ AUTH_SHELL.brand.name }}</p>
       </header>
 
       <slot />
-    </main>
+    </div>
 
     <div :id="AUTH_SHELL.theme.toggleHostId" :class="AUTH_SHELL.theme.toggleHostClass">
       <ThemeToggle />

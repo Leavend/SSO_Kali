@@ -7,7 +7,9 @@ import type { RuntimeConfig } from './config.js'
 import { LOGIN_SESSION_COOKIE, serializeLoginState } from './cookies.js'
 
 const mocks = vi.hoisted(() => ({
+  createSession: vi.fn(),
   finalizeAuthRequest: vi.fn(),
+  getAuthRequestLoginHint: vi.fn(),
   updatePassword: vi.fn(),
   updateTotp: vi.fn(),
 }))
@@ -22,8 +24,9 @@ vi.mock('./zitadel-client.js', () => ({
       super(message)
     }
   },
-  createSession: vi.fn(),
+  createSession: mocks.createSession,
   finalizeAuthRequest: mocks.finalizeAuthRequest,
+  getAuthRequestLoginHint: mocks.getAuthRequestLoginHint,
   updatePassword: mocks.updatePassword,
   updateTotp: mocks.updateTotp,
 }))
@@ -42,8 +45,23 @@ const config: RuntimeConfig = {
 
 describe('login API flow', () => {
   beforeEach(() => {
+    mocks.createSession.mockResolvedValue({
+      sessionId: 'session-id',
+      sessionToken: 'identified-session-token',
+    })
     mocks.finalizeAuthRequest.mockReset()
+    mocks.getAuthRequestLoginHint.mockResolvedValue('huanamasi123@gmail.com')
     mocks.updatePassword.mockResolvedValue('password-session-token')
+  })
+
+  it('starts OIDC requests from the auth request login hint without another email step', async () => {
+    const response = await handleAuthRequestStep()
+    const payload = JSON.parse(String(response.body)) as { loginName?: string; nextStep?: string }
+
+    expect(response.status).toBe(200)
+    expect(payload.nextStep).toBe('password')
+    expect(payload.loginName).toBe('huanamasi123@gmail.com')
+    expect(mocks.getAuthRequestLoginHint).toHaveBeenCalledWith(config, 'V2_370134305323614212')
   })
 
   it('keeps OIDC auth requests on the OTP step after password verification', async () => {
@@ -60,6 +78,11 @@ describe('login API flow', () => {
 async function handlePasswordStep() {
   const { handleApi } = await import('./api-handlers.js')
   return await handleApi(passwordRequest(), '/session/password', config)
+}
+
+async function handleAuthRequestStep() {
+  const { handleApi } = await import('./api-handlers.js')
+  return await handleApi(requestFromBody({ authRequest: 'V2_370134305323614212' }), '/session/auth-request', config)
 }
 
 function passwordRequest(): IncomingMessage {
@@ -79,7 +102,13 @@ function loginCookie(): string {
 }
 
 function requestWithCookie(body: object, cookieValue: string): IncomingMessage {
-  const request = Readable.from([JSON.stringify(body)]) as IncomingMessage
+  const request = requestFromBody(body)
   request.headers = { cookie: `${LOGIN_SESSION_COOKIE}=${cookieValue}` }
+  return request
+}
+
+function requestFromBody(body: object): IncomingMessage {
+  const request = Readable.from([JSON.stringify(body)]) as IncomingMessage
+  request.headers = {}
   return request
 }
