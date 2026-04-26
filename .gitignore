@@ -19,6 +19,7 @@ playwright-report/
 __pycache__/
 
 services/*/node_modules
+services/*/node_modules.dataless-*
 services/*/.next
 services/*/vendor
 services/*/test-results
