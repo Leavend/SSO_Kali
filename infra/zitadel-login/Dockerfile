@@ -68,6 +68,7 @@ ENV HOSTNAME="::" \
     SSL_CERT_FILE="/etc/ssl/certs/ca-certificates.crt" \
     SSL_CERT_DIR="/etc/ssl/certs" \
     ZITADEL_TLS_ENABLED="false" \
+    OTEL_SDK_DISABLED="true" \
     OTEL_SERVICE_NAME="zitadel-login" \
     OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf"
 

@@ -57,7 +57,7 @@ compose() {
 APP_SERVICES=(sso-backend sso-backend-worker sso-frontend sso-admin-vue zitadel-login zitadel-login-vue app-a-next app-b-laravel)
 
 # Core services that trigger hard rollback if unhealthy
-CORE_SERVICES=(sso-backend sso-backend-worker sso-frontend sso-admin-vue zitadel-login zitadel-login-vue)
+CORE_SERVICES=(sso-backend sso-backend-worker sso-frontend sso-admin-vue)
 
 is_core_service() {
   local svc="$1"
