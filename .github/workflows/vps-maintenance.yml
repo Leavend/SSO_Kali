@@ -1,0 +1,109 @@
+name: VPS Maintenance
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Action to perform"
+        required: true
+        type: choice
+        options:
+          - check-env
+          - set-app-b-hash
+      secret_plaintext:
+        description: "Plaintext secret for hash generation (only for set-app-b-hash)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  VPS_HOST: ${{ secrets.VPS_HOST }}
+  VPS_USER: ${{ secrets.VPS_USER }}
+  VPS_PROJECT_DIR: ${{ secrets.VPS_PROJECT_DIR || '/opt/sso-prototype-dev' }}
+
+jobs:
+  maintenance:
+    name: "VPS Maintenance"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: production
+
+    steps:
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          for i in 1 2 3; do
+            ssh-keyscan -T 10 -H "${{ env.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null && break
+            sleep 5
+          done
+
+      - name: Check current env
+        if: inputs.action == 'check-env'
+        run: |
+          ssh -i ~/.ssh/deploy_key "${{ env.VPS_USER }}@${{ env.VPS_HOST }}" bash <<'REMOTE'
+          echo "=== APP_B_CLIENT_SECRET_HASH ==="
+          grep APP_B_CLIENT_SECRET_HASH "$VPS_PROJECT_DIR/.env.dev" 2>/dev/null || echo "NOT SET"
+          echo ""
+          echo "=== Argon2id env params ==="
+          grep OIDC_CLIENT_SECRET_HASH "$VPS_PROJECT_DIR/.env.dev" 2>/dev/null || echo "NOT SET"
+          echo ""
+          echo "=== sso-backend status ==="
+          sudo docker compose -f "$VPS_PROJECT_DIR/docker-compose.dev.yml" \
+            --env-file "$VPS_PROJECT_DIR/.env.dev" \
+            ps sso-backend --format 'table {{.Name}}\t{{.Status}}' 2>/dev/null
+          REMOTE
+        env:
+          VPS_PROJECT_DIR: ${{ env.VPS_PROJECT_DIR }}
+
+      - name: Generate and set APP_B hash
+        if: inputs.action == 'set-app-b-hash'
+        run: |
+          PLAINTEXT="${{ inputs.secret_plaintext }}"
+          if [ -z "$PLAINTEXT" ]; then
+            PLAINTEXT="prototype-secret"
+            echo "Using default: prototype-secret"
+          fi
+
+          ssh -i ~/.ssh/deploy_key "${{ env.VPS_USER }}@${{ env.VPS_HOST }}" bash -s -- "$PLAINTEXT" <<'REMOTE'
+          set -euo pipefail
+          PLAINTEXT="$1"
+          PROJECT_DIR="/opt/sso-prototype-dev"
+
+          echo "=== Generating Argon2id hash ==="
+          HASH=$(sudo docker compose -f "$PROJECT_DIR/docker-compose.dev.yml" \
+            --env-file "$PROJECT_DIR/.env.dev" \
+            exec -T sso-backend php -r \
+            "echo password_hash('$PLAINTEXT', PASSWORD_ARGON2ID, ['memory_cost'=>19456,'time_cost'=>3,'threads'=>1]);")
+
+          echo "Generated hash: $HASH"
+
+          # Backup current .env.dev
+          sudo cp "$PROJECT_DIR/.env.dev" "$PROJECT_DIR/.env.dev.bak.$(date +%s)"
+
+          # Remove existing entry + append new one
+          sudo sed -i '/^APP_B_CLIENT_SECRET_HASH=/d' "$PROJECT_DIR/.env.dev"
+          echo "APP_B_CLIENT_SECRET_HASH=$HASH" | sudo tee -a "$PROJECT_DIR/.env.dev" > /dev/null
+
+          echo ""
+          echo "=== Verifying ==="
+          grep APP_B_CLIENT_SECRET_HASH "$PROJECT_DIR/.env.dev"
+
+          echo ""
+          echo "=== Restarting sso-backend ==="
+          sudo docker compose -f "$PROJECT_DIR/docker-compose.dev.yml" \
+            --env-file "$PROJECT_DIR/.env.dev" \
+            restart sso-backend
+
+          echo ""
+          echo "=== Waiting for healthy ==="
+          sleep 5
+          sudo docker compose -f "$PROJECT_DIR/docker-compose.dev.yml" \
+            --env-file "$PROJECT_DIR/.env.dev" \
+            ps sso-backend --format 'table {{.Name}}\t{{.Status}}'
+
+          echo "✅ Done"
+          REMOTE
