@@ -13,4 +13,4 @@ RUN mkdir -p bootstrap/cache storage/framework/cache storage/framework/sessions 
 
 EXPOSE 8000
 
-CMD ["sh", "-lc", "if [ ! -f .env ]; then cp .env.example .env; fi && php artisan key:generate --force && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=8000"]
+CMD ["sh", "-lc", "mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=8000"]

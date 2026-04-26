@@ -491,7 +491,7 @@ services:
     healthcheck:
       test:
         - CMD-SHELL
-        - wget -q -O - http://127.0.0.1:3000/healthz >/dev/null
+        - wget -q -O - http://127.0.0.1:3000/healthz >/dev/null || wget -q -O - http://127.0.0.1:3000 >/dev/null
       interval: 20s
       timeout: 10s
       retries: 10
@@ -576,7 +576,7 @@ services:
     healthcheck:
       test:
         - CMD-SHELL
-        - wget -q -O - http://127.0.0.1:3000 >/dev/null
+        - wget -q -O - http://127.0.0.1:3000/healthz >/dev/null
       interval: 20s
       timeout: 10s
       retries: 10
@@ -642,7 +642,7 @@ services:
     healthcheck:
       test:
         - CMD-SHELL
-        - wget -q -O - http://127.0.0.1:8000 >/dev/null
+        - wget -q -O - http://127.0.0.1:8000/health >/dev/null
       interval: 20s
       timeout: 10s
       retries: 10
