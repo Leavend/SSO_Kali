@@ -5,9 +5,9 @@ declare(strict_types=1);
 use App\Support\Security\ClientSecretHashPolicy;
 
 beforeEach(function (): void {
-    config()->set('sso.client_secret_hash.memory_cost', 65536);
-    config()->set('sso.client_secret_hash.time_cost', 4);
-    config()->set('sso.client_secret_hash.threads', 2);
+    config()->set('sso.client_secret_hash.memory_cost', 19456);
+    config()->set('sso.client_secret_hash.time_cost', 3);
+    config()->set('sso.client_secret_hash.threads', 1);
 });
 
 it('creates argon2id hashes that satisfy the policy', function (): void {
@@ -23,7 +23,7 @@ it('creates argon2id hashes that satisfy the policy', function (): void {
 it('rejects plaintext stored client secrets', function (): void {
     $policy = app(ClientSecretHashPolicy::class);
 
-    expect(fn (): bool => tap(true, fn () => $policy->assertCompliantHash('prototype-secret')))
+    expect(fn(): bool => tap(true, fn() => $policy->assertCompliantHash('prototype-secret')))
         ->toThrow(RuntimeException::class, 'Stored client secret must use an Argon2id hash.');
 });
 
@@ -38,6 +38,6 @@ it('rejects argon2id hashes below the policy baseline', function (): void {
 
     $policy = app(ClientSecretHashPolicy::class);
 
-    expect(fn (): bool => tap(true, fn () => $policy->assertCompliantHash((string) $hash)))
+    expect(fn(): bool => tap(true, fn() => $policy->assertCompliantHash((string) $hash)))
         ->toThrow(RuntimeException::class, 'Stored client secret memory_cost is below policy.');
 });

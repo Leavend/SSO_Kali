@@ -1,8 +1,8 @@
 {
   "algorithm": "argon2id",
-  "memory_cost_kib": 65536,
-  "time_cost": 4,
-  "threads": 2,
+  "memory_cost_kib": 19456,
+  "time_cost": 3,
+  "threads": 1,
   "owasp_minimum": {
     "memory_cost_kib": 19456,
     "time_cost": 2,

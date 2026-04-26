@@ -67,6 +67,10 @@
   gap: 10px;
   font-size: 18px;
   font-weight: 800;
+  padding: 8px 14px;
+  border: 1px solid rgb(139 211 221 / 22%);
+  border-radius: 10px;
+  background: rgb(139 211 221 / 5%);
 }
 
 .nav-list {
@@ -126,7 +130,7 @@
 
 .main-surface {
   min-width: 0;
-  padding: 20px;
+  padding: 72px 20px 20px;
 }
 
 .app-shell--admin .main-surface {
@@ -208,19 +212,20 @@
 .icon-button {
   width: 44px;
   height: 44px;
-  border-radius: 8px;
+  border-radius: 12px;
   color: #12343b;
   background: #dce9ec;
   transition: background-color 0.16s ease;
 }
 
 .sidebar .icon-button {
-  color: #102a43;
-  background: rgb(139 211 221 / 28%);
+  color: #ecfeff;
+  background: rgb(139 211 221 / 16%);
+  border: 1px solid rgb(139 211 221 / 22%);
 }
 
 .sidebar .icon-button:hover {
-  background: rgb(139 211 221 / 44%);
+  background: rgb(139 211 221 / 30%);
 }
 
 .hamburger-toggle {
@@ -384,7 +389,7 @@
   }
 
   .main-surface {
-    padding: 32px;
+    padding: 32px 32px 32px 32px;
   }
 }
 
