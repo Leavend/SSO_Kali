@@ -68,8 +68,8 @@ WRITER
 
 chmod +x "$WRITER_TMP"
 
-# Execute with sudo — no env vars needed, all paths are hardcoded in the script
-sudo "$WRITER_TMP"
+# Execute with sudo bash — matching the pattern used by the CD pipeline
+sudo bash "$WRITER_TMP"
 
 # Cleanup writer
 rm -f "$WRITER_TMP"
