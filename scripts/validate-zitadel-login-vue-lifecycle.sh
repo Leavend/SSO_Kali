@@ -102,6 +102,7 @@ reject_text "services/zitadel-login-vue/src/web/styles/main.css" 'font-size:[^;]
 
 require_text "docker-compose.dev.yml" 'zitadel-login-vue:' "Compose defines Vue login canary service"
 require_text "docker-compose.dev.yml" 'ZITADEL_LOGIN_ACTIVE_BASE_PATH:-/ui/v2/login' "Compose keeps hosted login as rollback default"
+require_text "docker-compose.dev.yml" 'SSO_IDENTITY_UI_BASE_URL: \$\{ZITADEL_ISSUER\}\$\{ZITADEL_LOGIN_ACTIVE_BASE_PATH:-/ui/v2/login\}' "SSO frontend follows the active login UI path"
 require_text "docker-compose.dev.yml" 'PathPrefix\(`\$\{ZITADEL_LOGIN_VUE_BASE_PATH:-/ui/v2/login-vue\}`\)' "Vue login canary route is isolated"
 require_text ".env.dev.example" '^ZITADEL_LOGIN_ACTIVE_BASE_PATH=/ui/v2/login$' "Env defaults to hosted login for rollback safety"
 require_text ".env.dev.example" '^ZITADEL_LOGIN_VUE_BASE_PATH=/ui/v2/login-vue$' "Env exposes Vue login canary path"
@@ -111,6 +112,7 @@ require_text "scripts/vps-direct-build-deploy.sh" 'Zitadel Vue Login Canary' "Di
 require_text "scripts/vps-direct-build-deploy.sh" 'ZITADEL_LOGIN_VUE_COOKIE_SECRET must be set' "Direct deploy preflights Vue login cookie secret"
 require_text "scripts/vps-deploy.sh" 'zitadel-login-vue' "Registry deploy includes Vue login canary"
 require_text "scripts/vps-deploy.sh" 'ZITADEL_LOGIN_VUE_COOKIE_SECRET must be set' "Registry deploy preflights Vue login cookie secret"
+require_text "scripts/vps-deploy.sh" 'ZITADEL Vue Login Canary' "Registry deploy smokes Vue login canary"
 require_text "scripts/vps-rollback.sh" 'zitadel-login-vue' "Rollback includes Vue login canary image swap"
 
 printf '[zitadel-login-vue-lifecycle] Completed with %d failure(s)\n' "$FAILURES"

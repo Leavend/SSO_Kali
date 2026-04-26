@@ -270,6 +270,10 @@ smoke_check "ZITADEL Discovery" "http://127.0.0.1/.well-known/openid-configurati
 smoke_check "Admin Panel"       "http://127.0.0.1/"                                  "^200$" "$SSO_DOMAIN"
 smoke_check "Vue Admin Canary"  "http://127.0.0.1${SSO_ADMIN_VUE_BASE_PATH}/healthz" "^200$" "$SSO_DOMAIN"
 
+ZITADEL_LOGIN_VUE_BASE_PATH=$(awk -F= '/^ZITADEL_LOGIN_VUE_BASE_PATH=/ {print $2}' "$ENV_FILE")
+ZITADEL_LOGIN_VUE_BASE_PATH="${ZITADEL_LOGIN_VUE_BASE_PATH:-/ui/v2/login-vue}"
+smoke_check "ZITADEL Vue Login Canary" "http://127.0.0.1${ZITADEL_LOGIN_VUE_BASE_PATH}/healthz" "^200$" "$ZITADEL_DOMAIN"
+
 if [ -n "$APP_A_DOMAIN" ]; then
   smoke_check "App A" "http://127.0.0.1/" "^(200|30[1278]|404)$" "$APP_A_DOMAIN"
 fi
