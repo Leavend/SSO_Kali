@@ -109,6 +109,17 @@ body div[class*="max-w-[440px]"] {
   padding-inline: 0 !important;
 }
 
+/* Password / set / change pages: outer container uses max-w-[1100px] */
+body div[class*="max-w-[1100px]"] {
+  max-width: min(420px, calc(100vw - 32px)) !important;
+  padding-inline: 0 !important;
+}
+
+/* Button bars use md:max-w-full which overrides 440px on desktop */
+body div[class*="md:max-w-full"][class*="max-w-[440px]"] {
+  max-width: min(420px, calc(100vw - 32px)) !important;
+}
+
 body div[class*="max-w-[440px]"] > div[class*="bg-background-light-500"][class*="rounded-lg"],
 body div[class*="max-w-[440px]"] > div[class*="rounded-lg"][class*="shadow"],
 body div[class*="max-w-[440px]"] > div:first-child {

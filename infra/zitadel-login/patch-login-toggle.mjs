@@ -241,10 +241,15 @@ function createParentChrome(){
   window.setTimeout(ensureParentChrome,1500);
 }
 
+function afterHydration(fn){
+  if(typeof requestIdleCallback!=="undefined"){requestIdleCallback(fn,{timeout:3000});}
+  else{setTimeout(fn,2000);}
+}
+
 if(document.readyState==="loading"){
-  document.addEventListener("DOMContentLoaded",createParentChrome);
+  document.addEventListener("DOMContentLoaded",function(){afterHydration(createParentChrome);});
 }else{
-  createParentChrome();
+  afterHydration(createParentChrome);
 }
 })();`;
 }
