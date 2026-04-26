@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-$csv = static fn(string $value): array => array_values(array_filter(array_map('trim', explode(',', $value))));
+$csv = static fn (string $value): array => array_values(array_filter(array_map('trim', explode(',', $value))));
 
 return [
     'engine' => env('SSO_ENGINE', 'zitadel'),
@@ -21,7 +21,7 @@ return [
         'internal_issuer' => env('ZITADEL_BROKER_INTERNAL_ISSUER', env('ZITADEL_ISSUER', 'http://localhost:8080')),
         'client_id' => env('ZITADEL_BROKER_CLIENT_ID', 'prototype-sso-broker'),
         'client_secret' => env('ZITADEL_BROKER_CLIENT_SECRET', 'prototype-broker-secret'),
-        'redirect_uri' => env('ZITADEL_BROKER_REDIRECT_URI', env('APP_URL', 'http://localhost:8200') . '/callbacks/zitadel'),
+        'redirect_uri' => env('ZITADEL_BROKER_REDIRECT_URI', env('APP_URL', 'http://localhost:8200').'/callbacks/zitadel'),
         'scope' => env('ZITADEL_BROKER_SCOPE', 'openid profile email offline_access'),
     ],
     'ttl' => [
