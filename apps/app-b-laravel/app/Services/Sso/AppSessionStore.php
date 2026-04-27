@@ -88,7 +88,7 @@ final class AppSessionStore
             'subject' => $claims['sub'],
             'client_id' => $claims['client_id'],
             'access_token' => $tokens['access_token'],
-            'refresh_token' => $tokens['refresh_token'],
+            'refresh_token' => is_string($tokens['refresh_token'] ?? null) ? $tokens['refresh_token'] : null,
             'id_token' => $tokens['id_token'],
             'profile' => $profile['resource_profile'] ?? [],
         ];
