@@ -38,12 +38,14 @@ watch(() => route.path, closeSidebar);
     <template v-if="admin.isAuthenticated">
       <button
         class="hamburger-toggle"
+        v-if="!sidebarOpen"
         type="button"
-        :aria-label="sidebarOpen ? 'Close menu' : 'Open menu'"
+        aria-controls="admin-sidebar"
+        aria-label="Open menu"
         :aria-expanded="sidebarOpen"
         @click="sidebarOpen = !sidebarOpen"
       >
-        <component :is="sidebarOpen ? X : Menu" :size="20" aria-hidden="true" />
+        <Menu :size="20" aria-hidden="true" />
       </button>
 
       <Transition name="fade">
@@ -55,14 +57,25 @@ watch(() => route.path, closeSidebar);
       </Transition>
 
       <aside
+        id="admin-sidebar"
         class="sidebar"
         :class="{ 'sidebar--open': sidebarOpen }"
         aria-label="Admin navigation"
       >
-        <RouterLink class="brand" to="/dashboard" @click="closeSidebar">
-          <ShieldCheck :size="22" aria-hidden="true" />
-          <span>SSO Admin</span>
-        </RouterLink>
+        <div class="sidebar-header">
+          <RouterLink class="brand" to="/dashboard" @click="closeSidebar">
+            <ShieldCheck :size="22" aria-hidden="true" />
+            <span>SSO Admin</span>
+          </RouterLink>
+          <button
+            class="sidebar-close"
+            type="button"
+            aria-label="Close menu"
+            @click="closeSidebar"
+          >
+            <X :size="20" aria-hidden="true" />
+          </button>
+        </div>
 
         <nav class="nav-list">
           <RouterLink to="/dashboard" @click="closeSidebar"
