@@ -140,7 +140,11 @@ export async function handleRefresh(request: IncomingMessage): Promise<AppRespon
   const session = getSession(request)
 
   if (!session?.refreshToken) {
-    return json(401, { error: 'no_session', message: 'No active session or refresh token.' })
+    return json(
+      401,
+      { error: 'no_session', message: 'No active session or refresh token.' },
+      { 'set-cookie': [clearSessionCookie()] },
+    )
   }
 
   try {

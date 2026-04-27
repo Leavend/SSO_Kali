@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { LogOut, Menu, RefreshCw, ShieldCheck, X } from "lucide-vue-next";
 import { RouterLink, RouterView, useRoute } from "vue-router";
 import { useAdminStore } from "./stores/admin";
@@ -7,6 +7,7 @@ import { useAdminStore } from "./stores/admin";
 const admin = useAdminStore();
 const route = useRoute();
 const sidebarOpen = ref(false);
+const showAdminShell = computed(() => Boolean(route.meta.requiresAuth) && admin.isAuthenticated);
 let refreshTimer: number | undefined;
 
 onMounted(() => {
@@ -31,11 +32,11 @@ watch(() => route.path, closeSidebar);
   <div
     class="app-shell"
     :class="{
-      'app-shell--auth': !admin.isAuthenticated,
-      'app-shell--admin': admin.isAuthenticated,
+      'app-shell--auth': !showAdminShell,
+      'app-shell--admin': showAdminShell,
     }"
   >
-    <template v-if="admin.isAuthenticated">
+    <template v-if="showAdminShell">
       <button
         class="hamburger-toggle"
         v-if="!sidebarOpen"
@@ -110,7 +111,7 @@ watch(() => route.path, closeSidebar);
 
     <main
       class="main-surface"
-      :class="{ 'main-surface--auth': !admin.isAuthenticated }"
+      :class="{ 'main-surface--auth': !showAdminShell }"
     >
       <RouterView />
     </main>
