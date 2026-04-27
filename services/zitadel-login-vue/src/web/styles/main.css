@@ -106,14 +106,18 @@ input {
   letter-spacing: 0;
 }
 
+.signin-card,
+.register-card {
+  background: var(--card);
+  box-shadow: 0 18px 48px var(--shadow);
+}
+
 .signin-card {
   display: grid;
   gap: 0;
   padding: 32px;
   border: 1px solid color-mix(in srgb, var(--line) 76%, transparent);
   border-radius: 16px;
-  background: var(--card);
-  box-shadow: 0 18px 48px var(--shadow);
 }
 
 .signin-card--status {
@@ -287,6 +291,26 @@ input {
   color: var(--accent-hover);
 }
 
+.register-card {
+  margin-top: 16px;
+  border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+  border-radius: 16px;
+  padding: 18px 24px;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.register-card a {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.register-card a:hover {
+  color: var(--accent-hover);
+}
+
 .alert {
   margin: 18px 0 0;
   padding: 12px 14px;
@@ -300,6 +324,16 @@ input {
 [data-theme='dark'] .alert {
   color: #fde68a;
   background: #431407;
+}
+
+.notice {
+  margin: 18px 0 0;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--accent) 42%, transparent);
+  border-radius: 8px;
+  color: var(--ink);
+  background: var(--accent-soft);
+  line-height: 1.45;
 }
 
 .theme-toggle-anchor {

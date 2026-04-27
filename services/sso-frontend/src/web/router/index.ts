@@ -6,6 +6,7 @@ import UsersView from '@/views/UsersView.vue'
 import UserDetailView from '@/views/UserDetailView.vue'
 import SessionsView from '@/views/SessionsView.vue'
 import AppsView from '@/views/AppsView.vue'
+import LegalView from '@/views/LegalView.vue'
 import StatusView from '@/views/StatusView.vue'
 import NotFoundView from '@/views/NotFoundView.vue'
 import {
@@ -28,6 +29,9 @@ export const router = createRouter({
     { path: '/users/:id', name: 'user-detail', component: UserDetailView, meta: { requiresAuth: true } },
     { path: '/sessions', name: 'sessions', component: SessionsView, meta: { requiresAuth: true } },
     { path: '/apps', name: 'apps', component: AppsView, meta: { requiresAuth: true } },
+    { path: '/terms', name: 'terms', component: LegalView },
+    { path: '/privacy', name: 'privacy', component: LegalView },
+    { path: '/docs', name: 'docs', component: LegalView },
     ...[
       ACCESS_DENIED_ROUTE,
       HANDSHAKE_FAILED_ROUTE,

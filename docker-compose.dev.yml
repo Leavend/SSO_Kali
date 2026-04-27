@@ -361,6 +361,7 @@ services:
       PUBLIC_BASE_PATH: ${ZITADEL_LOGIN_VUE_BASE_PATH:-/ui/v2/login-vue}
       ZITADEL_API_URL: http://zitadel-api:8080
       ZITADEL_PUBLIC_HOST: ${ZITADEL_DOMAIN}
+      DEV_SSO_APP_BASE_URL: ${ADMIN_PANEL_BASE_URL}
       ZITADEL_INSTANCE_HOST: ${ZITADEL_DOMAIN}
       ZITADEL_SERVICE_USER_TOKEN_FILE: /zitadel/bootstrap/login-client.pat
       LOGIN_COOKIE_SECRET: ${ZITADEL_LOGIN_VUE_COOKIE_SECRET}
@@ -389,6 +390,10 @@ services:
       - traefik.http.routers.zitadel-login-vue.entrypoints=web
       - traefik.http.routers.zitadel-login-vue.service=zitadel-login-vue
       - traefik.http.routers.zitadel-login-vue.priority=245
+      - traefik.http.routers.zitadel-login-vue-auth.rule=Host(`${ZITADEL_DOMAIN}`) && (Path(`/auth/password-reset`) || Path(`/auth/register`) || Path(`/terms`) || Path(`/privacy`) || Path(`/docs`))
+      - traefik.http.routers.zitadel-login-vue-auth.entrypoints=web
+      - traefik.http.routers.zitadel-login-vue-auth.service=zitadel-login-vue
+      - traefik.http.routers.zitadel-login-vue-auth.priority=255
     <<: *small-web-limits
 
   sso-backend:

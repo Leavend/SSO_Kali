@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { identityActionHref } from '@parent-ui/auth-shell.mjs'
+import { AUTH_ROUTES, identityActionHref } from '@parent-ui/auth-shell.mjs'
 import AuthShell from '@/components/auth/AuthShell.vue'
 
 const route = useRoute()
@@ -14,8 +14,8 @@ const returnTo = computed(() => {
   return typeof value === 'string' && value.startsWith('/') && !value.startsWith('//') ? value : '/dashboard'
 })
 
-const passwordResetHref = computed(() => identityActionHref('/auth/password-reset', email.value))
-const registerHref = computed(() => identityActionHref('/auth/register', email.value))
+const passwordResetHref = computed(() => identityActionHref(AUTH_ROUTES.identityActions.passwordReset, email.value))
+const registerHref = computed(() => identityActionHref(AUTH_ROUTES.identityActions.register, email.value))
 
 function submit(): void {
   if (!email.value.trim()) return

@@ -20,6 +20,22 @@ export interface AuthShellTokens {
   readonly shadow: string;
 }
 
+export declare const AUTH_ROUTES: {
+  readonly identityActions: {
+    readonly passwordReset: "/auth/password-reset";
+    readonly register: "/auth/register";
+  };
+  readonly identityVue: {
+    readonly passwordReset: "/password/reset";
+    readonly register: "/register";
+  };
+  readonly legal: {
+    readonly terms: "/terms";
+    readonly privacy: "/privacy";
+    readonly docs: "/docs";
+  };
+};
+
 export declare const AUTH_SHELL: {
   readonly brand: {
     readonly name: "Dev-SSO";

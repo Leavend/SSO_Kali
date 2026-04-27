@@ -372,6 +372,29 @@
   line-height: 1.5;
 }
 
+.legal-page {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 40px 16px;
+  background: var(--canvas);
+}
+
+.legal-page a {
+  margin-top: 24px;
+  color: var(--accent);
+  font-weight: 800;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
 @keyframes fadeInUp {
   from {
     opacity: 0;

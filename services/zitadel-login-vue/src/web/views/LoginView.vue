@@ -1,16 +1,19 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowRight } from 'lucide-vue-next'
 import { sanitizeLoginHint } from '@shared/routes'
 import AuthShell from '@/components/auth/AuthShell.vue'
 import { useLoginFlowStore } from '@/stores/loginFlow'
+import { passwordResetHref, registerHref } from '@/utils/authLinks'
 
 const route = useRoute()
 const router = useRouter()
 const flow = useLoginFlowStore()
 const loginName = ref('')
 const isResolvingEntry = ref(true)
+const resetHref = computed(() => passwordResetHref(loginName.value))
+const signupHref = computed(() => registerHref(loginName.value))
 
 onMounted(async () => {
   await resolveEntryRoute()
@@ -72,12 +75,17 @@ function routeLoginHint(): string {
       <p v-if="flow.errorMessage" class="alert" role="alert">{{ flow.errorMessage }}</p>
 
       <div class="signin-actions">
-        <a class="link-action" href="/auth/password-reset">Lupa kata sandi?</a>
+        <a class="link-action" :href="resetHref">Lupa kata sandi?</a>
         <button class="signin-submit" type="submit" :disabled="flow.isLoading">
           <span>{{ flow.isLoading ? 'Memproses...' : 'Lanjutkan' }}</span>
           <ArrowRight :size="17" aria-hidden="true" />
         </button>
       </div>
     </form>
+
+    <div v-if="!isResolvingEntry" class="register-card">
+      Belum memiliki akun?
+      <a :href="signupHref">Daftar Sekarang</a>
+    </div>
   </AuthShell>
 </template>

@@ -1,7 +1,23 @@
+export const AUTH_ROUTES = Object.freeze({
+  identityActions: Object.freeze({
+    passwordReset: "/auth/password-reset",
+    register: "/auth/register",
+  }),
+  identityVue: Object.freeze({
+    passwordReset: "/password/reset",
+    register: "/register",
+  }),
+  legal: Object.freeze({
+    terms: "/terms",
+    privacy: "/privacy",
+    docs: "/docs",
+  }),
+});
+
 const footerLinks = Object.freeze([
-  Object.freeze({ label: "Terms", href: "#" }),
-  Object.freeze({ label: "Privacy", href: "#" }),
-  Object.freeze({ label: "Docs", href: "#" }),
+  Object.freeze({ label: "Terms", href: AUTH_ROUTES.legal.terms }),
+  Object.freeze({ label: "Privacy", href: AUTH_ROUTES.legal.privacy }),
+  Object.freeze({ label: "Docs", href: AUTH_ROUTES.legal.docs }),
 ]);
 
 export const AUTH_SHELL = Object.freeze({

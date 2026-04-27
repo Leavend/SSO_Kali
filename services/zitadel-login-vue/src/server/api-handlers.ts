@@ -1,7 +1,7 @@
 import type { IncomingMessage } from 'node:http'
 
 import { LOGIN_MESSAGES } from '../shared/messages.js'
-import { sanitizeFlowId, sanitizeLoginName, sanitizeOtpCode } from '../shared/routes.js'
+import { sanitizeFlowId, sanitizeLoginName, sanitizeOtpCode, withBasePath } from '../shared/routes.js'
 import type { RuntimeConfig } from './config.js'
 import { clearSessionCookie, LOGIN_SESSION_COOKIE, parseLoginState, serializeLoginState, sessionCookie } from './cookies.js'
 import { readCookie, readJsonBody } from './request.js'
@@ -9,8 +9,11 @@ import type { AppResponse } from './response.js'
 import { json } from './response.js'
 import {
   createSession,
+  changePassword,
   finalizeAuthRequest,
+  findUserIdByLoginName,
   getAuthRequestLoginHint,
+  requestPasswordReset,
   updatePassword,
   updateTotp,
   ZitadelApiError,
@@ -23,6 +26,8 @@ export async function handleApi(request: IncomingMessage, action: string, config
     if (action === '/session/password') return await handlePassword(request, config)
     if (action === '/session/totp') return await handleTotp(request, config)
     if (action === '/session/clear') return clearSession(config)
+    if (action === '/password-reset/request') return await handlePasswordResetRequest(request, config)
+    if (action === '/password-reset/change') return await handlePasswordChange(request, config)
     return json(404, { error: 'not_found' })
   } catch (error) {
     return errorResponse(error)
@@ -65,6 +70,23 @@ async function handleTotp(request: IncomingMessage, config: RuntimeConfig): Prom
   if (code.length < 6) return json(422, { message: LOGIN_MESSAGES.invalidOtp })
   const sessionToken = await updateTotp(config, state.sessionId, code)
   return await finalizeOrContinue(config, { ...state, sessionToken }, 'signedin')
+}
+
+async function handlePasswordResetRequest(request: IncomingMessage, config: RuntimeConfig): Promise<AppResponse> {
+  const loginName = sanitizeLoginName((await readJsonBody(request) as Record<string, unknown>).loginName)
+  if (!loginName) return json(422, { message: LOGIN_MESSAGES.invalidLoginName })
+  await sendPasswordResetIfUserExists(config, loginName)
+  return json(200, { message: LOGIN_MESSAGES.passwordResetRequested })
+}
+
+async function handlePasswordChange(request: IncomingMessage, config: RuntimeConfig): Promise<AppResponse> {
+  const body = await readJsonBody(request) as Record<string, unknown>
+  const userId = sanitizeFlowId(body.userId)
+  const code = sanitizeFlowId(body.code)
+  const password = passwordFromBody(body)
+  if (!userId || !code || !password) return json(422, { message: LOGIN_MESSAGES.invalidPasswordReset })
+  await changePassword(config, userId, password, code)
+  return json(200, { message: LOGIN_MESSAGES.passwordResetChanged })
 }
 
 async function finalizeOrContinue(config: RuntimeConfig, state: ReturnType<typeof getState>, fallbackStep: string) {
@@ -110,6 +132,19 @@ function authRequestFromBody(body: unknown): unknown {
 
 function clearSession(config: RuntimeConfig): AppResponse {
   return json(200, { ok: true }, { 'set-cookie': clearSessionCookie(config) })
+}
+
+async function sendPasswordResetIfUserExists(config: RuntimeConfig, loginName: string): Promise<void> {
+  try {
+    const userId = await findUserIdByLoginName(config, loginName)
+    if (userId) await requestPasswordReset(config, userId, passwordResetTemplate(config))
+  } catch (error) {
+    console.error('Password reset request failed:', error instanceof Error ? error.message : error)
+  }
+}
+
+function passwordResetTemplate(config: RuntimeConfig): string {
+  return `https://${config.publicHost}${withBasePath(config.publicBasePath, '/password/change')}?userID={{.UserID}}&code={{.Code}}&orgID={{.OrgID}}`
 }
 
 function errorResponse(error: unknown): AppResponse {

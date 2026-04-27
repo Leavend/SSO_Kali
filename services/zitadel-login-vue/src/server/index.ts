@@ -32,6 +32,9 @@ server.listen(config.port, '0.0.0.0', () => {
 
 async function route(request: IncomingMessage, requestUrl: URL): Promise<AppResponse | null> {
   if (requestUrl.pathname === '/healthz') return text(200, 'ok\n', noStore())
+  if (requestUrl.pathname === '/auth/password-reset') return compatibilityRedirect(request, requestUrl, '/password/reset')
+  if (requestUrl.pathname === '/auth/register') return compatibilityRedirect(request, requestUrl, '/register')
+  if (isLegalPath(requestUrl.pathname)) return legalRedirect(request, requestUrl.pathname)
   const routedPath = stripBasePath(config.publicBasePath, requestUrl.pathname)
   if (!routedPath) return null
   if (routedPath === '/healthz') return text(200, 'ok\n', noStore())
@@ -40,6 +43,20 @@ async function route(request: IncomingMessage, requestUrl: URL): Promise<AppResp
   }
   if (routedPath.startsWith('/api/')) return apiRoute(request, routedPath)
   return null
+}
+
+function compatibilityRedirect(request: IncomingMessage, requestUrl: URL, path: string): AppResponse {
+  if (request.method !== 'GET') return methodNotAllowed()
+  return redirect(`${withBasePath(config.publicBasePath, path)}${requestUrl.search}`)
+}
+
+function legalRedirect(request: IncomingMessage, path: string): AppResponse {
+  if (request.method !== 'GET') return methodNotAllowed()
+  return redirect(`${config.appBaseUrl}${path}`)
+}
+
+function isLegalPath(pathname: string): boolean {
+  return pathname === '/terms' || pathname === '/privacy' || pathname === '/docs'
 }
 
 function apiRoute(request: IncomingMessage, routedPath: string): Promise<AppResponse> | AppResponse {

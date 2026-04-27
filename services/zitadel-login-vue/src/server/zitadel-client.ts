@@ -26,11 +26,24 @@ interface AuthRequestResponse {
   }
 }
 
+interface UserListResponse {
+  readonly result?: readonly UserResult[]
+}
+
+interface UserResult {
+  readonly userId?: string
+}
+
 export async function createSession(config: RuntimeConfig, loginName: string): Promise<Required<SessionTokenResponse>> {
   const body = { checks: { user: { loginName } } }
   const response = await zitadelJson<SessionTokenResponse>(config, '/v2/sessions', 'POST', body)
   if (!response.sessionId) throw new ZitadelApiError(502, 'missing_session_id', 'ZITADEL did not return sessionId')
   return { sessionId: response.sessionId, sessionToken: response.sessionToken }
+}
+
+export async function findUserIdByLoginName(config: RuntimeConfig, loginName: string): Promise<string | null> {
+  const response = await zitadelJson<UserListResponse>(config, '/v2/users', 'POST', usersByLoginNameBody(loginName))
+  return response.result?.[0]?.userId ?? null
 }
 
 export async function getAuthRequestLoginHint(config: RuntimeConfig, authRequest: string): Promise<string> {
@@ -48,6 +61,21 @@ export async function updateTotp(config: RuntimeConfig, sessionId: string, code:
   const body = { checks: { totp: { code } } }
   const response = await zitadelJson<SessionTokenResponse>(config, `/v2/sessions/${sessionId}`, 'PATCH', body)
   return response.sessionToken
+}
+
+export async function requestPasswordReset(config: RuntimeConfig, userId: string, urlTemplate: string): Promise<void> {
+  const body = { sendLink: { notificationType: 'NOTIFICATION_TYPE_Email', urlTemplate } }
+  await zitadelJson<unknown>(config, `/v2/users/${userId}/password_reset`, 'POST', body)
+}
+
+export async function changePassword(
+  config: RuntimeConfig,
+  userId: string,
+  password: string,
+  verificationCode: string,
+): Promise<void> {
+  const body = { newPassword: { password, changeRequired: false }, verificationCode }
+  await zitadelJson<unknown>(config, `/v2/users/${userId}/password`, 'POST', body)
 }
 
 export async function finalizeAuthRequest(
@@ -98,6 +126,13 @@ async function parsePayload(response: Response): Promise<unknown> {
 function toZitadelError(status: number, payload: unknown): ZitadelApiError {
   const code = codeFromPayload(payload)
   return new ZitadelApiError(status, code, code)
+}
+
+function usersByLoginNameBody(loginName: string): object {
+  return {
+    query: { limit: 1 },
+    queries: [{ loginNameQuery: { loginName, method: 'TEXT_QUERY_METHOD_EQUALS' } }],
+  }
 }
 
 function codeFromPayload(payload: unknown): string {

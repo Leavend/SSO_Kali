@@ -8,8 +8,11 @@ import { LOGIN_SESSION_COOKIE, serializeLoginState } from './cookies.js'
 
 const mocks = vi.hoisted(() => ({
   createSession: vi.fn(),
+  changePassword: vi.fn(),
   finalizeAuthRequest: vi.fn(),
+  findUserIdByLoginName: vi.fn(),
   getAuthRequestLoginHint: vi.fn(),
+  requestPasswordReset: vi.fn(),
   updatePassword: vi.fn(),
   updateTotp: vi.fn(),
 }))
@@ -25,14 +28,18 @@ vi.mock('./zitadel-client.js', () => ({
     }
   },
   createSession: mocks.createSession,
+  changePassword: mocks.changePassword,
   finalizeAuthRequest: mocks.finalizeAuthRequest,
+  findUserIdByLoginName: mocks.findUserIdByLoginName,
   getAuthRequestLoginHint: mocks.getAuthRequestLoginHint,
+  requestPasswordReset: mocks.requestPasswordReset,
   updatePassword: mocks.updatePassword,
   updateTotp: mocks.updateTotp,
 }))
 
 const config: RuntimeConfig = {
   apiUrl: 'http://zitadel-api:8080',
+  appBaseUrl: 'https://dev-sso.timeh.my.id',
   cookieSecret: 'test-zitadel-login-vue-cookie-secret-32',
   instanceHost: 'id.dev-sso.timeh.my.id',
   port: 3010,
@@ -49,8 +56,11 @@ describe('login API flow', () => {
       sessionId: 'session-id',
       sessionToken: 'identified-session-token',
     })
+    mocks.changePassword.mockReset()
     mocks.finalizeAuthRequest.mockReset()
+    mocks.findUserIdByLoginName.mockResolvedValue('user-id')
     mocks.getAuthRequestLoginHint.mockResolvedValue('huanamasi123@gmail.com')
+    mocks.requestPasswordReset.mockReset()
     mocks.updatePassword.mockResolvedValue('password-session-token')
   })
 
@@ -73,6 +83,36 @@ describe('login API flow', () => {
     expect(mocks.finalizeAuthRequest).not.toHaveBeenCalled()
     expect(String(response.headers['set-cookie'])).toContain(LOGIN_SESSION_COOKIE)
   })
+
+  it('requests password reset links without exposing user lookup results', async () => {
+    const response = await handleApiStep('/password-reset/request', { loginName: 'huanamasi123@gmail.com' })
+    const payload = JSON.parse(String(response.body)) as { message?: string }
+
+    expect(response.status).toBe(200)
+    expect(payload.message).toContain('Jika akun ditemukan')
+    expect(mocks.findUserIdByLoginName).toHaveBeenCalledWith(config, 'huanamasi123@gmail.com')
+    expect(mocks.requestPasswordReset).toHaveBeenCalledWith(
+      config,
+      'user-id',
+      expect.stringContaining('/ui/v2/login-vue/password/change?userID={{.UserID}}'),
+    )
+  })
+
+  it('accepts password reset changes through the server-side ZITADEL client', async () => {
+    const response = await handleApiStep('/password-reset/change', {
+      code: 'RESET123',
+      password: 'New-password-123',
+      userId: '368655914414112772',
+    })
+
+    expect(response.status).toBe(200)
+    expect(mocks.changePassword).toHaveBeenCalledWith(
+      config,
+      '368655914414112772',
+      'New-password-123',
+      'RESET123',
+    )
+  })
 })
 
 async function handlePasswordStep() {
@@ -83,6 +123,11 @@ async function handlePasswordStep() {
 async function handleAuthRequestStep() {
   const { handleApi } = await import('./api-handlers.js')
   return await handleApi(requestFromBody({ authRequest: 'V2_370134305323614212' }), '/session/auth-request', config)
+}
+
+async function handleApiStep(action: string, body: object) {
+  const { handleApi } = await import('./api-handlers.js')
+  return await handleApi(requestFromBody(body), action, config)
 }
 
 function passwordRequest(): IncomingMessage {
