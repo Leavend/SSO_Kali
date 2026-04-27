@@ -26,6 +26,13 @@ export type AuthTransaction = {
 }
 
 export function getSession(request: IncomingMessage): AdminSession | null {
+  const session = readSession(request)
+  if (!session || isSessionExpired(session.expiresAt)) return null
+
+  return session
+}
+
+export function readSession(request: IncomingMessage): AdminSession | null {
   const raw = readCookie(request, ADMIN_SESSION_COOKIE)
   if (!raw) return null
 
@@ -33,10 +40,7 @@ export function getSession(request: IncomingMessage): AdminSession | null {
     const decrypted = decryptSession(raw)
     if (!decrypted) return null
 
-    const session = JSON.parse(decrypted) as AdminSession
-    if (isSessionExpired(session.expiresAt)) return null
-
-    return session
+    return JSON.parse(decrypted) as AdminSession
   } catch {
     return null
   }
@@ -125,7 +129,6 @@ function normalizedPermissions(permissions: AdminPermissions): AdminPermissions 
   }
 }
 
-function isSessionExpired(expiresAt: number): boolean {
-  const bufferSeconds = 30
+export function isSessionExpired(expiresAt: number, bufferSeconds = 30): boolean {
   return expiresAt < Math.floor(Date.now() / 1000) + bufferSeconds
 }

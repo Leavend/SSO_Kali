@@ -11,11 +11,14 @@ import {
   revokeUserSessions,
 } from './admin-api.js'
 import { isAdminApiError } from './admin-api-error.js'
+import { resolveAdminSession, sessionHeaders } from './admin-session-resolver.js'
+import type { ResolvedAdminSession } from './admin-session-resolver.js'
 import { getConfig } from './config.js'
 import { canManageSessions, canUseAdminPanel, sessionIsFresh } from './rbac.js'
-import { clearSessionCookie, getSession, publicSession, sessionCookie, sessionFromBootstrap } from './session.js'
+import { clearSessionCookie, publicSession, sessionFromBootstrap } from './session.js'
 import type { AdminSession } from './session.js'
 import type { AppResponse } from './response.js'
+import type { HeaderValue } from './response.js'
 import { json, redirect } from './response.js'
 
 type RouteContext = {
@@ -24,22 +27,25 @@ type RouteContext = {
 }
 
 export async function handleSession(request: IncomingMessage): Promise<AppResponse> {
-  const session = getSession(request)
-  if (!session) return unauthenticatedResponse()
+  const resolved = await resolveSessionOrNull(request)
+  if (!resolved) return unauthenticatedResponse()
 
+  const session = resolved.session
   if (!canUseAdminPanel(session)) {
-    return json(403, authFailurePayload(session), { 'set-cookie': [sessionCookie(session)] })
+    return json(403, authFailurePayload(session), sessionHeaders(resolved))
   }
 
-  return json(200, { principal: publicSession(session) })
+  return json(200, { principal: publicSession(session) }, sessionHeaders(resolved))
 }
 
 export async function handleAdminApi(context: RouteContext): Promise<AppResponse> {
-  const session = getSession(context.request)
-  if (!session) return unauthenticatedResponse()
+  const resolved = await resolveSessionOrNull(context.request)
+  if (!resolved) return unauthenticatedResponse()
 
+  const session = resolved.session
+  const headers = sessionHeaders(resolved)
   if (!canUseAdminPanel(session)) {
-    return json(403, authFailurePayload(session), { 'set-cookie': [sessionCookie(session)] })
+    return json(403, authFailurePayload(session), headers)
   }
 
   try {
@@ -47,34 +53,34 @@ export async function handleAdminApi(context: RouteContext): Promise<AppResponse
     const method = context.request.method ?? 'GET'
 
     if (pathname === '/api/admin/dashboard' && method === 'GET') {
-      return json(200, await dashboardPayload(session))
+      return json(200, await dashboardPayload(session), headers)
     }
 
     if (pathname === '/api/admin/users' && method === 'GET') {
-      return json(200, { users: await fetchUsers(session) })
+      return json(200, { users: await fetchUsers(session) }, headers)
     }
 
     if (pathname.startsWith('/api/admin/users/') && pathname.endsWith('/sessions') && method === 'DELETE') {
-      return revokeAllUserSessions(session, pathname)
+      return revokeAllUserSessions(session, pathname, headers)
     }
 
     if (pathname.startsWith('/api/admin/users/') && method === 'GET') {
-      return json(200, await fetchUser(session, decodeTail(pathname, '/api/admin/users/')))
+      return json(200, await fetchUser(session, decodeTail(pathname, '/api/admin/users/')), headers)
     }
 
     if (pathname === '/api/admin/sessions' && method === 'GET') {
-      return json(200, { sessions: await fetchSessions(session) })
+      return json(200, { sessions: await fetchSessions(session) }, headers)
     }
 
     if (pathname.startsWith('/api/admin/sessions/') && method === 'DELETE') {
-      return revokeSingleSession(session, pathname)
+      return revokeSingleSession(session, pathname, headers)
     }
 
     if (pathname === '/api/admin/clients' && method === 'GET') {
-      return json(200, { clients: await fetchClients(session) })
+      return json(200, { clients: await fetchClients(session) }, headers)
     }
 
-    return json(404, { error: 'not_found', message: 'Admin endpoint not found.' })
+    return json(404, { error: 'not_found', message: 'Admin endpoint not found.' }, headers)
   } catch (error) {
     return adminErrorResponse(error)
   }
@@ -114,25 +120,42 @@ async function dashboardPayload(session: AdminSession): Promise<AdminDashboardPa
   }
 }
 
-async function revokeSingleSession(session: AdminSession, pathname: string): Promise<AppResponse> {
+async function revokeSingleSession(
+  session: AdminSession,
+  pathname: string,
+  headers: Record<string, HeaderValue>,
+): Promise<AppResponse> {
   if (!canManageSessions(session)) {
-    return json(403, { error: 'forbidden', message: 'Session management permission is required.' })
+    return json(403, { error: 'forbidden', message: 'Session management permission is required.' }, headers)
   }
 
   await revokeSession(session, decodeTail(pathname, '/api/admin/sessions/'))
-  return json(200, { status: 'revoked' })
+  return json(200, { status: 'revoked' }, headers)
 }
 
-async function revokeAllUserSessions(session: AdminSession, pathname: string): Promise<AppResponse> {
+async function revokeAllUserSessions(
+  session: AdminSession,
+  pathname: string,
+  headers: Record<string, HeaderValue>,
+): Promise<AppResponse> {
   if (!canManageSessions(session)) {
-    return json(403, { error: 'forbidden', message: 'Session management permission is required.' })
+    return json(403, { error: 'forbidden', message: 'Session management permission is required.' }, headers)
   }
 
   const subjectId = decodeURIComponent(
     pathname.slice('/api/admin/users/'.length, -'/sessions'.length).replace(/\/$/, ''),
   )
   await revokeUserSessions(session, subjectId)
-  return json(200, { status: 'revoked' })
+  return json(200, { status: 'revoked' }, headers)
+}
+
+async function resolveSessionOrNull(request: IncomingMessage): Promise<ResolvedAdminSession | null> {
+  try {
+    return await resolveAdminSession(request)
+  } catch (error) {
+    console.error('Admin session refresh failed:', error instanceof Error ? error.message : error)
+    return null
+  }
 }
 
 function decodeTail(pathname: string, prefix: string): string {
