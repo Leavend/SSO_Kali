@@ -24,6 +24,7 @@ RUN node -e 'const fs=require("fs"); const p="/app/apps/login/package.json"; con
     && rm -rf /app/node_modules /root/.npm /tmp/* \
     && rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 
+COPY ./infra/zitadel-login/install-runtime-aliases.mjs /tmp/install-runtime-aliases.mjs
 COPY ./infra/zitadel-login/patch-login-copy.mjs /tmp/patch-login-copy.mjs
 COPY ./infra/zitadel-login/patch-login-language.mjs /tmp/patch-login-language.mjs
 COPY ./infra/zitadel-login/patch-login-locale-alias.mjs /tmp/patch-login-locale-alias.mjs
@@ -42,6 +43,7 @@ COPY ./packages/dev-sso-parent-ui/ /packages/dev-sso-parent-ui/
 COPY ./infra/zitadel-login/assets/ /app/apps/login/public/
 
 RUN node /tmp/patch-login-locale-alias.mjs /app/apps/login/.next \
+    && node /tmp/install-runtime-aliases.mjs \
     && node /tmp/patch-login-copy.mjs /app/apps/login/.next \
     && node /tmp/patch-login-language.mjs /app/apps/login/.next \
     && node /tmp/patch-login-theme.mjs /app/apps/login/.next \
@@ -52,7 +54,7 @@ RUN node /tmp/patch-login-locale-alias.mjs /app/apps/login/.next \
     && node /tmp/patch-login-signedin-redirect.mjs /app/apps/login/.next \
     && node /tmp/patch-login-url-privacy.mjs /app/apps/login/.next \
     && node /tmp/patch-login-translation-fallback.mjs /app/apps/login/.next \
-    && rm -f /tmp/patch-login-copy.mjs /tmp/patch-login-language.mjs /tmp/patch-login-locale-alias.mjs /tmp/patch-login-theme.mjs /tmp/patch-login-toggle.mjs /tmp/patch-login-floating-toggle.mjs /tmp/patch-login-responsive-errors.mjs /tmp/patch-login-otp-behavior.mjs /tmp/patch-login-signedin-redirect.mjs /tmp/patch-login-url-privacy.mjs /tmp/patch-login-translation-fallback.mjs /tmp/login-copy-catalog.mjs /tmp/login-copy-errors.mjs /tmp/login-copy-residual.mjs
+    && rm -f /tmp/install-runtime-aliases.mjs /tmp/patch-login-copy.mjs /tmp/patch-login-language.mjs /tmp/patch-login-locale-alias.mjs /tmp/patch-login-theme.mjs /tmp/patch-login-toggle.mjs /tmp/patch-login-floating-toggle.mjs /tmp/patch-login-responsive-errors.mjs /tmp/patch-login-otp-behavior.mjs /tmp/patch-login-signedin-redirect.mjs /tmp/patch-login-url-privacy.mjs /tmp/patch-login-translation-fallback.mjs /tmp/login-copy-catalog.mjs /tmp/login-copy-errors.mjs /tmp/login-copy-residual.mjs
 
 RUN mkdir -p /.env-file \
     && touch /.env-file/.env \
