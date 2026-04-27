@@ -30,6 +30,9 @@ env:
   VPS_HOST: ${{ secrets.VPS_HOST }}
   VPS_USER: ${{ secrets.VPS_USER }}
   VPS_PROJECT_DIR: ${{ secrets.VPS_PROJECT_DIR || '/opt/sso-prototype-dev' }}
+  SSH_CONNECT_TIMEOUT: "20"
+  SSH_RETRY_ATTEMPTS: "5"
+  SSH_RETRY_DELAY_SECONDS: "15"
 
 concurrency:
   group: cd-production
@@ -84,27 +87,50 @@ jobs:
 
       - name: Prepare remote release bundle directory
         run: |
-          ssh -i ~/.ssh/deploy_key "${{ env.VPS_USER }}@${{ env.VPS_HOST }}" \
+          SSH_OPTS=(
+            -i ~/.ssh/deploy_key
+            -o BatchMode=yes
+            -o ConnectTimeout="${{ env.SSH_CONNECT_TIMEOUT }}"
+            -o ServerAliveInterval=10
+            -o ServerAliveCountMax=3
+          )
+          CI_RETRY_ATTEMPTS="${{ env.SSH_RETRY_ATTEMPTS }}" \
+          CI_RETRY_DELAY_SECONDS="${{ env.SSH_RETRY_DELAY_SECONDS }}" \
+          bash scripts/ci-retry.sh ssh "${SSH_OPTS[@]}" "${{ env.VPS_USER }}@${{ env.VPS_HOST }}" \
             "mkdir -p /tmp/_deploy_scripts /tmp/_deploy_bundle"
 
       - name: Sync deploy scripts and Compose control plane to VPS
         run: |
-          rsync -avz --progress \
-            -e "ssh -i ~/.ssh/deploy_key" \
+          SSH_CMD="ssh -i ~/.ssh/deploy_key -o BatchMode=yes -o ConnectTimeout=${{ env.SSH_CONNECT_TIMEOUT }} -o ServerAliveInterval=10 -o ServerAliveCountMax=3"
+          export CI_RETRY_ATTEMPTS="${{ env.SSH_RETRY_ATTEMPTS }}"
+          export CI_RETRY_DELAY_SECONDS="${{ env.SSH_RETRY_DELAY_SECONDS }}"
+
+          bash scripts/ci-retry.sh rsync -avz --progress \
+            -e "$SSH_CMD" \
             scripts/vps-deploy.sh \
             scripts/vps-login-ui-cutover.sh \
             scripts/vps-rollback.sh \
+            scripts/ci-retry.sh \
             scripts/lib \
             "${{ env.VPS_USER }}@${{ env.VPS_HOST }}:/tmp/_deploy_scripts/"
 
-          rsync -avz --progress \
-            -e "ssh -i ~/.ssh/deploy_key" \
+          bash scripts/ci-retry.sh rsync -avz --progress \
+            -e "$SSH_CMD" \
             docker-compose.dev.yml \
             "${{ env.VPS_USER }}@${{ env.VPS_HOST }}:/tmp/_deploy_bundle/"
 
       - name: Install Compose control plane on VPS
         run: |
-          ssh -i ~/.ssh/deploy_key "${{ env.VPS_USER }}@${{ env.VPS_HOST }}" \
+          SSH_OPTS=(
+            -i ~/.ssh/deploy_key
+            -o BatchMode=yes
+            -o ConnectTimeout="${{ env.SSH_CONNECT_TIMEOUT }}"
+            -o ServerAliveInterval=10
+            -o ServerAliveCountMax=3
+          )
+          CI_RETRY_ATTEMPTS="${{ env.SSH_RETRY_ATTEMPTS }}" \
+          CI_RETRY_DELAY_SECONDS="${{ env.SSH_RETRY_DELAY_SECONDS }}" \
+          bash scripts/ci-retry.sh ssh "${SSH_OPTS[@]}" "${{ env.VPS_USER }}@${{ env.VPS_HOST }}" \
             "set -eu
              backup='${{ env.VPS_PROJECT_DIR }}/docker-compose.dev.yml.pre-${{ steps.tag.outputs.sha_short }}'
              if [ -f '${{ env.VPS_PROJECT_DIR }}/docker-compose.dev.yml' ]; then
@@ -121,7 +147,16 @@ jobs:
 
       - name: Execute zero-downtime deploy
         run: |
-          ssh -i ~/.ssh/deploy_key "${{ env.VPS_USER }}@${{ env.VPS_HOST }}" \
+          SSH_OPTS=(
+            -i ~/.ssh/deploy_key
+            -o BatchMode=yes
+            -o ConnectTimeout="${{ env.SSH_CONNECT_TIMEOUT }}"
+            -o ServerAliveInterval=10
+            -o ServerAliveCountMax=3
+          )
+          CI_RETRY_ATTEMPTS="${{ env.SSH_RETRY_ATTEMPTS }}" \
+          CI_RETRY_DELAY_SECONDS="${{ env.SSH_RETRY_DELAY_SECONDS }}" \
+          bash scripts/ci-retry.sh ssh "${SSH_OPTS[@]}" "${{ env.VPS_USER }}@${{ env.VPS_HOST }}" \
             "sudo bash /tmp/_deploy_scripts/vps-deploy.sh \
               --tag '${{ steps.tag.outputs.tag }}' \
               --registry '${{ env.IMAGE_PREFIX }}' \
