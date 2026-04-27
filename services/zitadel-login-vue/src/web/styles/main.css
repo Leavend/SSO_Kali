@@ -275,7 +275,10 @@ input {
 }
 
 .link-action {
+  display: inline-block;
+  margin-top: 12px;
   color: var(--accent);
+  font-size: 15px;
   font-weight: 700;
   transition: color 0.16s ease;
 }
