@@ -5,11 +5,13 @@ import { parseLoginState, serializeLoginState, sessionCookie } from '../server/c
 
 const config: RuntimeConfig = {
   apiUrl: 'http://zitadel-api:8080',
+  appBaseUrl: 'https://dev-sso.timeh.my.id',
   cookieSecret: 'test-zitadel-login-vue-cookie-secret-32',
   instanceHost: 'id.dev-sso.timeh.my.id',
   port: 3010,
   publicBasePath: '/ui/v2/login-vue',
   publicHost: 'id.dev-sso.timeh.my.id',
+  requireTotpAfterPassword: true,
   secureCookies: true,
 }
 

@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import AuthShell from '@/components/auth/AuthShell.vue'
 import { useLoginFlowStore } from '@/stores/loginFlow'
+import { passwordResetHref } from '@/utils/authLinks'
 
 const router = useRouter()
 const flow = useLoginFlowStore()
 const password = ref('')
+const resetHref = computed(() => passwordResetHref(flow.loginName))
 
 async function submit(): Promise<void> {
   const next = await flow.submitPassword(password.value)
@@ -31,7 +33,7 @@ async function submit(): Promise<void> {
         <input v-model="password" autocomplete="current-password" type="password" />
       </label>
 
-      <a class="link-action" href="/auth/password-reset">Atur Ulang Kata Sandi</a>
+      <a class="link-action" :href="resetHref">Atur Ulang Kata Sandi</a>
       <p v-if="flow.errorMessage" class="alert" role="alert">{{ flow.errorMessage }}</p>
 
       <div class="signin-actions signin-actions--split">

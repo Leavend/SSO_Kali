@@ -56,7 +56,7 @@
     footer.id = IDS.footer;
     footer.setAttribute("aria-label", "Legal links");
     footer.innerHTML =
-      '<span>&copy; 2026 Dev-SSO</span><span aria-hidden="true">.</span><a href="#">Terms</a><span aria-hidden="true">.</span><a href="#">Privacy</a><span aria-hidden="true">.</span><a href="#">Docs</a>';
+      '<span>&copy; 2026 Dev-SSO</span><span aria-hidden="true">.</span><a href="/terms">Terms</a><span aria-hidden="true">.</span><a href="/privacy">Privacy</a><span aria-hidden="true">.</span><a href="/docs">Docs</a>';
     document.body.appendChild(footer);
   }
 

@@ -7,6 +7,7 @@ export interface RuntimeConfig {
   readonly publicBasePath: string
   readonly apiUrl: string
   readonly publicHost: string
+  readonly appBaseUrl: string
   readonly instanceHost: string
   readonly cookieSecret: string
   readonly secureCookies: boolean
@@ -38,6 +39,7 @@ function loadConfig(): RuntimeConfig {
     publicBasePath: normalizeBasePath(env('PUBLIC_BASE_PATH', undefined)),
     apiUrl: trimTrailingSlash(env('ZITADEL_API_URL', 'http://zitadel-api:8080')),
     publicHost,
+    appBaseUrl: trimTrailingSlash(env('DEV_SSO_APP_BASE_URL', 'https://dev-sso.timeh.my.id')),
     instanceHost: env('ZITADEL_INSTANCE_HOST', publicHost),
     cookieSecret: requireSecret(env('LOGIN_COOKIE_SECRET', '')),
     secureCookies: env('SECURE_COOKIES', 'true') !== 'false',
