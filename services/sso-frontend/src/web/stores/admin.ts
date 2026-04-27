@@ -18,6 +18,13 @@ export const useAdminStore = defineStore('admin', () => {
   const activeUsers = computed(() => new Set(sessions.value.map((session) => session.subject_id)).size)
   const mfaUsers = computed(() => users.value.filter((user) => user.login_context?.mfa_required).length)
 
+  function clearSessionState(): void {
+    principal.value = null
+    users.value = []
+    sessions.value = []
+    clients.value = []
+  }
+
   async function bootstrap(): Promise<void> {
     if (principal.value || status.value === 'loading') return
     await ensureSession()
@@ -34,7 +41,7 @@ export const useAdminStore = defineStore('admin', () => {
       status.value = 'ready'
       return true
     } catch (error) {
-      principal.value = null
+      clearSessionState()
       status.value = 'idle'
       redirectTo.value = redirectFromError(error)
       return false
@@ -53,26 +60,37 @@ export const useAdminStore = defineStore('admin', () => {
       clients.value = [...payload.clients]
       status.value = 'ready'
     } catch (error) {
+      if (redirectAfterAuthFailure(error)) return
       status.value = 'error'
       errorMessage.value = errorMessageFrom(error)
-      redirectTo.value = redirectFromError(error)
-      if (redirectTo.value) window.location.assign(redirectTo.value)
     }
   }
 
   async function loadUsers(): Promise<void> {
-    const payload = await fetchJson<{ users: ApiUser[] }>('/api/admin/users')
-    users.value = payload.users
+    try {
+      const payload = await fetchJson<{ users: ApiUser[] }>('/api/admin/users')
+      users.value = payload.users
+    } catch (error) {
+      if (!redirectAfterAuthFailure(error)) throw error
+    }
   }
 
   async function loadSessions(): Promise<void> {
-    const payload = await fetchJson<{ sessions: ApiSession[] }>('/api/admin/sessions')
-    sessions.value = payload.sessions
+    try {
+      const payload = await fetchJson<{ sessions: ApiSession[] }>('/api/admin/sessions')
+      sessions.value = payload.sessions
+    } catch (error) {
+      if (!redirectAfterAuthFailure(error)) throw error
+    }
   }
 
   async function loadClients(): Promise<void> {
-    const payload = await fetchJson<{ clients: ApiClient[] }>('/api/admin/clients')
-    clients.value = payload.clients
+    try {
+      const payload = await fetchJson<{ clients: ApiClient[] }>('/api/admin/clients')
+      clients.value = payload.clients
+    } catch (error) {
+      if (!redirectAfterAuthFailure(error)) throw error
+    }
   }
 
   async function fetchUser(subjectId: string): Promise<{ readonly user: ApiUser; readonly sessions: ApiSession[] }> {
@@ -94,7 +112,7 @@ export const useAdminStore = defineStore('admin', () => {
       const payload = await fetchJson<{ expiresAt: number }>('/auth/refresh', { method: 'POST' })
       if (principal.value) principal.value = { ...principal.value, expiresAt: payload.expiresAt }
     } catch {
-      principal.value = null
+      clearSessionState()
       window.location.assign('/session-expired')
     }
   }
@@ -104,6 +122,17 @@ export const useAdminStore = defineStore('admin', () => {
 
     const secondsLeft = principal.value.expiresAt - Math.floor(Date.now() / 1000)
     if (secondsLeft <= 180) await refreshSession()
+  }
+
+  function redirectAfterAuthFailure(error: unknown): boolean {
+    const target = redirectFromError(error)
+    if (!target) return false
+
+    clearSessionState()
+    status.value = 'idle'
+    redirectTo.value = target
+    window.location.assign(target)
+    return true
   }
 
   return {

@@ -16,7 +16,7 @@ import { canManageSessions, canUseAdminPanel, sessionIsFresh } from './rbac.js'
 import { clearSessionCookie, getSession, publicSession, sessionCookie, sessionFromBootstrap } from './session.js'
 import type { AdminSession } from './session.js'
 import type { AppResponse } from './response.js'
-import { json, redirect, unauthorized } from './response.js'
+import { json, redirect } from './response.js'
 
 type RouteContext = {
   readonly request: IncomingMessage
@@ -25,7 +25,7 @@ type RouteContext = {
 
 export async function handleSession(request: IncomingMessage): Promise<AppResponse> {
   const session = getSession(request)
-  if (!session) return unauthorized()
+  if (!session) return unauthenticatedResponse()
 
   if (!canUseAdminPanel(session)) {
     return json(403, authFailurePayload(session), { 'set-cookie': [sessionCookie(session)] })
@@ -36,7 +36,7 @@ export async function handleSession(request: IncomingMessage): Promise<AppRespon
 
 export async function handleAdminApi(context: RouteContext): Promise<AppResponse> {
   const session = getSession(context.request)
-  if (!session) return unauthorized()
+  if (!session) return unauthenticatedResponse()
 
   if (!canUseAdminPanel(session)) {
     return json(403, authFailurePayload(session), { 'set-cookie': [sessionCookie(session)] })
@@ -161,6 +161,13 @@ function authFailurePayload(session: AdminSession): {
 
 function adminErrorResponse(error: unknown): AppResponse {
   if (isAdminApiError(error)) {
+    if (error.status === 401) {
+      return json(error.status, {
+        error: error.code ?? 'admin_api_error',
+        message: error.message,
+      }, { 'set-cookie': [clearSessionCookie()] })
+    }
+
     return json(error.status, {
       error: error.code ?? 'admin_api_error',
       message: error.message,
@@ -169,4 +176,12 @@ function adminErrorResponse(error: unknown): AppResponse {
 
   console.error(error)
   return json(500, { error: 'admin_proxy_failed', message: 'Admin API proxy failed.' })
+}
+
+function unauthenticatedResponse(): AppResponse {
+  return json(
+    401,
+    { error: 'no_session', message: 'No active admin session.' },
+    { 'set-cookie': [clearSessionCookie()] },
+  )
 }
