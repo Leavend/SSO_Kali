@@ -27,6 +27,19 @@ it('shows the landing page for guest users after the silent SSO check', function
         ->assertSee('Mulai Login Server-side');
 });
 
+it('does not silently reauthenticate after a terminal logout event', function (): void {
+    /** @var TestCase $this */
+    seedAuthenticatedSession($this);
+
+    $this->get('/?event=signed-out')
+        ->assertOk()
+        ->assertSee('Logout terpusat selesai untuk App B.')
+        ->assertSee('Mulai Login Server-side');
+
+    $this->get('/dashboard')
+        ->assertRedirect('/?event=session-expired');
+});
+
 it('keeps guest redirects https aware behind the reverse proxy', function (): void {
     /** @var TestCase $this */
     $this
@@ -116,8 +129,7 @@ it('rejects the callback when the id token nonce does not match', function (): v
         'code' => 'upstream-code',
         'state' => $query['state'],
     ]))
-        ->assertRedirect('/')
-        ->assertSessionHas('status', 'Handshake SSO gagal diselesaikan.');
+        ->assertRedirect('/?event=handshake-failed');
 });
 
 it('performs centralized logout and clears the local session', function (): void {
@@ -129,12 +141,24 @@ it('performs centralized logout and clears the local session', function (): void
     ]);
 
     $this->post('/auth/logout')
-        ->assertRedirect('/');
+        ->assertRedirect('/?event=signed-out');
 
     $this->get('/dashboard')
-        ->assertRedirect('/');
+        ->assertRedirect('/?event=session-expired');
 
     Http::assertSent(fn ($request): bool => $request->url() === 'http://sso.example/connect/logout');
+});
+
+it('keeps silent SSO misses on the landing page', function (): void {
+    /** @var TestCase $this */
+    $login = $this->get('/auth/login?prompt=none');
+    parse_str((string) parse_url((string) $login->headers->get('Location'), PHP_URL_QUERY), $query);
+
+    $this->get('/auth/callback?'.http_build_query([
+        'error' => 'login_required',
+        'state' => $query['state'],
+    ]))
+        ->assertRedirect('/?sso_checked=1&event=sso-miss');
 });
 
 it('clears indexed session rows when a back-channel logout token arrives', function (): void {

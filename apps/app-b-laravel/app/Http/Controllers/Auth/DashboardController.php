@@ -15,7 +15,7 @@ final class DashboardController
         $session = $sessions->current();
 
         if ($session === null) {
-            return redirect('/')->with('status', 'Sesi App B belum tersedia atau sudah diputus.');
+            return redirect('/?event=session-expired');
         }
 
         return view('dashboard', [

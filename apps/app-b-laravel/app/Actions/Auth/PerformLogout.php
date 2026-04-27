@@ -27,6 +27,6 @@ final class PerformLogout
 
         $this->sessions->clearCurrent();
 
-        return redirect('/')->with('status', 'Logout terpusat selesai untuk App B.');
+        return redirect('/?event=signed-out');
     }
 }
