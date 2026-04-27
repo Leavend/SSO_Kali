@@ -42,6 +42,19 @@ compose() {
   docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "$@"
 }
 
+require_single_quoted_argon_hash() {
+  local key="$1" line value
+  line="$(grep -E "^${key}=" "$ENV_FILE" || true)"
+  [[ -n "$line" ]] || fail "${key} must be set"
+
+  value="${line#*=}"
+  case "$value" in
+    "'\$argon2id\$"*) return 0 ;;
+    \$argon2id\$*) fail "${key} must be single-quoted in ${ENV_FILE} to prevent Compose dollar interpolation" ;;
+    *) fail "${key} must contain a single-quoted Argon2id hash" ;;
+  esac
+}
+
 APP_SERVICES=(sso-backend sso-backend-worker sso-frontend sso-admin-vue zitadel-login zitadel-login-vue app-a-next app-b-laravel)
 
 declare -A IMAGE_MAP=(
@@ -86,6 +99,7 @@ for svc in "${APP_SERVICES[@]}"; do
     fail "Compose control plane does not define required service: $svc"
   fi
 done
+require_single_quoted_argon_hash "APP_B_CLIENT_SECRET_HASH"
 
 log "Control plane validation passed"
 

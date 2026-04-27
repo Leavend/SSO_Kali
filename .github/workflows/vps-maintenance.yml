@@ -45,12 +45,20 @@ jobs:
         if: inputs.action == 'check-env'
         run: |
           ssh -i ~/.ssh/deploy_key "${{ env.VPS_USER }}@${{ env.VPS_HOST }}" bash <<'REMOTE'
-          PROJECT_DIR="/opt/sso-prototype-dev"
+          PROJECT_DIR="${{ env.VPS_PROJECT_DIR }}"
           echo "=== APP_B_CLIENT_SECRET_HASH ==="
-          grep APP_B_CLIENT_SECRET_HASH "$PROJECT_DIR/.env.dev" 2>/dev/null || echo "NOT SET"
+          if grep -Eq "^APP_B_CLIENT_SECRET_HASH='\\\$argon2id\\\$" "$PROJECT_DIR/.env.dev" 2>/dev/null; then
+            echo "SET: quoted Argon2id literal"
+          else
+            echo "NOT SET OR UNSAFE FORMAT"
+          fi
           echo ""
           echo "=== Argon2id env params ==="
-          grep OIDC_CLIENT_SECRET_HASH "$PROJECT_DIR/.env.dev" 2>/dev/null || echo "NOT SET"
+          if grep -Eq "^OIDC_CLIENT_SECRET_HASH='\\\$argon2id\\\$" "$PROJECT_DIR/.env.dev" 2>/dev/null; then
+            echo "SET: quoted Argon2id literal"
+          else
+            echo "NOT SET OR NOT ARGON2ID"
+          fi
           echo ""
           echo "=== sso-backend status ==="
           sudo docker compose -f "$PROJECT_DIR/docker-compose.dev.yml" \

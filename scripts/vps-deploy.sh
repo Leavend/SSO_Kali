@@ -53,6 +53,19 @@ compose() {
   docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "$@"
 }
 
+require_single_quoted_argon_hash() {
+  local key="$1" line value
+  line="$(grep -E "^${key}=" "$ENV_FILE" || true)"
+  [[ -n "$line" ]] || fail "${key} must be set"
+
+  value="${line#*=}"
+  case "$value" in
+    "'\$argon2id\$"*) return 0 ;;
+    \$argon2id\$*) fail "${key} must be single-quoted in ${ENV_FILE} to prevent Compose dollar interpolation" ;;
+    *) fail "${key} must contain a single-quoted Argon2id hash" ;;
+  esac
+}
+
 # Services that use custom-built images (order matters: deps first)
 APP_SERVICES=(sso-backend sso-backend-worker sso-frontend sso-admin-vue zitadel-login zitadel-login-vue app-a-next app-b-laravel)
 
@@ -114,6 +127,8 @@ done
 if ! grep -Eq '^ZITADEL_LOGIN_VUE_COOKIE_SECRET=.{32,}$' "$ENV_FILE" || grep -Eq '^ZITADEL_LOGIN_VUE_COOKIE_SECRET=REPLACE_' "$ENV_FILE"; then
   fail "ZITADEL_LOGIN_VUE_COOKIE_SECRET must be set before deploying zitadel-login-vue"
 fi
+
+require_single_quoted_argon_hash "APP_B_CLIENT_SECRET_HASH"
 
 log "Preflight complete - Compose control plane is aligned"
 
