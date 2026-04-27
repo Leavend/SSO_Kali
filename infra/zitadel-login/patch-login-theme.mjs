@@ -90,7 +90,10 @@ body {
   transition: background-color 0.25s ease, color 0.25s ease;
 }
 
-*, *::before, *::after {
+/* Nuclear font override — beat next/font Lato class on <html> */
+html[class],
+html[class] body,
+html[class] body * {
   font-family: var(--devsso-font) !important;
 }
 
@@ -104,28 +107,26 @@ body div[class*="min-h-screen"] {
 
 function buildCardLayout() {
   return `
+/* ── Card container — both 440px (email) and DynamicTheme fallback ── */
 body div[class*="max-w-[440px]"] {
   width: min(100%, 448px) !important;
   max-width: min(448px, calc(100vw - 32px)) !important;
   padding-inline: 0 !important;
 }
 
-/* Password / set / change pages: outer container uses max-w-[1100px] */
 body div[class*="max-w-[1100px]"] {
   max-width: min(448px, calc(100vw - 32px)) !important;
   padding-inline: 0 !important;
 }
 
-/* Button bars use md:max-w-full which overrides 440px on desktop */
 body div[class*="md:max-w-full"][class*="max-w-[440px]"] {
   max-width: min(448px, calc(100vw - 32px)) !important;
 }
 
-body div[class*="max-w-[440px]"] > div[class*="bg-background-light-500"][class*="rounded-lg"],
-body div[class*="max-w-[440px]"] > div[class*="rounded-lg"][class*="shadow"],
+/* ── Card surface — rounded corners, shadow, padding ── */
+body div[class*="max-w-[440px]"] > div[class*="rounded"],
 body div[class*="max-w-[440px]"] > div:first-child,
-body div[class*="max-w-[1100px]"] > div[class*="bg-background-light-500"][class*="rounded-lg"],
-body div[class*="max-w-[1100px]"] > div[class*="rounded-lg"][class*="shadow"],
+body div[class*="max-w-[1100px]"] > div[class*="rounded"],
 body div[class*="max-w-[1100px]"] > div:first-child {
   border-radius: 16px !important;
   border: 1px solid color-mix(in srgb, var(--devsso-border) 76%, transparent) !important;
@@ -135,32 +136,57 @@ body div[class*="max-w-[1100px]"] > div:first-child {
   transition: background-color 0.25s ease, box-shadow 0.25s ease;
 }
 
+/* ── Logo image sizing ── */
 body div[class*="max-w-[440px]"] img[alt="logo"],
-body div[class*="max-w-[1100px]"] img[alt="logo"] {
+body div[class*="max-w-[1100px]"] img[alt="logo"],
+body div[class*="max-w-[440px]"] img[alt="Logo"],
+body div[class*="max-w-[1100px]"] img[alt="Logo"] {
   width: min(100%, 162px) !important;
   height: auto !important;
   margin-bottom: 10px !important;
+}
+
+/* ── Inner card spacing (space-y-8 → space-y-4 for tighter layout) ── */
+body div[class*="max-w-[440px]"] div[class*="space-y-8"],
+body div[class*="max-w-[1100px]"] div[class*="space-y-8"] {
+  gap: 0 !important;
+}
+body div[class*="max-w-[440px]"] div[class*="space-y-8"] > *,
+body div[class*="max-w-[1100px]"] div[class*="space-y-8"] > * {
+  margin-top: 0 !important;
 }`.trim();
 }
 
 function buildTypography() {
   return `
-body div[class*="max-w-[440px]"] h1,
-body div[class*="max-w-[1100px]"] h1 {
+/* ── h1 heading — match dev-sso auth.css: 28px/800 ── */
+body h1,
+body .ztdl-h1 {
   color: var(--devsso-text) !important;
   font-family: var(--devsso-font) !important;
   font-size: 28px !important;
   font-weight: 800 !important;
-  letter-spacing: 0 !important;
+  letter-spacing: -0.01em !important;
   line-height: 1.18 !important;
-  margin: 8px auto 0 !important;
   text-align: center !important;
 }
 
+/* Scoped h1 for maximum specificity */
+body div[class*="max-w-[440px]"] h1,
+body div[class*="max-w-[1100px]"] h1 {
+  font-size: 28px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.01em !important;
+  line-height: 1.18 !important;
+  margin: 0 !important;
+}
+
+/* ── Subtitle paragraph — match dev-sso: 15px/400 ── */
+body p.ztdl-p,
 body div[class*="max-w-[440px]"] p.ztdl-p,
 body div[class*="max-w-[1100px]"] p.ztdl-p {
   max-width: 320px !important;
-  margin: 8px auto 24px !important;
+  margin: 8px auto 0 !important;
   color: var(--devsso-text-secondary) !important;
   font-family: var(--devsso-font) !important;
   font-size: 15px !important;
@@ -169,6 +195,7 @@ body div[class*="max-w-[1100px]"] p.ztdl-p {
   text-align: center !important;
 }
 
+/* ── Labels — match dev-sso: 14px/700 ── */
 body label {
   color: var(--devsso-text) !important;
   font-family: var(--devsso-font) !important;
@@ -176,6 +203,7 @@ body label {
   font-weight: 700 !important;
 }
 
+/* ── Links ── */
 body a {
   font-family: var(--devsso-font) !important;
 }`.trim();
@@ -183,40 +211,50 @@ body a {
 
 function buildAvatarOverrides() {
   return `
-/* ── Avatar / user-identity row ── */
-/* Avatar circle (initials badge on password page) */
-body div[class*="max-w-[440px]"] div[class*="rounded-full"][class*="flex"][class*="items-center"][class*="justify-center"],
-body div[class*="max-w-[1100px]"] div[class*="rounded-full"][class*="flex"][class*="items-center"][class*="justify-center"] {
+/* ── UserAvatar container row ── */
+/* The UserAvatar wrapper: flex h-full flex-row items-center border p-[1px] */
+body div[class*="flex"][class*="items-center"][class*="border"][class*="p-[1px]"] {
+  border-radius: 12px !important;
+  border-color: color-mix(in srgb, var(--devsso-border) 50%, transparent) !important;
+  padding: 4px 8px !important;
+  margin-top: 16px !important;
+  height: auto !important;
+}
+
+/* ── Avatar circle (small size: 32x32) ── */
+/* Target: div with pointer-events-none, flex, items-center, justify-center, rounded */
+body div[class*="pointer-events-none"][class*="flex"][class*="items-center"][class*="justify-center"] {
   width: 32px !important;
   height: 32px !important;
   min-width: 32px !important;
+  max-width: 32px !important;
+  min-height: 32px !important;
+  max-height: 32px !important;
   font-size: 11px !important;
   font-weight: 700 !important;
   font-family: var(--devsso-font) !important;
+  flex-shrink: 0 !important;
 }
 
-/* Email text next to avatar */
-body div[class*="max-w-[440px]"] span[class*="text-sm"],
-body div[class*="max-w-[440px]"] span[class*="text-base"],
-body div[class*="max-w-[440px]"] span[class*="text-lg"],
-body div[class*="max-w-[1100px]"] span[class*="text-sm"],
-body div[class*="max-w-[1100px]"] span[class*="text-base"],
-body div[class*="max-w-[1100px]"] span[class*="text-lg"] {
+/* Avatar initials text */
+body div[class*="pointer-events-none"] span[class*="uppercase"] {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+}
+
+/* ── Email text next to avatar ── */
+/* UserAvatar: span.text-14px.ml-4.max-w-[250px] */
+body div[class*="flex"][class*="items-center"] > span[class*="text-14px"],
+body div[class*="flex"][class*="items-center"] > span[class*="ml-4"],
+body span[class*="text-14px"] {
   font-size: 14px !important;
   font-weight: 500 !important;
   font-family: var(--devsso-font) !important;
   color: var(--devsso-text) !important;
 }
 
-/* Avatar + email container row */
-body div[class*="max-w-[440px]"] div[class*="flex"][class*="items-center"][class*="gap-"],
-body div[class*="max-w-[1100px]"] div[class*="flex"][class*="items-center"][class*="gap-"] {
-  gap: 10px !important;
-}
-
-/* Brand name under logo (e.g. "Dev-SSO") */
-body div[class*="max-w-[440px]"] p[class*="text-primary"],
-body div[class*="max-w-[1100px]"] p[class*="text-primary"] {
+/* ── Brand name under logo (e.g. "Dev-SSO") ── */
+body p[class*="text-primary"] {
   font-size: 12px !important;
   font-weight: 800 !important;
   font-family: var(--devsso-font) !important;
@@ -225,22 +263,30 @@ body div[class*="max-w-[1100px]"] p[class*="text-primary"] {
   margin: 0 !important;
 }
 
-/* Horizontal separator / divider line between sections */
-body div[class*="max-w-[440px]"] hr,
-body div[class*="max-w-[1100px]"] hr,
-body div[class*="max-w-[440px]"] div[class*="border-t"],
-body div[class*="max-w-[1100px]"] div[class*="border-t"] {
+/* ── Separator / divider lines ── */
+body hr,
+body div[class*="border-t"] {
   border-color: color-mix(in srgb, var(--devsso-border) 40%, transparent) !important;
+}
+
+/* ── Title+description section spacing ── */
+body div[class*="flex"][class*="flex-col"][class*="space-y-4"] {
+  gap: 0 !important;
+}
+body div[class*="flex"][class*="flex-col"][class*="space-y-4"] > * + * {
+  margin-top: 0 !important;
 }`.trim();
 }
 
 function buildFields() {
   return `
+/* ── Input fields — match dev-sso: 44px height, 15px text, 8px radius ── */
 body input[data-testid="username-text-input"],
 body input[type="password"],
 body input[type="email"],
 body input[type="text"] {
   min-height: 44px !important;
+  max-height: 44px !important;
   box-sizing: border-box !important;
   font-family: var(--devsso-font) !important;
   font-size: 15px !important;
@@ -286,19 +332,15 @@ body input[aria-invalid="true"]:focus-visible {
 
 function buildButtons() {
   return `
-body button[class*="border-button-light-border"],
-body button[data-testid="submit-button"],
-body button[data-devsso-action="submit"],
-body button[data-testid="back-button"],
-body button[data-devsso-action="back"],
-body button[data-testid="password-button"],
-body button[data-testid="deny-button"],
-body button[data-testid="idp-button"],
-body button[class*="rounded-full"][class*="flex"][class*="items-center"] {
+/* ── Shared button base — 44px height, 15px/800, rounded-8 ── */
+body button[data-testid],
+body form button,
+body button[class*="rounded"] {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
   min-height: 44px !important;
+  max-height: 44px !important;
   box-sizing: border-box !important;
   border-radius: 8px !important;
   font-family: var(--devsso-font) !important;
@@ -308,6 +350,7 @@ body button[class*="rounded-full"][class*="flex"][class*="items-center"] {
   transition: color 0.16s ease, background-color 0.16s ease, border-color 0.16s ease, transform 0.16s ease;
 }
 
+/* ── Submit (primary CTA) ── */
 body button[data-testid="submit-button"],
 body button[data-devsso-action="submit"] {
   min-width: 120px !important;
@@ -345,6 +388,7 @@ body button[data-devsso-action="back"] * {
   color: inherit !important;
 }
 
+/* ── Back button ── */
 body button[data-testid="back-button"],
 body button[data-devsso-action="back"] {
   min-width: 100px !important;
@@ -365,10 +409,13 @@ body button[data-devsso-action="back"]:focus-visible {
   box-shadow: 0 0 0 2px var(--devsso-primary), 0 0 0 4px var(--devsso-ring) !important;
 }
 
+/* ── Text-only action buttons ── */
 body button[data-testid="register-button"],
 body button[data-testid="reset-button"],
 body button[data-testid="resend-button"] {
   padding: 6px 2px !important;
+  min-height: auto !important;
+  max-height: none !important;
   border: none !important;
   background: transparent !important;
   color: var(--devsso-link) !important;
@@ -384,6 +431,7 @@ body button[data-testid="resend-button"]:hover {
   color: var(--devsso-primary-hover) !important;
 }
 
+/* ── Password method button ── */
 body button[data-testid="password-button"] {
   width: 100% !important;
   padding: 0 16px !important;
@@ -396,6 +444,7 @@ body button[data-testid="password-button"]:hover {
   border-color: var(--devsso-primary) !important;
 }
 
+/* ── Deny button ── */
 body button[data-testid="deny-button"] {
   min-width: 100px !important;
   padding: 0 20px !important;
@@ -408,6 +457,7 @@ body button[data-testid="deny-button"]:hover {
   border-color: #ef4444 !important;
 }
 
+/* ── IDP / social login button ── */
 body button[data-testid="idp-button"] {
   border: 1px solid var(--devsso-border) !important;
   background: var(--devsso-surface-strong) !important;
@@ -419,6 +469,7 @@ body button[data-testid="idp-button"]:hover {
   border-color: var(--devsso-primary) !important;
 }
 
+/* ── Accent links ── */
 body a[class*="text-primary"] {
   color: var(--devsso-link) !important;
   font-weight: 600 !important;
@@ -427,11 +478,10 @@ body a[class*="text-primary"]:hover {
   color: var(--devsso-primary-hover) !important;
 }
 
+/* ── Action bar layout (submit + back row) ── */
 body div[class*="max-w-[440px]"] div[class*="flex"][class*="justify-between"],
-body div[class*="max-w-[440px]"] div[class*="flex"][class*="items-center"][class*="justify-end"],
 body div[class*="max-w-[440px]"] form div[class*="flex"][class*="w-full"]:has(> button[data-testid]),
 body div[class*="max-w-[1100px]"] div[class*="flex"][class*="justify-between"],
-body div[class*="max-w-[1100px]"] div[class*="flex"][class*="items-center"][class*="justify-end"],
 body div[class*="max-w-[1100px]"] form div[class*="flex"][class*="w-full"]:has(> button[data-testid]) {
   display: flex !important;
   align-items: center !important;
@@ -443,6 +493,7 @@ body div[class*="max-w-[1100px]"] form div[class*="flex"][class*="w-full"]:has(>
 
 function buildUtilityArea() {
   return `
+/* ── Hide native ZITADEL language switcher ── */
 body [id^="headlessui-listbox-button-"],
 body [id^="headlessui-listbox-options-"],
 body [role="listbox"] {
@@ -452,6 +503,7 @@ body div.w-32:has([id^="headlessui-listbox-button-"]) {
   display: none !important;
 }
 
+/* ── Hide native ZITADEL theme switch ── */
 body div[class*="flex"][class*="space-x-1"][class*="p-1"]:has(> button.w-8) {
   display: none !important;
 }
@@ -464,6 +516,13 @@ body button[aria-label*="light" i]:not(#devsso-theme-toggle) {
   display: none !important;
 }
 
+/* ── Hide the bottom controls bar entirely ── */
+body div[class*="max-w-[1100px]"] > div[class*="max-w-[440px]"][class*="flex"][class*="justify-end"],
+body div[class*="max-w-[1100px]"] > div[class*="md:max-w-full"][class*="justify-end"] {
+  display: none !important;
+}
+
+/* ── Custom theme toggle ── */
 #devsso-theme-toggle {
   position: fixed !important;
   bottom: 58px !important;
@@ -486,6 +545,8 @@ body button[aria-label*="light" i]:not(#devsso-theme-toggle) {
   box-shadow: none !important;
   -webkit-appearance: none !important;
   appearance: none !important;
+  min-height: auto !important;
+  max-height: none !important;
 }
 
 #devsso-theme-toggle:hover {
@@ -506,7 +567,7 @@ body button[aria-label*="light" i]:not(#devsso-theme-toggle) {
 
 function buildFooter() {
   return `
-/* Footer — real HTML, identical to the Vue parent AuthFooter contract */
+/* ── Footer — matches Vue AuthFooter contract ── */
 #devsso-footer {
   position: fixed !important;
   bottom: 0 !important;
@@ -544,18 +605,15 @@ function buildFooter() {
 function buildResponsiveRules() {
   return `
 @media (max-width: 640px) {
-  body div[class*="max-w-[440px]"] > div[class*="bg-background-light-500"][class*="rounded-lg"],
-  body div[class*="max-w-[440px]"] > div[class*="rounded-lg"][class*="shadow"],
+  body div[class*="max-w-[440px]"] > div[class*="rounded"],
   body div[class*="max-w-[440px]"] > div:first-child,
-  body div[class*="max-w-[1100px]"] > div[class*="bg-background-light-500"][class*="rounded-lg"],
-  body div[class*="max-w-[1100px]"] > div[class*="rounded-lg"][class*="shadow"],
+  body div[class*="max-w-[1100px]"] > div[class*="rounded"],
   body div[class*="max-w-[1100px]"] > div:first-child {
     padding: 24px 20px !important;
     border-radius: 14px !important;
   }
 
-  body div[class*="max-w-[440px]"] h1,
-  body div[class*="max-w-[1100px]"] h1 {
+  body h1 {
     font-size: 1.375rem !important;
   }
 
@@ -564,14 +622,12 @@ function buildResponsiveRules() {
     right: 16px !important;
     width: 36px !important;
     height: 36px !important;
+    min-height: auto !important;
+    max-height: none !important;
   }
 }
 
-/* Smooth all transitions */
-* {
-  transition-property: background-color, border-color, color, box-shadow;
-  transition-duration: 0s;
-}
+/* ── Smooth transition baseline ── */
 body, body div, body button, body input, body a {
   transition-duration: 0.2s;
   transition-timing-function: ease;
