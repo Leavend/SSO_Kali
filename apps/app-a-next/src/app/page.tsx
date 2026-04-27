@@ -1,4 +1,5 @@
 import { ChecklistCard } from "@/components/molecules/ChecklistCard";
+import { SessionRefreshBridge } from "@/components/SessionRefreshBridge";
 import { SignalPill } from "@/components/atoms/SignalPill";
 import { cookies } from "next/headers";
 import { getPublicConfig, getServerConfig } from "@/lib/app-config";
@@ -26,6 +27,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   }
   return (
     <main className="mx-auto flex min-h-screen max-w-5xl flex-col gap-6 px-6 py-8">
+      <SessionRefreshBridge authenticated={session !== null} />
       <section className="rounded-[2rem] border border-app-line bg-app-panel p-8 shadow-[0_30px_90px_rgba(2,8,23,0.35)]">
         <SignalPill text={session === null ? "Public Client + PKCE" : "Session Active"} />
         <h1 className="mt-5 text-5xl font-semibold tracking-tight">Dummy App A untuk uji browser-side OIDC flow.</h1>
@@ -108,5 +110,6 @@ function readEvent(event: string | string[] | undefined): string | null {
     "missing-code": "Authorization response tidak membawa code yang valid.",
     "handshake-failed": "Pertukaran code atau sinkronisasi profile gagal di sisi server.",
     "upstream-error": "ZITADEL mengembalikan error saat proses autentikasi.",
+    "session-expired": "Sesi lokal berakhir atau refresh token tidak valid. Silakan login ulang.",
   }[event] ?? null;
 }

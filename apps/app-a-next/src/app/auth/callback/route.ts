@@ -64,6 +64,7 @@ async function completeCallback(
 }
 
 async function persistSession(tokens: TokenBundle, claims: AccessTokenClaims) {
+  const refreshToken = requiredRefreshToken(tokens.refreshToken);
   const profile = await fetchProfile(tokens.accessToken);
 
   return createSession({
@@ -73,7 +74,7 @@ async function persistSession(tokens: TokenBundle, claims: AccessTokenClaims) {
     email: claims.email,
     displayName: profile.display_name,
     accessToken: tokens.accessToken,
-    refreshToken: tokens.refreshToken,
+    refreshToken,
     idToken: tokens.idToken,
     expiresAt: claims.exp,
     profile: {
@@ -83,6 +84,12 @@ async function persistSession(tokens: TokenBundle, claims: AccessTokenClaims) {
       mfa_required: profile.login_context.mfa_required,
     },
   });
+}
+
+function requiredRefreshToken(token: string | null): string {
+  if (token !== null) return token;
+
+  throw new Error("Broker did not issue refresh token.");
 }
 
 function assertMatchingSubject(accessSub: string, idSub: string): void {

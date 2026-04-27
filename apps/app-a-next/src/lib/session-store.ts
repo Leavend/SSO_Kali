@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { getServerConfig } from "@/lib/app-config";
 import { getRedisClient } from "@/lib/redis";
 
 export type AppSession = {
@@ -9,9 +10,12 @@ export type AppSession = {
   readonly email: string | null;
   readonly displayName: string;
   readonly accessToken: string;
-  readonly refreshToken: string;
+  readonly refreshToken: string | null;
   readonly idToken: string;
   readonly expiresAt: number;
+  readonly createdAt: number;
+  readonly lastTouchedAt: number;
+  readonly lastRefreshedAt: number;
   readonly profile: {
     readonly email: string;
     readonly display_name: string;
@@ -25,7 +29,15 @@ export type StoredAuthTransaction = {
   readonly nonce: string;
 };
 
-const ttlSeconds = 60 * 60 * 24 * 30;
+export type SessionTokenUpdate = Pick<
+  AppSession,
+  "accessToken" | "expiresAt" | "idToken" | "refreshToken"
+>;
+
+export type NewAppSession = Omit<
+  AppSession,
+  "createdAt" | "lastRefreshedAt" | "lastTouchedAt" | "sessionId"
+>;
 
 export async function storeAuthTransaction(
   state: string,
@@ -43,8 +55,9 @@ export async function pullAuthTransaction(state: string): Promise<StoredAuthTran
   return parseJson<StoredAuthTransaction>(payload);
 }
 
-export async function createSession(session: Omit<AppSession, "sessionId">): Promise<AppSession> {
-  const nextSession = { ...session, sessionId: randomUUID() };
+export async function createSession(session: NewAppSession): Promise<AppSession> {
+  const now = unixTime();
+  const nextSession = withSessionDefaults(session, randomUUID(), now);
 
   await saveSession(nextSession);
 
@@ -52,35 +65,46 @@ export async function createSession(session: Omit<AppSession, "sessionId">): Pro
 }
 
 export async function findSession(sessionId: string): Promise<AppSession | null> {
-  const redis = await getRedisClient();
-  const payload = await redis.get(sessionKey(sessionId));
+  const session = normalizeSession(await readSession(sessionId));
 
-  return parseJson<AppSession>(payload);
+  if (session === null) return null;
+  if (sessionExpired(session)) return deleteAndReturnNull(session);
+
+  const touchedSession = { ...session, lastTouchedAt: unixTime() };
+  await saveSession(touchedSession);
+
+  return touchedSession;
+}
+
+export async function replaceSessionTokens(
+  sessionId: string,
+  update: SessionTokenUpdate,
+): Promise<AppSession | null> {
+  const session = normalizeSession(await readSession(sessionId));
+
+  if (session === null || sessionExpired(session)) return null;
+
+  const nextSession = { ...session, ...update, lastRefreshedAt: unixTime() };
+  await saveSession(nextSession);
+
+  return nextSession;
 }
 
 export async function destroySession(sessionId: string): Promise<void> {
-  const session = await findSession(sessionId);
+  const session = normalizeSession(await readSession(sessionId));
 
-  if (session === null) {
-    return;
-  }
+  if (session === null) return;
 
-  const redis = await getRedisClient();
-
-  await redis.del(sessionKey(sessionId));
-  await redis.sRem(sessionIndexKey(session.sid), sessionId);
+  await deleteSession(session);
 }
 
 export async function destroySessionsBySid(sid: string): Promise<number> {
   const redis = await getRedisClient();
   const sessionIds = await redis.sMembers(sessionIndexKey(sid));
 
-  if (sessionIds.length === 0) {
-    return 0;
-  }
+  if (sessionIds.length === 0) return 0;
 
   const pipeline = redis.multi();
-
   sessionIds.forEach((sessionId) => pipeline.del(sessionKey(sessionId)));
   pipeline.del(sessionIndexKey(sid));
   await pipeline.exec();
@@ -88,20 +112,119 @@ export async function destroySessionsBySid(sid: string): Promise<number> {
   return sessionIds.length;
 }
 
-async function saveSession(session: AppSession): Promise<void> {
+export async function tryAcquireRefreshLock(sessionId: string): Promise<boolean> {
+  const redis = await getRedisClient();
+  const result = await redis.set(refreshLockKey(sessionId), "1", {
+    EX: refreshLockTtlSeconds(),
+    NX: true,
+  });
+
+  return result === "OK";
+}
+
+export async function releaseRefreshLock(sessionId: string): Promise<void> {
   const redis = await getRedisClient();
 
-  await redis.set(sessionKey(session.sessionId), JSON.stringify(session), { EX: ttlSeconds });
+  await redis.del(refreshLockKey(sessionId));
+}
+
+export async function waitForSessionRefresh(
+  sessionId: string,
+  previousRefreshedAt: number,
+): Promise<AppSession | null> {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    await sleep(150);
+    const session = await findSession(sessionId);
+    if (session !== null && session.lastRefreshedAt > previousRefreshedAt) return session;
+  }
+
+  return null;
+}
+
+async function readSession(sessionId: string): Promise<AppSession | null> {
+  const redis = await getRedisClient();
+  const payload = await redis.get(sessionKey(sessionId));
+
+  return parseJson<AppSession>(payload);
+}
+
+async function saveSession(session: AppSession): Promise<void> {
+  const redis = await getRedisClient();
+  const ttl = activeTtlSeconds(session);
+
+  await redis.set(sessionKey(session.sessionId), JSON.stringify(session), { EX: ttl });
   await redis.sAdd(sessionIndexKey(session.sid), session.sessionId);
-  await redis.expire(sessionIndexKey(session.sid), ttlSeconds);
+  await redis.expire(sessionIndexKey(session.sid), ttl);
+}
+
+async function deleteAndReturnNull(session: AppSession): Promise<null> {
+  await deleteSession(session);
+
+  return null;
+}
+
+async function deleteSession(session: AppSession): Promise<void> {
+  const redis = await getRedisClient();
+
+  await redis.del(sessionKey(session.sessionId));
+  await redis.sRem(sessionIndexKey(session.sid), session.sessionId);
+}
+
+function withSessionDefaults(session: NewAppSession, sessionId: string, now: number): AppSession {
+  return {
+    ...session,
+    sessionId,
+    createdAt: now,
+    lastTouchedAt: now,
+    lastRefreshedAt: now,
+  };
+}
+
+function normalizeSession(session: AppSession | null): AppSession | null {
+  if (session === null) return null;
+
+  const now = unixTime();
+  const partial = session as Partial<AppSession>;
+
+  return {
+    ...session,
+    createdAt: numberOr(partial.createdAt, now),
+    lastTouchedAt: numberOr(partial.lastTouchedAt, now),
+    lastRefreshedAt: numberOr(partial.lastRefreshedAt, now),
+    refreshToken: stringOrNull(partial.refreshToken),
+  };
+}
+
+function activeTtlSeconds(session: AppSession): number {
+  return Math.max(1, Math.min(idleRemainingSeconds(session), absoluteRemainingSeconds(session)));
+}
+
+function sessionExpired(session: AppSession): boolean {
+  return idleRemainingSeconds(session) <= 0 || absoluteRemainingSeconds(session) <= 0;
+}
+
+function idleRemainingSeconds(session: AppSession): number {
+  return getServerConfig().sessionIdleTtlSeconds - (unixTime() - session.lastTouchedAt);
+}
+
+function absoluteRemainingSeconds(session: AppSession): number {
+  return getServerConfig().sessionAbsoluteTtlSeconds - (unixTime() - session.createdAt);
+}
+
+function refreshLockTtlSeconds(): number {
+  return Math.max(1, getServerConfig().refreshLockTtlSeconds);
 }
 
 function parseJson<T>(payload: string | null): T | null {
-  if (payload === null) {
-    return null;
-  }
+  return payload === null ? null : (JSON.parse(payload) as T);
+}
 
-  return JSON.parse(payload) as T;
+function numberOr(value: unknown, fallback: number): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function stringOrNull(value: unknown): string | null {
+  return typeof value === "string" && value !== "" ? value : null;
 }
 
 function transactionKey(state: string): string {
@@ -114,4 +237,18 @@ function sessionKey(sessionId: string): string {
 
 function sessionIndexKey(sid: string): string {
   return `app-a:sid:${sid}`;
+}
+
+function refreshLockKey(sessionId: string): string {
+  return `app-a:refresh-lock:${sessionId}`;
+}
+
+function sleep(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, milliseconds);
+  });
+}
+
+function unixTime(): number {
+  return Math.floor(Date.now() / 1000);
 }
