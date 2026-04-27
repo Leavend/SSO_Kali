@@ -170,6 +170,8 @@ require_text "docker-compose.dev.yml" 'zitadel-login-vue:' "Compose defines Vue 
 require_text "docker-compose.dev.yml" 'http://127\.0\.0\.1:3000/healthz' "App A healthcheck prefers dedicated health endpoint"
 require_text "docker-compose.dev.yml" 'http://127\.0\.0\.1:3000 >/dev/null' "App A healthcheck preserves one-release rollback fallback"
 require_absent_text "docker-compose.dev.yml" 'npm run start -- --hostname 0\.0\.0\.0 --port 3000' "App A production container uses standalone Node runtime without npm"
+require_text "docker-compose.dev.yml" 'HOSTNAME: 0\.0\.0\.0' "App A standalone runtime binds to all interfaces for health-gated deploys"
+require_text "apps/app-a-next/Dockerfile" 'ENV HOSTNAME=0\.0\.0\.0' "App A image defaults standalone Next server to all interfaces"
 require_text "docker-compose.dev.yml" 'http://127\.0\.0\.1:8000/health' "App B healthcheck avoids SSO redirect code paths"
 require_absent_text "apps/app-b-laravel/Dockerfile" 'key:generate --force' "App B container does not rotate APP_KEY during deploy or prewarm"
 require_text "docker-compose.dev.yml" 'ZITADEL_LOGIN_ACTIVE_BASE_PATH:-/ui/v2/login' "Compose can roll back active login UI to hosted login"
