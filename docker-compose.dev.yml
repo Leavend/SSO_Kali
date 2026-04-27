@@ -560,10 +560,6 @@ services:
       context: ./apps/app-a-next
     restart: unless-stopped
     init: true
-    command:
-      - sh
-      - -lc
-      - npm run start -- --hostname 0.0.0.0 --port 3000
     environment:
       NODE_ENV: production
       NEXT_PUBLIC_APP_NAME: Dummy App A
