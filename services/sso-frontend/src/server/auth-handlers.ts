@@ -20,12 +20,14 @@ import { getConfig } from './config.js'
 import {
   clearSessionCookie,
   clearTransactionCookie,
-  getSession,
   pullTransaction,
+  readSession,
   sessionCookie,
   sessionFromBootstrap,
   transactionCookie,
 } from './session.js'
+import type { AdminSession } from './session.js'
+import { refreshAdminSession, sessionNeedsRefresh } from './session-refresh.js'
 import type { AppResponse } from './response.js'
 import { json, redirect } from './response.js'
 import {
@@ -124,20 +126,20 @@ export async function handleCallback(request: IncomingMessage, requestUrl: URL):
 
 export async function handleLogout(request: IncomingMessage): Promise<AppResponse> {
   const config = getConfig()
-  const session = getSession(request)
+  const rawSession = readSession(request)
+  const session = rawSession ? await refreshSessionForLogout(rawSession) : null
+  const refreshToken = session?.refreshToken ?? rawSession?.refreshToken
+  const revocations: Array<Promise<void>> = []
 
-  if (session) {
-    await Promise.allSettled([
-      revokeSession(config.internalLogoutUrl, session.accessToken),
-      revokeRefreshToken(config, session.refreshToken),
-    ])
-  }
+  if (session) revocations.push(revokeSession(config.internalLogoutUrl, session.accessToken))
+  if (refreshToken) revocations.push(revokeRefreshToken(config, refreshToken))
+  if (revocations.length > 0) await Promise.allSettled(revocations)
 
   return redirect(new URL('/', config.appBaseUrl).toString(), [clearSessionCookie(), clearTransactionCookie()])
 }
 
 export async function handleRefresh(request: IncomingMessage): Promise<AppResponse> {
-  const session = getSession(request)
+  const session = readSession(request)
 
   if (!session?.refreshToken) {
     return json(
@@ -148,13 +150,7 @@ export async function handleRefresh(request: IncomingMessage): Promise<AppRespon
   }
 
   try {
-    const tokens = await refreshTokens(session.refreshToken)
-    const refreshedSession = {
-      ...session,
-      accessToken: tokens.access_token,
-      refreshToken: tokens.refresh_token ?? session.refreshToken,
-      expiresAt: Math.floor(Date.now() / 1000) + tokens.expires_in,
-    }
+    const refreshedSession = await refreshAdminSession(session)
 
     return json(
       200,
@@ -167,6 +163,17 @@ export async function handleRefresh(request: IncomingMessage): Promise<AppRespon
   } catch (error) {
     console.error('Token refresh failed:', error instanceof Error ? error.message : error)
     return json(401, { error: 'refresh_failed', message: 'Token refresh failed.' }, { 'set-cookie': [clearSessionCookie()] })
+  }
+}
+
+async function refreshSessionForLogout(session: AdminSession): Promise<AdminSession | null> {
+  if (!sessionNeedsRefresh(session, 30)) return session
+
+  try {
+    return await refreshAdminSession(session)
+  } catch (error) {
+    console.error('Token refresh before logout failed:', error instanceof Error ? error.message : error)
+    return sessionNeedsRefresh(session, 0) ? null : session
   }
 }
 
@@ -261,34 +268,6 @@ async function verifyIdToken(token: string, expectedNonce: string): Promise<{ re
   if (nonce !== expectedNonce) throw new Error('ID token nonce validation failed.')
 
   return { sub, exp }
-}
-
-async function refreshTokens(refreshToken: string): Promise<{
-  readonly access_token: string
-  readonly refresh_token?: string
-  readonly expires_in: number
-}> {
-  const config = getConfig()
-  const res = await fetch(config.tokenUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type: 'refresh_token',
-      client_id: config.clientId,
-      refresh_token: refreshToken,
-    }),
-  })
-
-  if (!res.ok) {
-    const body = await res.text().catch(() => '')
-    throw new Error(`Refresh failed: HTTP ${res.status} - ${body}`)
-  }
-
-  return res.json() as Promise<{
-    readonly access_token: string
-    readonly refresh_token?: string
-    readonly expires_in: number
-  }>
 }
 
 async function revokeSession(logoutUrl: string, accessToken: string): Promise<void> {
