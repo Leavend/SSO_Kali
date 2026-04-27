@@ -26,9 +26,13 @@ final class AdminSessionService
      */
     public function activeSessions(): array
     {
-        return $this->activeSessionRows()
+        $sessions = $this->activeSessionRows()
             ->unique(fn (object $row): string => $this->sessionKey($row))
             ->map(fn (object $row): array => $this->sessionPayload($row))
+            ->values();
+
+        return $this->withRegisteredClientSessions($sessions)
+            ->sortByDesc(fn (array $session): int => strtotime((string) $session['created_at']) ?: 0)
             ->values()
             ->all();
     }
@@ -134,6 +138,148 @@ final class AdminSessionService
     private function sessionKey(object $row): string
     {
         return (string) $row->session_id.'|'.(string) $row->client_id;
+    }
+
+    /**
+     * @param  Collection<int, array<string, mixed>>  $sessions
+     * @return Collection<int, array<string, mixed>>
+     */
+    private function withRegisteredClientSessions(Collection $sessions): Collection
+    {
+        $merged = collect($sessions->all());
+        $known = $merged->keyBy(fn (array $session): string => $this->payloadKey($session));
+
+        foreach ($this->sessionIds($sessions) as $sessionId) {
+            $this->appendRegisteredClients($merged, $known, $sessionId);
+        }
+
+        return $merged;
+    }
+
+    /**
+     * @param  Collection<int, array<string, mixed>>  $sessions
+     * @return list<string>
+     */
+    private function sessionIds(Collection $sessions): array
+    {
+        return $sessions
+            ->pluck('session_id')
+            ->filter(fn (mixed $id): bool => is_string($id) && $id !== '')
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  Collection<int, array<string, mixed>>  $merged
+     * @param  Collection<string, array<string, mixed>>  $known
+     */
+    private function appendRegisteredClients(Collection $merged, Collection $known, string $sessionId): void
+    {
+        foreach ($this->sessionRegistry->forSession($sessionId) as $registration) {
+            $this->appendRegisteredClient($merged, $known, $sessionId, $registration);
+        }
+    }
+
+    /**
+     * @param  Collection<int, array<string, mixed>>  $merged
+     * @param  Collection<string, array<string, mixed>>  $known
+     * @param  array<string, mixed>  $registration
+     */
+    private function appendRegisteredClient(Collection $merged, Collection $known, string $sessionId, array $registration): void
+    {
+        $payload = $this->registeredClientPayload($merged, $sessionId, $registration);
+        if ($payload === null || $known->has($this->payloadKey($payload))) {
+            return;
+        }
+
+        $known->put($this->payloadKey($payload), $payload);
+        $merged->push($payload);
+    }
+
+    /**
+     * @param  Collection<int, array<string, mixed>>  $sessions
+     * @param  array<string, mixed>  $registration
+     * @return array<string, mixed>|null
+     */
+    private function registeredClientPayload(Collection $sessions, string $sessionId, array $registration): ?array
+    {
+        $base = $this->sessionBasePayload($sessions, $sessionId);
+        $clientId = $this->stringValue($registration, 'client_id');
+        if ($base === null || $clientId === null) {
+            return null;
+        }
+
+        if (! $this->sameSubject($base, $registration) || ! $this->registrationIsActive($registration)) {
+            return null;
+        }
+
+        return $this->registeredPayload($base, $registration, $clientId);
+    }
+
+    /**
+     * @param  array<string, mixed>  $base
+     * @param  array<string, mixed>  $registration
+     */
+    private function sameSubject(array $base, array $registration): bool
+    {
+        $registeredSubject = $this->stringValue($registration, 'subject_id');
+        $baseSubject = $this->stringValue($base, 'subject_id');
+
+        return $registeredSubject === null || $baseSubject === null || $registeredSubject === $baseSubject;
+    }
+
+    /**
+     * @param  Collection<int, array<string, mixed>>  $sessions
+     * @return array<string, mixed>|null
+     */
+    private function sessionBasePayload(Collection $sessions, string $sessionId): ?array
+    {
+        return $sessions->first(
+            fn (array $session): bool => ($session['session_id'] ?? null) === $sessionId,
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $base
+     * @param  array<string, mixed>  $registration
+     * @return array<string, mixed>
+     */
+    private function registeredPayload(array $base, array $registration, string $clientId): array
+    {
+        return [
+            ...$base,
+            'client_id' => $clientId,
+            'scope' => $this->stringValue($registration, 'scope') ?? $base['scope'],
+            'created_at' => $this->stringValue($registration, 'created_at') ?? $base['created_at'],
+            'expires_at' => $this->stringValue($registration, 'expires_at') ?? $base['expires_at'],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $registration
+     */
+    private function registrationIsActive(array $registration): bool
+    {
+        $expiresAt = $this->stringValue($registration, 'expires_at');
+
+        return $expiresAt === null || strtotime($expiresAt) > time();
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function payloadKey(array $payload): string
+    {
+        return (string) $payload['session_id'].'|'.(string) $payload['client_id'];
+    }
+
+    /**
+     * @param  array<string, mixed>  $values
+     */
+    private function stringValue(array $values, string $key): ?string
+    {
+        return is_string($values[$key] ?? null) && $values[$key] !== '' ? $values[$key] : null;
     }
 
     /**

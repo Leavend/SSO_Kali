@@ -31,7 +31,11 @@ onMounted(() => {
         <span>Expires</span>
         <span></span>
       </div>
-      <div v-for="session in admin.sessions" :key="session.session_id" class="data-row data-row--sessions">
+      <div
+        v-for="session in admin.sessions"
+        :key="`${session.session_id}:${session.client_id}`"
+        class="data-row data-row--sessions"
+      >
         <span>{{ truncateId(session.session_id) }}</span>
         <span>
           <strong>{{ session.display_name }}</strong>
