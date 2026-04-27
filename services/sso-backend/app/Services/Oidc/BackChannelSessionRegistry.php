@@ -12,19 +12,19 @@ final class BackChannelSessionRegistry
         private readonly ResilientCacheStore $cache,
     ) {}
 
-    public function register(string $sessionId, string $clientId, string $logoutUri): void
+    /**
+     * @param  array<string, mixed>  $metadata
+     */
+    public function register(string $sessionId, string $clientId, string $logoutUri, array $metadata = []): void
     {
         $registrations = $this->keyedRegistrations($sessionId);
-        $registrations[$clientId] = [
-            'client_id' => $clientId,
-            'backchannel_logout_uri' => $logoutUri,
-        ];
+        $registrations[$clientId] = $this->registrationPayload($clientId, $logoutUri, $metadata);
 
         $this->cache->put($this->key($sessionId), array_values($registrations), now()->addDays($this->ttlDays()));
     }
 
     /**
-     * @return list<array<string, string>>
+     * @return list<array<string, mixed>>
      */
     public function forSession(string $sessionId): array
     {
@@ -39,17 +39,47 @@ final class BackChannelSessionRegistry
     }
 
     /**
-     * @return array<string, array<string, string>>
+     * @return array<string, array<string, mixed>>
      */
     private function keyedRegistrations(string $sessionId): array
     {
         $registrations = [];
 
         foreach ($this->forSession($sessionId) as $registration) {
-            $registrations[(string) $registration['client_id']] = $registration;
+            $clientId = $this->clientId($registration);
+
+            if ($clientId !== null) {
+                $registrations[$clientId] = $registration;
+            }
         }
 
         return $registrations;
+    }
+
+    /**
+     * @param  array<string, mixed>  $registration
+     */
+    private function clientId(array $registration): ?string
+    {
+        return is_string($registration['client_id'] ?? null) && $registration['client_id'] !== ''
+            ? $registration['client_id']
+            : null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $metadata
+     * @return array<string, mixed>
+     */
+    private function registrationPayload(string $clientId, string $logoutUri, array $metadata): array
+    {
+        return array_filter([
+            'client_id' => $clientId,
+            'backchannel_logout_uri' => $logoutUri,
+            'subject_id' => $metadata['subject_id'] ?? null,
+            'scope' => $metadata['scope'] ?? null,
+            'created_at' => $metadata['created_at'] ?? null,
+            'expires_at' => $metadata['expires_at'] ?? null,
+        ], static fn (mixed $value): bool => $value !== null);
     }
 
     private function key(string $sessionId): string

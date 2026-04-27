@@ -5,6 +5,7 @@ declare(strict_types=1);
 require_once __DIR__.'/../../Support/UnitOidcDatabase.php';
 
 use App\Services\Admin\AdminSessionService;
+use App\Services\Oidc\BackChannelSessionRegistry;
 use Illuminate\Support\Facades\DB;
 
 use function Tests\Support\ensureOidcUnitTables;
@@ -49,6 +50,53 @@ it('deduplicates logical sessions by session and client', function (): void {
         ->and($sessions[0]['subject_id'])->toBe('user-1')
         ->and((string) $sessions[0]['created_at'])->toContain(''.$latestCreatedAt)
         ->and($sessions[1]['session_id'])->toBe('session-2');
+});
+
+it('includes back-channel-only client participants for visible logical sessions', function (): void {
+    seedRefreshToken([
+        'session_id' => 'shared-session',
+        'client_id' => 'prototype-app-a',
+        'refresh_token_id' => 'app-a-token',
+    ]);
+
+    app(BackChannelSessionRegistry::class)->register(
+        'shared-session',
+        'prototype-app-b',
+        'https://app-b.example/auth/backchannel/logout',
+        [
+            'subject_id' => 'user-1',
+            'scope' => 'openid profile email',
+            'created_at' => now()->toDateTimeString(),
+            'expires_at' => now()->addMinutes(15)->toDateTimeString(),
+        ],
+    );
+
+    $clients = collect(app(AdminSessionService::class)->activeSessions())
+        ->pluck('client_id')
+        ->all();
+
+    expect($clients)->toContain('prototype-app-a')
+        ->and($clients)->toContain('prototype-app-b');
+});
+
+it('excludes stale or mismatched back-channel participants', function (): void {
+    seedRefreshToken(['session_id' => 'shared-session', 'client_id' => 'prototype-app-a']);
+
+    $registry = app(BackChannelSessionRegistry::class);
+    $registry->register('shared-session', 'expired-app', 'https://expired.example/logout', [
+        'subject_id' => 'user-1',
+        'expires_at' => now()->subMinute()->toDateTimeString(),
+    ]);
+    $registry->register('shared-session', 'other-user-app', 'https://other.example/logout', [
+        'subject_id' => 'user-2',
+        'expires_at' => now()->addMinute()->toDateTimeString(),
+    ]);
+
+    $clients = collect(app(AdminSessionService::class)->activeSessions())->pluck('client_id');
+
+    expect($clients)->not->toContain('expired-app')
+        ->and($clients)->not->toContain('other-user-app')
+        ->and($clients)->toContain('prototype-app-a');
 });
 
 function seedRefreshToken(array $overrides): void

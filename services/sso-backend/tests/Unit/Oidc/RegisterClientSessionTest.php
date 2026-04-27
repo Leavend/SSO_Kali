@@ -105,4 +105,11 @@ it('registers a session for a BCL-capable client', function (): void {
         ->toHaveKey('registered', true)
         ->toHaveKey('client_id', 'bcl-client')
         ->toHaveKey('sid', 'sid-reg-002');
+
+    $registration = app(BackChannelSessionRegistry::class)->forSession('sid-reg-002')[0] ?? [];
+    expect($registration)
+        ->toHaveKey('subject_id', 'sub-reg-002')
+        ->toHaveKey('scope', 'openid')
+        ->toHaveKey('created_at')
+        ->toHaveKey('expires_at');
 });
