@@ -39,6 +39,24 @@ it('creates a local session when the broker handshake is valid', function (): vo
     Http::assertSent(fn ($request): bool => $request->url() === 'http://sso.example/connect/register-session');
 });
 
+it('creates a local session when the broker omits refresh token', function (): void {
+    /** @var TestCase $this */
+    $query = startBrokerLogin($this);
+
+    fakeSuccessfulHandshake((string) $query['nonce'], false);
+
+    $this->get('/auth/callback?'.http_build_query([
+        'code' => 'upstream-code',
+        'state' => $query['state'],
+    ]))
+        ->assertRedirect('/dashboard');
+
+    $this->assertAuthenticated();
+    expect(session('sso.session.refresh_token'))->toBeNull();
+
+    Http::assertSent(fn ($request): bool => $request->url() === 'http://sso.example/connect/register-session');
+});
+
 it('rejects the callback when the broker access token use is invalid', function (): void {
     /** @var TestCase $this */
     $query = startBrokerLogin($this);
@@ -97,15 +115,19 @@ function startBrokerLogin(TestCase $case): array
     return array_map(static fn (mixed $value): string => (string) $value, $query);
 }
 
-function fakeSuccessfulHandshake(string $nonce): void
+function fakeSuccessfulHandshake(string $nonce, bool $includeRefreshToken = true): void
 {
+    $tokenPayload = [
+        'access_token' => FakeBrokerJwt::accessToken(),
+        'id_token' => FakeBrokerJwt::idToken($nonce),
+    ];
+    if ($includeRefreshToken) {
+        $tokenPayload['refresh_token'] = 'refresh-token';
+    }
+
     Http::fake([
         'http://sso.example/jwks' => Http::response(FakeBrokerJwt::jwks(), 200),
-        'http://sso.example/token' => Http::response([
-            'access_token' => FakeBrokerJwt::accessToken(),
-            'id_token' => FakeBrokerJwt::idToken($nonce),
-            'refresh_token' => 'refresh-token',
-        ], 200),
+        'http://sso.example/token' => Http::response($tokenPayload, 200),
         'http://api.example/api/profile' => Http::response([
             'resource_profile' => [
                 'subject_id' => 'subject-123',
