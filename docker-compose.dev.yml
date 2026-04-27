@@ -562,6 +562,8 @@ services:
     init: true
     environment:
       NODE_ENV: production
+      HOSTNAME: 0.0.0.0
+      PORT: 3000
       NEXT_PUBLIC_APP_NAME: Dummy App A
       NEXT_PUBLIC_SSO_ISSUER: ${SSO_ISSUER}
       NEXT_PUBLIC_AUTHORIZE_URL: ${SSO_BASE_URL}/authorize
