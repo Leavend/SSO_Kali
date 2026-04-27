@@ -27,6 +27,19 @@ it('shows the landing page for guest users after the silent SSO check', function
         ->assertSee('Mulai Login Server-side');
 });
 
+it('keeps guest redirects https aware behind the reverse proxy', function (): void {
+    /** @var TestCase $this */
+    $this
+        ->withServerVariables([
+            'REMOTE_ADDR' => '127.0.0.1',
+            'HTTP_HOST' => 'app-b.timeh.my.id',
+            'HTTP_X_FORWARDED_HOST' => 'app-b.timeh.my.id',
+            'HTTP_X_FORWARDED_PROTO' => 'https',
+        ])
+        ->get('/')
+        ->assertRedirect('https://app-b.timeh.my.id/auth/login?prompt=none');
+});
+
 it('redirects login requests to the SSO authorize endpoint with PKCE', function (): void {
     /** @var TestCase $this */
     $response = $this->get('/auth/login');

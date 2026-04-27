@@ -66,6 +66,7 @@ jobs:
           rsync -avz -e "ssh -i ~/.ssh/deploy_key" \
             scripts/vps-login-ui-cutover.sh \
             scripts/vps-rollback.sh \
+            scripts/lib \
             "${{ env.VPS_USER }}@${{ env.VPS_HOST }}:/tmp/_deploy_scripts/"
 
       - name: Execute rollback
