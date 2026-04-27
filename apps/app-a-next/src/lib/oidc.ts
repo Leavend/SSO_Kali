@@ -10,7 +10,7 @@ export type AuthTransaction = {
 export type TokenBundle = {
   readonly accessToken: string;
   readonly idToken: string;
-  readonly refreshToken: string;
+  readonly refreshToken: string | null;
   readonly expiresIn: number;
   readonly scope: string;
 };
@@ -28,7 +28,7 @@ export type ResourceProfile = {
 type TokenResponse = {
   readonly access_token: string;
   readonly id_token: string;
-  readonly refresh_token: string;
+  readonly refresh_token?: string;
   readonly expires_in: number;
   readonly scope: string;
 };
@@ -55,7 +55,7 @@ export function buildAuthorizeUrl(transaction: AuthTransaction, prompt?: string)
     client_id: config.clientId,
     redirect_uri: config.callbackUrl,
     response_type: "code",
-    scope: "openid profile email",
+    scope: "openid profile email offline_access",
     state: transaction.state,
     nonce: transaction.nonce,
     code_challenge: pkceChallenge(transaction.codeVerifier),
@@ -82,10 +82,21 @@ export async function exchangeCode(code: string, verifier: string): Promise<Toke
   return {
     accessToken: payload.access_token,
     idToken: payload.id_token,
-    refreshToken: payload.refresh_token,
+    refreshToken: payload.refresh_token ?? null,
     expiresIn: payload.expires_in,
     scope: payload.scope,
   };
+}
+
+export async function refreshTokens(refreshToken: string): Promise<TokenBundle> {
+  const config = getServerConfig();
+  const payload = await postJson<TokenResponse>(config.tokenUrl, {
+    grant_type: "refresh_token",
+    client_id: config.clientId,
+    refresh_token: refreshToken,
+  });
+
+  return tokenBundle(payload);
 }
 
 export async function fetchProfile(accessToken: string): Promise<ResourceProfile> {
@@ -124,6 +135,16 @@ async function postJson<T>(url: string, body: object, accessToken?: string): Pro
   });
 
   return parseResponse<T>(response);
+}
+
+function tokenBundle(payload: TokenResponse): TokenBundle {
+  return {
+    accessToken: payload.access_token,
+    idToken: payload.id_token,
+    refreshToken: payload.refresh_token ?? null,
+    expiresIn: payload.expires_in,
+    scope: payload.scope,
+  };
 }
 
 function headers(accessToken?: string): HeadersInit {

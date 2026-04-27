@@ -24,6 +24,9 @@ export type ServerAppConfig = {
   readonly jwksUrl: string;
   readonly redisUrl: string;
   readonly sessionCookieName: string;
+  readonly sessionIdleTtlSeconds: number;
+  readonly sessionAbsoluteTtlSeconds: number;
+  readonly refreshLockTtlSeconds: number;
 };
 
 export function getPublicConfig(): AppConfig {
@@ -54,9 +57,21 @@ export function getServerConfig(): ServerAppConfig {
     logoutUrl: process.env.SSO_LOGOUT_URL ?? `${publicConfig.issuer}/connect/logout`,
     jwksUrl: process.env.SSO_JWKS_URL ?? `${publicConfig.issuer}/jwks`,
     redisUrl: process.env.REDIS_URL ?? "redis://127.0.0.1:6379/1",
+    ...sessionConfig(),
+  };
+}
+
+function sessionConfig() {
+  return {
     sessionCookieName: appSessionCookieName(
       process.env.APP_SESSION_COOKIE_NAME ?? "__Host-app-a-session",
     ),
+    sessionIdleTtlSeconds: integerEnv(process.env.APP_SESSION_IDLE_TTL_SECONDS, 60 * 60 * 24 * 7),
+    sessionAbsoluteTtlSeconds: integerEnv(
+      process.env.APP_SESSION_ABSOLUTE_TTL_SECONDS,
+      60 * 60 * 24 * 30,
+    ),
+    refreshLockTtlSeconds: integerEnv(process.env.APP_REFRESH_LOCK_TTL_SECONDS, 15),
   };
 }
 
