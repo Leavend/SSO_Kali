@@ -75,8 +75,10 @@
 </head>
 <body>
     <main class="shell">
-        @if (session('status'))
-            <div class="status">{{ session('status') }}</div>
+        @php($visibleStatus = session('status') ?? ($statusMessage ?? null))
+
+        @if ($visibleStatus)
+            <div class="status">{{ $visibleStatus }}</div>
         @endif
 
         @yield('content')

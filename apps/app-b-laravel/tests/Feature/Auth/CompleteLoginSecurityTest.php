@@ -74,8 +74,7 @@ it('rejects the callback when the broker access token use is invalid', function 
         'code' => 'upstream-code',
         'state' => $query['state'],
     ]))
-        ->assertRedirect('/')
-        ->assertSessionHas('status', 'Handshake SSO gagal diselesaikan.');
+        ->assertRedirect('/?event=handshake-failed');
 
     $this->assertGuest();
     expect(DB::table('users')->count())->toBe(0);
@@ -96,8 +95,7 @@ it('rejects the callback when the broker token endpoint returns invalid client c
         'code' => 'upstream-code',
         'state' => $query['state'],
     ]))
-        ->assertRedirect('/')
-        ->assertSessionHas('status', 'Handshake SSO gagal diselesaikan.');
+        ->assertRedirect('/?event=handshake-failed');
 
     $this->assertGuest();
     expect(DB::table('users')->count())->toBe(0);

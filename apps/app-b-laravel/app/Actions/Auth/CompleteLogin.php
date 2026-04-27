@@ -30,7 +30,7 @@ final class CompleteLogin
         if ($upstreamError === 'login_required' || $upstreamError === 'interaction_required') {
             $this->sessions->pullTransaction();
 
-            return redirect('/?sso_checked=1');
+            return redirect('/?sso_checked=1&event=sso-miss');
         }
 
         $transaction = $this->sessions->pullTransaction();
@@ -38,7 +38,7 @@ final class CompleteLogin
         $code = (string) $request->query('code', '');
 
         if (! $this->validRequest($transaction, $state, $code)) {
-            return redirect('/')->with('status', 'State login tidak valid atau sudah kedaluwarsa.');
+            return redirect('/?event=expired-state');
         }
 
         return $this->complete($request, $code, $transaction);
@@ -57,7 +57,7 @@ final class CompleteLogin
             report($exception);
             $this->sessions->clearCurrent();
 
-            return redirect('/')->with('status', 'Handshake SSO gagal diselesaikan.');
+            return redirect('/?event=handshake-failed');
         }
 
         return redirect('/dashboard')->with('status', 'Handshake SSO selesai dan sesi App B sudah aktif.');
