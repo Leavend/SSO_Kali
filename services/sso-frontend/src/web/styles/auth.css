@@ -408,29 +408,8 @@
 }
 
 @media (max-width: 900px) {
-  .app-shell,
   .login-layout {
     grid-template-columns: 1fr;
-  }
-
-  .sidebar {
-    position: static;
-    padding: 18px;
-  }
-
-  .nav-list {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  .sidebar-footer {
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: center;
-  }
-
-  .stat-grid,
-  .panel-grid,
-  .apps-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -464,27 +443,4 @@
     bottom: 72px;
   }
 
-  .main-surface {
-    padding: 18px;
-  }
-
-  .nav-list {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .stat-grid,
-  .panel-grid,
-  .apps-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .data-row,
-  .data-row--sessions {
-    grid-template-columns: 1fr;
-    gap: 6px;
-  }
-
-  .data-row--head {
-    display: none;
-  }
 }
