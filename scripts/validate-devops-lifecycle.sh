@@ -380,6 +380,7 @@ require_text "infra/ansible/playbooks/devops-preflight.yml" '/healthz' "Ansible 
 require_text ".github/workflows/devops-lifecycle.yml" 'validate-devops-lifecycle\.sh' "DevOps workflow runs lifecycle validator"
 require_text ".github/workflows/devops-lifecycle.yml" 'validate-sso-frontend-vue-lifecycle\.sh' "DevOps workflow validates rebuilt Vue SSO frontend"
 require_text ".github/workflows/devops-lifecycle.yml" 'packages/dev-sso-parent-ui/\*\*' "DevOps workflow watches parent UI contract changes"
+require_text ".github/workflows/devops-lifecycle.yml" 'services/sso-admin-vue/\*\*' "DevOps workflow watches Vue Admin lifecycle changes"
 require_text ".github/workflows/devops-lifecycle.yml" 'hashicorp/setup-terraform@v4' "DevOps workflow validates Terraform"
 require_text ".github/workflows/devops-lifecycle.yml" 'ansible-playbook --syntax-check' "DevOps workflow validates Ansible syntax"
 require_text ".github/workflows/devops-lifecycle.yml" 'check-observability-assets\.sh' "DevOps workflow validates observability assets"
