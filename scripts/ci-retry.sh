@@ -23,11 +23,15 @@ attempt=1
 last_status=0
 
 while [ "$attempt" -le "$max_attempts" ]; do
-  if "$@"; then
+  set +e
+  "$@"
+  last_status=$?
+  set -e
+
+  if [ "$last_status" -eq 0 ]; then
     exit 0
   fi
 
-  last_status=$?
   if [ "$attempt" -eq "$max_attempts" ]; then
     break
   fi
