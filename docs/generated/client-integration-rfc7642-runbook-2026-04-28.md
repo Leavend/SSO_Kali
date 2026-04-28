@@ -38,4 +38,12 @@ Admin juga dapat menjalankan validasi via broker. Endpoint admin `/admin/api/cli
 
 Contract broker menampilkan `Registry patch` sebagai artefak perubahan yang harus masuk lewat PR/CI/CD. Confidential client memakai hash secret dari environment, misalnya `CUSTOMER_PORTAL_CLIENT_SECRET_HASH`, bukan secret mentah. Ini menjaga prinsip RFC 7642: provisioning/lifecycle disepakati lintas domain, sementara credential client tetap berada di kontrol broker dan secret manager.
 
-Prinsip zero downtime tetap dijaga dengan pendekatan artifact review: wizard menghasilkan contract yang bisa direview, diuji, dan dipromosikan lewat CI/CD. Production registry tidak diubah langsung dari browser sehingga rollback tetap berbasis tag, route flag, dan client toggle yang dapat diaudit.
+## Dynamic Registration Lifecycle
+
+Tahap berikutnya menambahkan registry dinamis yang tetap mengikuti prinsip zero downtime. Admin tidak langsung menimpa konfigurasi statis; admin melakukan `Stage registration` terlebih dahulu. Status `staged` menyimpan contract, owner, redirect URI, provisioning mode, dan audit trail tanpa membuat client dibaca oleh runtime authorization.
+
+Promosi dilakukan lewat `Activate`. Public client langsung bisa aktif setelah validasi broker, sedangkan confidential client wajib membawa verifier secret hash Argon2id dari Vault atau secret manager. UI dan audit log tidak pernah menampilkan secret hash mentah. Saat status berubah menjadi `active`, broker membaca registration dari database dan menggabungkannya dengan client statis, dengan prioritas tetap pada konfigurasi statis agar rollback rilis lama tidak rusak.
+
+Rollback dilakukan lewat `Rollback / disable`. Status `disabled` membuat broker berhenti menerima client tersebut tanpa menghapus record, sehingga jejak audit, owner, dan alasan lifecycle tetap tersedia. Deploy tetap aman karena pembacaan registry dinamis dilindungi guard `Schema::hasTable('oidc_client_registrations')`; jika kode baru naik sebelum migrasi selesai, broker tetap melayani client statis lama.
+
+Dengan lifecycle ini, Admin Panel tidak hanya menampilkan prosedur RFC 7642, tetapi juga menyediakan feature logic untuk menjahit aplikasi existing atau development ke SSO: validate contract, stage artifact, activate runtime, dan disable sebagai rollback mechanism.

@@ -3,6 +3,9 @@ import { REAUTH_REQUIRED_ROUTE, legacyAuthErrorRoute } from '../shared/auth-stat
 import type { AdminDashboardPayload } from '../shared/admin.js'
 import {
   buildClientIntegrationContract,
+  activateClientIntegration,
+  disableClientIntegration,
+  fetchClientIntegrationRegistrations,
   fetchClients,
   fetchPrincipal,
   fetchSessions,
@@ -10,6 +13,7 @@ import {
   fetchUsers,
   revokeSession,
   revokeUserSessions,
+  stageClientIntegration,
 } from './admin-api.js'
 import { isAdminApiError } from './admin-api-error.js'
 import { resolveAdminSession, sessionHeaders } from './admin-session-resolver.js'
@@ -85,11 +89,71 @@ export async function handleAdminApi(context: RouteContext): Promise<AppResponse
       return clientIntegrationContract(context.request, session, headers)
     }
 
+    if (pathname === '/api/admin/client-integrations/registrations' && method === 'GET') {
+      return json(200, { registrations: await fetchClientIntegrationRegistrations(session) }, headers)
+    }
+
+    if (pathname === '/api/admin/client-integrations/stage' && method === 'POST') {
+      return clientIntegrationStage(context.request, session, headers)
+    }
+
+    if (pathname.startsWith('/api/admin/client-integrations/') && method === 'POST') {
+      return clientIntegrationLifecycle(context, session, headers)
+    }
+
     return json(404, { error: 'not_found', message: 'Admin endpoint not found.' }, headers)
   } catch (error) {
     return adminErrorResponse(error)
   }
 }
+
+async function clientIntegrationStage(
+  request: IncomingMessage,
+  session: AdminSession,
+  headers: Record<string, HeaderValue>,
+): Promise<AppResponse> {
+  const body = await readJsonBody(request)
+  if (!body) return json(400, { error: 'invalid_json', message: 'Invalid client integration payload.' }, headers)
+
+  return json(200, { registration: await stageClientIntegration(session, body) }, headers)
+}
+
+async function clientIntegrationLifecycle(
+  context: RouteContext,
+  session: AdminSession,
+  headers: Record<string, HeaderValue>,
+): Promise<AppResponse> {
+  const action = lifecycleAction(context.requestUrl.pathname)
+  if (action === null) return json(404, { error: 'not_found', message: 'Admin endpoint not found.' }, headers)
+
+  return json(200, { registration: await runLifecycleAction(context.request, session, action) }, headers)
+}
+
+function lifecycleAction(pathname: string): ClientLifecycleAction | null {
+  const match = pathname.match(/^\/api\/admin\/client-integrations\/([a-z0-9-]+)\/(activate|disable)$/)
+  if (!match) return null
+
+  return { clientId: match[1] ?? '', action: match[2] === 'activate' ? 'activate' : 'disable' }
+}
+
+async function runLifecycleAction(
+  request: IncomingMessage,
+  session: AdminSession,
+  action: ClientLifecycleAction,
+): ReturnType<typeof activateClientIntegration> {
+  if (action.action === 'disable') return disableClientIntegration(session, action.clientId)
+  const body = await readJsonBody(request)
+  return activateClientIntegration(session, action.clientId, secretHashFrom(body))
+}
+
+function secretHashFrom(body: Record<string, unknown> | null): string | null {
+  return typeof body?.secretHash === 'string' && body.secretHash !== '' ? body.secretHash : null
+}
+
+type ClientLifecycleAction = Readonly<{
+  clientId: string
+  action: 'activate' | 'disable'
+}>
 
 async function clientIntegrationContract(
   request: IncomingMessage,

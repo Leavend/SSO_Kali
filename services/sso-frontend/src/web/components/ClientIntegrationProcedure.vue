@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
 import { GitBranch, RotateCcw, ShieldCheck, Siren, Wrench } from 'lucide-vue-next'
+import ClientIntegrationRegistrations from './ClientIntegrationRegistrations.vue'
 import {
   createClientIntegrationContract,
   defaultIntegrationDraft,
@@ -375,6 +376,13 @@ type BrokerPayload = Readonly<{
           </ol>
         </article>
       </div>
+
+      <ClientIntegrationRegistrations
+        :draft="draft"
+        :contract="contract"
+        :broker-ready="brokerStatus === 'ready'"
+        :errors="visibleErrors"
+      />
     </div>
 
     <div class="integration-guardrails" aria-label="Lifecycle guardrails">

@@ -277,12 +277,117 @@
   background: var(--admin-panel);
 }
 
+.integration-lifecycle {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid color-mix(in srgb, var(--admin-line) 72%, transparent);
+  border-radius: 8px;
+  background: var(--admin-panel-muted);
+}
+
+.integration-lifecycle__header {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.integration-lifecycle__header h4,
+.integration-lifecycle__header p {
+  margin: 0;
+}
+
+.integration-lifecycle__header p {
+  margin-top: 6px;
+  color: var(--admin-muted);
+  line-height: 1.55;
+}
+
+.integration-lifecycle__message {
+  margin: 0;
+  font-weight: 800;
+}
+
+.integration-lifecycle__message.is-ready {
+  color: var(--admin-accent);
+}
+
+.integration-lifecycle__message.is-error {
+  color: #b45309;
+}
+
+.integration-registration-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.integration-registration {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--admin-line) 72%, transparent);
+  border-radius: 8px;
+  background: var(--admin-panel);
+}
+
+.integration-registration__title,
+.integration-registration__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.integration-registration__title span {
+  display: block;
+  color: var(--admin-muted);
+  font-size: 13px;
+}
+
+.integration-registration dl {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.integration-registration dt {
+  color: var(--admin-subtle);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.integration-registration dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.integration-registration label {
+  display: grid;
+  gap: 8px;
+}
+
+.integration-registration input {
+  min-height: 42px;
+  padding: 0 12px;
+  color: var(--admin-ink);
+  border: 1px solid color-mix(in srgb, var(--admin-line) 82%, transparent);
+  border-radius: 8px;
+  background: var(--admin-panel-muted);
+}
+
 @media (max-width: 768px) {
   .integration-header,
   .integration-tracks,
   .integration-wizard__intro,
   .integration-form,
-  .integration-contract {
+  .integration-contract,
+  .integration-lifecycle__header,
+  .integration-registration-list {
     grid-template-columns: 1fr;
   }
 }

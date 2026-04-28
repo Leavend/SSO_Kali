@@ -6,6 +6,12 @@ namespace App\Services\Admin;
 
 final class AdminAuditTaxonomy
 {
+    public const CLIENT_INTEGRATION_ACTIVATED = 'client_integration_activated';
+
+    public const CLIENT_INTEGRATION_DISABLED = 'client_integration_disabled';
+
+    public const CLIENT_INTEGRATION_STAGED = 'client_integration_staged';
+
     public const DESTRUCTIVE_ACTION_WITH_STEP_UP = 'destructive_action_with_step_up';
 
     public const FORBIDDEN = 'forbidden';

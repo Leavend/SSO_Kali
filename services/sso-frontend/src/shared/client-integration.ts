@@ -33,6 +33,23 @@ export type ClientIntegrationContract = Readonly<{
   findings: readonly string[]
 }>
 
+export type ClientIntegrationRegistration = Readonly<{
+  client_id: string
+  display_name: string
+  type: ClientType
+  environment: ClientEnvironment
+  app_base_url: string
+  redirect_uris: readonly string[]
+  post_logout_redirect_uris: readonly string[]
+  backchannel_logout_uri: string | null
+  owner_email: string
+  provisioning: ProvisioningMode
+  status: 'staged' | 'active' | 'disabled'
+  activated_at: string | null
+  disabled_at: string | null
+  has_secret_hash: boolean
+}>
+
 type ClientUris = Readonly<{
   redirectUri: string
   backchannelLogoutUri: string
