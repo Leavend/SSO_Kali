@@ -44,6 +44,8 @@ it('returns a broker validated client integration contract for admins', function
         ->assertOk()
         ->assertJsonPath('contract.clientId', 'customer-portal')
         ->assertJsonPath('contract.redirectUri', 'https://customer-dev.timeh.my.id/auth/callback')
+        ->assertJsonPath('contract.provisioningManifest.mode', 'jit')
+        ->assertJsonPath('contract.provisioningManifest.riskGates.0', 'Isolated dev callback')
         ->assertJsonPath('contract.env.1', 'SSO_CLIENT_ID=customer-portal');
 });
 

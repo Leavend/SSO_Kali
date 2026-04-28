@@ -16,6 +16,17 @@ export type ClientIntegrationDraft = Readonly<{
   provisioning: ProvisioningMode
 }>
 
+export type ClientProvisioningManifest = Readonly<{
+  mode: ProvisioningMode
+  identitySource: string
+  requiredSchemas: readonly string[]
+  userMapping: readonly string[]
+  groupMapping: readonly string[]
+  deprovisioning: readonly string[]
+  auditEvidence: readonly string[]
+  riskGates: readonly string[]
+}>
+
 export type ClientIntegrationContract = Readonly<{
   clientId: string
   displayName: string
@@ -27,6 +38,7 @@ export type ClientIntegrationContract = Readonly<{
   scopes: readonly string[]
   env: readonly string[]
   registryPatch: readonly string[]
+  provisioningManifest: ClientProvisioningManifest
   provisioningSteps: readonly string[]
   rolloutSteps: readonly string[]
   rollbackSteps: readonly string[]
@@ -101,6 +113,7 @@ export function createClientIntegrationContract(draft: ClientIntegrationDraft): 
     scopes: scopesFor(draft),
     env: envLines(draft, uris),
     registryPatch: registryPatchLines(draft, uris),
+    provisioningManifest: provisioningManifest(draft),
     provisioningSteps: provisioningSteps(draft),
     rolloutSteps: rolloutSteps(draft),
     rollbackSteps: rollbackSteps(draft),
@@ -202,6 +215,54 @@ function secretEnvName(clientId: string): string {
 
 function provisioningSteps(draft: ClientIntegrationDraft): readonly string[] {
   return draft.provisioning === 'scim' ? scimSteps() : jitSteps()
+}
+
+function provisioningManifest(draft: ClientIntegrationDraft): ClientProvisioningManifest {
+  return {
+    mode: draft.provisioning,
+    identitySource: `${issuer} SSO broker`,
+    requiredSchemas: requiredSchemas(draft),
+    userMapping: userMapping(),
+    groupMapping: groupMapping(draft),
+    deprovisioning: deprovisioning(draft),
+    auditEvidence: auditEvidence(draft),
+    riskGates: riskGates(draft),
+  }
+}
+
+function requiredSchemas(draft: ClientIntegrationDraft): readonly string[] {
+  return draft.provisioning === 'scim'
+    ? ['SCIM User resource', 'SCIM Group resource', 'ServiceProviderConfig discovery']
+    : ['OIDC ID token claims', 'UserInfo profile claims']
+}
+
+function userMapping(): readonly string[] {
+  return ['sub -> external_id', 'email -> primary email', 'name -> display name', 'active -> local access state']
+}
+
+function groupMapping(draft: ClientIntegrationDraft): readonly string[] {
+  return draft.provisioning === 'scim'
+    ? ['SCIM Groups -> local roles', 'SCIM memberships -> authorization grants']
+    : ['roles claim -> local roles', 'groups claim optional for read-only access']
+}
+
+function deprovisioning(draft: ClientIntegrationDraft): readonly string[] {
+  return draft.provisioning === 'scim'
+    ? ['SCIM active=false disables local account before next login', 'Back-channel logout revokes sessions by sid']
+    : ['Back-channel logout revokes sessions by sid', 'Next login revalidates SSO account state']
+}
+
+function auditEvidence(draft: ClientIntegrationDraft): readonly string[] {
+  return [
+    `Owner approval from ${draft.ownerEmail}`,
+    'Exact redirect and logout URI review',
+    `Provisioning mode ${draft.provisioning} recorded in admin audit log`,
+  ]
+}
+
+function riskGates(draft: ClientIntegrationDraft): readonly string[] {
+  const trafficGate = draft.environment === 'live' ? 'Canary cohort before full cutover' : 'Isolated dev callback'
+  return [trafficGate, 'Refresh token rotation verified', 'Back-channel logout smoke test passed']
 }
 
 function jitSteps(): readonly string[] {

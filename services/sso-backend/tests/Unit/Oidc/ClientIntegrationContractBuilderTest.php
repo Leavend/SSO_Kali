@@ -37,6 +37,9 @@ it('builds a broker-authoritative client integration contract', function (): voi
         ->and($contract['scopes'])->toContain('sso:session.register')
         ->and($contract['env'])->toContain('SSO_CLIENT_SECRET=<store-in-vault>')
         ->and($contract['registryPatch'])->toContain("  'secret' => env('CUSTOMER_PORTAL_CLIENT_SECRET_HASH'),")
+        ->and($contract['provisioningManifest']['mode'])->toBe('scim')
+        ->and($contract['provisioningManifest']['requiredSchemas'])->toContain('SCIM User resource')
+        ->and($contract['provisioningManifest']['deprovisioning'])->toContain('SCIM active=false disables local account before next login')
         ->and($contract['findings'])->toContain('RFC 7642 lifecycle covered by SCIM provisioning.');
 });
 

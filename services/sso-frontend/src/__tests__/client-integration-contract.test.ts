@@ -17,6 +17,8 @@ describe('client integration contract', () => {
     expect(contract.scopes).toContain('offline_access')
     expect(contract.env).toContain('SSO_CLIENT_ID=customer-portal')
     expect(contract.registryPatch).toContain("'customer-portal' => [")
+    expect(contract.provisioningManifest.mode).toBe('jit')
+    expect(contract.provisioningManifest.riskGates).toContain('Isolated dev callback')
   })
 
   it('rejects unsafe live URLs and wildcard redirect paths', () => {
@@ -45,6 +47,10 @@ describe('client integration contract', () => {
     expect(contract.registryPatch).toContain("  'secret' => env('CUSTOMER_PORTAL_CLIENT_SECRET_HASH'),")
     expect(contract.scopes).toContain('sso:session.register')
     expect(contract.provisioningSteps).toContain('Sync Users and Groups.')
+    expect(contract.provisioningManifest.requiredSchemas).toContain('SCIM User resource')
+    expect(contract.provisioningManifest.deprovisioning).toContain(
+      'SCIM active=false disables local account before next login',
+    )
     expect(contract.findings).toContain('RFC 7642 lifecycle covered by SCIM provisioning.')
   })
 })
