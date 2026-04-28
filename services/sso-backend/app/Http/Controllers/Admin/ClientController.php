@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Admin;
 
+use App\Services\Oidc\ClientIntegrationContractBuilder;
 use App\Services\Oidc\DownstreamClientRegistry;
 use App\Support\Oidc\DownstreamClient;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 final class ClientController
 {
@@ -30,6 +32,22 @@ final class ClientController
         }
 
         return response()->json(['clients' => $clients]);
+    }
+
+    public function contract(Request $request, ClientIntegrationContractBuilder $builder): JsonResponse
+    {
+        $draft = $builder->draftFrom($request->all());
+        $violations = $builder->validate($draft);
+
+        if ($violations !== []) {
+            return response()->json([
+                'error' => 'client_integration_invalid',
+                'message' => 'Client integration contract belum memenuhi guardrail broker.',
+                'violations' => $violations,
+            ], 422);
+        }
+
+        return response()->json(['contract' => $builder->build($draft)]);
     }
 
     /**

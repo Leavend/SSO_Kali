@@ -1,4 +1,5 @@
 import type { ApiClient, ApiSession, ApiUser, AdminPrincipal } from '../shared/admin.js'
+import type { ClientIntegrationContract } from '../shared/client-integration.js'
 import { getConfig } from './config.js'
 import { buildAdminApiError } from './admin-api-error.js'
 import type { AdminSession } from './session.js'
@@ -37,6 +38,19 @@ export async function fetchSessions(session: AdminSession): Promise<ApiSession[]
 export async function fetchClients(session: AdminSession): Promise<ApiClient[]> {
   const data = await adminFetch<{ clients: ApiClient[] }>('/clients', session)
   return data.clients
+}
+
+export async function buildClientIntegrationContract(
+  session: AdminSession,
+  draft: Record<string, unknown>,
+): Promise<ClientIntegrationContract> {
+  const data = await adminFetch<{ contract: ClientIntegrationContract }>('/client-integrations/contract', session, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(draft),
+  })
+
+  return data.contract
 }
 
 export async function revokeSession(session: AdminSession, sessionId: string): Promise<void> {

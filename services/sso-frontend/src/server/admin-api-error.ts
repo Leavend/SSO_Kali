@@ -1,19 +1,21 @@
 export class AdminApiError extends Error {
   readonly status: number
   readonly code: string | null
+  readonly violations: readonly string[]
 
-  constructor(status: number, message: string, code: string | null = null) {
+  constructor(status: number, message: string, code: string | null = null, violations: readonly string[] = []) {
     super(message)
     this.name = 'AdminApiError'
     this.status = status
     this.code = code
+    this.violations = violations
   }
 }
 
 export async function buildAdminApiError(response: Response): Promise<AdminApiError> {
   const payload = await responsePayload(response)
   const message = payload?.message ?? fallbackMessage(response.status)
-  return new AdminApiError(response.status, message, payload?.code ?? null)
+  return new AdminApiError(response.status, message, payload?.code ?? null, payload?.violations ?? [])
 }
 
 export function isAdminApiError(error: unknown): error is AdminApiError {
@@ -35,6 +37,7 @@ export function isTooManyAttemptsApiError(error: unknown): boolean {
 type ResponsePayload = {
   readonly code: string | null
   readonly message: string | null
+  readonly violations: readonly string[]
 }
 
 async function responsePayload(response: Response): Promise<ResponsePayload | null> {
@@ -59,11 +62,17 @@ function payloadMessage(payload: unknown): ResponsePayload | null {
         : hasString(payload, 'error')
           ? payload.error
           : null,
+    violations: stringList(payload, 'violations'),
   }
 }
 
 function hasString<T extends string>(payload: object, key: T): payload is Record<T, string> {
   return key in payload && typeof Reflect.get(payload, key) === 'string'
+}
+
+function stringList<T extends string>(payload: object, key: T): readonly string[] {
+  const value: unknown = Reflect.get(payload, key)
+  return Array.isArray(value) ? value.filter((item: unknown): item is string => typeof item === 'string') : []
 }
 
 function hasAdminApiShape(error: unknown): error is AdminApiError {
@@ -79,7 +88,7 @@ function hasAdminApiShape(error: unknown): error is AdminApiError {
 
 async function textPayload(response: Response): Promise<ResponsePayload | null> {
   const text = (await response.text()).trim()
-  return text.length > 0 ? { code: null, message: text } : null
+  return text.length > 0 ? { code: null, message: text, violations: [] } : null
 }
 
 function fallbackMessage(status: number): string {

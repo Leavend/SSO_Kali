@@ -34,6 +34,7 @@ Route::middleware(AdminGuard::class)->prefix('admin/api')->group(function (): vo
         Route::get('/sessions/{sessionId}', [SessionController::class, 'show'])
             ->where('sessionId', '[a-zA-Z0-9_-]+');
         Route::get('/clients', [ClientController::class, 'index']);
+        Route::post('/client-integrations/contract', [ClientController::class, 'contract']);
     });
 
     // Write endpoints — 10 req/min per admin (destructive actions)

@@ -199,6 +199,27 @@
   background: var(--admin-accent);
 }
 
+.integration-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.integration-actions .button:disabled {
+  cursor: not-allowed;
+  opacity: .64;
+}
+
+.integration-status {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  color: var(--admin-accent);
+  font-size: 13px;
+  font-weight: 800;
+}
+
 .integration-errors {
   padding: 14px;
   color: var(--admin-ink);

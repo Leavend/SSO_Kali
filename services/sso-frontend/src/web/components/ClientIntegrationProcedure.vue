@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { GitBranch, RotateCcw, ShieldCheck, Siren, Wrench } from 'lucide-vue-next'
 import {
   createClientIntegrationContract,
@@ -7,7 +7,13 @@ import {
   suggestClientId,
   validateClientIntegrationDraft,
 } from '@shared/client-integration'
-import type { ClientEnvironment, ClientIntegrationDraft, ClientType, ProvisioningMode } from '@shared/client-integration'
+import type {
+  ClientEnvironment,
+  ClientIntegrationContract,
+  ClientIntegrationDraft,
+  ClientType,
+  ProvisioningMode,
+} from '@shared/client-integration'
 
 type MutableIntegrationDraft = {
   -readonly [Key in keyof ClientIntegrationDraft]: ClientIntegrationDraft[Key]
@@ -75,8 +81,15 @@ const tracks: readonly IntegrationTrack[] = [
 ]
 
 const draft = reactive<MutableIntegrationDraft>({ ...defaultIntegrationDraft() })
+const brokerContract = ref<ClientIntegrationContract | null>(null)
+const brokerErrors = ref<readonly string[]>([])
+const brokerStatus = ref<'idle' | 'loading' | 'ready' | 'error'>('idle')
 const validationErrors = computed(() => validateClientIntegrationDraft(draft))
-const contract = computed(() => validationErrors.value.length === 0 ? createClientIntegrationContract(draft) : null)
+const localContract = computed(() => validationErrors.value.length === 0 ? createClientIntegrationContract(draft) : null)
+const contract = computed(() => brokerContract.value ?? localContract.value)
+const visibleErrors = computed(() => validationErrors.value.length > 0 ? validationErrors.value : brokerErrors.value)
+
+watch(draft, resetBrokerValidation, { deep: true })
 
 function setEnvironment(environment: ClientEnvironment): void {
   draft.environment = environment
@@ -93,6 +106,62 @@ function setProvisioning(provisioning: ProvisioningMode): void {
 function syncClientId(): void {
   draft.clientId = suggestClientId(draft.appName)
 }
+
+async function validateWithBroker(): Promise<void> {
+  if (validationErrors.value.length > 0) return
+  brokerStatus.value = 'loading'
+  brokerErrors.value = []
+
+  try {
+    const result = await fetchBrokerContract(draft)
+    brokerContract.value = result.contract
+    brokerErrors.value = result.errors
+    brokerStatus.value = result.errors.length > 0 ? 'error' : 'ready'
+  } catch {
+    brokerStatus.value = 'error'
+    brokerErrors.value = ['Broker validation belum tersedia. Coba refresh sesi admin.']
+  }
+}
+
+function resetBrokerValidation(): void {
+  brokerContract.value = null
+  brokerErrors.value = []
+  brokerStatus.value = 'idle'
+}
+
+async function fetchBrokerContract(draft: ClientIntegrationDraft): Promise<BrokerResult> {
+  const response = await fetch('/api/admin/client-integrations/contract', brokerRequest(draft))
+  const payload = await brokerPayload(response)
+  if (!response.ok) return { contract: null, errors: brokerErrorsFrom(payload) }
+  return payload.contract ? { contract: payload.contract, errors: [] } : { contract: null, errors: ['Broker contract kosong.'] }
+}
+
+function brokerRequest(draft: ClientIntegrationDraft): RequestInit {
+  return {
+    method: 'POST',
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify(draft),
+  }
+}
+
+async function brokerPayload(response: Response): Promise<BrokerPayload> {
+  return response.json().catch(() => ({})) as Promise<BrokerPayload>
+}
+
+function brokerErrorsFrom(payload: BrokerPayload): readonly string[] {
+  return payload.violations?.length ? payload.violations : [payload.message ?? 'Broker validation failed.']
+}
+
+type BrokerResult = Readonly<{
+  contract: ClientIntegrationContract | null
+  errors: readonly string[]
+}>
+
+type BrokerPayload = Readonly<{
+  contract?: ClientIntegrationContract
+  message?: string
+  violations?: readonly string[]
+}>
 </script>
 
 <template>
@@ -226,10 +295,22 @@ function syncClientId(): void {
         </fieldset>
       </div>
 
-      <div v-if="validationErrors.length > 0" class="integration-errors" role="alert">
+      <div class="integration-actions">
+        <button
+          class="button button--primary"
+          type="button"
+          :disabled="validationErrors.length > 0 || brokerStatus === 'loading'"
+          @click="validateWithBroker"
+        >
+          {{ brokerStatus === 'loading' ? 'Validating...' : 'Validasi via broker' }}
+        </button>
+        <span v-if="brokerStatus === 'ready'" class="integration-status">Broker validation passed</span>
+      </div>
+
+      <div v-if="visibleErrors.length > 0" class="integration-errors" role="alert">
         <strong>Contract belum bisa dipromosikan</strong>
         <ul>
-          <li v-for="error in validationErrors" :key="error">{{ error }}</li>
+          <li v-for="error in visibleErrors" :key="error">{{ error }}</li>
         </ul>
       </div>
 
@@ -259,6 +340,11 @@ function syncClientId(): void {
         <article>
           <h4>Env handoff</h4>
           <pre>{{ contract.env.join('\n') }}</pre>
+        </article>
+
+        <article>
+          <h4>Registry patch</h4>
+          <pre>{{ contract.registryPatch.join('\n') }}</pre>
         </article>
 
         <article>
