@@ -12,6 +12,7 @@ on:
       - "docs/runbooks/**"
       - "docs/generated/**"
       - "packages/dev-sso-parent-ui/**"
+      - "services/sso-admin-vue/**"
       - "services/sso-frontend/**"
       - "services/zitadel-login-vue/**"
   push:
@@ -25,6 +26,7 @@ on:
       - "docs/runbooks/**"
       - "docs/generated/**"
       - "packages/dev-sso-parent-ui/**"
+      - "services/sso-admin-vue/**"
       - "services/sso-frontend/**"
       - "services/zitadel-login-vue/**"
   workflow_dispatch:
