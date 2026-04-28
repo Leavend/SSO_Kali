@@ -11,6 +11,11 @@ const themes = {
   dark: readTokens("\\[data-theme='dark'\\]"),
 }
 
+const adminThemes = {
+  light: readTokens("html\\[data-theme='light'\\]\\s+\\.app-shell--admin"),
+  dark: readTokens('\\.app-shell--admin'),
+}
+
 const textPairs = [
   ['ink on canvas', 'ink', 'canvas'],
   ['muted on canvas', 'muted', 'canvas'],
@@ -39,8 +44,13 @@ for (const [theme, tokens] of Object.entries(themes)) {
   }
 }
 
+for (const [theme, tokens] of Object.entries(adminThemes)) {
+  assertAdminTheme(theme, tokens)
+}
+
 assertNoPattern(/letter-spacing:\s*-/i, 'Typography must not use negative letter spacing.')
 assertNoPattern(/font-size:\s*(?:clamp|calc|[^;]*(?:vw|vh|vmin|vmax))/i, 'Font size must not scale directly with viewport units.')
+assertNoPattern(/\.sidebar\s*\{[\s\S]*?color:\s*#ecfeff/i, 'Admin sidebar text must use theme tokens.')
 
 if (failures > 0) {
   console.error(`[wcag-theme][FAIL] ${failures} failure(s)`)
@@ -89,6 +99,22 @@ function assertNoPattern(pattern, message) {
   if (pattern.test(css)) {
     failures += 1
     console.error(`[wcag-theme][ERROR] ${message}`)
+  }
+}
+
+function assertAdminTheme(theme, tokens) {
+  const pairs = [
+    ['admin ink on sidebar', 'admin-ink', 'admin-sidebar', 4.5],
+    ['admin muted on sidebar', 'admin-muted', 'admin-sidebar', 4.5],
+    ['admin subtle on sidebar', 'admin-subtle', 'admin-sidebar', 4.5],
+    ['admin ink on panel', 'admin-ink', 'admin-panel', 4.5],
+    ['admin muted on panel', 'admin-muted', 'admin-panel', 4.5],
+    ['admin accent ink on accent', 'admin-accent-ink', 'admin-accent', 4.5],
+    ['admin line on panel', 'admin-line', 'admin-panel', 3],
+  ]
+
+  for (const [label, fgKey, bgKey, minimum] of pairs) {
+    assertContrast(`${theme}: ${label}`, resolve(tokens, fgKey), resolve(tokens, bgKey), minimum)
   }
 }
 

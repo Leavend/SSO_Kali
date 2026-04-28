@@ -150,20 +150,26 @@ export async function handleRefresh(request: IncomingMessage): Promise<AppRespon
   }
 
   try {
+    if (!sessionNeedsRefresh(session)) return refreshResponse(session)
+
     const refreshedSession = await refreshAdminSession(session)
 
-    return json(
-      200,
-      {
-        status: 'refreshed',
-        expiresAt: refreshedSession.expiresAt,
-      },
-      { 'set-cookie': [sessionCookie(refreshedSession)] },
-    )
+    return refreshResponse(refreshedSession)
   } catch (error) {
     console.error('Token refresh failed:', error instanceof Error ? error.message : error)
     return json(401, { error: 'refresh_failed', message: 'Token refresh failed.' }, { 'set-cookie': [clearSessionCookie()] })
   }
+}
+
+function refreshResponse(session: AdminSession): AppResponse {
+  return json(
+    200,
+    {
+      status: 'refreshed',
+      expiresAt: session.expiresAt,
+    },
+    { 'set-cookie': [sessionCookie(session)] },
+  )
 }
 
 async function refreshSessionForLogout(session: AdminSession): Promise<AdminSession | null> {

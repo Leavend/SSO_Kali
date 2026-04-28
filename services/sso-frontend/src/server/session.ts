@@ -1,5 +1,6 @@
 import type { IncomingMessage } from 'node:http'
 import type { AdminPermissions, AdminPrincipal, AdminSessionView } from '../shared/admin.js'
+import { getConfig } from './config.js'
 import {
   ADMIN_SESSION_COOKIE,
   ADMIN_TX_COOKIE,
@@ -16,6 +17,9 @@ export type AdminSession = AdminSessionView & {
   readonly refreshToken: string
   readonly sub: string
   readonly displayName: string
+  readonly issuedAt: number
+  readonly absoluteExpiresAt: number
+  readonly lastRefreshedAt: number
 }
 
 export type AuthTransaction = {
@@ -40,7 +44,7 @@ export function readSession(request: IncomingMessage): AdminSession | null {
     const decrypted = decryptSession(raw)
     if (!decrypted) return null
 
-    return JSON.parse(decrypted) as AdminSession
+    return normalizeSession(JSON.parse(decrypted) as Partial<AdminSession>)
   } catch {
     return null
   }
@@ -50,7 +54,7 @@ export function sessionCookie(session: AdminSession): string {
   return serializeCookie(
     ADMIN_SESSION_COOKIE,
     encryptSession(JSON.stringify(session)),
-    hostCookieOptions(3600),
+    hostCookieOptions(sessionCookieMaxAge(session)),
   )
 }
 
@@ -89,6 +93,8 @@ export function sessionFromBootstrap(
   },
   principal: AdminPrincipal,
 ): AdminSession {
+  const issuedAt = unixTime()
+
   return {
     accessToken: tokens.accessToken,
     idToken: tokens.idToken,
@@ -104,6 +110,9 @@ export function sessionFromBootstrap(
     acr: principal.auth_context.acr,
     lastLoginAt: principal.last_login_at,
     permissions: principal.permissions,
+    issuedAt,
+    absoluteExpiresAt: issuedAt + getConfig().sessionAbsoluteTtlSeconds,
+    lastRefreshedAt: issuedAt,
   }
 }
 
@@ -130,5 +139,46 @@ function normalizedPermissions(permissions: AdminPermissions): AdminPermissions 
 }
 
 export function isSessionExpired(expiresAt: number, bufferSeconds = 30): boolean {
-  return expiresAt < Math.floor(Date.now() / 1000) + bufferSeconds
+  return expiresAt < unixTime() + bufferSeconds
+}
+
+export function isSessionAbsoluteExpired(session: AdminSession): boolean {
+  return session.absoluteExpiresAt <= unixTime()
+}
+
+export function unixTime(): number {
+  return Math.floor(Date.now() / 1000)
+}
+
+function normalizeSession(session: Partial<AdminSession>): AdminSession | null {
+  if (!isValidSessionShape(session)) return null
+
+  const issuedAt = numericOr(session.issuedAt, session.authTime ?? unixTime())
+  const absoluteExpiresAt = numericOr(session.absoluteExpiresAt, issuedAt + getConfig().sessionAbsoluteTtlSeconds)
+
+  if (absoluteExpiresAt <= unixTime()) return null
+
+  return {
+    ...session,
+    issuedAt,
+    absoluteExpiresAt,
+    lastRefreshedAt: numericOr(session.lastRefreshedAt, unixTime()),
+    permissions: normalizedPermissions(session.permissions),
+  }
+}
+
+function isValidSessionShape(session: Partial<AdminSession>): session is AdminSession {
+  return Boolean(
+    session.accessToken && session.idToken && session.refreshToken && session.sub && session.email && session.displayName
+      && session.role && typeof session.expiresAt === 'number' && session.permissions,
+  )
+}
+
+function sessionCookieMaxAge(session: AdminSession): number {
+  const absoluteRemaining = Math.max(0, session.absoluteExpiresAt - unixTime())
+  return Math.min(getConfig().sessionIdleTtlSeconds, absoluteRemaining)
+}
+
+function numericOr(value: number | undefined | null, fallback: number): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : fallback
 }

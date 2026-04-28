@@ -1,6 +1,6 @@
 import { getConfig } from './config.js'
 import type { AdminSession } from './session.js'
-import { isSessionExpired } from './session.js'
+import { isSessionExpired, unixTime } from './session.js'
 
 type RefreshTokenSet = {
   readonly access_token: string
@@ -14,12 +14,14 @@ export function sessionNeedsRefresh(session: AdminSession, bufferSeconds = 180):
 
 export async function refreshAdminSession(session: AdminSession): Promise<AdminSession> {
   const tokens = await requestRefreshTokens(session.refreshToken)
+  const refreshedAt = unixTime()
 
   return {
     ...session,
     accessToken: tokens.access_token,
     refreshToken: tokens.refresh_token ?? session.refreshToken,
-    expiresAt: Math.floor(Date.now() / 1000) + tokens.expires_in,
+    expiresAt: refreshedAt + tokens.expires_in,
+    lastRefreshedAt: refreshedAt,
   }
 }
 
