@@ -23,6 +23,8 @@ describe('ClientIntegrationProcedure', () => {
     expect(wrapper.text()).toContain('Env handoff')
     expect(wrapper.text()).toContain('Validasi via broker')
     expect(wrapper.text()).toContain('Registry patch')
+    expect(wrapper.text()).toContain('Dynamic registrations')
+    expect(wrapper.text()).toContain('Stage registration')
     expect(wrapper.text()).toContain('SSO_CLIENT_ID=customer-portal')
     expect(wrapper.text()).toContain('SSO_REDIRECT_URI=https://customer-dev.timeh.my.id/auth/callback')
   })

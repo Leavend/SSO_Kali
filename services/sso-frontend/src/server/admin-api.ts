@@ -1,5 +1,5 @@
 import type { ApiClient, ApiSession, ApiUser, AdminPrincipal } from '../shared/admin.js'
-import type { ClientIntegrationContract } from '../shared/client-integration.js'
+import type { ClientIntegrationContract, ClientIntegrationRegistration } from '../shared/client-integration.js'
 import { getConfig } from './config.js'
 import { buildAdminApiError } from './admin-api-error.js'
 import type { AdminSession } from './session.js'
@@ -53,6 +53,39 @@ export async function buildClientIntegrationContract(
   return data.contract
 }
 
+export async function fetchClientIntegrationRegistrations(
+  session: AdminSession,
+): Promise<ClientIntegrationRegistration[]> {
+  const data = await adminFetch<{ registrations: ClientIntegrationRegistration[] }>(
+    '/client-integrations/registrations',
+    session,
+  )
+
+  return data.registrations
+}
+
+export async function stageClientIntegration(
+  session: AdminSession,
+  draft: Record<string, unknown>,
+): Promise<ClientIntegrationRegistration> {
+  return clientIntegrationAction(session, '/client-integrations/stage', draft)
+}
+
+export async function activateClientIntegration(
+  session: AdminSession,
+  clientId: string,
+  secretHash: string | null,
+): Promise<ClientIntegrationRegistration> {
+  return clientIntegrationAction(session, `/client-integrations/${encodeURIComponent(clientId)}/activate`, { secretHash })
+}
+
+export async function disableClientIntegration(
+  session: AdminSession,
+  clientId: string,
+): Promise<ClientIntegrationRegistration> {
+  return clientIntegrationAction(session, `/client-integrations/${encodeURIComponent(clientId)}/disable`, {})
+}
+
 export async function revokeSession(session: AdminSession, sessionId: string): Promise<void> {
   await adminFetch(`/sessions/${encodeURIComponent(sessionId)}`, session, { method: 'DELETE' })
 }
@@ -63,6 +96,24 @@ export async function revokeUserSessions(session: AdminSession, subjectId: strin
 
 async function adminFetch<T>(path: string, session: AdminSession, init?: RequestInit): Promise<T> {
   return adminFetchWithToken(path, session.accessToken, init)
+}
+
+async function clientIntegrationAction(
+  session: AdminSession,
+  path: string,
+  body: Record<string, unknown>,
+): Promise<ClientIntegrationRegistration> {
+  const data = await adminFetch<{ registration: ClientIntegrationRegistration }>(path, session, jsonRequest(body))
+
+  return data.registration
+}
+
+function jsonRequest(body: Record<string, unknown>): RequestInit {
+  return {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  }
 }
 
 async function adminFetchWithToken<T>(

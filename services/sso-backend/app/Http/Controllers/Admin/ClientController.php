@@ -4,11 +4,15 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Admin;
 
+use App\Models\User;
 use App\Services\Oidc\ClientIntegrationContractBuilder;
+use App\Services\Oidc\ClientIntegrationRegistrationService;
 use App\Services\Oidc\DownstreamClientRegistry;
+use App\Support\Oidc\ClientIntegrationDraft;
 use App\Support\Oidc\DownstreamClient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use RuntimeException;
 
 final class ClientController
 {
@@ -50,6 +54,51 @@ final class ClientController
         return response()->json(['contract' => $builder->build($draft)]);
     }
 
+    public function registrations(ClientIntegrationRegistrationService $registrations): JsonResponse
+    {
+        return response()->json(['registrations' => $registrations->registrations()]);
+    }
+
+    public function stage(Request $request, ClientIntegrationRegistrationService $registrations): JsonResponse
+    {
+        try {
+            $draft = $this->draft($request);
+            $registration = $registrations->stage($request, $this->admin($request), $draft);
+        } catch (RuntimeException $exception) {
+            return $this->invalidIntegration($exception);
+        }
+
+        return response()->json(['registration' => $registrations->payload($registration)]);
+    }
+
+    public function activate(
+        Request $request,
+        ClientIntegrationRegistrationService $registrations,
+        string $clientId,
+    ): JsonResponse {
+        try {
+            $registration = $registrations->activate($request, $this->admin($request), $clientId, $this->secretHash($request));
+        } catch (RuntimeException $exception) {
+            return $this->invalidIntegration($exception);
+        }
+
+        return response()->json(['registration' => $registrations->payload($registration)]);
+    }
+
+    public function disable(
+        Request $request,
+        ClientIntegrationRegistrationService $registrations,
+        string $clientId,
+    ): JsonResponse {
+        try {
+            $registration = $registrations->disable($request, $this->admin($request), $clientId);
+        } catch (RuntimeException $exception) {
+            return $this->invalidIntegration($exception);
+        }
+
+        return response()->json(['registration' => $registrations->payload($registration)]);
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -62,6 +111,34 @@ final class ClientController
             'backchannel_logout_uri' => $this->displayBackchannelUri($client->backchannelLogoutUri),
             'backchannel_logout_internal' => $this->isInternalUri($client->backchannelLogoutUri),
         ];
+    }
+
+    private function draft(Request $request): ClientIntegrationDraft
+    {
+        return app(ClientIntegrationContractBuilder::class)->draftFrom($request->all());
+    }
+
+    private function admin(Request $request): User
+    {
+        /** @var User $admin */
+        $admin = $request->attributes->get('admin_user');
+
+        return $admin;
+    }
+
+    private function secretHash(Request $request): ?string
+    {
+        $value = $request->input('secretHash', $request->input('secret_hash'));
+
+        return is_string($value) && $value !== '' ? $value : null;
+    }
+
+    private function invalidIntegration(RuntimeException $exception): JsonResponse
+    {
+        return response()->json([
+            'error' => 'client_integration_invalid',
+            'message' => $exception->getMessage(),
+        ], 422);
     }
 
     private function displayBackchannelUri(?string $uri): ?string

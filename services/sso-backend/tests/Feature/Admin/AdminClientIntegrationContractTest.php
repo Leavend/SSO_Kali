@@ -2,8 +2,12 @@
 
 declare(strict_types=1);
 
+use App\Models\AdminAuditEvent;
+use App\Models\OidcClientRegistration;
 use App\Models\User;
+use App\Services\Oidc\DownstreamClientRegistry;
 use App\Services\Oidc\LocalTokenService;
+use App\Support\Security\ClientSecretHashPolicy;
 use Tests\TestCase;
 
 beforeEach(function (): void {
@@ -68,6 +72,141 @@ it('returns validation violations without mutating broker clients', function ():
         ->assertJsonPath('violations.0', 'Live client wajib memakai HTTPS.')
         ->assertJsonPath('violations.1', 'Callback path tidak boleh wildcard.');
 });
+
+it('stages a valid registration without exposing verifier secrets', function (): void {
+    /** @var TestCase $this */
+    $admin = clientContractAdmin('admin-contract-3');
+
+    $this->withToken(clientContractAccessToken($admin))
+        ->postJson('/admin/api/client-integrations/stage', validClientDraft())
+        ->assertOk()
+        ->assertJsonPath('registration.client_id', 'customer-portal')
+        ->assertJsonPath('registration.status', 'staged')
+        ->assertJsonMissingPath('registration.secret_hash');
+
+    expect(OidcClientRegistration::query()->where('client_id', 'customer-portal')->exists())->toBeTrue();
+    expect(AdminAuditEvent::query()->where('action', 'stage_client_integration')->exists())->toBeTrue();
+});
+
+it('rejects duplicate dynamic registrations', function (): void {
+    /** @var TestCase $this */
+    $admin = clientContractAdmin('admin-contract-4');
+
+    OidcClientRegistration::query()->create([
+        ...dynamicClientPayload(),
+        'status' => 'staged',
+    ]);
+
+    $this->withToken(clientContractAccessToken($admin))
+        ->postJson('/admin/api/client-integrations/stage', validClientDraft())
+        ->assertStatus(422)
+        ->assertJsonPath('error', 'client_integration_invalid');
+});
+
+it('activates public dynamic clients for runtime authorization', function (): void {
+    /** @var TestCase $this */
+    $admin = clientContractAdmin('admin-contract-5');
+
+    $this->withToken(clientContractAccessToken($admin))
+        ->postJson('/admin/api/client-integrations/stage', validClientDraft())
+        ->assertOk();
+
+    $this->withToken(clientContractAccessToken($admin))
+        ->postJson('/admin/api/client-integrations/customer-portal/activate')
+        ->assertOk()
+        ->assertJsonPath('registration.status', 'active');
+
+    $client = app(DownstreamClientRegistry::class)->resolve(
+        'customer-portal',
+        'https://customer-dev.timeh.my.id/auth/callback',
+    );
+
+    expect($client?->clientId)->toBe('customer-portal');
+});
+
+it('rejects confidential activation without an argon2id verifier hash', function (): void {
+    /** @var TestCase $this */
+    $admin = clientContractAdmin('admin-contract-6');
+
+    $this->withToken(clientContractAccessToken($admin))
+        ->postJson('/admin/api/client-integrations/stage', [
+            ...validClientDraft(),
+            'clientId' => 'server-portal',
+            'clientType' => 'confidential',
+        ])
+        ->assertOk();
+
+    $this->withToken(clientContractAccessToken($admin))
+        ->postJson('/admin/api/client-integrations/server-portal/activate', ['secretHash' => 'plaintext'])
+        ->assertStatus(422);
+});
+
+it('disables active dynamic clients as a rollback mechanism', function (): void {
+    /** @var TestCase $this */
+    $admin = clientContractAdmin('admin-contract-7');
+    $hash = app(ClientSecretHashPolicy::class)->make('client-secret');
+
+    OidcClientRegistration::query()->create([
+        ...dynamicClientPayload('server-portal', 'confidential'),
+        'secret_hash' => $hash,
+        'status' => 'active',
+        'activated_at' => now(),
+    ]);
+
+    $this->withToken(clientContractAccessToken($admin))
+        ->postJson('/admin/api/client-integrations/server-portal/disable')
+        ->assertOk()
+        ->assertJsonPath('registration.status', 'disabled');
+
+    expect(app(DownstreamClientRegistry::class)->find('server-portal'))->toBeNull();
+});
+
+function clientContractAdmin(string $subjectId): User
+{
+    return User::factory()->create([
+        'subject_id' => $subjectId,
+        'subject_uuid' => $subjectId,
+        'role' => 'admin',
+    ]);
+}
+
+/**
+ * @return array<string, string>
+ */
+function validClientDraft(): array
+{
+    return [
+        'appName' => 'Customer Portal',
+        'clientId' => 'customer-portal',
+        'environment' => 'development',
+        'clientType' => 'public',
+        'appBaseUrl' => 'https://customer-dev.timeh.my.id',
+        'callbackPath' => '/auth/callback',
+        'logoutPath' => '/auth/backchannel/logout',
+        'ownerEmail' => 'owner@company.com',
+        'provisioning' => 'jit',
+    ];
+}
+
+/**
+ * @return array<string, mixed>
+ */
+function dynamicClientPayload(string $clientId = 'customer-portal', string $type = 'public'): array
+{
+    return [
+        'client_id' => $clientId,
+        'display_name' => 'Customer Portal',
+        'type' => $type,
+        'environment' => 'development',
+        'app_base_url' => 'https://customer-dev.timeh.my.id',
+        'redirect_uris' => ['https://customer-dev.timeh.my.id/auth/callback'],
+        'post_logout_redirect_uris' => ['https://customer-dev.timeh.my.id'],
+        'backchannel_logout_uri' => 'https://customer-dev.timeh.my.id/auth/backchannel/logout',
+        'owner_email' => 'owner@company.com',
+        'provisioning' => 'jit',
+        'contract' => ['clientId' => $clientId],
+    ];
+}
 
 function clientContractAccessToken(User $user): string
 {

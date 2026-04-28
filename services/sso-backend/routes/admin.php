@@ -34,6 +34,7 @@ Route::middleware(AdminGuard::class)->prefix('admin/api')->group(function (): vo
         Route::get('/sessions/{sessionId}', [SessionController::class, 'show'])
             ->where('sessionId', '[a-zA-Z0-9_-]+');
         Route::get('/clients', [ClientController::class, 'index']);
+        Route::get('/client-integrations/registrations', [ClientController::class, 'registrations']);
         Route::post('/client-integrations/contract', [ClientController::class, 'contract']);
     });
 
@@ -48,5 +49,10 @@ Route::middleware(AdminGuard::class)->prefix('admin/api')->group(function (): vo
             ->where('sessionId', '[a-zA-Z0-9_-]+');
         Route::delete('/users/{subjectId}/sessions', [SessionController::class, 'destroyUserSessions'])
             ->where('subjectId', '[a-zA-Z0-9_-]+');
+        Route::post('/client-integrations/stage', [ClientController::class, 'stage']);
+        Route::post('/client-integrations/{clientId}/activate', [ClientController::class, 'activate'])
+            ->where('clientId', '[a-z0-9-]+');
+        Route::post('/client-integrations/{clientId}/disable', [ClientController::class, 'disable'])
+            ->where('clientId', '[a-z0-9-]+');
     });
 });
