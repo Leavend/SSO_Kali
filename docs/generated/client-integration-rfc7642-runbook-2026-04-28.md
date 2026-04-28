@@ -27,3 +27,11 @@ RFC 7642 adalah dokumen use case SCIM untuk identity management lintas domain. U
 - Rollback: client toggle, route flag, dan tag image release harus bisa dikembalikan tanpa migrasi data destruktif.
 - Update zero downtime: deploy lewat CI/CD, image immutable, health-gated, dan smoke test sebelum cutover penuh.
 - Security: tidak menyimpan token di browser storage, tidak menerima redirect wildcard, dan tidak mengekspose secret di UI/log.
+
+## Feature Logic Admin Panel
+
+Admin Panel menampilkan Client Stitching Wizard di Dashboard. Wizard ini bukan teks statis: admin mengisi nama aplikasi, client ID, base URL, owner, callback path, logout path, tipe client, environment, dan mode provisioning. Sistem memvalidasi metadata sebelum menghasilkan contract integrasi.
+
+Contract yang dihasilkan berisi redirect URI eksak, back-channel logout URI, scope OIDC, environment handoff, provisioning steps, lifecycle rollout, rollback, dan audit finding. Untuk confidential client, UI hanya menampilkan placeholder `SSO_CLIENT_SECRET=<store-in-vault>` agar secret tetap dibuat dan disimpan melalui vault/CI secret, bukan di browser.
+
+Prinsip zero downtime tetap dijaga dengan pendekatan artifact review: wizard menghasilkan contract yang bisa direview, diuji, dan dipromosikan lewat CI/CD. Production registry tidak diubah langsung dari browser sehingga rollback tetap berbasis tag, route flag, dan client toggle yang dapat diaudit.
