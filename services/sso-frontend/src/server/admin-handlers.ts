@@ -2,6 +2,7 @@ import type { IncomingMessage } from 'node:http'
 import { REAUTH_REQUIRED_ROUTE, legacyAuthErrorRoute } from '../shared/auth-status.js'
 import type { AdminDashboardPayload } from '../shared/admin.js'
 import {
+  buildClientIntegrationContract,
   fetchClients,
   fetchPrincipal,
   fetchSessions,
@@ -80,10 +81,27 @@ export async function handleAdminApi(context: RouteContext): Promise<AppResponse
       return json(200, { clients: await fetchClients(session) }, headers)
     }
 
+    if (pathname === '/api/admin/client-integrations/contract' && method === 'POST') {
+      return clientIntegrationContract(context.request, session, headers)
+    }
+
     return json(404, { error: 'not_found', message: 'Admin endpoint not found.' }, headers)
   } catch (error) {
     return adminErrorResponse(error)
   }
+}
+
+async function clientIntegrationContract(
+  request: IncomingMessage,
+  session: AdminSession,
+  headers: Record<string, HeaderValue>,
+): Promise<AppResponse> {
+  const body = await readJsonBody(request)
+  if (!body) {
+    return json(400, { error: 'invalid_json', message: 'Invalid client integration payload.' }, headers)
+  }
+
+  return json(200, { contract: await buildClientIntegrationContract(session, body) }, headers)
 }
 
 export function redirectForLegacyError(requestUrl: URL): AppResponse | null {
@@ -162,6 +180,34 @@ function decodeTail(pathname: string, prefix: string): string {
   return decodeURIComponent(pathname.slice(prefix.length))
 }
 
+async function readJsonBody(request: IncomingMessage): Promise<Record<string, unknown> | null> {
+  try {
+    const body = await readLimitedBody(request)
+    const payload = body === '' ? {} : JSON.parse(body) as unknown
+    return isRecord(payload) ? payload : null
+  } catch {
+    return null
+  }
+}
+
+async function readLimitedBody(request: IncomingMessage): Promise<string> {
+  const chunks: Buffer[] = []
+  let size = 0
+
+  for await (const chunk of request) {
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)
+    size += buffer.length
+    if (size > 16_384) throw new Error('Admin payload too large.')
+    chunks.push(buffer)
+  }
+
+  return Buffer.concat(chunks).toString('utf8')
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+}
+
 function authFailurePayload(session: AdminSession): {
   readonly error: string
   readonly message: string
@@ -185,20 +231,27 @@ function authFailurePayload(session: AdminSession): {
 function adminErrorResponse(error: unknown): AppResponse {
   if (isAdminApiError(error)) {
     if (error.status === 401) {
-      return json(error.status, {
-        error: error.code ?? 'admin_api_error',
-        message: error.message,
-      }, { 'set-cookie': [clearSessionCookie()] })
+      return json(error.status, adminErrorPayload(error), { 'set-cookie': [clearSessionCookie()] })
     }
 
-    return json(error.status, {
-      error: error.code ?? 'admin_api_error',
-      message: error.message,
-    })
+    return json(error.status, adminErrorPayload(error))
   }
 
   console.error(error)
   return json(500, { error: 'admin_proxy_failed', message: 'Admin API proxy failed.' })
+}
+
+function adminErrorPayload(error: { readonly code: string | null; readonly message: string; readonly violations: readonly string[] }): {
+  readonly error: string
+  readonly message: string
+  readonly violations?: readonly string[]
+} {
+  const payload = {
+    error: error.code ?? 'admin_api_error',
+    message: error.message,
+  }
+
+  return error.violations.length > 0 ? { ...payload, violations: error.violations } : payload
 }
 
 function unauthenticatedResponse(): AppResponse {

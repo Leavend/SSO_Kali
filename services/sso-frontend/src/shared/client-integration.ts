@@ -26,6 +26,7 @@ export type ClientIntegrationContract = Readonly<{
   userinfoUrl: string
   scopes: readonly string[]
   env: readonly string[]
+  registryPatch: readonly string[]
   provisioningSteps: readonly string[]
   rolloutSteps: readonly string[]
   rollbackSteps: readonly string[]
@@ -82,6 +83,7 @@ export function createClientIntegrationContract(draft: ClientIntegrationDraft): 
     userinfoUrl: `${issuer}/userinfo`,
     scopes: scopesFor(draft),
     env: envLines(draft, uris),
+    registryPatch: registryPatchLines(draft, uris),
     provisioningSteps: provisioningSteps(draft),
     rolloutSteps: rolloutSteps(draft),
     rollbackSteps: rollbackSteps(draft),
@@ -164,6 +166,21 @@ function envLines(draft: ClientIntegrationDraft, uris: ClientUris): readonly str
     `SSO_BACKCHANNEL_LOGOUT_URI=${uris.backchannelLogoutUri}`,
   ]
   return draft.clientType === 'confidential' ? [...lines, 'SSO_CLIENT_SECRET=<store-in-vault>'] : lines
+}
+
+function registryPatchLines(draft: ClientIntegrationDraft, uris: ClientUris): readonly string[] {
+  const base = [
+    `'${draft.clientId}' => [`,
+    `  'type' => '${draft.clientType}',`,
+    `  'redirect_uris' => ['${uris.redirectUri}'],`,
+    `  'post_logout_redirect_uris' => ['${normalizeBaseUrl(draft.appBaseUrl)}'],`,
+    `  'backchannel_logout_uri' => '${uris.backchannelLogoutUri}',`,
+  ]
+  return draft.clientType === 'confidential' ? [...base, `  'secret' => env('${secretEnvName(draft.clientId)}'),`, '],'] : [...base, '],']
+}
+
+function secretEnvName(clientId: string): string {
+  return `${clientId.toUpperCase().replace(/-/g, '_')}_CLIENT_SECRET_HASH`
 }
 
 function provisioningSteps(draft: ClientIntegrationDraft): readonly string[] {

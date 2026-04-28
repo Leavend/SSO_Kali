@@ -34,4 +34,8 @@ Admin Panel menampilkan Client Stitching Wizard di Dashboard. Wizard ini bukan t
 
 Contract yang dihasilkan berisi redirect URI eksak, back-channel logout URI, scope OIDC, environment handoff, provisioning steps, lifecycle rollout, rollback, dan audit finding. Untuk confidential client, UI hanya menampilkan placeholder `SSO_CLIENT_SECRET=<store-in-vault>` agar secret tetap dibuat dan disimpan melalui vault/CI secret, bukan di browser.
 
+Admin juga dapat menjalankan validasi via broker. Endpoint admin `/admin/api/client-integrations/contract` melakukan validasi server-side terhadap duplicate client ID, redirect URI yang sudah dipakai, wildcard callback/logout path, HTTPS untuk aplikasi live, owner email, dan tipe provisioning. Respons 422 mengembalikan daftar violation tanpa menulis registry production, sehingga proses review tetap aman dan auditable.
+
+Contract broker menampilkan `Registry patch` sebagai artefak perubahan yang harus masuk lewat PR/CI/CD. Confidential client memakai hash secret dari environment, misalnya `CUSTOMER_PORTAL_CLIENT_SECRET_HASH`, bukan secret mentah. Ini menjaga prinsip RFC 7642: provisioning/lifecycle disepakati lintas domain, sementara credential client tetap berada di kontrol broker dan secret manager.
+
 Prinsip zero downtime tetap dijaga dengan pendekatan artifact review: wizard menghasilkan contract yang bisa direview, diuji, dan dipromosikan lewat CI/CD. Production registry tidak diubah langsung dari browser sehingga rollback tetap berbasis tag, route flag, dan client toggle yang dapat diaudit.

@@ -16,6 +16,7 @@ describe('client integration contract', () => {
     expect(contract.redirectUri).toBe('https://customer-dev.timeh.my.id/auth/callback')
     expect(contract.scopes).toContain('offline_access')
     expect(contract.env).toContain('SSO_CLIENT_ID=customer-portal')
+    expect(contract.registryPatch).toContain("'customer-portal' => [")
   })
 
   it('rejects unsafe live URLs and wildcard redirect paths', () => {
@@ -41,6 +42,7 @@ describe('client integration contract', () => {
     const contract = createClientIntegrationContract(draft)
 
     expect(contract.env).toContain('SSO_CLIENT_SECRET=<store-in-vault>')
+    expect(contract.registryPatch).toContain("  'secret' => env('CUSTOMER_PORTAL_CLIENT_SECRET_HASH'),")
     expect(contract.scopes).toContain('sso:session.register')
     expect(contract.provisioningSteps).toContain('Sync Users and Groups.')
     expect(contract.findings).toContain('RFC 7642 lifecycle covered by SCIM provisioning.')

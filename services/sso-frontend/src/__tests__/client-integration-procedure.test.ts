@@ -21,6 +21,8 @@ describe('ClientIntegrationProcedure', () => {
     expect(wrapper.text()).toContain('Jahit aplikasi ke SSO broker')
     expect(wrapper.text()).toContain('Public + PKCE')
     expect(wrapper.text()).toContain('Env handoff')
+    expect(wrapper.text()).toContain('Validasi via broker')
+    expect(wrapper.text()).toContain('Registry patch')
     expect(wrapper.text()).toContain('SSO_CLIENT_ID=customer-portal')
     expect(wrapper.text()).toContain('SSO_REDIRECT_URI=https://customer-dev.timeh.my.id/auth/callback')
   })
