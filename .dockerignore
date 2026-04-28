@@ -3,6 +3,7 @@
 .DS_Store
 **/.DS_Store
 **/node_modules
+**/node_modules.*
 **/vendor
 **/dist
 **/coverage
@@ -10,6 +11,8 @@
 **/.tmp
 test-results
 *.log
+**/*.zip
+**/*.tar.gz
 .env
 .env.*
 .secrets

@@ -86,3 +86,24 @@ it('rejects non-canonical origins and ambiguous callback paths', function (): vo
         'Logout path tidak boleh mengandung traversal.',
     ]);
 });
+
+it('canonicalizes origins before emitting exact redirect uri artifacts', function (): void {
+    $builder = app(ClientIntegrationContractBuilder::class);
+    $draft = $builder->draftFrom([
+        'appName' => 'Customer Portal',
+        'clientId' => 'customer-portal',
+        'environment' => 'live',
+        'clientType' => 'public',
+        'appBaseUrl' => 'HTTPS://Customer-Dev.Timeh.My.ID:443/',
+        'callbackPath' => '/auth/callback',
+        'logoutPath' => '/auth/backchannel/logout',
+        'ownerEmail' => 'owner@company.com',
+        'provisioning' => 'jit',
+    ]);
+
+    $contract = $builder->build($draft);
+
+    expect($builder->validate($draft))->toBe([])
+        ->and($contract['redirectUri'])->toBe('https://customer-dev.timeh.my.id/auth/callback')
+        ->and($contract['registryPatch'])->toContain("  'post_logout_redirect_uris' => ['https://customer-dev.timeh.my.id'],");
+});

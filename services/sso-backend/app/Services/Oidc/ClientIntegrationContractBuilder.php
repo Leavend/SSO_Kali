@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Oidc;
 
 use App\Support\Oidc\ClientIntegrationDraft;
+use App\Support\Oidc\ClientUrlOrigin;
 
 final class ClientIntegrationContractBuilder
 {
@@ -166,7 +167,7 @@ final class ClientIntegrationContractBuilder
      */
     private function secureBaseUrlViolations(array $url, string $environment): array
     {
-        if (($url['scheme'] ?? null) === 'https') {
+        if (ClientUrlOrigin::isHttps($url)) {
             return [];
         }
 
@@ -247,9 +248,7 @@ final class ClientIntegrationContractBuilder
      */
     private function parseUrl(string $input): ?array
     {
-        $parts = parse_url($input);
-
-        return is_array($parts) && isset($parts['scheme'], $parts['host']) ? $parts : null;
+        return ClientUrlOrigin::parse($input);
     }
 
     /**
@@ -278,7 +277,7 @@ final class ClientIntegrationContractBuilder
      */
     private function isLocalhost(array $url): bool
     {
-        return in_array($url['host'] ?? '', ['localhost', '127.0.0.1', '::1'], true);
+        return ClientUrlOrigin::isLocalhost($url);
     }
 
     private function redirectUri(ClientIntegrationDraft $draft): ?string
@@ -357,10 +356,7 @@ final class ClientIntegrationContractBuilder
 
     private function baseOrigin(string $input): string
     {
-        $url = $this->parseUrl($input);
-        $port = isset($url['port']) ? ':'.$url['port'] : '';
-
-        return $url === null ? rtrim($input, '/') : "{$url['scheme']}://{$url['host']}{$port}";
+        return ClientUrlOrigin::fromInput($input);
     }
 
     /**
