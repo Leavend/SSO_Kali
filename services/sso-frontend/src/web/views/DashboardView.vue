@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import { Activity, AppWindow, RefreshCw, UsersRound } from 'lucide-vue-next'
+import ClientIntegrationProcedure from '@/components/ClientIntegrationProcedure.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import StatTile from '@/components/StatTile.vue'
 import { useAdminStore } from '@/stores/admin'
@@ -34,6 +35,8 @@ onMounted(() => {
       <StatTile label="Sessions" :value="admin.sessions.length" detail="issued by SSO" />
       <StatTile label="Clients" :value="admin.clients.length" detail="registered apps" />
     </div>
+
+    <ClientIntegrationProcedure />
 
     <div class="panel-grid">
       <article class="panel">
