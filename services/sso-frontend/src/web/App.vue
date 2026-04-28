@@ -2,6 +2,9 @@
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { LogOut, Menu, RefreshCw, ShieldCheck, X } from "lucide-vue-next";
 import { RouterLink, RouterView, useRoute } from "vue-router";
+import { AUTH_SHELL } from "@parent-ui/auth-shell.mjs";
+import ThemeToggle from "@/components/ThemeToggle.vue";
+import AuthFooter from "@/components/auth/AuthFooter.vue";
 import { useAdminStore } from "./stores/admin";
 
 const admin = useAdminStore();
@@ -107,6 +110,15 @@ watch(() => route.path, closeSidebar);
           </div>
         </div>
       </aside>
+
+      <div
+        :id="AUTH_SHELL.theme.toggleHostId"
+        class="theme-toggle-anchor admin-theme-toggle-anchor"
+      >
+        <ThemeToggle initial-theme="dark" />
+      </div>
+
+      <AuthFooter class="admin-auth-footer" />
     </template>
 
     <main
