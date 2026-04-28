@@ -1,7 +1,7 @@
 import type { IncomingMessage } from 'node:http'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from '../web/App.vue'
 import { useAdminStore } from '../web/stores/admin'
 import { handleSession } from '../server/admin-handlers'
@@ -19,23 +19,34 @@ vi.mock('vue-router', () => ({
 }))
 
 describe('admin auth boundary', () => {
+  afterEach(() => {
+    document.documentElement.removeAttribute('data-theme')
+    document.documentElement.classList.remove('dark')
+  })
+
   it('does not render the admin shell on public routes with stale principal state', () => {
     const wrapper = mountApp({ principal: principalView(), routeMeta: {} })
 
     expect(wrapper.find('.sidebar').exists()).toBe(false)
     expect(wrapper.find('.main-surface--auth').exists()).toBe(true)
+    expect(wrapper.find('#devsso-theme-toggle').exists()).toBe(false)
+    expect(wrapper.find('footer.auth-footer').exists()).toBe(false)
     expect(wrapper.text()).not.toContain('SSO Admin')
     wrapper.unmount()
   })
 
-  it('renders the admin shell only on authenticated admin routes', () => {
+  it('renders the admin shell and shared parent UI on authenticated admin routes', () => {
     const wrapper = mountApp({
       principal: principalView(),
       routeMeta: { requiresAuth: true },
     })
 
     expect(wrapper.find('.sidebar').exists()).toBe(true)
+    expect(wrapper.find('#devsso-theme-toggle').exists()).toBe(true)
+    expect(wrapper.find('#devsso-theme-float.admin-theme-toggle-anchor').exists()).toBe(true)
+    expect(wrapper.find('footer.auth-footer.admin-auth-footer').text()).toContain('© 2026 Dev-SSO')
     expect(wrapper.text()).toContain('SSO Admin')
+    expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
     wrapper.unmount()
   })
 

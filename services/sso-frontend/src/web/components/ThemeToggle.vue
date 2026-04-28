@@ -4,7 +4,16 @@ import { Moon, Sun } from 'lucide-vue-next'
 import { AUTH_SHELL, getNextTheme, normalizeTheme } from '@parent-ui/auth-shell.mjs'
 import type { Theme } from '@parent-ui/auth-shell.mjs'
 
-const theme = ref<Theme>(AUTH_SHELL.theme.defaultTheme)
+const props = withDefaults(
+  defineProps<{
+    initialTheme?: Theme
+  }>(),
+  {
+    initialTheme: AUTH_SHELL.theme.defaultTheme,
+  },
+)
+
+const theme = ref<Theme>(resolveInitialTheme())
 const isDark = computed(() => theme.value === 'dark')
 
 onMounted(() => {
@@ -23,6 +32,11 @@ function applyTheme(value: Theme): void {
   const normalized = normalizeTheme(value)
   document.documentElement.setAttribute(AUTH_SHELL.theme.attribute, normalized)
   document.documentElement.classList.toggle(AUTH_SHELL.theme.darkClass, normalized === 'dark')
+}
+
+function resolveInitialTheme(): Theme {
+  const current = document.documentElement.getAttribute(AUTH_SHELL.theme.attribute)
+  return normalizeTheme(current ?? props.initialTheme)
 }
 </script>
 
