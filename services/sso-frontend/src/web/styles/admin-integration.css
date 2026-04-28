@@ -1,0 +1,121 @@
+.integration-runbook {
+  display: grid;
+  gap: 18px;
+}
+
+.integration-header {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.integration-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  color: var(--admin-accent);
+  border: 1px solid color-mix(in srgb, var(--admin-accent) 30%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--admin-accent) 12%, transparent);
+}
+
+.integration-eyebrow {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--admin-accent);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.integration-header h2,
+.integration-track h3 {
+  margin: 0;
+  letter-spacing: 0;
+}
+
+.integration-header h2 {
+  font-size: 24px;
+}
+
+.integration-header p,
+.integration-track p,
+.integration-steps span {
+  color: var(--admin-muted);
+  line-height: 1.55;
+}
+
+.integration-header p,
+.integration-track p {
+  margin: 6px 0 0;
+}
+
+.integration-tracks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.integration-track {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid color-mix(in srgb, var(--admin-line) 72%, transparent);
+  border-radius: 8px;
+  background: var(--admin-panel-muted);
+}
+
+.integration-track .pill {
+  width: fit-content;
+}
+
+.integration-steps {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding-left: 22px;
+}
+
+.integration-steps li::marker {
+  color: var(--admin-accent);
+  font-weight: 800;
+}
+
+.integration-steps strong,
+.integration-steps span {
+  display: block;
+}
+
+.integration-steps strong {
+  margin-bottom: 2px;
+}
+
+.integration-guardrails {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.integration-guardrails span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  gap: 8px;
+  padding: 7px 10px;
+  color: var(--admin-ink);
+  border: 1px solid color-mix(in srgb, var(--admin-accent) 26%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--admin-accent) 10%, transparent);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+@media (max-width: 768px) {
+  .integration-header,
+  .integration-tracks {
+    grid-template-columns: 1fr;
+  }
+}
