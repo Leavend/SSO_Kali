@@ -149,6 +149,43 @@ it('performs centralized logout and clears the local session', function (): void
     Http::assertSent(fn ($request): bool => $request->url() === 'http://sso.example/connect/logout');
 });
 
+it('refreshes an expired access token before rendering dashboard', function (): void {
+    /** @var TestCase $this */
+    seedAuthenticatedSession($this, ['expires_at' => time() - 30]);
+
+    Http::fake([
+        'http://sso.example/jwks' => Http::response(FakeBrokerJwt::jwks(), 200),
+        'http://sso.example/token' => Http::response([
+            'access_token' => FakeBrokerJwt::accessToken(['exp' => time() + 300]),
+            'id_token' => 'rotated-id-token',
+            'refresh_token' => 'refresh-token-rotated',
+        ], 200),
+    ]);
+
+    $this->get('/dashboard')
+        ->assertOk()
+        ->assertSee('Ada Lovelace');
+
+    expect(session('sso.session.refresh_token'))->toBe('refresh-token-rotated');
+    expect(session('sso.session.expires_at'))->toBeGreaterThan(time());
+    Http::assertSent(fn ($request): bool => $request->url() === 'http://sso.example/token'
+        && $request['grant_type'] === 'refresh_token');
+});
+
+it('expires the local session when refresh token rotation fails', function (): void {
+    /** @var TestCase $this */
+    seedAuthenticatedSession($this, ['expires_at' => time() - 30]);
+
+    Http::fake([
+        'http://sso.example/token' => Http::response(['error' => 'invalid_grant'], 401),
+    ]);
+
+    $this->get('/dashboard')
+        ->assertRedirect('/?event=session-expired');
+
+    expect(session('sso.session'))->toBeNull();
+});
+
 it('keeps silent SSO misses on the landing page', function (): void {
     /** @var TestCase $this */
     $login = $this->get('/auth/login?prompt=none');
@@ -204,19 +241,28 @@ it('rejects replayed back-channel logout tokens', function (): void {
     ])->assertStatus(401);
 });
 
-function seedAuthenticatedSession(TestCase $case): void
+/**
+ * @param  array<string, mixed>  $overrides
+ */
+function seedAuthenticatedSession(TestCase $case, array $overrides = []): void
 {
+    $now = time();
+
     $case->withSession([
-        'sso.session' => [
+        'sso.session' => array_replace([
             'sid' => 'shared-sid',
             'subject' => 'subject-123',
             'client_id' => 'prototype-app-b',
             'access_token' => 'access-token',
             'refresh_token' => 'refresh-token',
             'id_token' => 'id-token',
+            'expires_at' => $now + 300,
+            'created_at' => $now,
+            'last_touched_at' => $now,
+            'last_refreshed_at' => $now,
             'profile' => [
                 'display_name' => 'Ada Lovelace',
             ],
-        ],
+        ], $overrides),
     ]);
 }
