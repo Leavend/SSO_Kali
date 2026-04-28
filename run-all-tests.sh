@@ -60,6 +60,8 @@ run_in_dir "zitadel-login-vue | Built server smoke" "$ZITADEL_LOGIN_VUE_DIR" npm
 
 run_node_suite "app-a-next" "$APP_A_DIR"
 
+run_section "Repository hygiene policy" "$ROOT_DIR/scripts/validate-repository-hygiene.sh"
+
 if [[ "${RUN_E2E:-0}" == "1" ]]; then
   run_in_dir "sso-admin-vue | Playwright E2E" "$SSO_ADMIN_VUE_DIR" npm run test:e2e
   run_in_dir "app-a-next | Proxy-chain E2E" "$APP_A_DIR" npm run test:e2e:proxy-chain

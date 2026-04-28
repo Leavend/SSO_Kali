@@ -11,6 +11,8 @@
 .idea
 .vscode
 *.log
+*.zip
+*.tar.gz
 coverage
 .artifacts
 test-results/

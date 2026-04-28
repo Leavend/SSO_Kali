@@ -30,7 +30,9 @@ Pola SSO multi-client yang dipakai produk besar seperti Google dapat diterapkan 
 - Update zero downtime: deploy lewat CI/CD, image immutable, health-gated, dan smoke test sebelum cutover penuh.
 - Security: tidak menyimpan token di browser storage, tidak menerima redirect wildcard, dan tidak mengekspose secret di UI/log.
 - Redirect safety: base URL client harus berupa origin canonical saja. Path, query, fragment, userinfo credentials, wildcard, path `//`, dan traversal `..` ditolak sebelum contract bisa di-stage.
+- Exact redirect matching: broker dan Admin UI menormalisasi scheme/host serta membuang default port `:443`/`:80` sebelum menghasilkan redirect URI, sehingga contract review tidak berbeda antara preview browser dan registry runtime.
 - Client UX: user tidak diminta credentials ulang selama sesi pusat dan refresh token masih valid; client wajib mencoba refresh server-side sebelum mengarahkan user ke login manual.
+- Repository hygiene: dependency snapshot, local archive `.zip`/`.tar.gz`, dan build artifact lokal tidak boleh menjadi source of truth. CI menjalankan guard untuk memastikan artifact tersebut tidak tracked dan Docker context tidak membawanya ke image build.
 
 ## Feature Logic Admin Panel
 
@@ -66,3 +68,5 @@ Dengan lifecycle ini, Admin Panel tidak hanya menampilkan prosedur RFC 7642, tet
 Audit TDD diperluas dari smoke per-app menjadi runner whole-source di `run-all-tests.sh`. Runner ini menjalankan Pint, PHPStan level 5, Pest, TypeScript, lint/security gate, Vitest, production build, built-server smoke untuk SSO Frontend dan ZITADEL Login Vue, serta validasi lifecycle DevOps/Laravel/Vue. Playwright E2E tetap tersedia lewat `RUN_E2E=1` agar pipeline reguler deterministik dan E2E bisa dijalankan pada job/browser runner yang sesuai.
 
 Test contract ditambah untuk memastikan client onboarding tidak bisa menghasilkan redirect URI ambigu. Frontend Admin dan backend broker sama-sama menolak base URL yang membawa credentials, path, query, atau fragment; callback/logout path juga menolak `//`, wildcard, query/fragment, dan traversal. Ini mengikuti prinsip Google-style exact redirect URI sekaligus RFC 7642 lifecycle: integrasi client boleh distandardisasi, tetapi trust boundary dan artifact handoff harus eksplisit, auditable, dan mudah di-rollback.
+
+Audit TDD berikutnya menutup gap canonical redirect matching dan hygiene repository. Backend broker sekarang memakai helper origin canonical bersama untuk contract, registry dinamis, dan conflict detection; uppercase scheme/host serta default port tidak lagi menghasilkan URI berbeda dari Admin UI. Runner whole-source juga menjalankan `validate-repository-hygiene.sh` agar archive lokal dan dependency snapshots tetap di luar Git dan Docker build context, menjaga build deterministik, cepat, dan aman untuk rollback.

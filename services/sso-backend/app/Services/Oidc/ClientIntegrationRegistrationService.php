@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\Admin\AdminAuditLogger;
 use App\Services\Admin\AdminAuditTaxonomy;
 use App\Support\Oidc\ClientIntegrationDraft;
+use App\Support\Oidc\ClientUrlOrigin;
 use App\Support\Security\ClientSecretHashPolicy;
 use Illuminate\Http\Request;
 use RuntimeException;
@@ -123,7 +124,7 @@ final class ClientIntegrationRegistrationService
 
     private function redirectUri(ClientIntegrationDraft $draft): string
     {
-        return rtrim($draft->appBaseUrl, '/').$draft->callbackPath;
+        return ClientUrlOrigin::fromInput($draft->appBaseUrl).$draft->callbackPath;
     }
 
     /**
@@ -148,14 +149,16 @@ final class ClientIntegrationRegistrationService
      */
     private function contractPayload(ClientIntegrationDraft $draft, array $contract): array
     {
+        $baseUrl = ClientUrlOrigin::fromInput($draft->appBaseUrl);
+
         return [
             'client_id' => $draft->clientId,
             'display_name' => $draft->appName,
             'type' => $draft->clientType,
             'environment' => $draft->environment,
-            'app_base_url' => rtrim($draft->appBaseUrl, '/'),
+            'app_base_url' => $baseUrl,
             'redirect_uris' => [(string) $contract['redirectUri']],
-            'post_logout_redirect_uris' => [rtrim($draft->appBaseUrl, '/')],
+            'post_logout_redirect_uris' => [$baseUrl],
             'backchannel_logout_uri' => (string) $contract['backchannelLogoutUri'],
             'owner_email' => $draft->ownerEmail,
             'provisioning' => $draft->provisioning,

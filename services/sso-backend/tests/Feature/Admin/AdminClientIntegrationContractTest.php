@@ -114,6 +114,21 @@ it('stages a valid registration without exposing verifier secrets', function ():
     expect(AdminAuditEvent::query()->where('action', 'stage_client_integration')->exists())->toBeTrue();
 });
 
+it('stages canonical client origins for exact redirect matching', function (): void {
+    /** @var TestCase $this */
+    $admin = clientContractAdmin('admin-contract-canonical');
+
+    $this->withToken(clientContractAccessToken($admin))
+        ->postJson('/admin/api/client-integrations/stage', [
+            ...validClientDraft(),
+            'appBaseUrl' => 'HTTPS://Customer-Dev.Timeh.My.ID:443/',
+        ])
+        ->assertOk()
+        ->assertJsonPath('registration.app_base_url', 'https://customer-dev.timeh.my.id')
+        ->assertJsonPath('registration.redirect_uris.0', 'https://customer-dev.timeh.my.id/auth/callback')
+        ->assertJsonPath('registration.post_logout_redirect_uris.0', 'https://customer-dev.timeh.my.id');
+});
+
 it('rejects duplicate dynamic registrations', function (): void {
     /** @var TestCase $this */
     $admin = clientContractAdmin('admin-contract-4');

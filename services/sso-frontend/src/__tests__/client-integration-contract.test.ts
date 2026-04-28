@@ -53,6 +53,19 @@ describe('client integration contract', () => {
     ])
   })
 
+  it('canonicalizes origins before emitting exact redirect uri artifacts', () => {
+    const draft = {
+      ...defaultIntegrationDraft(),
+      appBaseUrl: 'HTTPS://Customer-Dev.Timeh.My.ID:443/',
+      environment: 'live',
+    } satisfies ClientIntegrationDraft
+    const contract = createClientIntegrationContract(draft)
+
+    expect(validateClientIntegrationDraft(draft)).toEqual([])
+    expect(contract.redirectUri).toBe('https://customer-dev.timeh.my.id/auth/callback')
+    expect(contract.registryPatch).toContain("  'post_logout_redirect_uris' => ['https://customer-dev.timeh.my.id'],")
+  })
+
   it('adds confidential SCIM controls without exposing a browser-generated secret', () => {
     const draft = {
       ...defaultIntegrationDraft(),
