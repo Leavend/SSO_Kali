@@ -47,6 +47,19 @@ final class SsoHttpClient
     /**
      * @return array<string, mixed>
      */
+    public function refreshTokens(string $refreshToken): array
+    {
+        return $this->post('/token', [
+            'grant_type' => 'refresh_token',
+            'client_id' => config('services.sso.client_id'),
+            'client_secret' => config('services.sso.client_secret'),
+            'refresh_token' => $refreshToken,
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
     public function profile(string $accessToken): array
     {
         $response = Http::acceptJson()

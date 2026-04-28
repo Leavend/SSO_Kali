@@ -6,6 +6,8 @@ Tanggal validasi: 2026-04-28
 
 RFC 7642 adalah dokumen use case SCIM untuk identity management lintas domain. Untuk integrasi aplikasi client baru, dokumen ini paling relevan sebagai checklist provisioning, attribute sharing, trust agreement, audit, dan account lifecycle. Registrasi OAuth/OIDC client tetap dikelola oleh broker SSO, sementara SCIM atau just-in-time provisioning dipakai untuk sinkronisasi identitas.
 
+Pola SSO multi-client yang dipakai produk besar seperti Google dapat diterapkan ke project ini dengan batas yang jelas: satu identity authority, redirect URI eksak per aplikasi, authorization code flow, refresh token server-side, session cookie HttpOnly Secure per client, silent SSO untuk mengecek sesi pusat, dan back-channel logout untuk memutus sesi semua client berdasarkan `sid`. Client tidak boleh menyimpan token di browser storage dan tidak boleh membuat trust ke upstream identity provider langsung; semua client tetap berbicara ke broker SSO internal.
+
 ## Jalur Aplikasi Live / Existing
 
 1. Petakan domain, owner, redirect URI, logout URI, data owner, atribut minimum, dan terms/consent yang berlaku.
@@ -27,6 +29,7 @@ RFC 7642 adalah dokumen use case SCIM untuk identity management lintas domain. U
 - Rollback: client toggle, route flag, dan tag image release harus bisa dikembalikan tanpa migrasi data destruktif.
 - Update zero downtime: deploy lewat CI/CD, image immutable, health-gated, dan smoke test sebelum cutover penuh.
 - Security: tidak menyimpan token di browser storage, tidak menerima redirect wildcard, dan tidak mengekspose secret di UI/log.
+- Client UX: user tidak diminta credentials ulang selama sesi pusat dan refresh token masih valid; client wajib mencoba refresh server-side sebelum mengarahkan user ke login manual.
 
 ## Feature Logic Admin Panel
 
@@ -49,3 +52,10 @@ Promosi dilakukan lewat `Activate`. Public client langsung bisa aktif setelah va
 Rollback dilakukan lewat `Rollback / disable`. Status `disabled` membuat broker berhenti menerima client tersebut tanpa menghapus record, sehingga jejak audit, owner, dan alasan lifecycle tetap tersedia. Deploy tetap aman karena pembacaan registry dinamis dilindungi guard `Schema::hasTable('oidc_client_registrations')`; jika kode baru naik sebelum migrasi selesai, broker tetap melayani client statis lama.
 
 Dengan lifecycle ini, Admin Panel tidak hanya menampilkan prosedur RFC 7642, tetapi juga menyediakan feature logic untuk menjahit aplikasi existing atau development ke SSO: validate contract, stage artifact, activate runtime, dan disable sebagai rollback mechanism.
+
+## Audit App Client 2026-04-28
+
+- App A sudah memenuhi pola public client + PKCE: silent SSO, refresh endpoint server-side, BroadcastChannel untuk multi-tab state, HttpOnly Secure session cookie, token rotation, dan back-channel logout.
+- App B sebelumnya hanya menyimpan refresh token di session payload tetapi belum melakukan refresh sebelum render dashboard. Ini membuat user bisa diminta login ulang lebih cepat daripada seharusnya dan membuat confidential client belum setara dengan pola multi-client SSO.
+- Fix App B: dashboard sekarang melewati `EnsureFreshSession`; access token yang mendekati kedaluwarsa dirotasi melalui broker `/token` memakai refresh token server-side. Jika refresh ditolak, session lokal diputus dan user diarahkan ke `session-expired`.
+- Fix App B: payload session mencatat `expires_at`, `created_at`, `last_touched_at`, dan `last_refreshed_at` untuk idle timeout, absolute timeout, dan audit refresh. Token tetap berada di Laravel session store; browser hanya membawa cookie session HttpOnly Secure.

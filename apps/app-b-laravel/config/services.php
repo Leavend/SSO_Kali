@@ -58,6 +58,11 @@ return [
             'max_cache_ttl_seconds' => (int) env('SSO_JWKS_MAX_CACHE_TTL_SECONDS', 3600),
             'max_refresh_attempts' => (int) env('SSO_JWKS_MAX_REFRESH_ATTEMPTS', 2),
         ],
+        'session' => [
+            'idle_ttl_seconds' => (int) env('SSO_SESSION_IDLE_TTL_SECONDS', 604800),
+            'absolute_ttl_seconds' => (int) env('SSO_SESSION_ABSOLUTE_TTL_SECONDS', 2592000),
+            'refresh_skew_seconds' => (int) env('SSO_SESSION_REFRESH_SKEW_SECONDS', 90),
+        ],
     ],
 
     'resource_api' => [

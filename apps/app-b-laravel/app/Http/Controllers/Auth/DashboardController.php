@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Auth;
 
-use App\Services\Sso\AppSessionStore;
+use App\Actions\Auth\EnsureFreshSession;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 
 final class DashboardController
 {
-    public function __invoke(AppSessionStore $sessions): View|RedirectResponse
+    public function __invoke(EnsureFreshSession $action): View|RedirectResponse
     {
-        $session = $sessions->current();
+        $session = $action->handle();
 
         if ($session === null) {
             return redirect('/?event=session-expired');

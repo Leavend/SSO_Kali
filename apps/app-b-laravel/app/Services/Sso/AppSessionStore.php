@@ -47,7 +47,35 @@ final class AppSessionStore
     {
         $payload = session('sso.session');
 
-        return is_array($payload) ? $payload : null;
+        return is_array($payload) ? $this->normalize($payload) : null;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function touchCurrent(): ?array
+    {
+        $payload = $this->current();
+        if ($payload === null) {
+            return null;
+        }
+
+        return $this->put(array_replace($payload, ['last_touched_at' => time()]));
+    }
+
+    /**
+     * @param  array<string, mixed>  $tokens
+     * @param  array<string, mixed>  $claims
+     * @return array<string, mixed>|null
+     */
+    public function replaceAuthenticatedTokens(array $tokens, array $claims): ?array
+    {
+        $payload = $this->current();
+        if ($payload === null) {
+            return null;
+        }
+
+        return $this->put($this->refreshedPayload($payload, $tokens, $claims));
     }
 
     public function clearCurrent(): void
@@ -83,6 +111,8 @@ final class AppSessionStore
      */
     private function payload(array $claims, array $tokens, array $profile): array
     {
+        $now = time();
+
         return [
             'sid' => $claims['sid'],
             'subject' => $claims['sub'],
@@ -90,8 +120,78 @@ final class AppSessionStore
             'access_token' => $tokens['access_token'],
             'refresh_token' => is_string($tokens['refresh_token'] ?? null) ? $tokens['refresh_token'] : null,
             'id_token' => $tokens['id_token'],
+            'expires_at' => $this->integerClaim($claims, 'exp', $now),
+            'created_at' => $now,
+            'last_touched_at' => $now,
+            'last_refreshed_at' => $now,
             'profile' => $profile['resource_profile'] ?? [],
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @param  array<string, mixed>  $tokens
+     * @param  array<string, mixed>  $claims
+     * @return array<string, mixed>
+     */
+    private function refreshedPayload(array $payload, array $tokens, array $claims): array
+    {
+        $now = time();
+
+        return array_replace($payload, [
+            'access_token' => $tokens['access_token'],
+            'refresh_token' => $this->refreshToken($tokens, $payload),
+            'id_token' => $tokens['id_token'] ?? $payload['id_token'],
+            'expires_at' => $this->integerClaim($claims, 'exp', $now),
+            'last_refreshed_at' => $now,
+            'last_touched_at' => $now,
+        ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function normalize(array $payload): array
+    {
+        $now = time();
+
+        return array_replace($payload, [
+            'expires_at' => $this->integerClaim($payload, 'expires_at', $now),
+            'created_at' => $this->integerClaim($payload, 'created_at', $now),
+            'last_touched_at' => $this->integerClaim($payload, 'last_touched_at', $now),
+            'last_refreshed_at' => $this->integerClaim($payload, 'last_refreshed_at', $now),
+        ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function put(array $payload): array
+    {
+        session(['sso.session' => $payload]);
+
+        return $payload;
+    }
+
+    /**
+     * @param  array<string, mixed>  $tokens
+     * @param  array<string, mixed>  $payload
+     */
+    private function refreshToken(array $tokens, array $payload): ?string
+    {
+        return is_string($tokens['refresh_token'] ?? null)
+            ? $tokens['refresh_token']
+            : (is_string($payload['refresh_token'] ?? null) ? $payload['refresh_token'] : null);
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function integerClaim(array $payload, string $key, int $fallback): int
+    {
+        return is_int($payload[$key] ?? null) ? $payload[$key] : $fallback;
     }
 
     private function index(string $sid, string $sessionId): void
