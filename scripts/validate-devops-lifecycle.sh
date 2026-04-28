@@ -65,6 +65,21 @@ require_absent_text() {
   fi
 }
 
+require_retry_failure_status() {
+  local output status
+  set +e
+  output=$(CI_RETRY_ATTEMPTS=2 CI_RETRY_DELAY_SECONDS=0 \
+    "$ROOT_DIR/scripts/ci-retry.sh" bash -lc 'exit 37' 2>&1)
+  status=$?
+  set -e
+
+  if [[ "$status" -eq 37 ]] && grep -q 'failed with 37' <<<"$output"; then
+    pass "CI retry helper preserves non-zero deployment command status"
+  else
+    fail "CI retry helper preserves non-zero deployment command status"
+  fi
+}
+
 require_file ".github/workflows/ci.yml"
 require_file ".github/workflows/cd.yml"
 require_file ".github/workflows/rollback.yml"
@@ -77,6 +92,7 @@ require_file "scripts/wait-for-ghcr-images.sh"
 require_file "scripts/vps-login-ui-cutover.sh"
 require_file "scripts/vps-rollback.sh"
 require_file "scripts/vps-direct-build-deploy.sh"
+require_file "scripts/ci-retry.sh"
 require_file "scripts/lib/app-b-secret-guard.sh"
 require_file "scripts/lib/direct-green-prewarm.sh"
 require_file "scripts/validate-laravel-vue-lifecycle.sh"
@@ -164,6 +180,7 @@ require_text ".github/workflows/cd.yml" 'scripts/lib/app-b-secret-guard\.sh' "CD
 require_text ".github/workflows/cd.yml" 'scripts/lib/direct-green-prewarm\.sh' "CD installs shared direct-deploy green prewarm library"
 require_text ".github/workflows/cd.yml" 'docker/login-action@v4' "CD authenticates to GHCR before artifact preflight"
 require_text ".github/workflows/cd.yml" 'scripts/wait-for-ghcr-images\.sh' "CD waits for release image manifests before VPS deploy"
+require_retry_failure_status
 
 require_text ".github/workflows/rollback.yml" 'workflow_dispatch' "Rollback is manually dispatchable"
 require_text ".github/workflows/rollback.yml" 'target_tag' "Rollback requires an explicit target tag"
