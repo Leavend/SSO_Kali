@@ -154,11 +154,10 @@ final class ClientIntegrationContractBuilder
             return ['Base URL harus URL valid.'];
         }
 
-        if (str_contains($draft->appBaseUrl, '*')) {
-            return ['Base URL tidak boleh wildcard.'];
-        }
-
-        return $this->secureBaseUrlViolations($url, $draft->environment);
+        return [
+            ...$this->baseUrlStructuralViolations($url, $draft->appBaseUrl),
+            ...$this->secureBaseUrlViolations($url, $draft->environment),
+        ];
     }
 
     /**
@@ -179,11 +178,13 @@ final class ClientIntegrationContractBuilder
      */
     private function pathViolations(string $path, string $label): array
     {
-        if (! str_starts_with($path, '/')) {
-            return ["{$label} harus diawali /."];
-        }
-
-        return str_contains($path, '*') ? ["{$label} tidak boleh wildcard."] : [];
+        return array_values(array_filter([
+            str_starts_with($path, '/') ? null : "{$label} harus diawali /.",
+            str_starts_with($path, '//') ? "{$label} tidak boleh diawali //." : null,
+            str_contains($path, '*') ? "{$label} tidak boleh wildcard." : null,
+            str_contains($path, '?') || str_contains($path, '#') ? "{$label} tidak boleh mengandung query atau fragment." : null,
+            in_array('..', explode('/', $path), true) ? "{$label} tidak boleh mengandung traversal." : null,
+        ]));
     }
 
     /**
@@ -242,13 +243,34 @@ final class ClientIntegrationContractBuilder
     }
 
     /**
-     * @return array{scheme?: string, host?: string}|null
+     * @return array{fragment?: string, host?: string, pass?: string, path?: string, port?: int, query?: string, scheme?: string, user?: string}|null
      */
     private function parseUrl(string $input): ?array
     {
         $parts = parse_url($input);
 
         return is_array($parts) && isset($parts['scheme'], $parts['host']) ? $parts : null;
+    }
+
+    /**
+     * @param  array{fragment?: string, pass?: string, path?: string, query?: string, user?: string}  $url
+     * @return list<string>
+     */
+    private function baseUrlStructuralViolations(array $url, string $input): array
+    {
+        return array_values(array_filter([
+            str_contains($input, '*') ? 'Base URL tidak boleh wildcard.' : null,
+            isset($url['user']) || isset($url['pass']) ? 'Base URL tidak boleh memuat credentials.' : null,
+            $this->hasNonOriginPart($url) ? 'Base URL hanya boleh berisi origin tanpa path, query, atau fragment.' : null,
+        ]));
+    }
+
+    /**
+     * @param  array{fragment?: string, path?: string, query?: string}  $url
+     */
+    private function hasNonOriginPart(array $url): bool
+    {
+        return ! in_array($url['path'] ?? '', ['', '/'], true) || isset($url['query']) || isset($url['fragment']);
     }
 
     /**
@@ -269,7 +291,7 @@ final class ClientIntegrationContractBuilder
      */
     private function uris(ClientIntegrationDraft $draft): array
     {
-        $baseUrl = rtrim($draft->appBaseUrl, '/');
+        $baseUrl = $this->baseOrigin($draft->appBaseUrl);
 
         return [
             'redirectUri' => $baseUrl.$draft->callbackPath,
@@ -314,11 +336,12 @@ final class ClientIntegrationContractBuilder
      */
     private function registryPatch(ClientIntegrationDraft $draft, array $uris): array
     {
+        $baseUrl = $this->baseOrigin($draft->appBaseUrl);
         $lines = [
             "'{$draft->clientId}' => [",
             "  'type' => '{$draft->clientType}',",
             "  'redirect_uris' => ['{$uris['redirectUri']}'],",
-            "  'post_logout_redirect_uris' => ['".rtrim($draft->appBaseUrl, '/')."'],",
+            "  'post_logout_redirect_uris' => ['{$baseUrl}'],",
             "  'backchannel_logout_uri' => '{$uris['backchannelLogoutUri']}',",
         ];
 
@@ -330,6 +353,14 @@ final class ClientIntegrationContractBuilder
     private function secretEnv(ClientIntegrationDraft $draft): string
     {
         return strtoupper(str_replace('-', '_', $draft->clientId)).'_CLIENT_SECRET_HASH';
+    }
+
+    private function baseOrigin(string $input): string
+    {
+        $url = $this->parseUrl($input);
+        $port = isset($url['port']) ? ':'.$url['port'] : '';
+
+        return $url === null ? rtrim($input, '/') : "{$url['scheme']}://{$url['host']}{$port}";
     }
 
     /**

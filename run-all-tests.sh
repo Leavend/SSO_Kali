@@ -2,9 +2,12 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SSO_BACKEND_DIR="$ROOT_DIR/services/sso-backend"
-APP_B_DIR="$ROOT_DIR/apps/app-b-laravel"
 APP_A_DIR="$ROOT_DIR/apps/app-a-next"
+APP_B_DIR="$ROOT_DIR/apps/app-b-laravel"
+SSO_ADMIN_VUE_DIR="$ROOT_DIR/services/sso-admin-vue"
+SSO_BACKEND_DIR="$ROOT_DIR/services/sso-backend"
+SSO_FRONTEND_DIR="$ROOT_DIR/services/sso-frontend"
+ZITADEL_LOGIN_VUE_DIR="$ROOT_DIR/services/zitadel-login-vue"
 
 run_section() {
   local label="$1"
@@ -26,93 +29,47 @@ run_in_dir() {
   )
 }
 
-SSO_BACKEND_PINT_FILES=(
-  tests/Pest.php
-  tests/Support/FakeUpstreamOidc.php
-  tests/Support/UnitOidcDatabase.php
-  tests/Unit/Oidc/ExchangeTokenTest.php
-  tests/Unit/Oidc/HandleBrokerCallbackTest.php
-  tests/Unit/Oidc/ZitadelTokenVerifierTest.php
-)
+run_laravel_suite() {
+  local label="$1"
+  local dir="$2"
 
-SSO_BACKEND_PHPSTAN_TARGETS=(
-  app/Actions/Oidc/ExchangeToken.php
-  app/Actions/Oidc/HandleBrokerCallback.php
-  app/Services/Zitadel/ZitadelBrokerService.php
-  app/Services/Zitadel/ZitadelTokenVerifier.php
-  tests/Support/FakeUpstreamOidc.php
-  tests/Support/UnitOidcDatabase.php
-  tests/Unit/Oidc
-)
+  run_in_dir "$label | Pint" "$dir" ./vendor/bin/pint --test
+  run_in_dir "$label | PHPStan level 5" "$dir" composer analyse
+  run_in_dir "$label | Pest" "$dir" composer test
+}
 
-APP_B_PINT_FILES=(
-  tests/Pest.php
-  tests/Support/FakeBrokerJwt.php
-  tests/Unit/Sso/BrokerTokenVerifierTest.php
-  tests/Feature/Auth/ClientFlowTest.php
-  tests/Feature/Auth/CompleteLoginSecurityTest.php
-)
+run_node_suite() {
+  local label="$1"
+  local dir="$2"
 
-APP_B_PHPSTAN_TARGETS=(
-  app/Actions/Auth/CompleteLogin.php
-  app/Services/Sso/AppSessionStore.php
-  app/Services/Sso/BrokerTokenVerifier.php
-  app/Services/Sso/SsoHttpClient.php
-  app/Services/Sso/UserSynchronizer.php
-  tests/Support/FakeBrokerJwt.php
-  tests/Unit/Sso/BrokerTokenVerifierTest.php
-  tests/Feature/Auth/ClientFlowTest.php
-  tests/Feature/Auth/CompleteLoginSecurityTest.php
-)
+  run_in_dir "$label | TypeScript" "$dir" npm run typecheck
+  run_in_dir "$label | Lint and security gates" "$dir" npm run lint
+  run_in_dir "$label | Unit tests" "$dir" npm run test
+  run_in_dir "$label | Production build" "$dir" npm run build
+}
 
-run_in_dir \
-  "sso-backend | Pint" \
-  "$SSO_BACKEND_DIR" \
-  ./vendor/bin/pint --test "${SSO_BACKEND_PINT_FILES[@]}"
+run_laravel_suite "sso-backend" "$SSO_BACKEND_DIR"
+run_laravel_suite "app-b-laravel" "$APP_B_DIR"
 
-run_in_dir \
-  "sso-backend | PHPStan" \
-  "$SSO_BACKEND_DIR" \
-  ./vendor/bin/phpstan analyse "${SSO_BACKEND_PHPSTAN_TARGETS[@]}" --level=5 --memory-limit=512M
+run_node_suite "sso-frontend" "$SSO_FRONTEND_DIR"
+run_in_dir "sso-frontend | Built server smoke" "$SSO_FRONTEND_DIR" npm run smoke
 
-run_in_dir \
-  "sso-backend | Pest" \
-  "$SSO_BACKEND_DIR" \
-  ./vendor/bin/pest tests/Unit/Oidc
+run_node_suite "sso-admin-vue" "$SSO_ADMIN_VUE_DIR"
+run_node_suite "zitadel-login-vue" "$ZITADEL_LOGIN_VUE_DIR"
+run_in_dir "zitadel-login-vue | Built server smoke" "$ZITADEL_LOGIN_VUE_DIR" npm run smoke
 
-run_in_dir \
-  "app-b-laravel | Pint" \
-  "$APP_B_DIR" \
-  ./vendor/bin/pint --test "${APP_B_PINT_FILES[@]}"
+run_node_suite "app-a-next" "$APP_A_DIR"
 
-run_in_dir \
-  "app-b-laravel | PHPStan" \
-  "$APP_B_DIR" \
-  ./vendor/bin/phpstan analyse "${APP_B_PHPSTAN_TARGETS[@]}" --level=5 --memory-limit=512M
+if [[ "${RUN_E2E:-0}" == "1" ]]; then
+  run_in_dir "sso-admin-vue | Playwright E2E" "$SSO_ADMIN_VUE_DIR" npm run test:e2e
+  run_in_dir "app-a-next | Proxy-chain E2E" "$APP_A_DIR" npm run test:e2e:proxy-chain
+  run_in_dir "app-a-next | SLO fanout E2E" "$APP_A_DIR" npm run test:e2e:slo
+fi
 
-run_in_dir \
-  "app-b-laravel | Pest" \
-  "$APP_B_DIR" \
-  ./vendor/bin/pest tests/Unit/Sso/BrokerTokenVerifierTest.php tests/Feature/Auth/CompleteLoginSecurityTest.php tests/Feature/Auth/ClientFlowTest.php
+run_section "DevOps lifecycle policy" "$ROOT_DIR/scripts/validate-devops-lifecycle.sh"
+run_section "Laravel Vue lifecycle policy" "$ROOT_DIR/scripts/validate-laravel-vue-lifecycle.sh"
+run_section "SSO frontend Vue lifecycle policy" "$ROOT_DIR/scripts/validate-sso-frontend-vue-lifecycle.sh"
+run_section "ZITADEL login Vue lifecycle policy" "$ROOT_DIR/scripts/validate-zitadel-login-vue-lifecycle.sh"
+run_section "Whitespace diff guard" git -C "$ROOT_DIR" diff --check
 
-run_in_dir \
-  "app-a-next | TypeScript" \
-  "$APP_A_DIR" \
-  npm run typecheck
-
-run_in_dir \
-  "app-a-next | ESLint" \
-  "$APP_A_DIR" \
-  npm run lint
-
-run_in_dir \
-  "app-a-next | Vitest" \
-  "$APP_A_DIR" \
-  npm run test
-
-run_in_dir \
-  "app-a-next | Production Build" \
-  "$APP_A_DIR" \
-  npm run build
-
-run_section "All QA gates passed" printf 'Phase 10 verification completed successfully.\n'
+run_section "All QA gates passed" printf 'Whole-source TDD verification completed successfully.\n'

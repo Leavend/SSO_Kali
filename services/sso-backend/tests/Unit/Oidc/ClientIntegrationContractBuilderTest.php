@@ -63,3 +63,26 @@ it('rejects unsafe live clients and existing broker registrations', function ():
         ->toContain('Owner email harus valid.')
         ->toContain('Client ID sudah terdaftar di broker.');
 });
+
+it('rejects non-canonical origins and ambiguous callback paths', function (): void {
+    $builder = app(ClientIntegrationContractBuilder::class);
+    $draft = $builder->draftFrom([
+        'appName' => 'Customer Portal',
+        'clientId' => 'customer-portal',
+        'environment' => 'live',
+        'clientType' => 'public',
+        'appBaseUrl' => 'https://user:secret@customer.timeh.my.id/admin?next=/home#token',
+        'callbackPath' => '//evil.example/callback',
+        'logoutPath' => '/../logout?token=leak',
+        'ownerEmail' => 'owner@company.com',
+        'provisioning' => 'jit',
+    ]);
+
+    expect($builder->validate($draft))->toBe([
+        'Base URL tidak boleh memuat credentials.',
+        'Base URL hanya boleh berisi origin tanpa path, query, atau fragment.',
+        'Callback path tidak boleh diawali //.',
+        'Logout path tidak boleh mengandung query atau fragment.',
+        'Logout path tidak boleh mengandung traversal.',
+    ]);
+});

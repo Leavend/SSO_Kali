@@ -75,6 +75,30 @@ it('returns validation violations without mutating broker clients', function ():
         ->assertJsonPath('violations.1', 'Callback path tidak boleh wildcard.');
 });
 
+it('rejects credentialed origins and path confusion in client contracts', function (): void {
+    /** @var TestCase $this */
+    $admin = User::factory()->create([
+        'subject_id' => 'admin-contract-origin',
+        'subject_uuid' => 'admin-contract-origin',
+        'role' => 'admin',
+    ]);
+
+    $this->withToken(clientContractAccessToken($admin))
+        ->postJson('/admin/api/client-integrations/contract', [
+            ...validClientDraft(),
+            'appBaseUrl' => 'https://user:secret@customer-dev.timeh.my.id/app?next=/admin#token',
+            'callbackPath' => '//customer-dev.timeh.my.id/auth/callback',
+            'logoutPath' => '/../logout?token=leak',
+        ])
+        ->assertStatus(422)
+        ->assertJsonPath('error', 'client_integration_invalid')
+        ->assertJsonPath('violations.0', 'Base URL tidak boleh memuat credentials.')
+        ->assertJsonPath('violations.1', 'Base URL hanya boleh berisi origin tanpa path, query, atau fragment.')
+        ->assertJsonPath('violations.2', 'Callback path tidak boleh diawali //.')
+        ->assertJsonPath('violations.3', 'Logout path tidak boleh mengandung query atau fragment.')
+        ->assertJsonPath('violations.4', 'Logout path tidak boleh mengandung traversal.');
+});
+
 it('stages a valid registration without exposing verifier secrets', function (): void {
     /** @var TestCase $this */
     $admin = clientContractAdmin('admin-contract-3');

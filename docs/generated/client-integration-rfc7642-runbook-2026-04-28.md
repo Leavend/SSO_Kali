@@ -29,6 +29,7 @@ Pola SSO multi-client yang dipakai produk besar seperti Google dapat diterapkan 
 - Rollback: client toggle, route flag, dan tag image release harus bisa dikembalikan tanpa migrasi data destruktif.
 - Update zero downtime: deploy lewat CI/CD, image immutable, health-gated, dan smoke test sebelum cutover penuh.
 - Security: tidak menyimpan token di browser storage, tidak menerima redirect wildcard, dan tidak mengekspose secret di UI/log.
+- Redirect safety: base URL client harus berupa origin canonical saja. Path, query, fragment, userinfo credentials, wildcard, path `//`, dan traversal `..` ditolak sebelum contract bisa di-stage.
 - Client UX: user tidak diminta credentials ulang selama sesi pusat dan refresh token masih valid; client wajib mencoba refresh server-side sebelum mengarahkan user ke login manual.
 
 ## Feature Logic Admin Panel
@@ -59,3 +60,9 @@ Dengan lifecycle ini, Admin Panel tidak hanya menampilkan prosedur RFC 7642, tet
 - App B sebelumnya hanya menyimpan refresh token di session payload tetapi belum melakukan refresh sebelum render dashboard. Ini membuat user bisa diminta login ulang lebih cepat daripada seharusnya dan membuat confidential client belum setara dengan pola multi-client SSO.
 - Fix App B: dashboard sekarang melewati `EnsureFreshSession`; access token yang mendekati kedaluwarsa dirotasi melalui broker `/token` memakai refresh token server-side. Jika refresh ditolak, session lokal diputus dan user diarahkan ke `session-expired`.
 - Fix App B: payload session mencatat `expires_at`, `created_at`, `last_touched_at`, dan `last_refreshed_at` untuk idle timeout, absolute timeout, dan audit refresh. Token tetap berada di Laravel session store; browser hanya membawa cookie session HttpOnly Secure.
+
+## TDD Whole Source Audit 2026-04-28
+
+Audit TDD diperluas dari smoke per-app menjadi runner whole-source di `run-all-tests.sh`. Runner ini menjalankan Pint, PHPStan level 5, Pest, TypeScript, lint/security gate, Vitest, production build, built-server smoke untuk SSO Frontend dan ZITADEL Login Vue, serta validasi lifecycle DevOps/Laravel/Vue. Playwright E2E tetap tersedia lewat `RUN_E2E=1` agar pipeline reguler deterministik dan E2E bisa dijalankan pada job/browser runner yang sesuai.
+
+Test contract ditambah untuk memastikan client onboarding tidak bisa menghasilkan redirect URI ambigu. Frontend Admin dan backend broker sama-sama menolak base URL yang membawa credentials, path, query, atau fragment; callback/logout path juga menolak `//`, wildcard, query/fragment, dan traversal. Ini mengikuti prinsip Google-style exact redirect URI sekaligus RFC 7642 lifecycle: integrasi client boleh distandardisasi, tetapi trust boundary dan artifact handoff harus eksplisit, auditable, dan mudah di-rollback.

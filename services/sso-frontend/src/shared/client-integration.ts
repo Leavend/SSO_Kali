@@ -139,14 +139,21 @@ function clientIdErrors(clientId: string): readonly string[] {
 function baseUrlErrors(input: string, environment: ClientEnvironment): readonly string[] {
   const parsed = parseUrl(input)
   if (!parsed) return ['Base URL harus URL valid.']
-  if (parsed.href.includes('*')) return ['Base URL tidak boleh wildcard.']
-  if (parsed.protocol === 'https:') return []
-  return environment === 'development' && isLocalhost(parsed) ? [] : ['Live client wajib memakai HTTPS.']
+
+  return [
+    ...baseUrlStructuralErrors(parsed),
+    ...secureBaseUrlErrors(parsed, environment),
+  ]
 }
 
 function pathErrors(path: string, label: string): readonly string[] {
-  if (!path.startsWith('/')) return [`${label} harus diawali /.`]
-  return path.includes('*') ? [`${label} tidak boleh wildcard.`] : []
+  const errors: string[] = []
+  if (!path.startsWith('/')) errors.push(`${label} harus diawali /.`)
+  if (path.startsWith('//')) errors.push(`${label} tidak boleh diawali //.`)
+  if (path.includes('*')) errors.push(`${label} tidak boleh wildcard.`)
+  if (/[?#]/.test(path)) errors.push(`${label} tidak boleh mengandung query atau fragment.`)
+  if (path.split('/').includes('..')) errors.push(`${label} tidak boleh mengandung traversal.`)
+  return errors
 }
 
 function ownerEmailErrors(email: string): readonly string[] {
@@ -166,8 +173,23 @@ function isLocalhost(url: URL): boolean {
   return ['localhost', '127.0.0.1', '::1'].includes(url.hostname)
 }
 
+function baseUrlStructuralErrors(url: URL): readonly string[] {
+  const errors: string[] = []
+  if (url.href.includes('*')) errors.push('Base URL tidak boleh wildcard.')
+  if (url.username || url.password) errors.push('Base URL tidak boleh memuat credentials.')
+  if (url.pathname !== '/' || url.search || url.hash) {
+    errors.push('Base URL hanya boleh berisi origin tanpa path, query, atau fragment.')
+  }
+  return errors
+}
+
+function secureBaseUrlErrors(url: URL, environment: ClientEnvironment): readonly string[] {
+  if (url.protocol === 'https:') return []
+  return environment === 'development' && isLocalhost(url) ? [] : ['Live client wajib memakai HTTPS.']
+}
+
 function normalizeBaseUrl(input: string): string {
-  return input.replace(/\/+$/g, '')
+  return parseUrl(input)?.origin ?? input.replace(/\/+$/g, '')
 }
 
 function buildUrl(baseUrl: string, path: string): string {
