@@ -35,6 +35,24 @@ describe('client integration contract', () => {
     ])
   })
 
+  it('rejects non-canonical origins and ambiguous callback paths', () => {
+    const draft = {
+      ...defaultIntegrationDraft(),
+      appBaseUrl: 'https://user:secret@customer.timeh.my.id/admin?next=/home#token',
+      callbackPath: '//evil.example/callback',
+      logoutPath: '/../logout?token=leak',
+      environment: 'live',
+    } satisfies ClientIntegrationDraft
+
+    expect(validateClientIntegrationDraft(draft)).toEqual([
+      'Base URL tidak boleh memuat credentials.',
+      'Base URL hanya boleh berisi origin tanpa path, query, atau fragment.',
+      'Callback path tidak boleh diawali //.',
+      'Logout path tidak boleh mengandung query atau fragment.',
+      'Logout path tidak boleh mengandung traversal.',
+    ])
+  })
+
   it('adds confidential SCIM controls without exposing a browser-generated secret', () => {
     const draft = {
       ...defaultIntegrationDraft(),
