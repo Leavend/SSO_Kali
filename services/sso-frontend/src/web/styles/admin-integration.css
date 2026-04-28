@@ -277,6 +277,45 @@
   background: var(--admin-panel);
 }
 
+.integration-readiness {
+  grid-column: 1 / -1;
+}
+
+.integration-readiness p {
+  margin: 0;
+  color: var(--admin-muted);
+  line-height: 1.55;
+}
+
+.integration-readiness__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.integration-readiness__grid section {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--admin-line) 64%, transparent);
+  border-radius: 8px;
+  background: var(--admin-panel);
+}
+
+.integration-readiness h5 {
+  margin: 0;
+  color: var(--admin-ink);
+  font-size: 13px;
+}
+
+.integration-readiness ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 18px;
+}
+
 .integration-lifecycle {
   display: grid;
   gap: 14px;
@@ -386,6 +425,7 @@
   .integration-wizard__intro,
   .integration-form,
   .integration-contract,
+  .integration-readiness__grid,
   .integration-lifecycle__header,
   .integration-registration-list {
     grid-template-columns: 1fr;

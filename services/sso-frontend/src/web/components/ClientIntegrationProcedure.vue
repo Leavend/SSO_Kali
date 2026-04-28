@@ -2,6 +2,7 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { GitBranch, RotateCcw, ShieldCheck, Siren, Wrench } from 'lucide-vue-next'
 import ClientIntegrationRegistrations from './ClientIntegrationRegistrations.vue'
+import ClientProvisioningReadiness from './ClientProvisioningReadiness.vue'
 import {
   createClientIntegrationContract,
   defaultIntegrationDraft,
@@ -347,6 +348,8 @@ type BrokerPayload = Readonly<{
           <h4>Registry patch</h4>
           <pre>{{ contract.registryPatch.join('\n') }}</pre>
         </article>
+
+        <ClientProvisioningReadiness :manifest="contract.provisioningManifest" />
 
         <article>
           <h4>Provisioning</h4>

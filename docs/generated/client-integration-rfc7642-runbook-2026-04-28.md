@@ -38,6 +38,8 @@ Admin juga dapat menjalankan validasi via broker. Endpoint admin `/admin/api/cli
 
 Contract broker menampilkan `Registry patch` sebagai artefak perubahan yang harus masuk lewat PR/CI/CD. Confidential client memakai hash secret dari environment, misalnya `CUSTOMER_PORTAL_CLIENT_SECRET_HASH`, bukan secret mentah. Ini menjaga prinsip RFC 7642: provisioning/lifecycle disepakati lintas domain, sementara credential client tetap berada di kontrol broker dan secret manager.
 
+Dashboard juga menampilkan `Provisioning readiness` sebagai artifact operasional. Artifact ini membedakan mode JIT dan SCIM, mencatat identity source, schema/mapping minimum, deprovisioning behavior, audit evidence, dan risk gates. Untuk SCIM, admin wajib memastikan `User`, `Group`, dan discovery service tersedia; deactivate harus memutus akses lokal sebelum login berikutnya dan back-channel logout tetap memutus sesi aktif berdasarkan `sid`. Untuk JIT, admin tetap wajib memverifikasi klaim OIDC, session revoke, dan revalidasi akun saat login berikutnya.
+
 ## Dynamic Registration Lifecycle
 
 Tahap berikutnya menambahkan registry dinamis yang tetap mengikuti prinsip zero downtime. Admin tidak langsung menimpa konfigurasi statis; admin melakukan `Stage registration` terlebih dahulu. Status `staged` menyimpan contract, owner, redirect URI, provisioning mode, dan audit trail tanpa membuat client dibaca oleh runtime authorization.

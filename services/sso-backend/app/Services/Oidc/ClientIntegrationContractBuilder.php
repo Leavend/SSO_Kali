@@ -10,6 +10,7 @@ final class ClientIntegrationContractBuilder
 {
     public function __construct(
         private readonly DownstreamClientRegistry $clients,
+        private readonly ClientProvisioningReadinessBuilder $readiness,
     ) {}
 
     /**
@@ -59,6 +60,7 @@ final class ClientIntegrationContractBuilder
             'scopes' => $this->scopes($draft),
             'env' => $this->envLines($draft, $uris),
             'registryPatch' => $this->registryPatch($draft, $uris),
+            'provisioningManifest' => $this->readiness->build($draft),
             'provisioningSteps' => $this->provisioningSteps($draft),
             'rolloutSteps' => $this->rolloutSteps($draft),
             'rollbackSteps' => $this->rollbackSteps($draft),
