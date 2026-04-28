@@ -13,4 +13,15 @@ describe('ClientIntegrationProcedure', () => {
     expect(wrapper.text()).toContain('Zero-downtime canary')
     expect(wrapper.text()).toContain('Rollback client toggle')
   })
+
+  it('renders an interactive stitching contract for admins', () => {
+    const wrapper = mount(ClientIntegrationProcedure)
+
+    expect(wrapper.text()).toContain('Client stitching wizard')
+    expect(wrapper.text()).toContain('Jahit aplikasi ke SSO broker')
+    expect(wrapper.text()).toContain('Public + PKCE')
+    expect(wrapper.text()).toContain('Env handoff')
+    expect(wrapper.text()).toContain('SSO_CLIENT_ID=customer-portal')
+    expect(wrapper.text()).toContain('SSO_REDIRECT_URI=https://customer-dev.timeh.my.id/auth/callback')
+  })
 })
