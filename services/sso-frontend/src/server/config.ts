@@ -11,6 +11,9 @@ export type AdminConfig = {
   readonly adminApiUrl: string
   readonly appBaseUrl: string
   readonly identityUiBaseUrl: string
+  readonly sessionIdleTtlSeconds: number
+  readonly sessionAbsoluteTtlSeconds: number
+  readonly adminFreshAuthTtlSeconds: number
   readonly port: number
 }
 
@@ -33,13 +36,29 @@ export function getConfig(): AdminConfig {
     adminApiUrl: env('SSO_INTERNAL_ADMIN_API_URL') ?? `${base}/admin/api`,
     appBaseUrl: appBase,
     identityUiBaseUrl: ensureTrailingSlash(env('SSO_IDENTITY_UI_BASE_URL') ?? `${base}/ui/v2/login/`),
+    ...sessionConfig(),
     port: Number(env('PORT') ?? 3000),
+  }
+}
+
+function sessionConfig(): Pick<AdminConfig, 'sessionIdleTtlSeconds' | 'sessionAbsoluteTtlSeconds' | 'adminFreshAuthTtlSeconds'> {
+  const sessionAbsoluteTtlSeconds = integerEnv('ADMIN_SESSION_ABSOLUTE_TTL_SECONDS', 60 * 60 * 24 * 30)
+
+  return {
+    sessionIdleTtlSeconds: integerEnv('ADMIN_SESSION_IDLE_TTL_SECONDS', 60 * 60 * 24 * 7),
+    sessionAbsoluteTtlSeconds,
+    adminFreshAuthTtlSeconds: integerEnv('ADMIN_FRESH_AUTH_TTL_SECONDS', sessionAbsoluteTtlSeconds),
   }
 }
 
 function env(name: string): string | undefined {
   const value = process.env[name]
   return value && value.length > 0 ? value : undefined
+}
+
+function integerEnv(name: string, fallback: number): number {
+  const parsed = Number.parseInt(env(name) ?? '', 10)
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback
 }
 
 function ensureTrailingSlash(value: string): string {

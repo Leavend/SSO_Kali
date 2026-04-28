@@ -16,7 +16,7 @@
   --admin-ink: #f8fafc;
   --admin-muted: #bfd0df;
   --admin-subtle: #a8bbcc;
-  --admin-line: #334d66;
+  --admin-line: #5f7892;
   --admin-accent: #8bd3dd;
   --admin-accent-strong: #22d3ee;
   --admin-accent-ink: #07131f;
@@ -37,7 +37,7 @@ html[data-theme='light'] .app-shell--admin {
   --admin-ink: #111827;
   --admin-muted: #475569;
   --admin-subtle: #64748b;
-  --admin-line: #9aa8b5;
+  --admin-line: #64748b;
   --admin-accent: #2563eb;
   --admin-accent-strong: #1d4ed8;
   --admin-accent-ink: #ffffff;
@@ -61,8 +61,8 @@ html[data-theme='light'] .app-shell--admin {
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 24px;
-  color: #ecfeff;
-  background: #102a43;
+  color: var(--admin-ink, #ecfeff);
+  background: var(--admin-sidebar, #102a43);
   box-shadow: 24px 0 56px rgb(0 0 0 / 36%);
   transform: translateX(-100%);
   transition: transform 0.24s ease;
@@ -82,10 +82,11 @@ html[data-theme='light'] .app-shell--admin {
 
 .app-shell--admin .sidebar {
   border-right: 1px solid var(--admin-line);
-  background: linear-gradient(180deg, #0b1c2d, var(--admin-sidebar));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--admin-panel) 40%, var(--admin-sidebar)), var(--admin-sidebar));
 }
 
 html[data-theme='light'] .app-shell--admin .sidebar {
+  color: var(--admin-ink);
   background: linear-gradient(180deg, #ffffff, #f8fafc);
 }
 
@@ -104,9 +105,10 @@ html[data-theme='light'] .app-shell--admin .sidebar {
   font-size: 18px;
   font-weight: 800;
   padding: 8px 14px;
-  border: 1px solid rgb(139 211 221 / 22%);
+  color: var(--admin-ink);
+  border: 1px solid color-mix(in srgb, var(--admin-accent) 36%, transparent);
   border-radius: 10px;
-  background: rgb(139 211 221 / 5%);
+  background: color-mix(in srgb, var(--admin-accent) 8%, transparent);
 }
 
 .brand span {
@@ -129,13 +131,13 @@ html[data-theme='light'] .app-shell--admin .sidebar {
 }
 
 .nav-list a:hover {
-  background: rgb(139 211 221 / 12%);
+  background: color-mix(in srgb, var(--admin-accent) 12%, transparent);
 }
 
 .nav-list a.router-link-active {
   color: var(--admin-accent);
-  background: rgb(139 211 221 / 14%);
-  border: 1px solid rgb(139 211 221 / 24%);
+  background: color-mix(in srgb, var(--admin-accent) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--admin-accent) 28%, transparent);
 }
 
 .sidebar-footer {
@@ -261,12 +263,12 @@ html[data-theme='light'] .app-shell--admin .sidebar {
 
 .sidebar .icon-button {
   color: var(--admin-ink);
-  background: rgb(139 211 221 / 16%);
-  border: 1px solid rgb(139 211 221 / 22%);
+  background: color-mix(in srgb, var(--admin-accent) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--admin-accent) 28%, transparent);
 }
 
 .sidebar .icon-button:hover {
-  background: rgb(139 211 221 / 30%);
+  background: color-mix(in srgb, var(--admin-accent) 24%, transparent);
 }
 
 .sidebar-close {
@@ -277,10 +279,10 @@ html[data-theme='light'] .app-shell--admin .sidebar {
   width: 44px;
   height: 44px;
   margin-left: auto;
-  border: 1px solid rgb(139 211 221 / 22%);
+  border: 1px solid color-mix(in srgb, var(--admin-accent) 28%, transparent);
   border-radius: 12px;
   color: var(--admin-ink);
-  background: rgb(139 211 221 / 10%);
+  background: color-mix(in srgb, var(--admin-accent) 12%, transparent);
   cursor: pointer;
 }
 
@@ -446,82 +448,4 @@ html[data-theme='light'] .app-shell--admin .sidebar {
   background: var(--admin-accent, #d8f3ee);
   font-size: 12px;
   font-weight: 800;
-}
-
-/* ── Desktop: restore static sidebar ── */
-@media (min-width: 769px) {
-  .app-shell--admin {
-    grid-template-columns: 280px minmax(0, 1fr);
-  }
-
-  .sidebar {
-    position: static;
-    width: 280px;
-    height: auto;
-    max-height: none;
-    overflow: visible;
-    box-shadow: none;
-    transform: none;
-    transition: none;
-  }
-
-  .sidebar-footer {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-  }
-
-  .sidebar-actions {
-    margin-left: auto;
-  }
-
-  .hamburger-toggle,
-  .sidebar-close,
-  .sidebar-backdrop {
-    display: none;
-  }
-
-  .main-surface {
-    padding: 32px 32px 104px 32px;
-  }
-
-  .app-shell--admin .admin-auth-footer {
-    left: 280px;
-  }
-}
-
-/* ── Responsive grids ── */
-@media (max-width: 768px) {
-  .stat-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .panel-grid,
-  .apps-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .data-row,
-  .data-row--sessions {
-    grid-template-columns: 1fr;
-    gap: 6px;
-  }
-
-  .data-row--head {
-    display: none;
-  }
-
-  .detail-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .page-header h1,
-  .login-copy h1 {
-    font-size: 28px;
-  }
-
-  .app-shell--admin .admin-theme-toggle-anchor {
-    right: max(12px, calc(env(safe-area-inset-right, 0px) + 12px));
-    bottom: max(84px, calc(env(safe-area-inset-bottom, 0px) + 84px));
-  }
 }

@@ -12,6 +12,7 @@ export const useAdminStore = defineStore('admin', () => {
   const status = ref<LoadState>('idle')
   const errorMessage = ref<string | null>(null)
   const redirectTo = ref<string | null>(null)
+  let refreshInFlight: Promise<void> | null = null
 
   const isAuthenticated = computed(() => principal.value !== null)
   const canManageSessions = computed(() => Boolean(principal.value?.permissions.manage_sessions))
@@ -108,6 +109,18 @@ export const useAdminStore = defineStore('admin', () => {
   }
 
   async function refreshSession(): Promise<void> {
+    refreshInFlight ??= refreshWithBrowserLock().finally(() => {
+      refreshInFlight = null
+    })
+
+    return refreshInFlight
+  }
+
+  async function refreshWithBrowserLock(): Promise<void> {
+    return browserLock('devsso-admin-refresh', refreshSessionRequest)
+  }
+
+  async function refreshSessionRequest(): Promise<void> {
     try {
       const payload = await fetchJson<{ expiresAt: number }>('/auth/refresh', { method: 'POST' })
       if (principal.value) principal.value = { ...principal.value, expiresAt: payload.expiresAt }
@@ -200,4 +213,13 @@ function redirectFromError(error: unknown): string | null {
 
 function errorMessageFrom(error: unknown): string {
   return error instanceof Error ? error.message : 'Request failed.'
+}
+
+type BrowserLockManager = {
+  request<T>(name: string, callback: () => Promise<T>): Promise<T>
+}
+
+async function browserLock<T>(name: string, callback: () => Promise<T>): Promise<T> {
+  const locks = (navigator as Navigator & { readonly locks?: BrowserLockManager }).locks
+  return locks ? locks.request(name, callback) : callback()
 }

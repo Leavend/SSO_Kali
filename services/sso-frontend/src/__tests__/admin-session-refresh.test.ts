@@ -13,6 +13,9 @@ describe('admin BFF session refresh boundary', () => {
     process.env.SSO_INTERNAL_ADMIN_API_URL = 'https://sso.internal/admin/api'
     process.env.VITE_ADMIN_BASE_URL = 'https://dev-sso.timeh.my.id'
     process.env.VITE_CLIENT_ID = 'sso-admin-panel'
+    delete process.env.ADMIN_SESSION_IDLE_TTL_SECONDS
+    delete process.env.ADMIN_SESSION_ABSOLUTE_TTL_SECONDS
+    delete process.env.ADMIN_FRESH_AUTH_TTL_SECONDS
   })
 
   afterEach(() => {
@@ -69,6 +72,26 @@ describe('admin BFF session refresh boundary', () => {
     expect(response.status).toBe(200)
     expect(JSON.parse(String(response.body))).toMatchObject({ status: 'refreshed' })
   })
+
+  it('does not rotate refresh tokens while the access token is still fresh', async () => {
+    const fetchMock = tokenFetch()
+    vi.stubGlobal('fetch', fetchMock)
+
+    const response = await handleRefresh(requestWithSession(freshSession(), 'POST'))
+
+    expect(response.status).toBe(200)
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(serializedCookies(response)).toContain('Max-Age=604800')
+  })
+
+  it('keeps refreshed admin sessions usable beyond short access-token windows', async () => {
+    vi.stubGlobal('fetch', tokenFetch())
+
+    const response = await handleSession(requestWithSession(sessionWithOlderAuth()))
+
+    expect(response.status).toBe(200)
+    expect(JSON.parse(String(response.body))).toMatchObject({ principal: { email: 'huanamasi123@gmail.com' } })
+  })
 })
 
 function requestWithSession(session: AdminSession, method = 'GET'): IncomingMessage {
@@ -76,6 +99,8 @@ function requestWithSession(session: AdminSession, method = 'GET'): IncomingMess
 }
 
 function expiredSession(): AdminSession {
+  const issuedAt = now() - 3600
+
   return {
     accessToken: 'expired-access',
     idToken: 'id-token',
@@ -91,6 +116,24 @@ function expiredSession(): AdminSession {
     acr: null,
     lastLoginAt: null,
     permissions: { view_admin_panel: true, manage_sessions: true },
+    issuedAt,
+    absoluteExpiresAt: issuedAt + 60 * 60 * 24 * 30,
+    lastRefreshedAt: issuedAt,
+  }
+}
+
+function freshSession(): AdminSession {
+  return {
+    ...expiredSession(),
+    accessToken: 'fresh-access',
+    expiresAt: now() + 900,
+  }
+}
+
+function sessionWithOlderAuth(): AdminSession {
+  return {
+    ...expiredSession(),
+    authTime: now() - 60 * 60 * 4,
   }
 }
 
