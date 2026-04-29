@@ -2,7 +2,8 @@ FROM node:24-alpine
 
 ARG ZITADEL_VERSION=v4.14.0
 
-RUN apk add --no-cache ca-certificates curl tar \
+RUN apk upgrade --no-cache \
+    && apk add --no-cache ca-certificates curl tar \
     && update-ca-certificates \
     && addgroup --system --gid 1001 nodejs \
     && adduser --system --uid 1001 nextjs
