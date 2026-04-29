@@ -16,6 +16,7 @@ final class AccessTokenGuard
         private readonly SigningKeyService $keys,
         private readonly AccessTokenRevocationStore $revocations,
         private readonly JwtRejectMetrics $metrics,
+        private readonly DownstreamClientRegistry $clients,
     ) {}
 
     /**
@@ -31,6 +32,7 @@ final class AccessTokenGuard
         $this->assertIssuedAt($claims);
         $this->assertTokenUse($claims);
         $this->assertRequiredClaims($claims);
+        $this->assertActiveClient($claims);
         $jti = is_string($claims['jti'] ?? null) ? $claims['jti'] : null;
 
         if ($jti === null || $this->revocations->revoked($jti)) {
@@ -129,6 +131,18 @@ final class AccessTokenGuard
             if (! is_string($claims[$name] ?? null) || $claims[$name] === '') {
                 $this->reject('missing_'.$name, sprintf('The %s claim is invalid.', $name));
             }
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $claims
+     */
+    private function assertActiveClient(array $claims): void
+    {
+        $clientId = (string) $claims['client_id'];
+
+        if ($this->clients->find($clientId) === null) {
+            $this->reject('unknown_client', 'The access token client is not active.');
         }
     }
 
