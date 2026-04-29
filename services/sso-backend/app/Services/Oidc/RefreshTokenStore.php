@@ -189,6 +189,16 @@ final class RefreshTokenStore
     /**
      * @return list<array<string, mixed>>
      */
+    public function revokeSubject(string $subjectId): array
+    {
+        return $this->revokeRecords(
+            $this->activeRecords()->where('subject_id', $subjectId)->get()->all(),
+        );
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
     public function revokeClientSessionsForSubject(string $subjectId, string $clientId): array
     {
         return $this->revokeRecords(

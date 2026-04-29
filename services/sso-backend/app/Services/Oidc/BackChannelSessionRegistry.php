@@ -21,6 +21,7 @@ final class BackChannelSessionRegistry
         $registrations[$clientId] = $this->registrationPayload($clientId, $logoutUri, $metadata);
 
         $this->cache->put($this->key($sessionId), array_values($registrations), now()->addDays($this->ttlDays()));
+        $this->rememberSubjectSession($sessionId, $metadata);
     }
 
     /**
@@ -35,7 +36,20 @@ final class BackChannelSessionRegistry
 
     public function clear(string $sessionId): void
     {
+        $registrations = $this->forSession($sessionId);
+
         $this->cache->forget($this->key($sessionId));
+        $this->removeSubjectSessions($sessionId, $registrations);
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function sessionIdsForSubject(string $subjectId): array
+    {
+        $sessions = $this->cache->get($this->subjectKey($subjectId), []);
+
+        return array_values(array_filter(is_array($sessions) ? $sessions : [], 'is_string'));
     }
 
     /**
@@ -82,9 +96,65 @@ final class BackChannelSessionRegistry
         ], static fn (mixed $value): bool => $value !== null);
     }
 
+    /**
+     * @param  array<string, mixed>  $metadata
+     */
+    private function rememberSubjectSession(string $sessionId, array $metadata): void
+    {
+        $subjectId = $this->stringValue($metadata, 'subject_id');
+        if ($subjectId === null) {
+            return;
+        }
+
+        $sessions = $this->sessionIdsForSubject($subjectId);
+        in_array($sessionId, $sessions, true) || $sessions[] = $sessionId;
+
+        $this->cache->put($this->subjectKey($subjectId), $sessions, now()->addDays($this->ttlDays()));
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $registrations
+     */
+    private function removeSubjectSessions(string $sessionId, array $registrations): void
+    {
+        foreach ($this->subjectIds($registrations) as $subjectId) {
+            $sessions = array_values(array_diff($this->sessionIdsForSubject($subjectId), [$sessionId]));
+            $sessions === []
+                ? $this->cache->forget($this->subjectKey($subjectId))
+                : $this->cache->put($this->subjectKey($subjectId), $sessions, now()->addDays($this->ttlDays()));
+        }
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $registrations
+     * @return list<string>
+     */
+    private function subjectIds(array $registrations): array
+    {
+        return array_values(array_unique(array_filter(array_map(
+            fn (array $registration): ?string => $this->stringValue($registration, 'subject_id'),
+            $registrations,
+        ))));
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function stringValue(array $payload, string $key): ?string
+    {
+        $value = $payload[$key] ?? null;
+
+        return is_string($value) && $value !== '' ? $value : null;
+    }
+
     private function key(string $sessionId): string
     {
         return 'oidc:backchannel-session:'.$sessionId;
+    }
+
+    private function subjectKey(string $subjectId): string
+    {
+        return 'oidc:backchannel-subject:'.$subjectId;
     }
 
     private function ttlDays(): int

@@ -1,9 +1,11 @@
 .legacy-login {
   position: relative;
   display: grid;
-  min-height: 100vh;
+  min-height: 100dvh;
+  height: 100dvh;
   place-items: center;
-  overflow: hidden;
+  overflow: clip;
+  overscroll-behavior: none;
   padding: 40px 16px 76px;
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--accent-soft) 62%, transparent), transparent 54%),
@@ -241,6 +243,7 @@
   color: color-mix(in srgb, var(--muted) 78%, transparent);
   font-size: 12px;
   line-height: 1.5;
+  z-index: 8;
 }
 
 @keyframes spin {

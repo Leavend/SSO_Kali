@@ -38,6 +38,7 @@ final class AppSessionStore
     {
         session(['sso.session' => $this->payload($claims, $tokens, $profile)]);
         $this->index((string) $claims['sid'], session()->getId());
+        $this->indexSubject((string) $claims['sub'], session()->getId());
     }
 
     /**
@@ -81,7 +82,10 @@ final class AppSessionStore
     public function clearCurrent(): void
     {
         $payload = $this->current();
-        $payload !== null && $this->remove((string) $payload['sid'], session()->getId());
+        if ($payload !== null) {
+            $this->remove((string) $payload['sid'], session()->getId());
+            $this->removeSubject((string) $payload['subject'], session()->getId());
+        }
 
         Auth::logout();
         session()->forget(['sso.session', 'sso.transaction']);
@@ -91,16 +95,12 @@ final class AppSessionStore
 
     public function destroyBySid(string $sid): int
     {
-        $sessionIds = $this->sessionIds($sid);
+        return $this->destroyIndexed($this->key($sid));
+    }
 
-        if ($sessionIds === []) {
-            return 0;
-        }
-
-        DB::table('sessions')->whereIn('id', $sessionIds)->delete();
-        Cache::forget($this->key($sid));
-
-        return count($sessionIds);
+    public function destroyBySubject(string $subject): int
+    {
+        return $this->destroyIndexed($this->subjectKey($subject));
     }
 
     /**
@@ -196,7 +196,7 @@ final class AppSessionStore
 
     private function index(string $sid, string $sessionId): void
     {
-        $sessionIds = $this->sessionIds($sid);
+        $sessionIds = $this->indexedSessionIds($this->key($sid));
         in_array($sessionId, $sessionIds, true) || $sessionIds[] = $sessionId;
 
         Cache::put($this->key($sid), $sessionIds, now()->addDays(30));
@@ -204,26 +204,62 @@ final class AppSessionStore
 
     private function remove(string $sid, string $sessionId): void
     {
-        $sessionIds = array_values(array_filter(
-            $this->sessionIds($sid),
-            static fn (string $candidate): bool => $candidate !== $sessionId,
-        ));
+        $this->removeIndexed($this->key($sid), $sessionId);
+    }
 
-        $sessionIds === [] ? Cache::forget($this->key($sid)) : Cache::put($this->key($sid), $sessionIds, now()->addDays(30));
+    private function indexSubject(string $subject, string $sessionId): void
+    {
+        $sessionIds = $this->indexedSessionIds($this->subjectKey($subject));
+        in_array($sessionId, $sessionIds, true) || $sessionIds[] = $sessionId;
+
+        Cache::put($this->subjectKey($subject), $sessionIds, now()->addDays(30));
+    }
+
+    private function removeSubject(string $subject, string $sessionId): void
+    {
+        $this->removeIndexed($this->subjectKey($subject), $sessionId);
     }
 
     /**
      * @return list<string>
      */
-    private function sessionIds(string $sid): array
+    private function indexedSessionIds(string $key): array
     {
-        $payload = Cache::get($this->key($sid), []);
+        $payload = Cache::get($key, []);
 
         return array_values(array_filter(is_array($payload) ? $payload : [], 'is_string'));
+    }
+
+    private function destroyIndexed(string $key): int
+    {
+        $sessionIds = $this->indexedSessionIds($key);
+        if ($sessionIds === []) {
+            return 0;
+        }
+
+        $deleted = DB::table('sessions')->whereIn('id', $sessionIds)->delete();
+        Cache::forget($key);
+
+        return $deleted;
+    }
+
+    private function removeIndexed(string $key, string $sessionId): void
+    {
+        $sessionIds = array_values(array_filter(
+            $this->indexedSessionIds($key),
+            static fn (string $candidate): bool => $candidate !== $sessionId,
+        ));
+
+        $sessionIds === [] ? Cache::forget($key) : Cache::put($key, $sessionIds, now()->addDays(30));
     }
 
     private function key(string $sid): string
     {
         return 'app-b:sid:'.$sid;
+    }
+
+    private function subjectKey(string $subject): string
+    {
+        return 'app-b:subject:'.$subject;
     }
 }

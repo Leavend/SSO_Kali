@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { destroySessionsBySid } from "@/lib/session-store";
+import { destroySessionsBySid, destroySessionsBySubject } from "@/lib/session-store";
 import { verifyLogoutToken } from "@/lib/logout-token";
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
@@ -12,13 +12,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   try {
     const claims = await verifyLogoutToken(rawToken);
-    if (claims.sid === "") {
-      return NextResponse.json({ error: "logout sid is required" }, { status: 401 });
-    }
-    const cleared = await destroySessionsBySid(claims.sid);
+    const cleared = await clearSessions(claims.sid, claims.sub);
 
-    return NextResponse.json({ cleared, sid: claims.sid });
+    return NextResponse.json({ cleared, sid: claims.sid, sub: claims.sub });
   } catch {
     return NextResponse.json({ error: "invalid logout token" }, { status: 401 });
   }
+}
+
+async function clearSessions(sid: string, subject: string | null): Promise<number> {
+  if (sid === "" && subject === null) throw new Error("Missing logout target.");
+
+  const bySid = sid === "" ? 0 : await destroySessionsBySid(sid);
+  const bySubject = subject === null ? 0 : await destroySessionsBySubject(subject);
+
+  return bySid + bySubject;
 }
