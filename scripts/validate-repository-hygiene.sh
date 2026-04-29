@@ -20,7 +20,7 @@ require_text() {
 
 tracked_artifacts() {
   git -C "$ROOT_DIR" ls-files |
-    grep -E '(^|/)(node_modules|node_modules[.][^/]+)/|[.](zip|tar[.]gz)$' || true
+    grep -E '(^|/)node_modules([^/]*)(/|$)|[.](zip|tar[.]gz)$' || true
 }
 
 require_no_tracked_artifacts() {
@@ -38,7 +38,10 @@ require_no_tracked_artifacts() {
 
 require_text ".gitignore" '^\*\.zip$' "Git ignores local ZIP archives"
 require_text ".gitignore" '^\*\.tar\.gz$' "Git ignores local tarball archives"
+require_text ".gitignore" 'apps/\*/node_modules\*' "Git ignores copied app dependency snapshots"
+require_text ".gitignore" 'services/\*/node_modules\*' "Git ignores copied service dependency snapshots"
 require_text ".gitignore" 'node_modules\.dataless-\*' "Git ignores dataless dependency snapshots"
+require_text ".dockerignore" '\*\*/node_modules\*' "Docker context excludes copied dependency snapshots"
 require_text ".dockerignore" '\*\*/node_modules\.\*' "Docker context excludes dependency snapshots"
 require_text ".dockerignore" '\*\*/\*\.zip' "Docker context excludes local ZIP archives"
 require_text ".dockerignore" '\*\*/\*\.tar\.gz' "Docker context excludes local tarball archives"

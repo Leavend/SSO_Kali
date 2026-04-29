@@ -34,8 +34,9 @@ run_laravel_suite() {
   local dir="$2"
 
   run_in_dir "$label | Pint" "$dir" ./vendor/bin/pint --test
-  run_in_dir "$label | PHPStan level 5" "$dir" composer analyse
-  run_in_dir "$label | Pest" "$dir" composer test
+  run_in_dir "$label | PHPStan level 5" "$dir" php vendor/bin/phpstan analyse --memory-limit=512M --no-progress
+  run_in_dir "$label | Pest" "$dir" php artisan config:clear --ansi
+  run_in_dir "$label | Pest" "$dir" php artisan test
 }
 
 run_node_suite() {
