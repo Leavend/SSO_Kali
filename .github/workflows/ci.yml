@@ -243,17 +243,40 @@ jobs:
           docker pull "$IMAGE_TAG"
           echo "✅ Verified: $IMAGE_TAG"
 
+      - name: Install Grype scanner
+        env:
+          GRYPE_VERSION: v0.110.0
+        run: |
+          set -euo pipefail
+          install_dir="${RUNNER_TEMP}/grype-bin"
+          install_script="${RUNNER_TEMP}/install-grype.sh"
+          install_url="https://raw.githubusercontent.com/anchore/grype/${GRYPE_VERSION}/install.sh"
+          mkdir -p "$install_dir"
+
+          for attempt in 1 2 3; do
+            if curl -fsSL "$install_url" -o "$install_script" && sh "$install_script" -b "$install_dir" "$GRYPE_VERSION"; then
+              echo "$install_dir" >> "$GITHUB_PATH"
+              "$install_dir/grype" version
+              exit 0
+            fi
+
+            sleep "$((attempt * 10))"
+          done
+
+          echo "::error::Unable to install Grype ${GRYPE_VERSION} after 3 attempts"
+          exit 1
+
       - name: Grype CVE scan
         id: grype
-        uses: anchore/scan-action@e1165082ffb1fe366ebaf02d8526e7c4989ea9d2 # v7.4.0
-        with:
-          image: ${{ steps.image_ref.outputs.image }}
-          fail-build: true
-          severity-cutoff: high
-          only-fixed: true
-          output-format: sarif
-          output-file: grype-${{ matrix.image.name }}.sarif
-          cache-db: false
+        env:
+          IMAGE_TAG: ${{ steps.image_ref.outputs.image }}
+          SARIF_FILE: grype-${{ matrix.image.name }}.sarif
+        run: |
+          set -euo pipefail
+          grype "$IMAGE_TAG" --only-fixed -o sarif > "$SARIF_FILE"
+          test -s "$SARIF_FILE"
+          echo "sarif=$SARIF_FILE" >> "$GITHUB_OUTPUT"
+          grype "$IMAGE_TAG" --only-fixed --fail-on high -o table
 
       - name: Require Grype SARIF evidence
         run: test -s "${{ steps.grype.outputs.sarif }}"
