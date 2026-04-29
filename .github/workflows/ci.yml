@@ -248,8 +248,6 @@ jobs:
         uses: anchore/scan-action@e1165082ffb1fe366ebaf02d8526e7c4989ea9d2 # v7
         with:
           image: ${{ steps.image_ref.outputs.image }}
-          registry-username: ${{ github.actor }}
-          registry-password: ${{ secrets.GITHUB_TOKEN }}
           fail-build: true
           severity-cutoff: high
           only-fixed: true
