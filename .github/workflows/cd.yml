@@ -22,6 +22,7 @@ on:
 permissions:
   contents: read
   packages: read
+  actions: read
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
@@ -56,6 +57,7 @@ jobs:
           else
             raw_tag="$GITHUB_REF_NAME"
           fi
+          echo "raw_tag=${raw_tag}" >> "$GITHUB_OUTPUT"
           echo "tag=${raw_tag#v}" >> "$GITHUB_OUTPUT"
           echo "sha_short=$(echo $GITHUB_SHA | head -c 7)" >> "$GITHUB_OUTPUT"
 
@@ -72,6 +74,21 @@ jobs:
             --tag "${{ steps.tag.outputs.tag }}" \
             --registry "${{ env.IMAGE_PREFIX }}" \
             --timeout 1200 \
+            --interval 20
+
+      - name: Require successful release CI
+        if: startsWith(steps.tag.outputs.raw_tag, 'v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git fetch --force --tags origin "${{ steps.tag.outputs.raw_tag }}" || git fetch --force --tags origin
+          release_sha="$(git rev-list -n 1 "${{ steps.tag.outputs.raw_tag }}")"
+          bash scripts/require-release-ci-success.sh \
+            --repo "$GITHUB_REPOSITORY" \
+            --workflow CI \
+            --ref "${{ steps.tag.outputs.raw_tag }}" \
+            --sha "$release_sha" \
+            --timeout 1800 \
             --interval 20
 
       - name: Setup SSH key
