@@ -21,7 +21,8 @@ FROM dunglas/frankenphp:1-php8.4-alpine AS runner
 WORKDIR /app
 
 # PHP extensions required by the SSO backend
-RUN install-php-extensions \
+RUN apk upgrade --no-cache \
+    && install-php-extensions \
     pdo_pgsql \
     pcntl \
     redis \
