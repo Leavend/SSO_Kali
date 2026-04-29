@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Jobs\DispatchBackChannelLogoutJob;
 use App\Models\AdminAuditEvent;
 use App\Models\OidcClientRegistration;
 use App\Models\User;
-use App\Jobs\DispatchBackChannelLogoutJob;
 use App\Services\Oidc\AccessTokenRevocationStore;
 use App\Services\Oidc\DownstreamClientRegistry;
 use App\Services\Oidc\LocalTokenService;

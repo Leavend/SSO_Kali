@@ -96,5 +96,4 @@ final class ClientIntegrationRollbackRevoker
         return is_string($registration->backchannel_logout_uri)
             && $registration->backchannel_logout_uri !== '';
     }
-
 }
