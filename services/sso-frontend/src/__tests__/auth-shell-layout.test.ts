@@ -19,4 +19,14 @@ describe('auth shell layout CSS', () => {
     expect(adminCss).toContain('height: 100dvh;')
     expect(adminCss).toContain('overflow: clip;')
   })
+
+  it('pins root surfaces to the app canvas to avoid white browser gutters', () => {
+    const baseCss = readFileSync(resolve(root, 'web/styles/base.css'), 'utf8')
+
+    expect(baseCss).toContain('html,')
+    expect(baseCss).toContain('body,')
+    expect(baseCss).toContain('#app {')
+    expect(baseCss).toContain('html {')
+    expect(baseCss).toContain('background: var(--canvas);')
+  })
 })
