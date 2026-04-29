@@ -12,6 +12,11 @@ beforeEach(function (): void {
     config()->set('sso.resource_audience', 'sso-resource-api');
     config()->set('sso.signing.alg', 'ES256');
     config()->set('sso.jwt.local_allowed_algs', ['ES256']);
+    config()->set('oidc_clients.clients.prototype-client', [
+        'type' => 'public',
+        'redirect_uris' => ['https://prototype.example/auth/callback'],
+        'post_logout_redirect_uris' => ['https://prototype.example'],
+    ]);
 
     Cache::flush();
 });
@@ -43,6 +48,18 @@ it('rejects access tokens that omit the issued-at claim', function (): void {
         ->toThrow(RuntimeException::class, 'iat');
 
     expect($metrics->count('missing_iat'))->toBe(1);
+});
+
+it('rejects access tokens whose client is no longer active', function (): void {
+    config()->set('oidc_clients.clients', []);
+
+    $guard = app(AccessTokenGuard::class);
+    $metrics = app(JwtRejectMetrics::class);
+
+    expect(fn () => $guard->claimsFrom(localAccessToken()))
+        ->toThrow(RuntimeException::class, 'client is not active');
+
+    expect($metrics->count('unknown_client'))->toBe(1);
 });
 
 /**

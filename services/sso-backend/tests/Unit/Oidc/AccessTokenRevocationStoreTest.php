@@ -68,3 +68,16 @@ it('revokeSession() does not revoke tokens from other sessions', function (): vo
 
     expect($store->revoked('jti-b'))->toBeFalse();
 });
+
+it('revokeClient() revokes only access tokens tracked for that client', function (): void {
+    $store = revocationStore();
+    $expiresAt = time() + 900;
+
+    $store->track('sid-001', 'jti-a', $expiresAt, 'client-a');
+    $store->track('sid-002', 'jti-b', $expiresAt, 'client-b');
+
+    $store->revokeClient('client-a');
+
+    expect($store->revoked('jti-a'))->toBeTrue()
+        ->and($store->revoked('jti-b'))->toBeFalse();
+});

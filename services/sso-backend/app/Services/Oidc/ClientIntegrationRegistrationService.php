@@ -20,6 +20,7 @@ final class ClientIntegrationRegistrationService
         private readonly ClientIntegrationContractBuilder $builder,
         private readonly ClientSecretHashPolicy $hashes,
         private readonly AdminAuditLogger $audit,
+        private readonly ClientIntegrationRollbackRevoker $revoker,
     ) {}
 
     /**
@@ -55,8 +56,10 @@ final class ClientIntegrationRegistrationService
     public function disable(Request $request, User $admin, string $clientId): OidcClientRegistration
     {
         $registration = $this->rollbackRegistration($clientId);
+        $outcome = $this->revoker->revoke($registration);
+
         $registration->update(['status' => 'disabled', 'disabled_at' => now()]);
-        $this->auditSuccess('disable_client_integration', $request, $admin, $registration->refresh());
+        $this->auditSuccess('disable_client_integration', $request, $admin, $registration->refresh(), $outcome);
 
         return $registration;
     }
@@ -211,14 +214,15 @@ final class ClientIntegrationRegistrationService
         Request $request,
         User $admin,
         OidcClientRegistration $registration,
+        array $extra = [],
     ): void {
-        $this->audit->succeeded($action, $request, $admin, $this->auditContext($registration), $this->taxonomy($action));
+        $this->audit->succeeded($action, $request, $admin, $this->auditContext($registration, $extra), $this->taxonomy($action));
     }
 
     /**
      * @return array<string, mixed>
      */
-    private function auditContext(OidcClientRegistration $registration): array
+    private function auditContext(OidcClientRegistration $registration, array $extra = []): array
     {
         return [
             'client_id' => $registration->client_id,
@@ -226,6 +230,7 @@ final class ClientIntegrationRegistrationService
             'status' => $registration->status,
             'environment' => $registration->environment,
             'owner_email' => $registration->owner_email,
+            ...$extra,
         ];
     }
 

@@ -117,6 +117,7 @@ final class LocalTokenService
             (string) $context['session_id'],
             (string) $accessClaims['jti'],
             (int) $accessClaims['exp'],
+            (string) $context['client_id'],
         );
 
         return [

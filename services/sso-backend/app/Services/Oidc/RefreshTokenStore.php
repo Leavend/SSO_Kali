@@ -214,6 +214,16 @@ final class RefreshTokenStore
         );
     }
 
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function revokeClient(string $clientId): array
+    {
+        return $this->revokeRecords(
+            $this->activeRecords()->where('client_id', $clientId)->get()->all(),
+        );
+    }
+
     public function pruneExpiredAndRevoked(?CarbonImmutable $now = null): int
     {
         $cutoff = ($now ?? CarbonImmutable::now())->toDateTimeString();

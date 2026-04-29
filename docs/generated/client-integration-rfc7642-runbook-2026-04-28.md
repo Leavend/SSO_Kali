@@ -54,6 +54,8 @@ Promosi dilakukan lewat `Activate`. Public client langsung bisa aktif setelah va
 
 Rollback dilakukan lewat `Rollback / disable`. Status `disabled` membuat broker berhenti menerima client tersebut tanpa menghapus record, sehingga jejak audit, owner, dan alasan lifecycle tetap tersedia. Deploy tetap aman karena pembacaan registry dinamis dilindungi guard `Schema::hasTable('oidc_client_registrations')`; jika kode baru naik sebelum migrasi selesai, broker tetap melayani client statis lama.
 
+Dari sisi runtime, rollback tidak cukup hanya mengubah status registry. Saat dynamic client dinonaktifkan, broker sekarang mencabut refresh token aktif untuk `client_id` tersebut, menandai access token JTI yang sudah diterbitkan sebagai revoked melalui indeks per-client, dan mengantrekan back-channel logout hanya ke client yang dinonaktifkan. `AccessTokenGuard` juga menolak token dari client yang sudah tidak aktif, sehingga token lama tidak bisa dipakai lagi walaupun browser/app masih menyimpan local session. Mekanisme ini tidak memutus sesi client lain dalam `sid` yang sama, jadi rollback client tetap presisi dan zero-downtime untuk aplikasi lain.
+
 Dengan lifecycle ini, Admin Panel tidak hanya menampilkan prosedur RFC 7642, tetapi juga menyediakan feature logic untuk menjahit aplikasi existing atau development ke SSO: validate contract, stage artifact, activate runtime, dan disable sebagai rollback mechanism.
 
 ## Audit App Client 2026-04-28

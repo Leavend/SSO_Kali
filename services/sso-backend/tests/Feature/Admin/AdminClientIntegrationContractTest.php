@@ -5,9 +5,13 @@ declare(strict_types=1);
 use App\Models\AdminAuditEvent;
 use App\Models\OidcClientRegistration;
 use App\Models\User;
+use App\Jobs\DispatchBackChannelLogoutJob;
+use App\Services\Oidc\AccessTokenRevocationStore;
 use App\Services\Oidc\DownstreamClientRegistry;
 use App\Services\Oidc\LocalTokenService;
+use App\Services\Oidc\RefreshTokenStore;
 use App\Support\Security\ClientSecretHashPolicy;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 beforeEach(function (): void {
@@ -18,7 +22,14 @@ beforeEach(function (): void {
     config()->set('sso.signing.public_key_path', storage_path('app/testing/oidc/public.pem'));
     config()->set('sso.admin.session_management_roles', ['admin']);
     config()->set('sso.admin.mfa.enforced', false);
-    config()->set('oidc_clients.clients', []);
+    config()->set('oidc_clients.clients', [
+        'sso-admin-panel' => [
+            'type' => 'public',
+            'redirect_uris' => ['https://dev-sso.timeh.my.id/auth/callback'],
+            'post_logout_redirect_uris' => ['https://dev-sso.timeh.my.id'],
+            'backchannel_logout_uri' => 'https://dev-sso.timeh.my.id/auth/backchannel/logout',
+        ],
+    ]);
 });
 
 it('returns a broker validated client integration contract for admins', function (): void {
@@ -186,6 +197,7 @@ it('disables active dynamic clients as a rollback mechanism', function (): void 
     /** @var TestCase $this */
     $admin = clientContractAdmin('admin-contract-7');
     $hash = app(ClientSecretHashPolicy::class)->make('client-secret');
+    Queue::fake();
 
     OidcClientRegistration::query()->create([
         ...dynamicClientPayload('server-portal', 'confidential'),
@@ -193,6 +205,21 @@ it('disables active dynamic clients as a rollback mechanism', function (): void 
         'status' => 'active',
         'activated_at' => now(),
     ]);
+    $refresh = app(RefreshTokenStore::class)->issue(
+        'subject-rollback',
+        'server-portal',
+        'openid profile',
+        'sid-rollback',
+        null,
+        now()->timestamp,
+    );
+
+    app(AccessTokenRevocationStore::class)->track(
+        'sid-rollback',
+        'jti-rollback',
+        now()->addMinutes(10)->timestamp,
+        'server-portal',
+    );
 
     $this->withToken(clientContractAccessToken($admin))
         ->postJson('/admin/api/client-integrations/server-portal/disable')
@@ -200,6 +227,9 @@ it('disables active dynamic clients as a rollback mechanism', function (): void 
         ->assertJsonPath('registration.status', 'disabled');
 
     expect(app(DownstreamClientRegistry::class)->find('server-portal'))->toBeNull();
+    expect(app(RefreshTokenStore::class)->findActive($refresh['token'], 'server-portal'))->toBeNull();
+    expect(app(AccessTokenRevocationStore::class)->revoked('jti-rollback'))->toBeTrue();
+    Queue::assertPushed(DispatchBackChannelLogoutJob::class);
 });
 
 function clientContractAdmin(string $subjectId): User
