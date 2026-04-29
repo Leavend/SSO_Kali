@@ -36,6 +36,11 @@ final class LogicalSessionStore
         $this->cache->forget($this->key($subjectId));
     }
 
+    public function clearSubject(string $subjectId): void
+    {
+        $this->cache->forget($this->key($subjectId));
+    }
+
     private function key(string $subjectId): string
     {
         return 'oidc:logical-session:'.$subjectId;

@@ -26,18 +26,53 @@ final class HandleBackChannelLogout
         }
 
         try {
-            $claims = $this->verifier->claims($token);
-            $sid = is_string($claims['sid'] ?? null) ? $claims['sid'] : null;
-
-            if ($sid === null || $sid === '') {
-                return response()->json(['error' => 'logout sid is required'], 401);
-            }
-
-            $cleared = $this->sessions->destroyBySid($sid);
+            return $this->handleClaims($this->verifier->claims($token));
         } catch (RuntimeException) {
             return response()->json(['error' => 'invalid logout token'], 401);
         }
+    }
 
-        return response()->json(['cleared' => $cleared, 'sid' => $sid]);
+    /**
+     * @param  array<string, mixed>  $claims
+     */
+    private function handleClaims(array $claims): JsonResponse
+    {
+        $sid = $this->stringClaim($claims, 'sid');
+        $subject = $this->stringClaim($claims, 'sub');
+
+        if ($sid === null && $subject === null) {
+            return response()->json(['error' => 'logout subject or sid is required'], 401);
+        }
+
+        return response()->json($this->logoutPayload($sid, $subject));
+    }
+
+    /**
+     * @param  array<string, mixed>  $claims
+     */
+    private function stringClaim(array $claims, string $key): ?string
+    {
+        $value = $claims[$key] ?? null;
+
+        return is_string($value) && $value !== '' ? $value : null;
+    }
+
+    private function clearSessions(?string $sid, ?string $subject): int
+    {
+        $cleared = $sid === null ? 0 : $this->sessions->destroyBySid($sid);
+
+        return $cleared + ($subject === null ? 0 : $this->sessions->destroyBySubject($subject));
+    }
+
+    /**
+     * @return array{cleared: int, sid: string, sub: string|null}
+     */
+    private function logoutPayload(?string $sid, ?string $subject): array
+    {
+        return [
+            'cleared' => $this->clearSessions($sid, $subject),
+            'sid' => $sid ?? '',
+            'sub' => $subject,
+        ];
     }
 }

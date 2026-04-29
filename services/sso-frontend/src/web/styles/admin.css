@@ -6,6 +6,9 @@
 
 .app-shell--auth {
   display: block;
+  min-height: 100dvh;
+  height: 100dvh;
+  overflow: clip;
 }
 
 .app-shell--admin {
@@ -181,7 +184,9 @@ html[data-theme='light'] .app-shell--admin .sidebar {
 }
 
 .main-surface--auth {
-  min-height: 100vh;
+  min-height: 100%;
+  height: 100%;
+  overflow: clip;
   padding: 0;
 }
 

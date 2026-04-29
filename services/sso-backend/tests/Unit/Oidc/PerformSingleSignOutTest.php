@@ -17,6 +17,7 @@ use App\Services\Zitadel\ZitadelBrokerService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 
 use function Tests\Support\resetOidcUnitTables;
 use function Tests\Support\seedOidcUnitUser;
@@ -100,9 +101,56 @@ it('revokes refresh tokens for the session and returns success', function (): vo
     $body = json_decode((string) $response->getContent(), true);
     expect($body)
         ->toHaveKey('signed_out', true)
-        ->toHaveKey('sid', 'sid-logout-001');
+        ->toHaveKey('sid', 'sid-logout-001')
+        ->toHaveKey('sids');
 
     // Verify refresh token is now invalid
     $found = $refreshTokens->findActive($rt['token'], 'prototype-app-a');
     expect($found)->toBeNull();
+});
+
+it('revokes every active client session for the same subject', function (): void {
+    Queue::fake();
+    seedOidcUnitUser('sub-logout-002');
+
+    $keys = app(SigningKeyService::class);
+    $refreshTokens = app(RefreshTokenStore::class);
+    $registry = app(BackChannelSessionRegistry::class);
+    $appA = $refreshTokens->issue('sub-logout-002', 'prototype-app-a', 'openid', 'sid-app-a', null, time());
+    $appB = $refreshTokens->issue('sub-logout-002', 'prototype-app-b', 'openid', 'sid-app-b', null, time());
+    Cache::put('oidc:logical-session:sub-logout-002', 'sid-app-b', now()->addHour());
+    $registry->register('sid-app-a', 'prototype-app-a', 'https://app-a.example/logout', [
+        'subject_id' => 'sub-logout-002',
+    ]);
+    $registry->register('sid-app-b', 'prototype-app-b', 'https://app-b.example/logout', [
+        'subject_id' => 'sub-logout-002',
+    ]);
+
+    $accessToken = $keys->sign([
+        'iss' => 'http://localhost',
+        'aud' => 'sso-resource-api',
+        'sub' => 'sub-logout-002',
+        'client_id' => 'prototype-app-b',
+        'token_use' => 'access',
+        'scope' => 'openid',
+        'jti' => 'jti-logout-002',
+        'sid' => 'sid-app-b',
+        'iat' => time(),
+        'nbf' => time(),
+        'exp' => time() + 900,
+    ]);
+
+    $request = Request::create('/connect/session/logout', 'POST');
+    $request->headers->set('Authorization', 'Bearer '.$accessToken);
+
+    $response = ssoLogoutAction()->handle($request);
+    $body = json_decode((string) $response->getContent(), true);
+
+    expect($response->getStatusCode())->toBe(200);
+    expect($body['sids'])->toContain('sid-app-a')
+        ->and($body['sids'])->toContain('sid-app-b');
+    expect($body['notifications'])->toHaveCount(2);
+    expect($refreshTokens->findActive($appA['token'], 'prototype-app-a'))->toBeNull();
+    expect($refreshTokens->findActive($appB['token'], 'prototype-app-b'))->toBeNull();
+    expect(Cache::get('oidc:logical-session:sub-logout-002'))->toBeNull();
 });

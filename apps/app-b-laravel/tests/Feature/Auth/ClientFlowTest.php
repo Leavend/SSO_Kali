@@ -224,6 +224,33 @@ it('clears indexed session rows when a back-channel logout token arrives', funct
     expect(DB::table('sessions')->where('id', 'session-1')->exists())->toBeFalse();
 });
 
+it('clears local sessions by subject when back-channel logout omits sid', function (): void {
+    /** @var TestCase $this */
+    DB::table('sessions')->insert([
+        'id' => 'session-2',
+        'user_id' => null,
+        'ip_address' => '127.0.0.1',
+        'user_agent' => 'Pest',
+        'payload' => 'serialized',
+        'last_activity' => time(),
+    ]);
+
+    Cache::put('app-b:subject:subject-123', ['session-2'], now()->addMinutes(5));
+    Http::fake([
+        'http://sso.example/jwks' => Http::response(FakeBrokerJwt::jwks(), 200),
+    ]);
+
+    $this->post('/auth/backchannel/logout', [
+        'logout_token' => FakeBrokerJwt::logoutToken(['sid' => null, 'jti' => 'logout-jti-subject']),
+    ])
+        ->assertOk()
+        ->assertJsonPath('cleared', 1)
+        ->assertJsonPath('sid', '')
+        ->assertJsonPath('sub', 'subject-123');
+
+    expect(DB::table('sessions')->where('id', 'session-2')->exists())->toBeFalse();
+});
+
 it('rejects replayed back-channel logout tokens', function (): void {
     /** @var TestCase $this */
     Http::fake([

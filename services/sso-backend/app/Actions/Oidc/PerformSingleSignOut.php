@@ -34,28 +34,144 @@ final class PerformSingleSignOut
 
     public function handle(Request $request): JsonResponse
     {
-        $claims = $this->claims($request);
-        $sessionId = is_string($claims['sid'] ?? null) ? $claims['sid'] : null;
-        $subjectId = is_string($claims['sub'] ?? null) ? $claims['sub'] : null;
+        $context = $this->logoutContext($request);
 
-        if ($sessionId === null || $subjectId === null) {
+        if ($context === null) {
             $this->metrics->recordFailure('invalid_token');
 
             return OidcErrorResponse::json('invalid_token', 'The bearer token is invalid.', 401);
         }
 
-        $this->revocations->revokeSession($sessionId);
-        $records = $this->refreshTokens->revokeSession($sessionId);
+        [$sessionId, $subjectId] = $context;
+        $records = $this->refreshTokens->revokeSubject($subjectId);
+
+        return $this->completeLogout($sessionId, $subjectId, $records);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $records
+     */
+    private function completeLogout(string $sessionId, string $subjectId, array $records): JsonResponse
+    {
+        $sessionIds = $this->sessionIds($sessionId, $subjectId, $records);
+
+        $this->revokeAccessTokens($sessionIds);
         $this->revokeUpstream($records);
 
-        $notifications = $this->dispatcher->dispatch($subjectId, $sessionId, $this->registry->forSession($sessionId));
-        $this->registry->clear($sessionId);
-        $this->sessions->clear($subjectId, $sessionId);
+        $notifications = $this->dispatchLogout($subjectId, $sessionIds);
+        $this->clearLocalSessions($subjectId, $sessionIds);
         $this->metrics->recordSuccess();
 
+        return $this->successResponse($sessionId, $sessionIds, $notifications);
+    }
+
+    /**
+     * @return array{0: string, 1: string}|null
+     */
+    private function logoutContext(Request $request): ?array
+    {
+        $claims = $this->claims($request);
+        $sessionId = $this->stringClaim($claims, 'sid');
+        $subjectId = $this->stringClaim($claims, 'sub');
+
+        return $sessionId !== null && $subjectId !== null ? [$sessionId, $subjectId] : null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $claims
+     */
+    private function stringClaim(array $claims, string $key): ?string
+    {
+        $value = $claims[$key] ?? null;
+
+        return is_string($value) && $value !== '' ? $value : null;
+    }
+
+    /**
+     * @param  list<string>  $sessionIds
+     */
+    private function revokeAccessTokens(array $sessionIds): void
+    {
+        foreach ($sessionIds as $sessionId) {
+            $this->revocations->revokeSession($sessionId);
+        }
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $records
+     * @return list<string>
+     */
+    private function sessionIds(string $sessionId, string $subjectId, array $records): array
+    {
+        return $this->uniqueStrings([
+            $sessionId,
+            ...$this->recordSessionIds($records),
+            ...$this->registry->sessionIdsForSubject($subjectId),
+        ]);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $records
+     * @return list<string>
+     */
+    private function recordSessionIds(array $records): array
+    {
+        return array_values(array_filter(
+            array_map(static fn (array $record): mixed => $record['session_id'] ?? null, $records),
+            'is_string',
+        ));
+    }
+
+    /**
+     * @param  list<string>  $values
+     * @return list<string>
+     */
+    private function uniqueStrings(array $values): array
+    {
+        return array_values(array_unique(array_filter($values, static fn (string $value): bool => $value !== '')));
+    }
+
+    /**
+     * @param  list<string>  $sessionIds
+     * @return list<array<string, mixed>>
+     */
+    private function dispatchLogout(string $subjectId, array $sessionIds): array
+    {
+        $notifications = [];
+
+        foreach ($sessionIds as $sessionId) {
+            $notifications = [
+                ...$notifications,
+                ...$this->dispatcher->dispatch($subjectId, $sessionId, $this->registry->forSession($sessionId)),
+            ];
+        }
+
+        return $notifications;
+    }
+
+    /**
+     * @param  list<string>  $sessionIds
+     */
+    private function clearLocalSessions(string $subjectId, array $sessionIds): void
+    {
+        foreach ($sessionIds as $sessionId) {
+            $this->registry->clear($sessionId);
+            $this->sessions->clear($subjectId, $sessionId);
+        }
+
+        $this->sessions->clearSubject($subjectId);
+    }
+
+    /**
+     * @param  list<string>  $sessionIds
+     * @param  list<array<string, mixed>>  $notifications
+     */
+    private function successResponse(string $sessionId, array $sessionIds, array $notifications): JsonResponse
+    {
         return response()->json([
             'signed_out' => true,
             'sid' => $sessionId,
+            'sids' => $sessionIds,
             'notifications' => $notifications,
         ]);
     }

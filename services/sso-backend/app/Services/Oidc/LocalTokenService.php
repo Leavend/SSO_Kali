@@ -27,7 +27,7 @@ final class LocalTokenService
     {
         $user = $this->user((string) $context['subject_id']);
         $tokens = $this->signedTokens($user, $context);
-        $this->registerBackChannelSession((string) $context['client_id'], (string) $context['session_id']);
+        $this->registerBackChannelSession((string) $context['client_id'], (string) $context['session_id'], $context);
 
         $response = [
             ...$tokens,
@@ -85,7 +85,7 @@ final class LocalTokenService
         );
 
         $this->refreshTokens->revoke((string) $record['refresh_token_id'], $refresh['id']);
-        $this->registerBackChannelSession((string) $record['client_id'], (string) $record['session_id']);
+        $this->registerBackChannelSession((string) $record['client_id'], (string) $record['session_id'], $record);
 
         return [
             ...$tokens,
@@ -175,7 +175,10 @@ final class LocalTokenService
         return ScopeSet::contains($scope, 'offline_access');
     }
 
-    private function registerBackChannelSession(string $clientId, string $sessionId): void
+    /**
+     * @param  array<string, mixed>  $context
+     */
+    private function registerBackChannelSession(string $clientId, string $sessionId, array $context): void
     {
         $client = $this->clients->find($clientId);
 
@@ -183,6 +186,24 @@ final class LocalTokenService
             return;
         }
 
-        $this->backChannelSessions->register($sessionId, $clientId, $client->backchannelLogoutUri);
+        $this->backChannelSessions->register(
+            $sessionId,
+            $clientId,
+            $client->backchannelLogoutUri,
+            $this->backChannelMetadata($context),
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     * @return array<string, mixed>
+     */
+    private function backChannelMetadata(array $context): array
+    {
+        return [
+            'subject_id' => $context['subject_id'] ?? null,
+            'scope' => $context['scope'] ?? null,
+            'expires_at' => $context['expires_at'] ?? null,
+        ];
     }
 }

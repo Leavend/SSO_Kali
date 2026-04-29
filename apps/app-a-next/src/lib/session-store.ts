@@ -39,6 +39,11 @@ export type NewAppSession = Omit<
   "createdAt" | "lastRefreshedAt" | "lastTouchedAt" | "sessionId"
 >;
 
+type IndexedSessionDelete = {
+  readonly sessionId: string;
+  readonly session: AppSession | null;
+};
+
 export async function storeAuthTransaction(
   state: string,
   transaction: StoredAuthTransaction,
@@ -102,14 +107,47 @@ export async function destroySessionsBySid(sid: string): Promise<number> {
   const redis = await getRedisClient();
   const sessionIds = await redis.sMembers(sessionIndexKey(sid));
 
+  return destroyIndexedSessions(sessionIds, sessionIndexKey(sid));
+}
+
+export async function destroySessionsBySubject(subject: string): Promise<number> {
+  const redis = await getRedisClient();
+  const sessionIds = await redis.sMembers(subjectIndexKey(subject));
+
+  return destroyIndexedSessions(sessionIds, subjectIndexKey(subject));
+}
+
+async function destroyIndexedSessions(sessionIds: string[], indexKey: string): Promise<number> {
   if (sessionIds.length === 0) return 0;
 
-  const pipeline = redis.multi();
-  sessionIds.forEach((sessionId) => pipeline.del(sessionKey(sessionId)));
-  pipeline.del(sessionIndexKey(sid));
-  await pipeline.exec();
+  const sessions = await Promise.all(sessionIds.map(readSession));
+  const deletes = indexedSessionDeletes(sessionIds, sessions);
 
-  return sessionIds.length;
+  await deleteIndexedSessions(deletes, indexKey);
+
+  return sessions.filter((session) => session !== null).length;
+}
+
+function indexedSessionDeletes(
+  sessionIds: string[],
+  sessions: (AppSession | null)[],
+): IndexedSessionDelete[] {
+  return sessionIds.map((sessionId, index) => ({ sessionId, session: sessions[index] ?? null }));
+}
+
+async function deleteIndexedSessions(items: IndexedSessionDelete[], indexKey: string): Promise<void> {
+  const redis = await getRedisClient();
+  const pipeline = redis.multi();
+
+  for (const item of items) {
+    pipeline.del(sessionKey(item.sessionId));
+    if (item.session === null) continue;
+    pipeline.sRem(sessionIndexKey(item.session.sid), item.session.sessionId);
+    pipeline.sRem(subjectIndexKey(item.session.subject), item.session.sessionId);
+  }
+
+  pipeline.del(indexKey);
+  await pipeline.exec();
 }
 
 export async function tryAcquireRefreshLock(sessionId: string): Promise<boolean> {
@@ -154,7 +192,9 @@ async function saveSession(session: AppSession): Promise<void> {
 
   await redis.set(sessionKey(session.sessionId), JSON.stringify(session), { EX: ttl });
   await redis.sAdd(sessionIndexKey(session.sid), session.sessionId);
+  await redis.sAdd(subjectIndexKey(session.subject), session.sessionId);
   await redis.expire(sessionIndexKey(session.sid), ttl);
+  await redis.expire(subjectIndexKey(session.subject), ttl);
 }
 
 async function deleteAndReturnNull(session: AppSession): Promise<null> {
@@ -168,6 +208,7 @@ async function deleteSession(session: AppSession): Promise<void> {
 
   await redis.del(sessionKey(session.sessionId));
   await redis.sRem(sessionIndexKey(session.sid), session.sessionId);
+  await redis.sRem(subjectIndexKey(session.subject), session.sessionId);
 }
 
 function withSessionDefaults(session: NewAppSession, sessionId: string, now: number): AppSession {
@@ -237,6 +278,10 @@ function sessionKey(sessionId: string): string {
 
 function sessionIndexKey(sid: string): string {
   return `app-a:sid:${sid}`;
+}
+
+function subjectIndexKey(subject: string): string {
+  return `app-a:subject:${subject}`;
 }
 
 function refreshLockKey(sessionId: string): string {
