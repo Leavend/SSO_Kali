@@ -52,6 +52,16 @@
   box-sizing: border-box;
 }
 
+html,
+body,
+#app {
+  min-height: 100%;
+}
+
+html {
+  background: var(--canvas);
+}
+
 body {
   margin: 0;
   min-width: 320px;

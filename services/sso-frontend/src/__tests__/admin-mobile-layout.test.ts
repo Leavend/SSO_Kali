@@ -20,4 +20,13 @@ describe('admin mobile layout assets', () => {
 
     expect(favicon.size).toBeGreaterThan(0)
   })
+
+  it('locks admin light theme sidebar contrast to readable colors', () => {
+    const adminCss = readFileSync(resolve(serviceRoot, 'src/web/styles/admin.css'), 'utf8')
+
+    expect(adminCss).toContain("html[data-theme='light'] .app-shell--admin .brand")
+    expect(adminCss).toContain("html[data-theme='light'] .app-shell--admin .principal strong")
+    expect(adminCss).toContain("html[data-theme='light'] .app-shell--admin .principal span")
+    expect(adminCss).toContain("html[data-theme='light'] .app-shell--admin .sidebar .icon-button")
+  })
 })

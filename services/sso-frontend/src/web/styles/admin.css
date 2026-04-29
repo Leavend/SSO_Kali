@@ -93,6 +93,37 @@ html[data-theme='light'] .app-shell--admin .sidebar {
   background: linear-gradient(180deg, #ffffff, #f8fafc);
 }
 
+html[data-theme='light'] .app-shell--admin .brand {
+  color: #0f172a;
+  background: #eff6ff;
+  border-color: #93c5fd;
+}
+
+html[data-theme='light'] .app-shell--admin .nav-list a {
+  color: #334155;
+}
+
+html[data-theme='light'] .app-shell--admin .nav-list a.router-link-active {
+  color: #1d4ed8;
+  background: #eff6ff;
+  border-color: #93c5fd;
+}
+
+html[data-theme='light'] .app-shell--admin .principal strong {
+  color: #0f172a;
+}
+
+html[data-theme='light'] .app-shell--admin .principal span {
+  color: #475569;
+}
+
+html[data-theme='light'] .app-shell--admin .sidebar .icon-button,
+html[data-theme='light'] .app-shell--admin .sidebar-close {
+  color: #0f172a;
+  background: #e0f2fe;
+  border-color: #7dd3fc;
+}
+
 .sidebar-header {
   display: flex;
   align-items: center;
