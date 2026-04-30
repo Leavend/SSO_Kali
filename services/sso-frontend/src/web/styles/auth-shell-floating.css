@@ -40,6 +40,12 @@
   }
 }
 
+@media (max-width: 768px) {
+  .app-shell--admin .floating-actions {
+    right: max(20px, calc(env(safe-area-inset-right, 0px) + 20px));
+  }
+}
+
 @media (max-width: 640px) {
   :root {
     --theme-toggle-edge-right: max(12px, calc(env(safe-area-inset-right, 0px) + 12px));
