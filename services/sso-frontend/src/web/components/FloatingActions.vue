@@ -65,14 +65,16 @@ onMounted(() => {
   window.addEventListener('resize', schedulePositionUpdate)
 
   // Observe layout changes to footer/submit that may trigger overlap
-  resizeObserver = new ResizeObserver(() => {
-    schedulePositionUpdate()
-  })
+  if (typeof ResizeObserver !== 'undefined') {
+    resizeObserver = new ResizeObserver(() => {
+      schedulePositionUpdate()
+    })
 
-  const footer = document.querySelector<HTMLElement>('.auth-footer')
-  const submit = document.querySelector<HTMLElement>('.signin-submit')
-  if (footer) resizeObserver.observe(footer)
-  if (submit) resizeObserver.observe(submit)
+    const footer = document.querySelector<HTMLElement>('.auth-footer')
+    const submit = document.querySelector<HTMLElement>('.signin-submit')
+    if (footer) resizeObserver.observe(footer)
+    if (submit) resizeObserver.observe(submit)
+  }
 
   schedulePositionUpdate()
 })
