@@ -2,7 +2,6 @@
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { Activity, AppWindow, LogOut, LayoutDashboard, Menu, RefreshCw, ShieldCheck, Users, X } from "lucide-vue-next";
 import { RouterLink, RouterView, useRoute } from "vue-router";
-import { AUTH_SHELL } from "@parent-ui/auth-shell.mjs";
 import FloatingActions from "@/components/FloatingActions.vue";
 import AuthFooter from "@/components/auth/AuthFooter.vue";
 import { useAdminStore } from "./stores/admin";
