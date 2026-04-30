@@ -372,22 +372,33 @@ input {
   line-height: 1.5;
 }
 
-.theme-toggle-anchor {
+.floating-actions {
   position: fixed;
-  right: max(16px, calc(50vw - 224px));
-  bottom: max(72px, calc(env(safe-area-inset-bottom, 0px) + 72px));
-  z-index: 30;
+  right: 24px;
+  bottom: calc(24px + var(--floating-actions-lift, 0px));
+  z-index: 40;
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-end;
   justify-content: flex-end;
-  width: auto;
-  padding: 0;
+  gap: 8px;
   pointer-events: none;
+  transition: bottom 0.3s ease;
+}
+
+.floating-actions > * {
+  pointer-events: auto;
+}
+
+.theme-toggle-anchor {
+  display: flex;
+  justify-content: center;
+  padding: 0;
 }
 
 .theme-toggle-anchor > .theme-toggle {
+  position: relative;
   pointer-events: auto;
-  box-shadow: 0 14px 36px color-mix(in srgb, var(--shadow) 72%, transparent);
 }
 
 .theme-toggle {
@@ -474,8 +485,7 @@ input {
     row-gap: 8px;
   }
 
-  .theme-toggle-anchor {
+  .floating-actions {
     right: max(12px, calc(env(safe-area-inset-right, 0px) + 12px));
-    bottom: max(84px, calc(env(safe-area-inset-bottom, 0px) + 84px));
   }
 }

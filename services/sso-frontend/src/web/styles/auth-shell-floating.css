@@ -1,6 +1,6 @@
 :root {
-  --theme-toggle-edge-right: max(16px, calc(50vw - 224px));
-  --theme-toggle-edge-bottom: max(72px, calc(env(safe-area-inset-bottom, 0px) + 72px));
+  --theme-toggle-edge-right: 24px;
+  --theme-toggle-edge-bottom: 24px;
 }
 
 .legacy-login {
@@ -55,6 +55,6 @@
 @media (max-width: 640px) {
   :root {
     --theme-toggle-edge-right: max(12px, calc(env(safe-area-inset-right, 0px) + 12px));
-    --theme-toggle-edge-bottom: max(84px, calc(env(safe-area-inset-bottom, 0px) + 84px));
+    --theme-toggle-edge-bottom: 24px;
   }
 }
