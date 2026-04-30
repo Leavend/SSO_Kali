@@ -1,6 +1,6 @@
 :root {
-  --theme-toggle-edge-right: max(20px, calc(env(safe-area-inset-right, 0px) + 20px));
-  --theme-toggle-edge-bottom: max(32px, calc(env(safe-area-inset-bottom, 0px) + 32px));
+  --theme-toggle-edge-right: max(16px, calc(50vw - 224px));
+  --theme-toggle-edge-bottom: max(72px, calc(env(safe-area-inset-bottom, 0px) + 72px));
 }
 
 .legacy-login {
@@ -21,6 +21,12 @@
   align-items: flex-end;
   justify-content: flex-end;
   gap: 8px;
+  pointer-events: none;
+  transition: bottom 0.3s ease;
+}
+
+.floating-actions > * {
+  pointer-events: auto;
 }
 
 .theme-toggle-anchor {
@@ -49,6 +55,6 @@
 @media (max-width: 640px) {
   :root {
     --theme-toggle-edge-right: max(12px, calc(env(safe-area-inset-right, 0px) + 12px));
-    --theme-toggle-edge-bottom: max(24px, calc(env(safe-area-inset-bottom, 0px) + 24px));
+    --theme-toggle-edge-bottom: max(84px, calc(env(safe-area-inset-bottom, 0px) + 84px));
   }
 }
