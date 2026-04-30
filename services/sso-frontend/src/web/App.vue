@@ -120,8 +120,6 @@ watch(() => route.path, closeSidebar);
         </div>
       </aside>
 
-      <FloatingActions initial-theme="dark" admin />
-
       <div class="admin-content-shell">
         <main class="main-surface">
           <RouterView v-slot="{ Component }">
@@ -132,6 +130,7 @@ watch(() => route.path, closeSidebar);
         </main>
 
         <AuthFooter class="admin-auth-footer" />
+        <FloatingActions initial-theme="dark" admin />
       </div>
     </template>
 
