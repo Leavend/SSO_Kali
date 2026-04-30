@@ -43,26 +43,31 @@ const content = computed(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
-  border-radius: 999px;
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
   color: var(--accent);
   background: var(--accent-soft);
-  margin-bottom: 4px;
+  margin-bottom: 8px;
 }
 
 .legal-back {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-top: 24px;
+  margin-top: 28px;
+  padding: 10px 18px;
   color: var(--accent);
   font-weight: 800;
-  font-size: 15px;
-  transition: color 0.16s ease;
+  font-size: 14px;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-radius: 10px;
+  background: var(--accent-soft);
+  transition: background-color 0.16s ease, border-color 0.16s ease;
 }
 
 .legal-back:hover {
-  color: var(--accent-hover);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  border-color: var(--accent);
 }
 </style>

@@ -33,7 +33,7 @@ import { AlertTriangle } from 'lucide-vue-next'
   justify-content: center;
   width: 56px;
   height: 56px;
-  border-radius: 999px;
+  border-radius: 16px;
   color: var(--admin-accent, var(--accent));
   background: color-mix(in srgb, var(--admin-accent, var(--accent)) 14%, transparent);
   margin-bottom: 8px;
@@ -41,22 +41,23 @@ import { AlertTriangle } from 'lucide-vue-next'
 
 .status-badge {
   display: inline-block;
-  padding: 4px 12px;
-  font-size: 13px;
+  padding: 5px 14px;
+  font-size: 12px;
   font-weight: 800;
   color: var(--admin-accent, var(--accent));
   background: color-mix(in srgb, var(--admin-accent, var(--accent)) 10%, transparent);
   border: 1px solid color-mix(in srgb, var(--admin-accent, var(--accent)) 24%, transparent);
-  border-radius: 999px;
+  border-radius: 10px;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
 }
 
 .status-panel h1 {
   margin: 8px 0 0;
-  font-size: 32px;
+  font-size: 30px;
   font-weight: 800;
-  line-height: 1.15;
+  line-height: 1.18;
+  letter-spacing: -0.01em;
 }
 
 .status-panel p {
@@ -71,6 +72,6 @@ import { AlertTriangle } from 'lucide-vue-next'
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  margin-top: 16px;
+  margin-top: 20px;
 }
 </style>

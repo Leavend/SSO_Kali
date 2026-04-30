@@ -26,17 +26,17 @@ export default async function HomePage({ searchParams }: HomePageProps) {
     redirect("/auth/login?prompt=none");
   }
   return (
-    <main className="mx-auto flex min-h-screen max-w-5xl flex-col gap-6 px-6 py-8">
+    <main className="mx-auto flex min-h-screen max-w-5xl flex-col gap-6 px-6 py-10">
       <SessionRefreshBridge authenticated={session !== null} />
-      <section className="rounded-[2rem] border border-app-line bg-app-panel p-8 shadow-[0_30px_90px_rgba(2,8,23,0.35)]">
+      <section className="rounded-[2rem] border border-app-line bg-app-panel/80 p-8 shadow-[0_30px_90px_rgba(2,8,23,0.35)] backdrop-blur-sm">
         <SignalPill text={session === null ? "Public Client + PKCE" : "Session Active"} />
-        <h1 className="mt-5 text-5xl font-semibold tracking-tight">App A &mdash; Integrasi browser-side OIDC flow.</h1>
-        <p className="mt-4 max-w-3xl text-base leading-8 text-app-muted">
+        <h1 className="mt-5 text-4xl font-semibold tracking-tight leading-[1.1] sm:text-5xl">App A &mdash; Integrasi browser-side OIDC flow.</h1>
+        <p className="mt-4 max-w-3xl text-[15px] leading-8 text-app-muted">
           {session === null
             ? "Login dilakukan lewat Authorization Code + PKCE, lalu sesi lokal disimpan server-side di Redis agar back-channel logout bisa menutup sesi lintas aplikasi."
             : "Sesi ini berasal dari token lokal SSO facade. Jika logout terjadi dari App B, sesi ini juga akan diputus lewat back-channel logout berbasis sid."}
         </p>
-        {event !== null ? <p className="mt-4 rounded-2xl border border-app-line bg-white/5 px-4 py-3 text-sm text-app-accent">{event}</p> : null}
+        {event !== null ? <p className="mt-4 rounded-2xl border border-app-accent/20 bg-app-accent-soft px-4 py-3 text-sm text-app-accent">{event}</p> : null}
         <dl className="mt-6 grid gap-4 md:grid-cols-3">
           <ChecklistCard label="Client ID" value={config.clientId} />
           <ChecklistCard label="Authorize URL" value={config.authorizeUrl} />
@@ -62,7 +62,7 @@ async function currentSession() {
 function LoggedOutActions() {
   return (
     <form action="/auth/login" method="get" className="mt-8">
-      <button className="rounded-full bg-app-accent px-5 py-3 font-semibold text-slate-950" type="submit">
+      <button className="rounded-2xl bg-app-accent px-6 py-3.5 font-semibold text-slate-950 transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(125,211,252,0.3)]" type="submit">
         Mulai Login PKCE
       </button>
     </form>
@@ -72,7 +72,7 @@ function LoggedOutActions() {
 function LoggedInActions() {
   return (
     <form action="/auth/logout" method="post" className="mt-8">
-      <button className="rounded-full border border-app-line px-5 py-3 font-semibold text-app-ink" type="submit">
+      <button className="rounded-2xl border border-app-line px-6 py-3.5 font-semibold text-app-ink transition-all hover:border-app-accent/40 hover:bg-app-accent-soft" type="submit">
         Logout Terpusat
       </button>
     </form>

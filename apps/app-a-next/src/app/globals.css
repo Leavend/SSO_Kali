@@ -7,6 +7,7 @@
   --app-muted: #9eb0d0;
   --app-accent: #7dd3fc;
   --app-line: rgba(158, 176, 208, 0.18);
+  --app-accent-soft: rgba(125, 211, 252, 0.08);
 }
 
 @theme inline {
@@ -16,6 +17,7 @@
   --color-app-muted: var(--app-muted);
   --color-app-accent: var(--app-accent);
   --color-app-line: var(--app-line);
+  --color-app-accent-soft: var(--app-accent-soft);
   --font-sans: var(--font-manrope);
   --font-mono: var(--font-jetbrains-mono);
 }
@@ -26,7 +28,8 @@
 
 body {
   background:
-    radial-gradient(circle at top right, rgba(125, 211, 252, 0.22), transparent 26rem),
+    radial-gradient(circle at 20% 0%, rgba(125, 211, 252, 0.18), transparent 28rem),
+    radial-gradient(circle at 90% 20%, rgba(99, 102, 241, 0.10), transparent 24rem),
     linear-gradient(180deg, #0b1222 0%, var(--app-shell) 100%);
   color: var(--app-ink);
   font-family: var(--font-manrope), sans-serif;

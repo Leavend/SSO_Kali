@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
-import { LogOut, Menu, RefreshCw, ShieldCheck, X } from "lucide-vue-next";
+import { Activity, AppWindow, LogOut, LayoutDashboard, Menu, RefreshCw, ShieldCheck, Users, X } from "lucide-vue-next";
 import { RouterLink, RouterView, useRoute } from "vue-router";
 import { AUTH_SHELL } from "@parent-ui/auth-shell.mjs";
 import ThemeToggle from "@/components/ThemeToggle.vue";
@@ -82,12 +82,22 @@ watch(() => route.path, closeSidebar);
         </div>
 
         <nav class="nav-list">
-          <RouterLink to="/dashboard" @click="closeSidebar"
-            >Dashboard</RouterLink
-          >
-          <RouterLink to="/users" @click="closeSidebar">Users</RouterLink>
-          <RouterLink to="/sessions" @click="closeSidebar">Sessions</RouterLink>
-          <RouterLink to="/apps" @click="closeSidebar">Apps</RouterLink>
+          <RouterLink to="/dashboard" @click="closeSidebar">
+            <LayoutDashboard :size="18" aria-hidden="true" />
+            Dashboard
+          </RouterLink>
+          <RouterLink to="/users" @click="closeSidebar">
+            <Users :size="18" aria-hidden="true" />
+            Users
+          </RouterLink>
+          <RouterLink to="/sessions" @click="closeSidebar">
+            <Activity :size="18" aria-hidden="true" />
+            Sessions
+          </RouterLink>
+          <RouterLink to="/apps" @click="closeSidebar">
+            <AppWindow :size="18" aria-hidden="true" />
+            Apps
+          </RouterLink>
         </nav>
 
         <div class="sidebar-footer">
