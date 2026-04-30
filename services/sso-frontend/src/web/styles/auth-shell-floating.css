@@ -1,7 +1,10 @@
-.legacy-login {
-  --auth-frame-width: min(100%, 448px);
+:root {
   --theme-toggle-edge-right: max(20px, calc(env(safe-area-inset-right, 0px) + 20px));
   --theme-toggle-edge-bottom: max(32px, calc(env(safe-area-inset-bottom, 0px) + 32px));
+}
+
+.legacy-login {
+  --auth-frame-width: min(100%, 448px);
 }
 
 .legacy-login__frame {
@@ -32,7 +35,7 @@
 }
 
 @media (max-width: 640px) {
-  .legacy-login {
+  :root {
     --theme-toggle-edge-right: max(12px, calc(env(safe-area-inset-right, 0px) + 12px));
     --theme-toggle-edge-bottom: max(24px, calc(env(safe-area-inset-bottom, 0px) + 24px));
   }

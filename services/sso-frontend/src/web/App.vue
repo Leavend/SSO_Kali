@@ -133,8 +133,6 @@ watch(() => route.path, closeSidebar);
 
         <AuthFooter class="admin-auth-footer" />
       </div>
-
-      <ScrollToTop />
     </template>
 
     <main v-else class="main-surface main-surface--auth">
