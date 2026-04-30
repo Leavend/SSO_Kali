@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { AUTH_ROUTES, identityActionHref } from '@parent-ui/auth-shell.mjs'
+import { ArrowRight } from 'lucide-vue-next'
+import { AUTH_ROUTES, AUTH_SHELL, identityActionHref } from '@parent-ui/auth-shell.mjs'
 import AuthShell from '@/components/auth/AuthShell.vue'
 
 const route = useRoute()
@@ -68,8 +69,8 @@ onBeforeUnmount(() => {
 <template>
   <AuthShell labelledby="login-title">
     <form class="signin-card" @submit.prevent="submit">
-      <h1 id="login-title">Masuk</h1>
-      <p>Masukkan email yang terdaftar untuk melanjutkan.</p>
+      <h1 id="login-title">{{ AUTH_SHELL.copy.loginTitle }}</h1>
+      <p>{{ AUTH_SHELL.copy.loginSubtitle }}</p>
 
       <div class="field-group">
         <label for="login-email">Email <span aria-hidden="true">*</span></label>
@@ -87,20 +88,23 @@ onBeforeUnmount(() => {
       </div>
 
       <div class="signin-actions">
-        <a :href="passwordResetHref">Lupa kata sandi?</a>
+        <a :href="passwordResetHref">{{ AUTH_SHELL.copy.forgotPassword }}</a>
         <button class="signin-submit" type="submit" :disabled="loading || !email.trim()">
           <span v-if="loading" class="loading-inline">
             <span class="spinner" aria-hidden="true" />
-            Loading...
+            {{ AUTH_SHELL.copy.processingButton }}
           </span>
-          <span v-else>Lanjutkan</span>
+          <span v-else class="signin-submit__label">
+            {{ AUTH_SHELL.copy.continueButton }}
+            <ArrowRight :size="17" aria-hidden="true" />
+          </span>
         </button>
       </div>
     </form>
 
     <div class="register-card">
-      Belum memiliki akun?
-      <a :href="registerHref">Daftar Sekarang</a>
+      {{ AUTH_SHELL.copy.registerPrompt }}
+      <a :href="registerHref">{{ AUTH_SHELL.copy.registerAction }}</a>
     </div>
   </AuthShell>
 </template>

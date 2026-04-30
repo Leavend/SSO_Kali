@@ -83,16 +83,16 @@ select {
   max-width: 760px;
   margin: 24px 0 16px;
   color: #f8fafc;
-  font-size: clamp(2.6rem, 7vw, 5.8rem);
-  line-height: 0.92;
-  letter-spacing: -0.075em;
+  font-size: 4.25rem;
+  line-height: 1;
+  letter-spacing: 0;
 }
 
 .hero-card p {
   max-width: 690px;
   margin: 0;
   color: #cbd5e1;
-  font-size: clamp(1rem, 2vw, 1.2rem);
+  font-size: 1.12rem;
   line-height: 1.75;
 }
 
@@ -103,16 +103,47 @@ select {
   margin-top: 34px;
 }
 
+.progress-bar {
+  position: relative;
+  margin-top: 28px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgb(148 163 184 / 16%);
+  overflow: hidden;
+}
+
+.progress-bar__fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #14b8a6, #22d3ee);
+  transition: width 0.6s ease;
+}
+
+.progress-bar__label {
+  position: absolute;
+  top: 14px;
+  right: 0;
+  color: #94a3b8;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
 .button {
   display: inline-flex;
   min-height: 46px;
   align-items: center;
   justify-content: center;
+  gap: 8px;
   padding: 0 18px;
   color: #ffffff;
   font-weight: 700;
   text-decoration: none;
   border-radius: 14px;
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+
+.button:hover {
+  transform: translateY(-1px);
 }
 
 .button--primary {
@@ -171,5 +202,14 @@ select {
 
   .readiness-grid {
     grid-template-columns: 1fr;
+  }
+
+  .hero-card h1 {
+    font-size: 2.25rem;
+    line-height: 1.08;
+  }
+
+  .hero-card p {
+    font-size: 1rem;
   }
 }

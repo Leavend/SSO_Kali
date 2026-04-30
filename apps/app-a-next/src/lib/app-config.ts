@@ -31,7 +31,7 @@ export type ServerAppConfig = {
 
 export function getPublicConfig(): AppConfig {
   return {
-    appName: process.env.NEXT_PUBLIC_APP_NAME ?? "Dummy App A",
+    appName: process.env.NEXT_PUBLIC_APP_NAME ?? "App A - Public Client",
     issuer: process.env.NEXT_PUBLIC_SSO_ISSUER ?? "http://localhost:8200",
     clientId: process.env.NEXT_PUBLIC_CLIENT_ID ?? "prototype-app-a",
     authorizeUrl: process.env.NEXT_PUBLIC_AUTHORIZE_URL ?? "http://localhost:8200/authorize",

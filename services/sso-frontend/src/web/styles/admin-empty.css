@@ -1,0 +1,39 @@
+.panel-empty,
+.panel-empty--large {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  color: var(--admin-subtle, #64748b);
+  text-align: center;
+}
+
+.panel-empty {
+  padding: 28px 16px;
+}
+
+.panel-empty p,
+.panel-empty--large p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.panel-empty p {
+  font-size: 14px;
+}
+
+.panel-empty--large {
+  padding: 48px 24px;
+}
+
+.panel-empty--large h3 {
+  margin: 8px 0 0;
+  color: var(--admin-ink, var(--ink));
+  font-size: 18px;
+}
+
+.panel-empty--large p {
+  max-width: 360px;
+  color: var(--admin-muted, var(--muted));
+  font-size: 15px;
+  line-height: 1.6;
+}

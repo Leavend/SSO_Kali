@@ -24,6 +24,7 @@ export const AUTH_SHELL = Object.freeze({
   brand: Object.freeze({
     name: "Dev-SSO",
     tagline: "Akses identitas yang aman dan profesional",
+    subtitle: "Single Sign-On Identity Platform",
   }),
   footer: Object.freeze({
     copyright: "\u00a9 2026 Dev-SSO",
@@ -75,6 +76,31 @@ export const AUTH_SHELL = Object.freeze({
       focusRing: "#93c5fd",
       shadow: "rgb(0 0 0 / 28%)",
     }),
+  }),
+  spacing: Object.freeze({
+    xs: "4px",
+    sm: "8px",
+    md: "16px",
+    lg: "24px",
+    xl: "32px",
+    xxl: "48px",
+  }),
+  radius: Object.freeze({
+    sm: "6px",
+    md: "8px",
+    lg: "12px",
+    xl: "16px",
+    pill: "999px",
+  }),
+  copy: Object.freeze({
+    loginTitle: "Masuk ke akun Anda",
+    loginSubtitle: "Gunakan email yang terdaftar untuk melanjutkan ke layanan SSO.",
+    registerPrompt: "Belum memiliki akun?",
+    registerAction: "Daftar Sekarang",
+    forgotPassword: "Lupa kata sandi?",
+    continueButton: "Lanjutkan",
+    processingButton: "Memproses...",
+    backButton: "Kembali",
   }),
 });
 

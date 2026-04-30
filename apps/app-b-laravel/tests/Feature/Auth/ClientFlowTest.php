@@ -23,7 +23,7 @@ it('shows the landing page for guest users after the silent SSO check', function
     /** @var TestCase $this */
     $this->get('/?sso_checked=1')
         ->assertOk()
-        ->assertSee('Dummy App B')
+        ->assertSee('App B')
         ->assertSee('Mulai Login Server-side');
 });
 

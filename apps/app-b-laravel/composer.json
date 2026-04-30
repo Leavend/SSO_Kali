@@ -2,7 +2,7 @@
     "$schema": "https://getcomposer.org/schema.json",
     "name": "prototype/app-b-laravel",
     "type": "project",
-    "description": "Dummy Laravel application for server-side OIDC integration tests.",
+    "description": "Confidential Laravel client for server-side OIDC integration tests.",
     "keywords": ["laravel", "sso", "oidc", "dummy-app"],
     "license": "MIT",
     "require": {

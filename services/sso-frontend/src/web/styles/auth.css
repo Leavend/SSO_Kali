@@ -28,11 +28,12 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 999px;
   color: var(--accent);
   background: var(--accent-soft);
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent-soft) 50%, transparent);
 }
 
 .legacy-login__header p {
@@ -40,6 +41,29 @@
   color: var(--accent);
   font-size: 12px;
   font-weight: 800;
+  letter-spacing: 0;
+}
+
+.legacy-login__brand {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+}
+
+.legacy-login__name {
+  margin: 0;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.legacy-login__subtitle {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
   letter-spacing: 0;
 }
 
@@ -172,6 +196,12 @@
 .signin-submit:disabled {
   cursor: not-allowed;
   opacity: 0.56;
+}
+
+.signin-submit__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .loading-inline {

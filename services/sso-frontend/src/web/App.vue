@@ -125,7 +125,11 @@ watch(() => route.path, closeSidebar);
       class="main-surface"
       :class="{ 'main-surface--auth': !showAdminShell }"
     >
-      <RouterView />
+      <RouterView v-slot="{ Component }">
+        <Transition name="page" mode="out-in">
+          <component :is="Component" />
+        </Transition>
+      </RouterView>
     </main>
   </div>
 </template>
@@ -139,5 +143,20 @@ watch(() => route.path, closeSidebar);
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+.page-enter-active,
+.page-leave-active {
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.page-enter-from {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+.page-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
 }
 </style>

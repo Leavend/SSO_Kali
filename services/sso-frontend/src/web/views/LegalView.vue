@@ -1,23 +1,68 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
+import { FileText, Shield, BookOpen } from 'lucide-vue-next'
 
 const route = useRoute()
 
 const content = computed(() => {
-  if (route.name === 'privacy') return { title: 'Privacy', body: 'Dev-SSO menjaga data sesi dan identitas sesuai prinsip minimisasi data.' }
-  if (route.name === 'docs') return { title: 'Docs', body: 'Dokumentasi operasional Dev-SSO tersedia untuk alur login, MFA, dan admin panel.' }
-  return { title: 'Terms', body: 'Akses Dev-SSO digunakan untuk autentikasi dan administrasi layanan yang berwenang.' }
+  if (route.name === 'privacy') return {
+    title: 'Kebijakan Privasi',
+    icon: Shield,
+    body: 'Dev-SSO menjaga data sesi dan identitas sesuai prinsip minimisasi data. Hanya informasi yang diperlukan untuk autentikasi yang disimpan dan diproses.',
+  }
+  if (route.name === 'docs') return {
+    title: 'Dokumentasi',
+    icon: BookOpen,
+    body: 'Dokumentasi operasional Dev-SSO tersedia untuk alur login, multi-factor authentication, integrasi client, dan panel administrasi.',
+  }
+  return {
+    title: 'Ketentuan Layanan',
+    icon: FileText,
+    body: 'Akses Dev-SSO digunakan untuk autentikasi dan administrasi layanan yang berwenang. Setiap penggunaan tunduk pada kebijakan keamanan organisasi.',
+  }
 })
 </script>
 
 <template>
   <main class="legal-page">
     <section class="status-card" aria-labelledby="legal-title">
+      <div class="legal-icon">
+        <component :is="content.icon" :size="22" aria-hidden="true" />
+      </div>
       <p class="eyebrow">Dev-SSO</p>
       <h1 id="legal-title">{{ content.title }}</h1>
       <p>{{ content.body }}</p>
-      <RouterLink to="/">Kembali ke Login</RouterLink>
+      <RouterLink class="legal-back" to="/">Kembali ke Login</RouterLink>
     </section>
   </main>
 </template>
+
+<style scoped>
+.legal-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  color: var(--accent);
+  background: var(--accent-soft);
+  margin-bottom: 4px;
+}
+
+.legal-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 24px;
+  color: var(--accent);
+  font-weight: 800;
+  font-size: 15px;
+  transition: color 0.16s ease;
+}
+
+.legal-back:hover {
+  color: var(--accent-hover);
+}
+</style>

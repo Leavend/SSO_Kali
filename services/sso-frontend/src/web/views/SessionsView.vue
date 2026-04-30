@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
-import { RefreshCw, Trash2 } from 'lucide-vue-next'
+import { Inbox, RefreshCw, Trash2 } from 'lucide-vue-next'
 import PageHeader from '@/components/PageHeader.vue'
 import { useAdminStore } from '@/stores/admin'
 import { formatDateTime, truncateId } from '@shared/format'
@@ -14,7 +14,7 @@ onMounted(() => {
 
 <template>
   <section class="content-stack">
-    <PageHeader eyebrow="Runtime" title="Sessions" description="Active SSO sessions eligible for admin revocation." />
+    <PageHeader eyebrow="Runtime" title="Sessions" description="Sesi SSO aktif yang bisa dicabut oleh administrator." />
 
     <div class="toolbar">
       <button class="button button--secondary" type="button" @click="admin.loadSessions">
@@ -23,12 +23,12 @@ onMounted(() => {
       </button>
     </div>
 
-    <div class="data-table">
+    <div v-if="admin.sessions.length > 0" class="data-table">
       <div class="data-row data-row--head data-row--sessions">
-        <span>Session</span>
-        <span>User</span>
+        <span>Sesi</span>
+        <span>Pengguna</span>
         <span>Client</span>
-        <span>Expires</span>
+        <span>Kedaluwarsa</span>
         <span></span>
       </div>
       <div
@@ -48,13 +48,19 @@ onMounted(() => {
             v-if="admin.canManageSessions"
             class="icon-button"
             type="button"
-            title="Revoke session"
+            title="Cabut sesi"
             @click="admin.revokeSession(session.session_id)"
           >
             <Trash2 :size="18" aria-hidden="true" />
           </button>
         </span>
       </div>
+    </div>
+
+    <div v-else class="panel panel-empty--large">
+      <Inbox :size="32" aria-hidden="true" />
+      <h3>Tidak ada sesi aktif</h3>
+      <p>Sesi akan muncul setelah pengguna melakukan login melalui SSO broker.</p>
     </div>
   </section>
 </template>

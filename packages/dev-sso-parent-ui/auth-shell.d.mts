@@ -40,6 +40,7 @@ export declare const AUTH_SHELL: {
   readonly brand: {
     readonly name: "Dev-SSO";
     readonly tagline: string;
+    readonly subtitle: string;
   };
   readonly footer: {
     readonly copyright: string;
@@ -64,6 +65,31 @@ export declare const AUTH_SHELL: {
   readonly tokens: {
     readonly light: AuthShellTokens;
     readonly dark: AuthShellTokens;
+  };
+  readonly spacing: {
+    readonly xs: string;
+    readonly sm: string;
+    readonly md: string;
+    readonly lg: string;
+    readonly xl: string;
+    readonly xxl: string;
+  };
+  readonly radius: {
+    readonly sm: string;
+    readonly md: string;
+    readonly lg: string;
+    readonly xl: string;
+    readonly pill: string;
+  };
+  readonly copy: {
+    readonly loginTitle: string;
+    readonly loginSubtitle: string;
+    readonly registerPrompt: string;
+    readonly registerAction: string;
+    readonly forgotPassword: string;
+    readonly continueButton: string;
+    readonly processingButton: string;
+    readonly backButton: string;
   };
 };
 
