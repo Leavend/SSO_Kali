@@ -1,6 +1,7 @@
 @media (min-width: 769px) {
   .app-shell--admin {
     grid-template-columns: 280px minmax(0, 1fr);
+    grid-template-rows: 1fr auto;
   }
 
   .sidebar {
@@ -35,7 +36,7 @@
   }
 
   .app-shell--admin .admin-auth-footer {
-    left: 280px;
+    grid-column: 1 / -1;
   }
 }
 
