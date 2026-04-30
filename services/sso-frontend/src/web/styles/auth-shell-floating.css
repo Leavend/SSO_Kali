@@ -34,6 +34,12 @@
   pointer-events: auto;
 }
 
+@media (min-width: 769px) {
+  .app-shell--admin .floating-actions {
+    right: max(32px, calc(env(safe-area-inset-right, 0px) + 32px));
+  }
+}
+
 @media (max-width: 640px) {
   :root {
     --theme-toggle-edge-right: max(12px, calc(env(safe-area-inset-right, 0px) + 12px));
