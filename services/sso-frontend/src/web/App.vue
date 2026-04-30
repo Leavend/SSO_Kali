@@ -3,9 +3,8 @@ import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { Activity, AppWindow, LogOut, LayoutDashboard, Menu, RefreshCw, ShieldCheck, Users, X } from "lucide-vue-next";
 import { RouterLink, RouterView, useRoute } from "vue-router";
 import { AUTH_SHELL } from "@parent-ui/auth-shell.mjs";
-import ThemeToggle from "@/components/ThemeToggle.vue";
+import FloatingActions from "@/components/FloatingActions.vue";
 import AuthFooter from "@/components/auth/AuthFooter.vue";
-import ScrollToTop from "@/components/ScrollToTop.vue";
 import { useAdminStore } from "./stores/admin";
 
 const admin = useAdminStore();
@@ -122,21 +121,24 @@ watch(() => route.path, closeSidebar);
         </div>
       </aside>
 
-      <div
-        :id="AUTH_SHELL.theme.toggleHostId"
-        class="theme-toggle-anchor admin-theme-toggle-anchor"
-      >
-        <ThemeToggle initial-theme="dark" />
+      <FloatingActions initial-theme="dark" admin />
+
+      <div class="admin-content-shell">
+        <main class="main-surface">
+          <RouterView v-slot="{ Component }">
+            <Transition name="page" mode="out-in">
+              <component :is="Component" />
+            </Transition>
+          </RouterView>
+        </main>
+
+        <AuthFooter class="admin-auth-footer" />
       </div>
 
-      <AuthFooter class="admin-auth-footer" />
       <ScrollToTop />
     </template>
 
-    <main
-      class="main-surface"
-      :class="{ 'main-surface--auth': !showAdminShell }"
-    >
+    <main v-else class="main-surface main-surface--auth">
       <RouterView v-slot="{ Component }">
         <Transition name="page" mode="out-in">
           <component :is="Component" />

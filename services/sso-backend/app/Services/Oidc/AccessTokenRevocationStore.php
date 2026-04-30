@@ -8,6 +8,9 @@ use App\Support\Cache\ResilientCacheStore;
 
 final class AccessTokenRevocationStore
 {
+    /** Maximum number of tokens to revoke per iteration to limit memory pressure. */
+    private const REVOCATION_CHUNK_SIZE = 100;
+
     public function __construct(
         private readonly ResilientCacheStore $cache,
     ) {}
@@ -26,14 +29,22 @@ final class AccessTokenRevocationStore
         }
     }
 
+    /**
+     * Revoke all access tokens tracked for a given client.
+     *
+     * Processes entries in chunks to avoid excessive memory consumption
+     * when a client has accumulated a large number of tracked tokens.
+     */
     public function revokeClient(string $clientId): void
     {
         $entries = $this->clientEntries($clientId);
 
         $this->cache->forget($this->clientKey($clientId));
 
-        foreach ($entries as $jti => $expiresAt) {
-            $this->revokeTrackedToken($jti, $expiresAt);
+        foreach (array_chunk($entries, self::REVOCATION_CHUNK_SIZE, preserve_keys: true) as $chunk) {
+            foreach ($chunk as $jti => $expiresAt) {
+                $this->revokeTrackedToken($jti, $expiresAt);
+            }
         }
     }
 
