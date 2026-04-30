@@ -5,21 +5,9 @@ import { ArrowUp } from 'lucide-vue-next'
 const SCROLL_THRESHOLD = 200
 
 const visible = ref(false)
-const nearFooter = ref(false)
-const footerOffset = ref(0)
 
 function checkPosition(): void {
   visible.value = window.scrollY > SCROLL_THRESHOLD
-
-  const footer = document.querySelector('footer')
-  if (footer) {
-    const footerTop = footer.getBoundingClientRect().top
-    const windowHeight = window.innerHeight
-    nearFooter.value = footerTop < windowHeight
-    footerOffset.value = nearFooter.value
-      ? windowHeight - footerTop + 24
-      : 24
-  }
 }
 
 function scrollToTop(): void {
@@ -48,7 +36,6 @@ onUnmounted(() => {
       class="scroll-to-top"
       type="button"
       aria-label="Back to top"
-      :style="{ bottom: footerOffset + 'px' }"
       @click="scrollToTop"
     >
       <ArrowUp :size="20" aria-hidden="true" />
@@ -58,23 +45,23 @@ onUnmounted(() => {
 
 <style scoped>
 .scroll-to-top {
-  position: fixed;
-  right: 24px;
-  z-index: 40;
+  position: relative;
+  z-index: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  border: 0;
-  border-radius: 999px;
+  width: 40px;
+  height: 40px;
+  border: 1px solid color-mix(in srgb, var(--line) 50%, transparent);
+  border-radius: 12px;
   color: var(--accent-contrast, #ffffff);
   background: var(--accent, #2563eb);
   cursor: pointer;
-  box-shadow: 0 8px 24px color-mix(in srgb, var(--accent, #2563eb) 32%, transparent);
+  box-shadow: 0 4px 16px var(--shadow);
   transition:
-    bottom 0.3s ease,
     background-color 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease,
     transform 0.16s ease,
     box-shadow 0.16s ease;
 }
@@ -82,7 +69,7 @@ onUnmounted(() => {
 .scroll-to-top:hover {
   background: var(--accent-hover, #1d4ed8);
   transform: translateY(-2px);
-  box-shadow: 0 12px 32px color-mix(in srgb, var(--accent, #2563eb) 40%, transparent);
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--accent, #2563eb) 36%, transparent);
 }
 
 .scroll-to-top:focus-visible {
