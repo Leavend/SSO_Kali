@@ -13,9 +13,23 @@ use Throwable;
 
 final class DownstreamClientRegistry
 {
+    /** @var array<string, DownstreamClient>|null */
+    private ?array $clientsCache = null;
+
     public function __construct(
         private readonly ClientSecretHashPolicy $hashes,
     ) {}
+
+    /**
+     * Flush the per-request client cache.
+     *
+     * Call this after any dynamic registration mutation (stage, activate, disable)
+     * so subsequent lookups within the same request see the updated registry.
+     */
+    public function flush(): void
+    {
+        $this->clientsCache = null;
+    }
 
     public function find(string $clientId): ?DownstreamClient
     {
@@ -75,6 +89,10 @@ final class DownstreamClientRegistry
      */
     private function clients(): array
     {
+        if ($this->clientsCache !== null) {
+            return $this->clientsCache;
+        }
+
         $rawClients = config('oidc_clients.clients', []);
         $clients = [];
 
@@ -86,7 +104,9 @@ final class DownstreamClientRegistry
             $clients[$clientId] = $this->makeClient($clientId, $config);
         }
 
-        return $this->withDynamicClients($clients);
+        $this->clientsCache = $this->withDynamicClients($clients);
+
+        return $this->clientsCache;
     }
 
     /**

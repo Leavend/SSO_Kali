@@ -72,3 +72,57 @@ Audit TDD diperluas dari smoke per-app menjadi runner whole-source di `run-all-t
 Test contract ditambah untuk memastikan client onboarding tidak bisa menghasilkan redirect URI ambigu. Frontend Admin dan backend broker sama-sama menolak base URL yang membawa credentials, path, query, atau fragment; callback/logout path juga menolak `//`, wildcard, query/fragment, dan traversal. Ini mengikuti prinsip Google-style exact redirect URI sekaligus RFC 7642 lifecycle: integrasi client boleh distandardisasi, tetapi trust boundary dan artifact handoff harus eksplisit, auditable, dan mudah di-rollback.
 
 Audit TDD berikutnya menutup gap canonical redirect matching dan hygiene repository. Backend broker sekarang memakai helper origin canonical bersama untuk contract, registry dinamis, dan conflict detection; uppercase scheme/host serta default port tidak lagi menghasilkan URI berbeda dari Admin UI. Runner whole-source juga menjalankan `validate-repository-hygiene.sh` agar archive lokal, dependency snapshots, dan folder copy lokal seperti `node_modules 2` tetap di luar Git dan Docker build context, menjaga build deterministik, cepat, dan aman untuk rollback.
+
+## Deep Dive TDD Audit 2026-04-30
+
+### RFC 7642 Deep Dive Findings
+
+RFC 7642 mendefinisikan use case SCIM untuk cross-domain identity management. Relevansi untuk project SSO:
+
+1. **Cloud Identity Provisioning (§2.1)**: Saat web client baru terhubung ke SSO, identitas harus bisa disinkronkan baik via JIT provisioning maupun SCIM bulk provisioning. Project sudah mendukung keduanya melalui `ClientProvisioningReadinessBuilder`.
+
+2. **Account lifecycle management (§2.2)**: Deaktivasi akun di identity provider harus langsung memutus akses di semua client. Project sudah mengimplementasikan ini melalui `ClientIntegrationRollbackRevoker` yang mencabut refresh token, menandai access token JTI sebagai revoked, dan mengirim back-channel logout.
+
+3. **Attribute sharing trust agreement (§3.1)**: Setiap client baru harus memiliki contract eksplisit yang menyebutkan atribut yang dibagikan, scope OIDC, dan provisioning mode. `ClientIntegrationContractBuilder` sudah menghasilkan artifact ini.
+
+4. **Audit and compliance (§4)**: Setiap perubahan lifecycle (stage, activate, disable) harus tercatat dalam audit log. `AdminAuditLogger` sudah mencatat semua operasi dengan taxonomy yang konsisten.
+
+### Google SSO Multi-Client Architecture Pattern
+
+Analisis terhadap pola Google SSO menghasilkan prinsip yang sudah diterapkan di project:
+
+- **Single identity authority**: ZITADEL sebagai upstream identity engine, Laravel SSO sebagai broker facade.
+- **Per-client session isolation**: Setiap app memiliki session cookie sendiri (HttpOnly Secure), tidak ada shared session storage antar client.
+- **Silent SSO**: Client mencoba refresh server-side sebelum mengarahkan user ke login ulang (sudah diimplementasikan di App A dan App B).
+- **Centralized logout via sid**: Back-channel logout menggunakan logical `sid` untuk memutus sesi di semua client sekaligus.
+- **Exact redirect URI matching**: Tidak ada wildcard redirect, semua URI divalidasi secara eksak setelah canonicalization.
+
+### Expanded Test Coverage
+
+Audit TDD diperluas untuk menutup gap berikut:
+
+**Backend (Pest):**
+- `DownstreamClientRegistryTest`: 11 test cases mencakup static/dynamic client resolution, secret validation, priority merge, dan graceful degradation.
+- `ClientIntegrationRollbackRevokerTest`: 5 test cases mencakup token revocation, access token JTI revocation, back-channel logout dispatch, dan outcome counting.
+- `ClientProvisioningReadinessBuilderTest`: 7 test cases mencakup JIT/SCIM manifest, deprovisioning steps, dan risk gates per environment.
+- `ClientIntegrationParityTest`: 7 test cases memastikan validasi backend identik dengan validasi frontend (contract parity).
+
+**Frontend (Vitest):**
+- `client-integration-edge-cases.test.ts`: 40+ test cases mencakup suggestClientId, required field validation, client ID edge cases, base URL validation, path validation, owner email, contract generation, dan provisioning manifest.
+
+### Performance Improvement
+
+`DownstreamClientRegistry` sekarang memakai per-request memoization. Properti `$clientsCache` menyimpan hasil merge static + dynamic client sehingga:
+- Schema::hasTable hanya dipanggil sekali per request
+- Database query dynamic registrations hanya berjalan sekali per request
+- Config parsing hanya terjadi sekali per request
+
+Method `flush()` tersedia untuk membersihkan cache saat dynamic registration berubah (dipanggil dari `ClientIntegrationRegistrationService` setelah stage/activate/disable).
+
+### Zero-Downtime, Rollback, dan Update Zero-Downtime
+
+Semua perubahan di audit ini mengikuti pola software lifecycle:
+
+1. **Zero downtime**: Tidak ada breaking change. Memoization adalah backward-compatible. Test baru tidak mengubah behavior existing.
+2. **Rollback mechanism**: `DownstreamClientRegistry::flush()` bersifat additive. Jika di-rollback, cache tidak ada dan behavior kembali ke per-call rebuild (lebih lambat tapi fungsional).
+3. **Update zero downtime**: Tidak ada migrasi database baru. Perubahan hanya pada application code yang bisa di-deploy via CI/CD rolling update.

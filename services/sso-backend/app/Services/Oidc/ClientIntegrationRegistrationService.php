@@ -21,6 +21,7 @@ final class ClientIntegrationRegistrationService
         private readonly ClientSecretHashPolicy $hashes,
         private readonly AdminAuditLogger $audit,
         private readonly ClientIntegrationRollbackRevoker $revoker,
+        private readonly DownstreamClientRegistry $clients,
     ) {}
 
     /**
@@ -38,6 +39,7 @@ final class ClientIntegrationRegistrationService
     {
         $this->assertValid($draft);
         $registration = OidcClientRegistration::query()->create($this->stagePayload($admin, $draft));
+        $this->clients->flush();
         $this->auditSuccess('stage_client_integration', $request, $admin, $registration);
 
         return $registration;
@@ -48,6 +50,7 @@ final class ClientIntegrationRegistrationService
         $registration = $this->stagedRegistration($clientId);
         $this->assertActivationSecret($registration, $secretHash);
         $registration->update($this->activationPayload($admin, $secretHash));
+        $this->clients->flush();
         $this->auditSuccess('activate_client_integration', $request, $admin, $registration->refresh());
 
         return $registration;
@@ -59,6 +62,7 @@ final class ClientIntegrationRegistrationService
         $outcome = $this->revoker->revoke($registration);
 
         $registration->update(['status' => 'disabled', 'disabled_at' => now()]);
+        $this->clients->flush();
         $this->auditSuccess('disable_client_integration', $request, $admin, $registration->refresh(), $outcome);
 
         return $registration;

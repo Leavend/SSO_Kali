@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Models\User;
+use App\Services\Oidc\DownstreamClientRegistry;
 use App\Support\Security\AuthThrottleResponder;
 use App\Support\Security\BrokerSessionCookiePolicy;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -14,7 +15,10 @@ use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
-    public function register(): void {}
+    public function register(): void
+    {
+        $this->app->singleton(DownstreamClientRegistry::class);
+    }
 
     public function boot(): void
     {

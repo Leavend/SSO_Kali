@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { ShieldCheck } from 'lucide-vue-next'
 import { AUTH_SHELL } from '@parent-ui/auth-shell.mjs'
-import ThemeToggle from '@/components/ThemeToggle.vue'
+import FloatingActions from '@/components/FloatingActions.vue'
 import AuthFooter from './AuthFooter.vue'
-import ScrollToTop from '@/components/ScrollToTop.vue'
 
 withDefaults(
   defineProps<{
@@ -31,14 +30,8 @@ withDefaults(
       <slot />
     </div>
 
-    <div
-      :id="AUTH_SHELL.theme.toggleHostId"
-      :class="AUTH_SHELL.theme.toggleHostClass"
-    >
-      <ThemeToggle />
-    </div>
+    <FloatingActions />
 
     <AuthFooter />
-    <ScrollToTop />
   </section>
 </template>
