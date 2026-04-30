@@ -1,7 +1,7 @@
 .legacy-login {
   --auth-frame-width: min(100%, 448px);
   --theme-toggle-edge-bottom: max(72px, calc(env(safe-area-inset-bottom, 0px) + 72px));
-  --theme-toggle-edge-right: max(16px, calc(env(safe-area-inset-right, 0px) + 20px));
+  --theme-toggle-edge-right: max(16px, calc(50vw - 224px));
 }
 
 .legacy-login__frame {

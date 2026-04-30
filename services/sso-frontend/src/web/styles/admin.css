@@ -209,6 +209,8 @@ html[data-theme='light'] .app-shell--admin .sidebar-close {
 }
 
 .main-surface {
+  grid-column: 1 / -1;
+  grid-row: 1;
   min-width: 0;
   padding: 72px 20px 112px;
 }
@@ -347,12 +349,14 @@ html[data-theme='light'] .app-shell--admin .sidebar-close {
 
 .app-shell--admin .admin-theme-toggle-anchor {
   position: fixed;
-  right: max(16px, calc(env(safe-area-inset-right, 0px) + 20px));
+  right: max(20px, calc(env(safe-area-inset-right, 0px) + 20px));
   bottom: max(72px, calc(env(safe-area-inset-bottom, 0px) + 72px));
   z-index: 35;
 }
 
 .app-shell--admin .admin-auth-footer {
+  grid-column: 1 / -1;
+  grid-row: 2;
   color: color-mix(in srgb, var(--admin-subtle) 82%, transparent);
 }
 

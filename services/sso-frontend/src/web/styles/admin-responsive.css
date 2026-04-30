@@ -4,6 +4,21 @@
     grid-template-rows: 1fr auto;
   }
 
+  .app-shell--admin .sidebar {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .app-shell--admin .main-surface {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .app-shell--admin .admin-auth-footer {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
   .sidebar {
     position: static;
     width: 280px;
@@ -33,10 +48,6 @@
 
   .main-surface {
     padding: 32px 32px 104px 32px;
-  }
-
-  .app-shell--admin .admin-auth-footer {
-    grid-column: 1 / -1;
   }
 }
 
