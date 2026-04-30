@@ -14,7 +14,7 @@
 .floating-actions {
   position: fixed;
   right: var(--theme-toggle-edge-right);
-  bottom: var(--theme-toggle-edge-bottom);
+  bottom: calc(var(--theme-toggle-edge-bottom) + var(--floating-actions-lift, 0px));
   z-index: 40;
   display: flex;
   flex-direction: column;

@@ -18,6 +18,10 @@ export function text(status: number, body: string, headers = {}): AppResponse {
   return respond(status, body, { 'content-type': 'text/plain; charset=utf-8', ...headers })
 }
 
+export function html(status: number, body: string, headers = {}): AppResponse {
+  return respond(status, body, { 'content-type': 'text/html; charset=utf-8', ...headers })
+}
+
 export function redirect(location: string, status = 302): AppResponse {
   return respond(status, '', { location, 'cache-control': 'no-store' })
 }
