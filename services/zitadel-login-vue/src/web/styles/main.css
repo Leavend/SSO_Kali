@@ -139,9 +139,9 @@ input {
 .signin-card {
   display: grid;
   gap: 0;
-  padding: 32px;
-  border: 1px solid color-mix(in srgb, var(--line) 76%, transparent);
-  border-radius: 16px;
+  padding: 36px 32px;
+  border: 1px solid color-mix(in srgb, var(--line) 50%, transparent);
+  border-radius: 20px;
 }
 
 .signin-card--status {
@@ -152,19 +152,19 @@ input {
 .signin-card h1 {
   margin: 0;
   color: var(--ink);
-  font-size: 28px;
+  font-size: 26px;
   font-weight: 800;
-  line-height: 1.18;
+  line-height: 1.22;
   text-align: center;
-  letter-spacing: 0;
+  letter-spacing: -0.01em;
 }
 
 .signin-card > p {
-  max-width: 320px;
-  margin: 8px auto 0;
+  max-width: 340px;
+  margin: 10px auto 0;
   color: var(--muted);
-  font-size: 15px;
-  line-height: 1.6;
+  font-size: 14.5px;
+  line-height: 1.65;
   text-align: center;
 }
 
@@ -182,12 +182,12 @@ input {
 
 .field-group input {
   width: 100%;
-  min-height: 44px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  min-height: 46px;
+  border: 1px solid color-mix(in srgb, var(--line) 60%, transparent);
+  border-radius: 10px;
   padding: 0 14px;
   color: var(--ink);
-  background: transparent;
+  background: var(--card);
   font-size: 15px;
   transition:
     border-color 0.16s ease,
@@ -218,8 +218,9 @@ input {
   min-height: 48px;
   margin-top: 28px;
   padding: 4px 14px 4px 4px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid color-mix(in srgb, var(--line) 60%, transparent);
   border-radius: 999px;
+  background: color-mix(in srgb, var(--card-hover) 50%, var(--card));
 }
 
 .account-pill span {
@@ -229,9 +230,10 @@ input {
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  color: #831843;
-  background: #fbcfe8;
+  color: var(--accent-contrast);
+  background: var(--accent);
   font-weight: 800;
+  font-size: 14px;
 }
 
 .account-pill strong {
@@ -257,19 +259,20 @@ input {
 .signin-secondary {
   display: inline-flex;
   min-width: 128px;
-  min-height: 44px;
+  min-height: 46px;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  border-radius: 8px;
-  padding: 0 20px;
+  border-radius: 10px;
+  padding: 0 22px;
   cursor: pointer;
   font-size: 15px;
   font-weight: 800;
   transition:
     color 0.16s ease,
     background-color 0.16s ease,
-    transform 0.16s ease;
+    transform 0.16s ease,
+    box-shadow 0.16s ease;
 }
 
 .signin-submit:disabled,
@@ -280,26 +283,26 @@ input {
 
 .signin-submit {
   border: 0;
-  color: var(--accent);
-  background: var(--accent-soft);
+  color: var(--accent-contrast);
+  background: var(--accent);
 }
 
 .signin-submit:hover:not(:disabled) {
-  color: var(--accent-contrast);
-  background: var(--accent);
+  background: var(--accent-hover);
   transform: translateY(-1px);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--accent) 28%, transparent);
 }
 
 .signin-secondary {
-  border: 1px solid var(--line);
-  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--line) 60%, transparent);
+  color: var(--ink);
   background: var(--card);
 }
 
 .signin-secondary:hover:not(:disabled) {
   background: var(--accent-soft);
   border-color: var(--accent);
-  color: var(--accent-hover);
+  color: var(--accent);
 }
 
 .link-action {
@@ -317,13 +320,15 @@ input {
 
 .register-card {
   margin-top: 16px;
-  border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
-  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--line) 50%, transparent);
+  border-radius: 14px;
   padding: 18px 24px;
   color: var(--muted);
-  font-size: 15px;
+  font-size: 14.5px;
   line-height: 1.6;
   text-align: center;
+  background: color-mix(in srgb, var(--card) 60%, transparent);
+  backdrop-filter: blur(8px);
 }
 
 .register-card a {
@@ -338,26 +343,29 @@ input {
 .alert {
   margin: 18px 0 0;
   padding: 12px 14px;
-  border: 1px solid #f59e0b;
-  border-radius: 8px;
-  color: #7c2d12;
-  background: #fffbeb;
-  line-height: 1.45;
+  border: 1px solid color-mix(in srgb, #ef4444 40%, transparent);
+  border-radius: 10px;
+  color: #991b1b;
+  background: #fef2f2;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 [data-theme='dark'] .alert {
-  color: #fde68a;
-  background: #431407;
+  color: #fca5a5;
+  background: color-mix(in srgb, #ef4444 12%, var(--card));
+  border-color: color-mix(in srgb, #ef4444 30%, transparent);
 }
 
 .notice {
   margin: 18px 0 0;
   padding: 12px 14px;
-  border: 1px solid color-mix(in srgb, var(--accent) 42%, transparent);
-  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-radius: 10px;
   color: var(--ink);
   background: var(--accent-soft);
-  line-height: 1.45;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 .theme-toggle-anchor {
@@ -373,20 +381,23 @@ input {
   justify-content: center;
   width: 40px;
   height: 40px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--line) 50%, transparent);
+  border-radius: 12px;
   color: var(--muted);
   background: var(--card);
   cursor: pointer;
+  box-shadow: 0 4px 16px var(--shadow);
   transition:
     color 0.16s ease,
     background-color 0.16s ease,
-    border-color 0.16s ease;
+    border-color 0.16s ease,
+    transform 0.16s ease;
 }
 
 .theme-toggle:hover {
   color: var(--ink);
   background: var(--card-hover);
+  transform: scale(1.06);
 }
 
 .auth-footer {

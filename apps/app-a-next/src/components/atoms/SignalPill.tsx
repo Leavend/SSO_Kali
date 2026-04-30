@@ -4,7 +4,7 @@ type SignalPillProps = {
 
 export function SignalPill({ text }: SignalPillProps) {
   return (
-    <span className="w-fit rounded-full border border-app-line bg-white/5 px-3 py-1 font-mono text-xs uppercase tracking-[0.24em] text-app-accent">
+    <span className="w-fit rounded-xl border border-app-accent/20 bg-app-accent-soft px-3.5 py-1.5 font-mono text-xs uppercase tracking-[0.18em] text-app-accent">
       {text}
     </span>
   );
