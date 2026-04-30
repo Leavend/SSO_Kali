@@ -43,12 +43,14 @@
 @media (min-width: 769px) {
   .app-shell--admin .floating-actions {
     right: max(32px, calc(env(safe-area-inset-right, 0px) + 32px));
+    bottom: calc(24px + var(--floating-actions-lift, 0px));
   }
 }
 
 @media (max-width: 768px) {
   .app-shell--admin .floating-actions {
     right: max(20px, calc(env(safe-area-inset-right, 0px) + 20px));
+    bottom: calc(20px + var(--floating-actions-lift, 0px));
   }
 }
 
