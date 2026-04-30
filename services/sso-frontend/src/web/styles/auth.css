@@ -1,12 +1,12 @@
 .legacy-login {
   position: relative;
-  display: grid;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   min-height: 100dvh;
-  height: 100dvh;
-  place-items: center;
-  overflow: clip;
   overscroll-behavior: none;
-  padding: 40px 16px 76px;
+  padding: 40px 16px 0;
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--accent-soft) 62%, transparent), transparent 54%),
     var(--canvas);
@@ -14,6 +14,10 @@
 
 .legacy-login__frame {
   width: min(100%, 448px);
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   animation: fadeInUp 0.45s ease-out;
 }
 
@@ -232,10 +236,9 @@
 }
 
 .theme-toggle-anchor {
-  position: fixed;
-  right: 20px;
-  bottom: 58px;
-  z-index: 10;
+  display: flex;
+  justify-content: center;
+  padding: 4px 0 0;
 }
 
 .theme-toggle {
@@ -264,10 +267,7 @@
 }
 
 .auth-footer {
-  position: fixed;
-  right: 0;
-  bottom: 0;
-  left: 0;
+  flex-shrink: 0;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -277,7 +277,6 @@
   color: color-mix(in srgb, var(--muted) 78%, transparent);
   font-size: 12px;
   line-height: 1.5;
-  z-index: 8;
 }
 
 @keyframes spin {
@@ -460,7 +459,7 @@
 
   .legacy-login {
     align-items: start;
-    padding: 34px 16px 104px;
+    padding: 34px 16px 0;
   }
 
   .signin-card {
@@ -474,11 +473,6 @@
 
   .signin-submit {
     width: 100%;
-  }
-
-  .theme-toggle-anchor {
-    right: 16px;
-    bottom: 72px;
   }
 
 }

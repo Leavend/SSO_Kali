@@ -6,18 +6,16 @@ import { describe, expect, it } from 'vitest'
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
 describe('auth shell layout CSS', () => {
-  it('keeps the login shell viewport-locked without blank scroll bands', () => {
+  it('uses flexbox sticky-footer pattern so footer stays at bottom without overlapping content', () => {
     const authCss = readFileSync(resolve(root, 'web/styles/auth.css'), 'utf8')
     const adminCss = readFileSync(resolve(root, 'web/styles/admin.css'), 'utf8')
 
     expect(authCss).toContain('min-height: 100dvh;')
-    expect(authCss).toContain('height: 100dvh;')
-    expect(authCss).toContain('overflow: clip;')
+    expect(authCss).toContain('display: flex;')
+    expect(authCss).toContain('flex-direction: column;')
     expect(authCss).toContain('overscroll-behavior: none;')
     expect(adminCss).toContain('.app-shell--auth')
     expect(adminCss).toContain('min-height: 100dvh;')
-    expect(adminCss).toContain('height: 100dvh;')
-    expect(adminCss).toContain('overflow: clip;')
   })
 
   it('pins root surfaces to the app canvas to avoid white browser gutters', () => {

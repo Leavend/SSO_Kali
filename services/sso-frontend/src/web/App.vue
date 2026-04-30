@@ -5,6 +5,7 @@ import { RouterLink, RouterView, useRoute } from "vue-router";
 import { AUTH_SHELL } from "@parent-ui/auth-shell.mjs";
 import ThemeToggle from "@/components/ThemeToggle.vue";
 import AuthFooter from "@/components/auth/AuthFooter.vue";
+import ScrollToTop from "@/components/ScrollToTop.vue";
 import { useAdminStore } from "./stores/admin";
 
 const admin = useAdminStore();
@@ -129,6 +130,7 @@ watch(() => route.path, closeSidebar);
       </div>
 
       <AuthFooter class="admin-auth-footer" />
+      <ScrollToTop />
     </template>
 
     <main
