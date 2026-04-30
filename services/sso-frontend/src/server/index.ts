@@ -14,7 +14,7 @@ import {
   handleRefresh,
 } from './auth-handlers.js'
 import type { AppResponse } from './response.js'
-import { json, methodNotAllowed, send, text } from './response.js'
+import { html, methodNotAllowed, send, text } from './response.js'
 
 const clientDir = fileURLToPath(new URL('../../client/', import.meta.url))
 
@@ -31,7 +31,7 @@ const server = createServer(async (request, response) => {
     await serveStatic(requestUrl, response)
   } catch (error) {
     console.error(error)
-    send(response, json(500, { error: 'server_error', message: 'Frontend server failed.' }))
+    send(response, errorPage(500, 'Panel admin sedang bermasalah', 'Silakan muat ulang halaman atau kembali ke halaman utama.'))
   }
 })
 
@@ -68,7 +68,7 @@ async function serveStatic(requestUrl: URL, response: import('node:http').Server
   const asset = await resolveAsset(requestUrl.pathname)
 
   if (!asset) {
-    send(response, json(404, { error: 'not_found', message: 'Static asset not found.' }))
+    send(response, errorPage(404, 'Halaman tidak ditemukan', 'URL ini tidak tersedia di panel admin.'))
     return
   }
 
@@ -101,6 +101,18 @@ async function resolveAsset(
   }
 
   return { path: join(clientDir, 'index.html'), immutable: false }
+}
+
+function errorPage(status: number, title: string, message: string): AppResponse {
+  return html(
+    status,
+    `<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)} · Dev-SSO</title><style>:root{color-scheme:light dark;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f8fafc;color:#0f172a}body{min-height:100vh;margin:0;display:grid;place-items:center;padding:24px;background:linear-gradient(180deg,#eef4ff,transparent 58%),#f8fafc}.card{width:min(100%,480px);border:1px solid #dbe3ef;border-radius:24px;padding:32px;text-align:center;background:rgba(255,255,255,.9);box-shadow:0 24px 70px rgba(15,23,42,.14)}.badge{display:inline-flex;margin-bottom:14px;border-radius:999px;padding:6px 12px;background:#dbeafe;color:#1d4ed8;font-weight:800;font-size:12px;letter-spacing:.06em}h1{margin:0;color:#0f172a;font-size:28px;line-height:1.15}p{margin:12px 0 24px;color:#475569;line-height:1.65}a{display:inline-flex;align-items:center;justify-content:center;min-height:44px;border-radius:12px;padding:0 18px;text-decoration:none;font-weight:800;background:#2563eb;color:white}@media (prefers-color-scheme:dark){:root{background:#020617;color:#e2e8f0}body{background:linear-gradient(180deg,rgba(37,99,235,.18),transparent 58%),#020617}.card{background:rgba(15,23,42,.9);border-color:#334155;box-shadow:0 24px 70px rgba(0,0,0,.34)}h1{color:#f8fafc}p{color:#94a3b8}}</style></head><body><main class="card"><span class="badge">${status}</span><h1>${escapeHtml(title)}</h1><p>${escapeHtml(message)}</p><a href="/dashboard">Buka Dashboard</a></main></body></html>`,
+    { 'cache-control': 'no-store, no-cache, private, max-age=0' },
+  )
+}
+
+function escapeHtml(value: string): string {
+  return value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;')
 }
 
 function urlFromRequest(request: IncomingMessage): URL {

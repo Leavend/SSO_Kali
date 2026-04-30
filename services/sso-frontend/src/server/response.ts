@@ -31,6 +31,17 @@ export function text(status: number, body: string, headers: Record<string, Heade
   }
 }
 
+export function html(status: number, body: string, headers: Record<string, HeaderValue> = {}): AppResponse {
+  return {
+    status,
+    headers: {
+      'content-type': 'text/html; charset=utf-8',
+      ...headers,
+    },
+    body,
+  }
+}
+
 export function redirect(
   location: string,
   cookies: readonly string[] = [],
