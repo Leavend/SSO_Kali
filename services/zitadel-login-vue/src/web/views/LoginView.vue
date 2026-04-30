@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowRight } from 'lucide-vue-next'
+import { AUTH_SHELL } from '@parent-ui/auth-shell.mjs'
 import { sanitizeLoginHint } from '@shared/routes'
 import AuthShell from '@/components/auth/AuthShell.vue'
 import { useLoginFlowStore } from '@/stores/loginFlow'
@@ -58,8 +59,8 @@ function routeLoginHint(): string {
     </div>
 
     <form v-else class="signin-card" @submit.prevent="submit">
-      <h1 id="login-title">Masuk</h1>
-      <p>Masukkan email yang terdaftar untuk melanjutkan.</p>
+      <h1 id="login-title">{{ AUTH_SHELL.copy.loginTitle }}</h1>
+      <p>{{ AUTH_SHELL.copy.loginSubtitle }}</p>
 
       <label class="field-group">
         <span>Email <span aria-hidden="true">*</span></span>
@@ -75,17 +76,17 @@ function routeLoginHint(): string {
       <p v-if="flow.errorMessage" class="alert" role="alert">{{ flow.errorMessage }}</p>
 
       <div class="signin-actions">
-        <a class="link-action" :href="resetHref">Lupa kata sandi?</a>
+        <a class="link-action" :href="resetHref">{{ AUTH_SHELL.copy.forgotPassword }}</a>
         <button class="signin-submit" type="submit" :disabled="flow.isLoading">
-          <span>{{ flow.isLoading ? 'Memproses...' : 'Lanjutkan' }}</span>
+          <span>{{ flow.isLoading ? AUTH_SHELL.copy.processingButton : AUTH_SHELL.copy.continueButton }}</span>
           <ArrowRight :size="17" aria-hidden="true" />
         </button>
       </div>
     </form>
 
     <div v-if="!isResolvingEntry" class="register-card">
-      Belum memiliki akun?
-      <a :href="signupHref">Daftar Sekarang</a>
+      {{ AUTH_SHELL.copy.registerPrompt }}
+      <a :href="signupHref">{{ AUTH_SHELL.copy.registerAction }}</a>
     </div>
   </AuthShell>
 </template>

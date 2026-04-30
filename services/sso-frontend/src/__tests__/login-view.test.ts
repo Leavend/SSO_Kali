@@ -1,5 +1,6 @@
 import { mount } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { AUTH_SHELL } from '@parent-ui/auth-shell.mjs'
 import LoginView from '../web/views/LoginView.vue'
 
 vi.mock('vue-router', () => ({
@@ -15,8 +16,8 @@ describe('LoginView', () => {
     const wrapper = mount(LoginView)
 
     expect(wrapper.text()).toContain('Dev-SSO')
-    expect(wrapper.text()).toContain('Masuk')
-    expect(wrapper.text()).toContain('Masukkan email yang terdaftar untuk melanjutkan.')
+    expect(wrapper.text()).toContain(AUTH_SHELL.copy.loginTitle)
+    expect(wrapper.text()).toContain(AUTH_SHELL.copy.loginSubtitle)
     expect(wrapper.find('input[type="email"]').attributes('placeholder')).toBe('user@company.com')
     expect(wrapper.find('button[type="submit"]').attributes('disabled')).toBeDefined()
 
@@ -44,12 +45,12 @@ describe('LoginView', () => {
     await wrapper.find('input[type="email"]').setValue('admin@example.com')
     await wrapper.find('form').trigger('submit')
 
-    expect(wrapper.text()).toContain('Loading...')
+    expect(wrapper.text()).toContain(AUTH_SHELL.copy.processingButton)
 
     window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }))
     await wrapper.vm.$nextTick()
 
-    expect(wrapper.text()).toContain('Lanjutkan')
-    expect(wrapper.text()).not.toContain('Loading...')
+    expect(wrapper.text()).toContain(AUTH_SHELL.copy.continueButton)
+    expect(wrapper.text()).not.toContain(AUTH_SHELL.copy.processingButton)
   })
 })

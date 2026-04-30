@@ -13,8 +13,8 @@ const jetBrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Dummy App A",
-  description: "Public client playground for browser-side OIDC integration.",
+  title: "App A - Public Client",
+  description: "Public client integration for browser-side OIDC flow with PKCE.",
 };
 
 export default function RootLayout({

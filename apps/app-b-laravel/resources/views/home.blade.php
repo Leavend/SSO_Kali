@@ -1,9 +1,9 @@
-@extends('layouts.app', ['title' => 'Dummy App B'])
+@extends('layouts.app', ['title' => 'App B - Confidential Client'])
 
 @section('content')
     <section class="panel">
         <span class="eyebrow">Confidential Client</span>
-        <h1 class="title">Dummy App B untuk uji server-side callback dan session sync.</h1>
+        <h1 class="title">App B &mdash; Integrasi server-side callback dan session sync.</h1>
         <p class="lede">
             App ini melakukan redirect authorize dari server Laravel, menyimpan sesi lokal di session store,
             lalu mendaftarkan partisipasi client ke SSO backend agar back-channel logout bisa memutus sesi lintas aplikasi.

@@ -30,11 +30,11 @@ export default async function HomePage({ searchParams }: HomePageProps) {
       <SessionRefreshBridge authenticated={session !== null} />
       <section className="rounded-[2rem] border border-app-line bg-app-panel p-8 shadow-[0_30px_90px_rgba(2,8,23,0.35)]">
         <SignalPill text={session === null ? "Public Client + PKCE" : "Session Active"} />
-        <h1 className="mt-5 text-5xl font-semibold tracking-tight">Dummy App A untuk uji browser-side OIDC flow.</h1>
+        <h1 className="mt-5 text-5xl font-semibold tracking-tight">App A &mdash; Integrasi browser-side OIDC flow.</h1>
         <p className="mt-4 max-w-3xl text-base leading-8 text-app-muted">
           {session === null
             ? "Login dilakukan lewat Authorization Code + PKCE, lalu sesi lokal disimpan server-side di Redis agar back-channel logout bisa menutup sesi lintas aplikasi."
-            : "Sesi ini berasal dari token lokal Laravel SSO facade. Jika logout terjadi dari App B, sesi ini juga akan diputus lewat back-channel logout berbasis sid."}
+            : "Sesi ini berasal dari token lokal SSO facade. Jika logout terjadi dari App B, sesi ini juga akan diputus lewat back-channel logout berbasis sid."}
         </p>
         {event !== null ? <p className="mt-4 rounded-2xl border border-app-line bg-white/5 px-4 py-3 text-sm text-app-accent">{event}</p> : null}
         <dl className="mt-6 grid gap-4 md:grid-cols-3">
@@ -109,7 +109,7 @@ function readEvent(event: string | string[] | undefined): string | null {
     "expired-state": "State callback sudah kedaluwarsa. Mulai ulang login untuk membuat transaksi PKCE baru.",
     "missing-code": "Authorization response tidak membawa code yang valid.",
     "handshake-failed": "Pertukaran code atau sinkronisasi profile gagal di sisi server.",
-    "upstream-error": "ZITADEL mengembalikan error saat proses autentikasi.",
+    "upstream-error": "Provider mengembalikan error saat proses autentikasi.",
     "session-expired": "Sesi lokal berakhir atau refresh token tidak valid. Silakan login ulang.",
   }[event] ?? null;
 }

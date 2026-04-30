@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ $title ?? 'Dummy App B' }}</title>
+    <title>{{ $title ?? 'App B - Confidential Client' }}</title>
     <style>
         :root {
             --shell: #f4efe6;
@@ -11,6 +11,7 @@
             --ink: #241b11;
             --muted: #6b5a47;
             --accent: #d97706;
+            --accent-soft: rgba(217, 119, 6, 0.08);
             --line: rgba(107, 90, 71, 0.18);
         }
 
@@ -22,6 +23,8 @@
                 radial-gradient(circle at top left, rgba(217, 119, 6, 0.16), transparent 24rem),
                 linear-gradient(180deg, #f8f3ea 0%, var(--shell) 100%);
             color: var(--ink);
+            -webkit-font-smoothing: antialiased;
+            text-rendering: optimizeLegibility;
         }
         .shell { max-width: 1100px; margin: 0 auto; padding: 32px 24px 56px; }
         .panel {
@@ -41,22 +44,31 @@
             text-transform: uppercase;
             color: var(--accent);
         }
-        .title { font-size: clamp(2.4rem, 4vw, 4.6rem); line-height: 1.02; margin: 20px 0 0; }
+        .title { font-size: clamp(2rem, 4vw, 3.6rem); line-height: 1.08; margin: 20px 0 0; font-weight: 700; }
         .lede { max-width: 760px; color: var(--muted); font-size: 1rem; line-height: 1.8; margin-top: 16px; }
         .status {
             margin-top: 18px;
             padding: 14px 16px;
             border-radius: 20px;
             border: 1px solid var(--line);
-            background: rgba(217, 119, 6, 0.08);
+            background: var(--accent-soft);
             color: var(--accent);
+            font-size: 14px;
+            line-height: 1.6;
         }
         .grid { display: grid; gap: 16px; margin-top: 28px; }
         .grid.three { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
-        .card { border: 1px solid var(--line); border-radius: 24px; padding: 18px; background: rgba(255, 255, 255, 0.72); }
-        .label { font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
+        .card {
+            border: 1px solid var(--line);
+            border-radius: 24px;
+            padding: 18px;
+            background: rgba(255, 255, 255, 0.72);
+            transition: box-shadow 0.16s ease;
+        }
+        .card:hover { box-shadow: 0 8px 24px rgba(36, 27, 17, 0.06); }
+        .label { font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); margin: 0; }
         .value { margin-top: 10px; font-size: 0.96rem; line-height: 1.7; word-break: break-word; }
-        .actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 28px; }
+        .actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 28px; align-items: center; }
         .button, .ghost {
             display: inline-flex;
             align-items: center;
@@ -68,9 +80,22 @@
             border: 1px solid transparent;
             cursor: pointer;
             font: inherit;
+            font-size: 15px;
+            transition: transform 0.16s ease, box-shadow 0.16s ease;
         }
         .button { background: var(--accent); color: white; }
+        .button:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(217, 119, 6, 0.24); }
         .ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+        .ghost:hover { background: var(--accent-soft); border-color: var(--accent); }
+
+        @media (max-width: 640px) {
+            .shell { padding: 20px 16px 40px; }
+            .panel { padding: 24px 18px; border-radius: 24px; }
+            .title { font-size: 1.8rem; }
+            .grid.three { grid-template-columns: 1fr; }
+            .actions { flex-direction: column; align-items: stretch; }
+            .button, .ghost { width: 100%; text-align: center; }
+        }
     </style>
 </head>
 <body>

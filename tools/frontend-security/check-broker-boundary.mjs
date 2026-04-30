@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
+import { walkSourceFiles } from "./walk-source-files.mjs";
 
 const BLOCKED_MATCHERS = [
   {
@@ -51,19 +52,6 @@ const ALLOWED_FILES = [
   /\.(?:ts|tsx|js|jsx|mjs|cjs)$/,
 ];
 
-const IGNORED_DIRS = new Set([
-  ".codex-temp",
-  ".git",
-  ".next",
-  "build",
-  "coverage",
-  "dist",
-  "e2e",
-  "node_modules",
-  "out",
-  "test-results",
-]);
-
 const IGNORED_FILES = [/\.test\./, /\.spec\./];
 
 function main() {
@@ -80,33 +68,11 @@ function main() {
 }
 
 function scanTree(root) {
-  return walk(root).flatMap((file) => scanFile(root, file));
-}
-
-function walk(entry) {
-  if (shouldIgnoreDir(entry)) {
-    return [];
-  }
-
-  if (statSync(entry).isDirectory()) {
-    return readdirSync(entry).flatMap((name) => walk(path.join(entry, name)));
-  }
-
-  return shouldScanFile(entry) ? [entry] : [];
-}
-
-function shouldIgnoreDir(entry) {
-  if (!statSync(entry).isDirectory()) {
-    return false;
-  }
-
-  const dirname = path.basename(entry);
-
-  return IGNORED_DIRS.has(dirname) || dirname.startsWith("node_modules.");
-}
-
-function shouldScanFile(file) {
-  return ALLOWED_FILES.some((rule) => rule.test(file)) && !IGNORED_FILES.some((rule) => rule.test(file));
+  return walkSourceFiles(root, {
+    allowedFiles: ALLOWED_FILES,
+    ignoredDirs: ["e2e"],
+    ignoredFiles: IGNORED_FILES,
+  }).flatMap((file) => scanFile(root, file));
 }
 
 function scanFile(root, file) {

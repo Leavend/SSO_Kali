@@ -1,4 +1,4 @@
-@extends('layouts.app', ['title' => 'Dashboard App B'])
+@extends('layouts.app', ['title' => 'Dashboard - App B'])
 
 @php
     $profile = is_array($session['profile'] ?? null) ? $session['profile'] : [];
@@ -8,9 +8,9 @@
 @section('content')
     <section class="panel">
         <span class="eyebrow">Session Active</span>
-        <h1 class="title">Handshake App B selesai dan sesi lokal sudah aktif.</h1>
+        <h1 class="title">Handshake App B selesai &mdash; sesi lokal aktif.</h1>
         <p class="lede">
-            Access token dan profile snapshot berasal dari Laravel SSO facade. Jika App A melakukan logout terpusat,
+            Access token dan profile snapshot berasal dari SSO facade. Jika App A melakukan logout terpusat,
             App B akan menerima logout token melalui endpoint back-channel dan sesi ini ikut diputus berdasarkan <code>sid</code>.
         </p>
 
