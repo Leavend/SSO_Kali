@@ -1,12 +1,14 @@
 .legacy-login {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  justify-items: center;
+  height: 100dvh;
   min-height: 100dvh;
+  max-height: 100dvh;
+  overflow: clip;
   overscroll-behavior: none;
-  padding: 40px 16px 0;
+  padding: 24px 16px 0;
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--accent-soft) 62%, transparent), transparent 54%),
     var(--canvas);
@@ -14,10 +16,7 @@
 
 .legacy-login__frame {
   width: min(100%, 448px);
-  flex: 1 0 auto;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+  align-self: center;
   animation: fadeInUp 0.45s ease-out;
 }
 

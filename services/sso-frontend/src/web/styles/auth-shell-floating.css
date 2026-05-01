@@ -1,20 +1,43 @@
 :root {
-  --theme-toggle-edge-right: 24px;
-  --theme-toggle-edge-bottom: 24px;
+  --theme-toggle-edge-right: max(24px, calc(env(safe-area-inset-right, 0px) + 24px));
+  --theme-toggle-edge-bottom: max(24px, calc(env(safe-area-inset-bottom, 0px) + 24px));
+}
+
+html:has(.app-shell--auth),
+body:has(.app-shell--auth),
+body:has(.app-shell--auth) #app {
+  height: 100%;
+  max-height: 100dvh;
+  overflow: clip;
+}
+
+.app-shell--auth,
+.main-surface--auth {
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: clip;
+}
+
+.main-surface--auth {
+  padding: 0;
 }
 
 .legacy-login {
-  --auth-frame-width: min(100%, 448px);
+  flex: 1 1 auto;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: clip;
 }
 
 .legacy-login__frame {
-  width: var(--auth-frame-width);
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .floating-actions {
   position: fixed;
   right: var(--theme-toggle-edge-right);
-  bottom: calc(var(--theme-toggle-edge-bottom) + var(--floating-actions-lift, 0px));
+  bottom: var(--theme-toggle-edge-bottom);
   z-index: 40;
   display: flex;
   flex-direction: column;
@@ -22,7 +45,6 @@
   justify-content: flex-end;
   gap: 8px;
   pointer-events: none;
-  transition: bottom 0.3s ease;
 }
 
 .floating-actions > * {
@@ -43,20 +65,20 @@
 @media (min-width: 769px) {
   .app-shell--admin .floating-actions {
     right: max(32px, calc(env(safe-area-inset-right, 0px) + 32px));
-    bottom: calc(24px + var(--floating-actions-lift, 0px));
+    bottom: max(24px, calc(env(safe-area-inset-bottom, 0px) + 24px));
   }
 }
 
 @media (max-width: 768px) {
   .app-shell--admin .floating-actions {
     right: max(20px, calc(env(safe-area-inset-right, 0px) + 20px));
-    bottom: calc(20px + var(--floating-actions-lift, 0px));
+    bottom: max(20px, calc(env(safe-area-inset-bottom, 0px) + 20px));
   }
 }
 
 @media (max-width: 640px) {
   :root {
     --theme-toggle-edge-right: max(12px, calc(env(safe-area-inset-right, 0px) + 12px));
-    --theme-toggle-edge-bottom: 24px;
+    --theme-toggle-edge-bottom: max(12px, calc(env(safe-area-inset-bottom, 0px) + 12px));
   }
 }
