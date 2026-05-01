@@ -31,6 +31,7 @@ env:
   VPS_HOST: ${{ secrets.VPS_HOST }}
   VPS_USER: ${{ secrets.VPS_USER }}
   VPS_PROJECT_DIR: ${{ secrets.VPS_PROJECT_DIR || '/opt/sso-prototype-dev' }}
+  VPS_SSH_PORT: ${{ secrets.VPS_SSH_PORT || '22' }}
   SSH_CONNECT_TIMEOUT: "20"
   SSH_RETRY_ATTEMPTS: "5"
   SSH_RETRY_DELAY_SECONDS: "15"
@@ -97,15 +98,29 @@ jobs:
           echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           for i in 1 2 3; do
-            ssh-keyscan -T 10 -H "${{ env.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null && break
+            ssh-keyscan -T 10 -p "${{ env.VPS_SSH_PORT }}" -H "${{ env.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null && break
             echo "ssh-keyscan attempt $i failed, retrying in 5s..."
             sleep 5
           done
+
+      - name: Preflight SSH reachability
+        run: |
+          command -v nc >/dev/null 2>&1 || {
+            echo "Missing required command: nc" >&2
+            exit 2
+          }
+
+          echo "Checking SSH reachability for configured VPS endpoint."
+          CI_RETRY_ATTEMPTS="${{ env.SSH_RETRY_ATTEMPTS }}" \
+          CI_RETRY_DELAY_SECONDS="${{ env.SSH_RETRY_DELAY_SECONDS }}" \
+          bash scripts/ci-retry.sh nc -vz -w "${{ env.SSH_CONNECT_TIMEOUT }}" \
+            "${{ env.VPS_HOST }}" "${{ env.VPS_SSH_PORT }}"
 
       - name: Prepare remote release bundle directory
         run: |
           SSH_OPTS=(
             -i ~/.ssh/deploy_key
+            -p "${{ env.VPS_SSH_PORT }}"
             -o BatchMode=yes
             -o ConnectTimeout="${{ env.SSH_CONNECT_TIMEOUT }}"
             -o ServerAliveInterval=10
@@ -118,7 +133,7 @@ jobs:
 
       - name: Sync deploy scripts and Compose control plane to VPS
         run: |
-          SSH_CMD="ssh -i ~/.ssh/deploy_key -o BatchMode=yes -o ConnectTimeout=${{ env.SSH_CONNECT_TIMEOUT }} -o ServerAliveInterval=10 -o ServerAliveCountMax=3"
+          SSH_CMD="ssh -i ~/.ssh/deploy_key -p ${{ env.VPS_SSH_PORT }} -o BatchMode=yes -o ConnectTimeout=${{ env.SSH_CONNECT_TIMEOUT }} -o ServerAliveInterval=10 -o ServerAliveCountMax=3"
           export CI_RETRY_ATTEMPTS="${{ env.SSH_RETRY_ATTEMPTS }}"
           export CI_RETRY_DELAY_SECONDS="${{ env.SSH_RETRY_DELAY_SECONDS }}"
 
@@ -140,6 +155,7 @@ jobs:
         run: |
           SSH_OPTS=(
             -i ~/.ssh/deploy_key
+            -p "${{ env.VPS_SSH_PORT }}"
             -o BatchMode=yes
             -o ConnectTimeout="${{ env.SSH_CONNECT_TIMEOUT }}"
             -o ServerAliveInterval=10
@@ -166,6 +182,7 @@ jobs:
         run: |
           SSH_OPTS=(
             -i ~/.ssh/deploy_key
+            -p "${{ env.VPS_SSH_PORT }}"
             -o BatchMode=yes
             -o ConnectTimeout="${{ env.SSH_CONNECT_TIMEOUT }}"
             -o ServerAliveInterval=10
