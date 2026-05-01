@@ -32,6 +32,7 @@ describe('LoginView', () => {
     )
     expect(wrapper.find('#devsso-theme-toggle').exists()).toBe(true)
     expect(wrapper.find('#devsso-theme-float.theme-toggle-anchor').exists()).toBe(true)
+    expect(wrapper.find('.floating-actions').attributes('style')).toBeUndefined()
     expect(wrapper.find('footer.auth-footer').text()).toContain('© 2026 Dev-SSO')
     expect(wrapper.find('footer.auth-footer').text()).toContain('Terms')
     expect(wrapper.find('footer.auth-footer a[href="/terms"]').exists()).toBe(true)
