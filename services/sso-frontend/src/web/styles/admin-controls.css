@@ -1,0 +1,294 @@
+/* Shared admin controls, cards, and dense list surfaces. */
+.toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.button,
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast) ease,
+    color var(--duration-fast) ease,
+    transform var(--duration-fast) ease,
+    box-shadow var(--duration-fast) ease;
+}
+
+.button {
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.button--primary {
+  color: var(--admin-accent-ink);
+  background: var(--admin-accent);
+}
+
+.button--primary:hover {
+  background: var(--admin-accent-hover);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--admin-accent) 24%, transparent);
+  transform: translateY(-1px);
+}
+
+.button--secondary {
+  color: var(--admin-ink);
+  background: var(--admin-panel-muted);
+  border: 1px solid var(--admin-line);
+}
+
+.button--secondary:hover {
+  background: var(--admin-line);
+}
+
+.button--danger {
+  color: #ffffff;
+  background: var(--status-danger);
+}
+
+.button--danger:hover {
+  background: #991b1b;
+}
+
+.icon-button {
+  width: 44px;
+  height: 44px;
+  color: var(--admin-muted);
+  background: var(--admin-panel-muted);
+  border: 1px solid var(--admin-line);
+  border-radius: var(--radius-md);
+}
+
+.icon-button:hover {
+  color: var(--admin-ink);
+  background: var(--admin-line);
+}
+
+.icon-button--danger {
+  color: var(--status-danger);
+}
+
+.icon-button--danger:hover {
+  color: #ffffff;
+  background: var(--status-danger);
+  border-color: var(--status-danger);
+}
+
+.sidebar .icon-button {
+  color: var(--admin-muted);
+  background: var(--admin-panel-muted);
+  border: 1px solid var(--admin-line);
+}
+
+.sidebar .icon-button:hover {
+  color: var(--admin-ink);
+  background: var(--admin-line);
+}
+
+.sidebar-close,
+.hamburger-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  color: var(--admin-ink);
+  background: var(--admin-sidebar);
+  border: 1px solid var(--admin-line);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.sidebar-close {
+  flex: 0 0 auto;
+  margin-left: auto;
+  color: var(--admin-muted);
+  background: var(--admin-panel-muted);
+  transition: background-color var(--duration-fast) ease;
+}
+
+.sidebar-close:hover,
+.hamburger-toggle:hover {
+  color: var(--admin-ink);
+  background: var(--admin-panel-muted);
+}
+
+.hamburger-toggle {
+  position: fixed;
+  top: var(--space-4);
+  left: var(--space-4);
+  z-index: 35;
+  box-shadow: 0 2px 8px var(--admin-shadow);
+  transition:
+    background-color var(--duration-fast) ease,
+    box-shadow var(--duration-fast) ease;
+}
+
+.hamburger-toggle:hover {
+  box-shadow: 0 4px 12px var(--admin-shadow-lg);
+}
+
+.app-shell--admin .admin-auth-footer {
+  flex: 0 0 auto;
+  margin-top: auto;
+  color: var(--admin-subtle);
+}
+
+.app-shell--admin .admin-auth-footer a {
+  color: var(--admin-accent);
+  pointer-events: auto;
+}
+
+.app-shell--admin .admin-auth-footer a:hover {
+  color: var(--admin-accent-hover);
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.stat-tile,
+.panel,
+.login-panel {
+  background: var(--admin-panel);
+  border: 1px solid var(--admin-line);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 1px 3px var(--admin-shadow);
+}
+
+.stat-tile {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-5);
+  transition:
+    transform var(--duration-fast) ease,
+    box-shadow var(--duration-fast) ease;
+}
+
+.stat-tile:hover {
+  box-shadow: 0 8px 24px var(--admin-shadow-lg);
+  transform: translateY(-2px);
+}
+
+.stat-tile span {
+  color: var(--admin-muted);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.stat-tile strong {
+  color: var(--admin-ink);
+  font-size: var(--text-3xl);
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: 1;
+}
+
+.stat-tile small {
+  color: var(--admin-subtle);
+  font-size: var(--text-xs);
+}
+
+.panel-grid,
+.apps-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.panel {
+  min-width: 0;
+  padding: var(--space-5);
+}
+
+.panel-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.panel-title h2 {
+  margin: 0;
+  color: var(--admin-ink);
+  font-size: var(--text-lg);
+  font-weight: 700;
+}
+
+.list-table {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.list-table a,
+.data-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(90px, 0.7fr) minmax(90px, 0.6fr) minmax(160px, 1fr);
+  align-items: center;
+  gap: var(--space-4);
+  min-height: 52px;
+  padding: var(--space-3) var(--space-4);
+  background: var(--admin-panel-muted);
+  border-radius: var(--radius-md);
+  transition:
+    background-color var(--duration-fast) ease,
+    transform 0.1s ease;
+}
+
+.list-table a:hover,
+.data-row:hover:not(.data-row--head) {
+  background: color-mix(in srgb, var(--admin-accent-soft) 50%, var(--admin-panel-muted));
+}
+
+.list-table a {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.data-row--sessions {
+  grid-template-columns: minmax(130px, 0.9fr) minmax(0, 1.4fr) minmax(110px, 0.8fr) minmax(150px, 1fr) 48px;
+}
+
+.data-row--head {
+  min-height: 40px;
+  color: var(--admin-subtle);
+  background: transparent;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.data-row span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.data-row strong {
+  display: block;
+  color: var(--admin-ink);
+  font-weight: 600;
+}
+
+.detail-grid span,
+.data-row small {
+  color: var(--admin-subtle);
+}
+
+.data-row small {
+  display: block;
+  font-size: var(--text-xs);
+}

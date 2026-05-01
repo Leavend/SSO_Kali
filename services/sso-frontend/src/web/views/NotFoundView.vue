@@ -57,7 +57,7 @@ import { AlertTriangle } from 'lucide-vue-next'
   font-size: 30px;
   font-weight: 800;
   line-height: 1.18;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
 }
 
 .status-panel p {

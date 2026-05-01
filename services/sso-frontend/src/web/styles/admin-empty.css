@@ -1,39 +1,46 @@
+/* ─── Empty states ─── */
 .panel-empty,
 .panel-empty--large {
   display: grid;
   justify-items: center;
-  gap: 8px;
-  color: var(--admin-subtle, #64748b);
+  gap: var(--space-2);
+  color: var(--admin-subtle);
   text-align: center;
 }
 
 .panel-empty {
-  padding: 28px 16px;
+  padding: var(--space-8) var(--space-4);
 }
 
 .panel-empty p,
 .panel-empty--large p {
   margin: 0;
-  line-height: 1.5;
+  line-height: var(--leading-relaxed);
 }
 
 .panel-empty p {
-  font-size: 14px;
+  font-size: var(--text-sm);
+}
+
+.panel-empty svg,
+.panel-empty--large svg {
+  opacity: 0.5;
 }
 
 .panel-empty--large {
-  padding: 48px 24px;
+  padding: var(--space-12) var(--space-6);
 }
 
 .panel-empty--large h3 {
-  margin: 8px 0 0;
-  color: var(--admin-ink, var(--ink));
-  font-size: 18px;
+  margin: var(--space-2) 0 0;
+  color: var(--admin-ink);
+  font-size: var(--text-lg);
+  font-weight: 700;
 }
 
 .panel-empty--large p {
   max-width: 360px;
-  color: var(--admin-muted, var(--muted));
-  font-size: 15px;
-  line-height: 1.6;
+  color: var(--admin-muted);
+  font-size: var(--text-base);
+  line-height: var(--leading-relaxed);
 }
