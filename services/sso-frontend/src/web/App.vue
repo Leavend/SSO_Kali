@@ -12,6 +12,13 @@ const sidebarOpen = ref(false);
 const showAdminShell = computed(() => Boolean(route.meta.requiresAuth) && admin.isAuthenticated);
 let refreshTimer: number | undefined;
 
+const navItems = [
+  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/users', label: 'Users', icon: Users },
+  { to: '/sessions', label: 'Sessions', icon: Activity },
+  { to: '/apps', label: 'Apps', icon: AppWindow },
+] as const;
+
 onMounted(() => {
   admin.bootstrap();
   refreshTimer = window.setInterval(() => {
@@ -27,6 +34,12 @@ function closeSidebar(): void {
   sidebarOpen.value = false;
 }
 
+function handleSidebarKeydown(event: KeyboardEvent): void {
+  if (event.key === 'Escape') {
+    closeSidebar();
+  }
+}
+
 watch(() => route.path, closeSidebar);
 </script>
 
@@ -39,12 +52,17 @@ watch(() => route.path, closeSidebar);
     }"
   >
     <template v-if="showAdminShell">
+      <!-- Skip navigation link — WCAG 2.4.1 -->
+      <a class="skip-link" href="#main-content">
+        Langsung ke konten utama
+      </a>
+
       <button
         class="hamburger-toggle"
         v-if="!sidebarOpen"
         type="button"
         aria-controls="admin-sidebar"
-        aria-label="Open menu"
+        aria-label="Buka menu navigasi"
         :aria-expanded="sidebarOpen"
         @click="sidebarOpen = !sidebarOpen"
       >
@@ -55,6 +73,7 @@ watch(() => route.path, closeSidebar);
         <div
           v-if="sidebarOpen"
           class="sidebar-backdrop"
+          aria-hidden="true"
           @click="closeSidebar"
         />
       </Transition>
@@ -63,43 +82,38 @@ watch(() => route.path, closeSidebar);
         id="admin-sidebar"
         class="sidebar"
         :class="{ 'sidebar--open': sidebarOpen }"
-        aria-label="Admin navigation"
+        role="navigation"
+        aria-label="Navigasi admin panel"
+        @keydown="handleSidebarKeydown"
       >
         <div class="sidebar-header">
           <RouterLink class="brand" to="/dashboard" @click="closeSidebar">
-            <ShieldCheck :size="22" aria-hidden="true" />
+            <ShieldCheck :size="20" aria-hidden="true" />
             <span>SSO Admin</span>
           </RouterLink>
           <button
             class="sidebar-close"
             type="button"
-            aria-label="Close menu"
+            aria-label="Tutup menu"
             @click="closeSidebar"
           >
             <X :size="20" aria-hidden="true" />
           </button>
         </div>
 
-        <nav class="nav-list">
-          <RouterLink to="/dashboard" @click="closeSidebar">
-            <LayoutDashboard :size="18" aria-hidden="true" />
-            Dashboard
-          </RouterLink>
-          <RouterLink to="/users" @click="closeSidebar">
-            <Users :size="18" aria-hidden="true" />
-            Users
-          </RouterLink>
-          <RouterLink to="/sessions" @click="closeSidebar">
-            <Activity :size="18" aria-hidden="true" />
-            Sessions
-          </RouterLink>
-          <RouterLink to="/apps" @click="closeSidebar">
-            <AppWindow :size="18" aria-hidden="true" />
-            Apps
+        <nav class="nav-list" aria-label="Menu utama">
+          <RouterLink
+            v-for="item in navItems"
+            :key="item.to"
+            :to="item.to"
+            @click="closeSidebar"
+          >
+            <component :is="item.icon" :size="18" aria-hidden="true" />
+            {{ item.label }}
           </RouterLink>
         </nav>
 
-        <div class="sidebar-footer">
+        <div class="sidebar-footer" role="contentinfo">
           <div class="principal">
             <strong>{{ admin.principal?.displayName }}</strong>
             <span>{{ admin.principal?.email }}</span>
@@ -108,12 +122,18 @@ watch(() => route.path, closeSidebar);
             <button
               class="icon-button"
               type="button"
-              title="Refresh session"
+              :title="`Refresh sesi — berakhir ${new Date((admin.principal?.expiresAt ?? 0) * 1000).toLocaleTimeString('id-ID')}`"
+              aria-label="Refresh sesi admin"
               @click="admin.refreshSession"
             >
               <RefreshCw :size="18" aria-hidden="true" />
             </button>
-            <a class="icon-button" title="Logout" href="/auth/logout">
+            <a
+              class="icon-button"
+              title="Keluar dari admin panel"
+              aria-label="Keluar"
+              href="/auth/logout"
+            >
               <LogOut :size="18" aria-hidden="true" />
             </a>
           </div>
@@ -121,7 +141,7 @@ watch(() => route.path, closeSidebar);
       </aside>
 
       <div class="admin-content-shell">
-        <main class="main-surface">
+        <main id="main-content" class="main-surface" role="main">
           <RouterView v-slot="{ Component }">
             <Transition name="page" mode="out-in">
               <component :is="Component" />
@@ -134,7 +154,7 @@ watch(() => route.path, closeSidebar);
       </div>
     </template>
 
-    <main v-else class="main-surface main-surface--auth">
+    <main v-else id="main-content" class="main-surface main-surface--auth" role="main">
       <RouterView v-slot="{ Component }">
         <Transition name="page" mode="out-in">
           <component :is="Component" />

@@ -8,8 +8,8 @@ defineProps<{
 
 <template>
   <header class="page-header">
-    <span>{{ eyebrow }}</span>
-    <h1>{{ title }}</h1>
+    <span aria-hidden="true">{{ eyebrow }}</span>
+    <h1 :id="`${eyebrow.toLowerCase().replace(/\s+/g, '-')}-title`">{{ title }}</h1>
     <p v-if="description">{{ description }}</p>
   </header>
 </template>

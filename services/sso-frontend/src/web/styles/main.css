@@ -1,5 +1,7 @@
 @import './base.css';
 @import './admin.css';
+@import './admin-controls.css';
+@import './admin-data.css';
 @import './admin-empty.css';
 @import './admin-integration.css';
 @import './admin-responsive.css';

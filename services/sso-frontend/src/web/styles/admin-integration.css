@@ -1,12 +1,12 @@
 .integration-runbook {
   display: grid;
-  gap: 18px;
+  gap: var(--space-5, 20px);
 }
 
 .integration-header {
   display: grid;
   grid-template-columns: 44px minmax(0, 1fr);
-  gap: 14px;
+  gap: var(--space-4, 16px);
   align-items: start;
 }
 
@@ -17,18 +17,19 @@
   width: 44px;
   height: 44px;
   color: var(--admin-accent);
-  border: 1px solid color-mix(in srgb, var(--admin-accent) 30%, transparent);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--admin-accent) 12%, transparent);
+  border: 1px solid var(--admin-line);
+  border-radius: var(--radius-md, 10px);
+  background: var(--admin-accent-soft);
 }
 
 .integration-eyebrow {
   display: block;
-  margin-bottom: 4px;
+  margin-bottom: var(--space-1, 4px);
   color: var(--admin-accent);
-  font-size: 12px;
-  font-weight: 800;
+  font-size: var(--text-xs, 12px);
+  font-weight: 700;
   text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .integration-header h2,
