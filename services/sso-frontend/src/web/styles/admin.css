@@ -83,6 +83,27 @@ html[data-theme='light'] .app-shell--admin {
   color-scheme: light;
 }
 
+html[data-theme='light'] .app-shell--admin .brand {
+  color: var(--admin-accent);
+  background: var(--admin-accent-soft);
+  border-color: var(--admin-line);
+}
+
+html[data-theme='light'] .app-shell--admin .principal strong {
+  color: var(--admin-ink);
+}
+
+html[data-theme='light'] .app-shell--admin .principal span {
+  color: var(--admin-subtle);
+}
+
+html[data-theme='light'] .app-shell--admin .sidebar .icon-button,
+html[data-theme='light'] .app-shell--admin .sidebar-close {
+  color: var(--admin-ink);
+  background: var(--admin-panel-muted);
+  border-color: var(--admin-line);
+}
+
 .sidebar {
   position: fixed;
   inset: 0;
