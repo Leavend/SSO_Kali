@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { ChevronRight, Bell } from 'lucide-vue-next'
+import { ChevronRight } from 'lucide-vue-next'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import { useAdminStore } from '@/stores/admin'
 
@@ -66,19 +66,8 @@ const avatarLabel = computed(() => {
     </div>
 
     <div class="admin-header__right">
-      <!-- Notification bell -->
-      <button
-        type="button"
-        class="admin-header__action"
-        aria-label="Notifications"
-      >
-        <Bell :size="18" aria-hidden="true" />
-      </button>
+      <ThemeToggle initial-theme="dark" />
 
-      <!-- Theme toggle -->
-      <ThemeToggle />
-
-      <!-- User menu placeholder -->
       <div class="admin-header__user">
         <span class="admin-header__avatar" aria-hidden="true">{{ avatarLabel }}</span>
       </div>
@@ -96,7 +85,7 @@ const avatarLabel = computed(() => {
   justify-content: space-between;
   gap: var(--space-4);
   height: 56px;
-  padding: 0 var(--space-6);
+  padding: 0 var(--space-8);
   background: var(--admin-panel);
   border-bottom: 1px solid var(--admin-line);
   flex-shrink: 0;
@@ -111,7 +100,31 @@ const avatarLabel = computed(() => {
 .admin-header__right {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-3);
+}
+
+/* Theme toggle — admin context override */
+.admin-header__right :deep(.theme-toggle) {
+  width: 36px;
+  height: 36px;
+  color: var(--admin-muted);
+  background: var(--admin-panel-muted);
+  border: 1px solid var(--admin-line);
+  border-radius: var(--radius-md);
+  box-shadow: none;
+}
+
+.admin-header__right :deep(.theme-toggle:hover) {
+  color: var(--admin-ink);
+  background: color-mix(in srgb, var(--admin-panel-muted) 80%, var(--admin-accent-soft));
+  border-color: var(--admin-accent);
+  transform: none;
+}
+
+.admin-header__right :deep(.theme-toggle:focus-visible) {
+  outline: 2px solid var(--admin-accent);
+  outline-offset: 2px;
+  box-shadow: none;
 }
 
 /* Breadcrumbs */
@@ -152,34 +165,11 @@ const avatarLabel = computed(() => {
   color: var(--admin-subtle);
 }
 
-/* Action buttons */
-.admin-header__action {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  padding: 0;
-  color: var(--admin-muted);
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: all var(--duration-fast) ease;
-}
-
-.admin-header__action:hover {
-  color: var(--admin-ink);
-  background: var(--admin-panel-muted);
-  border-color: var(--admin-line);
-}
-
 /* User avatar */
 .admin-header__user {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  margin-left: var(--space-2);
 }
 
 .admin-header__avatar {
@@ -202,6 +192,24 @@ const avatarLabel = computed(() => {
 
   .admin-header__breadcrumbs {
     display: none;
+  }
+}
+
+@media (min-width: 1024px) {
+  .admin-header {
+    padding: 0 var(--space-10);
+  }
+}
+
+@media (min-width: 1280px) {
+  .admin-header {
+    padding: 0 var(--space-12);
+  }
+}
+
+@media (min-width: 1440px) {
+  .admin-header {
+    padding: 0 var(--space-14);
   }
 }
 </style>

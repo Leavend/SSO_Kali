@@ -44,7 +44,7 @@ describe('admin auth boundary', () => {
 
     expect(wrapper.find('.sidebar').exists()).toBe(true)
     expect(wrapper.find('#devsso-theme-toggle').exists()).toBe(true)
-    expect(wrapper.find('#devsso-theme-float.admin-theme-toggle-anchor').exists()).toBe(true)
+    expect(wrapper.find('#devsso-theme-float').exists()).toBe(false)
     expect(wrapper.find('footer.auth-footer.admin-auth-footer').text()).toContain('© 2026 Dev-SSO')
     expect(wrapper.text()).toContain('SSO Admin')
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark')

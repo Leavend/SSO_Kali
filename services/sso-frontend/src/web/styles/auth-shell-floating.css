@@ -64,8 +64,26 @@ body:has(.app-shell--auth) #app {
 
 @media (min-width: 769px) {
   .app-shell--admin .floating-actions {
-    right: max(32px, calc(env(safe-area-inset-right, 0px) + 32px));
+    right: max(var(--space-8, 32px), calc(env(safe-area-inset-right, 0px) + var(--space-8, 32px)));
     bottom: max(24px, calc(env(safe-area-inset-bottom, 0px) + 24px));
+  }
+}
+
+@media (min-width: 1024px) {
+  .app-shell--admin .floating-actions {
+    right: max(var(--space-10, 40px), calc(env(safe-area-inset-right, 0px) + var(--space-10, 40px)));
+  }
+}
+
+@media (min-width: 1280px) {
+  .app-shell--admin .floating-actions {
+    right: max(var(--space-12, 48px), calc(env(safe-area-inset-right, 0px) + var(--space-12, 48px)));
+  }
+}
+
+@media (min-width: 1440px) {
+  .app-shell--admin .floating-actions {
+    right: max(var(--space-14, 56px), calc(env(safe-area-inset-right, 0px) + var(--space-14, 56px)));
   }
 }
 
