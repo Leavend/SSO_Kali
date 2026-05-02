@@ -16,6 +16,7 @@ vi.mock('vue-router', () => ({
   RouterLink: { props: ['to'], template: '<a><slot /></a>' },
   RouterView: { template: '<section data-testid="router-view">Masuk</section>' },
   useRoute: () => routeState,
+  useRouter: () => ({ push: vi.fn() }),
 }))
 
 describe('admin auth boundary', () => {
