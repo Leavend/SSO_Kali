@@ -2,8 +2,8 @@
 # ==============================================================================
 # vps-login-ui-cutover.sh — ZITADEL Login UI Cutover / Rollback
 #
-# Switches only the active ZITADEL Login V2 base path. The Vue canary remains
-# path-isolated at /ui/v2/login-vue, while hosted login remains the rollback path
+# Switches the active ZITADEL Login V2 base path. The Vue canary remains
+# path-isolated at /ui/v2/auth, while hosted login remains the rollback path
 # at /ui/v2/login.
 #
 # Usage:
@@ -30,7 +30,7 @@ done
 
 COMPOSE_FILE="$PROJECT_DIR/docker-compose.dev.yml"
 ENV_FILE="$PROJECT_DIR/.env.dev"
-VUE_PATH="/ui/v2/login-vue"
+VUE_PATH="/ui/v2/auth"
 HOSTED_PATH="/ui/v2/login"
 ACTIVE_PATH="$HOSTED_PATH"
 [[ "$MODE" == "vue" ]] && ACTIVE_PATH="$VUE_PATH"
@@ -43,8 +43,9 @@ compose() {
 }
 
 env_value() {
-  local key="$1" fallback="${2:-}"
-  awk -F= -v key="$key" '$1 == key {print substr($0, length(key) + 2)}' "$ENV_FILE" | tail -n 1 || printf '%s' "$fallback"
+  local key="$1" fallback="${2:-}" value
+  value="$(awk -F= -v key="$key" '$1 == key {print substr($0, length(key) + 2)}' "$ENV_FILE" | tail -n 1)"
+  printf '%s' "${value:-$fallback}"
 }
 
 set_env_value() {
@@ -113,7 +114,10 @@ cd "$PROJECT_DIR"
 preflight
 
 log "Switching active login UI to ${ACTIVE_PATH} with tag ${APP_IMAGE_TAG}"
-[[ "$MODE" == "hosted" ]] || activate_vue
+if [[ "$MODE" == "vue" ]]; then
+  set_env_value ZITADEL_LOGIN_VUE_BASE_PATH "$VUE_PATH"
+  activate_vue
+fi
 set_env_value ZITADEL_LOGIN_ACTIVE_BASE_PATH "$ACTIVE_PATH"
 restart_config_services
 

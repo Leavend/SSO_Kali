@@ -5,7 +5,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import { extname, join, normalize, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { stripBasePath, withBasePath } from '../shared/routes.js'
+import { LEGACY_BASE_PATH, normalizeBasePath, stripBasePath, withBasePath } from '../shared/routes.js'
 import { getConfig } from './config.js'
 import { handleApi } from './api-handlers.js'
 import type { AppResponse } from './response.js'
@@ -36,6 +36,8 @@ async function route(request: IncomingMessage, requestUrl: URL): Promise<AppResp
   if (requestUrl.pathname === '/auth/password-reset') return compatibilityRedirect(request, requestUrl, '/password/reset')
   if (requestUrl.pathname === '/auth/register') return compatibilityRedirect(request, requestUrl, '/register')
   if (isLegalPath(requestUrl.pathname)) return legalRedirect(request, requestUrl.pathname)
+  const legacyRedirect = legacyBasePathRedirect(requestUrl)
+  if (legacyRedirect) return legacyRedirect
   const routedPath = stripBasePath(config.publicBasePath, requestUrl.pathname)
   if (!routedPath) return null
   if (routedPath === '/healthz') return text(200, 'ok\n', noStore())
@@ -44,6 +46,14 @@ async function route(request: IncomingMessage, requestUrl: URL): Promise<AppResp
   }
   if (routedPath.startsWith('/api/')) return apiRoute(request, routedPath)
   return null
+}
+
+function legacyBasePathRedirect(requestUrl: URL): AppResponse | null {
+  if (normalizeBasePath(config.publicBasePath) === LEGACY_BASE_PATH) return null
+  const routedPath = stripBasePath(LEGACY_BASE_PATH, requestUrl.pathname)
+  if (!routedPath) return null
+  const canonicalPath = routedPath === '/' || routedPath === '' ? '/login' : routedPath
+  return redirect(`${withBasePath(config.publicBasePath, canonicalPath)}${requestUrl.search}`, 308)
 }
 
 function compatibilityRedirect(request: IncomingMessage, requestUrl: URL, path: string): AppResponse {

@@ -11,7 +11,7 @@ and session tokens are never stored in browser-accessible storage.
 Default route:
 
 ```text
-/ui/v2/login-vue
+/ui/v2/auth
 ```
 
 Cutover is controlled by the ZITADEL login URL/base URI configuration. Rollback

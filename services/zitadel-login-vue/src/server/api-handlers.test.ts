@@ -43,7 +43,7 @@ const config: RuntimeConfig = {
   cookieSecret: 'test-zitadel-login-vue-cookie-secret-32',
   instanceHost: 'id.dev-sso.timeh.my.id',
   port: 3010,
-  publicBasePath: '/ui/v2/login-vue',
+  publicBasePath: '/ui/v2/auth',
   publicHost: 'id.dev-sso.timeh.my.id',
   requireTotpAfterPassword: true,
   secureCookies: true,
@@ -94,7 +94,7 @@ describe('login API flow', () => {
     expect(mocks.requestPasswordReset).toHaveBeenCalledWith(
       config,
       'user-id',
-      expect.stringContaining('/ui/v2/login-vue/password/change?userID={{.UserID}}'),
+      expect.stringContaining('/ui/v2/auth/password/change?userID={{.UserID}}'),
     )
   })
 

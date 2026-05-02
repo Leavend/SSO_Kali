@@ -8,7 +8,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY services/zitadel-login-vue/ .
 COPY packages/dev-sso-parent-ui/ /packages/dev-sso-parent-ui/
-ARG VITE_PUBLIC_BASE_PATH=/ui/v2/login-vue
+ARG VITE_PUBLIC_BASE_PATH=/ui/v2/auth
 ENV VITE_PUBLIC_BASE_PATH=${VITE_PUBLIC_BASE_PATH}
 RUN npm run build
 RUN npm prune --omit=dev --ignore-scripts
