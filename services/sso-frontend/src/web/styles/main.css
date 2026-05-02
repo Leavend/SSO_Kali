@@ -1,6 +1,8 @@
 @import './base.css';
 @import './admin.css';
+@import './admin-effects.css';
 @import './admin-controls.css';
+@import './admin-widgets.css';
 @import './admin-data.css';
 @import './admin-empty.css';
 @import './admin-integration.css';

@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
-import { Activity, AlertCircle, AppWindow, Inbox, RefreshCw, UsersRound } from 'lucide-vue-next'
+import { Activity, AlertCircle, AppWindow, Inbox, RefreshCw, UsersRound, ShieldCheck } from 'lucide-vue-next'
 import ClientIntegrationProcedure from '@/components/ClientIntegrationProcedure.vue'
 import PageHeader from '@/components/PageHeader.vue'
-import StatTile from '@/components/StatTile.vue'
+import KpiCard from '@/components/dashboard/KpiCard.vue'
+import QuickAction from '@/components/dashboard/QuickAction.vue'
 import { useAdminStore } from '@/stores/admin'
 import { formatDateTime, formatRelative } from '@shared/format'
 
@@ -11,6 +12,27 @@ const admin = useAdminStore()
 
 const isLoading = computed(() => admin.status === 'loading')
 const isError = computed(() => admin.status === 'error')
+
+// Calculate trends based on active vs total ratio (no hardcoded percentages)
+const userTrend = computed<'up' | 'down' | 'neutral'>(() => {
+  const activeRatio = admin.activeUsers / Math.max(admin.users.length, 1)
+  if (activeRatio > 0.7) return 'up'
+  if (activeRatio < 0.3) return 'down'
+  return 'neutral'
+})
+
+const userTrendValue = computed(() => {
+  const ratio = admin.activeUsers / Math.max(admin.users.length, 1)
+  return `${Math.round(ratio * 100)}% aktif`
+})
+
+const sessionTrend = computed<'up' | 'down' | 'neutral'>(() => {
+  if (admin.sessions.length > 5) return 'up'
+  if (admin.sessions.length < 2) return 'down'
+  return 'neutral'
+})
+
+const sessionTrendValue = computed(() => `${admin.sessions.length} sesi aktif`)
 
 onMounted(() => {
   admin.loadDashboard()
@@ -24,6 +46,31 @@ onMounted(() => {
       title="Dashboard"
       description="Ringkasan operasional dan monitoring SSO admin broker."
     />
+
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+      <QuickAction
+        :icon="ShieldCheck"
+        label="Keamanan"
+        href="/dashboard"
+        variant="primary"
+      />
+      <QuickAction
+        :icon="UsersRound"
+        label="Users"
+        href="/users"
+      />
+      <QuickAction
+        :icon="Activity"
+        label="Sessions"
+        href="/sessions"
+      />
+      <QuickAction
+        :icon="AppWindow"
+        label="Apps"
+        href="/apps"
+      />
+    </div>
 
     <div class="toolbar" role="toolbar" aria-label="Aksi dashboard">
       <button
@@ -48,27 +95,31 @@ onMounted(() => {
       <p>{{ admin.errorMessage ?? 'Gagal memuat data dashboard. Silakan coba lagi.' }}</p>
     </div>
 
-    <!-- Stats overview -->
+    <!-- Stats overview with KPIs -->
     <div class="stat-grid" role="group" aria-label="Statistik ringkasan">
-      <StatTile
+      <KpiCard
         label="Users"
         :value="admin.users.length"
+        :trend="userTrend"
+        :trend-value="userTrendValue"
         :detail="`${admin.mfaUsers} memerlukan MFA`"
         :loading="isLoading"
       />
-      <StatTile
+      <KpiCard
         label="Subjek Aktif"
         :value="admin.activeUsers"
+        :trend="sessionTrend"
+        :trend-value="sessionTrendValue"
         detail="dari sesi yang aktif"
         :loading="isLoading"
       />
-      <StatTile
+      <KpiCard
         label="Sessions"
         :value="admin.sessions.length"
         detail="dikeluarkan oleh SSO"
         :loading="isLoading"
       />
-      <StatTile
+      <KpiCard
         label="Clients"
         :value="admin.clients.length"
         detail="aplikasi terdaftar"
@@ -195,14 +246,11 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.animate-spin {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+/* Quick actions grid */
+.quick-actions {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
 }
 
 .panel-title {
@@ -234,6 +282,18 @@ onMounted(() => {
   display: grid;
   gap: var(--space-3, 12px);
   padding: var(--space-4, 16px) 0;
+}
+
+@media (max-width: 1024px) {
+  .quick-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .quick-actions {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

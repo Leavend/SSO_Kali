@@ -6,6 +6,46 @@
   min-height: 100vh;
 }
 
+/* ─────────────────────────────────────────────────────
+   Advanced Spacing Scale — Mobile-First
+   ───────────────────────────────────────────────────── */
+:root,
+[data-theme='dark'],
+[data-theme='light'] {
+  --space-0: 0;
+  --space-px: 1px;
+  --space-0-5: 2px;
+  --space-1: 4px;
+  --space-1-5: 6px;
+  --space-2: 8px;
+  --space-2-5: 10px;
+  --space-3: 12px;
+  --space-3-5: 14px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --space-8: 32px;
+  --space-9: 36px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-14: 56px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+
+  /* Touch targets — minimum 44px for accessibility */
+  --touch-target-min: 44px;
+  --touch-target-comfortable: 48px;
+
+  /* Content widths */
+  --content-sm: 640px;
+  --content-md: 768px;
+  --content-lg: 1024px;
+  --content-xl: 1280px;
+  --content-2xl: 1536px;
+}
+
 .app-shell--auth {
   display: block;
   min-height: 100dvh;
@@ -104,6 +144,9 @@ html[data-theme='light'] .app-shell--admin .sidebar-close {
   border-color: var(--admin-line);
 }
 
+/* ─────────────────────────────────────────────────────
+   Sidebar Navigation
+   ───────────────────────────────────────────────────── */
 .sidebar {
   position: fixed;
   inset: 0;
@@ -123,6 +166,7 @@ html[data-theme='light'] .app-shell--admin .sidebar-close {
   box-shadow: 6px 0 24px var(--admin-shadow-lg);
   transform: translateX(-100%);
   transition: transform 0.28s var(--ease-out);
+  will-change: transform;
 }
 
 .sidebar.sidebar--open {
