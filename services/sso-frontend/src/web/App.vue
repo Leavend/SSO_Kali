@@ -4,6 +4,10 @@ import { Activity, AppWindow, LogOut, LayoutDashboard, Menu, RefreshCw, ShieldCh
 import { RouterLink, RouterView, useRoute } from "vue-router";
 import FloatingActions from "@/components/FloatingActions.vue";
 import AuthFooter from "@/components/auth/AuthFooter.vue";
+import ToastContainer from "@/components/ui/ToastContainer.vue";
+import BottomNav from "@/components/layout/BottomNav.vue";
+import CommandPalette from "@/components/layout/CommandPalette.vue";
+import AdminHeader from "@/components/layout/AdminHeader.vue";
 import { useAdminStore } from "./stores/admin";
 
 const admin = useAdminStore();
@@ -51,6 +55,12 @@ watch(() => route.path, closeSidebar);
       'app-shell--admin': showAdminShell,
     }"
   >
+    <!-- Toast notifications -->
+    <ToastContainer />
+
+    <!-- Command palette (desktop) -->
+    <CommandPalette v-if="showAdminShell" />
+
     <template v-if="showAdminShell">
       <!-- Skip navigation link — WCAG 2.4.1 -->
       <a class="skip-link" href="#main-content">
@@ -141,6 +151,7 @@ watch(() => route.path, closeSidebar);
       </aside>
 
       <div class="admin-content-shell">
+        <AdminHeader />
         <main id="main-content" class="main-surface" role="main">
           <RouterView v-slot="{ Component }">
             <Transition name="page" mode="out-in">
@@ -151,6 +162,7 @@ watch(() => route.path, closeSidebar);
 
         <AuthFooter class="admin-auth-footer" />
         <FloatingActions initial-theme="dark" admin />
+        <BottomNav />
       </div>
     </template>
 
