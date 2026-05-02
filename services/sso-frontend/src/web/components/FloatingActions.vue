@@ -1,15 +1,12 @@
 <script setup lang="ts">
-import ThemeToggle from '@/components/ThemeToggle.vue'
 import ScrollToTop from '@/components/ScrollToTop.vue'
-import type { Theme } from '@parent-ui/auth-shell.mjs'
+import ThemeToggle from '@/components/ThemeToggle.vue'
 
 withDefaults(
   defineProps<{
-    initialTheme?: Theme
     admin?: boolean
   }>(),
   {
-    initialTheme: undefined,
     admin: false,
   },
 )
@@ -22,13 +19,12 @@ withDefaults(
     aria-label="Page actions"
   >
     <div
+      v-if="!admin"
       id="devsso-theme-float"
       class="theme-toggle-anchor"
-      :class="{ 'admin-theme-toggle-anchor': admin }"
     >
-      <ThemeToggle :initial-theme="initialTheme" />
+      <ThemeToggle />
     </div>
-
     <ScrollToTop />
   </div>
 </template>

@@ -161,7 +161,7 @@ watch(() => route.path, closeSidebar);
         </main>
 
         <AuthFooter class="admin-auth-footer" />
-        <FloatingActions initial-theme="dark" admin />
+        <FloatingActions admin />
         <BottomNav />
       </div>
     </template>
