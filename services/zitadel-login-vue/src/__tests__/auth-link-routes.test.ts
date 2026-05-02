@@ -34,19 +34,19 @@ describe('Vue login anchor routes', () => {
 
     await wrapper.find('input').setValue('huanamasi123@gmail.com')
 
-    expect(wrapper.find('a[href^="/ui/v2/login-vue/password/reset"]').attributes('href')).toBe(
-      '/ui/v2/login-vue/password/reset?login_hint=huanamasi123%40gmail.com',
+    expect(wrapper.find('a[href^="/ui/v2/auth/password/reset"]').attributes('href')).toBe(
+      '/ui/v2/auth/password/reset?login_hint=huanamasi123%40gmail.com',
     )
-    expect(wrapper.find('a[href^="/ui/v2/login-vue/register"]').attributes('href')).toBe(
-      '/ui/v2/login-vue/register?login_hint=huanamasi123%40gmail.com',
+    expect(wrapper.find('a[href^="/ui/v2/auth/register"]').attributes('href')).toBe(
+      '/ui/v2/auth/register?login_hint=huanamasi123%40gmail.com',
     )
   })
 
   it('keeps password reset anchored to the selected account', () => {
     const wrapper = mount(PasswordView)
 
-    expect(wrapper.find('a[href^="/ui/v2/login-vue/password/reset"]').attributes('href')).toBe(
-      '/ui/v2/login-vue/password/reset?login_hint=huanamasi123%40gmail.com',
+    expect(wrapper.find('a[href^="/ui/v2/auth/password/reset"]').attributes('href')).toBe(
+      '/ui/v2/auth/password/reset?login_hint=huanamasi123%40gmail.com',
     )
   })
 })

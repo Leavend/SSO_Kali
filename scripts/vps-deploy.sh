@@ -43,6 +43,9 @@ COMPOSE_FILE="$PROJECT_DIR/docker-compose.dev.yml"
 ENV_FILE="$PROJECT_DIR/.env.dev"
 DEPLOY_LOG="/var/log/sso-deploy-$(date +%Y%m%d%H%M%S).log"
 ROLLBACK_TAG_FILE="/tmp/.sso-deploy-rollback-tag"
+ZITADEL_LOGIN_VUE_BASE_PATH_DEFAULT="/ui/v2/auth"
+ZITADEL_LOGIN_VUE_LEGACY_BASE_PATH="/ui/v2/login-vue"
+ENV_BACKUP_FILE=""
 export APP_IMAGE_TAG="$TAG"
 
 log()  { printf '\033[0;32m[DEPLOY]\033[0m %s\n' "$*" | tee -a "$DEPLOY_LOG"; }
@@ -51,6 +54,58 @@ fail() { printf '\033[0;31m[FAIL]\033[0m %s\n' "$*" | tee -a "$DEPLOY_LOG"; exit
 
 compose() {
   docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "$@"
+}
+
+env_value() {
+  local key="$1" default="${2:-}" value
+  value="$(awk -F= -v key="$key" '$1 == key {print substr($0, length(key) + 2)}' "$ENV_FILE" | tail -n 1)"
+  printf '%s' "${value:-$default}"
+}
+
+set_env_value() {
+  local key="$1" value="$2" tmp
+  tmp="$(mktemp)"
+  awk -v key="$key" -v value="$value" 'BEGIN{done=0} $0 ~ "^" key "=" {$0=key "=" value; done=1} {print} END{if(!done) print key "=" value}' "$ENV_FILE" > "$tmp"
+  install -m 0644 "$tmp" "$ENV_FILE"
+  rm -f "$tmp"
+}
+
+backup_env_for_rollback() {
+  if [ -n "$ENV_BACKUP_FILE" ]; then
+    return
+  fi
+  ENV_BACKUP_FILE="/tmp/.sso-env-pre-${TAG}-${SHA:-manual}"
+  cp "$ENV_FILE" "$ENV_BACKUP_FILE"
+  log "Rollback env snapshot: $ENV_BACKUP_FILE"
+}
+
+restore_env_backup() {
+  if [ -n "$ENV_BACKUP_FILE" ] && [ -f "$ENV_BACKUP_FILE" ]; then
+    install -m 0644 "$ENV_BACKUP_FILE" "$ENV_FILE"
+    log "Restored env snapshot before rollback"
+  fi
+}
+
+migrate_zitadel_login_vue_path() {
+  local vue_path active_path changed=0
+  vue_path="$(env_value ZITADEL_LOGIN_VUE_BASE_PATH "$ZITADEL_LOGIN_VUE_BASE_PATH_DEFAULT")"
+  active_path="$(env_value ZITADEL_LOGIN_ACTIVE_BASE_PATH "/ui/v2/login")"
+
+  if [ -z "$vue_path" ] || [ "$vue_path" = "$ZITADEL_LOGIN_VUE_LEGACY_BASE_PATH" ]; then
+    backup_env_for_rollback
+    set_env_value ZITADEL_LOGIN_VUE_BASE_PATH "$ZITADEL_LOGIN_VUE_BASE_PATH_DEFAULT"
+    changed=1
+    log "Migrated Vue login canary path to $ZITADEL_LOGIN_VUE_BASE_PATH_DEFAULT"
+  fi
+
+  if [ "$active_path" = "$ZITADEL_LOGIN_VUE_LEGACY_BASE_PATH" ]; then
+    backup_env_for_rollback
+    set_env_value ZITADEL_LOGIN_ACTIVE_BASE_PATH "$ZITADEL_LOGIN_VUE_BASE_PATH_DEFAULT"
+    changed=1
+    log "Migrated active login path to $ZITADEL_LOGIN_VUE_BASE_PATH_DEFAULT"
+  fi
+
+  [ "$changed" -eq 0 ] && log "Login UI path migration not needed"
 }
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -107,6 +162,8 @@ log "Preflight: Validating release control plane..."
 
 [[ -f "$COMPOSE_FILE" ]] || fail "Missing Compose file: $COMPOSE_FILE"
 [[ -f "$ENV_FILE" ]] || fail "Missing env file: $ENV_FILE"
+
+migrate_zitadel_login_vue_path
 
 COMPOSE_SERVICES="$(compose config --services)"
 for svc in "${APP_SERVICES[@]}"; do
@@ -228,6 +285,7 @@ done
 
 if [ "$DEPLOY_FAILED" -eq 1 ]; then
   log "⚠️  Deploy failed — rolling back..."
+  restore_env_backup
   if [ -n "$PREV_TAG" ]; then
     bash "$(dirname "$0")/vps-rollback.sh" \
       --tag "$PREV_TAG" \
@@ -277,7 +335,7 @@ smoke_check "Admin Panel"       "http://127.0.0.1/"                             
 smoke_check "Vue Admin Canary"  "http://127.0.0.1${SSO_ADMIN_VUE_BASE_PATH}/healthz" "^200$" "$SSO_DOMAIN"
 
 ZITADEL_LOGIN_VUE_BASE_PATH=$(awk -F= '/^ZITADEL_LOGIN_VUE_BASE_PATH=/ {print $2}' "$ENV_FILE")
-ZITADEL_LOGIN_VUE_BASE_PATH="${ZITADEL_LOGIN_VUE_BASE_PATH:-/ui/v2/login-vue}"
+ZITADEL_LOGIN_VUE_BASE_PATH="${ZITADEL_LOGIN_VUE_BASE_PATH:-/ui/v2/auth}"
 smoke_check "ZITADEL Vue Login Canary" "http://127.0.0.1${ZITADEL_LOGIN_VUE_BASE_PATH}/healthz" "^200$" "$ZITADEL_DOMAIN"
 
 if [ -n "$APP_A_DOMAIN" ]; then
@@ -290,6 +348,7 @@ fi
 
 if [ "$SMOKE_FAILED" -eq 1 ]; then
   log "Smoke tests failed - rolling back..."
+  restore_env_backup
   if [ -n "$PREV_TAG" ]; then
     bash "$(dirname "$0")/vps-rollback.sh" \
       --tag "$PREV_TAG" \

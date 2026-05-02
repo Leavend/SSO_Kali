@@ -5,7 +5,7 @@ import { defineConfig, loadEnv } from 'vite'
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
-  const base = env.VITE_PUBLIC_BASE_PATH || '/ui/v2/login-vue/'
+  const base = env.VITE_PUBLIC_BASE_PATH || '/ui/v2/auth/'
 
   return {
     base: base.endsWith('/') ? base : `${base}/`,
@@ -23,8 +23,8 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       proxy: {
-        '/ui/v2/login-vue/api': 'http://127.0.0.1:3010',
-        '/ui/v2/login-vue/healthz': 'http://127.0.0.1:3010',
+        '/ui/v2/auth/api': 'http://127.0.0.1:3010',
+        '/ui/v2/auth/healthz': 'http://127.0.0.1:3010',
       },
     },
   }

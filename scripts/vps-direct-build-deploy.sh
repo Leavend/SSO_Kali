@@ -214,7 +214,7 @@ health_path() {
     sso-backend) printf '/.well-known/openid-configuration' ;;
     sso-frontend) printf '/healthz' ;;
     zitadel-login) printf '/ui/v2/login/healthy' ;;
-    zitadel-login-vue) printf "$(env_value ZITADEL_LOGIN_VUE_BASE_PATH /ui/v2/login-vue)/healthz" ;;
+    zitadel-login-vue) printf "$(env_value ZITADEL_LOGIN_VUE_BASE_PATH /ui/v2/auth)/healthz" ;;
     *) printf '/healthz' ;;
   esac
 }
@@ -285,7 +285,7 @@ build_service_image() {
       docker build --pull \
         -t "$image" \
         -f "$PROJECT_DIR/services/zitadel-login-vue/Dockerfile" \
-        --build-arg "VITE_PUBLIC_BASE_PATH=$(env_value ZITADEL_LOGIN_VUE_BASE_PATH /ui/v2/login-vue)" \
+        --build-arg "VITE_PUBLIC_BASE_PATH=$(env_value ZITADEL_LOGIN_VUE_BASE_PATH /ui/v2/auth)" \
         "$PROJECT_DIR" 2>&1 | tee -a "$DEPLOY_LOG"
       ;;
     *)
@@ -387,7 +387,7 @@ if printf '%s\n' "${SERVICES[@]}" | grep -Fxq "zitadel-login"; then
   smoke_check "Zitadel Login Health" "https://${ZITADEL_DOMAIN}/ui/v2/login/healthy" "^200$" "$ZITADEL_DOMAIN" || rollback_once "Smoke check failed: Zitadel Login Health"
 fi
 if printf '%s\n' "${SERVICES[@]}" | grep -Fxq "zitadel-login-vue"; then
-  ZITADEL_LOGIN_VUE_BASE_PATH=$(env_value ZITADEL_LOGIN_VUE_BASE_PATH /ui/v2/login-vue)
+  ZITADEL_LOGIN_VUE_BASE_PATH=$(env_value ZITADEL_LOGIN_VUE_BASE_PATH /ui/v2/auth)
   smoke_check "Zitadel Vue Login Canary" "https://${ZITADEL_DOMAIN}${ZITADEL_LOGIN_VUE_BASE_PATH}/healthz" "^200$" "$ZITADEL_DOMAIN" || rollback_once "Smoke check failed: Zitadel Vue Login Canary"
 fi
 APP_A_DOMAIN=$(env_value APP_A_DOMAIN)

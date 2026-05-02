@@ -9,7 +9,7 @@ const config: RuntimeConfig = {
   cookieSecret: 'test-zitadel-login-vue-cookie-secret-32',
   instanceHost: 'id.dev-sso.timeh.my.id',
   port: 3010,
-  publicBasePath: '/ui/v2/login-vue',
+  publicBasePath: '/ui/v2/auth',
   publicHost: 'id.dev-sso.timeh.my.id',
   requireTotpAfterPassword: true,
   secureCookies: true,

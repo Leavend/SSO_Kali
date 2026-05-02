@@ -1,4 +1,5 @@
-export const DEFAULT_BASE_PATH = '/ui/v2/login-vue'
+export const DEFAULT_BASE_PATH = '/ui/v2/auth'
+export const LEGACY_BASE_PATH = '/ui/v2/login-vue'
 
 const FLOW_ID_PATTERN = /^[A-Za-z0-9._~-]{1,200}$/
 
