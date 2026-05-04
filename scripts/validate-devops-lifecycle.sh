@@ -335,6 +335,7 @@ require_text "infra/nginx/dev-sso.timeh.my.id.chained.conf" 'sso_zitadel_login_a
 require_text "infra/nginx/dev-sso.timeh.my.id.chained.conf" '/ui/v2/auth/assets/' "Nginx preserves immutable cache policy for Vue login assets"
 require_text "scripts/vps-apply-edge-config.sh" 'nginx -t' "Edge config apply validates Nginx before reload"
 require_text "scripts/vps-apply-edge-config.sh" 'restore_previous' "Edge config apply restores previous Nginx config on validation failure"
+require_text "scripts/vps-apply-edge-config.sh" 'disable_stale_site_configs' "Edge config apply removes stale enabled host configs before validation"
 require_text "scripts/vps-diagnose-sso-performance.sh" 'docker stats --no-stream' "VPS diagnostic captures container CPU and memory snapshot"
 require_text "scripts/vps-diagnose-sso-performance.sh" 'pg_stat_activity' "VPS diagnostic captures PostgreSQL connection activity"
 
