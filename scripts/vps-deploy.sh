@@ -153,6 +153,20 @@ rollback_control_plane_services() {
   done
 }
 
+functional_ready() {
+  local svc="$1" cid
+  case "$svc" in
+    zitadel-api)
+      cid="$(compose ps -q "$svc" 2>/dev/null || true)"
+      [ -n "$cid" ] || return 1
+      docker exec "$cid" sh -lc \
+        'curl -fsS --max-time 8 http://127.0.0.1:8080/debug/ready >/dev/null || curl -fsS --max-time 8 http://127.0.0.1:8080/.well-known/openid-configuration >/dev/null' \
+        >/dev/null 2>&1
+      ;;
+    *) return 1 ;;
+  esac
+}
+
 # Map service name → image name in registry
 declare -A IMAGE_MAP=(
   [sso-backend]="sso-backend"
@@ -277,11 +291,19 @@ wait_healthy() {
       case "$status" in
         healthy|running) log "  ✅ $svc is $status"; return 0 ;;
         unhealthy|exited|dead)
+          if functional_ready "$svc"; then
+            warn "  ⚠️  $svc Docker health is $status but functional readiness passed"
+            return 0
+          fi
           warn "  ❌ $svc entered $status"
           docker logs --tail 20 "$CID" 2>&1 | tee -a "$DEPLOY_LOG" || true
           return 1
           ;;
       esac
+      if functional_ready "$svc"; then
+        warn "  ⚠️  $svc Docker health is ${status:-unknown} but functional readiness passed"
+        return 0
+      fi
     fi
     sleep 5
     elapsed=$((elapsed + 5))

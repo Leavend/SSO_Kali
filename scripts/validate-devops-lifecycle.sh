@@ -330,6 +330,8 @@ require_text "scripts/vps-deploy.sh" 'compose config --services' "Deploy preflig
 require_text "scripts/vps-deploy.sh" 'CONTROL_PLANE_SERVICES=\(zitadel-api\)' "Deploy reconciles ZITADEL runtime config when Compose changes"
 require_text "scripts/vps-deploy.sh" 'restore_compose_backup' "Deploy restores previous Compose control plane before rollback"
 require_text "scripts/vps-deploy.sh" 'rollback_control_plane_services' "Deploy re-applies previous ZITADEL control-plane config during rollback"
+require_text "scripts/vps-deploy.sh" 'functional_ready' "Deploy has service-specific functional readiness fallback"
+require_text "docker-compose.dev.yml" '/debug/ready' "ZITADEL healthcheck uses documented readiness endpoint"
 require_text "scripts/vps-deploy.sh" 'app_b_require_confidential_client_ready "deploy"' "Deploy invokes shared App B confidential client guard"
 require_text "scripts/lib/app-b-secret-guard.sh" 'prevent Compose dollar interpolation' "Shared guard blocks raw dollar-interpolated App B secret hashes"
 require_text "scripts/lib/app-b-secret-guard.sh" 'APP_B_CLIENT_SECRET_HASH must verify APP_B_CLIENT_SECRET before \$\{purpose\}' "Shared guard blocks mismatched App B deploy credentials"

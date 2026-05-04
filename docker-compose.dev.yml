@@ -289,9 +289,8 @@ services:
       ZITADEL_OIDC_DEFAULTLOGOUTURLV2: ${ZITADEL_PUBLIC_SCHEME}://${ZITADEL_DOMAIN}${ZITADEL_LOGIN_ACTIVE_BASE_PATH:-/ui/v2/login}/logout?post_logout_redirect=
     healthcheck:
       test:
-        - CMD
-        - /usr/local/bin/zitadel
-        - ready
+        - CMD-SHELL
+        - curl -fsS --max-time 8 http://127.0.0.1:8080/debug/ready >/dev/null || curl -fsS --max-time 8 http://127.0.0.1:8080/.well-known/openid-configuration >/dev/null
       interval: 15s
       timeout: 10s
       retries: 12

@@ -11,7 +11,7 @@ groups:
         expr: max_over_time(probe_duration_seconds{job="sso-public-blackbox", instance="https://id.dev-sso.timeh.my.id/ui/v2/auth/login"}[5m])
 
       - record: sso_identity_discovery_probe_seconds
-        expr: max_over_time(probe_duration_seconds{job="sso-public-blackbox", instance="https://id.dev-sso.timeh.my.id/.well-known/openid-configuration"}[5m])
+        expr: max_over_time(probe_duration_seconds{job="sso-public-blackbox", instance="https://dev-sso.timeh.my.id/.well-known/openid-configuration"}[5m])
 
       - record: sso_logout_success_ratio
         expr: |
@@ -62,7 +62,7 @@ groups:
           service: zitadel-api
         annotations:
           summary: ZITADEL discovery latency is elevated
-          description: Public OIDC discovery probe exceeded 2s for https://id.dev-sso.timeh.my.id/.well-known/openid-configuration.
+          description: Public OIDC discovery probe exceeded 2s for https://dev-sso.timeh.my.id/.well-known/openid-configuration.
 
       - alert: SsoJwksCacheHitRatioLow
         expr: sso_jwks_cache_hit_ratio{component="broker"} < 0.90

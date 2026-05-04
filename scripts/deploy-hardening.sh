@@ -140,7 +140,7 @@ assert_http() {
 # Core OIDC endpoints
 assert_http "SSO Discovery"      "https://dev-sso.timeh.my.id/.well-known/openid-configuration" '^200$'
 assert_http "JWKS"                "https://dev-sso.timeh.my.id/jwks"                              '^200$'
-assert_http "ZITADEL Discovery"  "https://id.dev-sso.timeh.my.id/.well-known/openid-configuration" '^200$'
+assert_http "ZITADEL Login"      "https://id.dev-sso.timeh.my.id/ui/v2/login"                     '^200$'
 assert_http "Admin Panel"        "https://dev-sso.timeh.my.id/"                                   '^200$'
 assert_http "App A"              "https://app-a.timeh.my.id/"                                     '^(200|30[1278])$'
 assert_http "App B"              "https://app-b.timeh.my.id/"                                     '^(200|30[1278])$'

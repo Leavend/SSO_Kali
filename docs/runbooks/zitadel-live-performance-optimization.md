@@ -13,7 +13,8 @@ Users reported that accessing the ZITADEL-backed login flow felt heavy. Live pro
 - ZITADEL instance and organization lookups were not cached in the live Compose control plane.
 - ZITADEL and PostgreSQL runtime limits in `docker-compose.dev.yml` were lower than the production budget overlay.
 - The registry deploy script copied the new Compose file to the VPS, but did not reconcile `zitadel-api`; therefore config-only ZITADEL changes could be shipped without taking effect.
-- Public blackbox monitoring covered generic uptime, but not the active Vue login URL or ZITADEL discovery latency.
+- The old ZITADEL Docker health command could remain `starting` or `unhealthy` while the identity API was serving requests, causing a false deployment failure.
+- Public blackbox monitoring covered generic uptime, but not the active Vue login URL or canonical SSO discovery latency.
 
 ## Optimization Applied
 
@@ -22,6 +23,7 @@ Users reported that accessing the ZITADEL-backed login flow felt heavy. Live pro
 - Increase the live ZITADEL and PostgreSQL resource ceilings to match the documented runtime budget.
 - Add a dedicated identity web resource budget for hosted login and Vue login services.
 - Add deploy-time reconciliation for `zitadel-api` with health-gated rollback.
+- Use the documented `/debug/ready` readiness endpoint with an OIDC discovery fallback for ZITADEL health checks.
 - Add Compose control-plane snapshot restoration before rollback.
 - Add public blackbox probes and alerts for Vue login and OIDC discovery latency.
 

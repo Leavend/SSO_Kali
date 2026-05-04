@@ -77,6 +77,17 @@ if missing_alerts:
 job_names = {job["job_name"] for job in prom["scrape_configs"]}
 required_jobs = {"traefik", "sso-kpi-exporter", "sso-public-blackbox"}
 
+blackbox_targets = {
+    target
+    for job in prom["scrape_configs"]
+    if job["job_name"] == "sso-public-blackbox"
+    for config in job.get("static_configs", [])
+    for target in config.get("targets", [])
+}
+
+if "https://id.dev-sso.timeh.my.id/.well-known/openid-configuration" in blackbox_targets:
+    raise SystemExit("[check-observability-assets][ERROR] id.dev-sso discovery target returns 404; use canonical SSO discovery")
+
 if not required_jobs.issubset(job_names):
     missing = sorted(required_jobs - job_names)
     raise SystemExit(f"[check-observability-assets][ERROR] missing scrape jobs: {', '.join(missing)}")
