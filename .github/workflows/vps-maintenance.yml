@@ -15,6 +15,7 @@ on:
           - audit-pg-stat-statements
           - enable-pg-stat-statements-extension
           - collect-login-flow-logs
+          - set-login-api-timeout
           - stop-noncritical-container
           - set-app-b-hash
       service_name:
@@ -36,6 +37,11 @@ on:
         required: false
         type: string
         default: "30m"
+      login_timeout_ms:
+        description: "ZITADEL_LOGIN_API_TIMEOUT_MS for set-login-api-timeout"
+        required: false
+        type: string
+        default: "15000"
 
 permissions:
   contents: read
@@ -186,6 +192,33 @@ jobs:
             -o ServerAliveCountMax=3 \
             "${{ env.VPS_USER }}@${{ env.VPS_HOST }}" \
             "sudo install -m 0755 /tmp/vps-collect-login-flow-logs.sh '${{ env.VPS_PROJECT_DIR }}/scripts/vps-collect-login-flow-logs.sh' && sudo bash '${{ env.VPS_PROJECT_DIR }}/scripts/vps-collect-login-flow-logs.sh' --project-dir '${{ env.VPS_PROJECT_DIR }}' --since ${REMOTE_LOG_SINCE} --samples 5 && rm -f /tmp/vps-collect-login-flow-logs.sh"
+
+      - name: Set Vue login API timeout
+        if: inputs.action == 'set-login-api-timeout'
+        run: |
+          TIMEOUT_MS="${{ inputs.login_timeout_ms }}"
+          if ! [[ "$TIMEOUT_MS" =~ ^[1-9][0-9]*$ ]]; then
+            echo "Refusing unsupported login_timeout_ms: $TIMEOUT_MS" >&2
+            exit 3
+          fi
+
+          SSH_CMD="ssh -i ~/.ssh/deploy_key -p ${{ env.VPS_SSH_PORT }} -o BatchMode=yes -o ConnectTimeout=${{ env.SSH_CONNECT_TIMEOUT }} -o ServerAliveInterval=10 -o ServerAliveCountMax=3"
+          REMOTE_TIMEOUT_MS="$(printf '%q' "$TIMEOUT_MS")"
+          export CI_RETRY_ATTEMPTS="${{ env.SSH_RETRY_ATTEMPTS }}"
+          export CI_RETRY_DELAY_SECONDS="${{ env.SSH_RETRY_DELAY_SECONDS }}"
+
+          bash scripts/ci-retry.sh rsync -avz -e "$SSH_CMD" \
+            scripts/vps-set-login-api-timeout.sh \
+            "${{ env.VPS_USER }}@${{ env.VPS_HOST }}":/tmp/vps-set-login-api-timeout.sh
+
+          bash scripts/ci-retry.sh ssh -i ~/.ssh/deploy_key \
+            -p "${{ env.VPS_SSH_PORT }}" \
+            -o BatchMode=yes \
+            -o ConnectTimeout="${{ env.SSH_CONNECT_TIMEOUT }}" \
+            -o ServerAliveInterval=10 \
+            -o ServerAliveCountMax=3 \
+            "${{ env.VPS_USER }}@${{ env.VPS_HOST }}" \
+            "sudo install -m 0755 /tmp/vps-set-login-api-timeout.sh '${{ env.VPS_PROJECT_DIR }}/scripts/vps-set-login-api-timeout.sh' && sudo bash '${{ env.VPS_PROJECT_DIR }}/scripts/vps-set-login-api-timeout.sh' --project-dir '${{ env.VPS_PROJECT_DIR }}' --timeout-ms ${REMOTE_TIMEOUT_MS} && rm -f /tmp/vps-set-login-api-timeout.sh"
 
       - name: Audit SSO runtime resource policy
         if: inputs.action == 'audit-sso-runtime-policy' || inputs.action == 'apply-sso-runtime-policy'
