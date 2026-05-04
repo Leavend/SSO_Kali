@@ -10,7 +10,13 @@ on:
         options:
           - check-env
           - diagnose-sso-performance
+          - stop-noncritical-container
           - set-app-b-hash
+      container_name:
+        description: "Whitelisted non-critical container to stop"
+        required: false
+        type: string
+        default: "n8n-n8n-1"
       secret_plaintext:
         description: "Plaintext secret for hash generation (only for set-app-b-hash)"
         required: false
@@ -112,6 +118,36 @@ jobs:
             -o ServerAliveCountMax=3 \
             "${{ env.VPS_USER }}@${{ env.VPS_HOST }}" \
             "sudo install -m 0755 /tmp/vps-diagnose-sso-performance.sh '${{ env.VPS_PROJECT_DIR }}/scripts/vps-diagnose-sso-performance.sh' && sudo bash '${{ env.VPS_PROJECT_DIR }}/scripts/vps-diagnose-sso-performance.sh' --project-dir '${{ env.VPS_PROJECT_DIR }}' --samples 5 && rm -f /tmp/vps-diagnose-sso-performance.sh"
+
+      - name: Stop non-critical container
+        if: inputs.action == 'stop-noncritical-container'
+        run: |
+          CONTAINER_NAME="${{ inputs.container_name }}"
+          case "$CONTAINER_NAME" in
+            n8n-n8n-1) ;;
+            *)
+              echo "Refusing to stop non-whitelisted container: $CONTAINER_NAME" >&2
+              exit 3
+              ;;
+          esac
+
+          SSH_CMD="ssh -i ~/.ssh/deploy_key -p ${{ env.VPS_SSH_PORT }} -o BatchMode=yes -o ConnectTimeout=${{ env.SSH_CONNECT_TIMEOUT }} -o ServerAliveInterval=10 -o ServerAliveCountMax=3"
+          REMOTE_CONTAINER_NAME="$(printf '%q' "$CONTAINER_NAME")"
+          export CI_RETRY_ATTEMPTS="${{ env.SSH_RETRY_ATTEMPTS }}"
+          export CI_RETRY_DELAY_SECONDS="${{ env.SSH_RETRY_DELAY_SECONDS }}"
+
+          bash scripts/ci-retry.sh rsync -avz -e "$SSH_CMD" \
+            scripts/vps-stop-noncritical-container.sh \
+            "${{ env.VPS_USER }}@${{ env.VPS_HOST }}":/tmp/vps-stop-noncritical-container.sh
+
+          bash scripts/ci-retry.sh ssh -i ~/.ssh/deploy_key \
+            -p "${{ env.VPS_SSH_PORT }}" \
+            -o BatchMode=yes \
+            -o ConnectTimeout="${{ env.SSH_CONNECT_TIMEOUT }}" \
+            -o ServerAliveInterval=10 \
+            -o ServerAliveCountMax=3 \
+            "${{ env.VPS_USER }}@${{ env.VPS_HOST }}" \
+            "sudo install -m 0755 /tmp/vps-stop-noncritical-container.sh '${{ env.VPS_PROJECT_DIR }}/scripts/vps-stop-noncritical-container.sh' && sudo bash '${{ env.VPS_PROJECT_DIR }}/scripts/vps-stop-noncritical-container.sh' ${REMOTE_CONTAINER_NAME} && rm -f /tmp/vps-stop-noncritical-container.sh"
 
       - name: Generate and set APP_B hash
         if: inputs.action == 'set-app-b-hash'

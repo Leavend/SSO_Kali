@@ -39,11 +39,27 @@ print_host() {
   df -h / || true
 }
 
+print_host_processes() {
+  log "Host top CPU processes"
+  ps -eo pid,ppid,comm,%cpu,%mem --sort=-%cpu | head -25 || true
+}
+
 print_containers() {
   log "Compose services"
   compose ps
   log "Container resource snapshot"
   docker stats --no-stream --format 'table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.NetIO}}\t{{.BlockIO}}' || true
+}
+
+print_focused_container_samples() {
+  log "Focused SSO container samples"
+  local sample
+  for sample in $(seq 1 "$SAMPLES"); do
+    echo "-- sample ${sample}/${SAMPLES}"
+    docker stats --no-stream --format 'table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.NetIO}}\t{{.BlockIO}}' \
+      | grep -E 'NAME|sso-prototype-dev-(postgres|proxy|redis|zitadel|sso-backend|sso-frontend|sso-admin-vue|app-a-next|app-b-laravel)' || true
+    sleep 2
+  done
 }
 
 audit_resource_policy() {
@@ -60,6 +76,20 @@ audit_resource_policy() {
       "service=${service} cpus={{.HostConfig.NanoCpus}} cpu_shares={{.HostConfig.CpuShares}} memory={{.HostConfig.Memory}} restart={{.HostConfig.RestartPolicy.Name}}" \
       "$container_id" || true
   done
+}
+
+audit_proxy_pressure() {
+  log "Proxy recent pressure"
+  compose logs --since 15m --tail 300 proxy 2>&1 \
+    | redact_sensitive \
+    | grep -Ei 'error|warn|timeout|deadline|unavailable|bad gateway|gateway|retry|throttle|rate|slow' \
+    | tail -100 || true
+}
+
+audit_redis_pressure() {
+  log "Redis pressure"
+  compose exec -T redis sh -lc 'redis-cli INFO stats | grep -E "^(total_commands_processed|instantaneous_ops_per_sec|total_net_input_bytes|total_net_output_bytes|rejected_connections|expired_keys|evicted_keys):"' || true
+  compose exec -T redis sh -lc 'redis-cli INFO commandstats | grep "^cmdstat_" | sort -t= -k2 -Vr | head -30' || true
 }
 
 probe_internal() {
@@ -81,15 +111,21 @@ probe_proxy() {
   done
 }
 
+pg_query() {
+  local title="$1" sql="$2"
+  echo "-- ${title}"
+  compose exec -T postgres sh -lc 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "$1"' sh "$sql" || true
+}
+
 probe_postgres() {
   log "PostgreSQL activity"
   compose exec -T postgres sh -lc 'pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
-  compose exec -T postgres sh -lc \
-    'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "select state, count(*) from pg_stat_activity group by state order by state;"' || true
-  compose exec -T postgres sh -lc \
-    'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "select wait_event_type, wait_event, count(*) from pg_stat_activity where wait_event is not null group by wait_event_type, wait_event order by count(*) desc limit 10;"' || true
-  compose exec -T postgres sh -lc \
-    'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "select locktype, mode, granted, count(*) from pg_locks group by locktype, mode, granted order by count(*) desc limit 15;"' || true
+  pg_query "connection states" "select state, count(*) from pg_stat_activity group by state order by state;"
+  pg_query "wait events" "select wait_event_type, wait_event, count(*) from pg_stat_activity where wait_event is not null group by wait_event_type, wait_event order by count(*) desc limit 10;"
+  pg_query "locks" "select locktype, mode, granted, count(*) from pg_locks group by locktype, mode, granted order by count(*) desc limit 15;"
+  pg_query "database stats" "select datname, numbackends, xact_commit, xact_rollback, blks_read, blks_hit, tup_returned, tup_fetched from pg_stat_database order by numbackends desc limit 10;"
+  pg_query "active statements" "select now() - query_start as age, state, wait_event_type, left(query, 160) as query from pg_stat_activity where state <> 'idle' order by query_start nulls last limit 10;"
+  pg_query "pg_stat_statements hot queries" "select calls, round(total_exec_time::numeric, 2) as total_ms, round(mean_exec_time::numeric, 2) as mean_ms, left(query, 160) as query from pg_stat_statements order by total_exec_time desc limit 10;"
 }
 
 probe_zitadel() {
@@ -143,8 +179,12 @@ audit_zitadel_container() {
 
 require_runtime
 print_host
+print_host_processes
 print_containers
+print_focused_container_samples
 audit_resource_policy
+audit_proxy_pressure
+audit_redis_pressure
 probe_internal
 audit_zitadel_container
 probe_zitadel
