@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
-import { Activity, AppWindow, LogOut, LayoutDashboard, Menu, RefreshCw, ShieldCheck, Users, X } from "lucide-vue-next";
+import { Activity, AppWindow, ChevronsLeft, ChevronsRight, LogOut, LayoutDashboard, Menu, RefreshCw, ShieldCheck, Users, X } from "lucide-vue-next";
 import { RouterLink, RouterView, useRoute } from "vue-router";
 import FloatingActions from "@/components/FloatingActions.vue";
 import AuthFooter from "@/components/auth/AuthFooter.vue";
@@ -13,6 +13,7 @@ import { useAdminStore } from "./stores/admin";
 const admin = useAdminStore();
 const route = useRoute();
 const sidebarOpen = ref(false);
+const sidebarCollapsed = ref(false);
 const showAdminShell = computed(() => Boolean(route.meta.requiresAuth) && admin.isAuthenticated);
 let refreshTimer: number | undefined;
 
@@ -91,16 +92,34 @@ watch(() => route.path, closeSidebar);
       <aside
         id="admin-sidebar"
         class="sidebar"
-        :class="{ 'sidebar--open': sidebarOpen }"
+        :class="{
+          'sidebar--open': sidebarOpen,
+          'sidebar--collapsed': sidebarCollapsed,
+        }"
         role="navigation"
         aria-label="Navigasi admin panel"
         @keydown="handleSidebarKeydown"
       >
         <div class="sidebar-header">
           <RouterLink class="brand" to="/dashboard" @click="closeSidebar">
-            <ShieldCheck :size="20" aria-hidden="true" />
-            <span>SSO Admin</span>
+            <span class="brand-mark" aria-hidden="true">
+              <ShieldCheck :size="20" />
+            </span>
+            <span class="brand-copy">
+              <strong>SSO Admin</strong>
+              <small>Enterprise Console</small>
+            </span>
           </RouterLink>
+          <button
+            class="sidebar-collapse"
+            type="button"
+            :aria-label="sidebarCollapsed ? 'Perluas sidebar' : 'Ciutkan sidebar'"
+            :aria-pressed="sidebarCollapsed"
+            @click="sidebarCollapsed = !sidebarCollapsed"
+          >
+            <ChevronsRight v-if="sidebarCollapsed" :size="18" aria-hidden="true" />
+            <ChevronsLeft v-else :size="18" aria-hidden="true" />
+          </button>
           <button
             class="sidebar-close"
             type="button"
@@ -116,10 +135,13 @@ watch(() => route.path, closeSidebar);
             v-for="item in navItems"
             :key="item.to"
             :to="item.to"
+            :title="sidebarCollapsed ? item.label : undefined"
             @click="closeSidebar"
           >
-            <component :is="item.icon" :size="18" aria-hidden="true" />
-            {{ item.label }}
+            <span class="nav-icon">
+              <component :is="item.icon" :size="18" aria-hidden="true" />
+            </span>
+            <span class="nav-label">{{ item.label }}</span>
           </RouterLink>
         </nav>
 

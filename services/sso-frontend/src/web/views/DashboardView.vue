@@ -5,6 +5,7 @@ import ClientIntegrationProcedure from '@/components/ClientIntegrationProcedure.
 import PageHeader from '@/components/PageHeader.vue'
 import KpiCard from '@/components/dashboard/KpiCard.vue'
 import QuickAction from '@/components/dashboard/QuickAction.vue'
+import DashboardSurface from '@/components/ui/DashboardSurface.vue'
 import { useAdminStore } from '@/stores/admin'
 import { formatDateTime, formatRelative } from '@shared/format'
 
@@ -132,7 +133,7 @@ onMounted(() => {
     <!-- Detail panels -->
     <div class="panel-grid">
       <!-- Recent users panel -->
-      <article class="panel" aria-labelledby="panel-users-title">
+      <DashboardSurface as="article" class="panel" interactive aria-labelledby="panel-users-title">
         <div class="panel-title">
           <div class="panel-title__left">
             <UsersRound :size="18" aria-hidden="true" />
@@ -166,10 +167,10 @@ onMounted(() => {
           <Inbox :size="24" aria-hidden="true" />
           <p>Belum ada data pengguna.</p>
         </div>
-      </article>
+      </DashboardSurface>
 
       <!-- Recent sessions panel -->
-      <article class="panel" aria-labelledby="panel-sessions-title">
+      <DashboardSurface as="article" class="panel" interactive aria-labelledby="panel-sessions-title">
         <div class="panel-title">
           <div class="panel-title__left">
             <Activity :size="18" aria-hidden="true" />
@@ -203,10 +204,10 @@ onMounted(() => {
           <Inbox :size="24" aria-hidden="true" />
           <p>Belum ada sesi aktif.</p>
         </div>
-      </article>
+      </DashboardSurface>
 
       <!-- Applications panel -->
-      <article class="panel" aria-labelledby="panel-apps-title">
+      <DashboardSurface as="article" class="panel" interactive aria-labelledby="panel-apps-title">
         <div class="panel-title">
           <div class="panel-title__left">
             <AppWindow :size="18" aria-hidden="true" />
@@ -240,7 +241,7 @@ onMounted(() => {
           <Inbox :size="24" aria-hidden="true" />
           <p>Belum ada aplikasi terdaftar.</p>
         </div>
-      </article>
+      </DashboardSurface>
     </div>
   </section>
 </template>
@@ -257,36 +258,167 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-3, 12px);
-  margin-bottom: var(--space-4, 16px);
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
 }
 
 .panel-title__left {
   display: flex;
   align-items: center;
-  gap: var(--space-3, 12px);
+  gap: var(--space-3);
+}
+
+.panel-title__left svg {
+  color: var(--admin-muted);
+  transition: color 0.2s ease;
+}
+
+.panel:hover .panel-title__left svg {
+  color: var(--admin-accent);
 }
 
 .panel-title__link {
-  color: var(--admin-accent, #1d4ed8);
-  font-size: var(--text-sm, 13px);
+  color: var(--admin-accent);
+  font-size: var(--text-sm);
   font-weight: 600;
   white-space: nowrap;
+  text-decoration: none;
+  transition: color 0.2s ease, opacity 0.2s ease;
 }
 
 .panel-title__link:hover {
+  color: var(--admin-accent-hover);
   text-decoration: underline;
+}
+
+.panel-title__link:active {
+  opacity: 0.7;
 }
 
 .panel-loading {
   display: grid;
-  gap: var(--space-3, 12px);
-  padding: var(--space-4, 16px) 0;
+  gap: var(--space-3);
+  padding: var(--space-4) 0;
+}
+
+/* Shimmer animation for skeleton */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg,
+    var(--admin-panel-muted) 0%,
+    var(--admin-panel-hover) 50%,
+    var(--admin-panel-muted) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+}
+
+.skeleton--text {
+  height: 14px;
+  width: 100%;
+}
+
+.skeleton--number {
+  height: 40px;
+  width: 80px;
+}
+
+/* Panel styles */
+.panel {
+  overflow: hidden;
+}
+
+.panel:active {
+  transform: scale(0.99);
+}
+
+/* Enhanced list-table hover */
+.list-table > * {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  text-decoration: none;
+  color: var(--admin-ink);
+  transition: background-color 0.15s ease, transform 0.15s ease;
+  border-radius: var(--radius-md);
+}
+
+.list-table > *:hover {
+  background: color-mix(in srgb, var(--admin-accent-soft) 50%, var(--admin-panel));
+  transform: translateX(4px);
+}
+
+.list-table > small {
+  color: var(--admin-muted);
+  font-size: var(--text-xs);
+}
+
+/* Enhanced empty states */
+.panel-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-8);
+  color: var(--admin-muted);
+}
+
+.panel-empty svg {
+  color: var(--admin-subtle);
+  transition: color 0.2s ease;
+}
+
+.panel-empty:hover svg {
+  color: var(--admin-accent);
+}
+
+/* Error banner enhancement */
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: color-mix(in srgb, var(--status-danger) 8%, var(--admin-panel));
+  border: 1px solid color-mix(in srgb, var(--status-danger) 30%, transparent);
+  border-radius: var(--radius-lg);
+  color: var(--status-danger);
+}
+
+.error-banner svg {
+  flex-shrink: 0;
+}
+
+/* Toolbar enhancement */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin: var(--space-4) 0;
+}
+
+/* Stat grid enhancement */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-4);
 }
 
 @media (max-width: 1024px) {
   .quick-actions {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .stat-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
@@ -294,11 +426,66 @@ onMounted(() => {
   .quick-actions {
     grid-template-columns: 1fr;
   }
+
+  .stat-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .panel-grid {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
 }
 
+/* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+    background: var(--admin-panel-muted);
+  }
+
+  .panel,
+  .list-table > *,
+  .panel-title__left svg,
+  .panel-title__link,
+  .panel-empty svg {
+    transition: none;
+  }
+
+  .panel:active {
+    transform: none;
+  }
+
+  .list-table > *:hover {
+    transform: none;
+  }
+
   .animate-spin {
     animation: none;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .panel {
+    border-width: 2px;
+  }
+
+  .panel:hover {
+    border-color: var(--admin-accent);
+  }
+
+  .list-table > * {
+    border: 1px solid transparent;
+  }
+
+  .list-table > *:hover {
+    border-color: var(--admin-line);
+  }
+
+  .error-banner {
+    border-width: 2px;
   }
 }
 </style>

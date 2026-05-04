@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { TrendingUp, TrendingDown, Minus } from 'lucide-vue-next'
+import DashboardSurface from '@/components/ui/DashboardSurface.vue'
 
 type TrendDirection = 'up' | 'down' | 'neutral'
 
@@ -34,7 +35,10 @@ const trendIcon = computed(() => {
 </script>
 
 <template>
-  <article
+  <DashboardSurface
+    as="article"
+    padding="md"
+    interactive
     class="kpi-card"
     :class="[
       `kpi-card--${trend}`,
@@ -56,32 +60,17 @@ const trendIcon = computed(() => {
     <strong v-else class="kpi-card__value">{{ formattedValue }}</strong>
 
     <small v-if="detail && !loading" class="kpi-card__detail">{{ detail }}</small>
-  </article>
+  </DashboardSurface>
 </template>
 
 <style scoped>
 .kpi-card {
   display: grid;
-  gap: var(--space-1);
-  padding: var(--space-5);
-  background: linear-gradient(135deg, var(--admin-panel) 0%, color-mix(in srgb, var(--admin-accent-soft) 10%, var(--admin-panel)) 100%);
-  border: 1px solid var(--admin-line);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 1px 3px var(--admin-shadow), 0 1px 2px rgba(0, 0, 0, 0.05);
-  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s ease;
+  gap: var(--space-3);
 }
 
-@media (hover: hover) and (pointer: fine) {
-  .kpi-card:hover {
-    box-shadow: 0 12px 32px var(--admin-shadow-lg);
-    transform: translateY(-3px);
-    border-color: var(--admin-line-strong);
-  }
-
-  .kpi-card:active {
-    transform: translateY(-1px);
-    box-shadow: 0 6px 16px var(--admin-shadow-lg);
-  }
+.kpi-card:active {
+  transform: translateY(-1px);
 }
 
 .kpi-card--up {

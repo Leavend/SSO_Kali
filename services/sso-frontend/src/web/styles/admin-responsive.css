@@ -263,6 +263,11 @@
   .app-shell--admin .admin-content-shell {
     margin-left: var(--admin-sidebar-width);
     min-height: 100dvh;
+    transition: margin-left 0.22s ease;
+  }
+
+  .app-shell--admin:has(.sidebar--collapsed) .admin-content-shell {
+    margin-left: var(--admin-sidebar-collapsed-width);
   }
 
   .app-shell--admin .content-stack {
@@ -275,15 +280,47 @@
     width: var(--admin-sidebar-width);
     height: 100dvh;
     max-height: none;
+    overflow-x: hidden;
     overflow-y: auto;
     box-shadow: none;
     transform: none;
-    transition: none;
+    transition: width 0.22s ease;
+  }
+
+  .app-shell--admin .sidebar--collapsed {
+    width: var(--admin-sidebar-collapsed-width);
+    align-items: center;
+  }
+
+  .app-shell--admin .sidebar--collapsed .sidebar-header,
+  .app-shell--admin .sidebar--collapsed .nav-list,
+  .app-shell--admin .sidebar--collapsed .sidebar-actions {
+    width: 100%;
+  }
+
+  .app-shell--admin .sidebar--collapsed .brand,
+  .app-shell--admin .sidebar--collapsed .nav-list a,
+  .app-shell--admin .sidebar--collapsed .sidebar-actions {
+    justify-content: center;
+  }
+
+  .app-shell--admin .sidebar--collapsed .brand {
+    width: 56px;
+  }
+
+  .app-shell--admin .sidebar--collapsed .brand-copy,
+  .app-shell--admin .sidebar--collapsed .nav-label,
+  .app-shell--admin .sidebar--collapsed .principal,
+  .app-shell--admin .sidebar--collapsed .sidebar-collapse {
+    display: none;
+  }
+
+  .app-shell--admin .sidebar--collapsed .sidebar-footer {
+    width: 100%;
   }
 
   .sidebar-footer {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
     align-items: center;
   }
 
@@ -295,6 +332,10 @@
   .sidebar-close,
   .sidebar-backdrop {
     display: none;
+  }
+
+  .sidebar-collapse {
+    display: inline-flex;
   }
 
   .main-surface {
@@ -349,7 +390,7 @@
 
   .nav-list a {
     min-height: var(--touch-target-comfortable);
-    padding: var(--space-4);
+    padding: var(--space-3);
   }
 
   .stat-tile:hover,
