@@ -1,7 +1,7 @@
 import { Readable } from 'node:stream'
 import type { IncomingMessage } from 'node:http'
 
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { RuntimeConfig } from './config.js'
 import { LOGIN_SESSION_COOKIE, serializeLoginState } from './cookies.js'
@@ -52,8 +52,11 @@ const config: RuntimeConfig = {
 }
 
 describe('login API flow', () => {
+  let consoleError: ReturnType<typeof vi.spyOn>
+
   beforeEach(() => {
     vi.clearAllMocks()
+    consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined)
     mocks.createSession.mockResolvedValue({
       sessionId: 'session-id',
       sessionToken: 'identified-session-token',
@@ -64,6 +67,10 @@ describe('login API flow', () => {
     mocks.getAuthRequestLoginHint.mockResolvedValue('huanamasi123@gmail.com')
     mocks.requestPasswordReset.mockReset()
     mocks.updatePassword.mockResolvedValue('password-session-token')
+  })
+
+  afterEach(() => {
+    consoleError.mockRestore()
   })
 
   it('starts OIDC requests from the auth request login hint without another email step', async () => {
@@ -97,6 +104,7 @@ describe('login API flow', () => {
     expect(response.headers['cache-control']).toBe('no-store')
     expect(response.headers['retry-after']).toBe('3')
     expect(payload.message).toContain('Layanan identitas')
+    expect(consoleError).toHaveBeenCalledWith(expect.stringContaining('login_api_error action=/session/password status=504 code=zitadel_timeout'))
   })
 
   it('requests password reset links without exposing user lookup results', async () => {

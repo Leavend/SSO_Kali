@@ -25,6 +25,7 @@ export async function handleApi(request: IncomingMessage, action: string, config
   try {
     return withApiTiming(await dispatchApi(request, action, config), started)
   } catch (error) {
+    logApiError(action, error, started)
     return withApiTiming(errorResponse(error), started)
   }
 }
@@ -159,6 +160,19 @@ function errorResponse(error: unknown): AppResponse {
     return json(errorStatus(error), { message: messageForError(error) }, errorHeaders(error))
   }
   return json(500, { message: LOGIN_MESSAGES.generic })
+}
+
+function logApiError(action: string, error: unknown, started: number): void {
+  if (error instanceof ZitadelApiError && error.status < 500) return
+
+  const status = error instanceof ZitadelApiError ? error.status : 500
+  const code = error instanceof ZitadelApiError ? error.code : errorName(error)
+  const durationMs = Math.max(0, performance.now() - started).toFixed(1)
+  console.error(`login_api_error action=${action} status=${status} code=${code} duration_ms=${durationMs}`)
+}
+
+function errorName(error: unknown): string {
+  return error instanceof Error ? error.name : 'unknown_error'
 }
 
 function errorHeaders(error: ZitadelApiError): Record<string, string> {

@@ -63,6 +63,39 @@ The current VPS is still a shared compute plane. Until ZITADEL and PostgreSQL ar
 
 This is a containment step, not a substitute for capacity. If public latency still spikes while internal ZITADEL probes remain fast, the next action is infrastructure separation or a larger VPS, not more application retries.
 
+## PostgreSQL Hot Query Observability
+
+The next diagnostic gate is `pg_stat_statements`. CPU pressure can come from host oversubscription, but ZITADEL and the SSO services also need query-level evidence before changing database indexes, cache policy, or application code. Ranking SQL by `total_exec_time`, `mean_exec_time`, and `calls` prevents blind optimization and keeps fixes tied to measured user impact.
+
+Run the read-only audit first:
+
+```bash
+gh workflow run "VPS Maintenance" -f action=audit-pg-stat-statements
+```
+
+The audit checks:
+
+- Whether PostgreSQL is already started with `shared_preload_libraries=pg_stat_statements`.
+- Whether the extension exists in the ZITADEL, SSO backend, App B, and maintenance databases.
+- Hot query samples when the extension is already active.
+
+The Compose control plane now carries the preload configuration for the next planned PostgreSQL start. Do not restart the current single PostgreSQL container just to apply it during business traffic; on this one-node VPS that is not zero downtime for identity.
+
+After a backup-backed maintenance window or after moving PostgreSQL to a dedicated identity plane, enable the extension objects idempotently:
+
+```bash
+gh workflow run "VPS Maintenance" -f action=enable-pg-stat-statements-extension
+```
+
+The enable action refuses to mutate databases unless PostgreSQL is already running with the preload library. That keeps the workflow rollback-safe: it can verify readiness and create extension metadata, but it cannot hide an unsafe live restart inside an observability task.
+
+Use the query report to decide the next fix:
+
+- High ZITADEL read time: prioritize identity-plane CPU/database separation before adding application retries.
+- High SSO backend query time: add targeted indexes or eager loading in the owning Laravel action/service, then cover with Pest/PHPStan.
+- High App B query time: keep demo workload constrained or move it away from the identity node.
+- High calls with low mean time: consider short TTL caching for non-sensitive hot reads.
+
 ## Identity Plane Migration Path
 
 Use this sequence for a production-grade split without auth downtime:
@@ -92,6 +125,12 @@ Review:
 - ZITADEL `/debug/metrics` process/runtime and HTTP/gRPC counters.
 - PostgreSQL `pg_stat_activity`, wait events, and `pg_locks`.
 - Runtime resource policy from the VPS diagnostic. The identity/data plane must show higher CPU shares than demo workloads.
+
+If the diagnostic still says `pg_stat_statements unavailable`, run the dedicated audit workflow before changing code or adding indexes:
+
+```bash
+gh workflow run "VPS Maintenance" -f action=audit-pg-stat-statements
+```
 
 Do not reproduce password errors by submitting a real user's password or a dummy password for a real account. Use logs, metrics, and synthetic non-credential probes to avoid account lockout and audit contamination.
 

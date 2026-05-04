@@ -12,6 +12,9 @@ on:
           - audit-sso-runtime-policy
           - apply-sso-runtime-policy
           - diagnose-sso-performance
+          - audit-pg-stat-statements
+          - enable-pg-stat-statements-extension
+          - collect-login-flow-logs
           - stop-noncritical-container
           - set-app-b-hash
       service_name:
@@ -28,6 +31,11 @@ on:
         description: "Plaintext secret for hash generation (only for set-app-b-hash)"
         required: false
         type: string
+      log_since:
+        description: "Log lookback window for collect-login-flow-logs"
+        required: false
+        type: string
+        default: "30m"
 
 permissions:
   contents: read
@@ -125,6 +133,59 @@ jobs:
             -o ServerAliveCountMax=3 \
             "${{ env.VPS_USER }}@${{ env.VPS_HOST }}" \
             "sudo install -m 0755 /tmp/vps-diagnose-sso-performance.sh '${{ env.VPS_PROJECT_DIR }}/scripts/vps-diagnose-sso-performance.sh' && sudo bash '${{ env.VPS_PROJECT_DIR }}/scripts/vps-diagnose-sso-performance.sh' --project-dir '${{ env.VPS_PROJECT_DIR }}' --samples 5 && rm -f /tmp/vps-diagnose-sso-performance.sh"
+
+      - name: Audit PostgreSQL pg_stat_statements
+        if: inputs.action == 'audit-pg-stat-statements' || inputs.action == 'enable-pg-stat-statements-extension'
+        run: |
+          MODE="audit"
+          if [ "${{ inputs.action }}" = "enable-pg-stat-statements-extension" ]; then
+            MODE="enable-extension"
+          fi
+
+          SSH_CMD="ssh -i ~/.ssh/deploy_key -p ${{ env.VPS_SSH_PORT }} -o BatchMode=yes -o ConnectTimeout=${{ env.SSH_CONNECT_TIMEOUT }} -o ServerAliveInterval=10 -o ServerAliveCountMax=3"
+          REMOTE_MODE="$(printf '%q' "$MODE")"
+          export CI_RETRY_ATTEMPTS="${{ env.SSH_RETRY_ATTEMPTS }}"
+          export CI_RETRY_DELAY_SECONDS="${{ env.SSH_RETRY_DELAY_SECONDS }}"
+
+          bash scripts/ci-retry.sh rsync -avz -e "$SSH_CMD" \
+            scripts/vps-pg-stat-statements.sh \
+            "${{ env.VPS_USER }}@${{ env.VPS_HOST }}":/tmp/vps-pg-stat-statements.sh
+
+          bash scripts/ci-retry.sh ssh -i ~/.ssh/deploy_key \
+            -p "${{ env.VPS_SSH_PORT }}" \
+            -o BatchMode=yes \
+            -o ConnectTimeout="${{ env.SSH_CONNECT_TIMEOUT }}" \
+            -o ServerAliveInterval=10 \
+            -o ServerAliveCountMax=3 \
+            "${{ env.VPS_USER }}@${{ env.VPS_HOST }}" \
+            "sudo install -m 0755 /tmp/vps-pg-stat-statements.sh '${{ env.VPS_PROJECT_DIR }}/scripts/vps-pg-stat-statements.sh' && sudo bash '${{ env.VPS_PROJECT_DIR }}/scripts/vps-pg-stat-statements.sh' --project-dir '${{ env.VPS_PROJECT_DIR }}' --mode ${REMOTE_MODE} && rm -f /tmp/vps-pg-stat-statements.sh"
+
+      - name: Collect login flow logs
+        if: inputs.action == 'collect-login-flow-logs'
+        run: |
+          LOG_SINCE="${{ inputs.log_since }}"
+          case "$LOG_SINCE" in
+            *[!0-9smh]*|"") echo "Refusing unsupported log_since: $LOG_SINCE" >&2; exit 3 ;;
+            *) ;;
+          esac
+
+          SSH_CMD="ssh -i ~/.ssh/deploy_key -p ${{ env.VPS_SSH_PORT }} -o BatchMode=yes -o ConnectTimeout=${{ env.SSH_CONNECT_TIMEOUT }} -o ServerAliveInterval=10 -o ServerAliveCountMax=3"
+          REMOTE_LOG_SINCE="$(printf '%q' "$LOG_SINCE")"
+          export CI_RETRY_ATTEMPTS="${{ env.SSH_RETRY_ATTEMPTS }}"
+          export CI_RETRY_DELAY_SECONDS="${{ env.SSH_RETRY_DELAY_SECONDS }}"
+
+          bash scripts/ci-retry.sh rsync -avz -e "$SSH_CMD" \
+            scripts/vps-collect-login-flow-logs.sh \
+            "${{ env.VPS_USER }}@${{ env.VPS_HOST }}":/tmp/vps-collect-login-flow-logs.sh
+
+          bash scripts/ci-retry.sh ssh -i ~/.ssh/deploy_key \
+            -p "${{ env.VPS_SSH_PORT }}" \
+            -o BatchMode=yes \
+            -o ConnectTimeout="${{ env.SSH_CONNECT_TIMEOUT }}" \
+            -o ServerAliveInterval=10 \
+            -o ServerAliveCountMax=3 \
+            "${{ env.VPS_USER }}@${{ env.VPS_HOST }}" \
+            "sudo install -m 0755 /tmp/vps-collect-login-flow-logs.sh '${{ env.VPS_PROJECT_DIR }}/scripts/vps-collect-login-flow-logs.sh' && sudo bash '${{ env.VPS_PROJECT_DIR }}/scripts/vps-collect-login-flow-logs.sh' --project-dir '${{ env.VPS_PROJECT_DIR }}' --since ${REMOTE_LOG_SINCE} --samples 5 && rm -f /tmp/vps-collect-login-flow-logs.sh"
 
       - name: Audit SSO runtime resource policy
         if: inputs.action == 'audit-sso-runtime-policy' || inputs.action == 'apply-sso-runtime-policy'
