@@ -42,6 +42,7 @@ const config: RuntimeConfig = {
   appBaseUrl: 'https://dev-sso.timeh.my.id',
   cookieSecret: 'test-zitadel-login-vue-cookie-secret-32',
   instanceHost: 'id.dev-sso.timeh.my.id',
+  apiTimeoutMs: 6000,
   port: 3010,
   publicBasePath: '/ui/v2/auth',
   publicHost: 'id.dev-sso.timeh.my.id',
@@ -52,6 +53,7 @@ const config: RuntimeConfig = {
 
 describe('login API flow', () => {
   beforeEach(() => {
+    vi.clearAllMocks()
     mocks.createSession.mockResolvedValue({
       sessionId: 'session-id',
       sessionToken: 'identified-session-token',
@@ -112,6 +114,15 @@ describe('login API flow', () => {
       'New-password-123',
       'RESET123',
     )
+  })
+
+  it('rejects oversized JSON bodies before calling ZITADEL', async () => {
+    const response = await handleApiStep('/session/user', { loginName: 'a'.repeat(20_000) })
+    const payload = JSON.parse(String(response.body)) as { message?: string }
+
+    expect(response.status).toBe(413)
+    expect(payload.message).toBeTruthy()
+    expect(mocks.createSession).not.toHaveBeenCalled()
   })
 })
 

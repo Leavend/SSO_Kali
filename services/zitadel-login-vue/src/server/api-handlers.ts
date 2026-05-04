@@ -1,10 +1,11 @@
 import type { IncomingMessage } from 'node:http'
+import { performance } from 'node:perf_hooks'
 
 import { LOGIN_MESSAGES } from '../shared/messages.js'
 import { sanitizeFlowId, sanitizeLoginName, sanitizeOtpCode, withBasePath } from '../shared/routes.js'
 import type { RuntimeConfig } from './config.js'
 import { clearSessionCookie, LOGIN_SESSION_COOKIE, parseLoginState, serializeLoginState, sessionCookie } from './cookies.js'
-import { readCookie, readJsonBody } from './request.js'
+import { readCookie, readJsonBody, RequestBodyError } from './request.js'
 import type { AppResponse } from './response.js'
 import { json } from './response.js'
 import {
@@ -20,18 +21,23 @@ import {
 } from './zitadel-client.js'
 
 export async function handleApi(request: IncomingMessage, action: string, config: RuntimeConfig): Promise<AppResponse> {
+  const started = performance.now()
   try {
-    if (action === '/session/auth-request') return await handleAuthRequest(request, config)
-    if (action === '/session/user') return await handleUser(request, config)
-    if (action === '/session/password') return await handlePassword(request, config)
-    if (action === '/session/totp') return await handleTotp(request, config)
-    if (action === '/session/clear') return clearSession(config)
-    if (action === '/password-reset/request') return await handlePasswordResetRequest(request, config)
-    if (action === '/password-reset/change') return await handlePasswordChange(request, config)
-    return json(404, { error: 'not_found' })
+    return withApiTiming(await dispatchApi(request, action, config), started)
   } catch (error) {
-    return errorResponse(error)
+    return withApiTiming(errorResponse(error), started)
   }
+}
+
+function dispatchApi(request: IncomingMessage, action: string, config: RuntimeConfig): Promise<AppResponse> | AppResponse {
+  if (action === '/session/auth-request') return handleAuthRequest(request, config)
+  if (action === '/session/user') return handleUser(request, config)
+  if (action === '/session/password') return handlePassword(request, config)
+  if (action === '/session/totp') return handleTotp(request, config)
+  if (action === '/session/clear') return clearSession(config)
+  if (action === '/password-reset/request') return handlePasswordResetRequest(request, config)
+  if (action === '/password-reset/change') return handlePasswordChange(request, config)
+  return json(404, { error: 'not_found' })
 }
 
 async function handleAuthRequest(request: IncomingMessage, config: RuntimeConfig): Promise<AppResponse> {
@@ -148,6 +154,7 @@ function passwordResetTemplate(config: RuntimeConfig): string {
 }
 
 function errorResponse(error: unknown): AppResponse {
+  if (error instanceof RequestBodyError) return json(error.status, { message: LOGIN_MESSAGES.generic })
   if (error instanceof ZitadelApiError) return json(errorStatus(error), { message: messageForError(error) })
   return json(500, { message: LOGIN_MESSAGES.generic })
 }
@@ -164,4 +171,9 @@ function messageForError(error: ZitadelApiError): string {
   if (error.code.includes('otp') || error.code.includes('totp')) return LOGIN_MESSAGES.invalidOtpCode
   if (error.code === 'missing_session') return LOGIN_MESSAGES.missingSession
   return error.status >= 500 ? LOGIN_MESSAGES.serviceUnavailable : LOGIN_MESSAGES.generic
+}
+
+function withApiTiming(response: AppResponse, started: number): AppResponse {
+  const duration = Math.max(0, performance.now() - started).toFixed(1)
+  return { ...response, headers: { ...response.headers, 'server-timing': `login_api;dur=${duration}` } }
 }

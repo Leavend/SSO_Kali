@@ -129,7 +129,7 @@ jobs:
           CI_RETRY_ATTEMPTS="${{ env.SSH_RETRY_ATTEMPTS }}" \
           CI_RETRY_DELAY_SECONDS="${{ env.SSH_RETRY_DELAY_SECONDS }}" \
           bash scripts/ci-retry.sh ssh "${SSH_OPTS[@]}" "${{ env.VPS_USER }}@${{ env.VPS_HOST }}" \
-            "mkdir -p /tmp/_deploy_scripts /tmp/_deploy_bundle"
+            "mkdir -p /tmp/_deploy_scripts /tmp/_deploy_bundle /tmp/_deploy_bundle/infra/nginx"
 
       - name: Sync deploy scripts and Compose control plane to VPS
         run: |
@@ -140,6 +140,7 @@ jobs:
           bash scripts/ci-retry.sh rsync -avz --progress \
             -e "$SSH_CMD" \
             scripts/vps-deploy.sh \
+            scripts/vps-apply-edge-config.sh \
             scripts/vps-login-ui-cutover.sh \
             scripts/vps-rollback.sh \
             scripts/ci-retry.sh \
@@ -150,6 +151,11 @@ jobs:
             -e "$SSH_CMD" \
             docker-compose.dev.yml \
             "${{ env.VPS_USER }}@${{ env.VPS_HOST }}:/tmp/_deploy_bundle/"
+
+          bash scripts/ci-retry.sh rsync -avz --progress \
+            -e "$SSH_CMD" \
+            infra/nginx/ \
+            "${{ env.VPS_USER }}@${{ env.VPS_HOST }}:/tmp/_deploy_bundle/infra/nginx/"
 
       - name: Install Compose control plane on VPS
         run: |
@@ -173,10 +179,30 @@ jobs:
              sudo install -d -m 0755 '${{ env.VPS_PROJECT_DIR }}/scripts'
              sudo install -d -m 0755 '${{ env.VPS_PROJECT_DIR }}/scripts/lib'
              sudo install -m 0755 /tmp/_deploy_scripts/vps-deploy.sh '${{ env.VPS_PROJECT_DIR }}/scripts/vps-deploy.sh'
+             sudo install -m 0755 /tmp/_deploy_scripts/vps-apply-edge-config.sh '${{ env.VPS_PROJECT_DIR }}/scripts/vps-apply-edge-config.sh'
              sudo install -m 0755 /tmp/_deploy_scripts/vps-login-ui-cutover.sh '${{ env.VPS_PROJECT_DIR }}/scripts/vps-login-ui-cutover.sh'
              sudo install -m 0755 /tmp/_deploy_scripts/vps-rollback.sh '${{ env.VPS_PROJECT_DIR }}/scripts/vps-rollback.sh'
              sudo install -m 0755 /tmp/_deploy_scripts/lib/app-b-secret-guard.sh '${{ env.VPS_PROJECT_DIR }}/scripts/lib/app-b-secret-guard.sh'
-             sudo install -m 0755 /tmp/_deploy_scripts/lib/direct-green-prewarm.sh '${{ env.VPS_PROJECT_DIR }}/scripts/lib/direct-green-prewarm.sh'"
+             sudo install -m 0755 /tmp/_deploy_scripts/lib/direct-green-prewarm.sh '${{ env.VPS_PROJECT_DIR }}/scripts/lib/direct-green-prewarm.sh'
+             sudo install -d -m 0755 '${{ env.VPS_PROJECT_DIR }}/infra'
+             sudo cp -a /tmp/_deploy_bundle/infra/nginx '${{ env.VPS_PROJECT_DIR }}/infra/'"
+
+      - name: Apply edge reverse proxy config
+        run: |
+          SSH_OPTS=(
+            -i ~/.ssh/deploy_key
+            -p "${{ env.VPS_SSH_PORT }}"
+            -o BatchMode=yes
+            -o ConnectTimeout="${{ env.SSH_CONNECT_TIMEOUT }}"
+            -o ServerAliveInterval=10
+            -o ServerAliveCountMax=3
+          )
+          CI_RETRY_ATTEMPTS="${{ env.SSH_RETRY_ATTEMPTS }}" \
+          CI_RETRY_DELAY_SECONDS="${{ env.SSH_RETRY_DELAY_SECONDS }}" \
+          bash scripts/ci-retry.sh ssh "${SSH_OPTS[@]}" "${{ env.VPS_USER }}@${{ env.VPS_HOST }}" \
+            "sudo bash '${{ env.VPS_PROJECT_DIR }}/scripts/vps-apply-edge-config.sh' \
+              --project-dir '${{ env.VPS_PROJECT_DIR }}' \
+              --sha '${{ steps.tag.outputs.sha_short }}'"
 
       - name: Execute zero-downtime deploy
         run: |

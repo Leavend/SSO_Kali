@@ -91,10 +91,21 @@ export async function finalizeAuthRequest(
 }
 
 async function zitadelJson<T>(config: RuntimeConfig, path: string, method: string, body?: unknown): Promise<T> {
-  const response = await fetch(`${config.apiUrl}${path}`, await requestInit(config, method, body))
+  const response = await fetchZitadel(config, path, await requestInit(config, method, body))
   const payload = await parsePayload(response)
   if (!response.ok) throw toZitadelError(response.status, payload)
   return payload as T
+}
+
+async function fetchZitadel(config: RuntimeConfig, path: string, init: RequestInit): Promise<Response> {
+  try {
+    return await fetch(`${config.apiUrl}${path}`, { ...init, signal: AbortSignal.timeout(config.apiTimeoutMs) })
+  } catch (error) {
+    if (isTimeoutError(error)) {
+      throw new ZitadelApiError(504, 'zitadel_timeout', 'ZITADEL request timed out')
+    }
+    throw error
+  }
 }
 
 async function requestInit(config: RuntimeConfig, method: string, body?: unknown): Promise<RequestInit> {
@@ -126,6 +137,10 @@ async function parsePayload(response: Response): Promise<unknown> {
 function toZitadelError(status: number, payload: unknown): ZitadelApiError {
   const code = codeFromPayload(payload)
   return new ZitadelApiError(status, code, code)
+}
+
+function isTimeoutError(error: unknown): boolean {
+  return error instanceof Error && (error.name === 'AbortError' || error.name === 'TimeoutError')
 }
 
 function usersByLoginNameBody(loginName: string): object {

@@ -15,6 +15,8 @@ Users reported that accessing the ZITADEL-backed login flow felt heavy. Live pro
 - The registry deploy script copied the new Compose file to the VPS, but did not reconcile `zitadel-api`; therefore config-only ZITADEL changes could be shipped without taking effect.
 - The old ZITADEL Docker health command could remain `starting` or `unhealthy` while the identity API was serving requests, causing a false deployment failure.
 - Public blackbox monitoring covered generic uptime, but not the active Vue login URL or canonical SSO discovery latency.
+- The Hostinger VPS is a small KVM 2 node (`145.79.15.8`) with reported CPU around 61%, memory around 42%, and disk around 41%; login changes must reduce per-request work and protect ZITADEL instead of simply adding more background load.
+- Follow-up live probes showed the page shell and assets were fast enough, while POST `/ui/v2/auth/api/session/user` could take roughly 1-4 seconds because it synchronously calls ZITADEL Session API and PostgreSQL-backed identity lookup.
 
 ## Optimization Applied
 
@@ -26,10 +28,16 @@ Users reported that accessing the ZITADEL-backed login flow felt heavy. Live pro
 - Use the documented `/debug/ready` readiness endpoint with an OIDC discovery fallback for ZITADEL health checks.
 - Add Compose control-plane snapshot restoration before rollback.
 - Add public blackbox probes and alerts for Vue login and OIDC discovery latency.
+- Cap Vue login to ZITADEL API calls with `ZITADEL_LOGIN_API_TIMEOUT_MS` so slow upstream calls free Node workers instead of hanging indefinitely.
+- Reject oversized login JSON bodies before any upstream ZITADEL call.
+- Emit `Server-Timing` on Vue login API responses to distinguish login-BFF latency from browser rendering latency during live troubleshooting.
+- Apply Nginx edge config through CI/CD, including immutable caching for Vue login assets and rate limiting for expensive `/ui/v2/auth/api/` calls.
 
 ## Rollback
 
 The CD pipeline already backs up the previous Compose file before installing the new one. On health or smoke failure, `scripts/vps-deploy.sh` restores that Compose snapshot, restores any environment migration snapshot, and then invokes image rollback through `scripts/vps-rollback.sh` when a previous release tag is available.
+
+The edge config apply step backs up the active Nginx site file and snippets, runs `nginx -t`, and restores the previous edge config if validation fails before reload.
 
 Manual rollback path:
 
@@ -50,3 +58,4 @@ The current live ZITADEL runtime is a single `zitadel-api` container. This chang
 - Vue login probe latency: alert above 2 seconds for 5 minutes.
 - ZITADEL OIDC discovery latency: alert above 2 seconds for 5 minutes.
 - Existing public blackbox uptime remains the hard availability signal.
+- Manual flow probe: POST `/ui/v2/auth/api/session/user` with a non-existing `@example.invalid` user should stay below the timeout cap and return without hanging the browser.

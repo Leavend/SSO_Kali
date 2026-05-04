@@ -9,6 +9,7 @@ on:
         type: choice
         options:
           - check-env
+          - diagnose-sso-performance
           - set-app-b-hash
       secret_plaintext:
         description: "Plaintext secret for hash generation (only for set-app-b-hash)"
@@ -91,6 +92,26 @@ jobs:
             ps sso-backend 2>/dev/null || echo "sso-backend not running"
           echo "✅ check-env complete"
           REMOTE
+
+      - name: Run SSO performance diagnostic
+        if: inputs.action == 'diagnose-sso-performance'
+        run: |
+          SSH_CMD="ssh -i ~/.ssh/deploy_key -p ${{ env.VPS_SSH_PORT }} -o BatchMode=yes -o ConnectTimeout=${{ env.SSH_CONNECT_TIMEOUT }} -o ServerAliveInterval=10 -o ServerAliveCountMax=3"
+          export CI_RETRY_ATTEMPTS="${{ env.SSH_RETRY_ATTEMPTS }}"
+          export CI_RETRY_DELAY_SECONDS="${{ env.SSH_RETRY_DELAY_SECONDS }}"
+
+          bash scripts/ci-retry.sh rsync -avz -e "$SSH_CMD" \
+            scripts/vps-diagnose-sso-performance.sh \
+            "${{ env.VPS_USER }}@${{ env.VPS_HOST }}":/tmp/vps-diagnose-sso-performance.sh
+
+          bash scripts/ci-retry.sh ssh -i ~/.ssh/deploy_key \
+            -p "${{ env.VPS_SSH_PORT }}" \
+            -o BatchMode=yes \
+            -o ConnectTimeout="${{ env.SSH_CONNECT_TIMEOUT }}" \
+            -o ServerAliveInterval=10 \
+            -o ServerAliveCountMax=3 \
+            "${{ env.VPS_USER }}@${{ env.VPS_HOST }}" \
+            "chmod +x /tmp/vps-diagnose-sso-performance.sh && sudo /tmp/vps-diagnose-sso-performance.sh --project-dir '${{ env.VPS_PROJECT_DIR }}' --samples 5 && rm -f /tmp/vps-diagnose-sso-performance.sh"
 
       - name: Generate and set APP_B hash
         if: inputs.action == 'set-app-b-hash'

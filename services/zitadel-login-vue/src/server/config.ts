@@ -12,6 +12,7 @@ export interface RuntimeConfig {
   readonly cookieSecret: string
   readonly secureCookies: boolean
   readonly requireTotpAfterPassword: boolean
+  readonly apiTimeoutMs: number
   readonly token?: string
   readonly tokenFile?: string
 }
@@ -44,6 +45,7 @@ function loadConfig(): RuntimeConfig {
     cookieSecret: requireSecret(env('LOGIN_COOKIE_SECRET', '')),
     secureCookies: env('SECURE_COOKIES', 'true') !== 'false',
     requireTotpAfterPassword: env('LOGIN_REQUIRE_TOTP_AFTER_PASSWORD', 'true') !== 'false',
+    apiTimeoutMs: positiveInteger(env('ZITADEL_API_TIMEOUT_MS', '6000'), 6000),
     token: process.env.ZITADEL_SERVICE_USER_TOKEN,
     tokenFile: process.env.ZITADEL_SERVICE_USER_TOKEN_FILE,
   }
@@ -61,4 +63,9 @@ function requireSecret(value: string): string {
   if (value.length >= 32) return value
   if (process.env.NODE_ENV === 'production') throw new Error('LOGIN_COOKIE_SECRET must be at least 32 chars')
   return 'dev-only-zitadel-login-vue-cookie-secret'
+}
+
+function positiveInteger(value: string, fallback: number): number {
+  const parsed = Number.parseInt(value, 10)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
 }
