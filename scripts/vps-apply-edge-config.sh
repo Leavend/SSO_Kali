@@ -58,6 +58,20 @@ disable_stale_site_configs() {
   shopt -u nullglob
 }
 
+disable_conflicting_sso_configs() {
+  local path
+
+  shopt -s nullglob
+  for path in "$ENABLED_DIR"/*; do
+    if [ "$path" != "$DST_ENABLED" ] \
+      && grep -Eq 'sso_traefik_web|sso_frontend_login_per_ip|id_dev_sso_' "$path" 2>/dev/null; then
+      log "Disabling conflicting enabled SSO config: $path"
+      rm -f "$path"
+    fi
+  done
+  shopt -u nullglob
+}
+
 nginx_includes_sites_available() {
   grep -Rqs 'sites-available' /etc/nginx/nginx.conf /etc/nginx/conf.d 2>/dev/null
 }
@@ -82,6 +96,7 @@ install -d -m 0755 "$(dirname "$DST_SITE")" "$ENABLED_DIR" "$DST_SNIPPETS"
 install -m 0644 "$SRC_SITE" "$DST_SITE"
 cp -a "$SRC_SNIPPETS/." "$DST_SNIPPETS/"
 disable_stale_site_configs
+disable_conflicting_sso_configs
 if nginx_includes_sites_available; then
   log "Nginx includes sites-available; avoiding duplicate sites-enabled link"
   rm -f "$DST_ENABLED"

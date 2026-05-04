@@ -337,6 +337,7 @@ require_text "infra/nginx/dev-sso.timeh.my.id.chained.conf" 'proxy_pass http://1
 require_text "scripts/vps-apply-edge-config.sh" 'nginx -t' "Edge config apply validates Nginx before reload"
 require_text "scripts/vps-apply-edge-config.sh" 'restore_previous' "Edge config apply restores previous Nginx config on validation failure"
 require_text "scripts/vps-apply-edge-config.sh" 'disable_stale_site_configs' "Edge config apply removes stale enabled host configs before validation"
+require_text "scripts/vps-apply-edge-config.sh" 'disable_conflicting_sso_configs' "Edge config apply removes renamed legacy SSO site configs before validation"
 require_text "scripts/vps-apply-edge-config.sh" 'nginx_includes_sites_available' "Edge config apply avoids duplicate site loads on non-standard Nginx include layouts"
 require_text "scripts/vps-diagnose-sso-performance.sh" 'docker stats --no-stream' "VPS diagnostic captures container CPU and memory snapshot"
 require_text "scripts/vps-diagnose-sso-performance.sh" 'pg_stat_activity' "VPS diagnostic captures PostgreSQL connection activity"
