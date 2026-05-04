@@ -394,6 +394,7 @@ require_text "scripts/vps-set-login-api-timeout.sh" 'ZITADEL_LOGIN_API_TIMEOUT_M
 require_text "scripts/vps-set-login-api-timeout.sh" 'BACKUP_FILE' "Login timeout script snapshots env before live change"
 require_text "scripts/vps-set-login-api-timeout.sh" '--no-build --pull never zitadel-login-vue' "Login timeout script recreates without building under incident pressure"
 require_text "scripts/vps-set-login-api-timeout.sh" 'docker tag "\$image_id" "\$image_ref"' "Login timeout script preserves the running image tag before no-build recreate"
+require_text "scripts/vps-set-login-api-timeout.sh" 'probe_path "vue_login_health"' "Login timeout script waits for reverse-proxy health readiness"
 require_text "scripts/vps-set-login-api-timeout.sh" 'Rollback' "Login timeout script prints rollback guidance"
 require_text "scripts/vps-stop-noncritical-container.sh" 'n8n-n8n-1' "Non-critical stop script only allows approved containers"
 require_text "scripts/vps-stop-noncritical-container.sh" 'Refusing to stop non-whitelisted container' "Non-critical stop script refuses unapproved targets"

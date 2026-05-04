@@ -102,12 +102,24 @@ wait_healthy() {
 probe_login() {
   local zitadel_domain
   zitadel_domain="$(awk -F= '$1 == "ZITADEL_DOMAIN" {print substr($0, length($1) + 2)}' "$ENV_FILE" | tail -n 1)"
-  curl -ksS -H "Host: ${zitadel_domain}" -o /dev/null \
-    -w "vue_login_health %{http_code} ttfb=%{time_starttransfer} total=%{time_total}\n" \
-    --connect-timeout 3 --max-time 15 "http://127.0.0.1:18080/ui/v2/auth/healthz"
-  curl -ksS -H "Host: ${zitadel_domain}" -o /dev/null \
-    -w "vue_login_page %{http_code} ttfb=%{time_starttransfer} total=%{time_total}\n" \
-    --connect-timeout 3 --max-time 15 "http://127.0.0.1:18080/ui/v2/auth/login"
+  [[ -n "$zitadel_domain" ]] || { echo "Missing ZITADEL_DOMAIN in $ENV_FILE" >&2; exit 1; }
+  probe_path "vue_login_health" "$zitadel_domain" "/ui/v2/auth/healthz"
+  probe_path "vue_login_page" "$zitadel_domain" "/ui/v2/auth/login"
+}
+
+probe_path() {
+  local label="$1" host="$2" path="$3" attempt result code
+  for attempt in $(seq 1 20); do
+    result="$(curl -ksS -H "Host: ${host}" -o /dev/null \
+      -w "%{http_code} ttfb=%{time_starttransfer} total=%{time_total}" \
+      --connect-timeout 3 --max-time 15 "http://127.0.0.1:18080${path}" || true)"
+    code="${result%% *}"
+    echo "${label} attempt=${attempt} ${result}"
+    [[ "$code" =~ ^2 ]] && return 0
+    sleep 3
+  done
+  echo "${label} did not become ready through local reverse proxy" >&2
+  return 1
 }
 
 require_runtime
