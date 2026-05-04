@@ -47,10 +47,15 @@ ZITADEL_LOGIN_VUE_BASE_PATH_DEFAULT="/ui/v2/auth"
 ZITADEL_LOGIN_VUE_LEGACY_BASE_PATH="/ui/v2/login-vue"
 ENV_BACKUP_FILE=""
 export APP_IMAGE_TAG="$TAG"
+SMOKE_RETRIES="${SMOKE_RETRIES:-5}"
+SMOKE_RETRY_SECONDS="${SMOKE_RETRY_SECONDS:-6}"
 
 log()  { printf '\033[0;32m[DEPLOY]\033[0m %s\n' "$*" | tee -a "$DEPLOY_LOG"; }
 warn() { printf '\033[1;33m[WARN]\033[0m %s\n' "$*" | tee -a "$DEPLOY_LOG"; }
 fail() { printf '\033[0;31m[FAIL]\033[0m %s\n' "$*" | tee -a "$DEPLOY_LOG"; exit 1; }
+
+[[ "$SMOKE_RETRIES" =~ ^[1-9][0-9]*$ ]] || fail "SMOKE_RETRIES must be a positive integer"
+[[ "$SMOKE_RETRY_SECONDS" =~ ^[0-9]+$ ]] || fail "SMOKE_RETRY_SECONDS must be a non-negative integer"
 
 compose() {
   docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "$@"
@@ -304,25 +309,62 @@ log "Phase 5/5: Running smoke tests..."
 
 SMOKE_FAILED=0
 
-smoke_check() {
-  local label="$1" url="$2" pattern="$3"
-  local host="${4:-}"
-  local code
-  if [ -n "$host" ]; then
-    if ! code=$(curl -ksS -H "Host: $host" -o /dev/null -w '%{http_code}' --connect-timeout 5 --max-time 15 "$url"); then
-      code="000"
-    fi
-  else
-    if ! code=$(curl -ksS -o /dev/null -w '%{http_code}' --connect-timeout 5 --max-time 15 "$url"); then
-      code="000"
-    fi
+smoke_curl_code() {
+  local url="$1" host="${2:-}" code
+  local curl_args=(-ksSL -o /dev/null -w '%{http_code}' --connect-timeout 5 --max-time 15)
+
+  if [ -n "$host" ] && [[ "$url" == https://* ]]; then
+    curl_args+=(--resolve "$host:443:127.0.0.1")
+  elif [ -n "$host" ]; then
+    curl_args+=(-H "Host: $host")
   fi
+
+  if ! code=$(curl "${curl_args[@]}" "$url"); then
+    code="000"
+  fi
+  printf '%s' "$code"
+}
+
+smoke_status() {
+  local label="$1" url="$2" pattern="$3" host="${4:-}" code
+  code="$(smoke_curl_code "$url" "$host")"
 
   if [[ "$code" =~ $pattern ]]; then
     log "  ✅ $label: HTTP $code"
+    return 0
+  fi
+
+  warn "  ⚠️  $label: HTTP $code (expected $pattern)"
+  return 1
+}
+
+smoke_check() {
+  local label="$1" url="$2" pattern="$3" host="${4:-}" attempt
+
+  for attempt in $(seq 1 "$SMOKE_RETRIES"); do
+    if smoke_status "$label" "$url" "$pattern" "$host"; then
+      return 0
+    fi
+
+    if [ "$attempt" -lt "$SMOKE_RETRIES" ]; then
+      warn "  $label: retrying smoke check in ${SMOKE_RETRY_SECONDS}s (${attempt}/${SMOKE_RETRIES})"
+      sleep "$SMOKE_RETRY_SECONDS"
+    fi
+  done
+
+  SMOKE_FAILED=1
+}
+
+smoke_required() {
+  smoke_check "$@" || true
+}
+
+smoke_optional_domain() {
+  local label="$1" url="$2" pattern="$3" host="$4"
+  if [ -n "$host" ]; then
+    smoke_required "$label" "$url" "$pattern" "$host"
   else
-    warn "  ⚠️  $label: HTTP $code (expected $pattern)"
-    SMOKE_FAILED=1
+    warn "  ⚠️  $label: skipped because domain is not configured"
   fi
 }
 
@@ -333,22 +375,16 @@ APP_B_DOMAIN=$(awk -F= '/^APP_B_DOMAIN=/ {print $2}' "$ENV_FILE")
 SSO_ADMIN_VUE_BASE_PATH=$(awk -F= '/^SSO_ADMIN_VUE_BASE_PATH=/ {print $2}' "$ENV_FILE")
 SSO_ADMIN_VUE_BASE_PATH="${SSO_ADMIN_VUE_BASE_PATH:-/__vue-preview}"
 
-smoke_check "SSO Discovery"     "http://127.0.0.1/.well-known/openid-configuration" "^200$" "$SSO_DOMAIN"
-smoke_check "ZITADEL Hosted Login" "http://127.0.0.1/ui/v2/login/healthy" "^200$" "$ZITADEL_DOMAIN"
-smoke_check "Admin Panel"       "http://127.0.0.1/"                                  "^200$" "$SSO_DOMAIN"
-smoke_check "Vue Admin Canary"  "http://127.0.0.1${SSO_ADMIN_VUE_BASE_PATH}/healthz" "^200$" "$SSO_DOMAIN"
+smoke_required "SSO Discovery"       "https://${SSO_DOMAIN}/.well-known/openid-configuration" "^200$" "$SSO_DOMAIN"
+smoke_required "ZITADEL Hosted Login" "https://${ZITADEL_DOMAIN}/ui/v2/login/healthy"          "^200$" "$ZITADEL_DOMAIN"
+smoke_required "Admin Panel"         "https://${SSO_DOMAIN}/"                                  "^200$" "$SSO_DOMAIN"
+smoke_required "Vue Admin Canary"    "https://${SSO_DOMAIN}${SSO_ADMIN_VUE_BASE_PATH}/healthz" "^200$" "$SSO_DOMAIN"
 
 ZITADEL_LOGIN_VUE_BASE_PATH=$(awk -F= '/^ZITADEL_LOGIN_VUE_BASE_PATH=/ {print $2}' "$ENV_FILE")
 ZITADEL_LOGIN_VUE_BASE_PATH="${ZITADEL_LOGIN_VUE_BASE_PATH:-/ui/v2/auth}"
-smoke_check "ZITADEL Vue Login Canary" "http://127.0.0.1${ZITADEL_LOGIN_VUE_BASE_PATH}/healthz" "^200$" "$ZITADEL_DOMAIN"
-
-if [ -n "$APP_A_DOMAIN" ]; then
-  smoke_check "App A Health" "http://127.0.0.1/healthz" "^200$" "$APP_A_DOMAIN"
-fi
-
-if [ -n "$APP_B_DOMAIN" ]; then
-  smoke_check "App B Health" "http://127.0.0.1/health" "^200$" "$APP_B_DOMAIN"
-fi
+smoke_required "ZITADEL Vue Login Canary" "https://${ZITADEL_DOMAIN}${ZITADEL_LOGIN_VUE_BASE_PATH}/healthz" "^200$" "$ZITADEL_DOMAIN"
+smoke_optional_domain "App A Health" "https://${APP_A_DOMAIN}/healthz" "^200$" "$APP_A_DOMAIN"
+smoke_optional_domain "App B Health" "https://${APP_B_DOMAIN}/health"  "^200$" "$APP_B_DOMAIN"
 
 if [ "$SMOKE_FAILED" -eq 1 ]; then
   log "Smoke tests failed - rolling back..."

@@ -330,6 +330,8 @@ require_text "scripts/vps-deploy.sh" 'ZITADEL Vue Login Canary' "Registry deploy
 require_text "scripts/vps-deploy.sh" 'ZITADEL Hosted Login' "Registry deploy smokes deterministic hosted-login health"
 require_text "scripts/vps-deploy.sh" 'App A Health' "Registry deploy smokes deterministic App A health endpoint"
 require_text "scripts/vps-deploy.sh" 'App B Health' "Registry deploy smokes deterministic App B health endpoint"
+require_text "scripts/vps-deploy.sh" '--resolve "\$host:443:127\.0\.0\.1"' "Registry deploy smokes HTTPS through the local reverse proxy"
+require_text "scripts/vps-deploy.sh" 'SMOKE_RETRIES' "Registry deploy retries transient reverse-proxy smoke checks"
 require_text "scripts/vps-deploy.sh" 'SMOKE_FAILED=0' "Deploy treats smoke failures as rollback triggers"
 require_text "scripts/vps-deploy.sh" 'vps-rollback\.sh' "Deploy can call rollback script"
 require_text "scripts/vps-login-ui-cutover.sh" '--mode must be vue or hosted' "Login UI cutover validates the requested mode"
