@@ -1,5 +1,5 @@
 import { createReadStream } from 'node:fs'
-import { readFile } from 'node:fs/promises'
+import { access } from 'node:fs/promises'
 import { createServer } from 'node:http'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { extname, join, normalize, relative } from 'node:path'
@@ -95,7 +95,7 @@ async function resolveAsset(pathname: string): Promise<{ readonly path: string; 
 
 async function exists(path: string): Promise<boolean> {
   try {
-    await readFile(path)
+    await access(path)
     return true
   } catch {
     return false
