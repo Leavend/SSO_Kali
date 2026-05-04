@@ -17,6 +17,9 @@ require_pattern() {
 }
 
 require_pattern "$NGINX_CONFIG" 'include /etc/nginx/snippets/sso-forwarded-headers\.conf;'
+require_pattern "$NGINX_CONFIG" 'upstream sso_traefik_web '
+require_pattern "$NGINX_CONFIG" 'keepalive 64;'
+require_pattern "$NGINX_CONFIG" "''[[:space:]]+'';"
 require_pattern "$NGINX_SNIPPET" 'proxy_set_header Host \$host;'
 require_pattern "$NGINX_SNIPPET" 'proxy_set_header X-Forwarded-Host \$host;'
 require_pattern "$NGINX_SNIPPET" 'proxy_set_header X-Forwarded-Proto https;'
