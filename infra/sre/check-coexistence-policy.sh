@@ -41,7 +41,7 @@ reject_pattern "$TRAEFIK_OVERRIDE" '(^|[[:space:]"'\''])443:443'
 
 require_pattern "$NGINX_CONFIG" 'listen 80;'
 require_pattern "$NGINX_CONFIG" 'listen 443 ssl http2;'
-require_pattern "$NGINX_CONFIG" 'proxy_pass http://sso_traefik_web;'
+require_pattern "$NGINX_CONFIG" 'proxy_pass http://127\.0\.0\.1:18080;'
 require_pattern "$NGINX_CONFIG" 'include /etc/nginx/snippets/sso-forwarded-headers\.conf;'
 require_pattern "$NGINX_SNIPPET" 'proxy_set_header Host \$host;'
 require_pattern "$NGINX_SNIPPET" 'proxy_set_header X-Forwarded-Host \$host;'
