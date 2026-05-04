@@ -78,12 +78,27 @@ probe_postgres() {
 
 probe_zitadel() {
   log "ZITADEL readiness"
+  local zitadel_domain
+  zitadel_domain="$(env_value ZITADEL_DOMAIN)"
   compose exec -T zitadel-api sh -lc \
     'curl -fsS -o /dev/null -w "debug_ready %{http_code} ttfb=%{time_starttransfer} total=%{time_total}\n" --max-time 8 http://127.0.0.1:8080/debug/ready || true'
-  compose exec -T zitadel-api sh -lc \
-    'curl -fsS -o /dev/null -w "discovery %{http_code} ttfb=%{time_starttransfer} total=%{time_total}\n" --max-time 8 http://127.0.0.1:8080/.well-known/openid-configuration || true'
-  compose exec -T zitadel-api sh -lc \
-    'curl -fsS --max-time 8 http://127.0.0.1:8080/debug/metrics | grep -E "^(process_|go_|http_|grpc_)" | head -80 || true' | redact_sensitive
+  compose exec -T zitadel-api sh -lc '
+    host="$1"
+    curl -fsS -H "Host: ${host}" -H "x-zitadel-instance-host: ${host}" -H "x-zitadel-public-host: ${host}" \
+      -o /dev/null -w "discovery %{http_code} ttfb=%{time_starttransfer} total=%{time_total}\n" \
+      --max-time 8 http://127.0.0.1:8080/.well-known/openid-configuration || true
+  ' sh "$zitadel_domain"
+  compose exec -T zitadel-api sh -lc '
+    host="$1"
+    tmp="$(mktemp)"
+    code="$(curl -ksS -H "Host: ${host}" -H "x-zitadel-instance-host: ${host}" -H "x-zitadel-public-host: ${host}" \
+      -o "$tmp" -w "%{http_code}" --max-time 8 http://127.0.0.1:8080/debug/metrics || true)"
+    echo "debug_metrics ${code:-000}"
+    if [[ "$code" == "200" ]]; then
+      grep -E "^(process_|go_|http_|grpc_)" "$tmp" | head -80 || true
+    fi
+    rm -f "$tmp"
+  ' sh "$zitadel_domain" | redact_sensitive
 }
 
 audit_zitadel_container() {

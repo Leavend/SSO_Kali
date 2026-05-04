@@ -41,6 +41,7 @@ Users reported that accessing the ZITADEL-backed login flow felt heavy. Live pro
 
 - Use `/debug/ready` for readiness and `/debug/healthz` for liveness checks. The Compose healthcheck and maintenance probe should keep using `/debug/ready` for rollout gating.
 - Use `/debug/metrics` for operational metrics. The endpoint must remain internal-only and should feed Prometheus or an OpenTelemetry collector rather than being exposed publicly.
+- Direct container probes for tenant-scoped endpoints must send the canonical `Host`, `x-zitadel-instance-host`, and `x-zitadel-public-host` headers. Probing with `127.0.0.1` can create false `unable to set instance` noise in ZITADEL logs.
 - ZITADEL Compose semi-production supports Redis or memory cache for frequently used objects. This single-node VPS uses memory cache for instance and organization objects because it avoids an additional Redis failure mode on the password path.
 - For production-grade scale, split `zitadel init`, `zitadel setup`, and `zitadel start`, then run multiple API replicas behind a load balancer. The current single `zitadel-api` container is rollback-safe, but not strict high availability.
 - PostgreSQL is the critical data dependency for identity sessions and event reads. Monitor open connections, wait events, locks, and slow queries alongside ZITADEL CPU and request latency.

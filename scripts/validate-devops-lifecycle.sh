@@ -345,6 +345,7 @@ require_text "scripts/vps-diagnose-sso-performance.sh" 'docker stats --no-stream
 require_text "scripts/vps-diagnose-sso-performance.sh" 'pg_stat_activity' "VPS diagnostic captures PostgreSQL connection activity"
 require_text "scripts/vps-diagnose-sso-performance.sh" 'ZITADEL container audit' "VPS diagnostic captures ZITADEL container health and restart state"
 require_text "scripts/vps-diagnose-sso-performance.sh" '/debug/metrics' "VPS diagnostic samples ZITADEL metrics without exposing them publicly"
+require_text "scripts/vps-diagnose-sso-performance.sh" 'x-zitadel-instance-host' "VPS diagnostic probes ZITADEL with canonical instance headers"
 require_text "scripts/vps-diagnose-sso-performance.sh" 'pg_locks' "VPS diagnostic captures PostgreSQL lock pressure"
 require_text "scripts/vps-diagnose-sso-performance.sh" 'redact_sensitive' "VPS diagnostic redacts sensitive ZITADEL log fields"
 
