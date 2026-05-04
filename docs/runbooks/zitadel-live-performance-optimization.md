@@ -17,6 +17,8 @@ Users reported that accessing the ZITADEL-backed login flow felt heavy. Live pro
 - Public blackbox monitoring covered generic uptime, but not the active Vue login URL or canonical SSO discovery latency.
 - The Hostinger VPS is a small KVM 2 node (`145.79.15.8`) with reported CPU around 61%, memory around 42%, and disk around 41%; login changes must reduce per-request work and protect ZITADEL instead of simply adding more background load.
 - Follow-up live probes showed the page shell and assets were fast enough, while POST `/ui/v2/auth/api/session/user` could take roughly 1-4 seconds because it synchronously calls ZITADEL Session API and PostgreSQL-backed identity lookup.
+- A later mobile-browser report showed `POST /ui/v2/auth/api/session/password` returning 503. In this code path, the Vue login backend has already accepted the browser request and is waiting on the ZITADEL Session API `PATCH /v2/sessions/{sessionId}`. The response is mapped to 503 only when ZITADEL returns a 5xx class error or the upstream call hits the configured timeout cap.
+- Password and TOTP verification calls must not be retried automatically. A credential replay can double-count failed attempts, interfere with lockout policy, and create ambiguous audit trails. The safe failure mode is a bounded timeout, no-store response, retry-after signal, and operator-side diagnosis of ZITADEL/PostgreSQL pressure.
 
 ## Optimization Applied
 
@@ -31,7 +33,36 @@ Users reported that accessing the ZITADEL-backed login flow felt heavy. Live pro
 - Cap Vue login to ZITADEL API calls with `ZITADEL_LOGIN_API_TIMEOUT_MS` so slow upstream calls free Node workers instead of hanging indefinitely.
 - Reject oversized login JSON bodies before any upstream ZITADEL call.
 - Emit `Server-Timing` on Vue login API responses to distinguish login-BFF latency from browser rendering latency during live troubleshooting.
+- Emit `Retry-After` and `Cache-Control: no-store` for transient upstream identity outages so 503 responses are explicit, non-cacheable, and safe for clients/proxies without replaying password submissions.
 - Apply Nginx edge config through CI/CD, including immutable caching for Vue login assets and rate limiting for expensive `/ui/v2/auth/api/` calls.
+- Extend VPS maintenance diagnostics with ZITADEL container inspect, restart state, redacted recent warnings/errors, `/debug/metrics` sampling, PostgreSQL wait events, and PostgreSQL lock summaries.
+
+## ZITADEL Official Guidance Mapped to This Stack
+
+- Use `/debug/ready` for readiness and `/debug/healthz` for liveness checks. The Compose healthcheck and maintenance probe should keep using `/debug/ready` for rollout gating.
+- Use `/debug/metrics` for operational metrics. The endpoint must remain internal-only and should feed Prometheus or an OpenTelemetry collector rather than being exposed publicly.
+- ZITADEL Compose semi-production supports Redis or memory cache for frequently used objects. This single-node VPS uses memory cache for instance and organization objects because it avoids an additional Redis failure mode on the password path.
+- For production-grade scale, split `zitadel init`, `zitadel setup`, and `zitadel start`, then run multiple API replicas behind a load balancer. The current single `zitadel-api` container is rollback-safe, but not strict high availability.
+- PostgreSQL is the critical data dependency for identity sessions and event reads. Monitor open connections, wait events, locks, and slow queries alongside ZITADEL CPU and request latency.
+
+## Current 503 Investigation Checklist
+
+Run the read-only maintenance diagnostic before changing live runtime:
+
+```bash
+gh workflow run "VPS Maintenance" -f action=diagnose-sso-performance
+```
+
+Review:
+
+- Host load average relative to the KVM 2 CPU count.
+- Non-SSO containers consuming CPU on the same VPS.
+- `zitadel-api` restart count, health status, and recent redacted warnings/errors.
+- ZITADEL `/debug/ready` latency versus public `/ui/v2/auth/api/*` latency.
+- ZITADEL `/debug/metrics` process/runtime and HTTP/gRPC counters.
+- PostgreSQL `pg_stat_activity`, wait events, and `pg_locks`.
+
+Do not reproduce password errors by submitting a real user's password or a dummy password for a real account. Use logs, metrics, and synthetic non-credential probes to avoid account lockout and audit contamination.
 
 ## Rollback
 

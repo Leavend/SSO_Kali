@@ -155,8 +155,15 @@ function passwordResetTemplate(config: RuntimeConfig): string {
 
 function errorResponse(error: unknown): AppResponse {
   if (error instanceof RequestBodyError) return json(error.status, { message: LOGIN_MESSAGES.generic })
-  if (error instanceof ZitadelApiError) return json(errorStatus(error), { message: messageForError(error) })
+  if (error instanceof ZitadelApiError) {
+    return json(errorStatus(error), { message: messageForError(error) }, errorHeaders(error))
+  }
   return json(500, { message: LOGIN_MESSAGES.generic })
+}
+
+function errorHeaders(error: ZitadelApiError): Record<string, string> {
+  if (error.status < 500) return { 'cache-control': 'no-store' }
+  return { 'cache-control': 'no-store', 'retry-after': '3' }
 }
 
 function errorStatus(error: ZitadelApiError): number {

@@ -86,6 +86,19 @@ describe('login API flow', () => {
     expect(String(response.headers['set-cookie'])).toContain(LOGIN_SESSION_COOKIE)
   })
 
+  it('returns retryable no-store service outage headers for transient password upstream failures', async () => {
+    const { ZitadelApiError } = await import('./zitadel-client.js')
+    mocks.updatePassword.mockRejectedValueOnce(new ZitadelApiError(504, 'zitadel_timeout', 'ZITADEL request timed out'))
+
+    const response = await handlePasswordStep()
+    const payload = JSON.parse(String(response.body)) as { message?: string }
+
+    expect(response.status).toBe(503)
+    expect(response.headers['cache-control']).toBe('no-store')
+    expect(response.headers['retry-after']).toBe('3')
+    expect(payload.message).toContain('Layanan identitas')
+  })
+
   it('requests password reset links without exposing user lookup results', async () => {
     const response = await handleApiStep('/password-reset/request', { loginName: 'huanamasi123@gmail.com' })
     const payload = JSON.parse(String(response.body)) as { message?: string }

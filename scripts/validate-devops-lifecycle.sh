@@ -330,6 +330,7 @@ require_text "services/zitadel-login-vue/src/server/zitadel-client.ts" 'getAuthR
 require_text "services/zitadel-login-vue/src/server/zitadel-client.ts" 'AbortSignal\.timeout\(config\.apiTimeoutMs\)' "Vue login caps upstream ZITADEL API calls"
 require_text "services/zitadel-login-vue/src/server/request.ts" 'MAX_JSON_BODY_BYTES' "Vue login rejects oversized JSON bodies before upstream calls"
 require_text "services/zitadel-login-vue/src/server/api-handlers.ts" 'server-timing' "Vue login emits API timing headers for live diagnosis"
+require_text "services/zitadel-login-vue/src/server/api-handlers.ts" 'retry-after' "Vue login marks transient identity outages as retryable without replaying credentials"
 require_text "services/zitadel-login-vue/src/server/api-handlers.ts" '/session/auth-request' "Vue login starts OIDC requests without a duplicate email step"
 require_text "services/zitadel-login-vue/src/web/views/LoginView.vue" 'submitAuthRequest' "Vue login consumes OIDC auth request before showing email form"
 require_text "infra/nginx/dev-sso.timeh.my.id.chained.conf" 'sso_zitadel_login_api_per_ip' "Nginx rate limits expensive Vue login API calls"
@@ -342,6 +343,10 @@ require_text "scripts/vps-apply-edge-config.sh" 'disable_conflicting_sso_configs
 require_text "scripts/vps-apply-edge-config.sh" 'nginx_includes_sites_available' "Edge config apply avoids duplicate site loads on non-standard Nginx include layouts"
 require_text "scripts/vps-diagnose-sso-performance.sh" 'docker stats --no-stream' "VPS diagnostic captures container CPU and memory snapshot"
 require_text "scripts/vps-diagnose-sso-performance.sh" 'pg_stat_activity' "VPS diagnostic captures PostgreSQL connection activity"
+require_text "scripts/vps-diagnose-sso-performance.sh" 'ZITADEL container audit' "VPS diagnostic captures ZITADEL container health and restart state"
+require_text "scripts/vps-diagnose-sso-performance.sh" '/debug/metrics' "VPS diagnostic samples ZITADEL metrics without exposing them publicly"
+require_text "scripts/vps-diagnose-sso-performance.sh" 'pg_locks' "VPS diagnostic captures PostgreSQL lock pressure"
+require_text "scripts/vps-diagnose-sso-performance.sh" 'redact_sensitive' "VPS diagnostic redacts sensitive ZITADEL log fields"
 
 require_text "scripts/vps-deploy.sh" 'export APP_IMAGE_TAG="\$TAG"' "Deploy exports deterministic APP_IMAGE_TAG"
 require_text "scripts/wait-for-ghcr-images.sh" 'docker manifest inspect' "CD artifact gate verifies GHCR manifests deterministically"
