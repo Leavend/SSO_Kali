@@ -263,6 +263,39 @@
       ],
       "title": "Public Endpoint Reachability",
       "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 20
+      },
+      "id": 9,
+      "targets": [
+        {
+          "expr": "sso_identity_auth_login_probe_seconds",
+          "legendFormat": "vue-login",
+          "refId": "A"
+        },
+        {
+          "expr": "sso_identity_discovery_probe_seconds",
+          "legendFormat": "oidc-discovery",
+          "refId": "B"
+        }
+      ],
+      "title": "Identity Login Probe Latency",
+      "type": "timeseries"
     }
   ],
   "refresh": "30s",

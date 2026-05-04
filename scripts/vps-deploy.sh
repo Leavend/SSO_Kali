@@ -41,6 +41,7 @@ done
 
 COMPOSE_FILE="$PROJECT_DIR/docker-compose.dev.yml"
 ENV_FILE="$PROJECT_DIR/.env.dev"
+COMPOSE_BACKUP_FILE="$PROJECT_DIR/docker-compose.dev.yml.pre-${SHA:-manual}"
 DEPLOY_LOG="/var/log/sso-deploy-$(date +%Y%m%d%H%M%S).log"
 ROLLBACK_TAG_FILE="/tmp/.sso-deploy-rollback-tag"
 ZITADEL_LOGIN_VUE_BASE_PATH_DEFAULT="/ui/v2/auth"
@@ -91,6 +92,15 @@ restore_env_backup() {
   fi
 }
 
+restore_compose_backup() {
+  if [ -f "$COMPOSE_BACKUP_FILE" ]; then
+    install -m 0644 "$COMPOSE_BACKUP_FILE" "$COMPOSE_FILE"
+    log "Restored Compose control-plane snapshot: $COMPOSE_BACKUP_FILE"
+  else
+    warn "Compose control-plane snapshot not found: $COMPOSE_BACKUP_FILE"
+  fi
+}
+
 migrate_zitadel_login_vue_path() {
   local vue_path active_path changed=0
   vue_path="$(env_value ZITADEL_LOGIN_VUE_BASE_PATH "$ZITADEL_LOGIN_VUE_BASE_PATH_DEFAULT")"
@@ -120,6 +130,10 @@ source "$SCRIPT_DIR/lib/app-b-secret-guard.sh"
 # Services that use custom-built images (order matters: deps first)
 APP_SERVICES=(sso-backend sso-backend-worker sso-frontend sso-admin-vue zitadel-login zitadel-login-vue app-a-next app-b-laravel)
 
+# Services without release images but with runtime config that must be reconciled
+# when the Compose control plane changes.
+CONTROL_PLANE_SERVICES=(zitadel-api)
+
 # Core services that trigger hard rollback if unhealthy
 CORE_SERVICES=(sso-backend sso-backend-worker sso-frontend sso-admin-vue)
 
@@ -129,6 +143,14 @@ is_core_service() {
     [[ "$core" == "$svc" ]] && return 0
   done
   return 1
+}
+
+rollback_control_plane_services() {
+  local svc
+  for svc in "${CONTROL_PLANE_SERVICES[@]}"; do
+    compose up -d --no-deps "$svc" 2>&1 | tee -a "$DEPLOY_LOG" || true
+    wait_healthy "$svc" 180 || true
+  done
 }
 
 # Map service name → image name in registry
@@ -171,7 +193,7 @@ log "Preflight: Validating release control plane..."
 migrate_zitadel_login_vue_path
 
 COMPOSE_SERVICES="$(compose config --services)"
-for svc in "${APP_SERVICES[@]}"; do
+for svc in "${APP_SERVICES[@]}" "${CONTROL_PLANE_SERVICES[@]}"; do
   if ! grep -Fxq "$svc" <<<"$COMPOSE_SERVICES"; then
     fail "Compose control plane does not define required service: $svc"
   fi
@@ -186,7 +208,7 @@ app_b_require_confidential_client_ready "deploy"
 log "Preflight complete - Compose control plane is aligned"
 
 # ─── Phase 1: Save current state for rollback ────────────────────────────────
-log "Phase 1/5: Saving rollback state..."
+log "Phase 1/6: Saving rollback state..."
 
 PREV_TAG=""
 if [ -f "$ROLLBACK_TAG_FILE" ]; then
@@ -205,7 +227,7 @@ done
 log "✅ Phase 1 complete"
 
 # ─── Phase 2: Pull images ────────────────────────────────────────────────────
-log "Phase 2/5: Pulling images for tag ${TAG}..."
+log "Phase 2/6: Pulling images for tag ${TAG}..."
 
 PULL_ERRORS=0
 for svc in "${APP_SERVICES[@]}"; do
@@ -229,7 +251,7 @@ fi
 log "✅ Phase 2 complete — All images pulled"
 
 # ─── Phase 3: Safe database migrations ───────────────────────────────────────
-log "Phase 3/5: Running database migrations..."
+log "Phase 3/6: Running database migrations..."
 
 # sso-backend migrations (one-shot container, NOT in app lifecycle)
 compose run --rm --no-deps -T sso-backend \
@@ -243,8 +265,8 @@ compose run --rm --no-deps -T app-b-laravel \
 
 log "✅ Phase 3 complete — Migrations applied"
 
-# ─── Phase 4: Rolling update with healthcheck gating ─────────────────────────
-log "Phase 4/5: Rolling update..."
+# ─── Phase 4: Control-plane reconciliation with healthcheck gating ───────────
+log "Phase 4/6: Reconciling identity control plane..."
 
 wait_healthy() {
   local svc="$1" timeout="${2:-180}" elapsed=0 status
@@ -272,6 +294,29 @@ wait_healthy() {
 DEPLOY_FAILED=0
 DOWNSTREAM_WARN=0
 
+for svc in "${CONTROL_PLANE_SERVICES[@]}"; do
+  log "  Reconciling $svc..."
+  compose up -d --no-deps "$svc" 2>&1 | tee -a "$DEPLOY_LOG"
+
+  if ! wait_healthy "$svc" 240; then
+    DEPLOY_FAILED=1
+    warn "Control-plane service $svc failed healthcheck — restoring previous Compose snapshot"
+    break
+  fi
+done
+
+if [ "$DEPLOY_FAILED" -eq 1 ]; then
+  restore_env_backup
+  restore_compose_backup
+  rollback_control_plane_services
+  fail "Deploy of ${TAG} failed during identity control-plane reconciliation."
+fi
+
+log "✅ Phase 4 complete — Identity control plane reconciled"
+
+# ─── Phase 5: Rolling update with healthcheck gating ─────────────────────────
+log "Phase 5/6: Rolling update..."
+
 for svc in "${APP_SERVICES[@]}"; do
   log "  Updating $svc..."
   compose up -d --no-deps "$svc" 2>&1 | tee -a "$DEPLOY_LOG"
@@ -291,6 +336,8 @@ done
 if [ "$DEPLOY_FAILED" -eq 1 ]; then
   log "⚠️  Deploy failed — rolling back..."
   restore_env_backup
+  restore_compose_backup
+  rollback_control_plane_services
   if [ -n "$PREV_TAG" ]; then
     bash "$(dirname "$0")/vps-rollback.sh" \
       --tag "$PREV_TAG" \
@@ -302,10 +349,10 @@ if [ "$DEPLOY_FAILED" -eq 1 ]; then
   fail "Deploy of ${TAG} failed. Rolled back to ${PREV_TAG:-unknown}."
 fi
 
-log "✅ Phase 4 complete — All services updated"
+log "✅ Phase 5 complete — All services updated"
 
-# ─── Phase 5: Smoke tests ────────────────────────────────────────────────────
-log "Phase 5/5: Running smoke tests..."
+# ─── Phase 6: Smoke tests ────────────────────────────────────────────────────
+log "Phase 6/6: Running smoke tests..."
 
 SMOKE_FAILED=0
 
@@ -389,6 +436,8 @@ smoke_optional_domain "App B Health" "https://${APP_B_DOMAIN}/health"  "^200$" "
 if [ "$SMOKE_FAILED" -eq 1 ]; then
   log "Smoke tests failed - rolling back..."
   restore_env_backup
+  restore_compose_backup
+  rollback_control_plane_services
   if [ -n "$PREV_TAG" ]; then
     bash "$(dirname "$0")/vps-rollback.sh" \
       --tag "$PREV_TAG" \

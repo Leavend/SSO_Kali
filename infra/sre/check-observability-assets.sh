@@ -54,6 +54,8 @@ alerts |= {
 required_alerts = {
     "SsoProxyBlackboxDown",
     "SsoTokenValidationLatencyHigh",
+    "SsoIdentityLoginLatencyHigh",
+    "SsoIdentityDiscoveryLatencyHigh",
     "SsoJwksCacheHitRatioLow",
     "SsoJwksRefreshFailures",
     "SsoLogoutSuccessRateLow",
@@ -96,6 +98,7 @@ required_panels = {
     "Broker JWKS Cache Hit Ratio",
     "Logout Success Ratio",
     "Identity Reconciliation Mismatches",
+    "Identity Login Probe Latency",
 }
 
 if not required_panels.issubset(panel_titles):

@@ -18,6 +18,15 @@ x-small-web-limits: &small-web-limits
         cpus: "0.50"
         memory: 256M
 
+x-auth-web-limits: &auth-web-limits
+  cpus: "0.75"
+  mem_limit: 384m
+  deploy:
+    resources:
+      limits:
+        cpus: "0.75"
+        memory: 384M
+
 x-medium-php-limits: &medium-php-limits
   cpus: "0.75"
   mem_limit: 512m
@@ -105,22 +114,22 @@ x-sso-backend-env: &sso-backend-env
   TELESCOPE_RESPONSE_SIZE_LIMIT: ${TELESCOPE_RESPONSE_SIZE_LIMIT}
 
 x-postgres-limits: &postgres-limits
-  cpus: "1.00"
-  mem_limit: 768m
+  cpus: "1.50"
+  mem_limit: 1024m
   deploy:
     resources:
       limits:
-        cpus: "1.00"
-        memory: 768M
+        cpus: "1.50"
+        memory: 1024M
 
 x-zitadel-limits: &zitadel-limits
-  cpus: "1.00"
-  mem_limit: 768m
+  cpus: "1.50"
+  mem_limit: 1024m
   deploy:
     resources:
       limits:
-        cpus: "1.00"
-        memory: 768M
+        cpus: "1.50"
+        memory: 1024M
 
 services:
   proxy:
@@ -263,14 +272,17 @@ services:
       ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_MACHINE_NAME: Prototype Login Client
       ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_PAT_EXPIRATIONDATE: ${LOGIN_CLIENT_PAT_EXPIRATION}
       ZITADEL_LOGSTORE_ACCESS_STDOUT_ENABLED: ${ZITADEL_ACCESS_LOG_STDOUT_ENABLED}
-      ZITADEL_CACHES_CONNECTORS_REDIS_ENABLED: "false"  # Disabled: go-redis v10 CLIENT maint_notifications incompatible with Redis 7.x
+      ZITADEL_CACHES_CONNECTORS_MEMORY_ENABLED: "true"
+      ZITADEL_CACHES_INSTANCE_CONNECTOR: "memory"
+      ZITADEL_CACHES_INSTANCE_MAXAGE: "1h"
+      ZITADEL_CACHES_ORGANIZATION_CONNECTOR: "memory"
+      ZITADEL_CACHES_ORGANIZATION_MAXAGE: "1h"
+      ZITADEL_CACHES_CONNECTORS_REDIS_ENABLED: "false"  # Keep disabled until Redis connector compatibility is validated.
       ZITADEL_CACHES_CONNECTORS_REDIS_NETWORK: ""
       ZITADEL_CACHES_CONNECTORS_REDIS_ADDR: ""
       ZITADEL_CACHES_CONNECTORS_REDIS_USERNAME: ""
       ZITADEL_CACHES_CONNECTORS_REDIS_PASSWORD: ""
-      ZITADEL_CACHES_INSTANCE_CONNECTOR: ""
       ZITADEL_CACHES_MILESTONES_CONNECTOR: ""
-      ZITADEL_CACHES_ORGANIZATION_CONNECTOR: ""
       ZITADEL_DEFAULTINSTANCE_FEATURES_LOGINV2_REQUIRED: "true"
       ZITADEL_DEFAULTINSTANCE_FEATURES_LOGINV2_BASEURI: ${ZITADEL_PUBLIC_SCHEME}://${ZITADEL_DOMAIN}${ZITADEL_LOGIN_ACTIVE_BASE_PATH:-/ui/v2/login}/
       ZITADEL_OIDC_DEFAULTLOGINURLV2: ${ZITADEL_PUBLIC_SCHEME}://${ZITADEL_DOMAIN}${ZITADEL_LOGIN_ACTIVE_BASE_PATH:-/ui/v2/login}/login?authRequest=
@@ -344,7 +356,7 @@ services:
       - traefik.http.routers.zitadel-login.entrypoints=web
       - traefik.http.routers.zitadel-login.service=zitadel-login
       - traefik.http.routers.zitadel-login.priority=150
-    <<: *small-web-limits
+    <<: *auth-web-limits
 
   zitadel-login-vue:
     image: sso-dev-zitadel-login-vue:${APP_IMAGE_TAG:-local}
@@ -394,7 +406,7 @@ services:
       - traefik.http.routers.zitadel-login-vue-auth.entrypoints=web
       - traefik.http.routers.zitadel-login-vue-auth.service=zitadel-login-vue
       - traefik.http.routers.zitadel-login-vue-auth.priority=255
-    <<: *small-web-limits
+    <<: *auth-web-limits
 
   sso-backend:
     image: sso-dev-sso-backend:${APP_IMAGE_TAG:-local}
