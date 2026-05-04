@@ -19,6 +19,8 @@ Users reported that accessing the ZITADEL-backed login flow felt heavy. Live pro
 - Follow-up live probes showed the page shell and assets were fast enough, while POST `/ui/v2/auth/api/session/user` could take roughly 1-4 seconds because it synchronously calls ZITADEL Session API and PostgreSQL-backed identity lookup.
 - A later mobile-browser report showed `POST /ui/v2/auth/api/session/password` returning 503. In this code path, the Vue login backend has already accepted the browser request and is waiting on the ZITADEL Session API `PATCH /v2/sessions/{sessionId}`. The response is mapped to 503 only when ZITADEL returns a 5xx class error or the upstream call hits the configured timeout cap.
 - Password and TOTP verification calls must not be retried automatically. A credential replay can double-count failed attempts, interfere with lockout policy, and create ambiguous audit trails. The safe failure mode is a bounded timeout, no-store response, retry-after signal, and operator-side diagnosis of ZITADEL/PostgreSQL pressure.
+- After the `v1.1.56` edge keepalive release, all public probes returned HTTP 200, but user-facing latency still spiked. One login page sample reached 11.28 seconds with most delay in TCP/TLS/TTFB, and one safe non-credential identity API probe reached 48.84 seconds while the application `Server-Timing` value was only about 3 seconds. This indicates host scheduling or edge/network contention outside the Vue login handler.
+- The post-release VPS diagnostic reported load averages of `22.30, 18.81, 14.26` on the small KVM 2 host while ZITADEL readiness stayed fast (`/debug/ready` around 0.0007s and direct discovery around 0.10s). ZITADEL was healthy with zero restarts. PostgreSQL did not show a lock pileup, but non-critical demo workloads and the proxy/data plane were competing for CPU on the same node.
 
 ## Optimization Applied
 
@@ -37,6 +39,8 @@ Users reported that accessing the ZITADEL-backed login flow felt heavy. Live pro
 - Apply Nginx edge config through CI/CD, including immutable caching for Vue login assets and rate limiting for expensive `/ui/v2/auth/api/` calls.
 - Extend VPS maintenance diagnostics with ZITADEL container inspect, restart state, redacted recent warnings/errors, `/debug/metrics` sampling, PostgreSQL wait events, and PostgreSQL lock summaries.
 - Point the hosted-login rollback container healthcheck at `/ui/v2/login/healthy` instead of the full login page. This keeps rollback health coverage while avoiding periodic Next.js page rendering on the constrained VPS.
+- Keep Nginx-to-Traefik upstream connections warm through the canonical `sso_traefik_web` upstream. This removes unnecessary TCP churn on the edge hop and keeps auth-sensitive routes behind the same validated proxy contract.
+- Add explicit resource isolation: ZITADEL, PostgreSQL, Redis, and login web services receive higher CPU shares under contention, while App A and App B demo workloads use constrained budgets. This does not create new capacity, but it prevents non-critical demo traffic from being scheduled equally with the identity path on the current single VPS.
 
 ## ZITADEL Official Guidance Mapped to This Stack
 
@@ -46,6 +50,30 @@ Users reported that accessing the ZITADEL-backed login flow felt heavy. Live pro
 - ZITADEL Compose semi-production supports Redis or memory cache for frequently used objects. This single-node VPS uses memory cache for instance and organization objects because it avoids an additional Redis failure mode on the password path.
 - For production-grade scale, split `zitadel init`, `zitadel setup`, and `zitadel start`, then run multiple API replicas behind a load balancer. The current single `zitadel-api` container is rollback-safe, but not strict high availability.
 - PostgreSQL is the critical data dependency for identity sessions and event reads. Monitor open connections, wait events, locks, and slow queries alongside ZITADEL CPU and request latency.
+- ZITADEL's memory cache is the right default for the current single-server setup. Redis cache should be introduced only as part of a multi-replica identity plane because it adds operational overhead and a new dependency on the password path.
+
+## Next-Practice Resource Isolation
+
+The current VPS is still a shared compute plane. Until ZITADEL and PostgreSQL are moved to a dedicated identity node or the current node is upgraded to at least 4 vCPU, protect the identity path with resource policy:
+
+- `zitadel-api` and `postgres` keep the highest CPU shares because they gate password/session verification.
+- `redis`, hosted login, and Vue login keep elevated CPU shares because they sit on the interactive auth path.
+- `app-a-next` and `app-b-laravel` are demo workloads and must use constrained budgets. They must not be allowed to consume the same scheduler priority as ZITADEL or PostgreSQL.
+- The deploy and rollback scripts remain health-gated. Resource policy changes are rolled out by normal CD and can be reverted by tagging/deploying the previous release.
+
+This is a containment step, not a substitute for capacity. If public latency still spikes while internal ZITADEL probes remain fast, the next action is infrastructure separation or a larger VPS, not more application retries.
+
+## Identity Plane Migration Path
+
+Use this sequence for a production-grade split without auth downtime:
+
+1. Provision a dedicated identity plane or upgrade the current node to at least 4 vCPU.
+2. Take a verified PostgreSQL backup and run a restore drill before moving identity data.
+3. Move PostgreSQL first, using TLS/DSN settings and the ZITADEL schema bootstrap guidance when a managed database has no superuser access.
+4. Keep a single `zitadel-api` replica until database latency and backups are proven stable.
+5. Introduce Redis cache only when running multiple ZITADEL application replicas, then switch cache connectors away from long-lived local memory semantics.
+6. Scale ZITADEL to at least two app replicas behind the proxy and verify `/debug/ready`, OIDC discovery, session user, and password/TOTP flows before making it the rollback baseline.
+7. Keep the previous tag and Compose snapshot available for rollback until the identity plane has passed a full login and admin-session smoke window.
 
 ## Current 503 Investigation Checklist
 
@@ -63,6 +91,7 @@ Review:
 - ZITADEL `/debug/ready` latency versus public `/ui/v2/auth/api/*` latency.
 - ZITADEL `/debug/metrics` process/runtime and HTTP/gRPC counters.
 - PostgreSQL `pg_stat_activity`, wait events, and `pg_locks`.
+- Runtime resource policy from the VPS diagnostic. The identity/data plane must show higher CPU shares than demo workloads.
 
 Do not reproduce password errors by submitting a real user's password or a dummy password for a real account. Use logs, metrics, and synthetic non-credential probes to avoid account lockout and audit contamination.
 

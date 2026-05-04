@@ -2,6 +2,7 @@ name: ${COMPOSE_PROJECT_NAME}
 
 x-runtime-proxy-budget: &runtime-proxy-budget
   cpus: "0.50"
+  cpu_shares: 1536
   mem_limit: 256m
   mem_reservation: 128m
   memswap_limit: 256m
@@ -16,6 +17,7 @@ x-runtime-proxy-budget: &runtime-proxy-budget
 
 x-runtime-api-budget: &runtime-api-budget
   cpus: "1.00"
+  cpu_shares: 1024
   mem_limit: 768m
   mem_reservation: 512m
   memswap_limit: 768m
@@ -30,6 +32,7 @@ x-runtime-api-budget: &runtime-api-budget
 
 x-runtime-web-budget: &runtime-web-budget
   cpus: "0.50"
+  cpu_shares: 512
   mem_limit: 384m
   mem_reservation: 192m
   memswap_limit: 384m
@@ -42,8 +45,39 @@ x-runtime-web-budget: &runtime-web-budget
         cpus: "0.25"
         memory: 192M
 
+x-runtime-demo-web-budget: &runtime-demo-web-budget
+  cpus: "0.25"
+  cpu_shares: 128
+  mem_limit: 256m
+  mem_reservation: 128m
+  memswap_limit: 256m
+  deploy:
+    resources:
+      limits:
+        cpus: "0.25"
+        memory: 256M
+      reservations:
+        cpus: "0.10"
+        memory: 128M
+
+x-runtime-demo-php-budget: &runtime-demo-php-budget
+  cpus: "0.35"
+  cpu_shares: 128
+  mem_limit: 384m
+  mem_reservation: 192m
+  memswap_limit: 384m
+  deploy:
+    resources:
+      limits:
+        cpus: "0.35"
+        memory: 384M
+      reservations:
+        cpus: "0.10"
+        memory: 192M
+
 x-runtime-postgres-budget: &runtime-postgres-budget
   cpus: "1.50"
+  cpu_shares: 2048
   mem_limit: 1024m
   mem_reservation: 768m
   memswap_limit: 1024m
@@ -58,6 +92,7 @@ x-runtime-postgres-budget: &runtime-postgres-budget
 
 x-runtime-redis-budget: &runtime-redis-budget
   cpus: "0.50"
+  cpu_shares: 1536
   mem_limit: 256m
   mem_reservation: 128m
   memswap_limit: 256m
@@ -72,6 +107,7 @@ x-runtime-redis-budget: &runtime-redis-budget
 
 x-runtime-zitadel-budget: &runtime-zitadel-budget
   cpus: "1.50"
+  cpu_shares: 2048
   mem_limit: 1024m
   mem_reservation: 768m
   memswap_limit: 1024m
@@ -86,6 +122,7 @@ x-runtime-zitadel-budget: &runtime-zitadel-budget
 
 x-runtime-login-budget: &runtime-login-budget
   cpus: "0.75"
+  cpu_shares: 1536
   mem_limit: 384m
   mem_reservation: 192m
   memswap_limit: 384m
@@ -124,7 +161,7 @@ services:
     <<: *runtime-web-budget
 
   app-a-next:
-    <<: *runtime-web-budget
+    <<: *runtime-demo-web-budget
 
   app-b-laravel:
-    <<: *runtime-api-budget
+    <<: *runtime-demo-php-budget

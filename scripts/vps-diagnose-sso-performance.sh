@@ -46,6 +46,22 @@ print_containers() {
   docker stats --no-stream --format 'table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.NetIO}}\t{{.BlockIO}}' || true
 }
 
+audit_resource_policy() {
+  log "Runtime resource policy"
+  local service container_id
+  for service in proxy postgres redis zitadel-api zitadel-login zitadel-login-vue sso-backend app-a-next app-b-laravel; do
+    container_id="$(compose ps -q "$service" || true)"
+    if [[ -z "$container_id" ]]; then
+      echo "service=${service} status=missing"
+      continue
+    fi
+
+    docker inspect --format \
+      "service=${service} cpus={{.HostConfig.NanoCpus}} cpu_shares={{.HostConfig.CpuShares}} memory={{.HostConfig.Memory}} restart={{.HostConfig.RestartPolicy.Name}}" \
+      "$container_id" || true
+  done
+}
+
 probe_internal() {
   log "Internal identity probes"
   local zitadel_domain sso_domain
@@ -128,6 +144,7 @@ audit_zitadel_container() {
 require_runtime
 print_host
 print_containers
+audit_resource_policy
 probe_internal
 audit_zitadel_container
 probe_zitadel

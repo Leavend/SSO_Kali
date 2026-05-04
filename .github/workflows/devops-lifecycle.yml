@@ -62,6 +62,9 @@ jobs:
       - name: Validate SRE coexistence policy
         run: ./infra/sre/check-coexistence-policy.sh
 
+      - name: Validate identity resource policy
+        run: ./infra/sre/check-identity-resource-policy.sh
+
       - name: Validate zero-downtime migration policy
         run: ./infra/sre/check-zero-downtime-migration-policy.sh
 
