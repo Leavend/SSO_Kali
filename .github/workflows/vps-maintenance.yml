@@ -9,9 +9,16 @@ on:
         type: choice
         options:
           - check-env
+          - audit-sso-runtime-policy
+          - apply-sso-runtime-policy
           - diagnose-sso-performance
           - stop-noncritical-container
           - set-app-b-hash
+      service_name:
+        description: "SSO service for runtime policy apply/audit"
+        required: false
+        type: string
+        default: "all"
       container_name:
         description: "Whitelisted non-critical container to stop"
         required: false
@@ -118,6 +125,42 @@ jobs:
             -o ServerAliveCountMax=3 \
             "${{ env.VPS_USER }}@${{ env.VPS_HOST }}" \
             "sudo install -m 0755 /tmp/vps-diagnose-sso-performance.sh '${{ env.VPS_PROJECT_DIR }}/scripts/vps-diagnose-sso-performance.sh' && sudo bash '${{ env.VPS_PROJECT_DIR }}/scripts/vps-diagnose-sso-performance.sh' --project-dir '${{ env.VPS_PROJECT_DIR }}' --samples 5 && rm -f /tmp/vps-diagnose-sso-performance.sh"
+
+      - name: Audit SSO runtime resource policy
+        if: inputs.action == 'audit-sso-runtime-policy' || inputs.action == 'apply-sso-runtime-policy'
+        run: |
+          SERVICE_NAME="${{ inputs.service_name }}"
+          case "$SERVICE_NAME" in
+            all|proxy|postgres|redis|zitadel-api|zitadel-login|zitadel-login-vue|sso-backend|sso-backend-worker|sso-frontend|sso-admin-vue|app-a-next|app-b-laravel) ;;
+            *)
+              echo "Refusing unsupported service_name: $SERVICE_NAME" >&2
+              exit 3
+              ;;
+          esac
+
+          MODE="audit"
+          if [ "${{ inputs.action }}" = "apply-sso-runtime-policy" ]; then
+            MODE="apply"
+          fi
+
+          SSH_CMD="ssh -i ~/.ssh/deploy_key -p ${{ env.VPS_SSH_PORT }} -o BatchMode=yes -o ConnectTimeout=${{ env.SSH_CONNECT_TIMEOUT }} -o ServerAliveInterval=10 -o ServerAliveCountMax=3"
+          REMOTE_SERVICE_NAME="$(printf '%q' "$SERVICE_NAME")"
+          REMOTE_MODE="$(printf '%q' "$MODE")"
+          export CI_RETRY_ATTEMPTS="${{ env.SSH_RETRY_ATTEMPTS }}"
+          export CI_RETRY_DELAY_SECONDS="${{ env.SSH_RETRY_DELAY_SECONDS }}"
+
+          bash scripts/ci-retry.sh rsync -avz -e "$SSH_CMD" \
+            scripts/vps-update-sso-runtime-budget.sh \
+            "${{ env.VPS_USER }}@${{ env.VPS_HOST }}":/tmp/vps-update-sso-runtime-budget.sh
+
+          bash scripts/ci-retry.sh ssh -i ~/.ssh/deploy_key \
+            -p "${{ env.VPS_SSH_PORT }}" \
+            -o BatchMode=yes \
+            -o ConnectTimeout="${{ env.SSH_CONNECT_TIMEOUT }}" \
+            -o ServerAliveInterval=10 \
+            -o ServerAliveCountMax=3 \
+            "${{ env.VPS_USER }}@${{ env.VPS_HOST }}" \
+            "sudo install -m 0755 /tmp/vps-update-sso-runtime-budget.sh '${{ env.VPS_PROJECT_DIR }}/scripts/vps-update-sso-runtime-budget.sh' && sudo bash '${{ env.VPS_PROJECT_DIR }}/scripts/vps-update-sso-runtime-budget.sh' --project-dir '${{ env.VPS_PROJECT_DIR }}' --mode ${REMOTE_MODE} --service ${REMOTE_SERVICE_NAME} && rm -f /tmp/vps-update-sso-runtime-budget.sh"
 
       - name: Stop non-critical container
         if: inputs.action == 'stop-noncritical-container'

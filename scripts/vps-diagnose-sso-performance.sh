@@ -65,7 +65,7 @@ print_focused_container_samples() {
 audit_resource_policy() {
   log "Runtime resource policy"
   local service container_id
-  for service in proxy postgres redis zitadel-api zitadel-login zitadel-login-vue sso-backend app-a-next app-b-laravel; do
+  for service in proxy postgres redis zitadel-api zitadel-login zitadel-login-vue sso-backend sso-backend-worker sso-frontend sso-admin-vue app-a-next app-b-laravel; do
     container_id="$(compose ps -q "$service" || true)"
     if [[ -z "$container_id" ]]; then
       echo "service=${service} status=missing"
@@ -88,8 +88,8 @@ audit_proxy_pressure() {
 
 audit_redis_pressure() {
   log "Redis pressure"
-  compose exec -T redis sh -lc 'redis-cli INFO stats | grep -E "^(total_commands_processed|instantaneous_ops_per_sec|total_net_input_bytes|total_net_output_bytes|rejected_connections|expired_keys|evicted_keys):"' || true
-  compose exec -T redis sh -lc 'redis-cli INFO commandstats | grep "^cmdstat_" | sort -t= -k2 -Vr | head -30' || true
+  compose exec -T redis sh -lc 'REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli INFO stats | grep -E "^(total_commands_processed|instantaneous_ops_per_sec|total_net_input_bytes|total_net_output_bytes|rejected_connections|expired_keys|evicted_keys):"' || true
+  compose exec -T redis sh -lc 'REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli INFO commandstats | grep "^cmdstat_" | sort -t= -k2 -Vr | head -30' || true
 }
 
 probe_internal() {
@@ -125,7 +125,14 @@ probe_postgres() {
   pg_query "locks" "select locktype, mode, granted, count(*) from pg_locks group by locktype, mode, granted order by count(*) desc limit 15;"
   pg_query "database stats" "select datname, numbackends, xact_commit, xact_rollback, blks_read, blks_hit, tup_returned, tup_fetched from pg_stat_database order by numbackends desc limit 10;"
   pg_query "active statements" "select now() - query_start as age, state, wait_event_type, left(query, 160) as query from pg_stat_activity where state <> 'idle' order by query_start nulls last limit 10;"
-  pg_query "pg_stat_statements hot queries" "select calls, round(total_exec_time::numeric, 2) as total_ms, round(mean_exec_time::numeric, 2) as mean_ms, left(query, 160) as query from pg_stat_statements order by total_exec_time desc limit 10;"
+  echo "-- pg_stat_statements hot queries"
+  compose exec -T postgres sh -lc '
+    if psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "select 1 from pg_extension where extname = '\''pg_stat_statements'\''" | grep -qx 1; then
+      psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "select calls, round(total_exec_time::numeric, 2) as total_ms, round(mean_exec_time::numeric, 2) as mean_ms, left(query, 160) as query from pg_stat_statements order by total_exec_time desc limit 10;"
+    else
+      echo "pg_stat_statements unavailable: enable it to rank hot SQL by total_exec_time"
+    fi
+  ' || true
 }
 
 probe_zitadel() {
