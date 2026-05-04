@@ -36,6 +36,7 @@ Users reported that accessing the ZITADEL-backed login flow felt heavy. Live pro
 - Emit `Retry-After` and `Cache-Control: no-store` for transient upstream identity outages so 503 responses are explicit, non-cacheable, and safe for clients/proxies without replaying password submissions.
 - Apply Nginx edge config through CI/CD, including immutable caching for Vue login assets and rate limiting for expensive `/ui/v2/auth/api/` calls.
 - Extend VPS maintenance diagnostics with ZITADEL container inspect, restart state, redacted recent warnings/errors, `/debug/metrics` sampling, PostgreSQL wait events, and PostgreSQL lock summaries.
+- Point the hosted-login rollback container healthcheck at `/ui/v2/login/healthy` instead of the full login page. This keeps rollback health coverage while avoiding periodic Next.js page rendering on the constrained VPS.
 
 ## ZITADEL Official Guidance Mapped to This Stack
 

@@ -102,6 +102,7 @@ reject_text "services/zitadel-login-vue/src/web/styles/main.css" 'letter-spacing
 reject_text "services/zitadel-login-vue/src/web/styles/main.css" 'font-size:[^;]*(clamp|vw|vh|vmin|vmax)' "Vue login typography avoids viewport-scaled font sizes"
 
 require_text "docker-compose.dev.yml" 'zitadel-login-vue:' "Compose defines Vue login canary service"
+require_text "docker-compose.dev.yml" 'http://127\.0\.0\.1:3000/ui/v2/login/healthy' "Hosted login rollback healthcheck avoids rendering the full login page"
 require_text "docker-compose.dev.yml" 'ZITADEL_LOGIN_ACTIVE_BASE_PATH:-/ui/v2/login' "Compose keeps hosted login as rollback default"
 require_text "docker-compose.dev.yml" 'SSO_IDENTITY_UI_BASE_URL: \$\{ZITADEL_ISSUER\}\$\{ZITADEL_LOGIN_ACTIVE_BASE_PATH:-/ui/v2/login\}' "SSO frontend follows the active login UI path"
 require_text "docker-compose.dev.yml" 'PathPrefix\(`\$\{ZITADEL_LOGIN_VUE_BASE_PATH:-/ui/v2/auth\}`\)' "Vue login canary route is isolated"

@@ -335,7 +335,7 @@ services:
     healthcheck:
       test:
         - CMD-SHELL
-        - wget -q -O - http://127.0.0.1:3000/ui/v2/login > /dev/null
+        - wget -q -O - http://127.0.0.1:3000/ui/v2/login/healthy > /dev/null
       interval: 15s
       timeout: 10s
       retries: 10

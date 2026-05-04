@@ -225,6 +225,7 @@ require_text ".github/workflows/vps-maintenance.yml" '\$\{\{ env\.VPS_PROJECT_DI
 
 require_text "docker-compose.dev.yml" 'sso-admin-vue:' "Compose defines Vue canary service"
 require_text "docker-compose.dev.yml" 'zitadel-login-vue:' "Compose defines Vue ZITADEL login canary service"
+require_text "docker-compose.dev.yml" 'http://127\.0\.0\.1:3000/ui/v2/login/healthy' "Hosted ZITADEL login healthcheck uses lightweight health endpoint"
 require_text "docker-compose.dev.yml" 'http://127\.0\.0\.1:3000/healthz' "App A healthcheck prefers dedicated health endpoint"
 require_text "docker-compose.dev.yml" 'http://127\.0\.0\.1:3000 >/dev/null' "App A healthcheck preserves one-release rollback fallback"
 require_absent_text "docker-compose.dev.yml" 'npm run start -- --hostname 0\.0\.0\.0 --port 3000' "App A production container uses standalone Node runtime without npm"
