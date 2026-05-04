@@ -389,6 +389,7 @@ require_text "scripts/vps-apply-sso-efficiency-profile.sh" 'TELESCOPE_ENABLED=fa
 require_text "scripts/vps-apply-sso-efficiency-profile.sh" 'QUEUE_CONNECTION=redis' "SSO efficiency script moves queue polling away from PostgreSQL"
 require_text "scripts/vps-apply-sso-efficiency-profile.sh" 'stop_service_if_running "zitadel-login"' "SSO efficiency script can stop the inactive hosted login runtime"
 require_text "scripts/vps-apply-sso-efficiency-profile.sh" 'stop_service_if_running "app-b-laravel"' "SSO efficiency script can stop demo clients outside the primary login path"
+require_text "scripts/vps-apply-sso-efficiency-profile.sh" '--no-build --pull never' "SSO efficiency script never builds images on the pressured VPS"
 require_text "scripts/vps-apply-sso-efficiency-profile.sh" 'Rollback' "SSO efficiency script prints rollback guidance"
 require_text "scripts/vps-pg-stat-statements.sh" 'MODE="audit"' "PostgreSQL hot-query script defaults to read-only audit mode"
 require_text "scripts/vps-pg-stat-statements.sh" 'show shared_preload_libraries' "PostgreSQL hot-query script verifies preload status before mutation"

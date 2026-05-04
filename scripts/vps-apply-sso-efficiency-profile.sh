@@ -178,7 +178,7 @@ stop_service_if_running() {
   status="$(docker inspect --format '{{.State.Status}}' "$id" 2>/dev/null || echo unknown)"
   echo "service=$service status=$status planned_stop_reason=$reason"
   [[ "$MODE" == "apply" && "$status" == "running" ]] || return
-  append_rollback "docker compose --env-file '$ENV_FILE' -f '$COMPOSE_FILE' up -d --no-deps '$service'"
+  append_rollback "docker compose --project-directory '$PROJECT_DIR' --env-file '$ENV_FILE' -f '$COMPOSE_FILE' up -d --no-deps --no-build --pull never '$service'"
   compose stop --timeout 30 "$service"
 }
 
@@ -251,7 +251,7 @@ recreate_service() {
   local service="$1"
   echo "recreate=$service"
   [[ "$MODE" == "apply" ]] || return
-  compose up -d --no-deps "$service"
+  compose up -d --no-deps --no-build --pull never "$service"
   wait_healthy "$service" 180
 }
 
