@@ -111,7 +111,7 @@ jobs:
             -o ServerAliveInterval=10 \
             -o ServerAliveCountMax=3 \
             "${{ env.VPS_USER }}@${{ env.VPS_HOST }}" \
-            "chmod +x /tmp/vps-diagnose-sso-performance.sh && sudo /tmp/vps-diagnose-sso-performance.sh --project-dir '${{ env.VPS_PROJECT_DIR }}' --samples 5 && rm -f /tmp/vps-diagnose-sso-performance.sh"
+            "sudo install -m 0755 /tmp/vps-diagnose-sso-performance.sh '${{ env.VPS_PROJECT_DIR }}/scripts/vps-diagnose-sso-performance.sh' && sudo bash '${{ env.VPS_PROJECT_DIR }}/scripts/vps-diagnose-sso-performance.sh' --project-dir '${{ env.VPS_PROJECT_DIR }}' --samples 5 && rm -f /tmp/vps-diagnose-sso-performance.sh"
 
       - name: Generate and set APP_B hash
         if: inputs.action == 'set-app-b-hash'

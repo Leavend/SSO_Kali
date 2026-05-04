@@ -221,6 +221,7 @@ require_text ".github/workflows/vps-maintenance.yml" 'VPS_SSH_PORT' "VPS mainten
 require_text ".github/workflows/vps-maintenance.yml" 'Preflight SSH reachability' "VPS maintenance fails fast when SSH is unreachable"
 require_text ".github/workflows/vps-maintenance.yml" 'diagnose-sso-performance' "VPS maintenance can run SSO performance diagnostics"
 require_text ".github/workflows/vps-maintenance.yml" 'vps-diagnose-sso-performance\.sh' "VPS maintenance syncs the SSO performance diagnostic script"
+require_text ".github/workflows/vps-maintenance.yml" '\$\{\{ env\.VPS_PROJECT_DIR \}\}/scripts/vps-diagnose-sso-performance\.sh' "VPS maintenance runs diagnostics from the project script path"
 
 require_text "docker-compose.dev.yml" 'sso-admin-vue:' "Compose defines Vue canary service"
 require_text "docker-compose.dev.yml" 'zitadel-login-vue:' "Compose defines Vue ZITADEL login canary service"
