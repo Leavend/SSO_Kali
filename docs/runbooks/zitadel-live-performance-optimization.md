@@ -37,7 +37,7 @@ Users reported that accessing the ZITADEL-backed login flow felt heavy. Live pro
 
 The CD pipeline already backs up the previous Compose file before installing the new one. On health or smoke failure, `scripts/vps-deploy.sh` restores that Compose snapshot, restores any environment migration snapshot, and then invokes image rollback through `scripts/vps-rollback.sh` when a previous release tag is available.
 
-The edge config apply step backs up the active Nginx site file, enabled-site links, and snippets. It disables stale enabled configs for the same host before `nginx -t`, then restores the previous edge config if validation fails before reload.
+The edge config apply step backs up the active Nginx site file, enabled-site links, and snippets. It disables stale enabled configs for the same host, avoids creating a duplicate enabled-site link when the VPS Nginx already includes `sites-available`, then restores the previous edge config if `nginx -t` fails before reload.
 
 Manual rollback path:
 

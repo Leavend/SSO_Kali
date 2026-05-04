@@ -58,6 +58,10 @@ disable_stale_site_configs() {
   shopt -u nullglob
 }
 
+nginx_includes_sites_available() {
+  grep -Rqs 'sites-available' /etc/nginx/nginx.conf /etc/nginx/conf.d 2>/dev/null
+}
+
 [[ -f "$SRC_SITE" ]] || fail "missing source site config: $SRC_SITE"
 [[ -d "$SRC_SNIPPETS" ]] || fail "missing source snippets dir: $SRC_SNIPPETS"
 command -v nginx >/dev/null 2>&1 || fail "nginx is required on the VPS"
@@ -78,7 +82,12 @@ install -d -m 0755 "$(dirname "$DST_SITE")" "$ENABLED_DIR" "$DST_SNIPPETS"
 install -m 0644 "$SRC_SITE" "$DST_SITE"
 cp -a "$SRC_SNIPPETS/." "$DST_SNIPPETS/"
 disable_stale_site_configs
-ln -sf "$DST_SITE" "$DST_ENABLED"
+if nginx_includes_sites_available; then
+  log "Nginx includes sites-available; avoiding duplicate sites-enabled link"
+  rm -f "$DST_ENABLED"
+else
+  ln -sf "$DST_SITE" "$DST_ENABLED"
+fi
 
 log "Validating Nginx config"
 if ! nginx -t; then

@@ -333,9 +333,11 @@ require_text "services/zitadel-login-vue/src/server/api-handlers.ts" '/session/a
 require_text "services/zitadel-login-vue/src/web/views/LoginView.vue" 'submitAuthRequest' "Vue login consumes OIDC auth request before showing email form"
 require_text "infra/nginx/dev-sso.timeh.my.id.chained.conf" 'sso_zitadel_login_api_per_ip' "Nginx rate limits expensive Vue login API calls"
 require_text "infra/nginx/dev-sso.timeh.my.id.chained.conf" '/ui/v2/auth/assets/' "Nginx preserves immutable cache policy for Vue login assets"
+require_text "infra/nginx/dev-sso.timeh.my.id.chained.conf" 'proxy_pass http://127\.0\.0\.1:18080' "Nginx edge config avoids duplicate upstream declarations on live host"
 require_text "scripts/vps-apply-edge-config.sh" 'nginx -t' "Edge config apply validates Nginx before reload"
 require_text "scripts/vps-apply-edge-config.sh" 'restore_previous' "Edge config apply restores previous Nginx config on validation failure"
 require_text "scripts/vps-apply-edge-config.sh" 'disable_stale_site_configs' "Edge config apply removes stale enabled host configs before validation"
+require_text "scripts/vps-apply-edge-config.sh" 'nginx_includes_sites_available' "Edge config apply avoids duplicate site loads on non-standard Nginx include layouts"
 require_text "scripts/vps-diagnose-sso-performance.sh" 'docker stats --no-stream' "VPS diagnostic captures container CPU and memory snapshot"
 require_text "scripts/vps-diagnose-sso-performance.sh" 'pg_stat_activity' "VPS diagnostic captures PostgreSQL connection activity"
 
