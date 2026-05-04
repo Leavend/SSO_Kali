@@ -203,6 +203,7 @@ require_text ".github/workflows/cd.yml" 'docker/login-action@v4' "CD authenticat
 require_text ".github/workflows/cd.yml" 'scripts/wait-for-ghcr-images\.sh' "CD waits for release image manifests before VPS deploy"
 require_text ".github/workflows/cd.yml" 'Require successful release CI' "CD gates deployment on release CI success"
 require_text ".github/workflows/cd.yml" 'scripts/require-release-ci-success\.sh' "CD invokes the release CI status gate"
+require_text ".github/workflows/cd.yml" 'CI_RETRY_ATTEMPTS="1"' "CD does not retry the non-idempotent VPS deploy after rollback"
 require_text "scripts/require-release-ci-success.sh" 'gh run list' "Release CI gate queries GitHub Actions run status"
 require_text "scripts/require-release-ci-success.sh" 'Release CI did not pass before deployment' "Release CI gate blocks failed release CI"
 require_retry_failure_status
@@ -326,6 +327,9 @@ require_text "scripts/vps-deploy.sh" 'sso-admin-vue' "Deploy includes Vue admin 
 require_text "scripts/vps-deploy.sh" 'zitadel-login-vue' "Deploy includes Vue ZITADEL login canary"
 require_text "scripts/vps-deploy.sh" 'ZITADEL_LOGIN_VUE_COOKIE_SECRET must be set' "Deploy preflights Vue ZITADEL login canary secret"
 require_text "scripts/vps-deploy.sh" 'ZITADEL Vue Login Canary' "Registry deploy smokes Vue ZITADEL login canary"
+require_text "scripts/vps-deploy.sh" 'ZITADEL Hosted Login' "Registry deploy smokes deterministic hosted-login health"
+require_text "scripts/vps-deploy.sh" 'App A Health' "Registry deploy smokes deterministic App A health endpoint"
+require_text "scripts/vps-deploy.sh" 'App B Health' "Registry deploy smokes deterministic App B health endpoint"
 require_text "scripts/vps-deploy.sh" 'SMOKE_FAILED=0' "Deploy treats smoke failures as rollback triggers"
 require_text "scripts/vps-deploy.sh" 'vps-rollback\.sh' "Deploy can call rollback script"
 require_text "scripts/vps-login-ui-cutover.sh" '--mode must be vue or hosted' "Login UI cutover validates the requested mode"

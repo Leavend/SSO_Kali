@@ -309,9 +309,13 @@ smoke_check() {
   local host="${4:-}"
   local code
   if [ -n "$host" ]; then
-    code=$(curl -LksS -H "Host: $host" -o /dev/null -w '%{http_code}' --max-time 15 "$url" || echo "000")
+    if ! code=$(curl -ksS -H "Host: $host" -o /dev/null -w '%{http_code}' --connect-timeout 5 --max-time 15 "$url"); then
+      code="000"
+    fi
   else
-    code=$(curl -LksS -o /dev/null -w '%{http_code}' --max-time 15 "$url" || echo "000")
+    if ! code=$(curl -ksS -o /dev/null -w '%{http_code}' --connect-timeout 5 --max-time 15 "$url"); then
+      code="000"
+    fi
   fi
 
   if [[ "$code" =~ $pattern ]]; then
@@ -330,7 +334,7 @@ SSO_ADMIN_VUE_BASE_PATH=$(awk -F= '/^SSO_ADMIN_VUE_BASE_PATH=/ {print $2}' "$ENV
 SSO_ADMIN_VUE_BASE_PATH="${SSO_ADMIN_VUE_BASE_PATH:-/__vue-preview}"
 
 smoke_check "SSO Discovery"     "http://127.0.0.1/.well-known/openid-configuration" "^200$" "$SSO_DOMAIN"
-smoke_check "ZITADEL Discovery" "http://127.0.0.1/.well-known/openid-configuration" "^200$" "$ZITADEL_DOMAIN"
+smoke_check "ZITADEL Hosted Login" "http://127.0.0.1/ui/v2/login/healthy" "^200$" "$ZITADEL_DOMAIN"
 smoke_check "Admin Panel"       "http://127.0.0.1/"                                  "^200$" "$SSO_DOMAIN"
 smoke_check "Vue Admin Canary"  "http://127.0.0.1${SSO_ADMIN_VUE_BASE_PATH}/healthz" "^200$" "$SSO_DOMAIN"
 
@@ -339,11 +343,11 @@ ZITADEL_LOGIN_VUE_BASE_PATH="${ZITADEL_LOGIN_VUE_BASE_PATH:-/ui/v2/auth}"
 smoke_check "ZITADEL Vue Login Canary" "http://127.0.0.1${ZITADEL_LOGIN_VUE_BASE_PATH}/healthz" "^200$" "$ZITADEL_DOMAIN"
 
 if [ -n "$APP_A_DOMAIN" ]; then
-  smoke_check "App A" "http://127.0.0.1/" "^(200|30[1278]|404)$" "$APP_A_DOMAIN"
+  smoke_check "App A Health" "http://127.0.0.1/healthz" "^200$" "$APP_A_DOMAIN"
 fi
 
 if [ -n "$APP_B_DOMAIN" ]; then
-  smoke_check "App B" "http://127.0.0.1/" "^(200|30[1278]|404)$" "$APP_B_DOMAIN"
+  smoke_check "App B Health" "http://127.0.0.1/health" "^200$" "$APP_B_DOMAIN"
 fi
 
 if [ "$SMOKE_FAILED" -eq 1 ]; then

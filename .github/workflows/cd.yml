@@ -188,7 +188,7 @@ jobs:
             -o ServerAliveInterval=10
             -o ServerAliveCountMax=3
           )
-          CI_RETRY_ATTEMPTS="${{ env.SSH_RETRY_ATTEMPTS }}" \
+          CI_RETRY_ATTEMPTS="1" \
           CI_RETRY_DELAY_SECONDS="${{ env.SSH_RETRY_DELAY_SECONDS }}" \
           bash scripts/ci-retry.sh ssh "${SSH_OPTS[@]}" "${{ env.VPS_USER }}@${{ env.VPS_HOST }}" \
             "sudo bash /tmp/_deploy_scripts/vps-deploy.sh \
