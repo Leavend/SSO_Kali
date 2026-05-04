@@ -49,6 +49,31 @@ set_env_value() {
   rm -f "$tmp"
 }
 
+service_image() {
+  compose config | awk '
+    /^[[:space:]]{2}zitadel-login-vue:/ { in_service = 1; next }
+    in_service && /^[[:space:]]{2}[[:alnum:]_-]+:/ { exit }
+    in_service && /^[[:space:]]{4}image:/ { print $2; exit }
+  '
+}
+
+preserve_running_image_tag() {
+  local image_ref container_id image_id
+  image_ref="$(service_image)"
+  [[ -n "$image_ref" ]] || { echo "Unable to resolve zitadel-login-vue image reference" >&2; exit 1; }
+  docker image inspect "$image_ref" >/dev/null 2>&1 && return 0
+
+  container_id="$(compose ps -q zitadel-login-vue 2>/dev/null || true)"
+  [[ -n "$container_id" ]] || { echo "Missing running zitadel-login-vue container and image tag: $image_ref" >&2; exit 1; }
+
+  image_id="$(docker inspect --format '{{.Image}}' "$container_id")"
+  [[ -n "$image_id" ]] || { echo "Unable to inspect running zitadel-login-vue image" >&2; exit 1; }
+
+  log "Retag running image for no-build recreate"
+  docker tag "$image_id" "$image_ref"
+  echo "image_ref=$image_ref image_id=$image_id"
+}
+
 wait_healthy() {
   local service="$1" timeout="${2:-120}" elapsed=0 container_id status
   while (( elapsed < timeout )); do
@@ -96,7 +121,8 @@ log "Apply ZITADEL_LOGIN_API_TIMEOUT_MS=$TIMEOUT_MS"
 set_env_value ZITADEL_LOGIN_API_TIMEOUT_MS "$TIMEOUT_MS"
 
 log "Recreate zitadel-login-vue"
-compose up -d --no-deps zitadel-login-vue
+preserve_running_image_tag
+compose up -d --no-deps --no-build --pull never zitadel-login-vue
 wait_healthy zitadel-login-vue 120
 
 log "Smoke"

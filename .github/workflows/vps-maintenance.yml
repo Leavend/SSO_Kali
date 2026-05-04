@@ -59,7 +59,7 @@ jobs:
   maintenance:
     name: "VPS Maintenance"
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
     environment: production
 
     steps:
