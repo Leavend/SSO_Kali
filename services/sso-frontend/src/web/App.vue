@@ -54,6 +54,7 @@ watch(() => route.path, closeSidebar);
     :class="{
       'app-shell--auth': !showAdminShell,
       'app-shell--admin': showAdminShell,
+      'app-shell--admin-collapsed': showAdminShell && sidebarCollapsed,
     }"
   >
     <!-- Toast notifications -->
@@ -115,6 +116,7 @@ watch(() => route.path, closeSidebar);
             type="button"
             :aria-label="sidebarCollapsed ? 'Perluas sidebar' : 'Ciutkan sidebar'"
             :aria-pressed="sidebarCollapsed"
+            :title="sidebarCollapsed ? 'Perluas sidebar' : 'Ciutkan sidebar'"
             @click="sidebarCollapsed = !sidebarCollapsed"
           >
             <ChevronsRight v-if="sidebarCollapsed" :size="18" aria-hidden="true" />

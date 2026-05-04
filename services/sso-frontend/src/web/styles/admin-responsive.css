@@ -266,7 +266,7 @@
     transition: margin-left 0.22s ease;
   }
 
-  .app-shell--admin:has(.sidebar--collapsed) .admin-content-shell {
+  .app-shell--admin.app-shell--admin-collapsed .admin-content-shell {
     margin-left: var(--admin-sidebar-collapsed-width);
   }
 
@@ -298,6 +298,12 @@
     width: 100%;
   }
 
+  .app-shell--admin .sidebar--collapsed .sidebar-header {
+    display: grid;
+    justify-items: center;
+    gap: var(--space-2);
+  }
+
   .app-shell--admin .sidebar--collapsed .brand,
   .app-shell--admin .sidebar--collapsed .nav-list a,
   .app-shell--admin .sidebar--collapsed .sidebar-actions {
@@ -306,17 +312,18 @@
 
   .app-shell--admin .sidebar--collapsed .brand {
     width: 56px;
+    padding: var(--space-1);
   }
 
   .app-shell--admin .sidebar--collapsed .brand-copy,
   .app-shell--admin .sidebar--collapsed .nav-label,
-  .app-shell--admin .sidebar--collapsed .principal,
-  .app-shell--admin .sidebar--collapsed .sidebar-collapse {
+  .app-shell--admin .sidebar--collapsed .principal {
     display: none;
   }
 
   .app-shell--admin .sidebar--collapsed .sidebar-footer {
     width: 100%;
+    justify-items: center;
   }
 
   .sidebar-footer {
