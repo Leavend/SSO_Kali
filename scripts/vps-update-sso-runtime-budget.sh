@@ -64,15 +64,15 @@ service_allowed() {
 
 budget_for_service() {
   case "$1" in
-    proxy) echo "0.25 1536 128m 134217728" ;;
-    postgres) echo "1.50 2048 1024m 1073741824" ;;
-    redis) echo "0.50 1536 256m 268435456" ;;
-    zitadel-api) echo "1.50 2048 1024m 1073741824" ;;
-    zitadel-login|zitadel-login-vue) echo "0.75 1536 384m 402653184" ;;
-    sso-backend|sso-backend-worker) echo "0.75 512 512m 536870912" ;;
-    sso-frontend|sso-admin-vue) echo "0.50 256 256m 268435456" ;;
-    app-a-next) echo "0.25 128 192m 201326592" ;;
-    app-b-laravel) echo "0.35 128 384m 402653184" ;;
+    proxy) echo "0.20 1536 128m 134217728" ;;
+    postgres) echo "1.00 2048 1024m 1073741824" ;;
+    redis) echo "0.25 1536 256m 268435456" ;;
+    zitadel-api) echo "1.00 2048 1024m 1073741824" ;;
+    zitadel-login|zitadel-login-vue) echo "0.40 1536 384m 402653184" ;;
+    sso-backend|sso-backend-worker) echo "0.45 512 512m 536870912" ;;
+    sso-frontend|sso-admin-vue) echo "0.25 256 256m 268435456" ;;
+    app-a-next) echo "0.10 128 192m 201326592" ;;
+    app-b-laravel) echo "0.15 128 384m 402653184" ;;
     *) return 1 ;;
   esac
 }

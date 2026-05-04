@@ -1,63 +1,63 @@
 name: ${COMPOSE_PROJECT_NAME}
 
 x-proxy-limits: &proxy-limits
-  cpus: "0.25"
+  cpus: "0.20"
   cpu_shares: 1536
   mem_limit: 128m
   deploy:
     resources:
       limits:
-        cpus: "0.25"
+        cpus: "0.20"
         memory: 128M
 
 x-small-web-limits: &small-web-limits
-  cpus: "0.50"
+  cpus: "0.25"
   cpu_shares: 256
   mem_limit: 256m
   deploy:
     resources:
       limits:
-        cpus: "0.50"
+        cpus: "0.25"
         memory: 256M
 
 x-auth-web-limits: &auth-web-limits
-  cpus: "0.75"
+  cpus: "0.40"
   cpu_shares: 1536
   mem_limit: 384m
   deploy:
     resources:
       limits:
-        cpus: "0.75"
+        cpus: "0.40"
         memory: 384M
 
 x-demo-web-limits: &demo-web-limits
-  cpus: "0.25"
+  cpus: "0.10"
   cpu_shares: 128
   mem_limit: 192m
   deploy:
     resources:
       limits:
-        cpus: "0.25"
+        cpus: "0.10"
         memory: 192M
 
 x-demo-php-limits: &demo-php-limits
-  cpus: "0.35"
+  cpus: "0.15"
   cpu_shares: 128
   mem_limit: 384m
   deploy:
     resources:
       limits:
-        cpus: "0.35"
+        cpus: "0.15"
         memory: 384M
 
 x-medium-php-limits: &medium-php-limits
-  cpus: "0.75"
+  cpus: "0.45"
   cpu_shares: 512
   mem_limit: 512m
   deploy:
     resources:
       limits:
-        cpus: "0.75"
+        cpus: "0.45"
         memory: 512M
 
 x-sso-backend-env: &sso-backend-env
@@ -138,33 +138,33 @@ x-sso-backend-env: &sso-backend-env
   TELESCOPE_RESPONSE_SIZE_LIMIT: ${TELESCOPE_RESPONSE_SIZE_LIMIT}
 
 x-postgres-limits: &postgres-limits
-  cpus: "1.50"
+  cpus: "1.00"
   cpu_shares: 2048
   mem_limit: 1024m
   deploy:
     resources:
       limits:
-        cpus: "1.50"
+        cpus: "1.00"
         memory: 1024M
 
 x-redis-limits: &redis-limits
-  cpus: "0.50"
+  cpus: "0.25"
   cpu_shares: 1536
   mem_limit: 256m
   deploy:
     resources:
       limits:
-        cpus: "0.50"
+        cpus: "0.25"
         memory: 256M
 
 x-zitadel-limits: &zitadel-limits
-  cpus: "1.50"
+  cpus: "1.00"
   cpu_shares: 2048
   mem_limit: 1024m
   deploy:
     resources:
       limits:
-        cpus: "1.50"
+        cpus: "1.00"
         memory: 1024M
 
 services:
@@ -199,8 +199,6 @@ services:
         condition: service_healthy
       zitadel-api:
         condition: service_healthy
-      zitadel-login:
-        condition: service_healthy
     healthcheck:
       test:
         - CMD-SHELL
@@ -228,6 +226,30 @@ services:
       - pg_stat_statements.track=all
       - -c
       - pg_stat_statements.max=10000
+      - -c
+      - shared_buffers=256MB
+      - -c
+      - effective_cache_size=2GB
+      - -c
+      - work_mem=8MB
+      - -c
+      - maintenance_work_mem=128MB
+      - -c
+      - max_connections=60
+      - -c
+      - jit=off
+      - -c
+      - max_parallel_workers=0
+      - -c
+      - max_parallel_workers_per_gather=0
+      - -c
+      - checkpoint_timeout=15min
+      - -c
+      - checkpoint_completion_target=0.9
+      - -c
+      - max_wal_size=2GB
+      - -c
+      - min_wal_size=256MB
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_ADMIN_USER}
@@ -236,7 +258,7 @@ services:
       test:
         - CMD-SHELL
         - pg_isready -d ${POSTGRES_DB} -U ${POSTGRES_ADMIN_USER}
-      interval: 10s
+      interval: 30s
       timeout: 5s
       retries: 10
       start_period: 20s
@@ -257,8 +279,12 @@ services:
       - ${REDIS_PASSWORD}
       - --appendonly
       - "yes"
+      - --appendfsync
+      - everysec
+      - --no-appendfsync-on-rewrite
+      - "yes"
       - --save
-      - "60 1000"
+      - ""
       - --maxmemory
       - 192mb
       - --maxmemory-policy
@@ -267,7 +293,7 @@ services:
       test:
         - CMD-SHELL
         - REDISCLI_AUTH=$$REDIS_PASSWORD redis-cli ping
-      interval: 10s
+      interval: 30s
       timeout: 5s
       retries: 10
       start_period: 15s
@@ -335,7 +361,7 @@ services:
       test:
         - CMD-SHELL
         - curl -fsS --max-time 8 http://127.0.0.1:8080/debug/ready >/dev/null || curl -fsS --max-time 8 http://127.0.0.1:8080/.well-known/openid-configuration >/dev/null
-      interval: 15s
+      interval: 30s
       timeout: 10s
       retries: 12
       start_period: 30s
@@ -380,7 +406,7 @@ services:
       test:
         - CMD-SHELL
         - wget -q -O - http://127.0.0.1:3000/ui/v2/login/healthy > /dev/null
-      interval: 15s
+      interval: 60s
       timeout: 10s
       retries: 10
       start_period: 30s
@@ -421,13 +447,13 @@ services:
       ZITADEL_SERVICE_USER_TOKEN_FILE: /zitadel/bootstrap/login-client.pat
       LOGIN_COOKIE_SECRET: ${ZITADEL_LOGIN_VUE_COOKIE_SECRET}
       LOGIN_REQUIRE_TOTP_AFTER_PASSWORD: ${ZITADEL_LOGIN_REQUIRE_TOTP_AFTER_PASSWORD:-true}
-      ZITADEL_API_TIMEOUT_MS: ${ZITADEL_LOGIN_API_TIMEOUT_MS:-6000}
+      ZITADEL_API_TIMEOUT_MS: ${ZITADEL_LOGIN_API_TIMEOUT_MS:-15000}
       SECURE_COOKIES: ${ZITADEL_EXTERNALSECURE}
     healthcheck:
       test:
         - CMD-SHELL
         - wget -q -O - http://127.0.0.1:3010${ZITADEL_LOGIN_VUE_BASE_PATH:-/ui/v2/auth}/healthz >/dev/null
-      interval: 15s
+      interval: 30s
       timeout: 10s
       retries: 10
       start_period: 30s
@@ -463,7 +489,7 @@ services:
       test:
         - CMD-SHELL
         - wget -q -O - http://127.0.0.1:8000/.well-known/openid-configuration >/dev/null
-      interval: 20s
+      interval: 30s
       timeout: 10s
       retries: 10
       start_period: 40s
@@ -516,7 +542,7 @@ services:
       test:
         - CMD-SHELL
         - "tr '\\000' ' ' </proc/1/cmdline | grep -q 'queue:work'"
-      interval: 30s
+      interval: 60s
       timeout: 10s
       retries: 5
       start_period: 10s
@@ -557,7 +583,7 @@ services:
       test:
         - CMD-SHELL
         - wget -q -O - http://127.0.0.1:3000/healthz >/dev/null || wget -q -O - http://127.0.0.1:3000 >/dev/null
-      interval: 20s
+      interval: 45s
       timeout: 10s
       retries: 10
       start_period: 45s
@@ -592,7 +618,7 @@ services:
       test:
         - CMD-SHELL
         - wget -q -O - http://127.0.0.1:8080/healthz >/dev/null
-      interval: 20s
+      interval: 60s
       timeout: 10s
       retries: 10
       start_period: 20s
@@ -643,7 +669,7 @@ services:
       test:
         - CMD-SHELL
         - wget -q -O - http://127.0.0.1:3000/healthz >/dev/null
-      interval: 20s
+      interval: 60s
       timeout: 10s
       retries: 10
       start_period: 45s
@@ -709,7 +735,7 @@ services:
       test:
         - CMD-SHELL
         - wget -q -O - http://127.0.0.1:8000/health >/dev/null
-      interval: 20s
+      interval: 60s
       timeout: 10s
       retries: 10
       start_period: 40s

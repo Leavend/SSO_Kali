@@ -1,7 +1,7 @@
 name: ${COMPOSE_PROJECT_NAME}
 
 x-runtime-proxy-budget: &runtime-proxy-budget
-  cpus: "0.50"
+  cpus: "0.20"
   cpu_shares: 1536
   mem_limit: 256m
   mem_reservation: 128m
@@ -9,14 +9,14 @@ x-runtime-proxy-budget: &runtime-proxy-budget
   deploy:
     resources:
       limits:
-        cpus: "0.50"
+        cpus: "0.20"
         memory: 256M
       reservations:
         cpus: "0.25"
         memory: 128M
 
 x-runtime-api-budget: &runtime-api-budget
-  cpus: "1.00"
+  cpus: "0.45"
   cpu_shares: 1024
   mem_limit: 768m
   mem_reservation: 512m
@@ -24,14 +24,14 @@ x-runtime-api-budget: &runtime-api-budget
   deploy:
     resources:
       limits:
-        cpus: "1.00"
+        cpus: "0.45"
         memory: 768M
       reservations:
         cpus: "0.50"
         memory: 512M
 
 x-runtime-web-budget: &runtime-web-budget
-  cpus: "0.50"
+  cpus: "0.25"
   cpu_shares: 512
   mem_limit: 384m
   mem_reservation: 192m
@@ -39,14 +39,14 @@ x-runtime-web-budget: &runtime-web-budget
   deploy:
     resources:
       limits:
-        cpus: "0.50"
+        cpus: "0.25"
         memory: 384M
       reservations:
         cpus: "0.25"
         memory: 192M
 
 x-runtime-demo-web-budget: &runtime-demo-web-budget
-  cpus: "0.25"
+  cpus: "0.10"
   cpu_shares: 128
   mem_limit: 256m
   mem_reservation: 128m
@@ -54,14 +54,14 @@ x-runtime-demo-web-budget: &runtime-demo-web-budget
   deploy:
     resources:
       limits:
-        cpus: "0.25"
+        cpus: "0.10"
         memory: 256M
       reservations:
         cpus: "0.10"
         memory: 128M
 
 x-runtime-demo-php-budget: &runtime-demo-php-budget
-  cpus: "0.35"
+  cpus: "0.15"
   cpu_shares: 128
   mem_limit: 384m
   mem_reservation: 192m
@@ -69,14 +69,14 @@ x-runtime-demo-php-budget: &runtime-demo-php-budget
   deploy:
     resources:
       limits:
-        cpus: "0.35"
+        cpus: "0.15"
         memory: 384M
       reservations:
         cpus: "0.10"
         memory: 192M
 
 x-runtime-postgres-budget: &runtime-postgres-budget
-  cpus: "1.50"
+  cpus: "1.00"
   cpu_shares: 2048
   mem_limit: 1024m
   mem_reservation: 768m
@@ -84,14 +84,14 @@ x-runtime-postgres-budget: &runtime-postgres-budget
   deploy:
     resources:
       limits:
-        cpus: "1.50"
+        cpus: "1.00"
         memory: 1024M
       reservations:
         cpus: "1.00"
         memory: 768M
 
 x-runtime-redis-budget: &runtime-redis-budget
-  cpus: "0.50"
+  cpus: "0.25"
   cpu_shares: 1536
   mem_limit: 256m
   mem_reservation: 128m
@@ -99,14 +99,14 @@ x-runtime-redis-budget: &runtime-redis-budget
   deploy:
     resources:
       limits:
-        cpus: "0.50"
+        cpus: "0.25"
         memory: 256M
       reservations:
         cpus: "0.25"
         memory: 128M
 
 x-runtime-zitadel-budget: &runtime-zitadel-budget
-  cpus: "1.50"
+  cpus: "1.00"
   cpu_shares: 2048
   mem_limit: 1024m
   mem_reservation: 768m
@@ -114,14 +114,14 @@ x-runtime-zitadel-budget: &runtime-zitadel-budget
   deploy:
     resources:
       limits:
-        cpus: "1.50"
+        cpus: "1.00"
         memory: 1024M
       reservations:
         cpus: "1.00"
         memory: 768M
 
 x-runtime-login-budget: &runtime-login-budget
-  cpus: "0.75"
+  cpus: "0.40"
   cpu_shares: 1536
   mem_limit: 384m
   mem_reservation: 192m
@@ -129,7 +129,7 @@ x-runtime-login-budget: &runtime-login-budget
   deploy:
     resources:
       limits:
-        cpus: "0.75"
+        cpus: "0.40"
         memory: 384M
       reservations:
         cpus: "0.25"

@@ -12,6 +12,7 @@ on:
           - audit-sso-runtime-policy
           - apply-sso-runtime-policy
           - diagnose-sso-performance
+          - apply-sso-efficiency-profile
           - audit-pg-stat-statements
           - enable-pg-stat-statements-extension
           - collect-login-flow-logs
@@ -139,6 +140,27 @@ jobs:
             -o ServerAliveCountMax=3 \
             "${{ env.VPS_USER }}@${{ env.VPS_HOST }}" \
             "sudo install -m 0755 /tmp/vps-diagnose-sso-performance.sh '${{ env.VPS_PROJECT_DIR }}/scripts/vps-diagnose-sso-performance.sh' && sudo bash '${{ env.VPS_PROJECT_DIR }}/scripts/vps-diagnose-sso-performance.sh' --project-dir '${{ env.VPS_PROJECT_DIR }}' --samples 5 && rm -f /tmp/vps-diagnose-sso-performance.sh"
+
+      - name: Apply SSO efficiency profile
+        if: inputs.action == 'apply-sso-efficiency-profile'
+        run: |
+          SSH_CMD="ssh -i ~/.ssh/deploy_key -p ${{ env.VPS_SSH_PORT }} -o BatchMode=yes -o ConnectTimeout=${{ env.SSH_CONNECT_TIMEOUT }} -o ServerAliveInterval=10 -o ServerAliveCountMax=3"
+          export CI_RETRY_ATTEMPTS="${{ env.SSH_RETRY_ATTEMPTS }}"
+          export CI_RETRY_DELAY_SECONDS="${{ env.SSH_RETRY_DELAY_SECONDS }}"
+
+          bash scripts/ci-retry.sh rsync -avz -e "$SSH_CMD" \
+            scripts/vps-apply-sso-efficiency-profile.sh \
+            docker-compose.dev.yml \
+            "${{ env.VPS_USER }}@${{ env.VPS_HOST }}":/tmp/
+
+          bash scripts/ci-retry.sh ssh -i ~/.ssh/deploy_key \
+            -p "${{ env.VPS_SSH_PORT }}" \
+            -o BatchMode=yes \
+            -o ConnectTimeout="${{ env.SSH_CONNECT_TIMEOUT }}" \
+            -o ServerAliveInterval=10 \
+            -o ServerAliveCountMax=3 \
+            "${{ env.VPS_USER }}@${{ env.VPS_HOST }}" \
+            "sudo install -m 0755 /tmp/vps-apply-sso-efficiency-profile.sh '${{ env.VPS_PROJECT_DIR }}/scripts/vps-apply-sso-efficiency-profile.sh' && sudo bash '${{ env.VPS_PROJECT_DIR }}/scripts/vps-apply-sso-efficiency-profile.sh' --project-dir '${{ env.VPS_PROJECT_DIR }}' --mode apply --compose-source /tmp/docker-compose.dev.yml --stop-demo-services true --stop-inactive-login true --recreate-data-plane true && rm -f /tmp/vps-apply-sso-efficiency-profile.sh /tmp/docker-compose.dev.yml"
 
       - name: Audit PostgreSQL pg_stat_statements
         if: inputs.action == 'audit-pg-stat-statements' || inputs.action == 'enable-pg-stat-statements-extension'
