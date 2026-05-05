@@ -27,6 +27,7 @@ STAMP="$(date -u +%Y%m%d%H%M%S)"
 ENV_BACKUP="$PROJECT_DIR/.env.dev.pre-efficiency-$STAMP"
 COMPOSE_BACKUP="$PROJECT_DIR/docker-compose.dev.yml.pre-efficiency-$STAMP"
 ROLLBACK_FILE="$PROJECT_DIR/sso-efficiency-rollback-$STAMP.sh"
+RELEASE_TAG_FILE="/tmp/.sso-deploy-rollback-tag"
 
 log() { printf '\n[sso-efficiency] %s\n' "$*"; }
 compose() { docker compose --project-directory "$PROJECT_DIR" --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "$@"; }
@@ -52,11 +53,46 @@ require_runtime() {
 }
 
 env_value() {
-  local key="$1" default="${2:-}"
-  awk -F= -v key="$key" -v default="$default" '
+  local key="$1" fallback="${2:-}"
+  awk -F= -v key="$key" -v fallback="$fallback" '
     $1 == key { value = substr($0, length($1) + 2) }
-    END { if (value == "") print default; else print value }
+    END { if (value == "") print fallback; else print value }
   ' "$ENV_FILE"
+}
+
+detect_app_image_tag() {
+  local id image
+  id="$(container_id sso-backend)"
+  [[ -n "$id" ]] || id="$(container_id sso-frontend)"
+  [[ -n "$id" ]] || id="$(container_id zitadel-login-vue)"
+  [[ -n "$id" ]] || return 1
+
+  image="$(docker inspect --format '{{.Config.Image}}' "$id" 2>/dev/null || true)"
+  case "$image" in
+    sso-dev-*:*[!:\ ]) printf '%s\n' "${image##*:}" ;;
+    *) return 1 ;;
+  esac
+}
+
+resolve_app_image_tag() {
+  local tag
+  tag="${APP_IMAGE_TAG:-$(env_value APP_IMAGE_TAG "")}"
+
+  if [[ -z "$tag" && -f "$RELEASE_TAG_FILE" ]]; then
+    tag="$(tr -d '[:space:]' < "$RELEASE_TAG_FILE")"
+  fi
+
+  if [[ -z "$tag" ]]; then
+    tag="$(detect_app_image_tag || true)"
+  fi
+
+  if [[ -n "$tag" ]]; then
+    export APP_IMAGE_TAG="$tag"
+    echo "app_image_tag=$APP_IMAGE_TAG"
+    return
+  fi
+
+  echo "app_image_tag=<missing>; app service recreates will be skipped unless their target image exists"
 }
 
 set_env_value() {
@@ -229,6 +265,36 @@ budget_for_service() {
   esac
 }
 
+release_image_for_service() {
+  case "$1" in
+    sso-backend|sso-backend-worker) echo "sso-dev-sso-backend:${APP_IMAGE_TAG:-local}" ;;
+    sso-frontend) echo "sso-dev-sso-frontend:${APP_IMAGE_TAG:-local}" ;;
+    sso-admin-vue) echo "sso-dev-sso-admin-vue:${APP_IMAGE_TAG:-local}" ;;
+    zitadel-login) echo "sso-dev-zitadel-login:${APP_IMAGE_TAG:-local}" ;;
+    zitadel-login-vue) echo "sso-dev-zitadel-login-vue:${APP_IMAGE_TAG:-local}" ;;
+    app-a-next) echo "sso-dev-app-a-next:${APP_IMAGE_TAG:-local}" ;;
+    app-b-laravel) echo "sso-dev-app-b-laravel:${APP_IMAGE_TAG:-local}" ;;
+    *) return 1 ;;
+  esac
+}
+
+preflight_release_image() {
+  local service="$1" image id status
+  image="$(release_image_for_service "$service" 2>/dev/null || true)"
+  [[ -n "$image" ]] || return 0
+  docker image inspect "$image" >/dev/null 2>&1 && return 0
+
+  id="$(container_id "$service")"
+  status="$(docker inspect --format '{{.State.Status}}' "$id" 2>/dev/null || echo missing)"
+  if [[ "$status" == "running" ]]; then
+    echo "service=$service recreate=skipped missing_image=$image status=$status"
+    return 1
+  fi
+
+  echo "service=$service recreate=blocked missing_image=$image status=$status" >&2
+  return 2
+}
+
 apply_runtime_budget() {
   local service="$1" id cpus shares memory
   id="$(container_id "$service")"
@@ -248,9 +314,16 @@ apply_runtime_budgets() {
 }
 
 recreate_service() {
-  local service="$1"
+  local service="$1" image_status
   echo "recreate=$service"
   [[ "$MODE" == "apply" ]] || return
+  preflight_release_image "$service"
+  image_status=$?
+  case "$image_status" in
+    0) ;;
+    1) return 0 ;;
+    *) return 1 ;;
+  esac
   compose up -d --no-deps --no-build --pull never "$service"
   wait_healthy "$service" 180
 }
@@ -259,6 +332,7 @@ reconcile_primary_services() {
   local active_login
   active_login="$(active_login_service)"
   log "Recreate primary services with lean config"
+  resolve_app_image_tag
   if [[ "$RECREATE_DATA_PLANE" == "true" ]]; then
     recreate_service postgres
     recreate_service redis
