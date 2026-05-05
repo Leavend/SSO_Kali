@@ -47,6 +47,19 @@ require_text() {
   fi
 }
 
+require_workflow_step_text() {
+  local file="$1" step="$2" pattern="$3" label="$4"
+  if awk -v step="$step" '
+    $0 ~ "^[[:space:]]*- name: " step "$" { in_step = 1; next }
+    in_step && $0 ~ "^[[:space:]]*- name: " { in_step = 0 }
+    in_step { print }
+  ' "$ROOT_DIR/$file" | grep -Eq -- "$pattern"; then
+    pass "$label"
+  else
+    fail "$label"
+  fi
+}
+
 warn_unless_text() {
   local file="$1" pattern="$2" label="$3"
   if grep -Eq -- "$pattern" "$ROOT_DIR/$file"; then
@@ -232,7 +245,7 @@ require_text ".github/workflows/vps-maintenance.yml" 'vps-diagnose-sso-performan
 require_text ".github/workflows/vps-maintenance.yml" '\$\{\{ env\.VPS_PROJECT_DIR \}\}/scripts/vps-diagnose-sso-performance\.sh' "VPS maintenance runs diagnostics from the project script path"
 require_text ".github/workflows/vps-maintenance.yml" 'apply-sso-efficiency-profile' "VPS maintenance can apply the lean SSO runtime profile"
 require_text ".github/workflows/vps-maintenance.yml" 'vps-apply-sso-efficiency-profile\.sh' "VPS maintenance delegates SSO efficiency changes to the guarded script"
-require_text ".github/workflows/vps-maintenance.yml" 'CI_RETRY_ATTEMPTS="1" CI_RETRY_DELAY_SECONDS="0"' "VPS maintenance does not retry non-idempotent efficiency apply"
+require_workflow_step_text ".github/workflows/vps-maintenance.yml" "Apply SSO efficiency profile" 'CI_RETRY_ATTEMPTS="1" CI_RETRY_DELAY_SECONDS="0"' "VPS maintenance does not retry non-idempotent efficiency apply"
 require_text ".github/workflows/vps-maintenance.yml" 'audit-pg-stat-statements' "VPS maintenance can audit PostgreSQL hot-query observability"
 require_text ".github/workflows/vps-maintenance.yml" 'enable-pg-stat-statements-extension' "VPS maintenance can enable PostgreSQL hot-query extension after preload"
 require_text ".github/workflows/vps-maintenance.yml" 'vps-pg-stat-statements\.sh' "VPS maintenance delegates pg_stat_statements lifecycle to the guarded script"

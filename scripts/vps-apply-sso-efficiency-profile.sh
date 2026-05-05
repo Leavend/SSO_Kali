@@ -317,8 +317,10 @@ recreate_service() {
   local service="$1" image_status
   echo "recreate=$service"
   [[ "$MODE" == "apply" ]] || return
+  set +e
   preflight_release_image "$service"
   image_status=$?
+  set -e
   case "$image_status" in
     0) ;;
     1) return 0 ;;

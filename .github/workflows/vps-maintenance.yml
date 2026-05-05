@@ -132,7 +132,6 @@ jobs:
             scripts/vps-diagnose-sso-performance.sh \
             "${{ env.VPS_USER }}@${{ env.VPS_HOST }}":/tmp/vps-diagnose-sso-performance.sh
 
-          CI_RETRY_ATTEMPTS="1" CI_RETRY_DELAY_SECONDS="0" \
           bash scripts/ci-retry.sh ssh -i ~/.ssh/deploy_key \
             -p "${{ env.VPS_SSH_PORT }}" \
             -o BatchMode=yes \
@@ -154,6 +153,7 @@ jobs:
             docker-compose.dev.yml \
             "${{ env.VPS_USER }}@${{ env.VPS_HOST }}":/tmp/
 
+          CI_RETRY_ATTEMPTS="1" CI_RETRY_DELAY_SECONDS="0" \
           bash scripts/ci-retry.sh ssh -i ~/.ssh/deploy_key \
             -p "${{ env.VPS_SSH_PORT }}" \
             -o BatchMode=yes \
