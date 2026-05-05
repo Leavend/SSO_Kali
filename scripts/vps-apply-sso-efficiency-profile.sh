@@ -156,6 +156,11 @@ apply_env_profile() {
     "TRAEFIK_ACCESSLOG_ENABLED=false"
     "ZITADEL_ACCESS_LOG_STDOUT_ENABLED=false"
     "QUEUE_CONNECTION=redis"
+    "SSO_BACKEND_OCTANE_WORKERS=1"
+    "SSO_BACKEND_OCTANE_MAX_REQUESTS=500"
+    "SSO_BACKEND_QUEUE_SLEEP_SECONDS=5"
+    "SSO_BACKEND_QUEUE_MAX_JOBS=300"
+    "SSO_BACKEND_QUEUE_MAX_TIME=1800"
     "ZITADEL_LOGIN_API_TIMEOUT_MS=15000"
   )
   local item key value
@@ -279,7 +284,7 @@ release_image_for_service() {
 }
 
 preflight_release_image() {
-  local service="$1" image id status
+  local service="$1" image id status image_id
   image="$(release_image_for_service "$service" 2>/dev/null || true)"
   [[ -n "$image" ]] || return 0
   docker image inspect "$image" >/dev/null 2>&1 && return 0
@@ -287,8 +292,10 @@ preflight_release_image() {
   id="$(container_id "$service")"
   status="$(docker inspect --format '{{.State.Status}}' "$id" 2>/dev/null || echo missing)"
   if [[ "$status" == "running" ]]; then
-    echo "service=$service recreate=skipped missing_image=$image status=$status"
-    return 1
+    image_id="$(docker inspect --format '{{.Image}}' "$id")"
+    docker tag "$image_id" "$image"
+    echo "service=$service recreate=retagged_running_image image=$image status=$status"
+    return 0
   fi
 
   echo "service=$service recreate=blocked missing_image=$image status=$status" >&2

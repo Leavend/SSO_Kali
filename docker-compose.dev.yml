@@ -136,6 +136,11 @@ x-sso-backend-env: &sso-backend-env
   TELESCOPE_LOG_LEVEL: ${TELESCOPE_LOG_LEVEL}
   TELESCOPE_QUERY_WATCHER_SLOW_MS: ${TELESCOPE_QUERY_WATCHER_SLOW_MS}
   TELESCOPE_RESPONSE_SIZE_LIMIT: ${TELESCOPE_RESPONSE_SIZE_LIMIT}
+  SSO_BACKEND_OCTANE_WORKERS: ${SSO_BACKEND_OCTANE_WORKERS:-1}
+  SSO_BACKEND_OCTANE_MAX_REQUESTS: ${SSO_BACKEND_OCTANE_MAX_REQUESTS:-500}
+  SSO_BACKEND_QUEUE_SLEEP_SECONDS: ${SSO_BACKEND_QUEUE_SLEEP_SECONDS:-5}
+  SSO_BACKEND_QUEUE_MAX_JOBS: ${SSO_BACKEND_QUEUE_MAX_JOBS:-300}
+  SSO_BACKEND_QUEUE_MAX_TIME: ${SSO_BACKEND_QUEUE_MAX_TIME:-1800}
 
 x-postgres-limits: &postgres-limits
   cpus: "1.00"
@@ -273,6 +278,8 @@ services:
     image: ${REDIS_IMAGE}
     restart: unless-stopped
     init: true
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
     command:
       - redis-server
       - --requirepass
@@ -484,6 +491,18 @@ services:
       context: ./services/sso-backend
     restart: unless-stopped
     init: true
+    command:
+      - sh
+      - -lc
+      - |
+        php artisan package:discover --ansi &&
+        php artisan config:cache &&
+        php artisan route:cache &&
+        php -d opcache.jit=off -d opcache.jit_buffer_size=0 artisan octane:frankenphp \
+          --host=0.0.0.0 \
+          --port=8000 \
+          --workers="$${SSO_BACKEND_OCTANE_WORKERS:-1}" \
+          --max-requests="$${SSO_BACKEND_OCTANE_MAX_REQUESTS:-500}"
     environment: *sso-backend-env
     healthcheck:
       test:
@@ -529,7 +548,15 @@ services:
     command:
       - sh
       - -lc
-      - php artisan queue:work ${QUEUE_CONNECTION:-database} --queue=backchannel-logout,default --tries=3 --backoff=10,30,90 --sleep=3 --timeout=120 --max-jobs=500 --max-time=3600
+      - |
+        php -d opcache.jit=off -d opcache.jit_buffer_size=0 artisan queue:work "$${QUEUE_CONNECTION:-redis}" \
+          --queue=backchannel-logout,default \
+          --tries=3 \
+          --backoff=10,30,90 \
+          --sleep="$${SSO_BACKEND_QUEUE_SLEEP_SECONDS:-5}" \
+          --timeout=120 \
+          --max-jobs="$${SSO_BACKEND_QUEUE_MAX_JOBS:-300}" \
+          --max-time="$${SSO_BACKEND_QUEUE_MAX_TIME:-1800}"
     environment: *sso-backend-env
     depends_on:
       postgres:

@@ -35,8 +35,8 @@ RUN { \
     echo 'opcache.interned_strings_buffer=16'; \
     echo 'opcache.max_accelerated_files=10000'; \
     echo 'opcache.validate_timestamps=0'; \
-    echo 'opcache.jit=1255'; \
-    echo 'opcache.jit_buffer_size=64M'; \
+    echo 'opcache.jit=off'; \
+    echo 'opcache.jit_buffer_size=0'; \
     } > /usr/local/etc/php/conf.d/opcache-prod.ini
 
 # Copy composer binary from deps stage
@@ -63,6 +63,9 @@ RUN chown -R www-data:www-data storage bootstrap/cache
 
 EXPOSE 8000
 
+ENV SSO_BACKEND_OCTANE_WORKERS=1
+ENV SSO_BACKEND_OCTANE_MAX_REQUESTS=500
+
 # Entrypoint: start Octane with FrankenPHP
 # Migrations are handled by the deploy scripts (deploy-dev.sh / deploy-remote.sh)
 CMD ["sh", "-c", "\
@@ -72,6 +75,6 @@ CMD ["sh", "-c", "\
     php artisan octane:frankenphp \
         --host=0.0.0.0 \
         --port=8000 \
-        --workers=4 \
-        --max-requests=1000 \
+        --workers=\"${SSO_BACKEND_OCTANE_WORKERS:-1}\" \
+        --max-requests=\"${SSO_BACKEND_OCTANE_MAX_REQUESTS:-500}\" \
     "]

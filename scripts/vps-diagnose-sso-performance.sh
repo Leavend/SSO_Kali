@@ -88,8 +88,17 @@ audit_proxy_pressure() {
 
 audit_redis_pressure() {
   log "Redis pressure"
-  compose exec -T redis sh -lc 'REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli INFO stats | grep -E "^(total_commands_processed|instantaneous_ops_per_sec|total_net_input_bytes|total_net_output_bytes|rejected_connections|expired_keys|evicted_keys):"' || true
-  compose exec -T redis sh -lc 'REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli INFO commandstats | grep "^cmdstat_" | sort -t= -k2 -Vr | head -30' || true
+  local redis_password
+  redis_password="$(env_value REDIS_PASSWORD)"
+  if [[ -z "$redis_password" ]]; then
+    echo "redis_auth=missing_env"
+    return
+  fi
+
+  compose exec -T -e REDISCLI_AUTH="$redis_password" redis redis-cli INFO stats \
+    | grep -E "^(total_commands_processed|instantaneous_ops_per_sec|total_net_input_bytes|total_net_output_bytes|rejected_connections|expired_keys|evicted_keys):" || true
+  compose exec -T -e REDISCLI_AUTH="$redis_password" redis redis-cli INFO commandstats \
+    | grep "^cmdstat_" | sort -t= -k2 -Vr | head -30 || true
 }
 
 probe_internal() {
