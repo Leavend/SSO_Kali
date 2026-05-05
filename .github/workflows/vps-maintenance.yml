@@ -161,7 +161,7 @@ jobs:
             -o ServerAliveInterval=10 \
             -o ServerAliveCountMax=3 \
             "${{ env.VPS_USER }}@${{ env.VPS_HOST }}" \
-            "sudo install -m 0755 /tmp/vps-apply-sso-efficiency-profile.sh '${{ env.VPS_PROJECT_DIR }}/scripts/vps-apply-sso-efficiency-profile.sh' && sudo bash '${{ env.VPS_PROJECT_DIR }}/scripts/vps-apply-sso-efficiency-profile.sh' --project-dir '${{ env.VPS_PROJECT_DIR }}' --mode apply --compose-source /tmp/docker-compose.dev.yml --stop-demo-services true --stop-inactive-login true --recreate-data-plane true && rm -f /tmp/vps-apply-sso-efficiency-profile.sh /tmp/docker-compose.dev.yml"
+            "sudo install -m 0755 /tmp/vps-apply-sso-efficiency-profile.sh '${{ env.VPS_PROJECT_DIR }}/scripts/vps-apply-sso-efficiency-profile.sh' && sudo bash '${{ env.VPS_PROJECT_DIR }}/scripts/vps-apply-sso-efficiency-profile.sh' --project-dir '${{ env.VPS_PROJECT_DIR }}' --mode apply --compose-source /tmp/docker-compose.dev.yml --stop-demo-services true --stop-inactive-login true --recreate-data-plane false --compose-up-timeout-seconds 240 --health-timeout-seconds 300 && rm -f /tmp/vps-apply-sso-efficiency-profile.sh /tmp/docker-compose.dev.yml"
 
       - name: Audit PostgreSQL pg_stat_statements
         if: inputs.action == 'audit-pg-stat-statements' || inputs.action == 'enable-pg-stat-statements-extension'

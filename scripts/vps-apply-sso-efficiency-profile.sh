@@ -6,7 +6,9 @@ MODE="audit"
 COMPOSE_SOURCE=""
 STOP_DEMO_SERVICES="true"
 STOP_INACTIVE_LOGIN="true"
-RECREATE_DATA_PLANE="true"
+RECREATE_DATA_PLANE="false"
+COMPOSE_UP_TIMEOUT_SECONDS=240
+HEALTH_TIMEOUT_SECONDS=300
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -16,6 +18,8 @@ while [[ $# -gt 0 ]]; do
     --stop-demo-services) STOP_DEMO_SERVICES="$2"; shift ;;
     --stop-inactive-login) STOP_INACTIVE_LOGIN="$2"; shift ;;
     --recreate-data-plane) RECREATE_DATA_PLANE="$2"; shift ;;
+    --compose-up-timeout-seconds) COMPOSE_UP_TIMEOUT_SECONDS="$2"; shift ;;
+    --health-timeout-seconds) HEALTH_TIMEOUT_SECONDS="$2"; shift ;;
     *) echo "Unknown arg: $1" >&2; exit 2 ;;
   esac
   shift
@@ -46,6 +50,14 @@ require_runtime() {
   require_bool "$STOP_DEMO_SERVICES" "--stop-demo-services"
   require_bool "$STOP_INACTIVE_LOGIN" "--stop-inactive-login"
   require_bool "$RECREATE_DATA_PLANE" "--recreate-data-plane"
+  [[ "$COMPOSE_UP_TIMEOUT_SECONDS" =~ ^[1-9][0-9]*$ ]] || {
+    echo "--compose-up-timeout-seconds must be a positive integer" >&2
+    exit 2
+  }
+  [[ "$HEALTH_TIMEOUT_SECONDS" =~ ^[1-9][0-9]*$ ]] || {
+    echo "--health-timeout-seconds must be a positive integer" >&2
+    exit 2
+  }
   if [[ -n "$COMPOSE_SOURCE" && ! -f "$COMPOSE_SOURCE" ]]; then
     echo "Missing compose source: $COMPOSE_SOURCE" >&2
     exit 1
@@ -191,8 +203,11 @@ service_health() {
 }
 
 wait_healthy() {
-  local service="$1" timeout="${2:-180}" elapsed=0 id health
+  local service="$1" timeout="${2:-$HEALTH_TIMEOUT_SECONDS}" elapsed=0 id health start now last_log=0
+  start="$(date +%s)"
   while (( elapsed < timeout )); do
+    now="$(date +%s)"
+    elapsed=$((now - start))
     id="$(container_id "$service")"
     if [[ -n "$id" ]]; then
       health="$(service_health "$id")"
@@ -204,12 +219,30 @@ wait_healthy() {
           return 1
           ;;
       esac
+      if (( elapsed == 0 || elapsed >= last_log + 30 )); then
+        echo "service=$service health=$health elapsed=${elapsed}s"
+        last_log="$elapsed"
+      fi
     fi
     sleep 3
-    elapsed=$((elapsed + 3))
   done
   echo "service=$service health=timeout" >&2
+  [[ -n "${id:-}" ]] && docker logs --tail 80 "$id" 2>&1 || true
   return 1
+}
+
+compose_up_service() {
+  local service="$1"
+  if command -v timeout >/dev/null 2>&1; then
+    timeout "$COMPOSE_UP_TIMEOUT_SECONDS" docker compose \
+      --project-directory "$PROJECT_DIR" \
+      --env-file "$ENV_FILE" \
+      -f "$COMPOSE_FILE" \
+      up -d --no-deps --no-build --pull never "$service"
+    return
+  fi
+
+  compose up -d --no-deps --no-build --pull never "$service"
 }
 
 stop_service_if_running() {
@@ -333,8 +366,8 @@ recreate_service() {
     1) return 0 ;;
     *) return 1 ;;
   esac
-  compose up -d --no-deps --no-build --pull never "$service"
-  wait_healthy "$service" 180
+  compose_up_service "$service"
+  wait_healthy "$service" "$HEALTH_TIMEOUT_SECONDS"
 }
 
 reconcile_primary_services() {
