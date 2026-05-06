@@ -142,13 +142,33 @@ jobs:
              install -m 0644 /tmp/sso-kali-deploy/docker-compose.main.yml '${{ env.VPS_PROJECT_DIR }}/docker-compose.main.yml'
              install -m 0755 /tmp/sso-kali-deploy/vps-deploy-main.sh '${{ env.VPS_PROJECT_DIR }}/scripts/vps-deploy-main.sh'"
 
+      - name: Install production env on VPS
+        shell: bash
+        env:
+          VPS_ENV_PROD: ${{ secrets.VPS_ENV_PROD }}
+        run: |
+          if [ -z "${VPS_ENV_PROD}" ]; then
+            echo "VPS_ENV_PROD is not configured; remote deploy will use existing env file."
+            exit 0
+          fi
+          printf '%s\n' "${VPS_ENV_PROD}" > /tmp/sso-kali.env.prod
+          chmod 600 /tmp/sso-kali.env.prod
+          rsync -az -e "ssh -i ~/.ssh/deploy_key -p ${{ env.VPS_SSH_PORT }} -o BatchMode=yes -o ConnectTimeout=20" \
+            /tmp/sso-kali.env.prod \
+            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/tmp/sso-kali-deploy/.env.prod"
+          ssh -i ~/.ssh/deploy_key -p "${{ env.VPS_SSH_PORT }}" \
+            -o BatchMode=yes -o ConnectTimeout=20 \
+            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+            "install -m 0600 /tmp/sso-kali-deploy/.env.prod '${{ env.VPS_PROJECT_DIR }}/.env.prod'"
+          rm -f /tmp/sso-kali.env.prod
+
       - name: Execute deploy on VPS
         shell: bash
         run: |
           ssh -i ~/.ssh/deploy_key -p "${{ env.VPS_SSH_PORT }}" \
             -o BatchMode=yes -o ConnectTimeout=20 -o ServerAliveInterval=10 -o ServerAliveCountMax=3 \
             "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
-            "sudo env IMAGE_PREFIX='${{ env.IMAGE_PREFIX }}' \
+            "IMAGE_PREFIX='${{ env.IMAGE_PREFIX }}' \
              DEPLOY_TAG='${{ steps.tag.outputs.tag }}' \
              PROJECT_DIR='${{ env.VPS_PROJECT_DIR }}' \
              bash '${{ env.VPS_PROJECT_DIR }}/scripts/vps-deploy-main.sh'"
