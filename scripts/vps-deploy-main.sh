@@ -36,6 +36,10 @@ require_runtime() {
   docker compose version >/dev/null 2>&1 || die 'Docker Compose plugin is not available'
   [[ -d "$PROJECT_DIR" ]] || die "Missing project directory: $PROJECT_DIR"
   [[ -f "$COMPOSE_FILE" ]] || die "Missing compose file: $COMPOSE_FILE"
+  if [[ ! -f "$ENV_FILE" && -f "$PROJECT_DIR/.env.dev" ]]; then
+    warn "Missing env file: $ENV_FILE; falling back to $PROJECT_DIR/.env.dev"
+    ENV_FILE="$PROJECT_DIR/.env.dev"
+  fi
   [[ -f "$ENV_FILE" ]] || die "Missing env file: $ENV_FILE"
 }
 
