@@ -148,7 +148,7 @@ jobs:
           ssh -i ~/.ssh/deploy_key -p "${{ env.VPS_SSH_PORT }}" \
             -o BatchMode=yes -o ConnectTimeout=20 -o ServerAliveInterval=10 -o ServerAliveCountMax=3 \
             "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
-            "IMAGE_PREFIX='${{ env.IMAGE_PREFIX }}' \
+            "sudo env IMAGE_PREFIX='${{ env.IMAGE_PREFIX }}' \
              DEPLOY_TAG='${{ steps.tag.outputs.tag }}' \
              PROJECT_DIR='${{ env.VPS_PROJECT_DIR }}' \
              bash '${{ env.VPS_PROJECT_DIR }}/scripts/vps-deploy-main.sh'"
