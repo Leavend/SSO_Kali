@@ -144,12 +144,12 @@
   background: linear-gradient(
     90deg,
     var(--admin-panel-muted) 0%,
-    var(--admin-line) 50%,
+    var(--admin-panel-hover) 50%,
     var(--admin-panel-muted) 100%
   );
   background-size: 200% 100%;
   border-radius: var(--radius-sm);
-  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+  animation: shimmer 1.5s ease-in-out infinite;
 }
 
 .skeleton--text {
@@ -160,16 +160,6 @@
 .skeleton--number {
   width: 48px;
   height: 36px;
-}
-
-@keyframes skeleton-shimmer {
-  0% {
-    background-position: 200% 0;
-  }
-
-  100% {
-    background-position: -200% 0;
-  }
 }
 
 .error-banner,

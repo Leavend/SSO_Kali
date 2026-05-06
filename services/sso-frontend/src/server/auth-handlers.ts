@@ -92,6 +92,13 @@ export async function handleCallback(request: IncomingMessage, requestUrl: URL):
     return redirectWithClearedTx(config, HANDSHAKE_FAILED_ROUTE)
   }
 
+  // RFC 9207 — Authorization Server Issuer Identification
+  // Validates `iss` parameter to prevent mix-up attacks in multi-IdP scenarios.
+  const receivedIssuer = requestUrl.searchParams.get('iss')
+  if (receivedIssuer && receivedIssuer !== config.issuer) {
+    return redirectWithClearedTx(config, HANDSHAKE_FAILED_ROUTE)
+  }
+
   let verifiedSubjectId: string | null = null
 
   try {

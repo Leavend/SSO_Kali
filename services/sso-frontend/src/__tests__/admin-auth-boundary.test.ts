@@ -7,6 +7,14 @@ import { useAdminStore } from '../web/stores/admin'
 import { handleSession } from '../server/admin-handlers'
 import type { AdminSessionView } from '../shared/admin'
 
+vi.stubGlobal('matchMedia', vi.fn((query: string) => ({
+  matches: query === '(prefers-color-scheme: dark)',
+  addEventListener: vi.fn(),
+  removeEventListener: vi.fn(),
+  addListener: vi.fn(),
+  removeListener: vi.fn(),
+})))
+
 const routeState = vi.hoisted(() => ({
   path: '/',
   meta: {} as Record<string, unknown>,
@@ -57,7 +65,7 @@ describe('admin auth boundary', () => {
     const serialized = Array.isArray(cookie) ? cookie.join(';') : String(cookie)
 
     expect(response.status).toBe(401)
-    expect(serialized).toContain('__Secure-admin-session=')
+    expect(serialized).toContain('__Host-admin-session=')
     expect(serialized).toContain('Expires=Thu, 01 Jan 1970 00:00:00 GMT')
   })
 })

@@ -1,6 +1,6 @@
 import { createServer } from 'node:http'
-import type { IncomingMessage } from 'node:http'
-import { readFile } from 'node:fs/promises'
+import type { IncomingMessage, ServerResponse } from 'node:http'
+import { access } from 'node:fs/promises'
 import { createReadStream } from 'node:fs'
 import { extname, join, normalize, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -17,6 +17,7 @@ import type { AppResponse } from './response.js'
 import { html, methodNotAllowed, send, text } from './response.js'
 
 const clientDir = fileURLToPath(new URL('../../client/', import.meta.url))
+const assetCache = new Map<string, { readonly path: string; readonly immutable: boolean } | null>()
 
 const server = createServer(async (request, response) => {
   try {
@@ -64,7 +65,7 @@ async function route(request: IncomingMessage, requestUrl: URL): Promise<AppResp
   return redirectForLegacyError(requestUrl)
 }
 
-async function serveStatic(requestUrl: URL, response: import('node:http').ServerResponse): Promise<void> {
+async function serveStatic(requestUrl: URL, response: ServerResponse): Promise<void> {
   const asset = await resolveAsset(requestUrl.pathname)
 
   if (!asset) {
@@ -72,35 +73,53 @@ async function serveStatic(requestUrl: URL, response: import('node:http').Server
     return
   }
 
-  response.setHeader('x-content-type-options', 'nosniff')
-  response.setHeader('referrer-policy', 'same-origin')
-  response.setHeader('permissions-policy', 'camera=(), microphone=(), geolocation=()')
-  response.setHeader('content-type', contentType(asset.path))
-  response.setHeader('cache-control', asset.immutable ? 'public, max-age=31536000, immutable' : 'no-cache')
-  response.statusCode = 200
-
+  response.writeHead(200, staticHeaders(asset))
   createReadStream(asset.path).pipe(response)
 }
 
 async function resolveAsset(
   pathname: string,
 ): Promise<{ readonly path: string; readonly immutable: boolean } | null> {
+  const cached = assetCache.get(pathname)
+  if (cached !== undefined) return cached
+
   const requestedPath = pathname === '/' ? '/index.html' : pathname
   const normalized = normalize(decodeURIComponent(requestedPath)).replace(/^(\.\.[/\\])+/, '')
   const target = join(clientDir, normalized)
+  const asset = await resolveSafeAsset(target, normalized)
 
-  if (isInsideClientDir(target)) {
-    try {
-      await readFile(target)
-      return { path: target, immutable: normalized.startsWith('/assets/') }
-    } catch {
-      if (extname(normalized)) {
-        return null
-      }
-    }
+  assetCache.set(pathname, asset)
+  return asset
+}
+
+async function resolveSafeAsset(
+  target: string,
+  normalized: string,
+): Promise<{ readonly path: string; readonly immutable: boolean } | null> {
+  if (isInsideClientDir(target) && (await exists(target))) {
+    return { path: target, immutable: normalized.startsWith('/assets/') }
   }
 
-  return { path: join(clientDir, 'index.html'), immutable: false }
+  return extname(normalized) ? null : { path: join(clientDir, 'index.html'), immutable: false }
+}
+
+async function exists(path: string): Promise<boolean> {
+  try {
+    await access(path)
+    return true
+  } catch {
+    return false
+  }
+}
+
+function staticHeaders(asset: { readonly path: string; readonly immutable: boolean }): Record<string, string> {
+  return {
+    'cache-control': asset.immutable ? 'public, max-age=31536000, immutable' : 'no-cache',
+    'content-type': contentType(asset.path),
+    'permissions-policy': 'camera=(), microphone=(), geolocation=()',
+    'referrer-policy': 'same-origin',
+    'x-content-type-options': 'nosniff',
+  }
 }
 
 function errorPage(status: number, title: string, message: string): AppResponse {

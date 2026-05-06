@@ -294,4 +294,27 @@ function getRiskScore(row: unknown) {
   color: var(--admin-subtle);
   font-size: var(--text-xs);
 }
+
+/* Toolbar enhancement */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin: var(--space-4) 0;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .animate-spin {
+    animation: none;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .button {
+    border-width: 2px;
+  }
+}
 </style>

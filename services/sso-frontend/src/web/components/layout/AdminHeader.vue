@@ -66,7 +66,7 @@ const avatarLabel = computed(() => {
     </div>
 
     <div class="admin-header__right">
-      <ThemeToggle initial-theme="dark" />
+      <ThemeToggle :system-preference="true" />
 
       <div class="admin-header__user">
         <span class="admin-header__avatar" aria-hidden="true">{{ avatarLabel }}</span>

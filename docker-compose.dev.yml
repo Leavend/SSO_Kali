@@ -1,63 +1,63 @@
 name: ${COMPOSE_PROJECT_NAME}
 
 x-proxy-limits: &proxy-limits
-  cpus: "0.20"
+  cpus: "0.15"
   cpu_shares: 1536
   mem_limit: 128m
   deploy:
     resources:
       limits:
-        cpus: "0.20"
+        cpus: "0.15"
         memory: 128M
 
 x-small-web-limits: &small-web-limits
-  cpus: "0.25"
-  cpu_shares: 256
+  cpus: "0.20"
+  cpu_shares: 512
   mem_limit: 256m
   deploy:
     resources:
       limits:
-        cpus: "0.25"
+        cpus: "0.20"
         memory: 256M
 
 x-auth-web-limits: &auth-web-limits
-  cpus: "0.40"
+  cpus: "0.30"
   cpu_shares: 1536
   mem_limit: 384m
   deploy:
     resources:
       limits:
-        cpus: "0.40"
+        cpus: "0.30"
         memory: 384M
 
 x-demo-web-limits: &demo-web-limits
-  cpus: "0.10"
+  cpus: "0.08"
   cpu_shares: 128
   mem_limit: 192m
   deploy:
     resources:
       limits:
-        cpus: "0.10"
+        cpus: "0.08"
         memory: 192M
 
 x-demo-php-limits: &demo-php-limits
-  cpus: "0.15"
+  cpus: "0.12"
   cpu_shares: 128
   mem_limit: 384m
   deploy:
     resources:
       limits:
-        cpus: "0.15"
+        cpus: "0.12"
         memory: 384M
 
 x-medium-php-limits: &medium-php-limits
-  cpus: "0.45"
-  cpu_shares: 512
+  cpus: "0.35"
+  cpu_shares: 768
   mem_limit: 512m
   deploy:
     resources:
       limits:
-        cpus: "0.45"
+        cpus: "0.35"
         memory: 512M
 
 x-sso-backend-env: &sso-backend-env
@@ -115,7 +115,6 @@ x-sso-backend-env: &sso-backend-env
   APP_B_CLIENT_SECRET_HASH: ${APP_B_CLIENT_SECRET_HASH}
   APP_B_REDIRECT_URI: ${APP_B_REDIRECT_URI}
   APP_B_POST_LOGOUT_REDIRECT_URI: ${APP_B_POST_LOGOUT_REDIRECT_URI}
-  APP_B_BACKCHANNEL_LOGOUT_URI: ${APP_B_BACKCHANNEL_LOGOUT_URI}
   ADMIN_PANEL_CLIENT_ID: ${ADMIN_PANEL_CLIENT_ID}
   ADMIN_PANEL_REDIRECT_URI: ${ADMIN_PANEL_REDIRECT_URI}
   ADMIN_PANEL_POST_LOGOUT_REDIRECT_URI: ${ADMIN_PANEL_POST_LOGOUT_REDIRECT_URI}
@@ -138,38 +137,39 @@ x-sso-backend-env: &sso-backend-env
   TELESCOPE_RESPONSE_SIZE_LIMIT: ${TELESCOPE_RESPONSE_SIZE_LIMIT}
   SSO_BACKEND_OCTANE_WORKERS: ${SSO_BACKEND_OCTANE_WORKERS:-1}
   SSO_BACKEND_OCTANE_MAX_REQUESTS: ${SSO_BACKEND_OCTANE_MAX_REQUESTS:-500}
-  SSO_BACKEND_QUEUE_SLEEP_SECONDS: ${SSO_BACKEND_QUEUE_SLEEP_SECONDS:-5}
-  SSO_BACKEND_QUEUE_MAX_JOBS: ${SSO_BACKEND_QUEUE_MAX_JOBS:-300}
-  SSO_BACKEND_QUEUE_MAX_TIME: ${SSO_BACKEND_QUEUE_MAX_TIME:-1800}
+  SSO_BACKEND_QUEUE_WORKERS: ${SSO_BACKEND_QUEUE_WORKERS:-1}
+  SSO_BACKEND_QUEUE_SLEEP_SECONDS: ${SSO_BACKEND_QUEUE_SLEEP_SECONDS:-10}
+  SSO_BACKEND_QUEUE_MAX_JOBS: ${SSO_BACKEND_QUEUE_MAX_JOBS:-200}
+  SSO_BACKEND_QUEUE_MAX_TIME: ${SSO_BACKEND_QUEUE_MAX_TIME:-900}
 
 x-postgres-limits: &postgres-limits
-  cpus: "1.00"
+  cpus: "0.80"
   cpu_shares: 2048
   mem_limit: 1024m
   deploy:
     resources:
       limits:
-        cpus: "1.00"
+        cpus: "0.80"
         memory: 1024M
 
 x-redis-limits: &redis-limits
-  cpus: "0.25"
+  cpus: "0.20"
   cpu_shares: 1536
   mem_limit: 256m
   deploy:
     resources:
       limits:
-        cpus: "0.25"
+        cpus: "0.20"
         memory: 256M
 
 x-zitadel-limits: &zitadel-limits
-  cpus: "1.00"
+  cpus: "0.80"
   cpu_shares: 2048
   mem_limit: 1024m
   deploy:
     resources:
       limits:
-        cpus: "1.00"
+        cpus: "0.80"
         memory: 1024M
 
 services:
@@ -208,10 +208,10 @@ services:
       test:
         - CMD-SHELL
         - wget -q -O - http://127.0.0.1/ping >/dev/null
-      interval: 15s
-      timeout: 5s
+      interval: 45s
+      timeout: 10s
       retries: 5
-      start_period: 15s
+      start_period: 30s
     security_opt:
       - no-new-privileges:true
     networks:
@@ -263,10 +263,10 @@ services:
       test:
         - CMD-SHELL
         - pg_isready -d ${POSTGRES_DB} -U ${POSTGRES_ADMIN_USER}
-      interval: 30s
-      timeout: 5s
-      retries: 10
-      start_period: 20s
+      interval: 45s
+      timeout: 10s
+      retries: 8
+      start_period: 25s
     volumes:
       - postgres-data:/var/lib/postgresql/data:rw
       - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
@@ -300,10 +300,10 @@ services:
       test:
         - CMD-SHELL
         - REDISCLI_AUTH=$$REDIS_PASSWORD redis-cli ping
-      interval: 30s
-      timeout: 5s
-      retries: 10
-      start_period: 15s
+      interval: 45s
+      timeout: 10s
+      retries: 8
+      start_period: 20s
     networks:
       - sso-dev
     <<: *redis-limits
@@ -342,19 +342,24 @@ services:
       ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_USERNAME: ${ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_USERNAME}
       ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_NAME: ${ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINE_NAME}
       ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINEKEY_EXPIRATIONDATE: ${ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINEKEY_EXPIRATIONDATE}
-      ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINEKEY_TYPE: ${ZITADEL_FIRSTINSTANCE_ORG_MACHINE_MACHINEKEY_TYPE}
       ZITADEL_FIRSTINSTANCE_ORG_MACHINE_PAT_EXPIRATIONDATE: ${ZITADEL_FIRSTINSTANCE_ORG_MACHINE_PAT_EXPIRATIONDATE}
       ZITADEL_FIRSTINSTANCE_LOGINCLIENTPATPATH: /zitadel/bootstrap/login-client.pat
       ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_MACHINE_USERNAME: login-client
       ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_MACHINE_NAME: Prototype Login Client
       ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_PAT_EXPIRATIONDATE: ${LOGIN_CLIENT_PAT_EXPIRATION}
       ZITADEL_LOGSTORE_ACCESS_STDOUT_ENABLED: ${ZITADEL_ACCESS_LOG_STDOUT_ENABLED}
+      ZITADEL_TELEMETRY_ENABLED: "false"
+      ZITADEL_USAGE_TELEMETRY_ENABLED: "false"
+      ZITADEL_MACHINEKEY_TELEMETRY_ENABLED: "false"
+      ZITADEL_SERVICEPING_ENABLED: "false"
+      ZITADEL_SERVICE_PING_ENABLED: "false"
+      ZITADEL_SYSTEMAPI_TELEMETRY_ENABLED: "false"
       ZITADEL_CACHES_CONNECTORS_MEMORY_ENABLED: "true"
       ZITADEL_CACHES_INSTANCE_CONNECTOR: "memory"
       ZITADEL_CACHES_INSTANCE_MAXAGE: "1h"
       ZITADEL_CACHES_ORGANIZATION_CONNECTOR: "memory"
       ZITADEL_CACHES_ORGANIZATION_MAXAGE: "1h"
-      ZITADEL_CACHES_CONNECTORS_REDIS_ENABLED: "false"  # Keep disabled until Redis connector compatibility is validated.
+      ZITADEL_CACHES_CONNECTORS_REDIS_ENABLED: "false"
       ZITADEL_CACHES_CONNECTORS_REDIS_NETWORK: ""
       ZITADEL_CACHES_CONNECTORS_REDIS_ADDR: ""
       ZITADEL_CACHES_CONNECTORS_REDIS_USERNAME: ""
@@ -364,14 +369,17 @@ services:
       ZITADEL_DEFAULTINSTANCE_FEATURES_LOGINV2_BASEURI: ${ZITADEL_PUBLIC_SCHEME}://${ZITADEL_DOMAIN}${ZITADEL_LOGIN_ACTIVE_BASE_PATH:-/ui/v2/login}/
       ZITADEL_OIDC_DEFAULTLOGINURLV2: ${ZITADEL_PUBLIC_SCHEME}://${ZITADEL_DOMAIN}${ZITADEL_LOGIN_ACTIVE_BASE_PATH:-/ui/v2/login}/login?authRequest=
       ZITADEL_OIDC_DEFAULTLOGOUTURLV2: ${ZITADEL_PUBLIC_SCHEME}://${ZITADEL_DOMAIN}${ZITADEL_LOGIN_ACTIVE_BASE_PATH:-/ui/v2/login}/logout?post_logout_redirect=
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
     healthcheck:
       test:
         - CMD-SHELL
         - curl -fsS --max-time 8 http://127.0.0.1:8080/debug/ready >/dev/null || curl -fsS --max-time 8 http://127.0.0.1:8080/.well-known/openid-configuration >/dev/null
-      interval: 30s
-      timeout: 10s
-      retries: 12
-      start_period: 30s
+      interval: 45s
+      timeout: 15s
+      retries: 10
+      start_period: 45s
     volumes:
       - zitadel-bootstrap:/zitadel/bootstrap:rw
     depends_on:
@@ -414,9 +422,9 @@ services:
         - CMD-SHELL
         - wget -q -O - http://127.0.0.1:3000/ui/v2/login/healthy > /dev/null
       interval: 60s
-      timeout: 10s
-      retries: 10
-      start_period: 30s
+      timeout: 15s
+      retries: 8
+      start_period: 45s
     depends_on:
       zitadel-api:
         condition: service_healthy
@@ -460,10 +468,10 @@ services:
       test:
         - CMD-SHELL
         - wget -q -O - http://127.0.0.1:3010${ZITADEL_LOGIN_VUE_BASE_PATH:-/ui/v2/auth}/healthz >/dev/null
-      interval: 30s
-      timeout: 10s
-      retries: 10
-      start_period: 30s
+      interval: 45s
+      timeout: 15s
+      retries: 8
+      start_period: 45s
     depends_on:
       zitadel-api:
         condition: service_healthy
@@ -508,10 +516,10 @@ services:
       test:
         - CMD-SHELL
         - wget -q -O - http://127.0.0.1:8000/.well-known/openid-configuration >/dev/null
-      interval: 30s
-      timeout: 10s
-      retries: 10
-      start_period: 40s
+      interval: 45s
+      timeout: 15s
+      retries: 8
+      start_period: 60s
     depends_on:
       postgres:
         condition: service_healthy
@@ -549,14 +557,21 @@ services:
       - sh
       - -lc
       - |
-        php -d opcache.jit=off -d opcache.jit_buffer_size=0 artisan queue:work "$${QUEUE_CONNECTION:-redis}" \
-          --queue=backchannel-logout,default \
-          --tries=3 \
-          --backoff=10,30,90 \
-          --sleep="$${SSO_BACKEND_QUEUE_SLEEP_SECONDS:-5}" \
-          --timeout=120 \
-          --max-jobs="$${SSO_BACKEND_QUEUE_MAX_JOBS:-300}" \
-          --max-time="$${SSO_BACKEND_QUEUE_MAX_TIME:-1800}"
+        pids=""
+        for worker in $(seq 1 "$${SSO_BACKEND_QUEUE_WORKERS:-1}"); do
+          php -d opcache.jit=off -d opcache.jit_buffer_size=0 artisan queue:work "$${QUEUE_CONNECTION:-redis}" \
+            --queue=backchannel-logout,default \
+            --tries=3 \
+            --backoff=10,30,90 \
+            --sleep="$${SSO_BACKEND_QUEUE_SLEEP_SECONDS:-10}" \
+            --rest=3 \
+            --timeout=120 \
+            --max-jobs="$${SSO_BACKEND_QUEUE_MAX_JOBS:-200}" \
+            --max-time="$${SSO_BACKEND_QUEUE_MAX_TIME:-900}" &
+          pids="$$pids $$!"
+        done
+        trap 'kill $$pids' TERM INT
+        wait
     environment: *sso-backend-env
     depends_on:
       postgres:
@@ -569,10 +584,10 @@ services:
       test:
         - CMD-SHELL
         - "tr '\\000' ' ' </proc/1/cmdline | grep -q 'queue:work'"
-      interval: 60s
-      timeout: 10s
+      interval: 70s
+      timeout: 15s
       retries: 5
-      start_period: 10s
+      start_period: 15s
     volumes:
       - sso-backend-storage:/app/storage
       - ./.secrets/oidc:/app/storage/app/oidc:ro
@@ -611,9 +626,9 @@ services:
         - CMD-SHELL
         - wget -q -O - http://127.0.0.1:3000/healthz >/dev/null || wget -q -O - http://127.0.0.1:3000 >/dev/null
       interval: 45s
-      timeout: 10s
-      retries: 10
-      start_period: 45s
+      timeout: 15s
+      retries: 8
+      start_period: 60s
     depends_on:
       sso-backend:
         condition: service_healthy
@@ -646,9 +661,9 @@ services:
         - CMD-SHELL
         - wget -q -O - http://127.0.0.1:8080/healthz >/dev/null
       interval: 60s
-      timeout: 10s
-      retries: 10
-      start_period: 20s
+      timeout: 15s
+      retries: 8
+      start_period: 30s
     depends_on:
       sso-backend:
         condition: service_healthy
@@ -691,15 +706,15 @@ services:
       APP_SESSION_COOKIE_NAME: ${APP_A_SESSION_COOKIE_NAME}
       APP_SESSION_IDLE_TTL_SECONDS: ${APP_A_SESSION_IDLE_TTL_SECONDS:-604800}
       APP_SESSION_ABSOLUTE_TTL_SECONDS: ${APP_A_SESSION_ABSOLUTE_TTL_SECONDS:-2592000}
-      APP_REFRESH_LOCK_TTL_SECONDS: ${APP_A_REFRESH_LOCK_TTL_SECONDS:-15}
+      APP_REFRESH_LOCK_TTL_SECONDS: ${APP_REFRESH_LOCK_TTL_SECONDS:-15}
     healthcheck:
       test:
         - CMD-SHELL
         - wget -q -O - http://127.0.0.1:3000/healthz >/dev/null
       interval: 60s
-      timeout: 10s
-      retries: 10
-      start_period: 45s
+      timeout: 15s
+      retries: 8
+      start_period: 60s
     depends_on:
       redis:
         condition: service_healthy
@@ -763,9 +778,9 @@ services:
         - CMD-SHELL
         - wget -q -O - http://127.0.0.1:8000/health >/dev/null
       interval: 60s
-      timeout: 10s
-      retries: 10
-      start_period: 40s
+      timeout: 15s
+      retries: 8
+      start_period: 60s
     depends_on:
       postgres:
         condition: service_healthy

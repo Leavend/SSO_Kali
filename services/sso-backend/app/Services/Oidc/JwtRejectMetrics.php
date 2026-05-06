@@ -4,25 +4,22 @@ declare(strict_types=1);
 
 namespace App\Services\Oidc;
 
-use App\Support\Cache\ResilientCacheStore;
+use App\Support\Cache\AtomicCounterStore;
 
 final class JwtRejectMetrics
 {
     public function __construct(
-        private readonly ResilientCacheStore $cache,
+        private readonly AtomicCounterStore $counter,
     ) {}
 
     public function increment(string $reason): void
     {
-        $key = $this->key($reason);
-        $count = $this->cache->get($key, 0);
-
-        $this->cache->forever($key, (int) $count + 1);
+        $this->counter->increment($this->key($reason));
     }
 
     public function count(string $reason): int
     {
-        return (int) $this->cache->get($this->key($reason), 0);
+        return $this->counter->get($this->key($reason), 0);
     }
 
     private function key(string $reason): string

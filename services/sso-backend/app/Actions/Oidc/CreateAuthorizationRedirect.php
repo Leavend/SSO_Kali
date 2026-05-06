@@ -160,6 +160,7 @@ final class CreateAuthorizationRedirect
             'prompt' => $this->assurance->upstreamPromptFor($client, $this->prompt($request)),
             'max_age' => $this->assurance->upstreamMaxAgeFor($client),
             'login_hint' => $request->query('login_hint'),
+            'access_type' => $this->accessType($request),
         ];
     }
 
@@ -169,11 +170,19 @@ final class CreateAuthorizationRedirect
      */
     private function upstreamParameters(string $state, array $context): array
     {
+        $scope = (string) config('sso.broker.scope');
+
+        // When access_type=offline, ensure offline_access scope is included upstream
+        // to request a refresh token from the upstream IdP (per Google's convention)
+        if (($context['access_type'] ?? 'offline') === 'offline' && ! str_contains($scope, 'offline_access')) {
+            $scope = trim($scope.' offline_access');
+        }
+
         return array_filter([
             'client_id' => (string) config('sso.broker.client_id'),
             'redirect_uri' => (string) config('sso.broker.redirect_uri'),
             'response_type' => 'code',
-            'scope' => (string) config('sso.broker.scope'),
+            'scope' => $scope,
             'state' => $state,
             'nonce' => (string) $context['session_id'],
             'prompt' => is_string($context['prompt'] ?? null) ? $context['prompt'] : null,
@@ -231,7 +240,27 @@ final class CreateAuthorizationRedirect
     {
         $prompt = $request->query('prompt');
 
-        return is_string($prompt) && $prompt !== '' ? $prompt : null;
+        if (! is_string($prompt) || $prompt === '') {
+            return null;
+        }
+
+        // OpenID Connect Core §3.1.2.1 — valid prompt values
+        return in_array($prompt, ['login', 'consent', 'select_account', 'none'], true)
+            ? $prompt
+            : null;
+    }
+
+    /**
+     * Google-style access_type parameter.
+     * - 'offline': requests a refresh token (adds offline_access scope upstream)
+     * - 'online': standard flow without refresh token persistence
+     * Defaults to 'offline' to match the existing behavior.
+     */
+    private function accessType(Request $request): string
+    {
+        $type = $request->query('access_type');
+
+        return is_string($type) && $type === 'online' ? 'online' : 'offline';
     }
 
     /**

@@ -4,25 +4,22 @@ declare(strict_types=1);
 
 namespace App\Services\Oidc;
 
-use App\Support\Cache\ResilientCacheStore;
+use App\Support\Cache\AtomicCounterStore;
 
 final class OidcProfileMetrics
 {
     public function __construct(
-        private readonly ResilientCacheStore $cache,
+        private readonly AtomicCounterStore $counter,
     ) {}
 
     public function incrementReject(string $reason): void
     {
-        $key = $this->rejectKey($reason);
-        $count = $this->cache->get($key, 0);
-
-        $this->cache->forever($key, (int) $count + 1);
+        $this->counter->increment($this->rejectKey($reason), 1);
     }
 
     public function rejectCount(string $reason): int
     {
-        return (int) $this->cache->get($this->rejectKey($reason), 0);
+        return $this->counter->get($this->rejectKey($reason), 0);
     }
 
     private function rejectKey(string $reason): string

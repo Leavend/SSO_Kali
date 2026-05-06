@@ -6,7 +6,7 @@ describe('session cookies', () => {
   it('serializes httpOnly secure strict cookies', () => {
     const cookie = serializeCookie(ADMIN_SESSION_COOKIE, 'abc', hostCookieOptions(300))
 
-    expect(cookie).toContain('__Secure-admin-session=abc')
+    expect(cookie).toContain('__Host-admin-session=abc')
     expect(cookie).toContain('HttpOnly')
     expect(cookie).toContain('Secure')
     expect(cookie).toContain('SameSite=Strict')

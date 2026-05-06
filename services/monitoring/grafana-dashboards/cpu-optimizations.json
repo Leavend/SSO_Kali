@@ -1,0 +1,210 @@
+{
+  "dashboard": {
+    "title": "SSO CPU Optimization Effectiveness",
+    "tags": ["sso", "cpu", "performance", "optimization"],
+    "timezone": "browser",
+    "refresh": "30s",
+    "time": {
+      "from": "now-6h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Total CPU Usage (%)",
+        "type": "graph",
+        "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "rate(cpu_usage_seconds_total{service=~\"sso-.*\"}[5m]) * 100",
+            "legendFormat": "{{service}}"
+          }
+        ],
+        "description": "Overall CPU utilization across SSO services",
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {
+                "params": [80],
+                "type": "gt"
+              },
+              "operator": {"type": "and"},
+              "query": {"params": ["A", "5m", "now"]},
+              "reducer": {"params": [], "type": "avg"},
+              "type": "query"
+            }
+          ],
+          "executionErrorState": "alerting",
+          "frequency": "1m",
+          "handler": 1,
+          "message": "SSO service CPU usage > 80% for 5 minutes",
+          "name": "High CPU Usage Alert",
+          "noDataState": "no_data"
+        }
+      },
+      {
+        "id": 2,
+        "title": "JWT Operations Rate",
+        "type": "graph",
+        "gridPos": {"x": 12, "y": 0, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "rate(perf_cpu_jwt_sign_total[5m])",
+            "legendFormat": "JWT Sign/sec"
+          },
+          {
+            "expr": "rate(perf_cpu_jwt_decode_total[5m])",
+            "legendFormat": "JWT Decode/sec"
+          }
+        ],
+        "description": "Rate of JWT signing and decoding operations (should be reduced after optimization)"
+      },
+      {
+        "id": 3,
+        "title": "Cache Hit Ratio",
+        "type": "stat",
+        "gridPos": {"x": 0, "y": 8, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "perf_cpu_cache_hit / (perf_cpu_cache_hit + perf_cpu_cache_miss)",
+            "legendFormat": "Hit Ratio"
+          }
+        ],
+        "options": {
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percentunit",
+              "min": 0,
+              "max": 1,
+              "thresholds": {
+                "steps": [
+                  {"color": "red", "value": 0},
+                  {"color": "yellow", "value": 0.5},
+                  {"color": "green", "value": 0.8}
+                ]
+              }
+            }
+          }
+        },
+        "description": "Target: >85% after atomic counter optimization"
+      },
+      {
+        "id": 4,
+        "title": "Key Material File Reads",
+        "type": "stat",
+        "gridPos": {"x": 6, "y": 8, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "rate(perf_cpu_key_material_fetch_total[5m])",
+            "legendFormat": "Reads/sec"
+          }
+        ],
+        "description": "Should be near 0 after key material caching (per-worker lifetime)"
+      },
+      {
+        "id": 5,
+        "title": "Queue Worker Throughput",
+        "type": "graph",
+        "gridPos": {"x": 0, "y": 12, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "rate(queue_jobs_processed_total{service=\"sso-backend-worker\"}[5m])",
+            "legendFormat": "Jobs/sec"
+          },
+          {
+            "expr": "laravel_queue_workers{service=\"sso-backend-worker\"}",
+            "legendFormat": "Active Workers"
+          }
+        ],
+        "description": "Throughput should improve with parallel workers (--workers=2)"
+      },
+      {
+        "id": 6,
+        "title": "Health Check Frequency",
+        "type": "heatmap",
+        "gridPos": {"x": 12, "y": 12, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "increase(http_requests_total{handler=\"/health\"}[5m])",
+            "legendFormat": "Health Checks"
+          }
+        ],
+        "description": "Rate should decrease after interval optimization (15s→45s)"
+      },
+      {
+        "id": 7,
+        "title": "Operations per Request",
+        "type": "bargauge",
+        "gridPos": {"x": 0, "y": 20, "w": 6, "h": 6},
+        "targets": [
+          {
+            "expr": "perf_cpu_total_operations / rate(http_requests_total[5m])",
+            "legendFormat": "Ops/Request"
+          }
+        ],
+        "options": {
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "min": 0,
+              "max": 10,
+              "thresholds": {
+                "steps": [
+                  {"color": "green", "value": 0},
+                  {"color": "yellow", "value": 5},
+                  {"color": "red", "value": 8}
+                ]
+              }
+            }
+          }
+        },
+        "description": "Baseline: ~8 ops req | Target: <5 ops req"
+      },
+      {
+        "id": 8,
+        "title": "Request Duration (p95)",
+        "type": "graph",
+        "gridPos": {"x": 6, "y": 20, "w": 18, "h": 6},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, http_request_duration_seconds_bucket{service=~\"sso-.*\"})",
+            "legendFormat": "{{service}}"
+          }
+        ],
+        "description": "Latency should not increase despite reduced CPU allocation"
+      },
+      {
+        "id": 9,
+        "title": "Optimization Timeline",
+        "type": "annotations",
+        "gridPos": {"x": 0, "y": 26, "w": 24, "h": 4},
+        "list": [
+          {
+            "name": "Key Material Caching Deployed",
+            "datasource": "-- Grafana --",
+            "enable": true,
+            "expr": "time() > 1717544400",
+            "color": "green",
+            "tags": ["optimization", "PO1"]
+          },
+          {
+            "name": "Atomic Counters Deployed",
+            "datasource": "-- Grafana --",
+            "enable": true,
+            "expr": "time() > 1717544400",
+            "color": "green",
+            "tags": ["optimization", "PO1"]
+          },
+          {
+            "name": "Queue Workers & Docker Limits Deployed",
+            "datasource": "-- Grafana --",
+            "enable": true,
+            "expr": "time() > 1717544400",
+            "color": "blue",
+            "tags": ["optimization", "PO2"]
+          }
+        ]
+      }
+    ]
+  }
+}

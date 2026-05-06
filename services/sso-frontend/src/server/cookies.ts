@@ -1,7 +1,7 @@
 import type { IncomingMessage } from 'node:http'
 
-export const ADMIN_SESSION_COOKIE = '__Secure-admin-session'
-export const ADMIN_TX_COOKIE = '__Secure-admin-tx'
+export const ADMIN_SESSION_COOKIE = '__Host-admin-session'
+export const ADMIN_TX_COOKIE = '__Host-admin-tx'
 
 export type CookieOptions = {
   readonly httpOnly?: boolean
@@ -58,8 +58,15 @@ export function expiredHostCookieOptions(): CookieOptions {
   }
 }
 
+/**
+ * __Host- prefix (RFC 6265bis §4.1.3.2) enforces:
+ * - Secure attribute must be set
+ * - Path must be "/"
+ * - Domain attribute must NOT be set
+ * This prevents subdomain cookie leakage and tightens cookie scope.
+ */
 function assertSecureCookieName(name: string): void {
-  if (!name.startsWith('__Secure-')) {
-    throw new Error('Frontend session cookies must use the __Secure- prefix.')
+  if (!name.startsWith('__Host-')) {
+    throw new Error('Frontend session cookies must use the __Host- prefix.')
   }
 }

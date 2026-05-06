@@ -75,6 +75,17 @@ TEST_USER_PASSWORD_FILE=/root/dev-admin-password.txt \
 bash /Users/leavend/Desktop/Project_SSO/infra/zitadel/bootstrap-dev-resources.sh
 ```
 
+## Provenance
+
+Record the rotation without storing plaintext credentials:
+
+- initiator
+- environment
+- timestamp
+- credential name
+- storage location used for the new value
+- validation commands or browser checks performed
+
 ## Post-Rotation Checks
 
 Verify the login flow from a fresh browser session:

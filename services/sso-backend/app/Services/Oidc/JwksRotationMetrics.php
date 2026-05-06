@@ -4,38 +4,38 @@ declare(strict_types=1);
 
 namespace App\Services\Oidc;
 
-use App\Support\Cache\ResilientCacheStore;
+use App\Support\Cache\AtomicCounterStore;
 
 final class JwksRotationMetrics
 {
     public function __construct(
-        private readonly ResilientCacheStore $cache,
+        private readonly AtomicCounterStore $counter,
     ) {}
 
     public function recordCacheHit(): void
     {
-        $this->increment('jwks_cache_hit_total');
+        $this->counter->increment('jwks_cache_hit_total');
     }
 
     public function recordCacheMiss(): void
     {
-        $this->increment('jwks_cache_miss_total');
+        $this->counter->increment('jwks_cache_miss_total');
     }
 
     public function recordRefreshFailure(): void
     {
-        $this->increment('jwks_refresh_fail_total');
+        $this->counter->increment('jwks_refresh_fail_total');
     }
 
     public function recordRefreshSuccess(): void
     {
-        $this->increment('jwks_refresh_success_total');
+        $this->counter->increment('jwks_refresh_success_total');
     }
 
     public function cacheHitRatio(): float
     {
-        $hits = $this->count('jwks_cache_hit_total');
-        $misses = $this->count('jwks_cache_miss_total');
+        $hits = $this->counter->get('metrics:jwks_cache_hit_total', 0);
+        $misses = $this->counter->get('metrics:jwks_cache_miss_total', 0);
         $total = $hits + $misses;
 
         return $total === 0 ? 0.0 : $hits / $total;
@@ -43,29 +43,11 @@ final class JwksRotationMetrics
 
     public function refreshFailureTotal(): int
     {
-        return $this->count('jwks_refresh_fail_total');
+        return $this->counter->get('metrics:jwks_refresh_fail_total', 0);
     }
 
     public function refreshSuccessTotal(): int
     {
-        return $this->count('jwks_refresh_success_total');
-    }
-
-    private function increment(string $name): void
-    {
-        $key = $this->key($name);
-        $count = $this->cache->get($key, 0);
-
-        $this->cache->forever($key, (int) $count + 1);
-    }
-
-    private function count(string $name): int
-    {
-        return (int) $this->cache->get($this->key($name), 0);
-    }
-
-    private function key(string $name): string
-    {
-        return 'metrics:'.$name;
+        return $this->counter->get('metrics:jwks_refresh_success_total', 0);
     }
 }

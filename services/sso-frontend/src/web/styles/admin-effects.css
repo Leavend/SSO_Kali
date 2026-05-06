@@ -134,6 +134,11 @@
   }
 }
 
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
 .animate-fade-in { animation: fade-in var(--duration-normal) var(--ease-out) forwards; }
 .animate-fade-in-up { animation: fade-in-up var(--duration-normal) var(--ease-out) forwards; }
 .animate-fade-in-down { animation: fade-in-down var(--duration-normal) var(--ease-out) forwards; }

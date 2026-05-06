@@ -26,9 +26,17 @@ final class RevokeToken
 
     public function handle(Request $request): JsonResponse
     {
-        $client = $this->clients->find((string) $request->input('client_id', ''));
+        $clientId = (string) $request->input('client_id', '');
+        $client = $this->clients->find($clientId);
 
         if ($client === null || ! $this->clients->validSecret($client, $this->clientSecret($request))) {
+            Log::warning('[REVOCATION_INVALID_CLIENT]', [
+                'client_id' => $clientId,
+                'reason' => $client === null ? 'unknown_client' : 'invalid_secret',
+                'ip' => $request->ip(),
+            ]);
+
+            // RFC 7009 §2.1 — always return 200 regardless of client validity
             return response()->json((object) [], 200);
         }
 

@@ -1,6 +1,0 @@
-apiVersion: v2
-name: sso-prototype
-description: Helm scaffold for the prototype SSO stack.
-type: application
-version: 0.1.0
-appVersion: "0.1.0"

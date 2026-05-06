@@ -158,7 +158,27 @@ function toggleSessionSelection(sessionId: string) {
       @clear="selectedSessions = []"
     />
 
-    <div v-if="filteredSessions.length > 0" class="sessions-list" role="list" aria-label="Daftar sesi aktif">
+    <!-- Loading skeleton -->
+    <div v-if="isLoading" class="sessions-list" aria-busy="true" aria-label="Memuat sesi">
+      <article class="session-card session-card--skeleton" v-for="n in 3" :key="n" aria-hidden="true">
+        <div class="session-card__main">
+          <div class="session-card__identity">
+            <span class="skeleton skeleton--text skeleton--eyebrow" />
+            <span class="skeleton skeleton--text skeleton--name" />
+            <span class="skeleton skeleton--text skeleton--email" />
+          </div>
+          <div class="session-card__meta">
+            <span class="skeleton skeleton--detail" v-for="m in 3" :key="m" />
+          </div>
+        </div>
+        <div class="session-card__actions">
+          <span class="skeleton skeleton--button" />
+          <span class="skeleton skeleton--button skeleton--button-danger" />
+        </div>
+      </article>
+    </div>
+
+    <div v-else-if="filteredSessions.length > 0" class="sessions-list" role="list" aria-label="Daftar sesi aktif">
       <article
         v-for="session in filteredSessions"
         :key="`${session.session_id}:${session.client_id}`"
@@ -222,7 +242,7 @@ function toggleSessionSelection(sessionId: string) {
       </article>
     </div>
 
-    <div v-else class="panel panel-empty--large" role="status">
+    <div v-else class="panel-empty--large" role="status">
       <Inbox :size="32" aria-hidden="true" />
       <h3>Tidak ada sesi aktif</h3>
       <p>Sesi akan muncul setelah pengguna melakukan login melalui SSO broker.</p>
@@ -311,10 +331,22 @@ function toggleSessionSelection(sessionId: string) {
   align-items: stretch;
   gap: var(--space-5);
   padding: var(--space-5);
-  background: var(--admin-panel);
+  background: linear-gradient(135deg, var(--admin-panel) 0%, color-mix(in srgb, var(--admin-accent-soft) 5%, var(--admin-panel)) 100%);
   border: 1px solid var(--admin-line);
   border-radius: var(--radius-lg);
   box-shadow: 0 1px 3px var(--admin-shadow);
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 0.2s ease;
+}
+
+.session-card:hover:not(.session-card--skeleton) {
+  box-shadow: 0 8px 24px var(--admin-shadow-md);
+  border-color: var(--admin-line-strong);
+}
+
+.session-card--skeleton {
+  pointer-events: none;
 }
 
 .session-card__select {
@@ -327,6 +359,7 @@ function toggleSessionSelection(sessionId: string) {
   width: 20px;
   height: 20px;
   accent-color: var(--admin-accent);
+  cursor: pointer;
 }
 
 .session-card__main {
@@ -379,6 +412,12 @@ function toggleSessionSelection(sessionId: string) {
   background: var(--admin-panel-muted);
   border: 1px solid var(--admin-line);
   border-radius: var(--radius-md);
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.session-card:hover .session-detail {
+  background: color-mix(in srgb, var(--admin-accent-soft) 30%, var(--admin-panel-muted));
+  border-color: var(--admin-line-strong);
 }
 
 .session-detail dt {
@@ -458,6 +497,55 @@ function toggleSessionSelection(sessionId: string) {
   font-size: var(--text-xs);
 }
 
+/* Skeleton loading states */
+.skeleton {
+  display: block;
+  background: linear-gradient(90deg,
+    var(--admin-panel-muted) 0%,
+    var(--admin-panel-hover) 50%,
+    var(--admin-panel-muted) 100%
+  );
+  background-size: 200% 100%;
+  border-radius: var(--radius-sm);
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+.skeleton--eyebrow {
+  width: 80px;
+  height: 12px;
+}
+
+.skeleton--name {
+  width: 180px;
+  height: 22px;
+}
+
+.skeleton--email {
+  width: 240px;
+  height: 13px;
+}
+
+.skeleton--detail {
+  width: 100%;
+  height: 64px;
+  border-radius: var(--radius-md);
+}
+
+.skeleton--button {
+  width: 72px;
+  height: 36px;
+  border-radius: var(--radius-md);
+}
+
+.skeleton--button-danger {
+  width: 88px;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
 @media (max-width: 768px) {
   .session-card {
     grid-template-columns: auto 1fr;
@@ -474,6 +562,45 @@ function toggleSessionSelection(sessionId: string) {
 
   .session-card__revoke {
     width: 100%;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .session-card {
+    transition: none;
+  }
+
+  .session-card:hover:not(.session-card--skeleton) {
+    box-shadow: 0 1px 3px var(--admin-shadow);
+  }
+
+  .session-detail {
+    transition: none;
+  }
+
+  .skeleton {
+    animation: none;
+    background: var(--admin-panel-muted);
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .session-card {
+    border-width: 2px;
+  }
+
+  .session-card:hover:not(.session-card--skeleton) {
+    border-color: var(--admin-accent);
+  }
+
+  .session-detail {
+    border-width: 2px;
+  }
+
+  .session-card__actions {
+    border-left-width: 2px;
   }
 }
 </style>

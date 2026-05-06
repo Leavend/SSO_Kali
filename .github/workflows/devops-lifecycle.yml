@@ -71,6 +71,9 @@ jobs:
       - name: Validate observability assets
         run: ./infra/sre/check-observability-assets.sh
 
+      - name: Validate staged secret maturity
+        run: ./infra/sre/check-secret-maturity.sh
+
   terraform:
     name: Terraform static validation
     runs-on: ubuntu-latest

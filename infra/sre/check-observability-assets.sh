@@ -137,5 +137,19 @@ if {"slack-sso", "pagerduty-sso"} - receivers:
     missing = sorted({"slack-sso", "pagerduty-sso"} - receivers)
     raise SystemExit(f"[check-observability-assets][ERROR] missing alertmanager receivers: {', '.join(missing)}")
 
+route = alertmanager["route"]
+routes = route.get("routes", [])
+
+if route.get("receiver") != "slack-sso":
+    raise SystemExit("[check-observability-assets][ERROR] default Alertmanager receiver must notify slack-sso")
+
+if not any(
+    child.get("receiver") == "pagerduty-sso"
+    and 'severity="critical"' in child.get("matchers", [])
+    and child.get("continue") is True
+    for child in routes
+):
+    raise SystemExit("[check-observability-assets][ERROR] critical alerts must fan out to pagerduty-sso and continue to slack-sso")
+
 print("[check-observability-assets] OK")
 PY

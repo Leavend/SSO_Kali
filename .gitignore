@@ -46,3 +46,9 @@ apps/*/storage/framework/sessions
 apps/*/storage/framework/views
 
 charts/**/*.tgz
+
+# Ignore Markdown docs except README.md
+*.md
+!README.md
+!**/README.md
+node_modules

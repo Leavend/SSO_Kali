@@ -31,7 +31,7 @@ describe('admin BFF session refresh boundary', () => {
 
     expect(response.status).toBe(200)
     expect(payload.principal.expiresAt).toBeGreaterThan(now())
-    expect(serializedCookies(response)).toContain('__Secure-admin-session=')
+    expect(serializedCookies(response)).toContain('__Host-admin-session=')
   })
 
   it('refreshes before proxying admin APIs so the session list remains reachable', async () => {

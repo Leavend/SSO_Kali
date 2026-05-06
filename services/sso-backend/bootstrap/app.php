@@ -41,6 +41,7 @@ return Application::configure(basePath: dirname(__DIR__))
             AssertBrokerSessionCookiePolicy::class,
             LogForwardedHeaderMismatch::class,
             ApplyNoStoreToSensitiveResponses::class,
+            \App\Http\Middleware\TrackCpuPerformance::class,
         ]);
 
         $middleware->validateCsrfTokens(except: [

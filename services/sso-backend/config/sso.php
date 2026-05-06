@@ -62,6 +62,8 @@ return [
         'callback_per_minute' => (int) env('OIDC_CALLBACK_RATE_LIMIT_PER_MINUTE', 30),
         'token_per_minute' => (int) env('OIDC_TOKEN_RATE_LIMIT_PER_MINUTE', 30),
         'admin_bootstrap_per_minute' => (int) env('ADMIN_PANEL_BOOTSTRAP_RATE_LIMIT_PER_MINUTE', 20),
+        'discovery_per_minute' => (int) env('OIDC_DISCOVERY_RATE_LIMIT_PER_MINUTE', 60),
+        'jwks_per_minute' => (int) env('OIDC_JWKS_RATE_LIMIT_PER_MINUTE', 60),
     ],
     'admin' => [
         'panel_client_id' => env('ADMIN_PANEL_CLIENT_ID', 'sso-admin-panel'),

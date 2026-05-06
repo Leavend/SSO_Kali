@@ -46,6 +46,8 @@ class AppServiceProvider extends ServiceProvider
         $this->registerOidcCallbackLimiter();
         $this->registerOidcTokenLimiter();
         $this->registerOidcResourceLimiter();
+        $this->registerOidcDiscoveryLimiter();
+        $this->registerOidcJwksLimiter();
         $this->registerAdminBootstrapLimiter();
         $this->registerAdminReadLimiter();
         $this->registerAdminWriteLimiter();
@@ -125,5 +127,23 @@ class AppServiceProvider extends ServiceProvider
             'oidc-resource',
             (int) config('sso.rate_limits.resource_per_minute', 60),
         )->response(fn (Request $request, array $headers) => app(AuthThrottleResponder::class)->callback($request, $headers)));
+    }
+
+    private function registerOidcDiscoveryLimiter(): void
+    {
+        RateLimiter::for('oidc-discovery', fn (Request $request): Limit => $this->ipLimit(
+            $request,
+            'oidc-discovery',
+            (int) config('sso.rate_limits.discovery_per_minute', 60),
+        )->response(fn (Request $request, array $headers) => app(AuthThrottleResponder::class)->adminApi($headers)));
+    }
+
+    private function registerOidcJwksLimiter(): void
+    {
+        RateLimiter::for('oidc-jwks', fn (Request $request): Limit => $this->ipLimit(
+            $request,
+            'oidc-jwks',
+            (int) config('sso.rate_limits.jwks_per_minute', 60),
+        )->response(fn (Request $request, array $headers) => app(AuthThrottleResponder::class)->adminApi($headers)));
     }
 }
