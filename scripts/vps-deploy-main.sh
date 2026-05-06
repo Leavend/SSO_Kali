@@ -96,7 +96,7 @@ run_migrations() {
     compose run --rm --no-deps sso-backend php artisan migrate --force
     log 'Optimizing Laravel caches'
     compose run --rm --no-deps sso-backend sh -lc \
-      'php artisan config:cache && php artisan route:cache && php artisan view:cache'
+      'php artisan config:cache && php artisan route:cache && if [ -d resources/views ]; then php artisan view:cache; else echo "resources/views not found; skipping view cache"; fi'
   fi
 }
 
