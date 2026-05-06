@@ -1,0 +1,158 @@
+name: Deploy Main to VPS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      deploy_tag:
+        description: "Optional image tag to deploy. Defaults to sha-<commit>."
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: sso-kali-main-deploy
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ghcr.io/leavend/sso-kali
+  VPS_PROJECT_DIR: ${{ secrets.VPS_PROJECT_DIR || '/opt/sso-kali' }}
+  VPS_SSH_PORT: ${{ secrets.VPS_SSH_PORT || '22' }}
+
+jobs:
+  build-and-deploy:
+    name: Build images and deploy to VPS
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: sso-backend
+            context: ./services/sso-backend
+            dockerfile: ./services/sso-backend/Dockerfile
+          - service: sso-admin-vue
+            context: ./services/sso-admin-vue
+            dockerfile: ./services/sso-admin-vue/Dockerfile
+            build_args: |
+              VITE_ADMIN_BASE_URL=${{ vars.SSO_BASE_URL || 'https://dev-sso.timeh.my.id' }}
+              VITE_PUBLIC_BASE_PATH=${{ vars.SSO_ADMIN_VUE_BASE_PATH || '/__vue-preview' }}
+              VITE_SSO_BASE_URL=${{ vars.SSO_BASE_URL || 'https://dev-sso.timeh.my.id' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set deploy tag
+        id: tag
+        shell: bash
+        run: |
+          if [ -n "${{ inputs.deploy_tag }}" ]; then
+            tag="${{ inputs.deploy_tag }}"
+          else
+            tag="sha-${GITHUB_SHA::7}"
+          fi
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+
+      - name: Login to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build and push ${{ matrix.service }}
+        uses: docker/build-push-action@v7
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: |
+            ${{ env.IMAGE_PREFIX }}/${{ matrix.service }}:${{ steps.tag.outputs.tag }}
+            ${{ env.IMAGE_PREFIX }}/${{ matrix.service }}:main
+          build-args: ${{ matrix.build_args || '' }}
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+  deploy:
+    name: Deploy baseline services
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: build-and-deploy
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set deploy tag
+        id: tag
+        shell: bash
+        run: |
+          if [ -n "${{ inputs.deploy_tag }}" ]; then
+            tag="${{ inputs.deploy_tag }}"
+          else
+            tag="sha-${GITHUB_SHA::7}"
+          fi
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+
+      - name: Setup SSH key
+        shell: bash
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -T 10 -p "${{ env.VPS_SSH_PORT }}" -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Prepare remote directories
+        shell: bash
+        run: |
+          ssh -i ~/.ssh/deploy_key -p "${{ env.VPS_SSH_PORT }}" \
+            -o BatchMode=yes -o ConnectTimeout=20 \
+            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+            "mkdir -p /tmp/sso-kali-deploy '${{ env.VPS_PROJECT_DIR }}/scripts'"
+
+      - name: Sync deployment control files
+        shell: bash
+        run: |
+          rsync -az -e "ssh -i ~/.ssh/deploy_key -p ${{ env.VPS_SSH_PORT }} -o BatchMode=yes -o ConnectTimeout=20" \
+            scripts/vps-deploy-main.sh \
+            docker-compose.main.yml \
+            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/tmp/sso-kali-deploy/"
+
+      - name: Install control files on VPS
+        shell: bash
+        run: |
+          ssh -i ~/.ssh/deploy_key -p "${{ env.VPS_SSH_PORT }}" \
+            -o BatchMode=yes -o ConnectTimeout=20 \
+            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+            "set -e
+             install -m 0644 /tmp/sso-kali-deploy/docker-compose.main.yml '${{ env.VPS_PROJECT_DIR }}/docker-compose.main.yml'
+             install -m 0755 /tmp/sso-kali-deploy/vps-deploy-main.sh '${{ env.VPS_PROJECT_DIR }}/scripts/vps-deploy-main.sh'"
+
+      - name: Execute deploy on VPS
+        shell: bash
+        run: |
+          ssh -i ~/.ssh/deploy_key -p "${{ env.VPS_SSH_PORT }}" \
+            -o BatchMode=yes -o ConnectTimeout=20 -o ServerAliveInterval=10 -o ServerAliveCountMax=3 \
+            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+            "IMAGE_PREFIX='${{ env.IMAGE_PREFIX }}' \
+             DEPLOY_TAG='${{ steps.tag.outputs.tag }}' \
+             PROJECT_DIR='${{ env.VPS_PROJECT_DIR }}' \
+             bash '${{ env.VPS_PROJECT_DIR }}/scripts/vps-deploy-main.sh'"
+
+      - name: Cleanup SSH key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key

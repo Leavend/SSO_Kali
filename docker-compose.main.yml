@@ -1,0 +1,163 @@
+name: ${COMPOSE_PROJECT_NAME:-sso-kali}
+
+x-sso-backend-env: &sso-backend-env
+  APP_ENV: ${APP_ENV:-production}
+  APP_DEBUG: ${APP_DEBUG:-false}
+  APP_KEY: ${SSO_BACKEND_APP_KEY}
+  APP_URL: ${SSO_BASE_URL}
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+  DB_CONNECTION: pgsql
+  DB_HOST: postgres
+  DB_PORT: 5432
+  DB_DATABASE: ${SSO_BACKEND_DB:-sso_backend}
+  DB_USERNAME: ${SSO_BACKEND_DB_USER:-sso}
+  DB_PASSWORD: ${SSO_BACKEND_DB_PASSWORD}
+  CACHE_STORE: redis
+  SESSION_DRIVER: redis
+  QUEUE_CONNECTION: ${QUEUE_CONNECTION:-redis}
+  REDIS_CLIENT: phpredis
+  REDIS_HOST: redis
+  REDIS_PASSWORD: ${REDIS_PASSWORD}
+  REDIS_PORT: 6379
+  REDIS_DB: 2
+  REDIS_CACHE_DB: 3
+  SSO_BASE_URL: ${SSO_BASE_URL}
+  SSO_ISSUER: ${SSO_ISSUER:-${SSO_BASE_URL}}
+  SSO_RESOURCE_AUDIENCE: ${SSO_RESOURCE_AUDIENCE:-sso-resource-api}
+  OIDC_SIGNING_ALG: ${OIDC_SIGNING_ALG:-ES256}
+  OIDC_SIGNING_KID: ${OIDC_SIGNING_KID:-sso-main-key}
+  OIDC_PRIVATE_KEY_PATH: ${OIDC_PRIVATE_KEY_PATH:-/app/storage/app/oidc/private.pem}
+  OIDC_PUBLIC_KEY_PATH: ${OIDC_PUBLIC_KEY_PATH:-/app/storage/app/oidc/public.pem}
+  OIDC_ACCESS_TOKEN_TTL: ${OIDC_ACCESS_TOKEN_TTL:-900}
+  OIDC_ID_TOKEN_TTL: ${OIDC_ID_TOKEN_TTL:-900}
+  OIDC_REFRESH_TOKEN_TTL_DAYS: ${OIDC_REFRESH_TOKEN_TTL_DAYS:-30}
+  OIDC_AUTH_REQUEST_TTL: ${OIDC_AUTH_REQUEST_TTL:-300}
+  OIDC_AUTHORIZATION_CODE_TTL: ${OIDC_AUTHORIZATION_CODE_TTL:-60}
+  ADMIN_PANEL_CLIENT_ID: ${ADMIN_PANEL_CLIENT_ID:-sso-admin-panel}
+  ADMIN_PANEL_ADMIN_EMAIL: ${ADMIN_PANEL_ADMIN_EMAIL:-admin@example.com}
+  ADMIN_PANEL_SESSION_MANAGEMENT_ROLES: ${ADMIN_PANEL_SESSION_MANAGEMENT_ROLES:-admin}
+  ADMIN_PANEL_REQUIRE_MFA: ${ADMIN_PANEL_REQUIRE_MFA:-false}
+  ADMIN_PANEL_MFA_ACCEPTED_AMR: ${ADMIN_PANEL_MFA_ACCEPTED_AMR:-pwd}
+  SSO_BACKEND_OCTANE_WORKERS: ${SSO_BACKEND_OCTANE_WORKERS:-1}
+  SSO_BACKEND_OCTANE_MAX_REQUESTS: ${SSO_BACKEND_OCTANE_MAX_REQUESTS:-500}
+
+services:
+  postgres:
+    image: ${POSTGRES_IMAGE:-postgres:17-alpine}
+    restart: unless-stopped
+    init: true
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-sso}
+      POSTGRES_USER: ${POSTGRES_ADMIN_USER:-sso}
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
+      interval: 30s
+      timeout: 10s
+      retries: 8
+      start_period: 20s
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - sso-main
+    mem_limit: 1024m
+    cpus: "1.00"
+
+  redis:
+    image: ${REDIS_IMAGE:-redis:7-alpine}
+    restart: unless-stopped
+    init: true
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    command:
+      - redis-server
+      - --requirepass
+      - ${REDIS_PASSWORD}
+      - --appendonly
+      - "yes"
+      - --appendfsync
+      - everysec
+      - --maxmemory
+      - 192mb
+      - --maxmemory-policy
+      - allkeys-lru
+    healthcheck:
+      test: ["CMD-SHELL", "REDISCLI_AUTH=$$REDIS_PASSWORD redis-cli ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 8
+      start_period: 15s
+    volumes:
+      - redis-data:/data
+    networks:
+      - sso-main
+    mem_limit: 256m
+    cpus: "0.25"
+
+  sso-backend:
+    image: ${SSO_IMAGE_PREFIX:-ghcr.io/leavend/sso-kali}/sso-backend:${SSO_DEPLOY_TAG:-main}
+    restart: unless-stopped
+    init: true
+    command:
+      - sh
+      - -lc
+      - |
+        php artisan package:discover --ansi &&
+        php artisan config:cache &&
+        php artisan route:cache &&
+        php artisan view:cache &&
+        php -d opcache.jit=off -d opcache.jit_buffer_size=0 artisan octane:frankenphp \
+          --host=0.0.0.0 \
+          --port=8000 \
+          --workers="$${SSO_BACKEND_OCTANE_WORKERS:-1}" \
+          --max-requests="$${SSO_BACKEND_OCTANE_MAX_REQUESTS:-500}"
+    environment: *sso-backend-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:8000/.well-known/openid-configuration >/dev/null"]
+      interval: 30s
+      timeout: 15s
+      retries: 8
+      start_period: 60s
+    volumes:
+      - sso-backend-storage:/app/storage
+      - ./.secrets/oidc:/app/storage/app/oidc:ro
+    ports:
+      - ${SSO_BACKEND_BIND:-127.0.0.1:8200}:8000
+    networks:
+      - sso-main
+    mem_limit: 768m
+    cpus: "0.75"
+
+  sso-admin-vue:
+    image: ${SSO_IMAGE_PREFIX:-ghcr.io/leavend/sso-kali}/sso-admin-vue:${SSO_DEPLOY_TAG:-main}
+    restart: unless-stopped
+    init: true
+    depends_on:
+      sso-backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:8080/healthz >/dev/null || wget -q -O - http://127.0.0.1:8080 >/dev/null"]
+      interval: 30s
+      timeout: 10s
+      retries: 8
+      start_period: 30s
+    ports:
+      - ${SSO_ADMIN_BIND:-127.0.0.1:8201}:8080
+    networks:
+      - sso-main
+    mem_limit: 256m
+    cpus: "0.25"
+
+networks:
+  sso-main:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  redis-data:
+  sso-backend-storage:
