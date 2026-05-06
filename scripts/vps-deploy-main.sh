@@ -7,7 +7,10 @@ COMPOSE_FILE="${COMPOSE_FILE:-$PROJECT_DIR/docker-compose.main.yml}"
 ENV_FILE="${ENV_FILE:-$PROJECT_DIR/.env.prod}"
 IMAGE_PREFIX="${IMAGE_PREFIX:-ghcr.io/leavend/sso-kali}"
 DEPLOY_TAG="${DEPLOY_TAG:-main}"
+COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-sso-kali}"
 HEALTH_TIMEOUT_SECONDS="${HEALTH_TIMEOUT_SECONDS:-180}"
+
+export COMPOSE_PROJECT_NAME
 
 log() {
   printf '[vps-deploy-main] %s\n' "$*"
