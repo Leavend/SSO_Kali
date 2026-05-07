@@ -182,6 +182,9 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=sso-backend
           cache-to: type=gha,mode=max,scope=sso-backend
+          build-args: |
+            VCS_REF=${{ github.sha }}
+            BUILD_DATE=${{ github.event.head_commit.timestamp || github.run_started_at }}
           sbom: true
           provenance: mode=max
 

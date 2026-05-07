@@ -20,6 +20,9 @@ RUN composer install \
 # ==============================
 FROM dunglas/frankenphp:1-php8.4-alpine AS runner
 
+ARG VCS_REF=unknown
+ARG BUILD_DATE=unknown
+
 WORKDIR /app
 
 RUN apk upgrade --no-cache \
@@ -52,6 +55,13 @@ RUN { \
 
 COPY --from=deps /usr/bin/composer /usr/bin/composer
 COPY --from=deps /app/vendor ./vendor
+
+LABEL org.opencontainers.image.revision="${VCS_REF}" \
+    org.opencontainers.image.created="${BUILD_DATE}" \
+    org.opencontainers.image.source="https://github.com/Leavend/SSO_Kali"
+
+RUN echo "${VCS_REF}" > /app/.sso-backend-build-revision
+
 COPY . .
 COPY docker/frankenphp/Caddyfile /etc/caddy/Caddyfile
 COPY docker/frankenphp/entrypoint.sh /usr/local/bin/sso-backend-entrypoint
