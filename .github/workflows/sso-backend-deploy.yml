@@ -60,7 +60,11 @@ jobs:
           ssh -i ~/.ssh/deploy_key -p "${{ env.VPS_SSH_PORT }}" \
             -o BatchMode=yes -o ConnectTimeout=20 \
             "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
-            "docker --version && docker compose version && test -d '${{ env.VPS_PROJECT_DIR }}'"
+            "set -eu
+             docker --version
+             docker compose version
+             install -d -m 0755 '${{ env.VPS_PROJECT_DIR }}'
+             test -d '${{ env.VPS_PROJECT_DIR }}'"
 
       - name: Sync backend deploy assets
         shell: bash
@@ -141,7 +145,7 @@ jobs:
       - name: Summary
         if: always()
         run: |
-          cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+          cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
           ## SSO Backend Deploy
 
           - Image tag: `${{ inputs.image_tag }}`
