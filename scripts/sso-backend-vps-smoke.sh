@@ -11,6 +11,7 @@ COMPOSE_FILE=""
 SERVICE="sso-backend"
 START_SERVICES="false"
 TAIL_LINES="160"
+PUBLIC_BASE_URL=""
 
 log() {
   printf '[sso-backend-vps-smoke] %s\n' "$*"
@@ -38,6 +39,7 @@ Options:
   --env-file FILE         Remote env file. Default: <project-dir>/.env.prod.
   --compose-file FILE     Remote compose file. Default: <project-dir>/docker-compose.main.yml.
   --start-services        Pull and start postgres, redis, and sso-backend before smoke.
+  --public-base-url URL   Optional public base URL to smoke after internal checks.
   --tail-lines N          Log lines printed on failure. Default: 160.
   -h, --help              Show this help.
 USAGE
@@ -52,6 +54,7 @@ while [[ $# -gt 0 ]]; do
     --env-file) ENV_FILE="${2:-}"; shift 2 ;;
     --compose-file) COMPOSE_FILE="${2:-}"; shift 2 ;;
     --start-services) START_SERVICES="true"; shift ;;
+    --public-base-url) PUBLIC_BASE_URL="${2:-}"; shift 2 ;;
     --tail-lines) TAIL_LINES="${2:-160}"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) die "Unknown argument: $1" ;;
@@ -130,6 +133,14 @@ smoke_url '/health' "$base/health" '^(200)$'
 smoke_url 'discovery' "$base/.well-known/openid-configuration" '^(200)$'
 smoke_url 'jwks' "$base/.well-known/jwks.json" '^(200)$'
 
+if [[ -n "${PUBLIC_BASE_URL:-}" ]]; then
+  public_base="${PUBLIC_BASE_URL%/}"
+  smoke_url 'public /up' "$public_base/up" '^(200)$'
+  smoke_url 'public /health' "$public_base/health" '^(200)$'
+  smoke_url 'public discovery' "$public_base/.well-known/openid-configuration" '^(200)$'
+  smoke_url 'public jwks' "$public_base/.well-known/jwks.json" '^(200)$'
+fi
+
 compose ps
 log 'SSO backend VPS smoke completed successfully'
 REMOTE
@@ -143,4 +154,5 @@ ssh "${SSH_OPTS[@]}" "$SSH_TARGET" \
   SERVICE="$SERVICE" \
   START_SERVICES="$START_SERVICES" \
   TAIL_LINES="$TAIL_LINES" \
+  PUBLIC_BASE_URL="$PUBLIC_BASE_URL" \
   "bash -s" <<< "$REMOTE_SCRIPT"

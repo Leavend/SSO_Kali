@@ -10,6 +10,7 @@ DEPLOY_TAG="${DEPLOY_TAG:-main}"
 COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-sso-backend-prod}"
 HEALTH_TIMEOUT_SECONDS="${HEALTH_TIMEOUT_SECONDS:-240}"
 RUN_MIGRATIONS="${RUN_MIGRATIONS:-true}"
+PUBLIC_BASE_URL="${PUBLIC_BASE_URL:-}"
 
 export COMPOSE_PROJECT_NAME
 
@@ -125,6 +126,15 @@ run_smoke_tests() {
   smoke_url 'SSO /health' "$base_url/health" '^(200)$'
   smoke_url 'SSO discovery' "$base_url/.well-known/openid-configuration" '^(200)$'
   smoke_url 'SSO JWKS' "$base_url/.well-known/jwks.json" '^(200)$'
+
+  if [[ -n "$PUBLIC_BASE_URL" ]]; then
+    local public_base_url
+    public_base_url="${PUBLIC_BASE_URL%/}"
+    smoke_url 'Public SSO /up' "$public_base_url/up" '^(200)$'
+    smoke_url 'Public SSO /health' "$public_base_url/health" '^(200)$'
+    smoke_url 'Public SSO discovery' "$public_base_url/.well-known/openid-configuration" '^(200)$'
+    smoke_url 'Public SSO JWKS' "$public_base_url/.well-known/jwks.json" '^(200)$'
+  fi
 }
 
 main() {

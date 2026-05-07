@@ -17,6 +17,11 @@ on:
         required: false
         default: true
         type: boolean
+      public_base_url:
+        description: "Optional public base URL to smoke, e.g. https://timeh.my.id"
+        required: false
+        default: ""
+        type: string
 
 permissions:
   contents: read
@@ -29,7 +34,7 @@ concurrency:
 env:
   REGISTRY: ghcr.io
   IMAGE_PREFIX: ghcr.io/leavend/sso-kali
-  VPS_PROJECT_DIR: ${{ secrets.VPS_PROJECT_DIR || '/opt/sso-kali' }}
+  VPS_PROJECT_DIR: ${{ secrets.VPS_PROJECT_DIR || '/opt/sso-backend-prod' }}
   VPS_SSH_PORT: ${{ secrets.VPS_SSH_PORT || '22' }}
 
 jobs:
@@ -61,8 +66,8 @@ jobs:
         shell: bash
         run: |
           rsync -az -e "ssh -i ~/.ssh/deploy_key -p ${{ env.VPS_SSH_PORT }} -o BatchMode=yes -o ConnectTimeout=20" \
-            docker-compose.main.yml \
-            scripts/vps-deploy-main.sh \
+            docker-compose.sso-backend.yml \
+            scripts/vps-deploy-sso-backend.sh \
             scripts/sso-backend-vps-smoke.sh \
             "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/tmp/sso-backend-deploy/"
 
@@ -71,8 +76,8 @@ jobs:
             "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
             "set -eu
              install -d -m 0755 '${{ env.VPS_PROJECT_DIR }}/scripts'
-             install -m 0644 /tmp/sso-backend-deploy/docker-compose.main.yml '${{ env.VPS_PROJECT_DIR }}/docker-compose.main.yml'
-             install -m 0755 /tmp/sso-backend-deploy/vps-deploy-main.sh '${{ env.VPS_PROJECT_DIR }}/scripts/vps-deploy-main.sh'
+             install -m 0644 /tmp/sso-backend-deploy/docker-compose.sso-backend.yml '${{ env.VPS_PROJECT_DIR }}/docker-compose.sso-backend.yml'
+             install -m 0755 /tmp/sso-backend-deploy/vps-deploy-sso-backend.sh '${{ env.VPS_PROJECT_DIR }}/scripts/vps-deploy-sso-backend.sh'
              install -m 0755 /tmp/sso-backend-deploy/sso-backend-vps-smoke.sh '${{ env.VPS_PROJECT_DIR }}/scripts/sso-backend-vps-smoke.sh'"
 
       - name: Install production env when provided
@@ -102,7 +107,7 @@ jobs:
           ssh -i ~/.ssh/deploy_key -p "${{ env.VPS_SSH_PORT }}" \
             -o BatchMode=yes -o ConnectTimeout=20 \
             "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
-            "cd '${{ env.VPS_PROJECT_DIR }}' && docker compose --env-file .env.prod -f docker-compose.main.yml config >/dev/null"
+            "cd '${{ env.VPS_PROJECT_DIR }}' && docker compose --env-file .env.prod -f docker-compose.sso-backend.yml config >/dev/null"
 
       - name: Deploy backend image
         if: inputs.dry_run != true
@@ -114,17 +119,24 @@ jobs:
             "IMAGE_PREFIX='${{ env.IMAGE_PREFIX }}' \
              DEPLOY_TAG='${{ inputs.image_tag }}' \
              PROJECT_DIR='${{ env.VPS_PROJECT_DIR }}' \
-             bash '${{ env.VPS_PROJECT_DIR }}/scripts/vps-deploy-main.sh'"
+             PUBLIC_BASE_URL='${{ inputs.public_base_url }}' \
+             bash '${{ env.VPS_PROJECT_DIR }}/scripts/vps-deploy-sso-backend.sh'"
 
       - name: Backend smoke
         if: inputs.dry_run != true && inputs.run_smoke == true
         shell: bash
         run: |
-          scripts/sso-backend-vps-smoke.sh \
-            --host "${{ secrets.VPS_HOST }}" \
-            --user "${{ secrets.VPS_USER }}" \
-            --port "${{ env.VPS_SSH_PORT }}" \
+          args=(
+            --host "${{ secrets.VPS_HOST }}"
+            --user "${{ secrets.VPS_USER }}"
+            --port "${{ env.VPS_SSH_PORT }}"
             --project-dir "${{ env.VPS_PROJECT_DIR }}"
+            --compose-file "${{ env.VPS_PROJECT_DIR }}/docker-compose.sso-backend.yml"
+          )
+          if [ -n "${{ inputs.public_base_url }}" ]; then
+            args+=(--public-base-url "${{ inputs.public_base_url }}")
+          fi
+          scripts/sso-backend-vps-smoke.sh "${args[@]}"
 
       - name: Summary
         if: always()
@@ -135,6 +147,7 @@ jobs:
           - Image tag: `${{ inputs.image_tag }}`
           - Dry run: `${{ inputs.dry_run }}`
           - Smoke: `${{ inputs.run_smoke }}`
+          - Public base URL: `${{ inputs.public_base_url }}`
           - Project dir: `${{ env.VPS_PROJECT_DIR }}`
           EOF
 
