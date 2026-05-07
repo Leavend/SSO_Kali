@@ -97,8 +97,8 @@ curl -fsS http://127.0.0.1:8200/.well-known/jwks.json
 If DNS/TLS is ready:
 
 ```bash
-curl -fsS https://timeh.my.id/up
-curl -fsS https://timeh.my.id/.well-known/openid-configuration
+curl -fsS https://api-sso.timeh.my.id/up
+curl -fsS https://api-sso.timeh.my.id/.well-known/openid-configuration
 ```
 
 ## Retention

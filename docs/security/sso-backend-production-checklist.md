@@ -2,17 +2,18 @@
 
 ## Edge / TLS
 
-- [ ] `timeh.my.id` DNS points to `145.79.15.8`.
-- [ ] Valid TLS certificate exists for `timeh.my.id`.
+- [ ] `api-sso.timeh.my.id` DNS points to `145.79.15.8`.
+- [ ] `sso.timeh.my.id` DNS points to the Frontend UI host.
+- [ ] Valid TLS certificate exists for `api-sso.timeh.my.id`.
 - [ ] HTTP redirects to HTTPS.
 - [ ] HSTS enabled after HTTPS is verified.
 - [ ] Nginx config validates with `nginx -t` before reload.
 
 ## Laravel / Proxy Trust
 
-- [ ] `APP_URL=https://timeh.my.id`.
-- [ ] `SSO_BASE_URL=https://timeh.my.id`.
-- [ ] `SSO_ISSUER=https://timeh.my.id`.
+- [ ] `APP_URL=https://api-sso.timeh.my.id`.
+- [ ] `SSO_BASE_URL=https://api-sso.timeh.my.id`.
+- [ ] `SSO_ISSUER=https://api-sso.timeh.my.id`.
 - [ ] `OCTANE_HTTPS=true`.
 - [ ] Trusted proxy settings honor `X-Forwarded-Proto` only from VPS edge.
 
@@ -31,7 +32,7 @@
 - [ ] Confidential clients require secret.
 - [ ] Refresh token rotation and revoke flow tested.
 - [ ] JWKS exposes public keys only.
-- [ ] Discovery issuer matches `https://timeh.my.id` exactly.
+- [ ] Discovery issuer matches `https://api-sso.timeh.my.id` exactly.
 
 ## Rate Limiting
 
