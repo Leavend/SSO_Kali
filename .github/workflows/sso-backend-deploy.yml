@@ -63,7 +63,8 @@ jobs:
             "set -eu
              docker --version
              docker compose version
-             install -d -m 0755 '${{ env.VPS_PROJECT_DIR }}'
+             mkdir -p '${{ env.VPS_PROJECT_DIR }}'
+             chmod 0755 '${{ env.VPS_PROJECT_DIR }}'
              test -d '${{ env.VPS_PROJECT_DIR }}'"
 
       - name: Sync backend deploy assets
