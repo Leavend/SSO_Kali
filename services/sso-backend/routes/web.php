@@ -15,6 +15,7 @@ use App\Http\Controllers\Oidc\UserInfoController;
 use App\Http\Controllers\Resource\ProfileController;
 use App\Http\Controllers\System\HealthController;
 use App\Http\Controllers\System\PerformanceMetricsController;
+use App\Http\Controllers\System\ReadinessController;
 use App\Http\Middleware\ApplyPublicCacheToMetadata;
 use App\Http\Middleware\HandleDiscoveryErrors;
 use App\Http\Middleware\ValidateTokenOrigin;
@@ -31,6 +32,7 @@ Route::get('/', function (): JsonResponse {
 });
 
 Route::get('/health', HealthController::class);
+Route::get('/ready', ReadinessController::class);
 Route::get('/_internal/performance-metrics', PerformanceMetricsController::class);
 Route::get('/.well-known/openid-configuration', DiscoveryController::class)
     ->middleware([HandleDiscoveryErrors::class, ApplyPublicCacheToMetadata::class.':300', 'throttle:oidc-discovery']);
