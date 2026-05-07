@@ -66,6 +66,14 @@ x-sso-backend-env: &sso-backend-env
   SSO_BACKEND_EVENT_CACHE: ${SSO_BACKEND_EVENT_CACHE:-true}
   SSO_BACKEND_FIX_PERMISSIONS: ${SSO_BACKEND_FIX_PERMISSIONS:-true}
 
+  SSO_WORKER_QUEUE: ${SSO_WORKER_QUEUE:-default}
+  SSO_WORKER_SLEEP: ${SSO_WORKER_SLEEP:-3}
+  SSO_WORKER_TRIES: ${SSO_WORKER_TRIES:-3}
+  SSO_WORKER_BACKOFF: ${SSO_WORKER_BACKOFF:-5}
+  SSO_WORKER_TIMEOUT: ${SSO_WORKER_TIMEOUT:-60}
+  SSO_WORKER_MAX_TIME: ${SSO_WORKER_MAX_TIME:-3600}
+  SSO_WORKER_MEMORY: ${SSO_WORKER_MEMORY:-256}
+
 services:
   postgres:
     image: ${POSTGRES_IMAGE:-postgres:17.2-alpine}
@@ -142,6 +150,42 @@ services:
       - sso-backend
     mem_limit: ${SSO_BACKEND_MEM_LIMIT:-768m}
     cpus: ${SSO_BACKEND_CPUS:-0.75}
+
+  sso-worker:
+    image: ${SSO_IMAGE_PREFIX:-ghcr.io/leavend/sso-kali}/sso-backend:${SSO_DEPLOY_TAG:-main}
+    restart: unless-stopped
+    init: true
+    environment: *sso-backend-env
+    command:
+      - php
+      - artisan
+      - queue:work
+      - redis
+      - --queue=${SSO_WORKER_QUEUE:-default}
+      - --sleep=${SSO_WORKER_SLEEP:-3}
+      - --tries=${SSO_WORKER_TRIES:-3}
+      - --backoff=${SSO_WORKER_BACKOFF:-5}
+      - --timeout=${SSO_WORKER_TIMEOUT:-60}
+      - --max-time=${SSO_WORKER_MAX_TIME:-3600}
+      - --memory=${SSO_WORKER_MEMORY:-256}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "php artisan queue:monitor $${SSO_WORKER_QUEUE:-default} --max=1000 >/dev/null 2>&1"]
+      interval: 60s
+      timeout: 20s
+      retries: 3
+      start_period: 30s
+    volumes:
+      - sso-backend-storage:/app/storage
+      - ${OIDC_KEYS_DIR:-./.secrets/oidc}:/app/storage/app/oidc:ro
+    networks:
+      - sso-backend
+    mem_limit: ${SSO_WORKER_MEM_LIMIT:-384m}
+    cpus: ${SSO_WORKER_CPUS:-0.35}
 
 networks:
   sso-backend:

@@ -139,7 +139,7 @@ main() {
 
   compose config >/dev/null
   compose pull postgres redis
-  compose pull sso-backend || warn 'Backend image pull failed; continuing with a locally available image if present'
+  compose pull sso-backend sso-worker || warn 'Backend image pull failed; continuing with a locally available image if present'
 
   compose up -d postgres redis
   wait_for_service postgres 180
@@ -147,8 +147,9 @@ main() {
 
   run_migrations
 
-  compose up -d --remove-orphans sso-backend
+  compose up -d --remove-orphans sso-backend sso-worker
   wait_for_service sso-backend "$HEALTH_TIMEOUT_SECONDS"
+  wait_for_service sso-worker 180
 
   run_smoke_tests
   compose ps
