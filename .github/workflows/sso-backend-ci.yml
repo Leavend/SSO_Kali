@@ -6,16 +6,24 @@ on:
     paths:
       - "services/sso-backend/**"
       - "docker-compose.main.yml"
+      - "docker-compose.sso-backend.yml"
+      - ".env.sso-backend.example"
       - "scripts/sso-backend-vps-smoke.sh"
       - "scripts/vps-deploy-main.sh"
+      - "scripts/vps-deploy-sso-backend.sh"
+      - "docs/devops/sso-backend-*.md"
       - ".github/workflows/sso-backend-ci.yml"
   pull_request:
     branches: [main]
     paths:
       - "services/sso-backend/**"
       - "docker-compose.main.yml"
+      - "docker-compose.sso-backend.yml"
+      - ".env.sso-backend.example"
       - "scripts/sso-backend-vps-smoke.sh"
       - "scripts/vps-deploy-main.sh"
+      - "scripts/vps-deploy-sso-backend.sh"
+      - "docs/devops/sso-backend-*.md"
       - ".github/workflows/sso-backend-ci.yml"
   workflow_dispatch:
     inputs:
