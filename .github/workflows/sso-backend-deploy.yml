@@ -137,6 +137,7 @@ jobs:
             --port "${{ env.VPS_SSH_PORT }}"
             --project-dir "${{ env.VPS_PROJECT_DIR }}"
             --compose-file "${{ env.VPS_PROJECT_DIR }}/docker-compose.sso-backend.yml"
+            --ssh-identity-file "$HOME/.ssh/deploy_key"
           )
           if [ -n "${{ inputs.public_base_url }}" ]; then
             args+=(--public-base-url "${{ inputs.public_base_url }}")

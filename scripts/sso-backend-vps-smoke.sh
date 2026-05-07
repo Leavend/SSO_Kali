@@ -12,6 +12,7 @@ SERVICE="sso-backend"
 START_SERVICES="false"
 TAIL_LINES="160"
 PUBLIC_BASE_URL=""
+SSH_IDENTITY_FILE=""
 
 log() {
   printf '[sso-backend-vps-smoke] %s\n' "$*"
@@ -40,6 +41,7 @@ Options:
   --compose-file FILE     Remote compose file. Default: <project-dir>/docker-compose.main.yml.
   --start-services        Pull and start postgres, redis, and sso-backend before smoke.
   --public-base-url URL   Optional public base URL to smoke after internal checks.
+  --ssh-identity-file FILE Optional SSH private key file for remote smoke.
   --tail-lines N          Log lines printed on failure. Default: 160.
   -h, --help              Show this help.
 USAGE
@@ -55,6 +57,7 @@ while [[ $# -gt 0 ]]; do
     --compose-file) COMPOSE_FILE="${2:-}"; shift 2 ;;
     --start-services) START_SERVICES="true"; shift ;;
     --public-base-url) PUBLIC_BASE_URL="${2:-}"; shift 2 ;;
+    --ssh-identity-file) SSH_IDENTITY_FILE="${2:-}"; shift 2 ;;
     --tail-lines) TAIL_LINES="${2:-160}"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) die "Unknown argument: $1" ;;
@@ -76,6 +79,9 @@ SSH_OPTS=(
   -o ServerAliveInterval=10
   -o ServerAliveCountMax=3
 )
+if [[ -n "$SSH_IDENTITY_FILE" ]]; then
+  SSH_OPTS=(-i "$SSH_IDENTITY_FILE" "${SSH_OPTS[@]}")
+fi
 
 REMOTE_SCRIPT=$(cat <<'REMOTE'
 set -Eeuo pipefail
