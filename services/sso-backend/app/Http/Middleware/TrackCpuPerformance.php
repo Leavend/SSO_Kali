@@ -58,16 +58,16 @@ final class TrackCpuPerformance
 
     private function shouldLogTiming(float $durationMs): bool
     {
-        if (! filter_var((string) env('SSO_REQUEST_TIMING_LOG_ENABLED', false), FILTER_VALIDATE_BOOL)) {
+        if (! (bool) config('sso.observability.request_timing_log_enabled', false)) {
             return false;
         }
 
-        $slowMs = (float) env('SSO_REQUEST_TIMING_SLOW_MS', 500);
+        $slowMs = (float) config('sso.observability.request_timing_slow_ms', 500);
         if ($durationMs >= $slowMs) {
             return true;
         }
 
-        $sampleRate = max(0.0, min(1.0, (float) env('SSO_REQUEST_TIMING_SAMPLE_RATE', 0.0)));
+        $sampleRate = max(0.0, min(1.0, (float) config('sso.observability.request_timing_sample_rate', 0.0)));
 
         return $sampleRate > 0.0 && mt_rand() / mt_getrandmax() <= $sampleRate;
     }

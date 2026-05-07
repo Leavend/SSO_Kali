@@ -11,6 +11,11 @@ return [
     'resource_audience' => env('SSO_RESOURCE_AUDIENCE', 'sso-resource-api'),
     'frontend_url' => env('SSO_FRONTEND_URL', env('APP_URL', 'http://localhost:3000')),
     'login_url' => env('SSO_LOGIN_URL', env('SSO_FRONTEND_URL', 'http://localhost:3000').'/login'),
+    'observability' => [
+        'request_timing_log_enabled' => (bool) env('SSO_REQUEST_TIMING_LOG_ENABLED', false),
+        'request_timing_sample_rate' => (float) env('SSO_REQUEST_TIMING_SAMPLE_RATE', 0.0),
+        'request_timing_slow_ms' => (float) env('SSO_REQUEST_TIMING_SLOW_MS', 500),
+    ],
     'upstream_token_key' => env('UPSTREAM_TOKEN_KEY', ''),
     'default_scopes' => [
         'openid',
