@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Actions\Audit\RecordLogoutAuditEventAction;
 use App\Jobs\DispatchBackChannelLogoutJob;
 use App\Services\Oidc\LogoutTokenService;
 use Illuminate\Support\Facades\Http;
@@ -18,7 +19,7 @@ it('posts a broker-issued logout token to the downstream client', function (): v
         'https://app-a.example/api/backchannel/logout',
     );
 
-    $job->handle(app(LogoutTokenService::class));
+    $job->handle(app(LogoutTokenService::class), app(RecordLogoutAuditEventAction::class));
 
     Http::assertSent(function ($request): bool {
         return $request->url() === 'https://app-a.example/api/backchannel/logout'
@@ -39,7 +40,7 @@ it('retries failed back-channel delivery with bounded exponential backoff', func
         'https://app-a.example/api/backchannel/logout',
     );
 
-    expect(fn () => $job->handle(app(LogoutTokenService::class)))
+    expect(fn () => $job->handle(app(LogoutTokenService::class), app(RecordLogoutAuditEventAction::class)))
         ->toThrow(RuntimeException::class, 'Back-channel logout failed');
 
     expect($job->tries)->toBe(3)
