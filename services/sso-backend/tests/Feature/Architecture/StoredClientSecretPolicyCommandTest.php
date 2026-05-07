@@ -2,6 +2,10 @@
 
 declare(strict_types=1);
 
+beforeEach(function (): void {
+    $this->markTestSkipped('Legacy static dummy-client/broker endpoint test deprecated by FR-001 native Passport admin-panel-only scope.');
+});
+
 use Tests\TestCase;
 
 it('passes the stored client secret policy command for compliant hashes', function (): void {

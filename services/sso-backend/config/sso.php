@@ -5,10 +5,12 @@ declare(strict_types=1);
 $csv = static fn (string $value): array => array_values(array_filter(array_map('trim', explode(',', $value))));
 
 return [
-    'engine' => env('SSO_ENGINE', 'zitadel'),
+    'engine' => env('SSO_ENGINE', 'native'),
     'base_url' => env('SSO_BASE_URL', env('APP_URL', 'http://localhost:8200')),
     'issuer' => env('SSO_ISSUER', env('APP_URL', 'http://localhost:8200')),
     'resource_audience' => env('SSO_RESOURCE_AUDIENCE', 'sso-resource-api'),
+    'frontend_url' => env('SSO_FRONTEND_URL', env('APP_URL', 'http://localhost:3000')),
+    'login_url' => env('SSO_LOGIN_URL', env('SSO_FRONTEND_URL', 'http://localhost:3000').'/login'),
     'upstream_token_key' => env('UPSTREAM_TOKEN_KEY', ''),
     'default_scopes' => [
         'openid',
@@ -17,12 +19,19 @@ return [
         'offline_access',
     ],
     'broker' => [
-        'public_issuer' => env('ZITADEL_BROKER_PUBLIC_ISSUER', env('ZITADEL_ISSUER', 'http://localhost:8080')),
-        'internal_issuer' => env('ZITADEL_BROKER_INTERNAL_ISSUER', env('ZITADEL_ISSUER', 'http://localhost:8080')),
-        'client_id' => env('ZITADEL_BROKER_CLIENT_ID', 'prototype-sso-broker'),
-        'client_secret' => env('ZITADEL_BROKER_CLIENT_SECRET', 'prototype-broker-secret'),
-        'redirect_uri' => env('ZITADEL_BROKER_REDIRECT_URI', env('APP_URL', 'http://localhost:8200').'/callbacks/zitadel'),
-        'scope' => env('ZITADEL_BROKER_SCOPE', 'openid profile email offline_access'),
+        'public_issuer' => env('OIDC_UPSTREAM_PUBLIC_ISSUER', env('SSO_ISSUER', env('APP_URL', 'http://localhost:8200'))),
+        'internal_issuer' => env('OIDC_UPSTREAM_INTERNAL_ISSUER', env('SSO_ISSUER', env('APP_URL', 'http://localhost:8200'))),
+        'client_id' => env('OIDC_UPSTREAM_CLIENT_ID', ''),
+        'client_secret' => env('OIDC_UPSTREAM_CLIENT_SECRET', ''),
+        'redirect_uri' => env('OIDC_UPSTREAM_REDIRECT_URI', env('APP_URL', 'http://localhost:8200').'/callbacks/upstream'),
+        'scope' => env('OIDC_UPSTREAM_SCOPE', 'openid profile email offline_access'),
+    ],
+    'session' => [
+        'cookie' => env('SSO_SESSION_COOKIE', 'sso_session'),
+        'cookie_domain' => env('SSO_SESSION_COOKIE_DOMAIN'),
+        'cookie_secure' => (bool) env('SSO_SESSION_COOKIE_SECURE', true),
+        'cookie_same_site' => env('SSO_SESSION_COOKIE_SAME_SITE', 'lax'),
+        'ttl_minutes' => (int) env('SSO_SESSION_TTL_MINUTES', 480),
     ],
     'ttl' => [
         'access_token_minutes' => (int) env('OIDC_ACCESS_TOKEN_TTL', 15),
@@ -32,7 +41,7 @@ return [
     ],
     'signing' => [
         'alg' => env('OIDC_SIGNING_ALG', 'ES256'),
-        'kid' => env('OIDC_SIGNING_KID', 'prototype-key-1'),
+        'kid' => env('OIDC_SIGNING_KID', 'sso-key-1'),
         'private_key_path' => env('OIDC_PRIVATE_KEY_PATH', storage_path('app/oidc/private.pem')),
         'public_key_path' => env('OIDC_PUBLIC_KEY_PATH', storage_path('app/oidc/public.pem')),
     ],
@@ -67,6 +76,7 @@ return [
     ],
     'admin' => [
         'panel_client_id' => env('ADMIN_PANEL_CLIENT_ID', 'sso-admin-panel'),
+        'panel_redirect_uri' => env('ADMIN_PANEL_REDIRECT_URI', rtrim((string) env('SSO_FRONTEND_URL', env('APP_URL', 'http://localhost:3000')), '/').'/auth/callback'),
         'session_management_roles' => $csv(env('ADMIN_PANEL_SESSION_MANAGEMENT_ROLES', 'admin')),
         'rate_limits' => [
             'read_per_minute' => (int) env('ADMIN_PANEL_READ_RATE_LIMIT_PER_MINUTE', 60),

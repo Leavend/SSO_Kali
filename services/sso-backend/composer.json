@@ -1,8 +1,8 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "prototype/sso-backend",
+    "name": "sso-kali/sso-backend",
     "type": "project",
-    "description": "Prototype SSO backend and OIDC facade for ZITADEL.",
+    "description": "Native Laravel Passport SSO backend and OIDC provider.",
     "keywords": ["laravel", "sso", "oidc", "oauth2"],
     "license": "MIT",
     "require": {
@@ -10,6 +10,7 @@
         "firebase/php-jwt": "^7.0",
         "laravel/framework": "^13.0",
         "laravel/octane": "^2.17",
+        "laravel/passport": "^13.7",
         "laravel/tinker": "^3.0",
         "predis/predis": "^3.4"
     },
@@ -63,6 +64,18 @@
         ],
         "analyse": [
             "vendor/bin/phpstan analyse --memory-limit=512M"
+        ],
+        "octane:frankenphp": [
+            "@php artisan octane:frankenphp --host=0.0.0.0 --port=8000 --workers=auto --max-requests=1000"
+        ],
+        "octane:reload": [
+            "@php artisan octane:reload"
+        ],
+        "prod:warm": [
+            "@php artisan package:discover --ansi",
+            "@php artisan config:cache --ansi",
+            "@php artisan route:cache --ansi",
+            "@php artisan event:cache --ansi"
         ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",

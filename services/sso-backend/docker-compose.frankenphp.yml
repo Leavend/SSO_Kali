@@ -1,0 +1,40 @@
+services:
+  sso-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: sso-backend-frankenphp:local
+    ports:
+      - "8200:8000"
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_URL: http://localhost:8200
+      SSO_BASE_URL: http://localhost:8200
+      SSO_ISSUER: http://localhost:8200
+      SSO_FRONTEND_URL: http://localhost:3000
+      SSO_LOGIN_URL: http://localhost:3000/login
+      OCTANE_SERVER: frankenphp
+      OCTANE_HTTPS: "false"
+      DB_CONNECTION: sqlite
+      DB_DATABASE: /app/database/database.sqlite
+      CACHE_STORE: database
+      QUEUE_CONNECTION: database
+      SESSION_DRIVER: database
+      SSO_BACKEND_OCTANE_WORKERS: "1"
+      SSO_BACKEND_OCTANE_MAX_REQUESTS: "500"
+      SSO_BACKEND_WAIT_FOR_DB: "false"
+      SSO_BACKEND_PASSPORT_KEYS: "false"
+    volumes:
+      - sso-backend-storage:/app/storage
+      - sso-backend-cache:/app/bootstrap/cache
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8000/up || curl -fsS http://127.0.0.1:8000/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  sso-backend-storage:
+  sso-backend-cache:

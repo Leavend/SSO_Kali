@@ -111,8 +111,18 @@ smoke_url() {
 run_smoke_tests() {
   # shellcheck disable=SC1090
   source "$ENV_FILE" || true
-  smoke_url 'SSO discovery' "${SSO_BASE_URL:-${APP_URL:-}}/.well-known/openid-configuration" '^(200)$'
-  smoke_url 'SSO admin' "${SSO_ADMIN_URL:-${SSO_BASE_URL:-${APP_URL:-}}}" '^(200|30[1278])$'
+
+  local base_url="${SSO_INTERNAL_BASE_URL:-${SSO_BASE_URL:-${APP_URL:-}}}"
+  base_url="${base_url%/}"
+
+  smoke_url 'SSO /up' "$base_url/up" '^(200)$'
+  smoke_url 'SSO /health' "$base_url/health" '^(200)$'
+  smoke_url 'SSO discovery' "$base_url/.well-known/openid-configuration" '^(200)$'
+  smoke_url 'SSO JWKS' "$base_url/.well-known/jwks.json" '^(200)$'
+
+  if compose config --services | grep -qx 'sso-admin-vue'; then
+    smoke_url 'SSO admin' "${SSO_ADMIN_URL:-$base_url}" '^(200|30[1278])$'
+  fi
 }
 
 main() {

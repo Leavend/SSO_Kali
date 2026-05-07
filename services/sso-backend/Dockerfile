@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1
+
 # ==============================
 # Stage 1: Composer Dependencies
 # ==============================
@@ -20,61 +22,65 @@ FROM dunglas/frankenphp:1-php8.4-alpine AS runner
 
 WORKDIR /app
 
-# PHP extensions required by the SSO backend
 RUN apk upgrade --no-cache \
+    && apk add --no-cache curl \
     && install-php-extensions \
-    pdo_pgsql \
-    pcntl \
-    redis \
-    opcache
+        pdo_pgsql \
+        pcntl \
+        redis \
+        opcache
 
-# OPcache tuning for worker mode (persistent process)
 RUN { \
+    echo 'expose_php=0'; \
+    echo 'memory_limit=256M'; \
+    echo 'post_max_size=8M'; \
+    echo 'upload_max_filesize=2M'; \
+    echo 'max_execution_time=30'; \
+    echo 'realpath_cache_size=4096K'; \
+    echo 'realpath_cache_ttl=600'; \
     echo 'opcache.enable=1'; \
-    echo 'opcache.memory_consumption=128'; \
+    echo 'opcache.enable_cli=1'; \
+    echo 'opcache.memory_consumption=192'; \
     echo 'opcache.interned_strings_buffer=16'; \
-    echo 'opcache.max_accelerated_files=10000'; \
+    echo 'opcache.max_accelerated_files=20000'; \
     echo 'opcache.validate_timestamps=0'; \
+    echo 'opcache.save_comments=1'; \
+    echo 'opcache.fast_shutdown=1'; \
     echo 'opcache.jit=off'; \
     echo 'opcache.jit_buffer_size=0'; \
-    } > /usr/local/etc/php/conf.d/opcache-prod.ini
+    } > /usr/local/etc/php/conf.d/zz-sso-production.ini
 
-# Copy composer binary from deps stage
 COPY --from=deps /usr/bin/composer /usr/bin/composer
-
-# Copy vendor from deps stage, then copy app source
 COPY --from=deps /app/vendor ./vendor
 COPY . .
+COPY docker/frankenphp/Caddyfile /etc/caddy/Caddyfile
+COPY docker/frankenphp/entrypoint.sh /usr/local/bin/sso-backend-entrypoint
 
-# Run autoload dump in runner stage (has all PHP extensions)
-RUN composer dump-autoload --optimize --no-dev --no-scripts
-
-# Create required Laravel directories
-RUN mkdir -p \
-    bootstrap/cache \
-    storage/framework/cache \
-    storage/framework/sessions \
-    storage/framework/views \
-    storage/logs \
-    storage/app/oidc
-
-# Non-root user
-RUN chown -R www-data:www-data storage bootstrap/cache
+RUN composer dump-autoload --optimize --no-dev --no-scripts \
+    && mkdir -p \
+        bootstrap/cache \
+        storage/framework/cache \
+        storage/framework/sessions \
+        storage/framework/views \
+        storage/logs \
+        storage/app/oidc \
+    && chmod +x /usr/local/bin/sso-backend-entrypoint \
+    && chown -R www-data:www-data storage bootstrap/cache
 
 EXPOSE 8000
 
-ENV SSO_BACKEND_OCTANE_WORKERS=1
-ENV SSO_BACKEND_OCTANE_MAX_REQUESTS=500
+ENV APP_ENV=production
+ENV OCTANE_SERVER=frankenphp
+ENV SSO_BACKEND_OCTANE_HOST=0.0.0.0
+ENV SSO_BACKEND_OCTANE_PORT=8000
+ENV SSO_BACKEND_OCTANE_WORKERS=auto
+ENV SSO_BACKEND_OCTANE_MAX_REQUESTS=1000
+ENV SSO_BACKEND_FIX_PERMISSIONS=true
+ENV SSO_BACKEND_EVENT_CACHE=true
+ENV SSO_BACKEND_WAIT_FOR_DB=false
+ENV SSO_BACKEND_PASSPORT_KEYS=false
 
-# Entrypoint: start Octane with FrankenPHP
-# Migrations are handled by the deploy scripts (deploy-dev.sh / deploy-remote.sh)
-CMD ["sh", "-c", "\
-    php artisan package:discover --ansi && \
-    php artisan config:cache && \
-    php artisan route:cache && \
-    php artisan octane:frankenphp \
-        --host=0.0.0.0 \
-        --port=8000 \
-        --workers=\"${SSO_BACKEND_OCTANE_WORKERS:-1}\" \
-        --max-requests=\"${SSO_BACKEND_OCTANE_MAX_REQUESTS:-500}\" \
-    "]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+    CMD curl -fsS http://127.0.0.1:8000/up || curl -fsS http://127.0.0.1:8000/health || exit 1
+
+CMD ["sso-backend-entrypoint"]

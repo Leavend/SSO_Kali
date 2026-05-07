@@ -105,8 +105,8 @@ return [
         OperationTerminated::class => [
             FlushOnce::class,
             FlushTemporaryContainerInstances::class,
-            // DisconnectFromDatabases::class,
-            // CollectGarbage::class,
+            DisconnectFromDatabases::class,
+            CollectGarbage::class,
         ],
 
         WorkerErrorOccurred::class => [
@@ -206,7 +206,7 @@ return [
     |
     */
 
-    'garbage' => 50,
+    'garbage' => (int) env('OCTANE_GARBAGE_THRESHOLD_MB', 50),
 
     /*
     |--------------------------------------------------------------------------
@@ -219,6 +219,6 @@ return [
     |
     */
 
-    'max_execution_time' => 30,
+    'max_execution_time' => (int) env('OCTANE_MAX_EXECUTION_TIME', 30),
 
 ];

@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Http\Middleware\ApplyNoStoreToSensitiveResponses;
 use App\Http\Middleware\AssertBrokerSessionCookiePolicy;
 use App\Http\Middleware\LogForwardedHeaderMismatch;
+use App\Http\Middleware\TrackCpuPerformance;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -17,6 +18,9 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
         then: function (): void {
+            Route::middleware('web')
+                ->group(base_path('routes/auth.php'));
+
             Route::middleware('web')
                 ->group(base_path('routes/admin.php'));
         },
@@ -41,7 +45,11 @@ return Application::configure(basePath: dirname(__DIR__))
             AssertBrokerSessionCookiePolicy::class,
             LogForwardedHeaderMismatch::class,
             ApplyNoStoreToSensitiveResponses::class,
-            \App\Http\Middleware\TrackCpuPerformance::class,
+            TrackCpuPerformance::class,
+        ]);
+
+        $middleware->encryptCookies(except: [
+            env('SSO_SESSION_COOKIE', 'sso_session'),
         ]);
 
         $middleware->validateCsrfTokens(except: [
@@ -49,10 +57,13 @@ return Application::configure(basePath: dirname(__DIR__))
             'revocation',
             'oauth2/token',
             'oauth2/revocation',
+            'oauth/revoke',
             'connect/register-session',
             'connect/logout',
             'connect/backchannel/admin-panel/logout',
             'admin/api/*',
+            'api/auth/login',
+            'api/auth/logout',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

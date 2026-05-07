@@ -25,9 +25,11 @@ class UserFactory extends Factory
             'subject_id' => $subjectId,
             'subject_uuid' => $subjectId,
             'email' => fake()->unique()->safeEmail(),
+            'password' => 'password',
             'given_name' => fake()->firstName(),
             'family_name' => fake()->lastName(),
             'display_name' => fake()->name(),
+            'role' => 'user',
             'email_verified_at' => now(),
             'last_login_at' => now(),
         ];

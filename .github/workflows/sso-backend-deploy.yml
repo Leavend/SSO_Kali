@@ -1,0 +1,143 @@
+name: SSO Backend Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Image tag to deploy, e.g. sha-abc1234 or main"
+        required: true
+        type: string
+      dry_run:
+        description: "Validate SSH and compose config only"
+        required: false
+        default: false
+        type: boolean
+      run_smoke:
+        description: "Run backend smoke test after deploy"
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+  packages: read
+
+concurrency:
+  group: sso-backend-deploy-production
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ghcr.io/leavend/sso-kali
+  VPS_PROJECT_DIR: ${{ secrets.VPS_PROJECT_DIR || '/opt/sso-kali' }}
+  VPS_SSH_PORT: ${{ secrets.VPS_SSH_PORT || '22' }}
+
+jobs:
+  deploy:
+    name: Deploy SSO Backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH key
+        shell: bash
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -T 10 -p "${{ env.VPS_SSH_PORT }}" -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Preflight SSH
+        shell: bash
+        run: |
+          ssh -i ~/.ssh/deploy_key -p "${{ env.VPS_SSH_PORT }}" \
+            -o BatchMode=yes -o ConnectTimeout=20 \
+            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+            "docker --version && docker compose version && test -d '${{ env.VPS_PROJECT_DIR }}'"
+
+      - name: Sync backend deploy assets
+        shell: bash
+        run: |
+          rsync -az -e "ssh -i ~/.ssh/deploy_key -p ${{ env.VPS_SSH_PORT }} -o BatchMode=yes -o ConnectTimeout=20" \
+            docker-compose.main.yml \
+            scripts/vps-deploy-main.sh \
+            scripts/sso-backend-vps-smoke.sh \
+            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/tmp/sso-backend-deploy/"
+
+          ssh -i ~/.ssh/deploy_key -p "${{ env.VPS_SSH_PORT }}" \
+            -o BatchMode=yes -o ConnectTimeout=20 \
+            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+            "set -eu
+             install -d -m 0755 '${{ env.VPS_PROJECT_DIR }}/scripts'
+             install -m 0644 /tmp/sso-backend-deploy/docker-compose.main.yml '${{ env.VPS_PROJECT_DIR }}/docker-compose.main.yml'
+             install -m 0755 /tmp/sso-backend-deploy/vps-deploy-main.sh '${{ env.VPS_PROJECT_DIR }}/scripts/vps-deploy-main.sh'
+             install -m 0755 /tmp/sso-backend-deploy/sso-backend-vps-smoke.sh '${{ env.VPS_PROJECT_DIR }}/scripts/sso-backend-vps-smoke.sh'"
+
+      - name: Install production env when provided
+        shell: bash
+        env:
+          VPS_ENV_PROD: ${{ secrets.VPS_ENV_PROD }}
+        run: |
+          if [ -z "${VPS_ENV_PROD}" ]; then
+            echo "VPS_ENV_PROD empty; using existing remote env."
+            exit 0
+          fi
+          printf '%s\n' "${VPS_ENV_PROD}" > /tmp/sso-backend.env.prod
+          chmod 600 /tmp/sso-backend.env.prod
+          rsync -az -e "ssh -i ~/.ssh/deploy_key -p ${{ env.VPS_SSH_PORT }} -o BatchMode=yes -o ConnectTimeout=20" \
+            /tmp/sso-backend.env.prod \
+            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/tmp/sso-backend-deploy/.env.prod"
+          ssh -i ~/.ssh/deploy_key -p "${{ env.VPS_SSH_PORT }}" \
+            -o BatchMode=yes -o ConnectTimeout=20 \
+            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+            "install -m 0600 /tmp/sso-backend-deploy/.env.prod '${{ env.VPS_PROJECT_DIR }}/.env.prod'"
+          rm -f /tmp/sso-backend.env.prod
+
+      - name: Dry-run compose config
+        if: inputs.dry_run == true
+        shell: bash
+        run: |
+          ssh -i ~/.ssh/deploy_key -p "${{ env.VPS_SSH_PORT }}" \
+            -o BatchMode=yes -o ConnectTimeout=20 \
+            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+            "cd '${{ env.VPS_PROJECT_DIR }}' && docker compose --env-file .env.prod -f docker-compose.main.yml config >/dev/null"
+
+      - name: Deploy backend image
+        if: inputs.dry_run != true
+        shell: bash
+        run: |
+          ssh -i ~/.ssh/deploy_key -p "${{ env.VPS_SSH_PORT }}" \
+            -o BatchMode=yes -o ConnectTimeout=20 -o ServerAliveInterval=10 -o ServerAliveCountMax=3 \
+            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+            "IMAGE_PREFIX='${{ env.IMAGE_PREFIX }}' \
+             DEPLOY_TAG='${{ inputs.image_tag }}' \
+             PROJECT_DIR='${{ env.VPS_PROJECT_DIR }}' \
+             bash '${{ env.VPS_PROJECT_DIR }}/scripts/vps-deploy-main.sh'"
+
+      - name: Backend smoke
+        if: inputs.dry_run != true && inputs.run_smoke == true
+        shell: bash
+        run: |
+          scripts/sso-backend-vps-smoke.sh \
+            --host "${{ secrets.VPS_HOST }}" \
+            --user "${{ secrets.VPS_USER }}" \
+            --port "${{ env.VPS_SSH_PORT }}" \
+            --project-dir "${{ env.VPS_PROJECT_DIR }}"
+
+      - name: Summary
+        if: always()
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+          ## SSO Backend Deploy
+
+          - Image tag: `${{ inputs.image_tag }}`
+          - Dry run: `${{ inputs.dry_run }}`
+          - Smoke: `${{ inputs.run_smoke }}`
+          - Project dir: `${{ env.VPS_PROJECT_DIR }}`
+          EOF
+
+      - name: Cleanup SSH key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\OAuth\TokenRevocationController;
 use App\Http\Controllers\Oidc\AdminPanelBackChannelLogoutController;
 use App\Http\Controllers\Oidc\AuthorizeController;
-use App\Http\Controllers\Oidc\BrokerCallbackController;
 use App\Http\Controllers\Oidc\DiscoveryController;
 use App\Http\Controllers\Oidc\JwksController;
 use App\Http\Controllers\Oidc\RevocationController;
@@ -18,26 +18,15 @@ use App\Http\Controllers\System\PerformanceMetricsController;
 use App\Http\Middleware\ApplyPublicCacheToMetadata;
 use App\Http\Middleware\HandleDiscoveryErrors;
 use App\Http\Middleware\ValidateTokenOrigin;
-use App\Services\Oidc\DownstreamClientRegistry;
-use App\Services\Oidc\PrototypeOidcCatalog;
-use App\Support\Responses\PrototypeJsonResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function (
-    PrototypeOidcCatalog $catalog,
-    DownstreamClientRegistry $clients,
-): JsonResponse {
-    if (! in_array(app()->environment(), ['local', 'testing'], true)) {
-        return PrototypeJsonResponse::ok(['service' => 'sso-backend', 'status' => 'ok']);
-    }
-
-    return PrototypeJsonResponse::ok([
+Route::get('/', function (): JsonResponse {
+    return response()->json([
         'service' => 'sso-backend',
+        'status' => 'ok',
         'engine' => config('sso.engine'),
         'issuer' => config('sso.issuer'),
-        'endpoints' => $catalog->summary(),
-        'registered_clients' => $clients->ids(),
     ]);
 });
 
@@ -52,6 +41,7 @@ Route::get('/jwks', JwksController::class)
 Route::post('/token', TokenController::class)->middleware(['throttle:oidc-token', ValidateTokenOrigin::class]);
 Route::match(['get', 'post'], '/userinfo', UserInfoController::class)->middleware('throttle:oidc-resource');
 Route::post('/revocation', RevocationController::class)->middleware('throttle:oidc-token');
+Route::post('/oauth/revoke', TokenRevocationController::class)->middleware('throttle:oidc-token');
 Route::post('/connect/register-session', SessionRegistrationController::class)->middleware('throttle:oidc-callback');
 Route::post('/connect/logout', SessionLogoutController::class)->middleware('throttle:oidc-callback');
 Route::post('/connect/backchannel/admin-panel/logout', AdminPanelBackChannelLogoutController::class)->middleware('throttle:oidc-callback');
@@ -59,10 +49,6 @@ Route::get('/api/profile', ProfileController::class)->middleware('throttle:oidc-
 
 Route::middleware('throttle:oidc-authorize')->group(function (): void {
     Route::get('/authorize', AuthorizeController::class);
-});
-
-Route::middleware('throttle:oidc-callback')->group(function (): void {
-    Route::get('/callbacks/zitadel', BrokerCallbackController::class);
 });
 
 Route::prefix('/oauth2')->group(function (): void {

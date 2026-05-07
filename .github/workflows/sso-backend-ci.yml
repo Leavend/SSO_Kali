@@ -1,0 +1,194 @@
+name: SSO Backend CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "services/sso-backend/**"
+      - "docker-compose.main.yml"
+      - "scripts/sso-backend-vps-smoke.sh"
+      - "scripts/vps-deploy-main.sh"
+      - ".github/workflows/sso-backend-ci.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "services/sso-backend/**"
+      - "docker-compose.main.yml"
+      - "scripts/sso-backend-vps-smoke.sh"
+      - "scripts/vps-deploy-main.sh"
+      - ".github/workflows/sso-backend-ci.yml"
+  workflow_dispatch:
+    inputs:
+      push_image:
+        description: "Push image to GHCR"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+  attestations: write
+  security-events: write
+
+concurrency:
+  group: sso-backend-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ghcr.io/leavend/sso-kali/sso-backend
+  SERVICE_DIR: services/sso-backend
+
+jobs:
+  quality:
+    name: Quality Gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: ${{ env.SERVICE_DIR }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          extensions: mbstring, pdo_pgsql, redis, intl, bcmath
+          coverage: none
+          tools: composer:v2
+
+      - name: Cache Composer
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.SERVICE_DIR }}/vendor
+          key: sso-backend-composer-${{ hashFiles('services/sso-backend/composer.lock') }}
+          restore-keys: sso-backend-composer-
+
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist --optimize-autoloader
+
+      - name: Prepare Laravel runtime directories
+        run: mkdir -p storage/app storage/framework/cache storage/framework/sessions storage/framework/testing storage/framework/views storage/logs bootstrap/cache
+
+      - name: Composer JSON validation
+        run: php -r 'json_decode(file_get_contents("composer.json"), true, 512, JSON_THROW_ON_ERROR); echo "composer-json-ok\n";'
+
+      - name: Pint changed backend code
+        run: vendor/bin/pint --test app bootstrap config routes tests
+
+      - name: PHPStan advisory
+        continue-on-error: true
+        run: composer analyse
+
+  tests:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: quality
+    defaults:
+      run:
+        working-directory: ${{ env.SERVICE_DIR }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          extensions: mbstring, pdo_pgsql, redis, intl, bcmath
+          coverage: none
+          tools: composer:v2
+
+      - name: Cache Composer
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.SERVICE_DIR }}/vendor
+          key: sso-backend-composer-${{ hashFiles('services/sso-backend/composer.lock') }}
+          restore-keys: sso-backend-composer-
+
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist --optimize-autoloader
+
+      - name: Prepare Laravel runtime directories
+        run: mkdir -p storage/app storage/framework/cache storage/framework/sessions storage/framework/testing storage/framework/views storage/logs bootstrap/cache
+
+      - name: Targeted Auth/OAuth tests
+        run: vendor/bin/pest tests/Feature/Auth tests/Feature/OAuth
+        env:
+          APP_ENV: testing
+          APP_KEY: base64:MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
+
+      - name: Full backend suite
+        run: vendor/bin/pest
+        env:
+          APP_ENV: testing
+          APP_KEY: base64:MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
+
+  container:
+    name: Container Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: tests
+    outputs:
+      image: ${{ steps.image.outputs.ref }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        if: github.ref == 'refs/heads/main' || inputs.push_image == true
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=sha-,format=short
+            type=ref,event=branch
+            type=raw,value=manual,enable=${{ github.event_name == 'workflow_dispatch' }}
+
+      - name: Build backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./services/sso-backend
+          file: ./services/sso-backend/Dockerfile
+          push: ${{ github.ref == 'refs/heads/main' || inputs.push_image == true }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=sso-backend
+          cache-to: type=gha,mode=max,scope=sso-backend
+          sbom: true
+          provenance: mode=max
+
+      - name: Select image ref
+        id: image
+        run: |
+          image_ref="$(echo '${{ steps.meta.outputs.tags }}' | head -n 1)"
+          echo "ref=${image_ref}" >> "$GITHUB_OUTPUT"
+          echo "Image: ${image_ref}" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Write deployment metadata
+        run: |
+          mkdir -p /tmp/sso-backend-ci
+          cat > /tmp/sso-backend-ci/release.env <<EOF
+          SSO_BACKEND_IMAGE=${{ steps.image.outputs.ref }}
+          GITHUB_SHA=${{ github.sha }}
+          GITHUB_REF=${{ github.ref }}
+          EOF
+
+      - name: Upload deployment metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: sso-backend-release-metadata
+          path: /tmp/sso-backend-ci/release.env

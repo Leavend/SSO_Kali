@@ -35,7 +35,7 @@ it('returns user claims from a valid access token', function (): void {
         'iss' => 'http://localhost',
         'aud' => 'sso-resource-api',
         'sub' => 'sub-userinfo-001',
-        'client_id' => 'prototype-app-a',
+        'client_id' => 'sso-admin-panel',
         'token_use' => 'access',
         'scope' => 'openid profile email',
         'jti' => 'jti-userinfo-001',

@@ -17,11 +17,22 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        $email = (string) env('SSO_ADMIN_EMAIL', 'admin@example.test');
+        $password = (string) env('SSO_ADMIN_PASSWORD', 'change-me-admin-password');
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        User::query()->updateOrCreate(
+            ['email' => $email],
+            [
+                'subject_id' => env('SSO_ADMIN_SUBJECT_ID', 'usr_admin'),
+                'password' => $password,
+                'given_name' => 'SSO',
+                'family_name' => 'Admin',
+                'display_name' => 'SSO Admin',
+                'role' => 'admin',
+                'email_verified_at' => now(),
+            ],
+        );
+
+        $this->call(PassportClientSeeder::class);
     }
 }

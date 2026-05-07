@@ -37,10 +37,4 @@ return [
         ],
     ],
 
-    'zitadel' => [
-        'engine' => env('SSO_ENGINE', 'zitadel'),
-        'public_issuer' => env('ZITADEL_BROKER_PUBLIC_ISSUER', env('ZITADEL_ISSUER', 'http://localhost:8080')),
-        'internal_issuer' => env('ZITADEL_BROKER_INTERNAL_ISSUER', env('ZITADEL_ISSUER', 'http://localhost:8080')),
-    ],
-
 ];

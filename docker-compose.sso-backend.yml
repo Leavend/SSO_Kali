@@ -1,0 +1,153 @@
+name: ${COMPOSE_PROJECT_NAME:-sso-backend-prod}
+
+x-sso-backend-env: &sso-backend-env
+  APP_ENV: ${APP_ENV:-production}
+  APP_DEBUG: ${APP_DEBUG:-false}
+  APP_KEY: ${SSO_BACKEND_APP_KEY}
+  APP_URL: ${SSO_BASE_URL}
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+
+  DB_CONNECTION: pgsql
+  DB_HOST: postgres
+  DB_PORT: 5432
+  DB_DATABASE: ${SSO_BACKEND_DB:-sso_backend}
+  DB_USERNAME: ${SSO_BACKEND_DB_USER:-${POSTGRES_ADMIN_USER:-postgres}}
+  DB_PASSWORD: ${SSO_BACKEND_DB_PASSWORD:-${POSTGRES_ADMIN_PASSWORD}}
+
+  CACHE_STORE: redis
+  SESSION_DRIVER: redis
+  QUEUE_CONNECTION: ${QUEUE_CONNECTION:-redis}
+  REDIS_CLIENT: phpredis
+  REDIS_HOST: redis
+  REDIS_PASSWORD: ${REDIS_PASSWORD}
+  REDIS_PORT: 6379
+  REDIS_DB: 2
+  REDIS_CACHE_DB: 3
+
+  SESSION_SECURE_COOKIE: ${SESSION_SECURE_COOKIE:-true}
+  SESSION_SAME_SITE: ${SESSION_SAME_SITE:-lax}
+  SESSION_ENCRYPT: ${SESSION_ENCRYPT:-true}
+  SSO_BACKEND_SESSION_COOKIE: ${SSO_BACKEND_SESSION_COOKIE:-__Host-broker_session}
+  SSO_BACKEND_SESSION_DOMAIN: ${SSO_BACKEND_SESSION_DOMAIN:-}
+
+  SSO_BASE_URL: ${SSO_BASE_URL}
+  SSO_ISSUER: ${SSO_ISSUER:-${SSO_BASE_URL}}
+  SSO_FRONTEND_URL: ${SSO_FRONTEND_URL:-${SSO_BASE_URL}}
+  SSO_LOGIN_URL: ${SSO_LOGIN_URL:-${SSO_BASE_URL}/login}
+  SSO_RESOURCE_AUDIENCE: ${SSO_RESOURCE_AUDIENCE:-sso-resource-api}
+
+  OIDC_SIGNING_ALG: ${OIDC_SIGNING_ALG:-ES256}
+  OIDC_SIGNING_KID: ${OIDC_SIGNING_KID:-sso-main-key}
+  OIDC_PRIVATE_KEY_PATH: ${OIDC_PRIVATE_KEY_PATH:-/app/storage/app/oidc/private.pem}
+  OIDC_PUBLIC_KEY_PATH: ${OIDC_PUBLIC_KEY_PATH:-/app/storage/app/oidc/public.pem}
+  OIDC_ACCESS_TOKEN_TTL: ${OIDC_ACCESS_TOKEN_TTL:-900}
+  OIDC_ID_TOKEN_TTL: ${OIDC_ID_TOKEN_TTL:-900}
+  OIDC_REFRESH_TOKEN_TTL_DAYS: ${OIDC_REFRESH_TOKEN_TTL_DAYS:-30}
+  OIDC_REFRESH_TOKEN_FAMILY_TTL_DAYS: ${OIDC_REFRESH_TOKEN_FAMILY_TTL_DAYS:-90}
+  OIDC_AUTH_REQUEST_TTL: ${OIDC_AUTH_REQUEST_TTL:-300}
+  OIDC_AUTHORIZATION_CODE_TTL: ${OIDC_AUTHORIZATION_CODE_TTL:-60}
+
+  ADMIN_PANEL_CLIENT_ID: ${ADMIN_PANEL_CLIENT_ID:-sso-admin-panel}
+  ADMIN_PANEL_ADMIN_EMAIL: ${ADMIN_PANEL_ADMIN_EMAIL:-admin@example.com}
+  ADMIN_PANEL_SESSION_MANAGEMENT_ROLES: ${ADMIN_PANEL_SESSION_MANAGEMENT_ROLES:-admin}
+  ADMIN_PANEL_REQUIRE_MFA: ${ADMIN_PANEL_REQUIRE_MFA:-false}
+  ADMIN_PANEL_MFA_ACCEPTED_AMR: ${ADMIN_PANEL_MFA_ACCEPTED_AMR:-pwd}
+
+  OCTANE_SERVER: frankenphp
+  OCTANE_HTTPS: ${OCTANE_HTTPS:-true}
+  OCTANE_GARBAGE_THRESHOLD_MB: ${OCTANE_GARBAGE_THRESHOLD_MB:-50}
+  OCTANE_MAX_EXECUTION_TIME: ${OCTANE_MAX_EXECUTION_TIME:-30}
+  SSO_BACKEND_OCTANE_HOST: 0.0.0.0
+  SSO_BACKEND_OCTANE_PORT: 8000
+  SSO_BACKEND_OCTANE_WORKERS: ${SSO_BACKEND_OCTANE_WORKERS:-auto}
+  SSO_BACKEND_OCTANE_MAX_REQUESTS: ${SSO_BACKEND_OCTANE_MAX_REQUESTS:-1000}
+  SSO_BACKEND_WAIT_FOR_DB: ${SSO_BACKEND_WAIT_FOR_DB:-false}
+  SSO_BACKEND_PASSPORT_KEYS: ${SSO_BACKEND_PASSPORT_KEYS:-false}
+  SSO_BACKEND_EVENT_CACHE: ${SSO_BACKEND_EVENT_CACHE:-true}
+  SSO_BACKEND_FIX_PERMISSIONS: ${SSO_BACKEND_FIX_PERMISSIONS:-true}
+
+services:
+  postgres:
+    image: ${POSTGRES_IMAGE:-postgres:17.2-alpine}
+    restart: unless-stopped
+    init: true
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-${SSO_BACKEND_DB:-sso_backend}}
+      POSTGRES_USER: ${POSTGRES_ADMIN_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
+      interval: 30s
+      timeout: 10s
+      retries: 8
+      start_period: 20s
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - sso-backend
+    mem_limit: ${POSTGRES_MEM_LIMIT:-1024m}
+    cpus: ${POSTGRES_CPUS:-1.00}
+
+  redis:
+    image: ${REDIS_IMAGE:-redis:7.4.2-alpine}
+    restart: unless-stopped
+    init: true
+    command:
+      - redis-server
+      - --requirepass
+      - ${REDIS_PASSWORD}
+      - --appendonly
+      - "yes"
+      - --appendfsync
+      - everysec
+      - --maxmemory
+      - ${REDIS_MAXMEMORY:-192mb}
+      - --maxmemory-policy
+      - allkeys-lru
+    healthcheck:
+      test: ["CMD-SHELL", "REDISCLI_AUTH=$$REDIS_PASSWORD redis-cli ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 8
+      start_period: 15s
+    volumes:
+      - redis-data:/data
+    networks:
+      - sso-backend
+    mem_limit: ${REDIS_MEM_LIMIT:-256m}
+    cpus: ${REDIS_CPUS:-0.25}
+
+  sso-backend:
+    image: ${SSO_IMAGE_PREFIX:-ghcr.io/leavend/sso-kali}/sso-backend:${SSO_DEPLOY_TAG:-main}
+    restart: unless-stopped
+    init: true
+    environment: *sso-backend-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8000/up || curl -fsS http://127.0.0.1:8000/health || curl -fsS http://127.0.0.1:8000/.well-known/openid-configuration || exit 1"]
+      interval: 30s
+      timeout: 15s
+      retries: 8
+      start_period: 60s
+    volumes:
+      - sso-backend-storage:/app/storage
+      - ${OIDC_KEYS_DIR:-./.secrets/oidc}:/app/storage/app/oidc:ro
+    ports:
+      - ${SSO_BACKEND_BIND:-127.0.0.1:8200}:8000
+    networks:
+      - sso-backend
+    mem_limit: ${SSO_BACKEND_MEM_LIMIT:-768m}
+    cpus: ${SSO_BACKEND_CPUS:-0.75}
+
+networks:
+  sso-backend:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  redis-data:
+  sso-backend-storage:

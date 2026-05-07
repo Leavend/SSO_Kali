@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use App\Exceptions\InvalidOidcConfigurationException;
-use App\Services\Oidc\PrototypeOidcCatalog;
+use App\Services\Oidc\OidcCatalog;
 use Illuminate\Support\Facades\Config;
 use Tests\TestCase;
 
@@ -12,12 +12,10 @@ it('exposes an OpenID discovery document', function (): void {
     $this->getJson('/.well-known/openid-configuration')
         ->assertOk()
         ->assertJsonPath('issuer', config('sso.issuer'))
-        ->assertJsonPath('authorization_endpoint', config('sso.base_url').'/authorize')
-        ->assertJsonPath('token_endpoint', config('sso.base_url').'/token')
-        ->assertJsonPath('jwks_uri', config('sso.base_url').'/jwks')
-        ->assertJsonPath('end_session_endpoint', config('sso.base_url').'/connect/logout')
-        ->assertJsonPath('session_registration_endpoint', config('sso.base_url').'/connect/register-session')
-        ->assertJsonPath('backchannel_logout_supported', true);
+        ->assertJsonPath('authorization_endpoint', config('sso.base_url').'/oauth/authorize')
+        ->assertJsonPath('token_endpoint', config('sso.base_url').'/oauth/token')
+        ->assertJsonPath('jwks_uri', config('sso.base_url').'/.well-known/jwks.json')
+        ->assertJsonPath('userinfo_endpoint', config('sso.base_url').'/userinfo');
 });
 
 it('publishes a local jwks document', function (): void {
@@ -60,9 +58,9 @@ it('includes all required RFC 8414 fields', function (): void {
     /** @var TestCase $this */
     $this->getJson('/.well-known/openid-configuration')
         ->assertJsonPath('issuer', fn ($value) => is_string($value) && $value !== '')
-        ->assertJsonPath('authorization_endpoint', fn ($value) => str_ends_with($value, '/authorize'))
-        ->assertJsonPath('token_endpoint', fn ($value) => str_ends_with($value, '/token'))
-        ->assertJsonPath('jwks_uri', fn ($value) => str_ends_with($value, '/jwks'))
+        ->assertJsonPath('authorization_endpoint', fn ($value) => str_ends_with($value, '/oauth/authorize'))
+        ->assertJsonPath('token_endpoint', fn ($value) => str_ends_with($value, '/oauth/token'))
+        ->assertJsonPath('jwks_uri', fn ($value) => str_ends_with($value, '/.well-known/jwks.json'))
         ->assertJsonPath('response_types_supported', fn ($value) => in_array('code', $value, true));
 });
 
@@ -91,8 +89,8 @@ it('includes PKCE support', function (): void {
 it('includes token revocation support', function (): void {
     /** @var TestCase $this */
     $this->getJson('/.well-known/openid-configuration')
-        ->assertJsonPath('revocation_endpoint', fn ($value) => str_ends_with($value, '/revocation'))
-        ->assertJsonPath('revocation_endpoint_auth_methods_supported', fn ($value) => in_array('client_secret_post', $value, true));
+        ->assertJsonPath('revocation_endpoint', fn ($value) => str_ends_with($value, '/oauth/revoke'))
+        ->assertJsonPath('token_endpoint_auth_methods_supported', fn ($value) => in_array('client_secret_post', $value, true));
 });
 
 it('includes session management support', function (): void {
@@ -103,11 +101,10 @@ it('includes session management support', function (): void {
         ->assertJsonPath('backchannel_logout_session_supported', true);
 });
 
-it('includes custom broker endpoints', function (): void {
+it('includes native SSO frontend integration fields', function (): void {
     /** @var TestCase $this */
     $this->getJson('/.well-known/openid-configuration')
-        ->assertJsonPath('session_registration_endpoint', fn ($value) => str_ends_with($value, '/connect/register-session'))
-        ->assertJsonPath('resource_endpoint', fn ($value) => str_ends_with($value, '/api/profile'));
+        ->assertJsonPath('userinfo_endpoint', fn ($value) => str_ends_with($value, '/userinfo'));
 });
 
 it('respects rate limits on discovery endpoint', function (): void {
@@ -201,7 +198,7 @@ it('returns 503 error when base_url is invalid URL', function (): void {
 
 it('returns 503 error when signing keys cannot be loaded', function (): void {
     /** @var TestCase $this */
-    $catalog = new PrototypeOidcCatalog(app('App\Services\Oidc\SigningKeyService'));
+    $catalog = new OidcCatalog(app('App\Services\Oidc\SigningKeyService'));
 
     expect(fn () => $catalog->discovery())
         ->toThrow(InvalidOidcConfigurationException::class);

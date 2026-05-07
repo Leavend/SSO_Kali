@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Models\User;
+use App\Services\Directory\DatabaseDirectoryUserProvider;
+use App\Services\Directory\DirectoryUserProvider;
 use App\Services\Oidc\DownstreamClientRegistry;
 use App\Support\Security\AuthThrottleResponder;
 use App\Support\Security\BrokerSessionCookiePolicy;
@@ -12,18 +14,34 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Passport\Passport;
 
 class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
         $this->app->singleton(DownstreamClientRegistry::class);
+        $this->app->bind(DirectoryUserProvider::class, DatabaseDirectoryUserProvider::class);
     }
 
     public function boot(): void
     {
+        $this->configurePassport();
         $this->assertBrokerSessionCookiePolicy();
         $this->registerRateLimiters();
+    }
+
+    private function configurePassport(): void
+    {
+        Passport::useClientModel(\App\Models\Passport\Client::class);
+        Passport::authorizationView('passport.authorize');
+        Passport::tokensCan([
+            'openid' => 'OpenID Connect sign-in',
+            'profile' => 'Basic profile claims',
+            'email' => 'Email claims',
+        ]);
+        Passport::tokensExpireIn(now()->addMinutes((int) config('sso.ttl.access_token_minutes', 15)));
+        Passport::refreshTokensExpireIn(now()->addDays((int) config('sso.ttl.refresh_token_days', 30)));
     }
 
     private function assertBrokerSessionCookiePolicy(): void
