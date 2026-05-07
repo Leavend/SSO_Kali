@@ -9,7 +9,7 @@ use Illuminate\Console\Command;
 
 final class ValidateProductionOidcClients extends Command
 {
-    protected $signature = 'sso:oidc-clients:validate-production';
+    protected $signature = 'oidc:validate-production-clients';
 
     protected $description = 'Validate the production OIDC client registry hardening policy.';
 
