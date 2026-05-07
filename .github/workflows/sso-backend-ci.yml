@@ -115,6 +115,12 @@ jobs:
       - name: Prepare Laravel runtime directories
         run: mkdir -p storage/app storage/framework/cache storage/framework/sessions storage/framework/testing storage/framework/views storage/logs bootstrap/cache
 
+      - name: Generate Passport test keys
+        run: php artisan passport:keys --force --no-interaction
+        env:
+          APP_ENV: testing
+          APP_KEY: base64:MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
+
       - name: Targeted Auth/OAuth tests
         run: vendor/bin/pest tests/Feature/Auth tests/Feature/OAuth
         env:
