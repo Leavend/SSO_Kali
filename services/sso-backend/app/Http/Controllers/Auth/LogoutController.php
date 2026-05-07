@@ -18,10 +18,13 @@ final class LogoutController
         SsoSessionCookieResolver $resolver,
         SsoSessionCookieFactory $cookies,
     ): JsonResponse {
-        $logout->execute($resolver->resolve($request));
+        $result = $logout->execute($resolver->resolve($request));
 
         return response()
-            ->json(['authenticated' => false])
+            ->json([
+                'authenticated' => false,
+                'revoked' => $result->revoked,
+            ])
             ->withCookie($cookies->forget());
     }
 }

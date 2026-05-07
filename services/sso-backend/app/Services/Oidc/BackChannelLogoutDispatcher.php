@@ -4,12 +4,17 @@ declare(strict_types=1);
 
 namespace App\Services\Oidc;
 
+use App\Actions\Audit\RecordLogoutAuditEventAction;
 use App\Jobs\DispatchBackChannelLogoutJob;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
 final class BackChannelLogoutDispatcher
 {
+    public function __construct(
+        private readonly RecordLogoutAuditEventAction $audit,
+    ) {}
+
     /**
      * @param  list<array<string, string>>  $registrations
      * @return list<array<string, int|string>>
@@ -44,12 +49,24 @@ final class BackChannelLogoutDispatcher
                 'error' => $exception->getMessage(),
             ]);
 
+            $this->audit->execute('backchannel_logout_failed', [
+                'client_id' => (string) $registration['client_id'],
+                'session_id' => $sessionId,
+                'reason' => 'queue_dispatch_failed',
+            ]);
+
             return [
                 'client_id' => (string) $registration['client_id'],
                 'status' => 'failed',
                 'http_status' => 0,
             ];
         }
+
+        $this->audit->execute('backchannel_logout_queued', [
+            'client_id' => (string) $registration['client_id'],
+            'session_id' => $sessionId,
+            'http_status' => 202,
+        ]);
 
         return [
             'client_id' => (string) $registration['client_id'],

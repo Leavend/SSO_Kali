@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Oidc;
 
+use App\Actions\Audit\RecordLogoutAuditEventAction;
 use App\Services\Oidc\AccessTokenGuard;
 use App\Services\Oidc\AccessTokenRevocationStore;
 use App\Services\Oidc\BackChannelLogoutDispatcher;
@@ -30,6 +31,7 @@ final class PerformSingleSignOut
         private readonly LogicalSessionStore $sessions,
         private readonly ZitadelBrokerService $broker,
         private readonly LogoutOutcomeMetrics $metrics,
+        private readonly RecordLogoutAuditEventAction $audit,
     ) {}
 
     public function handle(Request $request): JsonResponse
@@ -38,11 +40,17 @@ final class PerformSingleSignOut
 
         if ($context === null) {
             $this->metrics->recordFailure('invalid_token');
+            $this->audit->execute('sso_logout_failed', ['reason' => 'invalid_token']);
 
             return OidcErrorResponse::json('invalid_token', 'The bearer token is invalid.', 401);
         }
 
         [$sessionId, $subjectId] = $context;
+        $this->audit->execute('sso_logout_started', [
+            'sid' => $sessionId,
+            'sub' => $subjectId,
+        ]);
+
         $records = $this->refreshTokens->revokeSubject($subjectId);
 
         return $this->completeLogout($sessionId, $subjectId, $records);
@@ -61,6 +69,12 @@ final class PerformSingleSignOut
         $notifications = $this->dispatchLogout($subjectId, $sessionIds);
         $this->clearLocalSessions($subjectId, $sessionIds);
         $this->metrics->recordSuccess();
+        $this->audit->execute('sso_logout_completed', [
+            'sid' => $sessionId,
+            'sub' => $subjectId,
+            'session_count' => count($sessionIds),
+            'notification_count' => count($notifications),
+        ]);
 
         return $this->successResponse($sessionId, $sessionIds, $notifications);
     }

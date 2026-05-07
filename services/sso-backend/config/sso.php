@@ -16,6 +16,11 @@ return [
         'request_timing_sample_rate' => (float) env('SSO_REQUEST_TIMING_SAMPLE_RATE', 0.0),
         'request_timing_slow_ms' => (float) env('SSO_REQUEST_TIMING_SLOW_MS', 500),
     ],
+    'logout' => [
+        'backchannel_timeout_seconds' => (int) env('OIDC_BACKCHANNEL_LOGOUT_TIMEOUT_SECONDS', 5),
+        'backchannel_backoff_seconds' => $csv(env('OIDC_BACKCHANNEL_LOGOUT_BACKOFF_SECONDS', '10,30,90')),
+        'backchannel_require_https' => (bool) env('OIDC_BACKCHANNEL_LOGOUT_REQUIRE_HTTPS', true),
+    ],
     'upstream_token_key' => env('UPSTREAM_TOKEN_KEY', ''),
     'default_scopes' => [
         'openid',
