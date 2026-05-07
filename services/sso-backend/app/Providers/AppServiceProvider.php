@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Models\Passport\Client;
 use App\Models\User;
 use App\Services\Directory\DatabaseDirectoryUserProvider;
 use App\Services\Directory\DirectoryUserProvider;
@@ -33,7 +34,7 @@ class AppServiceProvider extends ServiceProvider
 
     private function configurePassport(): void
     {
-        Passport::useClientModel(\App\Models\Passport\Client::class);
+        Passport::useClientModel(Client::class);
         Passport::authorizationView('passport.authorize');
         Passport::tokensCan([
             'openid' => 'OpenID Connect sign-in',

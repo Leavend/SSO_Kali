@@ -5,9 +5,11 @@ declare(strict_types=1);
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\LogoutController;
 use App\Http\Controllers\Auth\SessionController;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/login', function (\Illuminate\Http\Request $request): \Illuminate\Http\RedirectResponse {
+Route::get('/login', function (Request $request): RedirectResponse {
     $target = rtrim((string) config('sso.login_url'), '/');
     $returnTo = $request->query('return_to');
 

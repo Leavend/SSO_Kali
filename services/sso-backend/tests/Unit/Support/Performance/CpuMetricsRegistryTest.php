@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Support\Performance;
 
+use App\Support\Cache\AtomicCounterStore;
 use App\Support\Performance\CpuMetricsRegistry;
-use Tests\TestCase;
 
 it('records JWT sign operation', function (): void {
-    $metrics = new CpuMetricsRegistry(new \App\Support\Cache\AtomicCounterStore());
+    $metrics = new CpuMetricsRegistry(new AtomicCounterStore);
 
     $metrics->recordJwtSign(1.5);
 
@@ -17,7 +17,7 @@ it('records JWT sign operation', function (): void {
 });
 
 it('records JWT decode operation', function (): void {
-    $metrics = new CpuMetricsRegistry(new \App\Support\Cache\AtomicCounterStore());
+    $metrics = new CpuMetricsRegistry(new AtomicCounterStore);
 
     $metrics->recordJwtDecode(0.75);
 
@@ -26,7 +26,7 @@ it('records JWT decode operation', function (): void {
 });
 
 it('records key material fetch', function (): void {
-    $metrics = new CpuMetricsRegistry(new \App\Support\Cache\AtomicCounterStore());
+    $metrics = new CpuMetricsRegistry(new AtomicCounterStore);
 
     $metrics->recordKeyMaterialFetch(2.0);
 
@@ -35,7 +35,7 @@ it('records key material fetch', function (): void {
 });
 
 it('records cache operations', function (): void {
-    $metrics = new CpuMetricsRegistry(new \App\Support\Cache\AtomicCounterStore());
+    $metrics = new CpuMetricsRegistry(new AtomicCounterStore);
 
     $metrics->recordCacheGet('test:key', true);
     $metrics->recordCacheGet('test:key2', false);
@@ -49,7 +49,7 @@ it('records cache operations', function (): void {
 });
 
 it('calculates cache hit ratio correctly', function (): void {
-    $metrics = new CpuMetricsRegistry(new \App\Support\Cache\AtomicCounterStore());
+    $metrics = new CpuMetricsRegistry(new AtomicCounterStore);
 
     $metrics->recordCacheGet('test:key', true);  // hit
     $metrics->recordCacheGet('test:key', true);  // hit
@@ -61,7 +61,7 @@ it('calculates cache hit ratio correctly', function (): void {
 });
 
 it('aggregates JWT operations total', function (): void {
-    $metrics = new CpuMetricsRegistry(new \App\Support\Cache\AtomicCounterStore());
+    $metrics = new CpuMetricsRegistry(new AtomicCounterStore);
 
     $metrics->recordJwtSign();
     $metrics->recordJwtSign();
@@ -74,7 +74,7 @@ it('aggregates JWT operations total', function (): void {
 });
 
 it('resets all metrics', function (): void {
-    $metrics = new CpuMetricsRegistry(new \App\Support\Cache\AtomicCounterStore());
+    $metrics = new CpuMetricsRegistry(new AtomicCounterStore);
 
     $metrics->recordJwtSign();
     $metrics->recordCacheGet('test', true);
@@ -88,7 +88,7 @@ it('resets all metrics', function (): void {
 });
 
 it('does not record metrics when disabled', function (): void {
-    $metrics = new CpuMetricsRegistry(new \App\Support\Cache\AtomicCounterStore(), false);
+    $metrics = new CpuMetricsRegistry(new AtomicCounterStore, false);
 
     $metrics->recordJwtSign();
 

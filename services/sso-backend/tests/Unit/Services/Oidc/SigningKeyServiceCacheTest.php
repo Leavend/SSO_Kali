@@ -4,12 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\Oidc;
 
-use App\Exceptions\InvalidOidcConfigurationException;
 use App\Services\Oidc\SigningKeyService;
-use Tests\TestCase;
 
 it('caches key material on first access', function (): void {
-    $service = new SigningKeyService();
+    $service = new SigningKeyService;
 
     // First access triggers cache population
     $reflection = new \ReflectionClass($service);
@@ -27,7 +25,7 @@ it('caches key material on first access', function (): void {
 });
 
 it('caches OpenSSL details on first access', function (): void {
-    $service = new SigningKeyService();
+    $service = new SigningKeyService;
 
     // Initially, details cache is null
     $reflection = new \ReflectionClass($service);
@@ -44,7 +42,7 @@ it('caches OpenSSL details on first access', function (): void {
 });
 
 it('invalidates cache when new keys are generated', function (): void {
-    $service = new SigningKeyService();
+    $service = new SigningKeyService;
 
     // Check if we're in local environment where key generation is allowed
     if (! in_array(app()->environment(), ['local', 'testing'], true)) {
@@ -67,7 +65,7 @@ it('invalidates cache when new keys are generated', function (): void {
 });
 
 it('does not read keys from disk on subsequent operations', function (): void {
-    $service = new SigningKeyService();
+    $service = new SigningKeyService;
 
     $reflection = new \ReflectionClass($service);
     $materialProperty = $reflection->getProperty('materialCache');
@@ -91,14 +89,14 @@ it('throws exception when keys do not exist in production', function (): void {
     // In local/testing, files exist or can be generated
     // In production, files must exist
 
-    $service = new SigningKeyService();
+    $service = new SigningKeyService;
 
     // We're in testing environment, so keys can be generated
     expect($service)->toBeInstanceOf(SigningKeyService::class);
 });
 
 it('returns consistent JWKS document', function (): void {
-    $service = new SigningKeyService();
+    $service = new SigningKeyService;
 
     $jwks1 = $service->jwks();
     $jwks2 = $service->jwks();

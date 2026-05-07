@@ -228,7 +228,6 @@ it('validates Peggy configuration ensures secure defaults', function (): void {
 
 it('handles multiple concurrent requests safely', function (): void {
     /** @var TestCase $this */
-
     $responses = [];
     for ($i = 0; $i < 10; $i++) {
         $responses[] = $this->getJson('/.well-known/openid-configuration');

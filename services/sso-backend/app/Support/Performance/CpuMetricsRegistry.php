@@ -9,15 +9,25 @@ use App\Support\Cache\AtomicCounterStore;
 final class CpuMetricsRegistry
 {
     private const PREFIX = 'perf:cpu:';
+
     private const JWT_SIGN = 'jwt_sign';
+
     private const JWT_DECODE = 'jwt_decode';
+
     private const KEY_MATERIAL_FETCH = 'key_material_fetch';
+
     private const KEY_DETAILS_FETCH = 'key_details_fetch';
+
     private const CACHE_GET = 'cache_get';
+
     private const CACHE_PUT = 'cache_put';
+
     private const CACHE_INCR = 'cache_incr';
+
     private const HTTP_OUTBOUND = 'http_outbound';
+
     private const DB_QUERY = 'db_query';
+
     private const TOTAL_OPERATIONS = 'total_operations';
 
     public function __construct(

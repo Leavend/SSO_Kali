@@ -7,6 +7,7 @@ namespace App\Support\Cache;
 use Carbon\Carbon;
 use DateInterval;
 use DateTimeInterface;
+use Illuminate\Cache\RedisStore;
 use Illuminate\Support\Facades\Cache;
 use Throwable;
 
@@ -23,7 +24,7 @@ final class AtomicCounterStore
     public function increment(string $key, int $amount = 1, DateTimeInterface|DateInterval|int|null $ttl = null): int
     {
         try {
-            if (Cache::getStore() instanceof \Illuminate\Cache\RedisStore) {
+            if (Cache::getStore() instanceof RedisStore) {
                 return $this->redisIncrement($key, $amount, $ttl);
             }
 
@@ -43,6 +44,7 @@ final class AtomicCounterStore
             return (int) Cache::get($key, $default);
         } catch (Throwable $exception) {
             report($exception);
+
             return $default;
         }
     }

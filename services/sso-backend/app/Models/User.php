@@ -9,8 +9,8 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Laravel\Passport\HasApiTokens;
 use Illuminate\Support\Carbon;
+use Laravel\Passport\HasApiTokens;
 
 /**
  * @property int $id

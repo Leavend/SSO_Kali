@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Support\Cache;
 
+use App\Support\Cache\AtomicCounterStore;
 use Illuminate\Support\Facades\Cache;
-use Tests\TestCase;
 
 it('increments counter by default amount', function (): void {
-    $counter = new \App\Support\Cache\AtomicCounterStore();
+    $counter = new AtomicCounterStore;
     $key = 'test:default';
 
     $counter->increment($key);
@@ -17,7 +17,7 @@ it('increments counter by default amount', function (): void {
 });
 
 it('increments counter by custom amount', function (): void {
-    $counter = new \App\Support\Cache\AtomicCounterStore();
+    $counter = new AtomicCounterStore;
     $key = 'test:custom';
 
     $counter->increment($key, 5);
@@ -26,7 +26,7 @@ it('increments counter by custom amount', function (): void {
 });
 
 it('resets counter to zero', function (): void {
-    $counter = new \App\Support\Cache\AtomicCounterStore();
+    $counter = new AtomicCounterStore;
     $key = 'test:reset';
 
     $counter->increment($key, 10);
@@ -37,7 +37,7 @@ it('resets counter to zero', function (): void {
 });
 
 it('maintains counter value after multiple increments', function (): void {
-    $counter = new \App\Support\Cache\AtomicCounterStore();
+    $counter = new AtomicCounterStore;
     $key = 'test:multiple';
 
     $counter->increment($key, 2);
@@ -48,14 +48,14 @@ it('maintains counter value after multiple increments', function (): void {
 });
 
 it('returns default value for non-existent key', function (): void {
-    $counter = new \App\Support\Cache\AtomicCounterStore();
+    $counter = new AtomicCounterStore;
 
     expect($counter->get('test:nonexistent', 42))->toBe(42);
     expect($counter->get('test:nonexistent'))->toBe(0);
 });
 
 it('supports optional TTL parameter', function (): void {
-    $counter = new \App\Support\Cache\AtomicCounterStore();
+    $counter = new AtomicCounterStore;
     $key = 'test:ttl:'.uniqid();
 
     // With TTL (implementation specific)
@@ -65,7 +65,7 @@ it('supports optional TTL parameter', function (): void {
 });
 
 it('handles cache errors gracefully', function (): void {
-    $counter = new \App\Support\Cache\AtomicCounterStore();
+    $counter = new AtomicCounterStore;
 
     // In production, Cache::getStore() would throw
     // We can't easily test this without full mocking

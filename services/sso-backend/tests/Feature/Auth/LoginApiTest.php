@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\SsoSession;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Symfony\Component\HttpFoundation\Cookie;
 
 it('rejects invalid login credentials without issuing an SSO cookie', function (): void {
     User::factory()->create([
@@ -38,7 +39,7 @@ it('creates an HttpOnly SSO session cookie for valid credentials', function (): 
         ->assertCookie(config('sso.session.cookie', 'sso_session'));
 
     $cookie = collect($response->headers->getCookies())
-        ->first(fn (Symfony\Component\HttpFoundation\Cookie $cookie): bool => $cookie->getName() === config('sso.session.cookie', 'sso_session'));
+        ->first(fn (Cookie $cookie): bool => $cookie->getName() === config('sso.session.cookie', 'sso_session'));
 
     expect($cookie)->not->toBeNull()
         ->and($cookie->isHttpOnly())->toBeTrue();

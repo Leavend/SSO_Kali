@@ -13,6 +13,7 @@ use RuntimeException;
 final class SigningKeyService
 {
     private ?array $materialCache = null;
+
     private ?array $detailsCache = null;
 
     public function sign(array $claims): string

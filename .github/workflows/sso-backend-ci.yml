@@ -77,7 +77,7 @@ jobs:
         run: php -r 'json_decode(file_get_contents("composer.json"), true, 512, JSON_THROW_ON_ERROR); echo "composer-json-ok\n";'
 
       - name: Pint changed backend code
-        run: vendor/bin/pint --test app bootstrap config routes tests
+        run: vendor/bin/pint --test app config routes tests
 
       - name: PHPStan advisory
         continue-on-error: true

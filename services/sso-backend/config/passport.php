@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Middleware\SyncSsoSessionToWebGuard;
+
 return [
 
     /*
@@ -17,7 +19,7 @@ return [
 
     'middleware' => [
         'web',
-        \App\Http\Middleware\SyncSsoSessionToWebGuard::class,
+        SyncSsoSessionToWebGuard::class,
     ],
 
     /*
