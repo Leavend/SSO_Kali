@@ -59,7 +59,7 @@ final class ValidateProductionOidcClientRegistryAction
             array_push($errors, ...$this->validateProductionUri($client, $uri));
         }
 
-        if ($client->backchannelLogoutUri !== null) {
+        if ($client->backchannelLogoutUri !== null && $client->backchannelLogoutUri !== '') {
             array_push($errors, ...$this->validateProductionUri($client, $client->backchannelLogoutUri));
         }
 
