@@ -8,8 +8,8 @@ use Illuminate\Support\Facades\Route as RouteFacade;
 it('keeps the production route inventory intentional', function (): void {
     $routes = collect(RouteFacade::getRoutes()->getRoutes());
 
-    expect($routes)->toHaveCount(49);
-    expect(applicationRoutes($routes))->toHaveCount(37);
+    expect($routes)->toHaveCount(50);
+    expect(applicationRoutes($routes))->toHaveCount(38);
     expect(vendorRoutes($routes))->toHaveCount(12);
 });
 
@@ -72,7 +72,7 @@ function routeCategory(Route $route): string
         return 'auth';
     }
 
-    if (in_array($uri, ['/', 'up', 'health', 'ready', '_internal/performance-metrics'], true)) {
+    if (in_array($uri, ['/', 'up', 'health', 'ready', '_internal/performance-metrics', '_internal/queue-metrics'], true)) {
         return 'system';
     }
 
@@ -95,6 +95,7 @@ function expectedApplicationRouteSignatures(): array
         'GET|HEAD .well-known/openid-configuration',
         'GET|HEAD /',
         'GET|HEAD _internal/performance-metrics',
+        'GET|HEAD _internal/queue-metrics',
         'POST admin/api/client-integrations/contract',
         'GET|HEAD admin/api/client-integrations/registrations',
         'POST admin/api/client-integrations/stage',
