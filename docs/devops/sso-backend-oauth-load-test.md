@@ -22,11 +22,14 @@ Recommended client metadata:
 ```text
 client_id: sso-load-test-client
 client_type: confidential
+grant_type: client_credentials for non-user baseline, authorization_code for browser-mediated lifecycle
 redirect_uri: https://api-sso.timeh.my.id/_load-test/callback-disabled
 scopes: openid profile email offline_access
 backchannel_logout_uri: null or controlled internal test receiver
 post_logout_redirect_uri: https://api-sso.timeh.my.id/up
 ```
+
+Store the secret outside Git and inject it as `SSO_LOAD_TEST_CLIENT_SECRET` only in the operator shell or CI secret store.
 
 The redirect URI should not point to a real app callback unless the app is part of the test.
 

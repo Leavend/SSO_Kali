@@ -5,7 +5,7 @@ set -Eeuo pipefail
 HOST=""
 USER_NAME=""
 PORT="22"
-PROJECT_DIR="/opt/sso-kali"
+PROJECT_DIR="/opt/sso-backend-prod"
 ENV_FILE=""
 COMPOSE_FILE=""
 SERVICE="sso-backend"
@@ -36,7 +36,7 @@ Options:
   --host HOST             VPS host or SSH alias.
   --user USER             SSH user.
   --port PORT             SSH port. Default: 22.
-  --project-dir DIR       Remote project dir. Default: /opt/sso-kali.
+  --project-dir DIR       Remote project dir. Default: /opt/sso-backend-prod.
   --env-file FILE         Remote env file. Default: <project-dir>/.env.prod.
   --compose-file FILE     Remote compose file. Default: <project-dir>/docker-compose.main.yml.
   --start-services        Pull and start postgres, redis, and sso-backend before smoke.
