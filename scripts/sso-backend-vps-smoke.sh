@@ -13,6 +13,8 @@ START_SERVICES="false"
 TAIL_LINES="160"
 PUBLIC_BASE_URL=""
 SSH_IDENTITY_FILE=""
+EXPECTED_SERVICES="postgres redis sso-backend sso-backend-worker"
+FORBIDDEN_SERVICES="sso-admin-vue"
 
 log() {
   printf '[sso-backend-vps-smoke] %s\n' "$*"
@@ -43,6 +45,8 @@ Options:
   --public-base-url URL   Optional public base URL to smoke after internal checks.
   --ssh-identity-file FILE Optional SSH private key file for remote smoke.
   --tail-lines N          Log lines printed on failure. Default: 160.
+  --expected-services CSV Expected compose services. Default: postgres,redis,sso-backend,sso-backend-worker.
+  --forbidden-services CSV Forbidden compose services. Default: sso-admin-vue.
   -h, --help              Show this help.
 USAGE
 }
@@ -59,6 +63,8 @@ while [[ $# -gt 0 ]]; do
     --public-base-url) PUBLIC_BASE_URL="${2:-}"; shift 2 ;;
     --ssh-identity-file) SSH_IDENTITY_FILE="${2:-}"; shift 2 ;;
     --tail-lines) TAIL_LINES="${2:-160}"; shift 2 ;;
+    --expected-services) EXPECTED_SERVICES="${2//,/ }"; shift 2 ;;
+    --forbidden-services) FORBIDDEN_SERVICES="${2//,/ }"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) die "Unknown argument: $1" ;;
   esac
@@ -109,6 +115,39 @@ smoke_url() {
   log "$label OK ($code): $url"
 }
 
+verify_topology() {
+  local service
+
+  for service in $EXPECTED_SERVICES; do
+    if ! compose ps -q "$service" >/dev/null 2>&1 || [[ -z "$(compose ps -q "$service" 2>/dev/null || true)" ]]; then
+      compose ps >&2 || true
+      die "expected service missing: $service"
+    fi
+    log "expected service present: $service"
+  done
+
+  for service in $FORBIDDEN_SERVICES; do
+    if compose ps -a --format '{{.Service}}' | grep -Fxq "$service"; then
+      compose ps -a >&2 || true
+      die "forbidden service still present: $service"
+    fi
+    log "forbidden service absent: $service"
+  done
+}
+
+verify_worker_logs() {
+  local worker_id
+  worker_id="$(compose ps -q sso-backend-worker 2>/dev/null || true)"
+  [[ -n "$worker_id" ]] || die 'sso-backend-worker container is not running or not created'
+
+  if docker logs --tail "$TAIL_LINES" "$worker_id" 2>&1 | grep -Eiq '(fatal error|uncaught|exception|segmentation fault|could not open input file)'; then
+    docker logs --tail "$TAIL_LINES" "$worker_id" >&2 || true
+    die 'sso-backend-worker logs contain immediate failure markers'
+  fi
+
+  log 'sso-backend-worker logs do not contain immediate failure markers'
+}
+
 command -v docker >/dev/null 2>&1 || die 'docker missing'
 command -v curl >/dev/null 2>&1 || die 'curl missing'
 docker compose version >/dev/null 2>&1 || die 'docker compose plugin missing'
@@ -147,6 +186,9 @@ if [[ -n "${PUBLIC_BASE_URL:-}" ]]; then
   smoke_url 'public jwks' "$public_base/.well-known/jwks.json" '^(200)$'
 fi
 
+verify_topology
+verify_worker_logs
+
 compose ps
 log 'SSO backend VPS smoke completed successfully'
 REMOTE
@@ -161,4 +203,6 @@ ssh "${SSH_OPTS[@]}" "$SSH_TARGET" \
   START_SERVICES="$START_SERVICES" \
   TAIL_LINES="$TAIL_LINES" \
   PUBLIC_BASE_URL="$PUBLIC_BASE_URL" \
+  EXPECTED_SERVICES="$EXPECTED_SERVICES" \
+  FORBIDDEN_SERVICES="$FORBIDDEN_SERVICES" \
   "bash -s" <<< "$REMOTE_SCRIPT"
