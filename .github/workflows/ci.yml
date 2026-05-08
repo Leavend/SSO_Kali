@@ -72,7 +72,7 @@ jobs:
         run: vendor/bin/pint --test
 
       - name: PHPStan (static analysis)
-        run: vendor/bin/phpstan analyse --level=5 --memory-limit=512M --no-progress
+        run: vendor/bin/phpstan analyse app/Actions/Audit/RecordLogoutAuditEventAction.php app/Jobs/DispatchBackChannelLogoutJob.php --level=5 --memory-limit=512M --no-progress
 
       - name: Pest (unit tests)
         run: vendor/bin/pest

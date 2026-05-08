@@ -118,7 +118,7 @@ final class DispatchBackChannelLogoutJob implements ShouldQueue
 
     private function attemptNumber(): int
     {
-        return method_exists($this, 'attempts') ? max(1, $this->attempts()) : 1;
+        return max(1, $this->attempts());
     }
 
     /**
