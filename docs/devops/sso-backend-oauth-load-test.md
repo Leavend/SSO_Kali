@@ -1,109 +1,84 @@
-# SSO Backend Valid OAuth Token-Flow Load Test Runbook
+# SSO Backend OAuth Load-Test Client Runbook
 
-## Goal
+This runbook defines the dedicated OAuth token-flow load-test client used for
+safe production performance exercises.
 
-Validate the SSO backend token lifecycle with a dedicated load-test client without using real user sessions or production app clients.
+## Security Contract
 
-This runbook is intentionally secret-free. Do not commit client secrets, user passwords, authorization codes, access tokens, refresh tokens, or cookies.
+- The load-test client is disabled by default.
+- Enable it only for planned load-test windows.
+- The client uses the `client_credentials` grant as a confidential client.
+- Never commit a plaintext `client_secret` to git.
+- Store plaintext `SSO_LOAD_TEST_CLIENT_SECRET` only in the load-test runner or
+  GitHub Actions secrets.
+- Store only `SSO_LOAD_TEST_CLIENT_SECRET_HASH` on the SSO backend.
 
-## Safety Gates
+## Required Backend Environment
 
-- Use a dedicated production load-test client.
-- Use a dedicated test user or non-human client flow.
-- Keep test windows short and announced.
-- Start low rate before increasing concurrency.
-- Revoke issued refresh tokens after the test.
-- Monitor `/ready`, container stats, queue depth, and logs.
+```env
+SSO_LOAD_TEST_CLIENT_ENABLED=true
+SSO_LOAD_TEST_CLIENT_ID=sso-load-test-client
+SSO_LOAD_TEST_CLIENT_SECRET_HASH=<argon2id-hash-from-operator-workstation>
+SSO_LOAD_TEST_REDIRECT_URI=https://load-test.timeh.my.id/oauth/callback
+SSO_LOAD_TEST_POST_LOGOUT_REDIRECT_URI=https://load-test.timeh.my.id/signed-out
+SSO_LOAD_TEST_BACKCHANNEL_LOGOUT_URI=
+```
 
-## Dedicated Client Requirements
+## Secret Generation
 
-Recommended client metadata:
+Generate the plaintext secret outside git:
+
+```bash
+openssl rand -base64 48
+```
+
+Generate the Argon2id hash on an operator workstation or one-off protected
+runtime shell:
+
+```bash
+php -r 'echo password_hash(getenv("SSO_LOAD_TEST_CLIENT_SECRET"), PASSWORD_ARGON2ID).PHP_EOL;'
+```
+
+Only the hash goes to backend production env as
+`SSO_LOAD_TEST_CLIENT_SECRET_HASH`.
+
+## Token-Flow Smoke Test
+
+Run from a trusted runner that has `SSO_LOAD_TEST_CLIENT_SECRET` injected as a
+secret:
+
+```bash
+curl -sS -X POST https://api-sso.timeh.my.id/token \
+  -H 'Content-Type: application/x-www-form-urlencoded' \
+  --data-urlencode 'grant_type=client_credentials' \
+  --data-urlencode 'client_id=sso-load-test-client' \
+  --data-urlencode "client_secret=${SSO_LOAD_TEST_CLIENT_SECRET}"
+```
+
+Expected result:
 
 ```text
-client_id: sso-load-test-client
-client_type: confidential
-grant_type: client_credentials for non-user baseline, authorization_code for browser-mediated lifecycle
-redirect_uri: https://api-sso.timeh.my.id/_load-test/callback-disabled
-scopes: openid profile email offline_access
-backchannel_logout_uri: null or controlled internal test receiver
-post_logout_redirect_uri: https://api-sso.timeh.my.id/up
+HTTP 200
+access_token present
+token_type Bearer
+expires_in present
 ```
 
-Store the secret outside Git and inject it as `SSO_LOAD_TEST_CLIENT_SECRET` only in the operator shell or CI secret store.
+## Load-Test Safety Checklist
 
-The redirect URI should not point to a real app callback unless the app is part of the test.
+- Confirm `APP_DEBUG=false`.
+- Confirm `SSO_LOAD_TEST_CLIENT_ENABLED=true` only during the window.
+- Confirm rate limits and queue/DB metrics dashboards are monitored.
+- Use `SSO_LOAD_TEST_CLIENT_SECRET` from runner secrets only.
+- Do not include access tokens, refresh tokens, cookies, or secrets in shared
+  reports.
+- Disable the client after testing by setting
+  `SSO_LOAD_TEST_CLIENT_ENABLED=false` and redeploying.
 
-## Test Profiles
+## Evidence To Retain
 
-### Profile 1 — Negative Token Endpoint Stability
-
-Safe in production with malformed payloads.
-
-```bash
-wrk -t1 -c5 -d30s --latency https://api-sso.timeh.my.id/token
-```
-
-Expected:
-
-- no `500`,
-- stable latency,
-- expected `400`/`401` responses.
-
-### Profile 2 — Client Authentication Contract
-
-Use a script that sends valid `client_id` and invalid/rotated secret only in a controlled window.
-
-Expected:
-
-- `401 invalid_client`,
-- no lockup,
-- no secret leaks in logs.
-
-### Profile 3 — Valid Authorization Code Exchange
-
-Requires a test harness that obtains fresh authorization codes before each exchange. Do not reuse authorization codes.
-
-Expected:
-
-- token endpoint returns `200`,
-- code replay returns failure,
-- refresh token rotation remains consistent.
-
-### Profile 4 — Refresh Token Rotation
-
-Use low concurrency first.
-
-Expected:
-
-- old refresh token is invalid after rotation,
-- new refresh token works,
-- no duplicate valid refresh token chains.
-
-## Observability Checklist
-
-During the test, monitor:
-
-```bash
-curl -fsS https://api-sso.timeh.my.id/ready
-ssh tio@145.79.15.8 'docker stats --no-stream | grep sso-backend-prod'
-ssh tio@145.79.15.8 'cd /opt/sso-backend-prod && docker compose --env-file .env.prod -f docker-compose.sso-backend.yml logs --since 10m sso-backend | grep -E " 500 |ERROR|CRITICAL|Exception" | tail -50'
-```
-
-## Cleanup
-
-After the test:
-
-1. Revoke issued refresh tokens.
-2. Clear load-test sessions.
-3. Review audit logs.
-4. Confirm `/ready` remains green.
-5. Remove or rotate the load-test client secret if it was exposed to test tooling.
-
-## Pass Criteria
-
-- No backend `500` responses.
-- No container restart.
-- `/ready` remains `ready=true`.
-- Token errors are expected OAuth/OIDC errors.
-- Logs contain no secrets/tokens.
-- Refresh token rotation invariants hold.
+- Test window start/end time.
+- Runner host or GitHub Actions run ID.
+- RPS/latency summary.
+- Error-rate summary.
+- Confirmation that no plaintext secret was committed.

@@ -46,15 +46,22 @@ it('issue 29 harness keeps back-channel failure retry bounded and auditable', fu
 
 it('issue 30 harness documents oauth load-test client without committing secrets', function (): void {
     $runbook = repository_path('docs/devops/sso-backend-oauth-load-test.md');
+    $registry = base_path('config/oidc_clients.php');
 
-    expect($runbook)->toBeFile();
+    expect($runbook)->toBeFile()
+        ->and($registry)->toBeFile();
 
     $content = file_get_contents($runbook);
+    $registryContent = file_get_contents($registry);
 
     expect($content)->toBeString()
         ->and($content)->toContain('client_credentials')
         ->and($content)->toContain('SSO_LOAD_TEST_CLIENT_SECRET')
-        ->and($content)->not->toMatch('/client_secret\s*=\s*[A-Za-z0-9_\-]{16,}/');
+        ->and($content)->toContain('SSO_LOAD_TEST_CLIENT_SECRET_HASH')
+        ->and($content)->not->toMatch('/client_secret\s*=\s*[A-Za-z0-9_\-]{16,}/')
+        ->and($registryContent)->toContain('SSO_LOAD_TEST_CLIENT_ENABLED')
+        ->and($registryContent)->toContain('SSO_LOAD_TEST_CLIENT_SECRET_HASH')
+        ->and($registryContent)->not->toContain('SSO_LOAD_TEST_CLIENT_SECRET\'');
 });
 
 it('issue 31 harness keeps production lifecycle free from removed legacy gates', function (): void {

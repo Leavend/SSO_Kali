@@ -106,6 +106,23 @@ it('locks completed production hardening issues into a single executable contrac
                 "Route::match(['get', 'post'], '/connect/logout'",
             ],
         ],
+        'issue_30_oauth_load_test_client' => [
+            'tests/Feature/Oidc/LoadTestClientRegistryTest.php' => [
+                'absent by default',
+                'sso-load-test-client',
+                'hashed secret',
+            ],
+            'config/oidc_clients.php' => [
+                'SSO_LOAD_TEST_CLIENT_ENABLED',
+                'SSO_LOAD_TEST_CLIENT_SECRET_HASH',
+                'load_test_client',
+            ],
+            '../../docs/devops/sso-backend-oauth-load-test.md' => [
+                'client_credentials',
+                'SSO_LOAD_TEST_CLIENT_SECRET_HASH',
+                'Never commit a plaintext',
+            ],
+        ],
     ];
 
     foreach ($contracts as $issue => $files) {
@@ -139,6 +156,7 @@ it('keeps completed hardening harnesses wired into root CI', function (): void {
         'BackChannelLogoutAcceptanceTest.php',
         'BackChannelLogoutPartialFailureContractTest.php',
         'FrontChannelLogoutFlowTest.php',
+        'LoadTestClientRegistryTest.php',
     ] as $testName) {
         expect($ci)->toContain($testName);
     }

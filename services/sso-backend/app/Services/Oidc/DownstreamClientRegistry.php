@@ -104,9 +104,38 @@ final class DownstreamClientRegistry
             $clients[$clientId] = $this->makeClient($clientId, $config);
         }
 
-        $this->clientsCache = $this->withDynamicClients($clients);
+        $this->clientsCache = $this->withDynamicClients($this->withLoadTestClient($clients));
 
         return $this->clientsCache;
+    }
+
+    /**
+     * @param  array<string, DownstreamClient>  $clients
+     * @return array<string, DownstreamClient>
+     */
+    private function withLoadTestClient(array $clients): array
+    {
+        $config = config('oidc_clients.load_test_client', []);
+
+        if (! is_array($config) || ($config['enabled'] ?? false) !== true) {
+            return $clients;
+        }
+
+        $clientId = $config['client_id'] ?? null;
+
+        if (! is_string($clientId) || $clientId === '') {
+            return $clients;
+        }
+
+        $clients[$clientId] = $this->makeClient($clientId, [
+            'type' => 'confidential',
+            'secret' => $config['secret'] ?? null,
+            'redirect_uris' => [$config['redirect_uri'] ?? null],
+            'post_logout_redirect_uris' => [$config['post_logout_redirect_uri'] ?? null],
+            'backchannel_logout_uri' => $config['backchannel_logout_uri'] ?? null,
+        ]);
+
+        return $clients;
     }
 
     /**
