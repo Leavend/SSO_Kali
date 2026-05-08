@@ -91,6 +91,18 @@ it('locks completed production hardening issues into a single executable contrac
                 'backchannel_logout_succeeded',
             ],
         ],
+        'backchannel_logout_operational_drill' => [
+            'tests/Feature/Oidc/BackChannelLogoutOperationalDrillTest.php' => [
+                'downstream outage is retryable auditable and secret-safe',
+                'blocked before network delivery',
+                'sanitized operational audit trail',
+            ],
+            'app/Jobs/DispatchBackChannelLogoutJob.php' => [
+                'backchannel-logout',
+                'uri_policy_violation',
+                'non_success_response',
+            ],
+        ],
         'issue_20_frontchannel_logout_backend_flow' => [
             'tests/Feature/Oidc/FrontChannelLogoutFlowTest.php' => [
                 'post logout uri',
@@ -175,6 +187,7 @@ it('keeps completed hardening harnesses wired into root CI', function (): void {
         'ProductionClientRegistryTest.php',
         'BackChannelLogoutAcceptanceTest.php',
         'BackChannelLogoutPartialFailureContractTest.php',
+        'BackChannelLogoutOperationalDrillTest.php',
         'FrontChannelLogoutFlowTest.php',
         'LoadTestClientRegistryTest.php',
         'BackendOnlyProductionLifecycleContractTest.php',
