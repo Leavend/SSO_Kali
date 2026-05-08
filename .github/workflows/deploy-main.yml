@@ -141,18 +141,57 @@ jobs:
 
           echo "ssh-keyscan failed after retries; SSH will use StrictHostKeyChecking=accept-new." >&2
 
+
+      - name: Define SSH retry helpers
+        shell: bash
+        run: |
+          cat > /tmp/sso-backend-ssh-helpers.sh <<'EOF'
+          set -euo pipefail
+
+          ssh_with_retry() {
+            local attempt
+            for attempt in 1 2 3 4 5; do
+              if ssh -i ~/.ssh/deploy_key -p "${VPS_SSH_PORT}" \
+                -o BatchMode=yes \
+                -o ConnectTimeout=45 \
+                -o ConnectionAttempts=3 \
+                -o StrictHostKeyChecking=accept-new \
+                -o ServerAliveInterval=10 \
+                -o ServerAliveCountMax=3 \
+                "$@"; then
+                return 0
+              fi
+              echo "ssh attempt ${attempt} failed; retrying in 10s..." >&2
+              sleep 10
+            done
+            return 1
+          }
+
+          rsync_with_retry() {
+            local attempt
+            for attempt in 1 2 3 4 5; do
+              if rsync -az -e "ssh -i ~/.ssh/deploy_key -p ${VPS_SSH_PORT} -o BatchMode=yes -o ConnectTimeout=45 -o ConnectionAttempts=3 -o StrictHostKeyChecking=accept-new -o ServerAliveInterval=10 -o ServerAliveCountMax=3" "$@"; then
+                return 0
+              fi
+              echo "rsync attempt ${attempt} failed; retrying in 10s..." >&2
+              sleep 10
+            done
+            return 1
+          }
+          EOF
+
       - name: Prepare remote directories
         shell: bash
         run: |
-          ssh -i ~/.ssh/deploy_key -p "${{ env.VPS_SSH_PORT }}" \
-            -o BatchMode=yes -o ConnectTimeout=20 -o StrictHostKeyChecking=accept-new \
-            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+          source /tmp/sso-backend-ssh-helpers.sh
+          ssh_with_retry "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
             "mkdir -p /tmp/sso-backend-deploy '${{ env.VPS_PROJECT_DIR }}/scripts'"
 
       - name: Sync deployment control files
         shell: bash
         run: |
-          rsync -az -e "ssh -i ~/.ssh/deploy_key -p ${{ env.VPS_SSH_PORT }} -o BatchMode=yes -o ConnectTimeout=20 -o StrictHostKeyChecking=accept-new" \
+          source /tmp/sso-backend-ssh-helpers.sh
+          rsync_with_retry \
             scripts/vps-deploy-main.sh \
             docker-compose.main.yml \
             "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/tmp/sso-backend-deploy/"
@@ -160,9 +199,8 @@ jobs:
       - name: Install control files on VPS
         shell: bash
         run: |
-          ssh -i ~/.ssh/deploy_key -p "${{ env.VPS_SSH_PORT }}" \
-            -o BatchMode=yes -o ConnectTimeout=20 -o StrictHostKeyChecking=accept-new \
-            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+          source /tmp/sso-backend-ssh-helpers.sh
+          ssh_with_retry "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
             "set -e
              install -m 0644 /tmp/sso-backend-deploy/docker-compose.main.yml '${{ env.VPS_PROJECT_DIR }}/docker-compose.main.yml'
              install -m 0755 /tmp/sso-backend-deploy/vps-deploy-main.sh '${{ env.VPS_PROJECT_DIR }}/scripts/vps-deploy-main.sh'"
@@ -178,21 +216,19 @@ jobs:
           fi
           printf '%s\n' "${VPS_ENV_PROD}" > /tmp/sso-backend.env.prod
           chmod 600 /tmp/sso-backend.env.prod
-          rsync -az -e "ssh -i ~/.ssh/deploy_key -p ${{ env.VPS_SSH_PORT }} -o BatchMode=yes -o ConnectTimeout=20 -o StrictHostKeyChecking=accept-new" \
+          source /tmp/sso-backend-ssh-helpers.sh
+          rsync_with_retry \
             /tmp/sso-backend.env.prod \
             "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/tmp/sso-backend-deploy/.env.prod"
-          ssh -i ~/.ssh/deploy_key -p "${{ env.VPS_SSH_PORT }}" \
-            -o BatchMode=yes -o ConnectTimeout=20 -o StrictHostKeyChecking=accept-new \
-            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+          ssh_with_retry "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
             "install -m 0600 /tmp/sso-backend-deploy/.env.prod '${{ env.VPS_PROJECT_DIR }}/.env.prod'"
           rm -f /tmp/sso-backend.env.prod
 
       - name: Execute deploy on VPS
         shell: bash
         run: |
-          ssh -i ~/.ssh/deploy_key -p "${{ env.VPS_SSH_PORT }}" \
-            -o BatchMode=yes -o ConnectTimeout=20 -o StrictHostKeyChecking=accept-new -o ServerAliveInterval=10 -o ServerAliveCountMax=3 \
-            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+          source /tmp/sso-backend-ssh-helpers.sh
+          ssh_with_retry "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
             "IMAGE_PREFIX='${{ env.IMAGE_PREFIX }}' \
              DEPLOY_TAG='${{ steps.tag.outputs.tag }}' \
              PROJECT_DIR='${{ env.VPS_PROJECT_DIR }}' \
