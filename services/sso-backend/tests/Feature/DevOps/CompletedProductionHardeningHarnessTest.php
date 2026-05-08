@@ -91,6 +91,21 @@ it('locks completed production hardening issues into a single executable contrac
                 'backchannel_logout_succeeded',
             ],
         ],
+        'issue_20_frontchannel_logout_backend_flow' => [
+            'tests/Feature/Oidc/FrontChannelLogoutFlowTest.php' => [
+                'post logout uri',
+                'id token hint audience',
+                'centralized logout backward compatible',
+            ],
+            'app/Actions/Oidc/PerformFrontChannelLogout.php' => [
+                'allowsPostLogoutRedirectUri',
+                'frontchannel_logout_completed',
+                'post_logout_redirect_uri',
+            ],
+            'routes/web.php' => [
+                "Route::match(['get', 'post'], '/connect/logout'",
+            ],
+        ],
     ];
 
     foreach ($contracts as $issue => $files) {
@@ -123,6 +138,7 @@ it('keeps completed hardening harnesses wired into root CI', function (): void {
         'ProductionClientRegistryTest.php',
         'BackChannelLogoutAcceptanceTest.php',
         'BackChannelLogoutPartialFailureContractTest.php',
+        'FrontChannelLogoutFlowTest.php',
     ] as $testName) {
         expect($ci)->toContain($testName);
     }

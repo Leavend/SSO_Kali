@@ -115,7 +115,7 @@ function expectedApplicationRouteSignatures(): array
         'GET|HEAD api/profile',
         'GET|HEAD authorize',
         'POST connect/backchannel/admin-panel/logout',
-        'POST connect/logout',
+        'GET|POST|HEAD connect/logout',
         'POST connect/register-session',
         'GET|HEAD health',
         'GET|HEAD jwks',

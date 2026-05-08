@@ -29,6 +29,15 @@ final readonly class DownstreamClient
         return in_array($redirectUri, $this->redirectUris, true);
     }
 
+    public function allowsPostLogoutRedirectUri(string $redirectUri): bool
+    {
+        if (! self::isWellFormedRedirectUri($redirectUri)) {
+            return false;
+        }
+
+        return in_array($redirectUri, $this->postLogoutRedirectUris, true);
+    }
+
     /**
      * RFC 6749 §3.1.2 — The redirection endpoint URI MUST NOT include a fragment component.
      * Additionally guards against double-encoding, path traversal, and non-HTTPS schemes.
