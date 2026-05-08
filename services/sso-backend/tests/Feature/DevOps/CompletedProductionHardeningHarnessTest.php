@@ -151,6 +151,23 @@ it('locks completed production hardening issues into a single executable contrac
                 'COMPOSE_PROJECT_NAME: sso-backend-prod',
             ],
         ],
+        'production_public_domain_smoke' => [
+            'tests/Feature/DevOps/ProductionPublicDomainSmokeHarnessTest.php' => [
+                'public-domain production smoke',
+                'api-sso.timeh.my.id',
+                'sso.timeh.my.id',
+            ],
+            '../../scripts/sso-backend-public-smoke.sh' => [
+                '/.well-known/openid-configuration',
+                '/.well-known/jwks.json',
+                'cache-control',
+            ],
+            '../../docs/devops/sso-backend-production-smoke.md' => [
+                'No secrets are required',
+                'Evidence to retain',
+                'https://api-sso.timeh.my.id',
+            ],
+        ],
     ];
 
     foreach ($contracts as $issue => $files) {
@@ -179,6 +196,7 @@ it('keeps completed hardening harnesses wired into root CI', function (): void {
         'BackupRestoreRunbookHarnessTest.php',
         'SecurityHardeningChecklistHarnessTest.php',
         'GitHubActionsProductionDeployHarnessTest.php',
+        'ProductionPublicDomainSmokeHarnessTest.php',
         'LogoutAuditRedactionHarnessTest.php',
         'BackChannelLogoutReliabilityHarnessTest.php',
         'OAuthLoadTestClientHarnessTest.php',
