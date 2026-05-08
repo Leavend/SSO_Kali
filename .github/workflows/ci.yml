@@ -90,7 +90,6 @@ jobs:
       fail-fast: true
       matrix:
         component:
-          - { name: sso-frontend, path: services/sso-frontend }
           - { name: sso-admin-vue, path: services/sso-admin-vue }
 
     defaults:
@@ -155,13 +154,6 @@ jobs:
           - name: sso-backend
             context: ./services/sso-backend
             dockerfile: ./services/sso-backend/Dockerfile
-          - name: sso-frontend
-            context: .
-            dockerfile: ./services/sso-frontend/Dockerfile
-            build-args: |
-              VITE_SSO_BASE_URL=${{ vars.SSO_BASE_URL || 'https://dev-sso.timeh.my.id' }}
-              VITE_ADMIN_BASE_URL=${{ vars.ADMIN_PANEL_BASE_URL || vars.SSO_BASE_URL || 'https://dev-sso.timeh.my.id' }}
-              VITE_CLIENT_ID=${{ vars.ADMIN_PANEL_CLIENT_ID || 'sso-admin-panel' }}
           - name: sso-admin-vue
             context: ./services/sso-admin-vue
             dockerfile: ./services/sso-admin-vue/Dockerfile

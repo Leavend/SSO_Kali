@@ -11,9 +11,7 @@ on:
       - "charts/**"
       - "docs/runbooks/**"
       - "docs/generated/**"
-      - "packages/dev-sso-parent-ui/**"
       - "services/sso-admin-vue/**"
-      - "services/sso-frontend/**"
   push:
     branches: [main]
     paths:
@@ -24,9 +22,7 @@ on:
       - "charts/**"
       - "docs/runbooks/**"
       - "docs/generated/**"
-      - "packages/dev-sso-parent-ui/**"
       - "services/sso-admin-vue/**"
-      - "services/sso-frontend/**"
   workflow_dispatch:
 
 env:
@@ -50,9 +46,6 @@ jobs:
 
       - name: Validate DevOps lifecycle contract
         run: ./scripts/validate-devops-lifecycle.sh
-
-      - name: Validate rebuilt Vue SSO frontend lifecycle
-        run: ./scripts/validate-sso-frontend-vue-lifecycle.sh
 
       - name: Validate SRE coexistence policy
         run: ./infra/sre/check-coexistence-policy.sh
