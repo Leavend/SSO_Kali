@@ -13,7 +13,7 @@ final class InspectReadinessAction
     ) {}
 
     /**
-     * @return array{service: string, ready: bool, checks: array{database: bool, redis: bool}}
+     * @return array{service: string, ready: bool, checks: array{database: bool, redis: bool, queue: array{pending_jobs: int, failed_jobs: int, oldest_pending_age_seconds: int|null}}}
      */
     public function execute(): array
     {

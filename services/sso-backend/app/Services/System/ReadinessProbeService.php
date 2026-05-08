@@ -10,18 +10,23 @@ use Throwable;
 
 final class ReadinessProbeService
 {
+    public function __construct(
+        private readonly QueueObservabilityService $queueObservability,
+    ) {}
+
     /**
-     * @return array{ready: bool, checks: array{database: bool, redis: bool}}
+     * @return array{ready: bool, checks: array{database: bool, redis: bool, queue: array{pending_jobs: int, failed_jobs: int, oldest_pending_age_seconds: int|null}}}
      */
     public function inspect(): array
     {
         $checks = [
             'database' => $this->databaseIsReady(),
             'redis' => $this->redisIsReady(),
+            'queue' => $this->queueObservability->snapshot(),
         ];
 
         return [
-            'ready' => ! in_array(false, $checks, true),
+            'ready' => $checks['database'] && $checks['redis'],
             'checks' => $checks,
         ];
     }
