@@ -123,6 +123,22 @@ it('locks completed production hardening issues into a single executable contrac
                 'Never commit a plaintext',
             ],
         ],
+        'issue_31_backend_only_production_lifecycle' => [
+            'tests/Feature/DevOps/BackendOnlyProductionLifecycleContractTest.php' => [
+                'backend-only',
+                'sso-backend-deploy',
+                'sso-backend-prod',
+            ],
+            '../../docs/devops/sso-backend-production-lifecycle.md' => [
+                'legacy services intentionally excluded',
+                'sso-backend-prod',
+                'ghcr.io/leavend/sso-kali',
+            ],
+            '../../.github/workflows/deploy-main.yml' => [
+                'sso-backend-deploy',
+                'COMPOSE_PROJECT_NAME: sso-backend-prod',
+            ],
+        ],
     ];
 
     foreach ($contracts as $issue => $files) {
@@ -157,6 +173,7 @@ it('keeps completed hardening harnesses wired into root CI', function (): void {
         'BackChannelLogoutPartialFailureContractTest.php',
         'FrontChannelLogoutFlowTest.php',
         'LoadTestClientRegistryTest.php',
+        'BackendOnlyProductionLifecycleContractTest.php',
     ] as $testName) {
         expect($ci)->toContain($testName);
     }

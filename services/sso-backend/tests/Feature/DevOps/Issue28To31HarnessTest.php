@@ -69,6 +69,8 @@ it('issue 31 harness keeps production lifecycle free from removed legacy gates',
         '.github/workflows/ci.yml',
         '.github/workflows/devops-lifecycle.yml',
         'scripts/validate-devops-lifecycle.sh',
+        'services/sso-backend/tests/Feature/DevOps/BackendOnlyProductionLifecycleContractTest.php',
+        'docs/devops/sso-backend-production-lifecycle.md',
     ];
 
     foreach ($files as $file) {
@@ -89,6 +91,7 @@ it('issue 31 harness targets sso-backend-prod instead of legacy sso-kali compose
         'scripts/vps-deploy-main.sh',
         'scripts/sso-backend-vps-smoke.sh',
         'docs/devops/sso-backend-cicd.md',
+        'docs/devops/sso-backend-production-lifecycle.md',
     ];
 
     foreach ($files as $file) {
@@ -97,6 +100,7 @@ it('issue 31 harness targets sso-backend-prod instead of legacy sso-kali compose
         expect($content)->toBeString()
             ->and($content)->toContain('sso-backend-prod')
             ->and($content)->not->toContain('/opt/sso-kali')
+            ->and($content)->not->toContain('/tmp/sso-kali-deploy')
             ->and($content)->not->toContain('COMPOSE_PROJECT_NAME:-sso-kali')
             ->and($content)->not->toContain('COMPOSE_PROJECT_NAME=sso-kali');
     }

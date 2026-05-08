@@ -123,7 +123,7 @@ jobs:
           ssh -i ~/.ssh/deploy_key -p "${{ env.VPS_SSH_PORT }}" \
             -o BatchMode=yes -o ConnectTimeout=20 \
             "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
-            "mkdir -p /tmp/sso-kali-deploy '${{ env.VPS_PROJECT_DIR }}/scripts'"
+            "mkdir -p /tmp/sso-backend-deploy '${{ env.VPS_PROJECT_DIR }}/scripts'"
 
       - name: Sync deployment control files
         shell: bash
@@ -131,7 +131,7 @@ jobs:
           rsync -az -e "ssh -i ~/.ssh/deploy_key -p ${{ env.VPS_SSH_PORT }} -o BatchMode=yes -o ConnectTimeout=20" \
             scripts/vps-deploy-main.sh \
             docker-compose.main.yml \
-            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/tmp/sso-kali-deploy/"
+            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/tmp/sso-backend-deploy/"
 
       - name: Install control files on VPS
         shell: bash
@@ -140,8 +140,8 @@ jobs:
             -o BatchMode=yes -o ConnectTimeout=20 \
             "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
             "set -e
-             install -m 0644 /tmp/sso-kali-deploy/docker-compose.main.yml '${{ env.VPS_PROJECT_DIR }}/docker-compose.main.yml'
-             install -m 0755 /tmp/sso-kali-deploy/vps-deploy-main.sh '${{ env.VPS_PROJECT_DIR }}/scripts/vps-deploy-main.sh'"
+             install -m 0644 /tmp/sso-backend-deploy/docker-compose.main.yml '${{ env.VPS_PROJECT_DIR }}/docker-compose.main.yml'
+             install -m 0755 /tmp/sso-backend-deploy/vps-deploy-main.sh '${{ env.VPS_PROJECT_DIR }}/scripts/vps-deploy-main.sh'"
 
       - name: Install production env on VPS
         shell: bash
@@ -152,16 +152,16 @@ jobs:
             echo "VPS_ENV_PROD is not configured; remote deploy will use existing env file."
             exit 0
           fi
-          printf '%s\n' "${VPS_ENV_PROD}" > /tmp/sso-kali.env.prod
-          chmod 600 /tmp/sso-kali.env.prod
+          printf '%s\n' "${VPS_ENV_PROD}" > /tmp/sso-backend.env.prod
+          chmod 600 /tmp/sso-backend.env.prod
           rsync -az -e "ssh -i ~/.ssh/deploy_key -p ${{ env.VPS_SSH_PORT }} -o BatchMode=yes -o ConnectTimeout=20" \
-            /tmp/sso-kali.env.prod \
-            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/tmp/sso-kali-deploy/.env.prod"
+            /tmp/sso-backend.env.prod \
+            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/tmp/sso-backend-deploy/.env.prod"
           ssh -i ~/.ssh/deploy_key -p "${{ env.VPS_SSH_PORT }}" \
             -o BatchMode=yes -o ConnectTimeout=20 \
             "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
-            "install -m 0600 /tmp/sso-kali-deploy/.env.prod '${{ env.VPS_PROJECT_DIR }}/.env.prod'"
-          rm -f /tmp/sso-kali.env.prod
+            "install -m 0600 /tmp/sso-backend-deploy/.env.prod '${{ env.VPS_PROJECT_DIR }}/.env.prod'"
+          rm -f /tmp/sso-backend.env.prod
 
       - name: Execute deploy on VPS
         shell: bash
