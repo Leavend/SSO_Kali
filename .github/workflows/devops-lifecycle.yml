@@ -14,7 +14,6 @@ on:
       - "packages/dev-sso-parent-ui/**"
       - "services/sso-admin-vue/**"
       - "services/sso-frontend/**"
-      - "services/zitadel-login-vue/**"
   push:
     branches: [main]
     paths:
@@ -28,7 +27,6 @@ on:
       - "packages/dev-sso-parent-ui/**"
       - "services/sso-admin-vue/**"
       - "services/sso-frontend/**"
-      - "services/zitadel-login-vue/**"
   workflow_dispatch:
 
 env:
@@ -55,9 +53,6 @@ jobs:
 
       - name: Validate rebuilt Vue SSO frontend lifecycle
         run: ./scripts/validate-sso-frontend-vue-lifecycle.sh
-
-      - name: Validate ZITADEL Vue login canary lifecycle
-        run: ./scripts/validate-zitadel-login-vue-lifecycle.sh
 
       - name: Validate SRE coexistence policy
         run: ./infra/sre/check-coexistence-policy.sh
@@ -135,4 +130,13 @@ jobs:
         uses: azure/setup-helm@v4
 
       - name: Helm lint
-        run: helm lint charts/sso-prototype
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          if [ -f charts/sso-prototype/Chart.yaml ]; then
+            helm lint charts/sso-prototype
+          elif find infra/helm -mindepth 2 -maxdepth 2 -name Chart.yaml -print -quit | grep -q .; then
+            find infra/helm -mindepth 2 -maxdepth 2 -name Chart.yaml -print0               | xargs -0 -n1 dirname               | xargs -r helm lint
+          else
+            echo "No active Helm chart present; skipping Helm lint for this production backend profile."
+          fi

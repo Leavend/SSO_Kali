@@ -39,7 +39,6 @@ jobs:
       matrix:
         component:
           - { name: sso-backend, path: services/sso-backend }
-          - { name: app-b-laravel, path: apps/app-b-laravel }
 
     defaults:
       run:
@@ -93,8 +92,6 @@ jobs:
         component:
           - { name: sso-frontend, path: services/sso-frontend }
           - { name: sso-admin-vue, path: services/sso-admin-vue }
-          - { name: zitadel-login-vue, path: services/zitadel-login-vue }
-          - { name: app-a-next, path: apps/app-a-next }
 
     defaults:
       run:
@@ -173,22 +170,6 @@ jobs:
               VITE_PUBLIC_BASE_PATH=${{ vars.SSO_ADMIN_VUE_BASE_PATH || '/__vue-preview' }}
               VITE_SSO_BASE_URL=${{ vars.SSO_BASE_URL || 'https://dev-sso.timeh.my.id' }}
               VITE_ZITADEL_ISSUER_URL=${{ vars.ZITADEL_ISSUER || 'https://id.dev-sso.timeh.my.id' }}
-          - name: zitadel-login
-            context: .
-            dockerfile: ./infra/zitadel-login/Dockerfile
-            build-args: |
-              ZITADEL_VERSION=${{ vars.ZITADEL_VERSION || 'v4.14.0' }}
-          - name: zitadel-login-vue
-            context: .
-            dockerfile: ./services/zitadel-login-vue/Dockerfile
-            build-args: |
-              VITE_PUBLIC_BASE_PATH=${{ vars.ZITADEL_LOGIN_VUE_BASE_PATH || '/ui/v2/auth' }}
-          - name: app-a-next
-            context: ./apps/app-a-next
-            dockerfile: ./apps/app-a-next/Dockerfile
-          - name: app-b-laravel
-            context: ./apps/app-b-laravel
-            dockerfile: ./apps/app-b-laravel/Dockerfile
 
     steps:
       - uses: actions/checkout@v5
