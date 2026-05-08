@@ -2,12 +2,12 @@
 
 set -Eeuo pipefail
 
-PROJECT_DIR="${PROJECT_DIR:-/opt/sso-kali}"
+PROJECT_DIR="${PROJECT_DIR:-/opt/sso-backend-prod}"
 COMPOSE_FILE="${COMPOSE_FILE:-$PROJECT_DIR/docker-compose.main.yml}"
 ENV_FILE="${ENV_FILE:-$PROJECT_DIR/.env.prod}"
 IMAGE_PREFIX="${IMAGE_PREFIX:-ghcr.io/leavend/sso-kali}"
 DEPLOY_TAG="${DEPLOY_TAG:-main}"
-COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-sso-kali}"
+COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-sso-backend-prod}"
 HEALTH_TIMEOUT_SECONDS="${HEALTH_TIMEOUT_SECONDS:-180}"
 
 export COMPOSE_PROJECT_NAME
