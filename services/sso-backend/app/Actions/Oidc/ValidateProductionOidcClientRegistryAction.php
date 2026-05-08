@@ -21,6 +21,8 @@ final class ValidateProductionOidcClientRegistryAction
         $errors = [];
         $registeredClients = $this->clients->all();
 
+        array_push($errors, ...$this->validateLockedProductionClientIds($registeredClients));
+
         foreach ($registeredClients as $client) {
             array_push($errors, ...$this->validateClient($client));
         }
@@ -38,6 +40,43 @@ final class ValidateProductionOidcClientRegistryAction
             'checked_confidential_clients' => $checkedConfidentialClients,
             'errors' => array_values(array_unique($errors)),
         ];
+    }
+
+    /**
+     * @param  list<DownstreamClient>  $registeredClients
+     * @return list<string>
+     */
+    private function validateLockedProductionClientIds(array $registeredClients): array
+    {
+        if (config('app.env') !== 'production') {
+            return [];
+        }
+
+        $lockedClientIds = array_values(array_filter(
+            config('oidc_clients.locked_production_client_ids', []),
+            static fn (mixed $clientId): bool => is_string($clientId) && $clientId !== '',
+        ));
+
+        if ($lockedClientIds === []) {
+            return ['Production OIDC client registry must define locked_production_client_ids.'];
+        }
+
+        $registeredClientIds = array_map(
+            static fn (DownstreamClient $client): string => $client->clientId,
+            $registeredClients,
+        );
+
+        $errors = [];
+
+        foreach (array_values(array_diff($registeredClientIds, $lockedClientIds)) as $clientId) {
+            $errors[] = "Production OIDC registry contains unexpected production client [{$clientId}].";
+        }
+
+        foreach (array_values(array_diff($lockedClientIds, $registeredClientIds)) as $clientId) {
+            $errors[] = "Production OIDC registry is missing locked production client [{$clientId}].";
+        }
+
+        return $errors;
     }
 
     /**

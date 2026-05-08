@@ -6,6 +6,12 @@ $appUrl = (string) env('APP_URL', 'http://localhost:8200');
 $frontendUrl = rtrim((string) env('SSO_FRONTEND_URL', 'http://localhost:3000'), '/');
 
 return [
+    'locked_production_client_ids' => [
+        env('APP_A_CLIENT_ID', 'app-a'),
+        env('APP_B_CLIENT_ID', 'app-b'),
+        env('ADMIN_PANEL_CLIENT_ID', 'sso-admin-panel'),
+    ],
+
     'clients' => [
         env('APP_A_CLIENT_ID', 'app-a') => [
             'type' => 'public',
