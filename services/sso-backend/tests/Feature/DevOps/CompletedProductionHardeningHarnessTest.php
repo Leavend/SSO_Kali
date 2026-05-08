@@ -64,6 +64,33 @@ it('locks completed production hardening issues into a single executable contrac
             ],
             'config/oidc_clients.php' => ['locked_production_client_ids'],
         ],
+        'issue_27_29_28_fr002_backend_hardening' => [
+            'tests/Feature/Oidc/BackChannelLogoutAcceptanceTest.php' => [
+                'structured success audit',
+                'non success client responses',
+                'insecure production logout uri',
+            ],
+            'tests/Feature/Oidc/BackChannelLogoutPartialFailureContractTest.php' => [
+                'partial queue dispatch failures',
+                'queue_dispatch_failed',
+            ],
+            'app/Actions/Audit/RecordLogoutAuditEventAction.php' => [
+                'logout_channel',
+                'request_id',
+                'authorization',
+                'cookie',
+            ],
+            'app/Services/Oidc/BackChannelLogoutDispatcher.php' => [
+                'queuedResult',
+                'failedResult',
+                'queue_dispatch_failed',
+            ],
+            'app/Jobs/DispatchBackChannelLogoutJob.php' => [
+                'uri_policy_violation',
+                'non_success_response',
+                'backchannel_logout_succeeded',
+            ],
+        ],
     ];
 
     foreach ($contracts as $issue => $files) {
@@ -94,6 +121,8 @@ it('keeps completed hardening harnesses wired into root CI', function (): void {
         'GitHubActionsProductionDeployHarnessTest.php',
         'LockedProductionClientRegistryTest.php',
         'ProductionClientRegistryTest.php',
+        'BackChannelLogoutAcceptanceTest.php',
+        'BackChannelLogoutPartialFailureContractTest.php',
     ] as $testName) {
         expect($ci)->toContain($testName);
     }

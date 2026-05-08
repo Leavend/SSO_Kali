@@ -40,7 +40,7 @@ final class DispatchBackChannelLogoutJob implements ShouldQueue
 
     public function handle(LogoutTokenService $tokens, RecordLogoutAuditEventAction $audit): void
     {
-        $this->assertLogoutUriAllowed();
+        $this->assertLogoutUriAllowed($audit);
 
         $response = Http::asForm()
             ->timeout($this->timeoutSeconds())
@@ -75,14 +75,10 @@ final class DispatchBackChannelLogoutJob implements ShouldQueue
             return;
         }
 
-        $context = [
-            'client_id' => $this->clientId,
-            'subject_id' => $this->subjectId,
-            'session_id' => $this->sessionId,
+        $context = $this->auditContext([
+            'failure_class' => 'non_success_response',
             'http_status' => $response->status(),
-            'attempt' => $this->attemptNumber(),
-            'endpoint' => $this->safeEndpoint(),
-        ];
+        ]);
 
         Log::warning('[BACKCHANNEL_LOGOUT_FAILED]', $context);
         $audit->execute('backchannel_logout_failed', $context);
@@ -92,17 +88,28 @@ final class DispatchBackChannelLogoutJob implements ShouldQueue
         );
     }
 
-    private function assertLogoutUriAllowed(): void
+    private function assertLogoutUriAllowed(RecordLogoutAuditEventAction $audit): void
     {
         $parts = parse_url($this->logoutUri);
 
         if (! is_array($parts) || ! isset($parts['scheme'], $parts['host'])) {
+            $this->recordUriPolicyFailure($audit, 'malformed_uri');
             throw new RuntimeException('Back-channel logout URI is malformed.');
         }
 
         if ($this->requiresHttps() && $parts['scheme'] !== 'https') {
+            $this->recordUriPolicyFailure($audit, 'https_required');
             throw new RuntimeException('Back-channel logout URI must use HTTPS in production.');
         }
+    }
+
+    private function recordUriPolicyFailure(RecordLogoutAuditEventAction $audit, string $reason): void
+    {
+        $audit->execute('backchannel_logout_failed', $this->auditContext([
+            'failure_class' => 'uri_policy_violation',
+            'failure_reason' => $reason,
+            'http_status' => 0,
+        ]));
     }
 
     private function requiresHttps(): bool
@@ -137,13 +144,26 @@ final class DispatchBackChannelLogoutJob implements ShouldQueue
 
     private function recordSuccess(RecordLogoutAuditEventAction $audit, Response $response): void
     {
-        $audit->execute('backchannel_logout_succeeded', [
-            'client_id' => $this->clientId,
-            'subject_id' => $this->subjectId,
-            'session_id' => $this->sessionId,
+        $audit->execute('backchannel_logout_succeeded', $this->auditContext([
             'http_status' => $response->status(),
+            'result' => 'succeeded',
+        ]));
+    }
+
+    /**
+     * @param  array<string, mixed>  $overrides
+     * @return array<string, mixed>
+     */
+    private function auditContext(array $overrides = []): array
+    {
+        return array_merge([
             'attempt' => $this->attemptNumber(),
+            'client_id' => $this->clientId,
             'endpoint' => $this->safeEndpoint(),
-        ]);
+            'logout_channel' => 'backchannel',
+            'result' => 'failed',
+            'session_id' => $this->sessionId,
+            'subject_id' => $this->subjectId,
+        ], $overrides);
     }
 }

@@ -40,15 +40,24 @@ final class PerformSingleSignOut
 
         if ($context === null) {
             $this->metrics->recordFailure('invalid_token');
-            $this->audit->execute('sso_logout_failed', ['reason' => 'invalid_token']);
+            $this->audit->execute('sso_logout_failed', [
+                'failure_class' => 'invalid_token',
+                'logout_channel' => 'centralized',
+                'reason' => 'invalid_token',
+                'result' => 'failed',
+            ]);
 
             return OidcErrorResponse::json('invalid_token', 'The bearer token is invalid.', 401);
         }
 
         [$sessionId, $subjectId] = $context;
         $this->audit->execute('sso_logout_started', [
+            'logout_channel' => 'centralized',
+            'result' => 'started',
+            'session_id' => $sessionId,
             'sid' => $sessionId,
             'sub' => $subjectId,
+            'subject_id' => $subjectId,
         ]);
 
         $records = $this->refreshTokens->revokeSubject($subjectId);
@@ -70,10 +79,14 @@ final class PerformSingleSignOut
         $this->clearLocalSessions($subjectId, $sessionIds);
         $this->metrics->recordSuccess();
         $this->audit->execute('sso_logout_completed', [
+            'logout_channel' => 'centralized',
+            'notification_count' => count($notifications),
+            'result' => 'succeeded',
+            'session_count' => count($sessionIds),
+            'session_id' => $sessionId,
             'sid' => $sessionId,
             'sub' => $subjectId,
-            'session_count' => count($sessionIds),
-            'notification_count' => count($notifications),
+            'subject_id' => $subjectId,
         ]);
 
         return $this->successResponse($sessionId, $sessionIds, $notifications);

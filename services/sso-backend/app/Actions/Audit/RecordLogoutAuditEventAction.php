@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions\Audit;
 
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 final class RecordLogoutAuditEventAction
 {
@@ -13,10 +14,24 @@ final class RecordLogoutAuditEventAction
      */
     public function execute(string $event, array $context = []): void
     {
-        Log::info('[SSO_LOGOUT_AUDIT]', [
+        Log::info('[SSO_LOGOUT_AUDIT]', $this->payload($event, $context));
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     * @return array<string, mixed>
+     */
+    private function payload(string $event, array $context): array
+    {
+        $safeContext = $this->safeContext($context);
+
+        return [
             'event' => $event,
-            'context' => $this->safeContext($context),
-        ]);
+            'logout_channel' => $this->stringValue($safeContext, 'logout_channel'),
+            'result' => $this->stringValue($safeContext, 'result'),
+            'request_id' => $this->requestId($safeContext),
+            'context' => $safeContext,
+        ];
     }
 
     /**
@@ -51,8 +66,32 @@ final class RecordLogoutAuditEventAction
 
     private function isSensitiveKey(string $key): bool
     {
-        return str_contains(strtolower($key), 'token')
-            || str_contains(strtolower($key), 'secret')
-            || str_contains(strtolower($key), 'password');
+        return Str::contains(strtolower($key), [
+            'authorization',
+            'cookie',
+            'password',
+            'secret',
+            'token',
+        ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     */
+    private function stringValue(array $context, string $key): ?string
+    {
+        $value = $context[$key] ?? null;
+
+        return is_string($value) && $value !== '' ? $value : null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     */
+    private function requestId(array $context): string
+    {
+        $contextRequestId = $this->stringValue($context, 'request_id');
+
+        return $contextRequestId ?? request()->headers->get('X-Request-Id', 'n/a');
     }
 }

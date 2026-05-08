@@ -37,41 +37,96 @@ final class BackChannelLogoutDispatcher
     private function notify(array $registration, string $subjectId, string $sessionId): array
     {
         try {
-            DispatchBackChannelLogoutJob::dispatch(
-                (string) $registration['client_id'],
-                $subjectId,
-                $sessionId,
-                (string) $registration['backchannel_logout_uri'],
-            );
+            $this->dispatchJob($registration, $subjectId, $sessionId);
         } catch (Throwable $exception) {
-            Log::warning('[BCL_DISPATCH_FAILED]', [
-                'client_id' => (string) $registration['client_id'],
-                'error' => $exception->getMessage(),
-            ]);
+            $this->logDispatchFailure($registration, $exception);
+            $this->auditDispatchFailure($registration, $subjectId, $sessionId, $exception);
 
-            $this->audit->execute('backchannel_logout_failed', [
-                'client_id' => (string) $registration['client_id'],
-                'session_id' => $sessionId,
-                'reason' => 'queue_dispatch_failed',
-            ]);
-
-            return [
-                'client_id' => (string) $registration['client_id'],
-                'status' => 'failed',
-                'http_status' => 0,
-            ];
+            return $this->failedResult($registration, $exception);
         }
 
+        $this->auditQueued($registration, $subjectId, $sessionId);
+
+        return $this->queuedResult($registration);
+    }
+
+    /** @param array<string, string> $registration */
+    private function dispatchJob(array $registration, string $subjectId, string $sessionId): void
+    {
+        DispatchBackChannelLogoutJob::dispatch(
+            (string) $registration['client_id'],
+            $subjectId,
+            $sessionId,
+            (string) $registration['backchannel_logout_uri'],
+        );
+    }
+
+    /** @param array<string, string> $registration */
+    private function logDispatchFailure(array $registration, Throwable $exception): void
+    {
+        Log::warning('[BCL_DISPATCH_FAILED]', [
+            'client_id' => (string) ($registration['client_id'] ?? 'unknown'),
+            'error' => $exception->getMessage(),
+        ]);
+    }
+
+    /** @param array<string, string> $registration */
+    private function auditDispatchFailure(
+        array $registration,
+        string $subjectId,
+        string $sessionId,
+        Throwable $exception,
+    ): void {
+        $this->audit->execute('backchannel_logout_failed', [
+            'client_id' => (string) ($registration['client_id'] ?? 'unknown'),
+            'failure_class' => 'queue_dispatch_failed',
+            'failure_reason' => $exception->getMessage(),
+            'http_status' => 0,
+            'logout_channel' => 'backchannel',
+            'result' => 'failed',
+            'session_id' => $sessionId,
+            'subject_id' => $subjectId,
+        ]);
+    }
+
+    /** @param array<string, string> $registration */
+    private function auditQueued(array $registration, string $subjectId, string $sessionId): void
+    {
         $this->audit->execute('backchannel_logout_queued', [
             'client_id' => (string) $registration['client_id'],
-            'session_id' => $sessionId,
             'http_status' => 202,
+            'logout_channel' => 'backchannel',
+            'result' => 'queued',
+            'session_id' => $sessionId,
+            'subject_id' => $subjectId,
         ]);
+    }
 
+    /**
+     * @param  array<string, string>  $registration
+     * @return array<string, int|string>
+     */
+    private function queuedResult(array $registration): array
+    {
         return [
             'client_id' => (string) $registration['client_id'],
             'status' => 'queued',
             'http_status' => 202,
+        ];
+    }
+
+    /**
+     * @param  array<string, string>  $registration
+     * @return array<string, int|string>
+     */
+    private function failedResult(array $registration, Throwable $exception): array
+    {
+        return [
+            'client_id' => (string) ($registration['client_id'] ?? 'unknown'),
+            'status' => 'failed',
+            'http_status' => 0,
+            'failure_class' => 'queue_dispatch_failed',
+            'failure_reason' => $exception->getMessage(),
         ];
     }
 }
