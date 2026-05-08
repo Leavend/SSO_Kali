@@ -75,7 +75,7 @@ jobs:
         run: vendor/bin/phpstan analyse app/Actions/Audit/RecordLogoutAuditEventAction.php app/Jobs/DispatchBackChannelLogoutJob.php --level=5 --memory-limit=512M --no-progress
 
       - name: Pest (unit tests)
-        run: vendor/bin/pest tests/Feature/System/ReadinessObservabilityTest.php tests/Feature/DevOps/Issue28To31HarnessTest.php tests/Feature/DevOps/LegacySsoKaliCleanupHarnessTest.php tests/Feature/DevOps/BackendProductionTopologyHarnessTest.php tests/Feature/DevOps/RuntimeAfterTopologyChangeHarnessTest.php tests/Feature/Oidc/CentralizedLogoutTest.php tests/Unit/Oidc/DispatchBackChannelLogoutJobTest.php tests/Feature/Routing --compact
+        run: vendor/bin/pest tests/Feature/System/ReadinessObservabilityTest.php tests/Feature/System/RequestLifecycleObservabilityTest.php tests/Feature/DevOps/WorkerBootObservabilityHarnessTest.php tests/Feature/DevOps/Issue28To31HarnessTest.php tests/Feature/DevOps/LegacySsoKaliCleanupHarnessTest.php tests/Feature/DevOps/BackendProductionTopologyHarnessTest.php tests/Feature/DevOps/RuntimeAfterTopologyChangeHarnessTest.php tests/Feature/Oidc/CentralizedLogoutTest.php tests/Unit/Oidc/DispatchBackChannelLogoutJobTest.php tests/Feature/Routing --compact
         env:
           APP_ENV: testing
           APP_KEY: base64:MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=

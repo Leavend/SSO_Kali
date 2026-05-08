@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Middleware\ApplyNoStoreToSensitiveResponses;
 use App\Http\Middleware\AssertBrokerSessionCookiePolicy;
+use App\Http\Middleware\EnsureRequestId;
 use App\Http\Middleware\LogForwardedHeaderMismatch;
 use App\Http\Middleware\TrackCpuPerformance;
 use Illuminate\Foundation\Application;
@@ -43,6 +44,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->web(append: [
             AssertBrokerSessionCookiePolicy::class,
+            EnsureRequestId::class,
             LogForwardedHeaderMismatch::class,
             ApplyNoStoreToSensitiveResponses::class,
             TrackCpuPerformance::class,

@@ -51,6 +51,7 @@ final class TrackCpuPerformance
             'path' => '/'.ltrim($request->path(), '/'),
             'status' => $response->getStatusCode(),
             'duration_ms' => round($durationMs, 2),
+            'memory_peak_mb' => round(memory_get_peak_usage(true) / 1048576, 2),
             'request_id' => $request->headers->get('X-Request-Id'),
             'route' => $request->route()?->getName(),
         ]);

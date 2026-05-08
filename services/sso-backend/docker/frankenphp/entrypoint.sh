@@ -35,6 +35,11 @@ if [ "${SSO_BACKEND_PASSPORT_KEYS:-false}" = "true" ]; then
     php artisan passport:keys --force --ansi
 fi
 
+if [ "${1:-}" = "php" ] && [ "${2:-}" = "artisan" ] && [ "${3:-}" = "queue:work" ]; then
+    echo "sso.worker_boot service=sso-backend-worker command='php artisan queue:work' queue=${4:-default} pid=$$"
+    exec "$@"
+fi
+
 exec php artisan octane:frankenphp \
     --host="${SSO_BACKEND_OCTANE_HOST:-0.0.0.0}" \
     --port="${SSO_BACKEND_OCTANE_PORT:-8000}" \
