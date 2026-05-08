@@ -48,7 +48,7 @@ final class DispatchBackChannelLogoutJob implements ShouldQueue
                 'logout_token' => $tokens->issue($this->clientId, $this->subjectId, $this->sessionId),
             ]);
 
-        $this->assertSuccessful($response);
+        $this->assertSuccessful($response, $audit);
         $this->recordSuccess($audit, $response);
     }
 
@@ -69,17 +69,23 @@ final class DispatchBackChannelLogoutJob implements ShouldQueue
         ];
     }
 
-    private function assertSuccessful(Response $response): void
+    private function assertSuccessful(Response $response, RecordLogoutAuditEventAction $audit): void
     {
         if ($response->successful()) {
             return;
         }
 
-        Log::warning('[BACKCHANNEL_LOGOUT_FAILED]', [
+        $context = [
             'client_id' => $this->clientId,
+            'subject_id' => $this->subjectId,
             'session_id' => $this->sessionId,
             'http_status' => $response->status(),
-        ]);
+            'attempt' => $this->attemptNumber(),
+            'endpoint' => $this->safeEndpoint(),
+        ];
+
+        Log::warning('[BACKCHANNEL_LOGOUT_FAILED]', $context);
+        $audit->execute('backchannel_logout_failed', $context);
 
         throw new RuntimeException(
             sprintf('Back-channel logout failed for client [%s] with status [%d].', $this->clientId, $response->status()),
@@ -110,12 +116,34 @@ final class DispatchBackChannelLogoutJob implements ShouldQueue
         return max(1, (int) config('sso.logout.backchannel_timeout_seconds', 5));
     }
 
+    private function attemptNumber(): int
+    {
+        return method_exists($this, 'attempts') ? max(1, $this->attempts()) : 1;
+    }
+
+    /**
+     * @return array{scheme: string|null, host: string|null, path: string|null}
+     */
+    private function safeEndpoint(): array
+    {
+        $parts = parse_url($this->logoutUri);
+
+        return [
+            'scheme' => is_array($parts) ? ($parts['scheme'] ?? null) : null,
+            'host' => is_array($parts) ? ($parts['host'] ?? null) : null,
+            'path' => is_array($parts) ? ($parts['path'] ?? null) : null,
+        ];
+    }
+
     private function recordSuccess(RecordLogoutAuditEventAction $audit, Response $response): void
     {
         $audit->execute('backchannel_logout_succeeded', [
             'client_id' => $this->clientId,
+            'subject_id' => $this->subjectId,
             'session_id' => $this->sessionId,
             'http_status' => $response->status(),
+            'attempt' => $this->attemptNumber(),
+            'endpoint' => $this->safeEndpoint(),
         ]);
     }
 }

@@ -25,8 +25,34 @@ final class RecordLogoutAuditEventAction
      */
     private function safeContext(array $context): array
     {
-        unset($context['logout_token'], $context['access_token'], $context['refresh_token']);
+        return $this->redactSensitiveValues($context);
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     * @return array<string, mixed>
+     */
+    private function redactSensitiveValues(array $context): array
+    {
+        foreach ($context as $key => $value) {
+            if ($this->isSensitiveKey((string) $key)) {
+                unset($context[$key]);
+
+                continue;
+            }
+
+            if (is_array($value)) {
+                $context[$key] = $this->redactSensitiveValues($value);
+            }
+        }
 
         return $context;
+    }
+
+    private function isSensitiveKey(string $key): bool
+    {
+        return str_contains(strtolower($key), 'token')
+            || str_contains(strtolower($key), 'secret')
+            || str_contains(strtolower($key), 'password');
     }
 }

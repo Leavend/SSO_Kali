@@ -17,6 +17,17 @@ it('rejects centralized logout without bearer token', function (): void {
         ->assertJsonPath('error', 'invalid_token');
 });
 
+it('rejects centralized logout with malformed or incomplete access tokens', function (string $token): void {
+    $this->postJson('/connect/logout', [], ['Authorization' => 'Bearer '.$token])
+        ->assertStatus(401)
+        ->assertJsonPath('error', 'invalid_token');
+})->with([
+    'malformed token' => 'not-a-jwt',
+    'missing sid' => fn (): string => accessTokenFor('user-fr002', null),
+    'missing sub' => fn (): string => accessTokenFor(null, 'sid-fr002'),
+    'expired token' => fn (): string => accessTokenFor('user-fr002', 'sid-fr002', ['exp' => time() - 120]),
+]);
+
 it('queues back-channel logout for every registered client session', function (): void {
     Bus::fake();
 
@@ -57,9 +68,14 @@ it('posts a standards-compliant logout token to the client back-channel endpoint
 
         return $request->url() === 'https://app-a.example.test/backchannel/logout'
             && $request->method() === 'POST'
+            && ($claims['iss'] ?? null) === config('sso.issuer')
+            && ($claims['aud'] ?? null) === 'app-a'
             && ($claims['sub'] ?? null) === 'user-fr002'
             && ($claims['sid'] ?? null) === 'sid-fr002'
-            && isset($claims['jti'])
+            && is_string($claims['jti'] ?? null)
+            && is_int($claims['iat'] ?? null)
+            && is_int($claims['exp'] ?? null)
+            && ($claims['exp'] ?? 0) > ($claims['iat'] ?? PHP_INT_MAX)
             && isset($claims['events']['http://schemas.openid.net/event/backchannel-logout'])
             && ! array_key_exists('nonce', $claims);
     });
@@ -96,9 +112,9 @@ function bearerHeaders(string $subjectId, string $sessionId): array
     return ['Authorization' => 'Bearer '.accessTokenFor($subjectId, $sessionId)];
 }
 
-function accessTokenFor(string $subjectId, string $sessionId): string
+function accessTokenFor(?string $subjectId, ?string $sessionId, array $overrides = []): string
 {
-    return app(SigningKeyService::class)->sign([
+    return app(SigningKeyService::class)->sign(array_merge([
         'iss' => config('sso.issuer'),
         'aud' => config('sso.resource_audience'),
         'sub' => $subjectId,
@@ -109,7 +125,7 @@ function accessTokenFor(string $subjectId, string $sessionId): string
         'token_use' => 'access',
         'iat' => time(),
         'exp' => time() + 300,
-    ]);
+    ], $overrides));
 }
 
 function registerBackChannelClient(string $sessionId, string $clientId, string $logoutUri): void
