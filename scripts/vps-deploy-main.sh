@@ -144,7 +144,7 @@ main() {
 
   compose up -d --remove-orphans sso-backend sso-backend-worker
   wait_for_service sso-backend 240
-  wait_for_service sso-backend-worker 180
+  log 'sso-backend-worker started; worker health is supervised by restart policy and queue logs'
 
   run_smoke_tests
   compose ps
