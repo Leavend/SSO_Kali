@@ -168,6 +168,18 @@ it('locks completed production hardening issues into a single executable contrac
                 'https://api-sso.timeh.my.id',
             ],
         ],
+        'push_triggered_deploy_lifecycle' => [
+            'tests/Feature/DevOps/PushTriggeredDeployLifecycleHarnessTest.php' => [
+                'push-triggered deploy-main',
+                'StrictHostKeyChecking=accept-new',
+                'VPS_SSH_KNOWN_HOSTS',
+            ],
+            '../../.github/workflows/deploy-main.yml' => [
+                'push:',
+                'branches: [main]',
+                'ssh-keyscan attempt ${attempt} failed',
+            ],
+        ],
     ];
 
     foreach ($contracts as $issue => $files) {
@@ -196,6 +208,7 @@ it('keeps completed hardening harnesses wired into root CI', function (): void {
         'BackupRestoreRunbookHarnessTest.php',
         'SecurityHardeningChecklistHarnessTest.php',
         'GitHubActionsProductionDeployHarnessTest.php',
+        'PushTriggeredDeployLifecycleHarnessTest.php',
         'ProductionPublicDomainSmokeHarnessTest.php',
         'LogoutAuditRedactionHarnessTest.php',
         'BackChannelLogoutReliabilityHarnessTest.php',

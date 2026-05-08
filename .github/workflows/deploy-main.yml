@@ -111,24 +111,48 @@ jobs:
 
       - name: Setup SSH key
         shell: bash
+        env:
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_SSH_KNOWN_HOSTS: ${{ secrets.VPS_SSH_KNOWN_HOSTS }}
         run: |
+          set -euo pipefail
+          test -n "${VPS_SSH_KEY}" || { echo "VPS_SSH_KEY secret is required" >&2; exit 1; }
+          test -n "${VPS_HOST}" || { echo "VPS_HOST secret is required" >&2; exit 1; }
+
           mkdir -p ~/.ssh
-          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          printf '%s\n' "${VPS_SSH_KEY}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -T 10 -p "${{ env.VPS_SSH_PORT }}" -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts
+          touch ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+          if [ -n "${VPS_SSH_KNOWN_HOSTS}" ]; then
+            printf '%s\n' "${VPS_SSH_KNOWN_HOSTS}" >> ~/.ssh/known_hosts
+            exit 0
+          fi
+
+          for attempt in 1 2 3 4 5; do
+            if ssh-keyscan -T 10 -p "${{ env.VPS_SSH_PORT }}" -H "${VPS_HOST}" >> ~/.ssh/known_hosts 2>/dev/null; then
+              exit 0
+            fi
+            echo "ssh-keyscan attempt ${attempt} failed; retrying in 5s..."
+            sleep 5
+          done
+
+          echo "ssh-keyscan failed after retries; SSH will use StrictHostKeyChecking=accept-new." >&2
 
       - name: Prepare remote directories
         shell: bash
         run: |
           ssh -i ~/.ssh/deploy_key -p "${{ env.VPS_SSH_PORT }}" \
-            -o BatchMode=yes -o ConnectTimeout=20 \
+            -o BatchMode=yes -o ConnectTimeout=20 -o StrictHostKeyChecking=accept-new \
             "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
             "mkdir -p /tmp/sso-backend-deploy '${{ env.VPS_PROJECT_DIR }}/scripts'"
 
       - name: Sync deployment control files
         shell: bash
         run: |
-          rsync -az -e "ssh -i ~/.ssh/deploy_key -p ${{ env.VPS_SSH_PORT }} -o BatchMode=yes -o ConnectTimeout=20" \
+          rsync -az -e "ssh -i ~/.ssh/deploy_key -p ${{ env.VPS_SSH_PORT }} -o BatchMode=yes -o ConnectTimeout=20 -o StrictHostKeyChecking=accept-new" \
             scripts/vps-deploy-main.sh \
             docker-compose.main.yml \
             "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/tmp/sso-backend-deploy/"
@@ -137,7 +161,7 @@ jobs:
         shell: bash
         run: |
           ssh -i ~/.ssh/deploy_key -p "${{ env.VPS_SSH_PORT }}" \
-            -o BatchMode=yes -o ConnectTimeout=20 \
+            -o BatchMode=yes -o ConnectTimeout=20 -o StrictHostKeyChecking=accept-new \
             "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
             "set -e
              install -m 0644 /tmp/sso-backend-deploy/docker-compose.main.yml '${{ env.VPS_PROJECT_DIR }}/docker-compose.main.yml'
@@ -154,11 +178,11 @@ jobs:
           fi
           printf '%s\n' "${VPS_ENV_PROD}" > /tmp/sso-backend.env.prod
           chmod 600 /tmp/sso-backend.env.prod
-          rsync -az -e "ssh -i ~/.ssh/deploy_key -p ${{ env.VPS_SSH_PORT }} -o BatchMode=yes -o ConnectTimeout=20" \
+          rsync -az -e "ssh -i ~/.ssh/deploy_key -p ${{ env.VPS_SSH_PORT }} -o BatchMode=yes -o ConnectTimeout=20 -o StrictHostKeyChecking=accept-new" \
             /tmp/sso-backend.env.prod \
             "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/tmp/sso-backend-deploy/.env.prod"
           ssh -i ~/.ssh/deploy_key -p "${{ env.VPS_SSH_PORT }}" \
-            -o BatchMode=yes -o ConnectTimeout=20 \
+            -o BatchMode=yes -o ConnectTimeout=20 -o StrictHostKeyChecking=accept-new \
             "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
             "install -m 0600 /tmp/sso-backend-deploy/.env.prod '${{ env.VPS_PROJECT_DIR }}/.env.prod'"
           rm -f /tmp/sso-backend.env.prod
@@ -167,7 +191,7 @@ jobs:
         shell: bash
         run: |
           ssh -i ~/.ssh/deploy_key -p "${{ env.VPS_SSH_PORT }}" \
-            -o BatchMode=yes -o ConnectTimeout=20 -o ServerAliveInterval=10 -o ServerAliveCountMax=3 \
+            -o BatchMode=yes -o ConnectTimeout=20 -o StrictHostKeyChecking=accept-new -o ServerAliveInterval=10 -o ServerAliveCountMax=3 \
             "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
             "IMAGE_PREFIX='${{ env.IMAGE_PREFIX }}' \
              DEPLOY_TAG='${{ steps.tag.outputs.tag }}' \
