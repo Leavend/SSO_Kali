@@ -71,8 +71,8 @@ jobs:
         shell: bash
         run: |
           rsync -az -e "ssh -i ~/.ssh/deploy_key -p ${{ env.VPS_SSH_PORT }} -o BatchMode=yes -o ConnectTimeout=20" \
-            docker-compose.sso-backend.yml \
-            scripts/vps-deploy-sso-backend.sh \
+            docker-compose.main.yml \
+            scripts/vps-deploy-main.sh \
             scripts/sso-backend-vps-smoke.sh \
             "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/tmp/sso-backend-deploy/"
 
@@ -81,8 +81,8 @@ jobs:
             "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
             "set -eu
              install -d -m 0755 '${{ env.VPS_PROJECT_DIR }}/scripts'
-             install -m 0644 /tmp/sso-backend-deploy/docker-compose.sso-backend.yml '${{ env.VPS_PROJECT_DIR }}/docker-compose.sso-backend.yml'
-             install -m 0755 /tmp/sso-backend-deploy/vps-deploy-sso-backend.sh '${{ env.VPS_PROJECT_DIR }}/scripts/vps-deploy-sso-backend.sh'
+             install -m 0644 /tmp/sso-backend-deploy/docker-compose.main.yml '${{ env.VPS_PROJECT_DIR }}/docker-compose.main.yml'
+             install -m 0755 /tmp/sso-backend-deploy/vps-deploy-main.sh '${{ env.VPS_PROJECT_DIR }}/scripts/vps-deploy-main.sh'
              install -m 0755 /tmp/sso-backend-deploy/sso-backend-vps-smoke.sh '${{ env.VPS_PROJECT_DIR }}/scripts/sso-backend-vps-smoke.sh'"
 
       - name: Install production env when provided
@@ -112,7 +112,7 @@ jobs:
           ssh -i ~/.ssh/deploy_key -p "${{ env.VPS_SSH_PORT }}" \
             -o BatchMode=yes -o ConnectTimeout=20 \
             "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
-            "cd '${{ env.VPS_PROJECT_DIR }}' && docker compose --env-file .env.prod -f docker-compose.sso-backend.yml config >/dev/null"
+            "cd '${{ env.VPS_PROJECT_DIR }}' && docker compose --env-file .env.prod -f docker-compose.main.yml config >/dev/null"
 
       - name: Deploy backend image
         if: inputs.dry_run != true
@@ -125,7 +125,7 @@ jobs:
              DEPLOY_TAG='${{ inputs.image_tag }}' \
              PROJECT_DIR='${{ env.VPS_PROJECT_DIR }}' \
              PUBLIC_BASE_URL='${{ inputs.public_base_url }}' \
-             bash '${{ env.VPS_PROJECT_DIR }}/scripts/vps-deploy-sso-backend.sh'"
+             bash '${{ env.VPS_PROJECT_DIR }}/scripts/vps-deploy-main.sh'"
 
       - name: Backend smoke
         if: inputs.dry_run != true && inputs.run_smoke == true
@@ -136,7 +136,7 @@ jobs:
             --user "${{ secrets.VPS_USER }}"
             --port "${{ env.VPS_SSH_PORT }}"
             --project-dir "${{ env.VPS_PROJECT_DIR }}"
-            --compose-file "${{ env.VPS_PROJECT_DIR }}/docker-compose.sso-backend.yml"
+            --compose-file "${{ env.VPS_PROJECT_DIR }}/docker-compose.main.yml"
             --ssh-identity-file "$HOME/.ssh/deploy_key"
           )
           if [ -n "${{ inputs.public_base_url }}" ]; then
