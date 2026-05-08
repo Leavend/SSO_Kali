@@ -1,4 +1,4 @@
-name: ${COMPOSE_PROJECT_NAME:-sso-kali}
+name: ${COMPOSE_PROJECT_NAME:-sso-backend-prod}
 
 x-sso-backend-env: &sso-backend-env
   APP_ENV: ${APP_ENV:-production}
