@@ -120,9 +120,7 @@ run_smoke_tests() {
   smoke_url 'SSO discovery' "$base_url/.well-known/openid-configuration" '^(200)$'
   smoke_url 'SSO JWKS' "$base_url/.well-known/jwks.json" '^(200)$'
 
-  if compose config --services | grep -qx 'sso-admin-vue'; then
-    smoke_url 'SSO admin' "${SSO_ADMIN_URL:-$base_url}" '^(200|30[1278])$'
-  fi
+  :
 }
 
 main() {
@@ -136,7 +134,7 @@ main() {
   export SSO_DEPLOY_TAG="$DEPLOY_TAG"
 
   compose config >/dev/null
-  compose pull sso-backend sso-admin-vue || compose pull
+  compose pull sso-backend sso-backend-worker || compose pull
 
   compose up -d postgres redis
   wait_for_service postgres 180
@@ -144,9 +142,9 @@ main() {
 
   run_migrations
 
-  compose up -d --remove-orphans sso-backend sso-admin-vue
+  compose up -d --remove-orphans sso-backend sso-backend-worker
   wait_for_service sso-backend 240
-  wait_for_service sso-admin-vue 180
+  wait_for_service sso-backend-worker 180
 
   run_smoke_tests
   compose ps

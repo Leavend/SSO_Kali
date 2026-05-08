@@ -73,6 +73,8 @@ require_service_budget "docker-compose.dev.yml" "redis" "redis-limits" "Dev Comp
 require_text "docker-compose.main.yml" '^name: .*sso-backend-prod.*$' "Production backend compose uses isolated project name"
 require_service_resource "docker-compose.main.yml" "sso-backend" 'mem_limit: 768m' "Production backend constrains API memory"
 require_service_resource "docker-compose.main.yml" "sso-backend" 'cpus: "0\\.75"' "Production backend constrains API CPU"
+require_service_resource "docker-compose.main.yml" "sso-backend-worker" 'mem_limit: 384m' "Production backend constrains worker memory"
+require_service_resource "docker-compose.main.yml" "sso-backend-worker" 'cpus: "0\\.25"' "Production backend constrains worker CPU"
 require_service_resource "docker-compose.main.yml" "postgres" 'mem_limit: 1024m' "Production backend constrains PostgreSQL memory"
 require_service_resource "docker-compose.main.yml" "postgres" 'cpus: "1\\.00"' "Production backend prioritizes PostgreSQL CPU"
 require_service_resource "docker-compose.main.yml" "redis" 'mem_limit: 256m' "Production backend constrains Redis memory"
