@@ -123,7 +123,7 @@ function externalIdp_external_idp_registry_contracts(): array
             'jwks_uri',
             'External IdP JWKS document is invalid',
             'staleCacheKey',
-            '($key[\'alg\'] ?? null) !== \'none\'',
+            '$algorithm !== \'none\'',
         ],
         'app/Actions/ExternalIdp/RefreshExternalIdpJwksAction.php' => [
             'external_idp.jwks.refresh',

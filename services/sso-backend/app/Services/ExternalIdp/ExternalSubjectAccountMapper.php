@@ -25,7 +25,7 @@ final class ExternalSubjectAccountMapper
     {
         $mappedExchange = $this->mappedExchange($provider, $exchange);
 
-        if (($mappedExchange['provider_key'] ?? null) !== $provider->provider_key) {
+        if ($mappedExchange['provider_key'] !== $provider->provider_key) {
             throw new RuntimeException('External IdP exchange provider mismatch.');
         }
 
@@ -132,7 +132,7 @@ final class ExternalSubjectAccountMapper
 
     private function assertUserUsable(User $user): void
     {
-        if ($user->status !== 'active' || $user->disabled_at !== null || ! $user->local_account_enabled && $user->status !== 'active') {
+        if ($user->status !== 'active' || $user->disabled_at !== null) {
             throw new RuntimeException('Mapped local account is disabled.');
         }
     }

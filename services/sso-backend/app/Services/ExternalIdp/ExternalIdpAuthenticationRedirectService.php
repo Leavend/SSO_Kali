@@ -157,7 +157,7 @@ final class ExternalIdpAuthenticationRedirectService
 
     private function scope(ExternalIdentityProvider $provider): string
     {
-        $scopes = is_array($provider->scopes) && $provider->scopes !== []
+        $scopes = $provider->scopes !== []
             ? $provider->scopes
             : ['openid', 'profile', 'email'];
 

@@ -149,9 +149,12 @@ final class ExternalIdpJwksService
      */
     private function validKey(ExternalIdentityProvider $provider, array $key): bool
     {
+        $algorithm = $key['alg'] ?? null;
+
         return is_string($key['kid'] ?? null)
-            && in_array(($key['alg'] ?? null), $provider->allowed_algorithms, true)
-            && ($key['alg'] ?? null) !== 'none'
+            && is_string($algorithm)
+            && in_array($algorithm, $provider->allowed_algorithms, true)
+            && $algorithm !== 'none'
             && in_array(($key['kty'] ?? null), ['RSA', 'EC'], true)
             && (($key['use'] ?? 'sig') === 'sig');
     }

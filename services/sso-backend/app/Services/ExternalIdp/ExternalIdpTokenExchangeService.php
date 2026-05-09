@@ -8,6 +8,7 @@ use App\Models\ExternalIdentityProvider;
 use App\Support\Jwt\JwtHeader;
 use Firebase\JWT\JWK;
 use Firebase\JWT\JWT;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 use Throwable;
@@ -80,7 +81,7 @@ final class ExternalIdpTokenExchangeService
             ->post($tokenEndpoint, array_filter([
                 'grant_type' => 'authorization_code',
                 'client_id' => $provider->client_id,
-                'client_secret' => $provider->client_secret,
+                'client_secret' => $this->clientSecret($provider),
                 'code' => $code,
                 'redirect_uri' => $this->requiredString($context, 'redirect_uri', 'External IdP redirect URI state is missing.'),
                 'code_verifier' => $this->requiredString($context, 'code_verifier', 'External IdP PKCE verifier state is missing.'),
@@ -93,6 +94,15 @@ final class ExternalIdpTokenExchangeService
         }
 
         return $response;
+    }
+
+    private function clientSecret(ExternalIdentityProvider $provider): ?string
+    {
+        if ($provider->client_secret_encrypted === null) {
+            return null;
+        }
+
+        return Crypt::decryptString($provider->client_secret_encrypted);
     }
 
     /**
