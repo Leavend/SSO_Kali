@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Oidc;
 
+use App\Actions\Audit\RecordAuthenticationAuditEventAction;
 use App\Services\Oidc\AuthorizationCodeStore;
 use App\Services\Oidc\DownstreamClientRegistry;
 use App\Services\Oidc\LocalTokenService;
@@ -11,6 +12,7 @@ use App\Services\Oidc\OidcIncidentAuditLogger;
 use App\Services\Oidc\RefreshTokenStore;
 use App\Services\Oidc\UserProfileSynchronizer;
 use App\Services\Zitadel\ZitadelBrokerService;
+use App\Support\Audit\AuthenticationAuditRecord;
 use App\Support\Oidc\DownstreamClient;
 use App\Support\Oidc\Pkce;
 use App\Support\Responses\OidcErrorResponse;
@@ -28,6 +30,7 @@ final class ExchangeToken
         private readonly ZitadelBrokerService $broker,
         private readonly UserProfileSynchronizer $profiles,
         private readonly OidcIncidentAuditLogger $incidents,
+        private readonly RecordAuthenticationAuditEventAction $audits,
     ) {}
 
     public function handle(Request $request): JsonResponse
@@ -56,7 +59,14 @@ final class ExchangeToken
             return $this->tokenError($request, 'pkce_verification_failed', 'invalid_grant', 'PKCE verification failed.', 400);
         }
 
-        return response()->json($this->tokens->issue($payload));
+        $response = $this->tokens->issue($payload);
+        $this->recordTokenLifecycle($request, 'token_issued', 'succeeded', null, $payload, [
+            'grant_type' => 'authorization_code',
+            'refresh_token_issued' => array_key_exists('refresh_token', $response),
+            'scope' => $response['scope'] ?? $payload['scope'] ?? null,
+        ]);
+
+        return response()->json($response);
     }
 
     private function refreshGrant(Request $request): JsonResponse
@@ -126,7 +136,14 @@ final class ExchangeToken
         $context = $this->refreshContext($record);
 
         if (! is_string($record['upstream_refresh_token'] ?? null)) {
-            return response()->json($this->tokens->rotate($record, $context));
+            $response = $this->tokens->rotate($record, $context);
+            $this->recordTokenLifecycle($request, 'token_refreshed', 'succeeded', null, $record, [
+                'grant_type' => 'refresh_token',
+                'refresh_token_rotated' => true,
+                'scope' => $response['scope'] ?? $record['scope'] ?? null,
+            ]);
+
+            return response()->json($response);
         }
 
         $upstream = $this->upstreamRefreshContext($request, $record, $context);
@@ -155,12 +172,21 @@ final class ExchangeToken
             ...$authContext,
         ]);
 
-        return response()->json($this->tokens->rotate($record, [
+        $response = $this->tokens->rotate($record, [
             ...$context,
             ...$authContext,
             'subject_id' => $user->subject_id,
             'upstream_refresh_token' => $upstream['refresh_token'] ?? $record['upstream_refresh_token'],
-        ]));
+        ]);
+
+        $this->recordTokenLifecycle($request, 'token_refreshed', 'succeeded', null, $record, [
+            'grant_type' => 'refresh_token',
+            'refresh_token_rotated' => true,
+            'upstream_refresh' => true,
+            'scope' => $response['scope'] ?? $record['scope'] ?? null,
+        ]);
+
+        return response()->json($response);
     }
 
     /**
@@ -227,6 +253,52 @@ final class ExchangeToken
     }
 
     /**
+     * @param  array<string, mixed>|null  $record
+     * @param  array<string, mixed>  $context
+     */
+    private function recordTokenLifecycle(
+        Request $request,
+        string $eventType,
+        string $outcome,
+        ?string $errorCode,
+        ?array $record,
+        array $context = [],
+    ): void {
+        $this->audits->execute(AuthenticationAuditRecord::tokenLifecycle(
+            eventType: $eventType,
+            outcome: $outcome,
+            subjectId: $this->optionalString($record['subject_id'] ?? null),
+            clientId: $this->optionalString($record['client_id'] ?? $request->input('client_id')),
+            sessionId: $this->optionalString($record['session_id'] ?? null),
+            ipAddress: $request->ip(),
+            userAgent: $request->userAgent(),
+            errorCode: $errorCode,
+            requestId: $request->headers->get('X-Request-Id'),
+            context: $this->tokenAuditContext($request, $context),
+        ));
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     * @return array<string, mixed>
+     */
+    private function tokenAuditContext(Request $request, array $context): array
+    {
+        return array_filter([
+            'grant_type' => $this->optionalString($context['grant_type'] ?? $request->input('grant_type')),
+            'scope' => $this->optionalString($context['scope'] ?? null),
+            'refresh_token_issued' => $context['refresh_token_issued'] ?? null,
+            'refresh_token_rotated' => $context['refresh_token_rotated'] ?? null,
+            'upstream_refresh' => $context['upstream_refresh'] ?? null,
+        ], static fn (mixed $value): bool => $value !== null);
+    }
+
+    private function optionalString(mixed $value): ?string
+    {
+        return is_string($value) && $value !== '' ? $value : null;
+    }
+
+    /**
      * @param  array<string, mixed>  $context
      */
     private function tokenError(
@@ -238,6 +310,11 @@ final class ExchangeToken
         array $context = [],
     ): JsonResponse {
         $this->incidents->record('oidc_token_endpoint_failure', $request, $reason, [
+            'grant_type' => (string) $request->input('grant_type', ''),
+            ...$context,
+        ]);
+
+        $this->recordTokenLifecycle($request, 'token_request_failed', 'failed', $reason, null, [
             'grant_type' => (string) $request->input('grant_type', ''),
             ...$context,
         ]);
