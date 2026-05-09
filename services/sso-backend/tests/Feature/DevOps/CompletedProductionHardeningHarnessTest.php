@@ -381,6 +381,11 @@ it('locks completed production hardening issues into a single executable contrac
                 'replay',
                 'token family',
             ],
+            'tests/Feature/Oidc/RevocationEndpointRfc7009ContractTest.php' => [
+                'rfc7009',
+                'token_type_hint',
+                'idempotent',
+            ],
         ],
     ];
 
@@ -419,6 +424,7 @@ it('keeps completed hardening harnesses wired into root CI', function (): void {
         'TokenEndpointHardeningContractTest.php',
         'JwtValidationClaimContractTest.php',
         'RefreshTokenRotationReplayContractTest.php',
+        'RevocationEndpointRfc7009ContractTest.php',
         'Fr003AggregateHarnessTest.php',
         'Fr003RbacDomainHarnessTest.php',
         'RbacPolicyContractTest.php',

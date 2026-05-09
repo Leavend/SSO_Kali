@@ -106,7 +106,8 @@ function fr004_aggregate_contracts(): array
             'app/Services/Oidc/UserClaimsFactory.php' => ['OidcScope::ROLES', 'OidcScope::PERMISSIONS'],
             'tests/Feature/Oidc/UserClaimsFactoryScopeEnforcementTest.php' => ['emits roles and permissions only when RBAC scopes are granted'],
         ],
-        'revocation_and_failure_contracts' => [
+        'revocation_endpoint' => [
+            'tests/Feature/Oidc/RevocationEndpointRfc7009ContractTest.php' => ['rfc7009', 'token_type_hint', 'idempotent'],
             'app/Actions/Oidc/RevokeToken.php' => ['token_type_hint', 'refresh_token', 'revokeAccessToken'],
             'app/Services/Oidc/AccessTokenRevocationStore.php' => ['revoke', 'revoked'],
             'tests/Feature/Oidc/BackChannelLogoutPartialFailureContractTest.php' => ['partial queue dispatch failures'],
@@ -135,7 +136,7 @@ function fr004_use_case_coverage(): array
         'UC-18' => ['tests/Feature/Oidc/RefreshTokenRotationReplayContractTest.php', 'app/Services/Oidc/RefreshTokenStore.php'],
         'UC-19' => ['tests/Feature/Oidc/RefreshTokenRotationReplayContractTest.php', 'tests/Feature/Oidc/TokenEndpointHardeningContractTest.php', 'app/Actions/Oidc/ExchangeToken.php'],
         'UC-20' => ['tests/Feature/Oidc/RefreshTokenRotationReplayContractTest.php', 'app/Services/Oidc/RefreshTokenStore.php'],
-        'UC-21' => ['app/Actions/Oidc/RevokeToken.php'],
+        'UC-21' => ['tests/Feature/Oidc/RevocationEndpointRfc7009ContractTest.php', 'app/Actions/Oidc/RevokeToken.php'],
         'UC-22' => ['tests/Feature/Oidc/JwtValidationClaimContractTest.php', 'app/Services/Oidc/AccessTokenGuard.php'],
         'UC-23' => ['tests/Feature/Oidc/JwtValidationClaimContractTest.php', 'app/Http/Controllers/Oidc/UserInfoController.php'],
     ];
@@ -152,6 +153,7 @@ function fr004_ci_tests(): array
         'TokenEndpointHardeningContractTest.php',
         'JwtValidationClaimContractTest.php',
         'RefreshTokenRotationReplayContractTest.php',
+        'RevocationEndpointRfc7009ContractTest.php',
         'LockedProductionClientRegistryTest.php',
         'ProductionClientRegistryTest.php',
         'LoadTestClientRegistryTest.php',
