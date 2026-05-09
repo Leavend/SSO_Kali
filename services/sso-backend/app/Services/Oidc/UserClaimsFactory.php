@@ -13,7 +13,7 @@ use Carbon\CarbonImmutable;
 
 final class UserClaimsFactory
 {
-    public function __construct(private readonly AdminRbacResolver $rbac) {}
+    public function __construct(private ?AdminRbacResolver $rbac = null) {}
 
     /**
      * @param  array<string, mixed>  $context
@@ -140,7 +140,7 @@ final class UserClaimsFactory
             return [];
         }
 
-        return ['permissions' => $this->rbac->permissionsFor($user)];
+        return ['permissions' => ($this->rbac ??= app(AdminRbacResolver::class))->permissionsFor($user)];
     }
 
     /**
