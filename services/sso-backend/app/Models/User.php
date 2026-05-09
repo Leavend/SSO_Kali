@@ -8,6 +8,7 @@ namespace App\Models;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
@@ -75,6 +76,14 @@ class User extends Authenticatable
     public function roles(): BelongsToMany
     {
         return $this->belongsToMany(Role::class)->withTimestamps();
+    }
+
+    /**
+     * @return HasMany<ExternalSubjectLink, $this>
+     */
+    public function externalSubjectLinks(): HasMany
+    {
+        return $this->hasMany(ExternalSubjectLink::class);
     }
 
     /**

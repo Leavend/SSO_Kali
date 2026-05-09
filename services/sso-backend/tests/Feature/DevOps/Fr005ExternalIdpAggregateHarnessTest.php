@@ -123,6 +123,27 @@ function fr005_external_idp_registry_contracts(): array
             'rejects issuer nonce algorithm and kid validation failures',
             'audits callback token exchange success and failure',
         ],
+        'database/migrations/2026_05_09_000002_create_external_subject_links_table.php' => [
+            'external_subject_links',
+            'provider_key',
+            'external_subject',
+        ],
+        'app/Services/ExternalIdp/ExternalSubjectAccountMapper.php' => [
+            'External IdP email must be verified before linking an existing account',
+            'External IdP exchange provider mismatch',
+            'Mapped local account is disabled',
+        ],
+        'app/Actions/ExternalIdp/LinkExternalSubjectAccountAction.php' => [
+            'external_idp.account.link',
+            'external_idp.account_linked',
+            'external_idp.account_link_failed',
+        ],
+        'tests/Feature/ExternalIdp/ExternalSubjectAccountMappingContractTest.php' => [
+            'creates a new local external user',
+            'links verified external subject to an existing local account',
+            'prevents email takeover',
+            'audits account mapping success and failure',
+        ],
         'tests/Feature/ExternalIdp/ExternalIdpJwksContractTest.php' => [
             'fetches validates caches and resolves',
             'rejects non-https jwks uri unknown kid alg none',

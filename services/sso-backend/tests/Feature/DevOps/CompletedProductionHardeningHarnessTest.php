@@ -444,6 +444,12 @@ it('locks completed production hardening issues into a single executable contrac
                 'rejects issuer nonce algorithm and kid validation failures',
                 'audits callback token exchange success and failure',
             ],
+            'tests/Feature/ExternalIdp/ExternalSubjectAccountMappingContractTest.php' => [
+                'creates a new local external user',
+                'links verified external subject to an existing local account',
+                'prevents email takeover',
+                'audits account mapping success and failure',
+            ],
             'tests/Feature/Admin/ExternalIdentityProviderManagementTest.php' => [
                 'creates updates lists shows and deletes external idps',
                 'validates admin external idp request contracts',
@@ -498,6 +504,7 @@ it('keeps completed hardening harnesses wired into root CI', function (): void {
         'ExternalIdpJwksContractTest.php',
         'ExternalIdpAuthenticationRedirectContractTest.php',
         'ExternalIdpCallbackTokenExchangeContractTest.php',
+        'ExternalSubjectAccountMappingContractTest.php',
         'ExternalIdentityProviderManagementTest.php',
         'ExternalIdentityProviderPermissionMatrixTest.php',
         'TokenEndpointHardeningContractTest.php',
