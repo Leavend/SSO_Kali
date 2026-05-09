@@ -13,6 +13,8 @@ it('locks issue42 admin management crud contracts into production hardening', fu
             'function show',
             'function update',
             'function destroy',
+        ],
+        'app/Services/Admin/AdminClientPresenter.php' => [
             'has_secret_hash',
         ],
         'app/Actions/Admin/UpdateManagedClientAction.php' => [

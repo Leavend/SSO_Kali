@@ -28,6 +28,8 @@ it('locks issue43 scope management and token claim enforcement contracts', funct
         'app/Http/Controllers/Admin/ClientController.php' => [
             'function scopes',
             'function syncScopes',
+        ],
+        'app/Services/Admin/AdminClientPresenter.php' => [
             'allowed_scopes',
         ],
         'routes/admin.php' => [
