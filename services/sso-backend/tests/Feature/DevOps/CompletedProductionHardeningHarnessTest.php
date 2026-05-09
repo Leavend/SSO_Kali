@@ -180,6 +180,23 @@ it('locks completed production hardening issues into a single executable contrac
                 'ssh-keyscan attempt ${attempt} failed',
             ],
         ],
+        'production_oauth_token_flow_smoke' => [
+            'tests/Feature/DevOps/ProductionOAuthTokenFlowSmokeHarnessTest.php' => [
+                'oauth token-flow smoke',
+                'sso-load-test-client',
+                'without committing plaintext secrets',
+            ],
+            '../../scripts/sso-backend-oauth-token-smoke.sh' => [
+                'grant_type=client_credentials',
+                'invalid client secret rejected as expected',
+                'without printing secrets or tokens',
+            ],
+            '../../docs/devops/sso-backend-oauth-token-smoke.md' => [
+                'No secrets are committed to git',
+                'refresh_token absent',
+                'SSO_LOAD_TEST_CLIENT_ENABLED=false',
+            ],
+        ],
     ];
 
     foreach ($contracts as $issue => $files) {
@@ -209,6 +226,7 @@ it('keeps completed hardening harnesses wired into root CI', function (): void {
         'SecurityHardeningChecklistHarnessTest.php',
         'GitHubActionsProductionDeployHarnessTest.php',
         'PushTriggeredDeployLifecycleHarnessTest.php',
+        'ProductionOAuthTokenFlowSmokeHarnessTest.php',
         'ProductionPublicDomainSmokeHarnessTest.php',
         'LogoutAuditRedactionHarnessTest.php',
         'BackChannelLogoutReliabilityHarnessTest.php',
