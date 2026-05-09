@@ -229,6 +229,12 @@ function fr005_external_idp_registry_contracts(): array
             'records account link takeover protection failure',
             'keeps external idp security incident audit events hash chained',
         ],
+        'tests/Feature/ExternalIdp/ExternalIdpDiscoverySignatureContractTest.php' => [
+            'enforces https issuer aligned discovery endpoints',
+            'persists trusted discovery metadata only after issuer',
+            'accepts only allowed rs256 signed id tokens',
+            'rejects unsigned disallowed algorithm unknown kid',
+        ],
         'tests/Feature/ExternalIdp/ExternalIdpJwksContractTest.php' => [
             'fetches validates caches and resolves',
             'rejects non-https jwks uri unknown kid alg none',
