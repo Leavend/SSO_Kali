@@ -54,7 +54,16 @@ final class BuildUserInfo
 
     private function looksLikeJwt(string $token): bool
     {
-        return substr_count($token, '.') === 2;
+        $parts = explode('.', $token);
+
+        if (count($parts) !== 3) {
+            return false;
+        }
+
+        $header = json_decode(base64_decode(strtr($parts[0], '-_', '+/')) ?: '', true);
+
+        return is_array($header)
+            && ($header['alg'] ?? null) === (string) config('sso.signing.alg', 'ES256');
     }
 
     /**
