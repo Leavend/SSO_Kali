@@ -62,8 +62,6 @@ Route::middleware(AdminGuard::class)->prefix('admin/api')->group(function (): vo
         Route::post('/roles', [RoleController::class, 'store']);
         Route::patch('/roles/{role}', [RoleController::class, 'update'])
             ->where('role', '[a-z0-9_-]+');
-        Route::delete('/roles/{role}', [RoleController::class, 'destroy'])
-            ->where('role', '[a-z0-9_-]+');
         Route::put('/roles/{role}/permissions', [RoleController::class, 'syncPermissions'])
             ->where('role', '[a-z0-9_-]+');
         Route::put('/users/{subjectId}/roles', [RoleController::class, 'syncUserRoles'])
@@ -95,8 +93,6 @@ Route::middleware(AdminGuard::class)->prefix('admin/api')->group(function (): vo
     ])->group(function (): void {
         Route::patch('/clients/{clientId}', [ClientController::class, 'update'])
             ->where('clientId', '[a-z0-9-]+');
-        Route::delete('/clients/{clientId}', [ClientController::class, 'destroy'])
-            ->where('clientId', '[a-z0-9-]+');
     });
 
     Route::middleware([
@@ -106,6 +102,12 @@ Route::middleware(AdminGuard::class)->prefix('admin/api')->group(function (): vo
         EnsureFreshAdminAuth::class.':step_up',
         EnsureAdminMfaAssurance::class,
     ])->group(function (): void {
+        Route::delete('/roles/{role}', [RoleController::class, 'destroy'])
+            ->middleware(RequireAdminPermission::class.':'.AdminPermission::ROLES_WRITE)
+            ->where('role', '[a-z0-9_-]+');
+        Route::delete('/clients/{clientId}', [ClientController::class, 'destroy'])
+            ->middleware(RequireAdminPermission::class.':'.AdminPermission::CLIENTS_WRITE)
+            ->where('clientId', '[a-z0-9-]+');
         Route::delete('/sessions/{sessionId}', [SessionController::class, 'destroy'])
             ->where('sessionId', '[a-zA-Z0-9_-]+');
         Route::delete('/users/{subjectId}/sessions', [SessionController::class, 'destroyUserSessions'])
