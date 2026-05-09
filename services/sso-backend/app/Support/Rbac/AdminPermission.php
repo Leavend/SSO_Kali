@@ -20,6 +20,10 @@ final class AdminPermission
 
     public const CLIENTS_WRITE = 'admin.clients.write';
 
+    public const EXTERNAL_IDPS_READ = 'admin.external-idps.read';
+
+    public const EXTERNAL_IDPS_WRITE = 'admin.external-idps.write';
+
     public const SESSIONS_READ = 'admin.sessions.read';
 
     public const SESSIONS_TERMINATE = 'admin.sessions.terminate';
@@ -43,6 +47,8 @@ final class AdminPermission
             self::ROLES_WRITE,
             self::CLIENTS_READ,
             self::CLIENTS_WRITE,
+            self::EXTERNAL_IDPS_READ,
+            self::EXTERNAL_IDPS_WRITE,
             self::SESSIONS_READ,
             self::SESSIONS_TERMINATE,
             self::AUDIT_READ,

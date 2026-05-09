@@ -96,6 +96,21 @@ function fr005_external_idp_registry_contracts(): array
             'uses stale jwks cache',
             'audits jwks refresh success and failure',
         ],
+        'app/Http/Controllers/Admin/ExternalIdentityProviderController.php' => [
+            'ListExternalIdentityProvidersAction',
+            'StoreExternalIdentityProviderAction',
+            'UpdateExternalIdentityProviderAction',
+            'DeleteExternalIdentityProviderAction',
+        ],
+        'app/Support/Rbac/AdminPermission.php' => [
+            'EXTERNAL_IDPS_READ',
+            'EXTERNAL_IDPS_WRITE',
+        ],
+        'tests/Feature/Admin/ExternalIdentityProviderManagementTest.php' => [
+            'creates updates lists shows and deletes external idps',
+            'validates admin external idp request contracts',
+            'writes redacted admin audit events',
+        ],
     ];
 }
 

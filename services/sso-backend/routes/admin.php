@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Admin\AuditTrailController;
 use App\Http\Controllers\Admin\ClientController;
+use App\Http\Controllers\Admin\ExternalIdentityProviderController;
 use App\Http\Controllers\Admin\PrincipalController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SessionController;
@@ -43,6 +44,17 @@ Route::middleware(AdminGuard::class)->prefix('admin/api')->group(function (): vo
         Route::get('/scopes', [ClientController::class, 'scopes']);
         Route::get('/client-integrations/registrations', [ClientController::class, 'registrations']);
         Route::post('/client-integrations/contract', [ClientController::class, 'contract']);
+    });
+
+    Route::middleware([
+        'throttle:admin-read',
+        RequireAdminPermission::class.':'.AdminPermission::EXTERNAL_IDPS_READ,
+        EnsureFreshAdminAuth::class.':read',
+        EnsureAdminMfaAssurance::class,
+    ])->group(function (): void {
+        Route::get('/external-idps', [ExternalIdentityProviderController::class, 'index']);
+        Route::get('/external-idps/{providerKey}', [ExternalIdentityProviderController::class, 'show'])
+            ->where('providerKey', '[a-z0-9_-]+');
     });
     Route::middleware([
         'throttle:admin-read',
@@ -112,6 +124,17 @@ Route::middleware(AdminGuard::class)->prefix('admin/api')->group(function (): vo
 
     Route::middleware([
         'throttle:admin-write',
+        RequireAdminPermission::class.':'.AdminPermission::EXTERNAL_IDPS_WRITE,
+        EnsureFreshAdminAuth::class.':step_up',
+        EnsureAdminMfaAssurance::class,
+    ])->group(function (): void {
+        Route::post('/external-idps', [ExternalIdentityProviderController::class, 'store']);
+        Route::patch('/external-idps/{providerKey}', [ExternalIdentityProviderController::class, 'update'])
+            ->where('providerKey', '[a-z0-9_-]+');
+    });
+
+    Route::middleware([
+        'throttle:admin-write',
         RequireAdminSessionManagementRole::class,
         RequireAdminPermission::class.':'.AdminPermission::SESSIONS_TERMINATE,
         EnsureFreshAdminAuth::class.':step_up',
@@ -132,5 +155,8 @@ Route::middleware(AdminGuard::class)->prefix('admin/api')->group(function (): vo
             ->where('clientId', '[a-z0-9-]+');
         Route::post('/client-integrations/{clientId}/disable', [ClientController::class, 'disable'])
             ->where('clientId', '[a-z0-9-]+');
+        Route::delete('/external-idps/{providerKey}', [ExternalIdentityProviderController::class, 'destroy'])
+            ->middleware(RequireAdminPermission::class.':'.AdminPermission::EXTERNAL_IDPS_WRITE)
+            ->where('providerKey', '[a-z0-9_-]+');
     });
 });
