@@ -22,6 +22,13 @@ use Laravel\Passport\HasApiTokens;
  * @property string|null $family_name
  * @property string $display_name
  * @property string $role
+ * @property string $status
+ * @property Carbon|null $disabled_at
+ * @property string|null $disabled_reason
+ * @property bool $local_account_enabled
+ * @property Carbon|null $profile_synced_at
+ * @property string|null $password_reset_token_hash
+ * @property Carbon|null $password_reset_token_expires_at
  * @property Carbon|null $email_verified_at
  * @property Carbon|null $last_login_at
  * @property Carbon|null $created_at
@@ -46,6 +53,13 @@ class User extends Authenticatable
         'family_name',
         'display_name',
         'role',
+        'status',
+        'disabled_at',
+        'disabled_reason',
+        'local_account_enabled',
+        'profile_synced_at',
+        'password_reset_token_hash',
+        'password_reset_token_expires_at',
         'email_verified_at',
         'last_login_at',
     ];
@@ -73,6 +87,10 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'last_login_at' => 'datetime',
+            'disabled_at' => 'datetime',
+            'local_account_enabled' => 'boolean',
+            'profile_synced_at' => 'datetime',
+            'password_reset_token_expires_at' => 'datetime',
             'password' => 'hashed',
         ];
     }

@@ -248,6 +248,23 @@ it('locks completed production hardening issues into a single executable contrac
                 'AdminPermission::adminDefaults()',
             ],
         ],
+        'fr003_user_management_backend' => [
+            'tests/Feature/DevOps/Fr003UserManagementHarnessTest.php' => [
+                'fr003 user management',
+                'password_reset_token_hash',
+                'AdminPermission::USERS_WRITE',
+            ],
+            'tests/Feature/Admin/UserManagementBackendTest.php' => [
+                'creates local fallback users',
+                'stores only a password reset token hash',
+                'syncs selected profile fields',
+            ],
+            'app/Http/Controllers/Admin/UserController.php' => [
+                'create_managed_user',
+                'deactivate_managed_user',
+                'sync_managed_user_profile',
+            ],
+        ],
     ];
 
     foreach ($contracts as $issue => $files) {
@@ -283,6 +300,8 @@ it('keeps completed hardening harnesses wired into root CI', function (): void {
         'Fr003RbacDomainHarnessTest.php',
         'RbacPolicyContractTest.php',
         'AdminPermissionMiddlewareTest.php',
+        'Fr003UserManagementHarnessTest.php',
+        'UserManagementBackendTest.php',
         'ProductionPublicDomainSmokeHarnessTest.php',
         'LogoutAuditRedactionHarnessTest.php',
         'BackChannelLogoutReliabilityHarnessTest.php',

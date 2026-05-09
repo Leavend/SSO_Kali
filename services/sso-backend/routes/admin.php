@@ -42,6 +42,23 @@ Route::middleware(AdminGuard::class)->prefix('admin/api')->group(function (): vo
 
     Route::middleware([
         'throttle:admin-write',
+        RequireAdminPermission::class.':'.AdminPermission::USERS_WRITE,
+        EnsureFreshAdminAuth::class.':step_up',
+        EnsureAdminMfaAssurance::class,
+    ])->group(function (): void {
+        Route::post('/users', [UserController::class, 'store']);
+        Route::post('/users/{subjectId}/deactivate', [UserController::class, 'deactivate'])
+            ->where('subjectId', '[a-zA-Z0-9_-]+');
+        Route::post('/users/{subjectId}/reactivate', [UserController::class, 'reactivate'])
+            ->where('subjectId', '[a-zA-Z0-9_-]+');
+        Route::post('/users/{subjectId}/password-reset', [UserController::class, 'issuePasswordReset'])
+            ->where('subjectId', '[a-zA-Z0-9_-]+');
+        Route::post('/users/{subjectId}/sync-profile', [UserController::class, 'syncProfile'])
+            ->where('subjectId', '[a-zA-Z0-9_-]+');
+    });
+
+    Route::middleware([
+        'throttle:admin-write',
         RequireAdminSessionManagementRole::class,
         RequireAdminPermission::class.':'.AdminPermission::SESSIONS_TERMINATE,
         EnsureFreshAdminAuth::class.':step_up',
