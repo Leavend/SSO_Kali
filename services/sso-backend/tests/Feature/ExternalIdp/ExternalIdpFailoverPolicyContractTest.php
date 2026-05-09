@@ -1,0 +1,117 @@
+<?php
+
+declare(strict_types=1);
+
+use App\Actions\ExternalIdp\SelectExternalIdpForAuthenticationAction;
+use App\Models\AdminAuditEvent;
+use App\Models\ExternalIdentityProvider;
+use App\Services\ExternalIdp\ExternalIdpFailoverPolicy;
+
+it('selects the highest priority healthy primary provider before backup providers', function (): void {
+    fr005FailoverProvider('primary-slow', false, 50, 'healthy');
+    fr005FailoverProvider('backup-fast', true, 1, 'healthy');
+    fr005FailoverProvider('primary-fast', false, 10, 'healthy');
+
+    $selection = app(ExternalIdpFailoverPolicy::class)->select();
+
+    expect($selection['provider']->provider_key)->toBe('primary-fast')
+        ->and($selection['mode'])->toBe('primary')
+        ->and($selection['candidates'])->toHaveCount(3)
+        ->and($selection['candidates'][0]['provider_key'])->toBe('primary-fast');
+});
+
+it('fails over to the highest priority backup provider when primaries are unhealthy or disabled', function (): void {
+    fr005FailoverProvider('primary-disabled', false, 1, 'healthy', false);
+    fr005FailoverProvider('primary-unhealthy', false, 2, 'unhealthy');
+    fr005FailoverProvider('backup-slow', true, 50, 'healthy');
+    fr005FailoverProvider('backup-fast', true, 5, 'unknown');
+
+    $selection = app(ExternalIdpFailoverPolicy::class)->select();
+
+    expect($selection['provider']->provider_key)->toBe('backup-fast')
+        ->and($selection['provider']->is_backup)->toBeTrue()
+        ->and($selection['mode'])->toBe('backup_failover')
+        ->and(collect($selection['candidates'])->pluck('provider_key')->all())->toBe(['backup-fast', 'backup-slow']);
+});
+
+it('honors an explicitly preferred eligible provider without bypassing health and enabled policy', function (): void {
+    fr005FailoverProvider('primary-fast', false, 1, 'healthy');
+    fr005FailoverProvider('backup-preferred', true, 100, 'healthy');
+    fr005FailoverProvider('backup-unhealthy', true, 1, 'unhealthy');
+
+    $selection = app(ExternalIdpFailoverPolicy::class)->select('backup-preferred');
+    $fallback = app(ExternalIdpFailoverPolicy::class)->select('backup-unhealthy');
+
+    expect($selection['provider']->provider_key)->toBe('backup-preferred')
+        ->and($selection['mode'])->toBe('preferred_backup')
+        ->and($fallback['provider']->provider_key)->toBe('primary-fast')
+        ->and($fallback['mode'])->toBe('primary');
+});
+
+it('fails closed when every external idp provider is unavailable', function (): void {
+    fr005FailoverProvider('primary-unhealthy', false, 1, 'unhealthy');
+    fr005FailoverProvider('backup-disabled', true, 1, 'healthy', false);
+
+    expect(fn () => app(ExternalIdpFailoverPolicy::class)->select())
+        ->toThrow(RuntimeException::class, 'No healthy external IdP provider is available.');
+});
+
+it('audits failover selection success and unavailable failure without leaking secret material', function (): void {
+    fr005FailoverProvider('primary-fast', false, 1, 'healthy');
+    app(SelectExternalIdpForAuthenticationAction::class)->execute('primary-fast', 'req-fr005-failover');
+
+    ExternalIdentityProvider::query()->delete();
+    fr005FailoverProvider('backup-unhealthy', true, 1, 'unhealthy');
+
+    expect(fn () => app(SelectExternalIdpForAuthenticationAction::class)->execute(null, 'req-fr005-failover-fail'))
+        ->toThrow(RuntimeException::class);
+
+    $events = AdminAuditEvent::query()
+        ->whereIn('taxonomy', ['external_idp.failover_selected', 'external_idp.failover_unavailable'])
+        ->orderBy('id')
+        ->get();
+    $encoded = json_encode($events->pluck('context')->all(), JSON_THROW_ON_ERROR);
+
+    expect($events)->toHaveCount(2)
+        ->and($events[0]->action)->toBe('external_idp.failover.select')
+        ->and($events[0]->context['selected_provider_key'])->toBe('primary-fast')
+        ->and($events[0]->context['mode'])->toBe('preferred_primary')
+        ->and($events[1]->taxonomy)->toBe('external_idp.failover_unavailable')
+        ->and($encoded)->toContain('req-fr005-failover')
+        ->and($encoded)->not->toContain('client_secret')
+        ->and($encoded)->not->toContain('access_token')
+        ->and($encoded)->not->toContain('refresh_token')
+        ->and($encoded)->not->toContain('id_token')
+        ->and($encoded)->not->toContain('code_verifier');
+});
+
+function fr005FailoverProvider(
+    string $providerKey,
+    bool $isBackup,
+    int $priority,
+    string $healthStatus,
+    bool $enabled = true,
+): ExternalIdentityProvider {
+    $issuer = 'https://'.$providerKey.'.keycloak.example.test/realms/sso';
+
+    return ExternalIdentityProvider::query()->create([
+        'provider_key' => $providerKey,
+        'display_name' => str($providerKey)->replace('-', ' ')->title()->toString(),
+        'issuer' => $issuer,
+        'metadata_url' => $issuer.'/.well-known/openid-configuration',
+        'client_id' => 'sso-broker',
+        'client_secret_encrypted' => null,
+        'authorization_endpoint' => $issuer.'/protocol/openid-connect/auth',
+        'token_endpoint' => $issuer.'/protocol/openid-connect/token',
+        'userinfo_endpoint' => $issuer.'/protocol/openid-connect/userinfo',
+        'jwks_uri' => $issuer.'/protocol/openid-connect/certs',
+        'allowed_algorithms' => ['RS256'],
+        'scopes' => ['openid', 'profile', 'email'],
+        'enabled' => $enabled,
+        'is_backup' => $isBackup,
+        'priority' => $priority,
+        'tls_validation_enabled' => true,
+        'signature_validation_enabled' => true,
+        'health_status' => $healthStatus,
+    ]);
+}

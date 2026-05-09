@@ -144,6 +144,23 @@ function fr005_external_idp_registry_contracts(): array
             'prevents email takeover',
             'audits account mapping success and failure',
         ],
+        'app/Services/ExternalIdp/ExternalIdpFailoverPolicy.php' => [
+            'No healthy external IdP provider is available',
+            'backup_failover',
+            'preferred_primary',
+            'preferred_backup',
+        ],
+        'app/Actions/ExternalIdp/SelectExternalIdpForAuthenticationAction.php' => [
+            'external_idp.failover.select',
+            'external_idp.failover_selected',
+            'external_idp.failover_unavailable',
+        ],
+        'tests/Feature/ExternalIdp/ExternalIdpFailoverPolicyContractTest.php' => [
+            'selects the highest priority healthy primary provider',
+            'fails over to the highest priority backup provider',
+            'fails closed when every external idp provider is unavailable',
+            'audits failover selection success and unavailable failure',
+        ],
         'tests/Feature/ExternalIdp/ExternalIdpJwksContractTest.php' => [
             'fetches validates caches and resolves',
             'rejects non-https jwks uri unknown kid alg none',
