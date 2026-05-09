@@ -106,6 +106,23 @@ function fr005_external_idp_registry_contracts(): array
             'rejects disabled unhealthy and non-https',
             'audits external idp auth redirect success and failure',
         ],
+        'app/Services/ExternalIdp/ExternalIdpTokenExchangeService.php' => [
+            'grant_type',
+            'authorization_code',
+            'External IdP id_token signature validation failed',
+            'External IdP nonce claim mismatch',
+        ],
+        'app/Actions/ExternalIdp/ExchangeExternalIdpCallbackTokenAction.php' => [
+            'external_idp.callback.exchange',
+            'external_idp.callback_exchange_succeeded',
+            'external_idp.callback_exchange_failed',
+        ],
+        'tests/Feature/ExternalIdp/ExternalIdpCallbackTokenExchangeContractTest.php' => [
+            'exchanges an external idp callback authorization code',
+            'rejects invalid replayed state and non-https token endpoint',
+            'rejects issuer nonce algorithm and kid validation failures',
+            'audits callback token exchange success and failure',
+        ],
         'tests/Feature/ExternalIdp/ExternalIdpJwksContractTest.php' => [
             'fetches validates caches and resolves',
             'rejects non-https jwks uri unknown kid alg none',
