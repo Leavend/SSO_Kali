@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Admin\AuditTrailController;
 use App\Http\Controllers\Admin\ClientController;
+use App\Http\Controllers\Admin\ClientIntegrationController;
 use App\Http\Controllers\Admin\ExternalIdentityProviderController;
 use App\Http\Controllers\Admin\PrincipalController;
 use App\Http\Controllers\Admin\RoleController;
@@ -42,8 +43,8 @@ Route::middleware(AdminGuard::class)->prefix('admin/api')->group(function (): vo
         Route::get('/clients/{clientId}', [ClientController::class, 'show'])
             ->where('clientId', '[a-z0-9-]+');
         Route::get('/scopes', [ClientController::class, 'scopes']);
-        Route::get('/client-integrations/registrations', [ClientController::class, 'registrations']);
-        Route::post('/client-integrations/contract', [ClientController::class, 'contract']);
+        Route::get('/client-integrations/registrations', [ClientIntegrationController::class, 'registrations']);
+        Route::post('/client-integrations/contract', [ClientIntegrationController::class, 'contract']);
     });
 
     Route::middleware([
@@ -150,10 +151,10 @@ Route::middleware(AdminGuard::class)->prefix('admin/api')->group(function (): vo
             ->where('sessionId', '[a-zA-Z0-9_-]+');
         Route::delete('/users/{subjectId}/sessions', [SessionController::class, 'destroyUserSessions'])
             ->where('subjectId', '[a-zA-Z0-9_-]+');
-        Route::post('/client-integrations/stage', [ClientController::class, 'stage']);
-        Route::post('/client-integrations/{clientId}/activate', [ClientController::class, 'activate'])
+        Route::post('/client-integrations/stage', [ClientIntegrationController::class, 'stage']);
+        Route::post('/client-integrations/{clientId}/activate', [ClientIntegrationController::class, 'activate'])
             ->where('clientId', '[a-z0-9-]+');
-        Route::post('/client-integrations/{clientId}/disable', [ClientController::class, 'disable'])
+        Route::post('/client-integrations/{clientId}/disable', [ClientIntegrationController::class, 'disable'])
             ->where('clientId', '[a-z0-9-]+');
         Route::delete('/external-idps/{providerKey}', [ExternalIdentityProviderController::class, 'destroy'])
             ->middleware(RequireAdminPermission::class.':'.AdminPermission::EXTERNAL_IDPS_WRITE)

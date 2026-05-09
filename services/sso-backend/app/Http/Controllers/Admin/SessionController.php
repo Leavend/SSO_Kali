@@ -4,98 +4,57 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Admin;
 
-use App\Models\User;
-use App\Services\Admin\AdminAuditLogger;
-use App\Services\Admin\AdminAuditTaxonomy;
+use App\Services\Admin\AdminMutationResponder;
+use App\Services\Admin\AdminSessionPresenter;
 use App\Services\Admin\AdminSessionService;
+use App\Support\Responses\AdminApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Throwable;
 
 final class SessionController
 {
     public function __construct(
         private readonly AdminSessionService $sessions,
-        private readonly AdminAuditLogger $audit,
+        private readonly AdminSessionPresenter $presenter,
+        private readonly AdminMutationResponder $mutations,
     ) {}
 
     public function index(): JsonResponse
     {
-        return response()->json(['sessions' => $this->sessions->activeSessions()]);
+        return AdminApiResponse::ok(['sessions' => $this->sessions->activeSessions()]);
     }
 
     public function show(string $sessionId): JsonResponse
     {
-        $sessions = collect($this->sessions->activeSessions())
-            ->filter(fn (array $s): bool => $s['session_id'] === $sessionId)
-            ->values();
+        $session = $this->presenter->find($this->sessions->activeSessions(), $sessionId);
 
-        if ($sessions->isEmpty()) {
-            return response()->json(['error' => 'Session not found.'], 404);
-        }
-
-        return response()->json(['session' => $sessions->first()]);
+        return $session === null
+            ? AdminApiResponse::error('not_found', 'Session not found.', 404)
+            : AdminApiResponse::ok(['session' => $session]);
     }
 
     public function destroy(Request $request, string $sessionId): JsonResponse
     {
-        return $this->runAction(
-            $request,
-            'revoke_session',
-            ['session_id' => $sessionId],
-            fn (): array => $this->sessions->revokeSession($sessionId),
-        );
+        return $this->run($request, 'revoke_session', ['session_id' => $sessionId], fn (): array => $this->sessions->revokeSession($sessionId), 'Failed to revoke session.');
     }
 
     public function destroyUserSessions(Request $request, string $subjectId): JsonResponse
     {
-        return $this->runAction(
-            $request,
-            'revoke_all_user_sessions',
-            ['subject_id' => $subjectId],
-            fn (): array => $this->sessions->revokeAllUserSessions($subjectId),
-        );
+        return $this->run($request, 'revoke_all_user_sessions', ['subject_id' => $subjectId], fn (): array => $this->sessions->revokeAllUserSessions($subjectId), 'Failed to revoke user sessions.');
     }
 
     /**
      * @param  array<string, mixed>  $context
      * @param  \Closure(): array<string, mixed>  $callback
      */
-    private function runAction(Request $request, string $action, array $context, \Closure $callback): JsonResponse
+    private function run(Request $request, string $action, array $context, \Closure $callback, string $failureMessage): JsonResponse
     {
-        /** @var User $admin */
-        $admin = $request->attributes->get('admin_user');
-
-        try {
-            $result = $callback();
-        } catch (Throwable $exception) {
-            $this->audit->failed(
-                $action,
-                $request,
-                $admin,
-                $exception,
-                [...$context, 'freshness_level' => 'step_up'],
-                AdminAuditTaxonomy::DESTRUCTIVE_ACTION_WITH_STEP_UP,
-            );
-
-            return response()->json([
-                'error' => str_contains($action, 'all') ? 'Failed to revoke user sessions.' : 'Failed to revoke session.',
-                'detail' => app()->isLocal() ? $exception->getMessage() : null,
-            ], 500);
-        }
-
-        $this->audit->succeeded(
-            $action,
+        return $this->mutations->runWithAuditResult(
             $request,
-            $admin,
-            [...$context, ...$result, 'freshness_level' => 'step_up'],
-            AdminAuditTaxonomy::DESTRUCTIVE_ACTION_WITH_STEP_UP,
+            $action,
+            $context,
+            fn (): array => $this->presenter->revoked($context, $callback()),
+            $failureMessage,
         );
-
-        return response()->json([
-            'revoked' => true,
-            ...$context,
-            ...$result,
-        ]);
     }
 }
