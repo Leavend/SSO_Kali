@@ -483,6 +483,12 @@ it('locks completed production hardening issues into a single executable contrac
                 'accepts only allowed rs256 signed id tokens',
                 'rejects unsigned disallowed algorithm unknown kid',
             ],
+            'tests/Feature/ExternalIdp/ExternalIdpLoginE2EContractTest.php' => [
+                'completes external idp login from provider selection',
+                'keeps external idp login idempotent',
+                'fails closed when external idp login callback uses replayed state',
+                'audits external idp login lifecycle without leaking callback tokens',
+            ],
             'tests/Feature/Admin/ExternalIdentityProviderCrudContractTest.php' => [
                 'enforces external idp admin CRUD validation boundaries',
                 'without leaking secrets',
@@ -549,6 +555,7 @@ it('keeps completed hardening harnesses wired into root CI', function (): void {
         'ExternalIdpClaimsMappingContractTest.php',
         'ExternalIdpSecurityIncidentAuditContractTest.php',
         'ExternalIdpDiscoverySignatureContractTest.php',
+        'ExternalIdpLoginE2EContractTest.php',
         'ExternalIdentityProviderCrudContractTest.php',
         'ExternalIdentityProviderManagementTest.php',
         'ExternalIdentityProviderPermissionMatrixTest.php',

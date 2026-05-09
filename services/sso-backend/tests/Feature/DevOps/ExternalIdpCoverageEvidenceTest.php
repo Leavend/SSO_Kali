@@ -235,6 +235,12 @@ function externalIdp_external_idp_registry_contracts(): array
             'accepts only allowed rs256 signed id tokens',
             'rejects unsigned disallowed algorithm unknown kid',
         ],
+        'tests/Feature/ExternalIdp/ExternalIdpLoginE2EContractTest.php' => [
+            'completes external idp login from provider selection',
+            'keeps external idp login idempotent',
+            'fails closed when external idp login callback uses replayed state',
+            'audits external idp login lifecycle without leaking callback tokens',
+        ],
         'tests/Feature/ExternalIdp/ExternalIdpJwksContractTest.php' => [
             'fetches validates caches and resolves',
             'rejects non-https jwks uri unknown kid alg none',
