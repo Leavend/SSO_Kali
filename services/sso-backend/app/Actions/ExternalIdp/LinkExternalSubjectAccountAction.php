@@ -16,6 +16,7 @@ final class LinkExternalSubjectAccountAction
     public function __construct(
         private readonly ExternalSubjectAccountMapper $mapper,
         private readonly AdminAuditEventStore $auditEvents,
+        private readonly RecordExternalIdpSecurityIncidentAction $securityIncidents,
     ) {}
 
     /**
@@ -31,6 +32,15 @@ final class LinkExternalSubjectAccountAction
             return $result;
         } catch (Throwable $exception) {
             $this->audit($provider, $exchange, $requestId, 'failure', null, $exception, null);
+            $this->securityIncidents->execute(
+                'external_idp.account.link_failure',
+                'external_idp_account_link_failed',
+                $provider,
+                $exchange,
+                $exception,
+                $requestId,
+                'critical',
+            );
 
             throw $exception;
         }

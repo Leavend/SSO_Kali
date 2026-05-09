@@ -14,6 +14,7 @@ final class ExchangeExternalIdpCallbackTokenAction
     public function __construct(
         private readonly ExternalIdpTokenExchangeService $exchange,
         private readonly AdminAuditEventStore $auditEvents,
+        private readonly RecordExternalIdpSecurityIncidentAction $securityIncidents,
     ) {}
 
     /**
@@ -28,6 +29,15 @@ final class ExchangeExternalIdpCallbackTokenAction
             return $result;
         } catch (Throwable $exception) {
             $this->audit($provider, 'failure', $requestId, null, $exception);
+            $this->securityIncidents->execute(
+                'external_idp.callback.exchange_failure',
+                'external_idp_callback_exchange_failed',
+                $provider,
+                ['state' => $state, 'code' => $code],
+                $exception,
+                $requestId,
+                'critical',
+            );
 
             throw $exception;
         }

@@ -470,6 +470,13 @@ it('locks completed production hardening issues into a single executable contrac
                 'integrates raw claims mapping',
                 'audits claims mapping success and failure',
             ],
+            'tests/Feature/ExternalIdp/ExternalIdpSecurityIncidentAuditContractTest.php' => [
+                'records centralized external idp security incidents',
+                'records auth redirect failure',
+                'records callback exchange failure',
+                'records account link takeover protection failure',
+                'keeps external idp security incident audit events hash chained',
+            ],
             'tests/Feature/Admin/ExternalIdentityProviderManagementTest.php' => [
                 'creates updates lists shows and deletes external idps',
                 'validates admin external idp request contracts',
@@ -528,6 +535,7 @@ it('keeps completed hardening harnesses wired into root CI', function (): void {
         'ExternalIdpFailoverPolicyContractTest.php',
         'ExternalIdpHealthReadinessContractTest.php',
         'ExternalIdpClaimsMappingContractTest.php',
+        'ExternalIdpSecurityIncidentAuditContractTest.php',
         'ExternalIdentityProviderManagementTest.php',
         'ExternalIdentityProviderPermissionMatrixTest.php',
         'TokenEndpointHardeningContractTest.php',

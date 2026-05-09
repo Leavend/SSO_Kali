@@ -14,6 +14,7 @@ final class CreateExternalIdpAuthenticationRedirectAction
     public function __construct(
         private readonly ExternalIdpAuthenticationRedirectService $redirects,
         private readonly AdminAuditEventStore $auditEvents,
+        private readonly RecordExternalIdpSecurityIncidentAction $securityIncidents,
     ) {}
 
     /**
@@ -29,6 +30,14 @@ final class CreateExternalIdpAuthenticationRedirectAction
             return $redirect;
         } catch (Throwable $exception) {
             $this->audit($provider, 'failure', $context, $exception);
+            $this->securityIncidents->execute(
+                'external_idp.auth.redirect_failure',
+                'external_idp_auth_redirect_failed',
+                $provider,
+                $context,
+                $exception,
+                $this->contextString($context, 'request_id', 'system'),
+            );
 
             throw $exception;
         }

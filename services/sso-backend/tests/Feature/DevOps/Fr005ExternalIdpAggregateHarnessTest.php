@@ -210,6 +210,25 @@ function fr005_external_idp_registry_contracts(): array
             'integrates raw claims mapping',
             'audits claims mapping success and failure',
         ],
+        'app/Support/Security/SensitiveAuditContextRedactor.php' => [
+            'SensitiveAuditContextRedactor',
+            'access_token',
+            'client_secret',
+            'code_verifier',
+        ],
+        'app/Actions/ExternalIdp/RecordExternalIdpSecurityIncidentAction.php' => [
+            'external_idp.security_incident',
+            'severity',
+            'classification',
+            'external_identity_provider',
+        ],
+        'tests/Feature/ExternalIdp/ExternalIdpSecurityIncidentAuditContractTest.php' => [
+            'records centralized external idp security incidents',
+            'records auth redirect failure',
+            'records callback exchange failure',
+            'records account link takeover protection failure',
+            'keeps external idp security incident audit events hash chained',
+        ],
         'tests/Feature/ExternalIdp/ExternalIdpJwksContractTest.php' => [
             'fetches validates caches and resolves',
             'rejects non-https jwks uri unknown kid alg none',
