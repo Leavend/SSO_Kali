@@ -21,6 +21,8 @@ final class LoginController
             (string) $request->validated('password'),
             $request->ip(),
             $request->userAgent(),
+            $this->optionalString($request->validated('auth_request_id')),
+            $request->headers->get('X-Request-Id'),
         );
 
         if (! $result->authenticated || $result->user === null || $result->session === null) {
@@ -40,5 +42,10 @@ final class LoginController
                 'auth_request_id' => $request->validated('auth_request_id'),
             ],
         ])->withCookie($cookies->make($result->session->session_id));
+    }
+
+    private function optionalString(mixed $value): ?string
+    {
+        return is_string($value) && $value !== '' ? $value : null;
     }
 }

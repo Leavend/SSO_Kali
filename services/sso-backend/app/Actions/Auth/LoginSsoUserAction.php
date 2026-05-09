@@ -18,51 +18,78 @@ final readonly class LoginSsoUserAction
         private RecordAuthenticationAuditEventAction $audits,
     ) {}
 
-    public function execute(string $identifier, string $password, ?string $ipAddress, ?string $userAgent): LoginSsoUserResult
-    {
+    public function execute(
+        string $identifier,
+        string $password,
+        ?string $ipAddress,
+        ?string $userAgent,
+        ?string $authRequestId = null,
+        ?string $requestId = null,
+    ): LoginSsoUserResult {
         $user = $this->directory->findByIdentifier($identifier);
 
         if ($user === null || ! $this->directory->validatePassword($user, $password)) {
-            $this->recordFailure($identifier, $user, $ipAddress, $userAgent);
+            $this->recordFailure($identifier, $user, $ipAddress, $userAgent, $authRequestId, $requestId);
 
             return new LoginSsoUserResult(false, error: 'invalid_credentials');
         }
 
         $session = $this->sessions->create($user, $ipAddress, $userAgent);
-        $this->recordSuccess($identifier, $user, $session->session_id, $ipAddress, $userAgent);
+        $this->recordSuccess($identifier, $user, $session->session_id, $ipAddress, $userAgent, $authRequestId, $requestId);
 
         return new LoginSsoUserResult(authenticated: true, user: $user, session: $session);
     }
 
-    private function recordFailure(string $identifier, ?DirectoryUser $user, ?string $ipAddress, ?string $userAgent): void
-    {
+    private function recordFailure(
+        string $identifier,
+        ?DirectoryUser $user,
+        ?string $ipAddress,
+        ?string $userAgent,
+        ?string $authRequestId,
+        ?string $requestId,
+    ): void {
         $this->audits->execute(AuthenticationAuditRecord::loginFailed(
             subjectId: $user?->subjectId,
             email: $user?->email,
             ipAddress: $ipAddress,
             userAgent: $userAgent,
             errorCode: 'invalid_credentials',
-            context: $this->identifierContext($identifier),
+            requestId: $requestId,
+            context: $this->loginContext($identifier, $authRequestId),
         ));
     }
 
-    private function recordSuccess(string $identifier, DirectoryUser $user, string $sessionId, ?string $ipAddress, ?string $userAgent): void
-    {
+    private function recordSuccess(
+        string $identifier,
+        DirectoryUser $user,
+        string $sessionId,
+        ?string $ipAddress,
+        ?string $userAgent,
+        ?string $authRequestId,
+        ?string $requestId,
+    ): void {
         $this->audits->execute(AuthenticationAuditRecord::loginSucceeded(
             subjectId: $user->subjectId,
             email: $user->email,
             sessionId: $sessionId,
             ipAddress: $ipAddress,
             userAgent: $userAgent,
-            context: $this->identifierContext($identifier),
+            requestId: $requestId,
+            context: $this->loginContext($identifier, $authRequestId),
         ));
     }
 
     /**
-     * @return array{identifier_hash: string}
+     * @return array{identifier_hash: string, auth_request_id?: string}
      */
-    private function identifierContext(string $identifier): array
+    private function loginContext(string $identifier, ?string $authRequestId): array
     {
-        return ['identifier_hash' => hash('sha256', mb_strtolower($identifier))];
+        $context = ['identifier_hash' => hash('sha256', mb_strtolower($identifier))];
+
+        if (is_string($authRequestId) && $authRequestId !== '') {
+            $context['auth_request_id'] = $authRequestId;
+        }
+
+        return $context;
     }
 }

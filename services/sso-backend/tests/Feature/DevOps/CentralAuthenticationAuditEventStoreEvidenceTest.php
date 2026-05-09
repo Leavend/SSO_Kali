@@ -23,7 +23,7 @@ it('locks issue78 central authentication audit event store contracts', function 
         'app/Actions/Auth/LoginSsoUserAction.php' => [
             'AuthenticationAuditRecord::loginFailed',
             'AuthenticationAuditRecord::loginSucceeded',
-            'identifierContext',
+            'loginContext',
         ],
         'tests/Feature/Auth/CentralAuthenticationAuditEventStoreTest.php' => [
             'centralizes typed authentication audit persistence',

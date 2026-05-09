@@ -35,9 +35,10 @@ final readonly class AuthenticationAuditRecord
         string $sessionId,
         ?string $ipAddress,
         ?string $userAgent,
+        ?string $requestId = null,
         ?array $context = null,
     ): self {
-        return new self('login_succeeded', 'succeeded', $subjectId, $email, null, $sessionId, $ipAddress, $userAgent, null, null, $context, now());
+        return new self('login_succeeded', 'succeeded', $subjectId, $email, null, $sessionId, $ipAddress, $userAgent, null, $requestId, $context, now());
     }
 
     /**
@@ -49,9 +50,10 @@ final readonly class AuthenticationAuditRecord
         ?string $ipAddress,
         ?string $userAgent,
         string $errorCode,
+        ?string $requestId = null,
         ?array $context = null,
     ): self {
-        return new self('login_failed', 'failed', $subjectId, $email, null, null, $ipAddress, $userAgent, $errorCode, null, $context, now());
+        return new self('login_failed', 'failed', $subjectId, $email, null, null, $ipAddress, $userAgent, $errorCode, $requestId, $context, now());
     }
 
     /**
