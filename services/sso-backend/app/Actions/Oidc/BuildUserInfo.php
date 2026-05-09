@@ -83,7 +83,7 @@ final class BuildUserInfo
 
         $claims = [
             'sub' => $user->subject_id,
-            'scope' => implode(' ', is_array($scopes) ? $scopes : []),
+            'scope' => implode(' ', $scopes),
             'name' => $user->display_name,
             'given_name' => $user->given_name,
             'family_name' => $user->family_name,
