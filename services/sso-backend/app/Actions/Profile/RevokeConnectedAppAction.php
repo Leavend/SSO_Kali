@@ -1,0 +1,70 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Actions\Profile;
+
+use App\Services\Admin\AdminAuditEventStore;
+use App\Services\Oidc\AccessTokenGuard;
+use App\Services\Oidc\AccessTokenRevocationStore;
+use App\Services\Oidc\RefreshTokenStore;
+use App\Support\Responses\OidcErrorResponse;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use RuntimeException;
+
+final class RevokeConnectedAppAction
+{
+    public function __construct(
+        private readonly AccessTokenGuard $tokens,
+        private readonly RefreshTokenStore $refreshTokens,
+        private readonly AccessTokenRevocationStore $accessTokens,
+        private readonly AdminAuditEventStore $audits,
+    ) {}
+
+    public function handle(Request $request, string $clientId): JsonResponse
+    {
+        try {
+            $claims = $this->tokens->claimsFrom((string) $request->bearerToken());
+        } catch (RuntimeException) {
+            return OidcErrorResponse::json('invalid_token', 'The bearer token is invalid.', 401);
+        }
+
+        $revoked = $this->refreshTokens->revokeClientSessionsForSubject((string) $claims['sub'], $clientId);
+        $this->accessTokens->revokeClient($clientId);
+        $this->audit($request, $claims, $clientId, count($revoked));
+
+        return response()->json([
+            'client_id' => $clientId,
+            'revoked' => true,
+            'revoked_refresh_tokens' => count($revoked),
+        ])->withHeaders([
+            'Cache-Control' => 'no-store, no-cache, must-revalidate, private',
+            'Pragma' => 'no-cache',
+        ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $claims
+     */
+    private function audit(Request $request, array $claims, string $clientId, int $revoked): void
+    {
+        $this->audits->append([
+            'taxonomy' => 'profile.connected_app_revoked',
+            'action' => 'profile.connected_app.revoke',
+            'outcome' => 'success',
+            'admin_subject_id' => (string) $claims['sub'],
+            'admin_email' => null,
+            'admin_role' => 'self-service-user',
+            'method' => $request->method(),
+            'path' => $request->path(),
+            'ip_address' => $request->ip(),
+            'reason' => 'self_service_revocation',
+            'context' => [
+                'client_id' => $clientId,
+                'revoked_refresh_tokens' => $revoked,
+                'request_id' => $request->headers->get('X-Request-Id'),
+            ],
+        ]);
+    }
+}

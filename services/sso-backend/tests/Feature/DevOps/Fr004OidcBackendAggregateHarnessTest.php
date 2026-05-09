@@ -22,7 +22,7 @@ it('maps fr004 use cases uc01 through uc23 to backend evidence', function (): vo
     expect(array_keys($coverage))->toBe([
         'UC-01', 'UC-02', 'UC-07', 'UC-08', 'UC-09', 'UC-12', 'UC-13',
         'UC-14', 'UC-15', 'UC-16', 'UC-17', 'UC-18', 'UC-19', 'UC-20',
-        'UC-21', 'UC-22', 'UC-23', 'UC-24', 'UC-25',
+        'UC-21', 'UC-22', 'UC-23', 'UC-24', 'UC-25', 'UC-26',
     ]);
 
     foreach ($coverage as $useCase => $evidence) {
@@ -117,6 +117,12 @@ function fr004_aggregate_contracts(): array
             'tests/Feature/Oidc/BackChannelLogoutPartialFailureContractTest.php' => ['partial queue dispatch failures'],
             'tests/Feature/Oidc/BackChannelLogoutOperationalDrillTest.php' => ['retryable auditable and secret-safe'],
         ],
+        'connected_apps_self_service_revocation' => [
+            'tests/Feature/Profile/ConnectedAppsSelfServiceRevocationContractTest.php' => ['connected_apps', 'profile.connected_app_revoked', 'revoked_refresh_tokens'],
+            'app/Services/Profile/ConnectedAppsService.php' => ['active_refresh_tokens', 'display_name'],
+            'app/Actions/Profile/RevokeConnectedAppAction.php' => ['revokeClientSessionsForSubject', 'profile.connected_app.revoke'],
+            'routes/web.php' => ['/api/profile/connected-apps', 'revokeConnectedApp'],
+        ],
     ];
 }
 
@@ -145,6 +151,7 @@ function fr004_use_case_coverage(): array
         'UC-23' => ['tests/Feature/Oidc/UserInfoEndpointClaimsContractTest.php', 'tests/Feature/Oidc/JwtValidationClaimContractTest.php', 'app/Http/Controllers/Oidc/UserInfoController.php'],
         'UC-24' => ['tests/Feature/Oidc/OidcIncidentAuditLoggingContractTest.php', 'app/Services/Oidc/OidcIncidentAuditLogger.php'],
         'UC-25' => ['tests/Feature/Oidc/ConsentFlowContractTest.php', 'app/Actions/Oidc/CreateAuthorizationRedirect.php'],
+        'UC-26' => ['tests/Feature/Profile/ConnectedAppsSelfServiceRevocationContractTest.php', 'app/Actions/Profile/RevokeConnectedAppAction.php'],
     ];
 }
 
@@ -157,6 +164,7 @@ function fr004_ci_tests(): array
         'Fr004OidcBackendAggregateHarnessTest.php',
         'AuthorizationCodeFlowE2EContractTest.php',
         'ConsentFlowContractTest.php',
+        'ConnectedAppsSelfServiceRevocationContractTest.php',
         'TokenEndpointHardeningContractTest.php',
         'JwtValidationClaimContractTest.php',
         'RefreshTokenRotationReplayContractTest.php',

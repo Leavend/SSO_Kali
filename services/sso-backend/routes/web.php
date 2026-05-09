@@ -51,6 +51,8 @@ Route::match(['get', 'post'], '/connect/logout', SessionLogoutController::class)
 Route::post('/connect/backchannel/admin-panel/logout', AdminPanelBackChannelLogoutController::class)->middleware('throttle:oidc-callback');
 Route::get('/api/profile', [ProfileController::class, 'show'])->middleware('throttle:oidc-resource');
 Route::patch('/api/profile', [ProfileController::class, 'update'])->middleware('throttle:oidc-resource');
+Route::get('/api/profile/connected-apps', [ProfileController::class, 'connectedApps'])->middleware('throttle:oidc-resource');
+Route::delete('/api/profile/connected-apps/{clientId}', [ProfileController::class, 'revokeConnectedApp'])->middleware('throttle:oidc-resource');
 
 Route::middleware('throttle:oidc-authorize')->group(function (): void {
     Route::get('/authorize', AuthorizeController::class);

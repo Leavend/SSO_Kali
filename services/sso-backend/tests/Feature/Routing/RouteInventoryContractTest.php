@@ -8,8 +8,8 @@ use Illuminate\Support\Facades\Route as RouteFacade;
 it('keeps the production route inventory intentional', function (): void {
     $routes = collect(RouteFacade::getRoutes()->getRoutes());
 
-    expect($routes)->toHaveCount(71);
-    expect(applicationRoutes($routes))->toHaveCount(59);
+    expect($routes)->toHaveCount(73);
+    expect(applicationRoutes($routes))->toHaveCount(61);
     expect(vendorRoutes($routes))->toHaveCount(12);
 });
 
@@ -68,7 +68,7 @@ function routeCategory(Route $route): string
         return 'logout';
     }
 
-    if (str_starts_with($uri, 'api/auth') || $uri === 'api/profile' || $uri === 'login') {
+    if (str_starts_with($uri, 'api/auth') || str_starts_with($uri, 'api/profile') || $uri === 'login') {
         return 'auth';
     }
 
@@ -133,6 +133,8 @@ function expectedApplicationRouteSignatures(): array
         'POST api/auth/logout',
         'GET|HEAD api/auth/session',
         'GET|HEAD api/profile',
+        'GET|HEAD api/profile/connected-apps',
+        'DELETE api/profile/connected-apps/{clientId}',
         'PATCH api/profile',
         'GET|HEAD authorize',
         'POST connect/backchannel/admin-panel/logout',

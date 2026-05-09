@@ -401,6 +401,11 @@ it('locks completed production hardening issues into a single executable contrac
                 'login_required',
                 'select_account',
             ],
+            'tests/Feature/Profile/ConnectedAppsSelfServiceRevocationContractTest.php' => [
+                'connected_apps',
+                'profile.connected_app_revoked',
+                'revoked_refresh_tokens',
+            ],
         ],
     ];
 
@@ -437,6 +442,7 @@ it('keeps completed hardening harnesses wired into root CI', function (): void {
         'Fr004OidcBackendAggregateHarnessTest.php',
         'AuthorizationCodeFlowE2EContractTest.php',
         'ConsentFlowContractTest.php',
+        'ConnectedAppsSelfServiceRevocationContractTest.php',
         'TokenEndpointHardeningContractTest.php',
         'JwtValidationClaimContractTest.php',
         'RefreshTokenRotationReplayContractTest.php',
