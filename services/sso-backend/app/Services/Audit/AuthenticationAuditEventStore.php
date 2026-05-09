@@ -5,39 +5,32 @@ declare(strict_types=1);
 namespace App\Services\Audit;
 
 use App\Models\AuthenticationAuditEvent;
+use App\Support\Audit\AuthenticationAuditRecord;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Str;
 
 final class AuthenticationAuditEventStore
 {
-    /**
-     * @param  array<string, mixed>  $payload
-     */
-    public function append(array $payload): AuthenticationAuditEvent
+    public function append(AuthenticationAuditRecord $record): AuthenticationAuditEvent
     {
-        return AuthenticationAuditEvent::query()->create($this->record($payload));
+        return AuthenticationAuditEvent::query()->create($this->payload($record));
     }
 
     /**
-     * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
      */
-    private function record(array $payload): array
+    private function payload(AuthenticationAuditRecord $record): array
     {
         return [
-            ...$payload,
+            ...$record->toPayload(),
             'event_id' => (string) Str::ulid(),
-            'occurred_at' => $this->normalizedTimestamp($payload['occurred_at'] ?? now()),
+            'occurred_at' => $this->normalizedTimestamp($record->occurredAt),
             'created_at' => now(),
         ];
     }
 
-    private function normalizedTimestamp(mixed $value): string
+    private function normalizedTimestamp(CarbonInterface $value): string
     {
-        if ($value instanceof CarbonInterface) {
-            return $value->format('Y-m-d H:i:s');
-        }
-
-        return (string) $value;
+        return $value->format('Y-m-d H:i:s');
     }
 }

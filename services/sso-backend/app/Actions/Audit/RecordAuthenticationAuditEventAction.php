@@ -7,6 +7,7 @@ namespace App\Actions\Audit;
 use App\Models\AuthenticationAuditEvent;
 use App\Services\Audit\AuthenticationAuditEventStore;
 use App\Services\Audit\AuthenticationAuditRedactor;
+use App\Support\Audit\AuthenticationAuditRecord;
 
 final readonly class RecordAuthenticationAuditEventAction
 {
@@ -15,26 +16,35 @@ final readonly class RecordAuthenticationAuditEventAction
         private AuthenticationAuditRedactor $redactor,
     ) {}
 
-    /**
-     * @param  array<string, mixed>  $payload
-     */
-    public function execute(array $payload): AuthenticationAuditEvent
+    public function execute(AuthenticationAuditRecord $record): AuthenticationAuditEvent
     {
-        return $this->events->append([
-            ...$payload,
-            'context' => $this->context($payload['context'] ?? []),
-        ]);
+        return $this->events->append($this->redacted($record));
+    }
+
+    private function redacted(AuthenticationAuditRecord $record): AuthenticationAuditRecord
+    {
+        return new AuthenticationAuditRecord(
+            eventType: $record->eventType,
+            outcome: $record->outcome,
+            subjectId: $record->subjectId,
+            email: $record->email,
+            clientId: $record->clientId,
+            sessionId: $record->sessionId,
+            ipAddress: $record->ipAddress,
+            userAgent: $record->userAgent,
+            errorCode: $record->errorCode,
+            requestId: $record->requestId,
+            context: $this->context($record->context),
+            occurredAt: $record->occurredAt,
+        );
     }
 
     /**
+     * @param  array<string, mixed>|null  $context
      * @return array<string, mixed>|null
      */
-    private function context(mixed $context): ?array
+    private function context(?array $context): ?array
     {
-        if (! is_array($context)) {
-            return null;
-        }
-
-        return $this->redactor->redact($context);
+        return $context === null ? null : $this->redactor->redact($context);
     }
 }

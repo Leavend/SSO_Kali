@@ -33,8 +33,8 @@ it('locks issue77 authentication audit domain model contracts', function (): voi
             '[REDACTED]',
         ],
         'app/Actions/Auth/LoginSsoUserAction.php' => [
-            'login_failed',
-            'login_succeeded',
+            'AuthenticationAuditRecord::loginFailed',
+            'AuthenticationAuditRecord::loginSucceeded',
             'identifier_hash',
             'RecordAuthenticationAuditEventAction',
         ],

@@ -8,6 +8,7 @@ use App\Actions\Audit\RecordAuthenticationAuditEventAction;
 use App\Services\Directory\DirectoryUser;
 use App\Services\Directory\DirectoryUserProvider;
 use App\Services\Session\SsoSessionService;
+use App\Support\Audit\AuthenticationAuditRecord;
 
 final readonly class LoginSsoUserAction
 {
@@ -35,37 +36,33 @@ final readonly class LoginSsoUserAction
 
     private function recordFailure(string $identifier, ?DirectoryUser $user, ?string $ipAddress, ?string $userAgent): void
     {
-        $this->record('login_failed', 'failed', $identifier, $user, null, $ipAddress, $userAgent, 'invalid_credentials');
+        $this->audits->execute(AuthenticationAuditRecord::loginFailed(
+            subjectId: $user?->subjectId,
+            email: $user?->email,
+            ipAddress: $ipAddress,
+            userAgent: $userAgent,
+            errorCode: 'invalid_credentials',
+            context: $this->identifierContext($identifier),
+        ));
     }
 
     private function recordSuccess(string $identifier, DirectoryUser $user, string $sessionId, ?string $ipAddress, ?string $userAgent): void
     {
-        $this->record('login_succeeded', 'succeeded', $identifier, $user, $sessionId, $ipAddress, $userAgent);
+        $this->audits->execute(AuthenticationAuditRecord::loginSucceeded(
+            subjectId: $user->subjectId,
+            email: $user->email,
+            sessionId: $sessionId,
+            ipAddress: $ipAddress,
+            userAgent: $userAgent,
+            context: $this->identifierContext($identifier),
+        ));
     }
 
-    private function record(
-        string $eventType,
-        string $outcome,
-        string $identifier,
-        ?DirectoryUser $user,
-        ?string $sessionId,
-        ?string $ipAddress,
-        ?string $userAgent,
-        ?string $errorCode = null,
-    ): void {
-        $this->audits->execute([
-            'event_type' => $eventType,
-            'outcome' => $outcome,
-            'subject_id' => $user?->subjectId,
-            'email' => $user?->email,
-            'client_id' => null,
-            'session_id' => $sessionId,
-            'ip_address' => $ipAddress,
-            'user_agent' => $userAgent,
-            'error_code' => $errorCode,
-            'request_id' => null,
-            'context' => ['identifier_hash' => hash('sha256', mb_strtolower($identifier))],
-            'occurred_at' => now(),
-        ]);
+    /**
+     * @return array{identifier_hash: string}
+     */
+    private function identifierContext(string $identifier): array
+    {
+        return ['identifier_hash' => hash('sha256', mb_strtolower($identifier))];
     }
 }
