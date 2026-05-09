@@ -361,6 +361,11 @@ it('locks completed production hardening issues into a single executable contrac
                 'maps fr004 use cases uc01 through uc23',
                 'fr004_use_case_coverage',
             ],
+            'tests/Feature/Oidc/AuthorizationCodeFlowE2EContractTest.php' => [
+                'public client authorization code flow',
+                'confidential client secret',
+                'single use code',
+            ],
         ],
     ];
 
@@ -395,6 +400,7 @@ it('keeps completed hardening harnesses wired into root CI', function (): void {
         'ProductionMetadataWrkSmokeHarnessTest.php',
         'ProductionConnectionTuningHarnessTest.php',
         'Fr004OidcBackendAggregateHarnessTest.php',
+        'AuthorizationCodeFlowE2EContractTest.php',
         'Fr003AggregateHarnessTest.php',
         'Fr003RbacDomainHarnessTest.php',
         'RbacPolicyContractTest.php',

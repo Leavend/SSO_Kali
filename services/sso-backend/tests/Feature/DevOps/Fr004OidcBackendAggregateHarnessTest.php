@@ -80,6 +80,7 @@ function fr004_aggregate_contracts(): array
             'app/Services/Oidc/SigningKeyService.php' => ['jwks', 'kid'],
         ],
         'authorization_request_and_code' => [
+            'tests/Feature/Oidc/AuthorizationCodeFlowE2EContractTest.php' => ['public client authorization code flow', 'confidential client secret', 'single use code'],
             'app/Actions/Oidc/CreateAuthorizationRedirect.php' => ['response_type', 'code_challenge_method', 'S256', 'downstream_code_challenge'],
             'app/Services/Oidc/AuthorizationCodeStore.php' => ['authorization_codes', 'consumed_at', 'lockForUpdate'],
             'app/Services/Oidc/AuthRequestStore.php' => ['oidc:auth-request'],
@@ -119,14 +120,14 @@ function fr004_use_case_coverage(): array
     return [
         'UC-01' => ['tests/Feature/Oidc/DiscoveryDocumentTest.php'],
         'UC-02' => ['app/Http/Controllers/Oidc/JwksController.php', 'app/Services/Oidc/SigningKeyService.php'],
-        'UC-07' => ['app/Actions/Oidc/CreateAuthorizationRedirect.php'],
+        'UC-07' => ['tests/Feature/Oidc/AuthorizationCodeFlowE2EContractTest.php', 'app/Actions/Oidc/CreateAuthorizationRedirect.php'],
         'UC-08' => ['routes/auth.php', 'app/Http/Controllers/Auth/LoginController.php'],
         'UC-09' => ['app/Services/Oidc/BrokerBrowserSession.php'],
-        'UC-12' => ['app/Services/Oidc/AuthorizationCodeStore.php'],
-        'UC-13' => ['app/Actions/Oidc/CreateAuthorizationRedirect.php'],
-        'UC-14' => ['app/Actions/Oidc/ExchangeToken.php'],
-        'UC-15' => ['app/Actions/Oidc/ExchangeToken.php', 'app/Support/Oidc/Pkce.php'],
-        'UC-16' => ['app/Services/Oidc/DownstreamClientRegistry.php'],
+        'UC-12' => ['tests/Feature/Oidc/AuthorizationCodeFlowE2EContractTest.php', 'app/Services/Oidc/AuthorizationCodeStore.php'],
+        'UC-13' => ['tests/Feature/Oidc/AuthorizationCodeFlowE2EContractTest.php', 'app/Actions/Oidc/CreateAuthorizationRedirect.php'],
+        'UC-14' => ['tests/Feature/Oidc/AuthorizationCodeFlowE2EContractTest.php', 'app/Actions/Oidc/ExchangeToken.php'],
+        'UC-15' => ['tests/Feature/Oidc/AuthorizationCodeFlowE2EContractTest.php', 'app/Actions/Oidc/ExchangeToken.php', 'app/Support/Oidc/Pkce.php'],
+        'UC-16' => ['tests/Feature/Oidc/AuthorizationCodeFlowE2EContractTest.php', 'app/Services/Oidc/DownstreamClientRegistry.php'],
         'UC-17' => ['app/Services/Oidc/LocalTokenService.php'],
         'UC-18' => ['app/Services/Oidc/RefreshTokenStore.php'],
         'UC-19' => ['app/Actions/Oidc/ExchangeToken.php'],
@@ -144,6 +145,7 @@ function fr004_ci_tests(): array
 {
     return [
         'Fr004OidcBackendAggregateHarnessTest.php',
+        'AuthorizationCodeFlowE2EContractTest.php',
         'LockedProductionClientRegistryTest.php',
         'ProductionClientRegistryTest.php',
         'LoadTestClientRegistryTest.php',
