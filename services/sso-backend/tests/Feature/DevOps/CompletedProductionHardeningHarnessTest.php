@@ -423,6 +423,11 @@ it('locks completed production hardening issues into a single executable contrac
                 'rejects non-https',
                 'tamper-evident audit evidence',
             ],
+            'tests/Feature/ExternalIdp/ExternalIdpDiscoveryContractTest.php' => [
+                'fetches validates caches',
+                'rejects issuer mismatch',
+                'uses stale discovery cache',
+            ],
         ],
     ];
 
@@ -463,6 +468,7 @@ it('keeps completed hardening harnesses wired into root CI', function (): void {
         'Fr004ProductionSmokeHarnessTest.php',
         'Fr005ExternalIdpAggregateHarnessTest.php',
         'ExternalIdentityProviderRegistryContractTest.php',
+        'ExternalIdpDiscoveryContractTest.php',
         'TokenEndpointHardeningContractTest.php',
         'JwtValidationClaimContractTest.php',
         'RefreshTokenRotationReplayContractTest.php',

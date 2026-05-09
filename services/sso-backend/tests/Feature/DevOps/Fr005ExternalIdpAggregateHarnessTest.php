@@ -18,6 +18,7 @@ it('maps fr005 registry to external idp use cases and actors', function (): void
     expect(fr005_external_idp_registry_use_cases())->toBe([
         'UC-08' => 'Login via Portal SSO can select a configured OIDC IdP.',
         'UC-09' => 'Laravel SSO validates IdP-backed SSO login sessions.',
+        'UC-22' => 'Laravel SSO validates external IdP token metadata before trusting claims.',
         'UC-36' => 'Administrator can manage IdP registry configuration.',
         'UC-46' => 'Administrator can inspect redacted IdP registry audit trail.',
         'UC-48' => 'Administrator can inspect IdP health/status metadata.',
@@ -61,6 +62,23 @@ function fr005_external_idp_registry_contracts(): array
             'without leaking client secret material',
             'tamper-evident audit evidence',
         ],
+        'app/Services/ExternalIdp/ExternalIdpDiscoveryService.php' => [
+            '{$field} must use HTTPS',
+            'External IdP discovery document is invalid',
+            'staleCacheKey',
+            'response_types_supported',
+        ],
+        'app/Actions/ExternalIdp/RefreshExternalIdpDiscoveryAction.php' => [
+            'external_idp.discovery.refresh',
+            'external_idp.discovery_refreshed',
+            'external_idp.discovery_failed',
+        ],
+        'tests/Feature/ExternalIdp/ExternalIdpDiscoveryContractTest.php' => [
+            'fetches validates caches',
+            'rejects issuer mismatch',
+            'uses stale discovery cache',
+            'audits discovery refresh success and failure',
+        ],
     ];
 }
 
@@ -72,6 +90,7 @@ function fr005_external_idp_registry_use_cases(): array
     return [
         'UC-08' => 'Login via Portal SSO can select a configured OIDC IdP.',
         'UC-09' => 'Laravel SSO validates IdP-backed SSO login sessions.',
+        'UC-22' => 'Laravel SSO validates external IdP token metadata before trusting claims.',
         'UC-36' => 'Administrator can manage IdP registry configuration.',
         'UC-46' => 'Administrator can inspect redacted IdP registry audit trail.',
         'UC-48' => 'Administrator can inspect IdP health/status metadata.',
