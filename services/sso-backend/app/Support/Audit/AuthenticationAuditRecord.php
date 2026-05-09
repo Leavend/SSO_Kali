@@ -57,6 +57,35 @@ final readonly class AuthenticationAuditRecord
     }
 
     /**
+     * @param  array<string, mixed>|null  $context
+     */
+    public static function authorizationRequestAccepted(
+        string $clientId,
+        ?string $sessionId,
+        ?string $subjectId,
+        ?string $ipAddress,
+        ?string $userAgent,
+        ?string $requestId = null,
+        ?array $context = null,
+    ): self {
+        return new self('authorization_request_accepted', 'succeeded', $subjectId, null, $clientId, $sessionId, $ipAddress, $userAgent, null, $requestId, $context, now());
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $context
+     */
+    public static function authorizationRequestRejected(
+        ?string $clientId,
+        ?string $ipAddress,
+        ?string $userAgent,
+        string $errorCode,
+        ?string $requestId = null,
+        ?array $context = null,
+    ): self {
+        return new self('authorization_request_rejected', 'failed', null, null, $clientId, null, $ipAddress, $userAgent, $errorCode, $requestId, $context, now());
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function toPayload(): array
