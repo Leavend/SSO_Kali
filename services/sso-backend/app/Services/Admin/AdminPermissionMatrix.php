@@ -30,7 +30,8 @@ final class AdminPermissionMatrix
 
     public function canManageSessions(User $user): bool
     {
-        return $this->canTerminateSessions($user);
+        return in_array($user->role, $this->sessionManagementRoles(), true)
+            && $this->canTerminateSessions($user);
     }
 
     public function canTerminateSessions(User $user): bool
@@ -61,5 +62,15 @@ final class AdminPermissionMatrix
     public function allows(User $user, string $permission): bool
     {
         return $this->rbac->allows($user, $permission);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function sessionManagementRoles(): array
+    {
+        $roles = config('sso.admin.session_management_roles', ['admin']);
+
+        return is_array($roles) ? array_values(array_filter($roles, 'is_string')) : ['admin'];
     }
 }
