@@ -20,6 +20,8 @@ final class AdminAuditTaxonomy
 
     public const MFA_REQUIRED = 'mfa_required';
 
+    public const PROFILE_SELF_UPDATE = 'profile_self_update';
+
     public const STALE_AUTH_REJECTED = 'stale_auth_rejected';
 
     public const TOO_MANY_ATTEMPTS = 'too_many_attempts';

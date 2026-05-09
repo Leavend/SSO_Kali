@@ -49,7 +49,8 @@ Route::post('/oauth/revoke', TokenRevocationController::class)->middleware('thro
 Route::post('/connect/register-session', SessionRegistrationController::class)->middleware('throttle:oidc-callback');
 Route::match(['get', 'post'], '/connect/logout', SessionLogoutController::class)->middleware('throttle:oidc-callback');
 Route::post('/connect/backchannel/admin-panel/logout', AdminPanelBackChannelLogoutController::class)->middleware('throttle:oidc-callback');
-Route::get('/api/profile', ProfileController::class)->middleware('throttle:oidc-resource');
+Route::get('/api/profile', [ProfileController::class, 'show'])->middleware('throttle:oidc-resource');
+Route::patch('/api/profile', [ProfileController::class, 'update'])->middleware('throttle:oidc-resource');
 
 Route::middleware('throttle:oidc-authorize')->group(function (): void {
     Route::get('/authorize', AuthorizeController::class);

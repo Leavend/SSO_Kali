@@ -317,6 +317,22 @@ it('locks completed production hardening issues into a single executable contrac
                 'OidcScope::PERMISSIONS',
             ],
         ],
+        'fr003_user_profile_portal_backend_contract' => [
+            'tests/Feature/DevOps/Fr003UserProfilePortalHarnessTest.php' => [
+                'issue44 user profile portal',
+                'ProfilePortalBackendContractTest.php',
+            ],
+            'app/Services/Profile/ProfilePortalPresenter.php' => [
+                'ProfilePortalPresenter',
+                'OidcScope::PROFILE',
+                'OidcScope::PERMISSIONS',
+            ],
+            'app/Actions/Profile/UpdateProfilePortalAction.php' => [
+                'PROFILE_SELF_UPDATE',
+                'changed_fields',
+                'editableFields',
+            ],
+        ],
     ];
 
     foreach ($contracts as $issue => $files) {
@@ -363,6 +379,8 @@ it('keeps completed hardening harnesses wired into root CI', function (): void {
         'ScopePolicyTest.php',
         'UserClaimsFactoryScopeEnforcementTest.php',
         'ClientScopeManagementBackendTest.php',
+        'Fr003UserProfilePortalHarnessTest.php',
+        'ProfilePortalBackendContractTest.php',
         'ProductionPublicDomainSmokeHarnessTest.php',
         'LogoutAuditRedactionHarnessTest.php',
         'BackChannelLogoutReliabilityHarnessTest.php',
