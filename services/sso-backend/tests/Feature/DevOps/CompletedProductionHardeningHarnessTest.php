@@ -366,6 +366,11 @@ it('locks completed production hardening issues into a single executable contrac
                 'confidential client secret',
                 'single use code',
             ],
+            'tests/Feature/Oidc/TokenEndpointHardeningContractTest.php' => [
+                'invalid grants',
+                'client secret',
+                'unsupported grant types',
+            ],
         ],
     ];
 
@@ -401,6 +406,7 @@ it('keeps completed hardening harnesses wired into root CI', function (): void {
         'ProductionConnectionTuningHarnessTest.php',
         'Fr004OidcBackendAggregateHarnessTest.php',
         'AuthorizationCodeFlowE2EContractTest.php',
+        'TokenEndpointHardeningContractTest.php',
         'Fr003AggregateHarnessTest.php',
         'Fr003RbacDomainHarnessTest.php',
         'RbacPolicyContractTest.php',
