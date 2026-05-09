@@ -106,6 +106,20 @@ function fr005_external_idp_registry_contracts(): array
             'EXTERNAL_IDPS_READ',
             'EXTERNAL_IDPS_WRITE',
         ],
+        'app/Support/Rbac/AdminMenu.php' => [
+            'EXTERNAL_IDPS',
+            'External IdPs',
+            'EXTERNAL_IDPS_READ',
+        ],
+        'app/Services/Admin/AdminPermissionMatrix.php' => [
+            'canReadExternalIdps',
+            'canManageExternalIdps',
+        ],
+        'tests/Feature/Admin/ExternalIdentityProviderPermissionMatrixTest.php' => [
+            'explicit read and write permissions',
+            'dedicated external idps menu',
+            'step-up and mfa policy',
+        ],
         'tests/Feature/Admin/ExternalIdentityProviderManagementTest.php' => [
             'creates updates lists shows and deletes external idps',
             'validates admin external idp request contracts',

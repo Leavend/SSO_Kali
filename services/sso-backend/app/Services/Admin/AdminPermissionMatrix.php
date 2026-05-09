@@ -57,6 +57,16 @@ final class AdminPermissionMatrix
         return $this->rbac->allows($user, AdminPermission::CLIENTS_WRITE);
     }
 
+    public function canReadExternalIdps(User $user): bool
+    {
+        return $this->rbac->allows($user, AdminPermission::EXTERNAL_IDPS_READ);
+    }
+
+    public function canManageExternalIdps(User $user): bool
+    {
+        return $this->rbac->allows($user, AdminPermission::EXTERNAL_IDPS_WRITE);
+    }
+
     public function canReadAuditTrail(User $user): bool
     {
         return $this->rbac->allows($user, AdminPermission::AUDIT_READ);

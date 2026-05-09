@@ -438,6 +438,11 @@ it('locks completed production hardening issues into a single executable contrac
                 'validates admin external idp request contracts',
                 'writes redacted admin audit events',
             ],
+            'tests/Feature/Admin/ExternalIdentityProviderPermissionMatrixTest.php' => [
+                'explicit read and write permissions',
+                'dedicated external idps menu',
+                'step-up and mfa policy',
+            ],
         ],
     ];
 
@@ -481,6 +486,7 @@ it('keeps completed hardening harnesses wired into root CI', function (): void {
         'ExternalIdpDiscoveryContractTest.php',
         'ExternalIdpJwksContractTest.php',
         'ExternalIdentityProviderManagementTest.php',
+        'ExternalIdentityProviderPermissionMatrixTest.php',
         'TokenEndpointHardeningContractTest.php',
         'JwtValidationClaimContractTest.php',
         'RefreshTokenRotationReplayContractTest.php',

@@ -48,14 +48,18 @@ it('returns the authenticated admin principal from /admin/api/me', function (): 
         ->assertJsonPath('principal.permissions.menus.0.visible', true)
         ->assertJsonPath('principal.permissions.menus.1.id', 'users')
         ->assertJsonPath('principal.permissions.menus.1.visible', true)
-        ->assertJsonPath('principal.permissions.menus.4.id', 'sessions')
+        ->assertJsonPath('principal.permissions.menus.4.id', 'external-idps')
         ->assertJsonPath('principal.permissions.menus.4.visible', true)
+        ->assertJsonPath('principal.permissions.menus.5.id', 'sessions')
+        ->assertJsonPath('principal.permissions.menus.5.visible', true)
         ->assertJsonMissingPath('principal.subject_uuid');
 
     $principal = $response->json('principal');
 
     expect($principal['permissions']['capabilities']['admin.panel.view'])->toBeTrue()
-        ->and($principal['permissions']['capabilities']['admin.users.write'])->toBeTrue();
+        ->and($principal['permissions']['capabilities']['admin.users.write'])->toBeTrue()
+        ->and($principal['permissions']['capabilities']['admin.external-idps.read'])->toBeTrue()
+        ->and($principal['permissions']['capabilities']['admin.external-idps.write'])->toBeTrue();
 
     /** @var object $event */
     $event = DB::table('admin_audit_events')->orderByDesc('id')->first();

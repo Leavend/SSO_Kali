@@ -14,6 +14,8 @@ final class AdminMenu
 
     public const CLIENTS = 'clients';
 
+    public const EXTERNAL_IDPS = 'external-idps';
+
     public const SESSIONS = 'sessions';
 
     public const AUDIT = 'audit';
@@ -45,6 +47,11 @@ final class AdminMenu
                 'id' => self::CLIENTS,
                 'label' => 'OAuth Clients',
                 'required_permission' => AdminPermission::CLIENTS_READ,
+            ],
+            [
+                'id' => self::EXTERNAL_IDPS,
+                'label' => 'External IdPs',
+                'required_permission' => AdminPermission::EXTERNAL_IDPS_READ,
             ],
             [
                 'id' => self::SESSIONS,
