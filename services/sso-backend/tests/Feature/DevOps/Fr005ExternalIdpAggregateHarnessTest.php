@@ -79,6 +79,23 @@ function fr005_external_idp_registry_contracts(): array
             'uses stale discovery cache',
             'audits discovery refresh success and failure',
         ],
+        'app/Services/ExternalIdp/ExternalIdpJwksService.php' => [
+            'jwks_uri',
+            'External IdP JWKS document is invalid',
+            'staleCacheKey',
+            '($key[\'alg\'] ?? null) !== \'none\'',
+        ],
+        'app/Actions/ExternalIdp/RefreshExternalIdpJwksAction.php' => [
+            'external_idp.jwks.refresh',
+            'external_idp.jwks_refreshed',
+            'external_idp.jwks_failed',
+        ],
+        'tests/Feature/ExternalIdp/ExternalIdpJwksContractTest.php' => [
+            'fetches validates caches and resolves',
+            'rejects non-https jwks uri unknown kid alg none',
+            'uses stale jwks cache',
+            'audits jwks refresh success and failure',
+        ],
     ];
 }
 

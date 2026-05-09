@@ -428,6 +428,11 @@ it('locks completed production hardening issues into a single executable contrac
                 'rejects issuer mismatch',
                 'uses stale discovery cache',
             ],
+            'tests/Feature/ExternalIdp/ExternalIdpJwksContractTest.php' => [
+                'fetches validates caches and resolves',
+                'rejects non-https jwks uri unknown kid alg none',
+                'uses stale jwks cache',
+            ],
         ],
     ];
 
@@ -469,6 +474,7 @@ it('keeps completed hardening harnesses wired into root CI', function (): void {
         'Fr005ExternalIdpAggregateHarnessTest.php',
         'ExternalIdentityProviderRegistryContractTest.php',
         'ExternalIdpDiscoveryContractTest.php',
+        'ExternalIdpJwksContractTest.php',
         'TokenEndpointHardeningContractTest.php',
         'JwtValidationClaimContractTest.php',
         'RefreshTokenRotationReplayContractTest.php',
