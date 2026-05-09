@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\System;
 
+use App\Services\ExternalIdp\ExternalIdpHealthProbeService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
 use Throwable;
@@ -12,6 +13,7 @@ final class ReadinessProbeService
 {
     public function __construct(
         private readonly QueueObservabilityService $queueObservability,
+        private readonly ExternalIdpHealthProbeService $externalIdpHealth,
     ) {}
 
     /**
@@ -23,6 +25,7 @@ final class ReadinessProbeService
             'database' => $this->databaseIsReady(),
             'redis' => $this->redisIsReady(),
             'queue' => $this->queueObservability->snapshot(),
+            'external_idps' => $this->externalIdpHealth->readinessSummary(),
         ];
 
         return [

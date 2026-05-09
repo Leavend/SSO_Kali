@@ -456,6 +456,13 @@ it('locks completed production hardening issues into a single executable contrac
                 'fails closed when every external idp provider is unavailable',
                 'audits failover selection success and unavailable failure',
             ],
+            'tests/Feature/ExternalIdp/ExternalIdpHealthReadinessContractTest.php' => [
+                'marks an enabled external idp healthy',
+                'marks external idp unhealthy',
+                'does not perform network probe for disabled',
+                'keeps readiness endpoint shallow',
+                'audits health probe success and failure',
+            ],
             'tests/Feature/Admin/ExternalIdentityProviderManagementTest.php' => [
                 'creates updates lists shows and deletes external idps',
                 'validates admin external idp request contracts',
@@ -512,6 +519,7 @@ it('keeps completed hardening harnesses wired into root CI', function (): void {
         'ExternalIdpCallbackTokenExchangeContractTest.php',
         'ExternalSubjectAccountMappingContractTest.php',
         'ExternalIdpFailoverPolicyContractTest.php',
+        'ExternalIdpHealthReadinessContractTest.php',
         'ExternalIdentityProviderManagementTest.php',
         'ExternalIdentityProviderPermissionMatrixTest.php',
         'TokenEndpointHardeningContractTest.php',

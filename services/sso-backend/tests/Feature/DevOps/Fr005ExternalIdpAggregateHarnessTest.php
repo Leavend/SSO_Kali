@@ -161,6 +161,28 @@ function fr005_external_idp_registry_contracts(): array
             'fails closed when every external idp provider is unavailable',
             'audits failover selection success and unavailable failure',
         ],
+        'app/Services/ExternalIdp/ExternalIdpHealthProbeService.php' => [
+            'readinessSummary',
+            'last_health_checked_at',
+            'health_timeout_seconds',
+            'External IdP discovery health probe failed validation',
+        ],
+        'app/Actions/ExternalIdp/ProbeExternalIdpHealthAction.php' => [
+            'external_idp.health.probe',
+            'external_idp.health_healthy',
+            'external_idp.health_unhealthy',
+        ],
+        'app/Services/System/ReadinessProbeService.php' => [
+            'external_idps',
+            'readinessSummary',
+        ],
+        'tests/Feature/ExternalIdp/ExternalIdpHealthReadinessContractTest.php' => [
+            'marks an enabled external idp healthy',
+            'marks external idp unhealthy',
+            'does not perform network probe for disabled',
+            'keeps readiness endpoint shallow',
+            'audits health probe success and failure',
+        ],
         'tests/Feature/ExternalIdp/ExternalIdpJwksContractTest.php' => [
             'fetches validates caches and resolves',
             'rejects non-https jwks uri unknown kid alg none',
