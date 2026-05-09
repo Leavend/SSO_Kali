@@ -371,6 +371,11 @@ it('locks completed production hardening issues into a single executable contrac
                 'client secret',
                 'unsupported grant types',
             ],
+            'tests/Feature/Oidc/JwtValidationClaimContractTest.php' => [
+                'production jwt claims',
+                'scope-bound profile claims',
+                'alg none tokens',
+            ],
         ],
     ];
 
@@ -407,6 +412,7 @@ it('keeps completed hardening harnesses wired into root CI', function (): void {
         'Fr004OidcBackendAggregateHarnessTest.php',
         'AuthorizationCodeFlowE2EContractTest.php',
         'TokenEndpointHardeningContractTest.php',
+        'JwtValidationClaimContractTest.php',
         'Fr003AggregateHarnessTest.php',
         'Fr003RbacDomainHarnessTest.php',
         'RbacPolicyContractTest.php',

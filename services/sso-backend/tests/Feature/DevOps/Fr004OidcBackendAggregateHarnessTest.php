@@ -99,6 +99,7 @@ function fr004_aggregate_contracts(): array
             'tests/Feature/Oidc/ProductionClientRegistryTest.php' => ['redirect_uri', 'client secret'],
         ],
         'jwt_validation_and_userinfo' => [
+            'tests/Feature/Oidc/JwtValidationClaimContractTest.php' => ['production jwt claims', 'scope-bound profile claims', 'alg none tokens'],
             'app/Services/Oidc/AccessTokenGuard.php' => ['aud', 'exp', 'iss', 'revoked'],
             'app/Actions/Oidc/BuildUserInfo.php' => ['AccessTokenGuard', 'ClaimsView'],
             'app/Services/Oidc/UserClaimsFactory.php' => ['OidcScope::ROLES', 'OidcScope::PERMISSIONS'],
@@ -129,13 +130,13 @@ function fr004_use_case_coverage(): array
         'UC-14' => ['tests/Feature/Oidc/TokenEndpointHardeningContractTest.php', 'tests/Feature/Oidc/AuthorizationCodeFlowE2EContractTest.php', 'app/Actions/Oidc/ExchangeToken.php'],
         'UC-15' => ['tests/Feature/Oidc/TokenEndpointHardeningContractTest.php', 'tests/Feature/Oidc/AuthorizationCodeFlowE2EContractTest.php', 'app/Actions/Oidc/ExchangeToken.php', 'app/Support/Oidc/Pkce.php'],
         'UC-16' => ['tests/Feature/Oidc/TokenEndpointHardeningContractTest.php', 'tests/Feature/Oidc/AuthorizationCodeFlowE2EContractTest.php', 'app/Services/Oidc/DownstreamClientRegistry.php'],
-        'UC-17' => ['tests/Feature/Oidc/TokenEndpointHardeningContractTest.php', 'app/Services/Oidc/LocalTokenService.php'],
+        'UC-17' => ['tests/Feature/Oidc/JwtValidationClaimContractTest.php', 'tests/Feature/Oidc/TokenEndpointHardeningContractTest.php', 'app/Services/Oidc/LocalTokenService.php'],
         'UC-18' => ['app/Services/Oidc/RefreshTokenStore.php'],
         'UC-19' => ['tests/Feature/Oidc/TokenEndpointHardeningContractTest.php', 'app/Actions/Oidc/ExchangeToken.php'],
         'UC-20' => ['app/Services/Oidc/RefreshTokenStore.php'],
         'UC-21' => ['app/Actions/Oidc/RevokeToken.php'],
-        'UC-22' => ['app/Services/Oidc/AccessTokenGuard.php'],
-        'UC-23' => ['app/Http/Controllers/Oidc/UserInfoController.php'],
+        'UC-22' => ['tests/Feature/Oidc/JwtValidationClaimContractTest.php', 'app/Services/Oidc/AccessTokenGuard.php'],
+        'UC-23' => ['tests/Feature/Oidc/JwtValidationClaimContractTest.php', 'app/Http/Controllers/Oidc/UserInfoController.php'],
     ];
 }
 
@@ -148,6 +149,7 @@ function fr004_ci_tests(): array
         'Fr004OidcBackendAggregateHarnessTest.php',
         'AuthorizationCodeFlowE2EContractTest.php',
         'TokenEndpointHardeningContractTest.php',
+        'JwtValidationClaimContractTest.php',
         'LockedProductionClientRegistryTest.php',
         'ProductionClientRegistryTest.php',
         'LoadTestClientRegistryTest.php',
