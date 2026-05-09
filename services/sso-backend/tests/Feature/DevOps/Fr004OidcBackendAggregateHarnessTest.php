@@ -101,6 +101,7 @@ function fr004_aggregate_contracts(): array
         ],
         'jwt_validation_and_userinfo' => [
             'tests/Feature/Oidc/JwtValidationClaimContractTest.php' => ['production jwt claims', 'scope-bound profile claims', 'alg none tokens'],
+            'tests/Feature/Oidc/UserInfoEndpointClaimsContractTest.php' => ['valid bearer access token', 'scope-bound', 'invalid_token'],
             'app/Services/Oidc/AccessTokenGuard.php' => ['aud', 'exp', 'iss', 'revoked'],
             'app/Actions/Oidc/BuildUserInfo.php' => ['AccessTokenGuard', 'ClaimsView'],
             'app/Services/Oidc/UserClaimsFactory.php' => ['OidcScope::ROLES', 'OidcScope::PERMISSIONS'],
@@ -138,7 +139,7 @@ function fr004_use_case_coverage(): array
         'UC-20' => ['tests/Feature/Oidc/RefreshTokenRotationReplayContractTest.php', 'app/Services/Oidc/RefreshTokenStore.php'],
         'UC-21' => ['tests/Feature/Oidc/RevocationEndpointRfc7009ContractTest.php', 'app/Actions/Oidc/RevokeToken.php'],
         'UC-22' => ['tests/Feature/Oidc/JwtValidationClaimContractTest.php', 'app/Services/Oidc/AccessTokenGuard.php'],
-        'UC-23' => ['tests/Feature/Oidc/JwtValidationClaimContractTest.php', 'app/Http/Controllers/Oidc/UserInfoController.php'],
+        'UC-23' => ['tests/Feature/Oidc/UserInfoEndpointClaimsContractTest.php', 'tests/Feature/Oidc/JwtValidationClaimContractTest.php', 'app/Http/Controllers/Oidc/UserInfoController.php'],
     ];
 }
 
@@ -154,6 +155,7 @@ function fr004_ci_tests(): array
         'JwtValidationClaimContractTest.php',
         'RefreshTokenRotationReplayContractTest.php',
         'RevocationEndpointRfc7009ContractTest.php',
+        'UserInfoEndpointClaimsContractTest.php',
         'LockedProductionClientRegistryTest.php',
         'ProductionClientRegistryTest.php',
         'LoadTestClientRegistryTest.php',

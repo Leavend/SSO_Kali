@@ -17,7 +17,10 @@ final class OidcErrorResponse
         return response()->json([
             'error' => $error,
             'error_description' => $description,
-        ], $status);
+        ], $status)->withHeaders([
+            'Cache-Control' => 'no-store',
+            'Pragma' => 'no-cache',
+        ]);
     }
 
     public static function redirect(

@@ -386,6 +386,11 @@ it('locks completed production hardening issues into a single executable contrac
                 'token_type_hint',
                 'idempotent',
             ],
+            'tests/Feature/Oidc/UserInfoEndpointClaimsContractTest.php' => [
+                'valid bearer access token',
+                'scope-bound',
+                'invalid_token',
+            ],
         ],
     ];
 
@@ -425,6 +430,7 @@ it('keeps completed hardening harnesses wired into root CI', function (): void {
         'JwtValidationClaimContractTest.php',
         'RefreshTokenRotationReplayContractTest.php',
         'RevocationEndpointRfc7009ContractTest.php',
+        'UserInfoEndpointClaimsContractTest.php',
         'Fr003AggregateHarnessTest.php',
         'Fr003RbacDomainHarnessTest.php',
         'RbacPolicyContractTest.php',

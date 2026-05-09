@@ -22,6 +22,12 @@ final class BuildUserInfo
 
     public function handle(Request $request): JsonResponse
     {
+        $bearerToken = (string) $request->bearerToken();
+
+        if ($this->looksLikeJwt($bearerToken)) {
+            return $this->localUserInfo($bearerToken);
+        }
+
         try {
             $passportUser = Auth::guard('api')->user();
         } catch (\Throwable) {
@@ -32,13 +38,23 @@ final class BuildUserInfo
             return response()->json($this->passportUserInfo($passportUser));
         }
 
+        return $this->localUserInfo($bearerToken);
+    }
+
+    private function localUserInfo(string $token): JsonResponse
+    {
         try {
-            $claims = $this->tokens->claimsFrom((string) $request->bearerToken());
+            $claims = $this->tokens->claimsFrom($token);
         } catch (RuntimeException) {
             return OidcErrorResponse::json('invalid_token', 'The bearer token is invalid.', 401);
         }
 
         return response()->json(ClaimsView::userInfo($claims));
+    }
+
+    private function looksLikeJwt(string $token): bool
+    {
+        return substr_count($token, '.') === 2;
     }
 
     /**
