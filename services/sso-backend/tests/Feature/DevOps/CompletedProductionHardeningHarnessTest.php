@@ -197,6 +197,23 @@ it('locks completed production hardening issues into a single executable contrac
                 'SSO_LOAD_TEST_CLIENT_ENABLED=false',
             ],
         ],
+        'production_metadata_jwks_wrk_smoke' => [
+            'tests/Feature/DevOps/ProductionMetadataWrkSmokeHarnessTest.php' => [
+                'metadata and jwks wrk smoke',
+                'PASS with warning',
+                'Nginx worker_connections',
+            ],
+            '../../scripts/sso-backend-metadata-wrk-smoke.sh' => [
+                '/.well-known/openid-configuration',
+                '/.well-known/jwks.json',
+                'wrk-results/sso-backend-metadata',
+            ],
+            '../../docs/devops/sso-backend-metadata-wrk-smoke.md' => [
+                '2008.82',
+                '2013.64',
+                '1737.55',
+            ],
+        ],
     ];
 
     foreach ($contracts as $issue => $files) {
@@ -227,6 +244,7 @@ it('keeps completed hardening harnesses wired into root CI', function (): void {
         'GitHubActionsProductionDeployHarnessTest.php',
         'PushTriggeredDeployLifecycleHarnessTest.php',
         'ProductionOAuthTokenFlowSmokeHarnessTest.php',
+        'ProductionMetadataWrkSmokeHarnessTest.php',
         'ProductionPublicDomainSmokeHarnessTest.php',
         'LogoutAuditRedactionHarnessTest.php',
         'BackChannelLogoutReliabilityHarnessTest.php',
