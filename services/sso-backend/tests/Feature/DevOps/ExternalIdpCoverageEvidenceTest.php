@@ -42,6 +42,7 @@ it('maps externalIdp aggregate coverage to implementation domains', function ():
         'claims_mapping',
         'security_incidents',
         'login_e2e',
+        'production_smoke',
         'admin_management',
     ]);
 
@@ -282,6 +283,21 @@ function externalIdp_external_idp_registry_contracts(): array
             'fails closed when external idp login callback uses replayed state',
             'audits external idp login lifecycle without leaking callback tokens',
         ],
+        'tests/Feature/DevOps/ExternalIdpProductionSmokeEvidenceTest.php' => [
+            'externalIdp production smoke secret-free',
+            'RUN_FR005_PRODUCTION_SMOKE',
+            'sso-backend-external-idp-production-smoke.sh',
+        ],
+        '../../scripts/sso-backend-external-idp-production-smoke.sh' => [
+            'https://api-sso.timeh.my.id',
+            'external_idps',
+            'External IdP production smoke completed successfully without secrets or tokens',
+        ],
+        '../../docs/devops/sso-backend-external-idp-production-smoke.md' => [
+            'RUN_FR005_PRODUCTION_SMOKE=true',
+            'Evidence to Retain',
+            'without secrets or tokens',
+        ],
         'tests/Feature/ExternalIdp/ExternalIdpJwksContractTest.php' => [
             'fetches validates caches and resolves',
             'rejects non-https jwks uri unknown kid alg none',
@@ -410,6 +426,12 @@ function externalIdp_external_idp_coverage_matrix(): array
             'tests/Feature/ExternalIdp/ExternalIdpCallbackTokenExchangeContractTest.php',
             'tests/Feature/ExternalIdp/ExternalSubjectAccountMappingContractTest.php',
         ],
+        'production_smoke' => [
+            'tests/Feature/DevOps/ExternalIdpProductionSmokeEvidenceTest.php',
+            '../../scripts/sso-backend-external-idp-production-smoke.sh',
+            '../../docs/devops/sso-backend-external-idp-production-smoke.md',
+            '../../.github/workflows/deploy-main.yml',
+        ],
         'admin_management' => [
             'tests/Feature/Admin/ExternalIdentityProviderCrudContractTest.php',
             'tests/Feature/Admin/ExternalIdentityProviderManagementTest.php',
@@ -438,6 +460,7 @@ function externalIdp_external_idp_ci_tests(): array
         'ExternalIdpSecurityIncidentAuditContractTest.php',
         'ExternalIdpDiscoverySignatureContractTest.php',
         'ExternalIdpLoginE2EContractTest.php',
+        'ExternalIdpProductionSmokeEvidenceTest.php',
         'ExternalIdentityProviderCrudContractTest.php',
         'ExternalIdentityProviderManagementTest.php',
         'ExternalIdentityProviderPermissionMatrixTest.php',

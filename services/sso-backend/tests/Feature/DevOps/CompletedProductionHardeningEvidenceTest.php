@@ -493,6 +493,21 @@ it('locks completed production hardening issues into a single executable contrac
                 'fails closed when external idp login callback uses replayed state',
                 'audits external idp login lifecycle without leaking callback tokens',
             ],
+            'tests/Feature/DevOps/ExternalIdpProductionSmokeEvidenceTest.php' => [
+                'externalIdp production smoke secret-free',
+                'RUN_FR005_PRODUCTION_SMOKE',
+                'sso-backend-external-idp-production-smoke.sh',
+            ],
+            '../../scripts/sso-backend-external-idp-production-smoke.sh' => [
+                'https://api-sso.timeh.my.id',
+                'external_idps',
+                'External IdP production smoke completed successfully without secrets or tokens',
+            ],
+            '../../docs/devops/sso-backend-external-idp-production-smoke.md' => [
+                'RUN_FR005_PRODUCTION_SMOKE=true',
+                'Evidence to Retain',
+                'without secrets or tokens',
+            ],
             'tests/Feature/Admin/ExternalIdentityProviderCrudContractTest.php' => [
                 'enforces external idp admin CRUD validation boundaries',
                 'without leaking secrets',
@@ -560,6 +575,7 @@ it('keeps completed hardening harnesses wired into root CI', function (): void {
         'ExternalIdpSecurityIncidentAuditContractTest.php',
         'ExternalIdpDiscoverySignatureContractTest.php',
         'ExternalIdpLoginE2EContractTest.php',
+        'ExternalIdpProductionSmokeEvidenceTest.php',
         'ExternalIdentityProviderCrudContractTest.php',
         'ExternalIdentityProviderManagementTest.php',
         'ExternalIdentityProviderPermissionMatrixTest.php',
