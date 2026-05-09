@@ -376,6 +376,11 @@ it('locks completed production hardening issues into a single executable contrac
                 'scope-bound profile claims',
                 'alg none tokens',
             ],
+            'tests/Feature/Oidc/RefreshTokenRotationReplayContractTest.php' => [
+                'rotates refresh tokens',
+                'replay',
+                'token family',
+            ],
         ],
     ];
 
@@ -413,6 +418,7 @@ it('keeps completed hardening harnesses wired into root CI', function (): void {
         'AuthorizationCodeFlowE2EContractTest.php',
         'TokenEndpointHardeningContractTest.php',
         'JwtValidationClaimContractTest.php',
+        'RefreshTokenRotationReplayContractTest.php',
         'Fr003AggregateHarnessTest.php',
         'Fr003RbacDomainHarnessTest.php',
         'RbacPolicyContractTest.php',
