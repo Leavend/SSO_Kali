@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-it('locks externalIdp external idp registry domain model into backend evidence', function (): void {
+it('locks the complete externalIdp external idp aggregate evidence set', function (): void {
     foreach (externalIdp_external_idp_registry_contracts() as $relativePath => $needles) {
         $content = externalIdp_external_idp_registry_file($relativePath);
 
@@ -22,7 +22,46 @@ it('maps externalIdp registry to external idp use cases and actors', function ()
         'UC-36' => 'Administrator can manage IdP registry configuration.',
         'UC-46' => 'Administrator can inspect redacted IdP registry audit trail.',
         'UC-48' => 'Administrator can inspect IdP health/status metadata.',
+        'UC-49' => 'External IdP login completes through redirect callback and subject linking.',
+        'UC-50' => 'External IdP failover selects a healthy primary or backup provider safely.',
     ]);
+});
+
+it('maps externalIdp aggregate coverage to implementation domains', function (): void {
+    $coverage = externalIdp_external_idp_coverage_matrix();
+
+    expect(array_keys($coverage))->toBe([
+        'registry',
+        'discovery_metadata',
+        'jwks_and_signature',
+        'authentication_redirect',
+        'callback_token_exchange',
+        'subject_linking',
+        'failover_policy',
+        'health_readiness',
+        'claims_mapping',
+        'security_incidents',
+        'login_e2e',
+        'admin_management',
+    ]);
+
+    foreach ($coverage as $domain => $evidence) {
+        expect($evidence, "{$domain} must have evidence files")->not->toBeEmpty();
+
+        foreach ($evidence as $relativePath) {
+            expect(externalIdp_external_idp_registry_file($relativePath), "{$domain}: {$relativePath} must exist")
+                ->toBeString()
+                ->not->toBe('');
+        }
+    }
+});
+
+it('keeps every externalIdp aggregate dependency wired into ci', function (): void {
+    $ci = externalIdp_external_idp_registry_file('../../.github/workflows/ci.yml');
+
+    foreach (externalIdp_external_idp_ci_tests() as $testName) {
+        expect($ci, "CI must run {$testName}")->toContain($testName);
+    }
 });
 
 /**
@@ -299,6 +338,109 @@ function externalIdp_external_idp_registry_use_cases(): array
         'UC-36' => 'Administrator can manage IdP registry configuration.',
         'UC-46' => 'Administrator can inspect redacted IdP registry audit trail.',
         'UC-48' => 'Administrator can inspect IdP health/status metadata.',
+        'UC-49' => 'External IdP login completes through redirect callback and subject linking.',
+        'UC-50' => 'External IdP failover selects a healthy primary or backup provider safely.',
+    ];
+}
+
+/**
+ * @return array<string, list<string>>
+ */
+function externalIdp_external_idp_coverage_matrix(): array
+{
+    return [
+        'registry' => [
+            'tests/Feature/ExternalIdp/ExternalIdentityProviderRegistryContractTest.php',
+            'app/Services/ExternalIdp/ExternalIdentityProviderRegistry.php',
+            'database/migrations/2026_05_09_000001_create_external_identity_providers_table.php',
+        ],
+        'discovery_metadata' => [
+            'tests/Feature/ExternalIdp/ExternalIdpDiscoveryContractTest.php',
+            'tests/Feature/ExternalIdp/ExternalIdpDiscoverySignatureContractTest.php',
+            'app/Services/ExternalIdp/ExternalIdpDiscoveryService.php',
+            'app/Actions/ExternalIdp/RefreshExternalIdpDiscoveryAction.php',
+        ],
+        'jwks_and_signature' => [
+            'tests/Feature/ExternalIdp/ExternalIdpJwksContractTest.php',
+            'tests/Feature/ExternalIdp/ExternalIdpDiscoverySignatureContractTest.php',
+            'app/Services/ExternalIdp/ExternalIdpJwksService.php',
+            'app/Actions/ExternalIdp/RefreshExternalIdpJwksAction.php',
+        ],
+        'authentication_redirect' => [
+            'tests/Feature/ExternalIdp/ExternalIdpAuthenticationRedirectContractTest.php',
+            'app/Services/ExternalIdp/ExternalIdpAuthenticationRedirectService.php',
+            'app/Actions/ExternalIdp/CreateExternalIdpAuthenticationRedirectAction.php',
+        ],
+        'callback_token_exchange' => [
+            'tests/Feature/ExternalIdp/ExternalIdpCallbackTokenExchangeContractTest.php',
+            'app/Services/ExternalIdp/ExternalIdpTokenExchangeService.php',
+            'app/Actions/ExternalIdp/ExchangeExternalIdpCallbackTokenAction.php',
+        ],
+        'subject_linking' => [
+            'tests/Feature/ExternalIdp/ExternalSubjectAccountMappingContractTest.php',
+            'app/Services/ExternalIdp/ExternalSubjectAccountMapper.php',
+            'app/Actions/ExternalIdp/LinkExternalSubjectAccountAction.php',
+            'database/migrations/2026_05_09_000002_create_external_subject_links_table.php',
+        ],
+        'failover_policy' => [
+            'tests/Feature/ExternalIdp/ExternalIdpFailoverPolicyContractTest.php',
+            'app/Services/ExternalIdp/ExternalIdpFailoverPolicy.php',
+            'app/Actions/ExternalIdp/SelectExternalIdpForAuthenticationAction.php',
+        ],
+        'health_readiness' => [
+            'tests/Feature/ExternalIdp/ExternalIdpHealthReadinessContractTest.php',
+            'app/Services/ExternalIdp/ExternalIdpHealthProbeService.php',
+            'app/Actions/ExternalIdp/ProbeExternalIdpHealthAction.php',
+            'app/Services/System/ReadinessProbeService.php',
+        ],
+        'claims_mapping' => [
+            'tests/Feature/ExternalIdp/ExternalIdpClaimsMappingContractTest.php',
+            'app/Services/ExternalIdp/ExternalIdpClaimsMapper.php',
+            'app/Actions/ExternalIdp/MapExternalIdpClaimsAction.php',
+            'database/migrations/2026_05_09_000003_create_external_idp_claim_mappings_table.php',
+        ],
+        'security_incidents' => [
+            'tests/Feature/ExternalIdp/ExternalIdpSecurityIncidentAuditContractTest.php',
+            'app/Actions/ExternalIdp/RecordExternalIdpSecurityIncidentAction.php',
+            'app/Support/Security/SensitiveAuditContextRedactor.php',
+        ],
+        'login_e2e' => [
+            'tests/Feature/ExternalIdp/ExternalIdpLoginE2EContractTest.php',
+            'tests/Feature/ExternalIdp/ExternalIdpAuthenticationRedirectContractTest.php',
+            'tests/Feature/ExternalIdp/ExternalIdpCallbackTokenExchangeContractTest.php',
+            'tests/Feature/ExternalIdp/ExternalSubjectAccountMappingContractTest.php',
+        ],
+        'admin_management' => [
+            'tests/Feature/Admin/ExternalIdentityProviderCrudContractTest.php',
+            'tests/Feature/Admin/ExternalIdentityProviderManagementTest.php',
+            'tests/Feature/Admin/ExternalIdentityProviderPermissionMatrixTest.php',
+            'app/Http/Controllers/Admin/ExternalIdentityProviderController.php',
+        ],
+    ];
+}
+
+/**
+ * @return list<string>
+ */
+function externalIdp_external_idp_ci_tests(): array
+{
+    return [
+        'ExternalIdpCoverageEvidenceTest.php',
+        'ExternalIdentityProviderRegistryContractTest.php',
+        'ExternalIdpDiscoveryContractTest.php',
+        'ExternalIdpJwksContractTest.php',
+        'ExternalIdpAuthenticationRedirectContractTest.php',
+        'ExternalIdpCallbackTokenExchangeContractTest.php',
+        'ExternalSubjectAccountMappingContractTest.php',
+        'ExternalIdpFailoverPolicyContractTest.php',
+        'ExternalIdpHealthReadinessContractTest.php',
+        'ExternalIdpClaimsMappingContractTest.php',
+        'ExternalIdpSecurityIncidentAuditContractTest.php',
+        'ExternalIdpDiscoverySignatureContractTest.php',
+        'ExternalIdpLoginE2EContractTest.php',
+        'ExternalIdentityProviderCrudContractTest.php',
+        'ExternalIdentityProviderManagementTest.php',
+        'ExternalIdentityProviderPermissionMatrixTest.php',
     ];
 }
 

@@ -414,9 +414,11 @@ it('locks completed production hardening issues into a single executable contrac
         ],
         'externalIdp_external_idp_registry_domain_model' => [
             'tests/Feature/DevOps/ExternalIdpCoverageEvidenceTest.php' => [
-                'externalIdp external idp registry',
+                'complete externalIdp external idp aggregate evidence set',
+                'maps externalIdp aggregate coverage to implementation domains',
+                'keeps every externalIdp aggregate dependency wired into ci',
                 'UC-08',
-                'UC-48',
+                'UC-50',
             ],
             'tests/Feature/ExternalIdp/ExternalIdentityProviderRegistryContractTest.php' => [
                 'secure production defaults',
