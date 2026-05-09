@@ -8,8 +8,8 @@ use Illuminate\Support\Facades\Route as RouteFacade;
 it('keeps the production route inventory intentional', function (): void {
     $routes = collect(RouteFacade::getRoutes()->getRoutes());
 
-    expect($routes)->toHaveCount(55);
-    expect(applicationRoutes($routes))->toHaveCount(43);
+    expect($routes)->toHaveCount(65);
+    expect(applicationRoutes($routes))->toHaveCount(53);
     expect(vendorRoutes($routes))->toHaveCount(12);
 });
 
@@ -102,13 +102,23 @@ function expectedApplicationRouteSignatures(): array
         'POST admin/api/client-integrations/{clientId}/activate',
         'POST admin/api/client-integrations/{clientId}/disable',
         'GET|HEAD admin/api/clients',
+        'GET|HEAD admin/api/clients/{clientId}',
+        'PATCH admin/api/clients/{clientId}',
+        'DELETE admin/api/clients/{clientId}',
         'GET|HEAD admin/api/me',
+        'GET|HEAD admin/api/permissions',
+        'GET|HEAD admin/api/roles',
+        'POST admin/api/roles',
+        'PATCH admin/api/roles/{role}',
+        'DELETE admin/api/roles/{role}',
+        'PUT admin/api/roles/{role}/permissions',
         'GET|HEAD admin/api/sessions',
         'GET|HEAD admin/api/sessions/{sessionId}',
         'DELETE admin/api/sessions/{sessionId}',
         'GET|HEAD admin/api/users',
         'POST admin/api/users',
         'GET|HEAD admin/api/users/{subjectId}',
+        'PUT admin/api/users/{subjectId}/roles',
         'POST admin/api/users/{subjectId}/deactivate',
         'POST admin/api/users/{subjectId}/password-reset',
         'POST admin/api/users/{subjectId}/reactivate',

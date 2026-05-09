@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Admin\ClientController;
 use App\Http\Controllers\Admin\PrincipalController;
+use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SessionController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Middleware\AdminGuard;
@@ -36,8 +37,37 @@ Route::middleware(AdminGuard::class)->prefix('admin/api')->group(function (): vo
         Route::get('/sessions/{sessionId}', [SessionController::class, 'show'])
             ->where('sessionId', '[a-zA-Z0-9_-]+');
         Route::get('/clients', [ClientController::class, 'index']);
+        Route::get('/clients/{clientId}', [ClientController::class, 'show'])
+            ->where('clientId', '[a-z0-9-]+');
         Route::get('/client-integrations/registrations', [ClientController::class, 'registrations']);
         Route::post('/client-integrations/contract', [ClientController::class, 'contract']);
+    });
+
+    Route::middleware([
+        'throttle:admin-read',
+        RequireAdminPermission::class.':'.AdminPermission::ROLES_READ,
+        EnsureFreshAdminAuth::class.':read',
+        EnsureAdminMfaAssurance::class,
+    ])->group(function (): void {
+        Route::get('/roles', [RoleController::class, 'index']);
+        Route::get('/permissions', [RoleController::class, 'permissions']);
+    });
+
+    Route::middleware([
+        'throttle:admin-write',
+        RequireAdminPermission::class.':'.AdminPermission::ROLES_WRITE,
+        EnsureFreshAdminAuth::class.':step_up',
+        EnsureAdminMfaAssurance::class,
+    ])->group(function (): void {
+        Route::post('/roles', [RoleController::class, 'store']);
+        Route::patch('/roles/{role}', [RoleController::class, 'update'])
+            ->where('role', '[a-z0-9_-]+');
+        Route::delete('/roles/{role}', [RoleController::class, 'destroy'])
+            ->where('role', '[a-z0-9_-]+');
+        Route::put('/roles/{role}/permissions', [RoleController::class, 'syncPermissions'])
+            ->where('role', '[a-z0-9_-]+');
+        Route::put('/users/{subjectId}/roles', [RoleController::class, 'syncUserRoles'])
+            ->where('subjectId', '[a-zA-Z0-9_-]+');
     });
 
     Route::middleware([
@@ -55,6 +85,18 @@ Route::middleware(AdminGuard::class)->prefix('admin/api')->group(function (): vo
             ->where('subjectId', '[a-zA-Z0-9_-]+');
         Route::post('/users/{subjectId}/sync-profile', [UserController::class, 'syncProfile'])
             ->where('subjectId', '[a-zA-Z0-9_-]+');
+    });
+
+    Route::middleware([
+        'throttle:admin-write',
+        RequireAdminPermission::class.':'.AdminPermission::CLIENTS_WRITE,
+        EnsureFreshAdminAuth::class.':step_up',
+        EnsureAdminMfaAssurance::class,
+    ])->group(function (): void {
+        Route::patch('/clients/{clientId}', [ClientController::class, 'update'])
+            ->where('clientId', '[a-z0-9-]+');
+        Route::delete('/clients/{clientId}', [ClientController::class, 'destroy'])
+            ->where('clientId', '[a-z0-9-]+');
     });
 
     Route::middleware([

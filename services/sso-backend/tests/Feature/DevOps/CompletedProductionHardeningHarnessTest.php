@@ -282,6 +282,24 @@ it('locks completed production hardening issues into a single executable contrac
                 'canViewMenu',
             ],
         ],
+        'fr003_admin_management_crud_backend' => [
+            'tests/Feature/DevOps/Fr003AdminManagementCrudHarnessTest.php' => [
+                'issue42 admin management crud',
+                'RolePermissionManagementBackendTest.php',
+                'ClientManagementCrudBackendTest.php',
+            ],
+            'app/Http/Controllers/Admin/RoleController.php' => [
+                'create_managed_role',
+                'sync_role_permissions',
+                'sync_user_roles',
+            ],
+            'app/Http/Controllers/Admin/ClientController.php' => [
+                'function show',
+                'function update',
+                'function destroy',
+                'has_secret_hash',
+            ],
+        ],
     ];
 
     foreach ($contracts as $issue => $files) {
@@ -321,6 +339,9 @@ it('keeps completed hardening harnesses wired into root CI', function (): void {
         'UserManagementBackendTest.php',
         'Fr003AdminMenuAuthorizationHarnessTest.php',
         'AdminPermissionMatrixMenuContractTest.php',
+        'Fr003AdminManagementCrudHarnessTest.php',
+        'RolePermissionManagementBackendTest.php',
+        'ClientManagementCrudBackendTest.php',
         'ProductionPublicDomainSmokeHarnessTest.php',
         'LogoutAuditRedactionHarnessTest.php',
         'BackChannelLogoutReliabilityHarnessTest.php',
