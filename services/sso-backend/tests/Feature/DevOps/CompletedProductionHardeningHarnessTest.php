@@ -300,6 +300,23 @@ it('locks completed production hardening issues into a single executable contrac
                 'has_secret_hash',
             ],
         ],
+        'fr003_scope_management_claim_enforcement' => [
+            'tests/Feature/DevOps/Fr003ScopeManagementHarnessTest.php' => [
+                'issue43 scope management',
+                'ScopePolicyTest.php',
+                'ClientScopeManagementBackendTest.php',
+            ],
+            'app/Services/Oidc/ScopePolicy.php' => [
+                'validateAuthorizationRequest',
+                'assertKnown',
+                'assertAllowed',
+            ],
+            'app/Services/Oidc/UserClaimsFactory.php' => [
+                'roleClaims',
+                'permissionClaims',
+                'OidcScope::PERMISSIONS',
+            ],
+        ],
     ];
 
     foreach ($contracts as $issue => $files) {
@@ -342,6 +359,10 @@ it('keeps completed hardening harnesses wired into root CI', function (): void {
         'Fr003AdminManagementCrudHarnessTest.php',
         'RolePermissionManagementBackendTest.php',
         'ClientManagementCrudBackendTest.php',
+        'Fr003ScopeManagementHarnessTest.php',
+        'ScopePolicyTest.php',
+        'UserClaimsFactoryScopeEnforcementTest.php',
+        'ClientScopeManagementBackendTest.php',
         'ProductionPublicDomainSmokeHarnessTest.php',
         'LogoutAuditRedactionHarnessTest.php',
         'BackChannelLogoutReliabilityHarnessTest.php',

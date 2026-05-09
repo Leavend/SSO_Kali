@@ -15,6 +15,7 @@ use Illuminate\Support\Carbon;
  * @property string $app_base_url
  * @property array<int, string>|null $redirect_uris
  * @property array<int, string>|null $post_logout_redirect_uris
+ * @property array<int, string>|null $allowed_scopes
  * @property string|null $backchannel_logout_uri
  * @property string|null $secret_hash
  * @property string $owner_email
@@ -37,6 +38,7 @@ final class OidcClientRegistration extends Model
         'app_base_url',
         'redirect_uris',
         'post_logout_redirect_uris',
+        'allowed_scopes',
         'backchannel_logout_uri',
         'secret_hash',
         'owner_email',
@@ -59,6 +61,7 @@ final class OidcClientRegistration extends Model
         return [
             'redirect_uris' => 'array',
             'post_logout_redirect_uris' => 'array',
+            'allowed_scopes' => 'array',
             'contract' => 'array',
             'activated_at' => 'datetime',
             'disabled_at' => 'datetime',

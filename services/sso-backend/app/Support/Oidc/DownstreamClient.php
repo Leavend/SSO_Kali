@@ -9,12 +9,14 @@ final readonly class DownstreamClient
     /**
      * @param  list<string>  $redirectUris
      * @param  list<string>  $postLogoutRedirectUris
+     * @param  list<string>  $allowedScopes
      */
     public function __construct(
         public string $clientId,
         public string $type,
         public array $redirectUris,
         public array $postLogoutRedirectUris,
+        public array $allowedScopes,
         public ?string $backchannelLogoutUri = null,
         public ?string $secret = null,
     ) {}

@@ -181,6 +181,7 @@ final class DownstreamClientRegistry
             type: (string) ($config['type'] ?? 'public'),
             redirectUris: array_values($config['redirect_uris'] ?? []),
             postLogoutRedirectUris: array_values($config['post_logout_redirect_uris'] ?? []),
+            allowedScopes: $this->scopeList($config['allowed_scopes'] ?? null),
             backchannelLogoutUri: is_string($config['backchannel_logout_uri'] ?? null)
                 ? $config['backchannel_logout_uri']
                 : null,
@@ -195,17 +196,25 @@ final class DownstreamClientRegistry
             type: $registration->type,
             redirectUris: $this->stringList($registration->redirect_uris),
             postLogoutRedirectUris: $this->stringList($registration->post_logout_redirect_uris),
+            allowedScopes: $this->scopeList($registration->allowed_scopes),
             backchannelLogoutUri: $registration->backchannel_logout_uri,
             secret: is_string($registration->secret_hash) ? $registration->secret_hash : null,
         );
     }
 
-    /**
-     * @return list<string>
-     */
     private function stringList(mixed $value): array
     {
         return array_values(array_filter(is_array($value) ? $value : [], 'is_string'));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function scopeList(mixed $value): array
+    {
+        $scopes = $this->stringList($value);
+
+        return $scopes === [] ? app(ScopePolicy::class)->defaultAllowedScopes() : $scopes;
     }
 
     private function assertStoredSecret(string $clientId, DownstreamClient $client): void

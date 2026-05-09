@@ -30,6 +30,8 @@ final class ClaimsView
             ...$payload,
             ...self::profileClaims($claims, $scopes),
             ...self::emailClaims($claims, $scopes),
+            ...self::rolesClaims($claims, $scopes),
+            ...self::permissionsClaims($claims, $scopes),
         ];
     }
 
@@ -66,5 +68,33 @@ final class ClaimsView
             'email' => $claims['email'] ?? null,
             'email_verified' => $claims['email_verified'] ?? null,
         ], static fn (mixed $value): bool => $value !== null);
+    }
+
+    /**
+     * @param  array<string, mixed>  $claims
+     * @param  list<string>  $scopes
+     * @return array<string, mixed>
+     */
+    private static function rolesClaims(array $claims, array $scopes): array
+    {
+        if (! ScopeSet::contains($scopes, OidcScope::ROLES) || ! is_array($claims['roles'] ?? null)) {
+            return [];
+        }
+
+        return ['roles' => array_values(array_filter($claims['roles'], 'is_string'))];
+    }
+
+    /**
+     * @param  array<string, mixed>  $claims
+     * @param  list<string>  $scopes
+     * @return array<string, mixed>
+     */
+    private static function permissionsClaims(array $claims, array $scopes): array
+    {
+        if (! ScopeSet::contains($scopes, OidcScope::PERMISSIONS) || ! is_array($claims['permissions'] ?? null)) {
+            return [];
+        }
+
+        return ['permissions' => array_values(array_filter($claims['permissions'], 'is_string'))];
     }
 }

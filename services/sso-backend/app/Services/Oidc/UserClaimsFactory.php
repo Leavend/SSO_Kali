@@ -4,12 +4,17 @@ declare(strict_types=1);
 
 namespace App\Services\Oidc;
 
+use App\Models\Role;
 use App\Models\User;
+use App\Services\Admin\AdminRbacResolver;
+use App\Support\Oidc\OidcScope;
 use App\Support\Oidc\ScopeSet;
 use Carbon\CarbonImmutable;
 
 final class UserClaimsFactory
 {
+    public function __construct(private readonly AdminRbacResolver $rbac) {}
+
     /**
      * @param  array<string, mixed>  $context
      * @return array<string, mixed>
@@ -67,6 +72,8 @@ final class UserClaimsFactory
         return [
             ...$this->profileClaims($user, $scopes),
             ...$this->emailClaims($user, $scopes),
+            ...$this->roleClaims($user, $scopes),
+            ...$this->permissionClaims($user, $scopes),
         ];
     }
 
@@ -101,6 +108,39 @@ final class UserClaimsFactory
             'email' => $user->email,
             'email_verified' => $user->email_verified_at !== null,
         ];
+    }
+
+    /**
+     * @param  list<string>  $scopes
+     * @return array<string, mixed>
+     */
+    private function roleClaims(User $user, array $scopes): array
+    {
+        if (! ScopeSet::contains($scopes, OidcScope::ROLES)) {
+            return [];
+        }
+
+        return [
+            'roles' => $user->roles()
+                ->orderBy('slug')
+                ->get()
+                ->map(fn (Role $role): string => $role->slug)
+                ->values()
+                ->all(),
+        ];
+    }
+
+    /**
+     * @param  list<string>  $scopes
+     * @return array<string, mixed>
+     */
+    private function permissionClaims(User $user, array $scopes): array
+    {
+        if (! ScopeSet::contains($scopes, OidcScope::PERMISSIONS)) {
+            return [];
+        }
+
+        return ['permissions' => $this->rbac->permissionsFor($user)];
     }
 
     /**

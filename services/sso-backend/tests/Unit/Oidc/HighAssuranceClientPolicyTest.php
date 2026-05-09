@@ -16,6 +16,7 @@ function makeClientWith(string $clientId): DownstreamClient
         type: 'public',
         redirectUris: ['http://localhost:3001/auth/callback'],
         postLogoutRedirectUris: [],
+        allowedScopes: ['openid', 'profile', 'email'],
     );
 }
 

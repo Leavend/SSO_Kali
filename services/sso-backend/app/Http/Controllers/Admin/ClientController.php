@@ -4,13 +4,16 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Admin;
 
+use App\Actions\Admin\SyncClientScopesAction;
 use App\Actions\Admin\UpdateManagedClientAction;
+use App\Http\Requests\Admin\SyncClientScopesRequest;
 use App\Http\Requests\Admin\UpdateManagedClientRequest;
 use App\Models\OidcClientRegistration;
 use App\Models\User;
 use App\Services\Oidc\ClientIntegrationContractBuilder;
 use App\Services\Oidc\ClientIntegrationRegistrationService;
 use App\Services\Oidc\DownstreamClientRegistry;
+use App\Services\Oidc\ScopePolicy;
 use App\Support\Oidc\ClientIntegrationDraft;
 use App\Support\Oidc\DownstreamClient;
 use Illuminate\Http\JsonResponse;
@@ -47,6 +50,22 @@ final class ClientController
 
         if (! $registration instanceof OidcClientRegistration) {
             return response()->json(['error' => 'Client not found.'], 404);
+        }
+
+        return response()->json(['client' => $this->registrationPayload($registration)]);
+    }
+
+    public function scopes(ScopePolicy $scopes): JsonResponse
+    {
+        return response()->json(['scopes' => $scopes->catalog()]);
+    }
+
+    public function syncScopes(SyncClientScopesRequest $request, SyncClientScopesAction $action, string $clientId): JsonResponse
+    {
+        try {
+            $registration = $action->execute($request, $this->admin($request), $clientId, $request->validated('scopes'));
+        } catch (RuntimeException $exception) {
+            return $this->invalidIntegration($exception);
         }
 
         return response()->json(['client' => $this->registrationPayload($registration)]);
@@ -165,6 +184,7 @@ final class ClientController
                 'app_base_url',
                 'redirect_uris',
                 'post_logout_redirect_uris',
+                'allowed_scopes',
                 'backchannel_logout_uri',
                 'owner_email',
                 'provisioning',

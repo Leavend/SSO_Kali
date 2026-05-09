@@ -8,8 +8,8 @@ use Illuminate\Support\Facades\Route as RouteFacade;
 it('keeps the production route inventory intentional', function (): void {
     $routes = collect(RouteFacade::getRoutes()->getRoutes());
 
-    expect($routes)->toHaveCount(65);
-    expect(applicationRoutes($routes))->toHaveCount(53);
+    expect($routes)->toHaveCount(67);
+    expect(applicationRoutes($routes))->toHaveCount(55);
     expect(vendorRoutes($routes))->toHaveCount(12);
 });
 
@@ -105,6 +105,7 @@ function expectedApplicationRouteSignatures(): array
         'GET|HEAD admin/api/clients/{clientId}',
         'PATCH admin/api/clients/{clientId}',
         'DELETE admin/api/clients/{clientId}',
+        'PUT admin/api/clients/{clientId}/scopes',
         'GET|HEAD admin/api/me',
         'GET|HEAD admin/api/permissions',
         'GET|HEAD admin/api/roles',
@@ -112,6 +113,7 @@ function expectedApplicationRouteSignatures(): array
         'PATCH admin/api/roles/{role}',
         'DELETE admin/api/roles/{role}',
         'PUT admin/api/roles/{role}/permissions',
+        'GET|HEAD admin/api/scopes',
         'GET|HEAD admin/api/sessions',
         'GET|HEAD admin/api/sessions/{sessionId}',
         'DELETE admin/api/sessions/{sessionId}',

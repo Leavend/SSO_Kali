@@ -10,11 +10,11 @@ use App\Services\Oidc\BrokerBrowserSession;
 use App\Services\Oidc\DownstreamClientRegistry;
 use App\Services\Oidc\HighAssuranceClientPolicy;
 use App\Services\Oidc\OidcProfileMetrics;
+use App\Services\Oidc\ScopePolicy;
 use App\Services\Zitadel\ZitadelBrokerService;
 use App\Support\Oidc\BrokerAuthFlowCookie;
 use App\Support\Oidc\DownstreamClient;
 use App\Support\Oidc\Pkce;
-use App\Support\Oidc\ScopeSet;
 use App\Support\Responses\OidcErrorResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -32,6 +32,7 @@ final class CreateAuthorizationRedirect
         private readonly OidcProfileMetrics $metrics,
         private readonly BrokerAuthFlowCookie $authFlowCookie,
         private readonly ZitadelBrokerService $broker,
+        private readonly ScopePolicy $scopes,
     ) {}
 
     public function handle(Request $request): JsonResponse|RedirectResponse
@@ -132,9 +133,13 @@ final class CreateAuthorizationRedirect
             return $this->error('missing_code_challenge', 'code_challenge is required.');
         }
 
-        return ScopeSet::contains(ScopeSet::fromString($this->scope($request)), 'openid')
-            ? null
-            : $this->error('missing_openid_scope', 'openid scope is required.');
+        try {
+            $this->scopes->validateAuthorizationRequest($this->scope($request), $this->client($request));
+        } catch (\RuntimeException $exception) {
+            return $this->error('invalid_scope', $exception->getMessage());
+        }
+
+        return null;
     }
 
     /**
@@ -147,7 +152,7 @@ final class CreateAuthorizationRedirect
         return [
             'client_id' => $client->clientId,
             'redirect_uri' => $this->redirectUri($request),
-            'scope' => $this->scope($request),
+            'scope' => $this->scopes->validateAuthorizationRequest($this->scope($request), $client),
             'nonce' => $this->nonce($request),
             'original_state' => $this->state($request),
             'downstream_code_challenge' => (string) $this->codeChallenge($request),

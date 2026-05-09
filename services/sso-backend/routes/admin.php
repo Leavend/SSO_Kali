@@ -39,6 +39,7 @@ Route::middleware(AdminGuard::class)->prefix('admin/api')->group(function (): vo
         Route::get('/clients', [ClientController::class, 'index']);
         Route::get('/clients/{clientId}', [ClientController::class, 'show'])
             ->where('clientId', '[a-z0-9-]+');
+        Route::get('/scopes', [ClientController::class, 'scopes']);
         Route::get('/client-integrations/registrations', [ClientController::class, 'registrations']);
         Route::post('/client-integrations/contract', [ClientController::class, 'contract']);
     });
@@ -92,6 +93,8 @@ Route::middleware(AdminGuard::class)->prefix('admin/api')->group(function (): vo
         EnsureAdminMfaAssurance::class,
     ])->group(function (): void {
         Route::patch('/clients/{clientId}', [ClientController::class, 'update'])
+            ->where('clientId', '[a-z0-9-]+');
+        Route::put('/clients/{clientId}/scopes', [ClientController::class, 'syncScopes'])
             ->where('clientId', '[a-z0-9-]+');
     });
 
