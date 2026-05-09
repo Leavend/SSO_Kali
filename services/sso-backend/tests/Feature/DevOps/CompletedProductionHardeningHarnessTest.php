@@ -231,6 +231,23 @@ it('locks completed production hardening issues into a single executable contrac
                 'scripts/sso-backend-metadata-wrk-smoke.sh',
             ],
         ],
+        'fr003_rbac_domain_policy_contract' => [
+            'tests/Feature/DevOps/Fr003RbacDomainHarnessTest.php' => [
+                'fr003 rbac domain',
+                'denies unknown roles by default',
+                'RequireAdminPermission.php',
+            ],
+            'app/Support/Rbac/AdminPermission.php' => [
+                'admin.panel.view',
+                'admin.sessions.terminate',
+                'profile.write',
+            ],
+            'app/Services/Admin/AdminRbacResolver.php' => [
+                'legacyPermissions',
+                'default => []',
+                'AdminPermission::adminDefaults()',
+            ],
+        ],
     ];
 
     foreach ($contracts as $issue => $files) {
@@ -263,6 +280,9 @@ it('keeps completed hardening harnesses wired into root CI', function (): void {
         'ProductionOAuthTokenFlowSmokeHarnessTest.php',
         'ProductionMetadataWrkSmokeHarnessTest.php',
         'ProductionConnectionTuningHarnessTest.php',
+        'Fr003RbacDomainHarnessTest.php',
+        'RbacPolicyContractTest.php',
+        'AdminPermissionMiddlewareTest.php',
         'ProductionPublicDomainSmokeHarnessTest.php',
         'LogoutAuditRedactionHarnessTest.php',
         'BackChannelLogoutReliabilityHarnessTest.php',

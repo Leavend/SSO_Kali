@@ -20,6 +20,8 @@ class DatabaseSeeder extends Seeder
         $email = (string) env('SSO_ADMIN_EMAIL', 'admin@example.test');
         $password = (string) env('SSO_ADMIN_PASSWORD', 'change-me-admin-password');
 
+        $this->call(RbacSeeder::class);
+
         User::query()->updateOrCreate(
             ['email' => $email],
             [

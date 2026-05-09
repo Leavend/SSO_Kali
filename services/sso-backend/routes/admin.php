@@ -9,7 +9,8 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Middleware\AdminGuard;
 use App\Http\Middleware\EnsureAdminMfaAssurance;
 use App\Http\Middleware\EnsureFreshAdminAuth;
-use App\Http\Middleware\RequireAdminSessionManagementRole;
+use App\Http\Middleware\RequireAdminPermission;
+use App\Support\Rbac\AdminPermission;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(AdminGuard::class)->prefix('admin/api')->group(function (): void {
@@ -38,10 +39,9 @@ Route::middleware(AdminGuard::class)->prefix('admin/api')->group(function (): vo
         Route::post('/client-integrations/contract', [ClientController::class, 'contract']);
     });
 
-    // Write endpoints — 10 req/min per admin (destructive actions)
     Route::middleware([
         'throttle:admin-write',
-        RequireAdminSessionManagementRole::class,
+        RequireAdminPermission::class.':'.AdminPermission::SESSIONS_TERMINATE,
         EnsureFreshAdminAuth::class.':step_up',
         EnsureAdminMfaAssurance::class,
     ])->group(function (): void {
