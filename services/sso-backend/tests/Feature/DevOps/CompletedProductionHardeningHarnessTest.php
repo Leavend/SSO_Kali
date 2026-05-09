@@ -214,6 +214,23 @@ it('locks completed production hardening issues into a single executable contrac
                 '1737.55',
             ],
         ],
+        'production_connection_tuning' => [
+            'tests/Feature/DevOps/ProductionConnectionTuningHarnessTest.php' => [
+                'connection pressure tuning',
+                'worker_connections 4096',
+                'proxy_http_version 1.1',
+            ],
+            '../../scripts/vps-apply-sso-connection-tuning.sh' => [
+                '--mode audit|apply',
+                'nginx -t',
+                'pre-sso-connection-tuning',
+            ],
+            '../../docs/devops/sso-backend-connection-tuning.md' => [
+                'PASS with warning',
+                'Rollback',
+                'scripts/sso-backend-metadata-wrk-smoke.sh',
+            ],
+        ],
     ];
 
     foreach ($contracts as $issue => $files) {
@@ -245,6 +262,7 @@ it('keeps completed hardening harnesses wired into root CI', function (): void {
         'PushTriggeredDeployLifecycleHarnessTest.php',
         'ProductionOAuthTokenFlowSmokeHarnessTest.php',
         'ProductionMetadataWrkSmokeHarnessTest.php',
+        'ProductionConnectionTuningHarnessTest.php',
         'ProductionPublicDomainSmokeHarnessTest.php',
         'LogoutAuditRedactionHarnessTest.php',
         'BackChannelLogoutReliabilityHarnessTest.php',
