@@ -265,6 +265,12 @@ function externalIdp_external_idp_registry_contracts(): array
             'dedicated external idps menu',
             'step-up and mfa policy',
         ],
+        'tests/Feature/Admin/ExternalIdentityProviderCrudContractTest.php' => [
+            'enforces external idp admin CRUD validation boundaries',
+            'without leaking secrets',
+            'preserves existing client secret',
+            'writes hash chained redacted audit events',
+        ],
         'tests/Feature/Admin/ExternalIdentityProviderManagementTest.php' => [
             'creates updates lists shows and deletes external idps',
             'validates admin external idp request contracts',
