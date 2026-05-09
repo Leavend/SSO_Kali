@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-it('locks fr005 external idp registry domain model into backend evidence', function (): void {
-    foreach (fr005_external_idp_registry_contracts() as $relativePath => $needles) {
-        $content = fr005_external_idp_registry_file($relativePath);
+it('locks externalIdp external idp registry domain model into backend evidence', function (): void {
+    foreach (externalIdp_external_idp_registry_contracts() as $relativePath => $needles) {
+        $content = externalIdp_external_idp_registry_file($relativePath);
 
         expect($content, "{$relativePath} must exist")->toBeString()->not->toBe('');
 
@@ -14,8 +14,8 @@ it('locks fr005 external idp registry domain model into backend evidence', funct
     }
 });
 
-it('maps fr005 registry to external idp use cases and actors', function (): void {
-    expect(fr005_external_idp_registry_use_cases())->toBe([
+it('maps externalIdp registry to external idp use cases and actors', function (): void {
+    expect(externalIdp_external_idp_registry_use_cases())->toBe([
         'UC-08' => 'Login via Portal SSO can select a configured OIDC IdP.',
         'UC-09' => 'Laravel SSO validates IdP-backed SSO login sessions.',
         'UC-22' => 'Laravel SSO validates external IdP token metadata before trusting claims.',
@@ -28,7 +28,7 @@ it('maps fr005 registry to external idp use cases and actors', function (): void
 /**
  * @return array<string, list<string>>
  */
-function fr005_external_idp_registry_contracts(): array
+function externalIdp_external_idp_registry_contracts(): array
 {
     return [
         'database/migrations/2026_05_09_000001_create_external_identity_providers_table.php' => [
@@ -276,7 +276,7 @@ function fr005_external_idp_registry_contracts(): array
 /**
  * @return array<string, string>
  */
-function fr005_external_idp_registry_use_cases(): array
+function externalIdp_external_idp_registry_use_cases(): array
 {
     return [
         'UC-08' => 'Login via Portal SSO can select a configured OIDC IdP.',
@@ -288,7 +288,7 @@ function fr005_external_idp_registry_use_cases(): array
     ];
 }
 
-function fr005_external_idp_registry_file(string $relativePath): string
+function externalIdp_external_idp_registry_file(string $relativePath): string
 {
     return (string) file_get_contents(base_path($relativePath));
 }

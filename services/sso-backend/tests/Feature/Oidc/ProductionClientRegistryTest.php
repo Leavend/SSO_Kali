@@ -10,12 +10,12 @@ use App\Support\Security\ClientSecretHashPolicy;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
-function fr001Verifier(): string
+function productionClientVerifier(): string
 {
     return rtrim(strtr(base64_encode(random_bytes(64)), '+/', '-_'), '=');
 }
 
-function fr001Challenge(string $verifier): string
+function productionClientChallenge(string $verifier): string
 {
     return rtrim(strtr(base64_encode(hash('sha256', $verifier, true)), '+/', '-_'), '=');
 }
@@ -84,7 +84,7 @@ it('completes App A public PKCE authorization code flow with state and userinfo 
     $sessionId = (string) SsoSession::query()->where('subject_id', $user->subject_id)->value('session_id');
     expect($sessionId)->not->toBe('');
 
-    $verifier = fr001Verifier();
+    $verifier = productionClientVerifier();
     $state = 'state-'.Str::random(16);
     $nonce = 'nonce-'.Str::random(16);
 
@@ -104,7 +104,7 @@ it('completes App A public PKCE authorization code flow with state and userinfo 
             'scope' => 'openid profile email offline_access',
             'state' => $state,
             'nonce' => $nonce,
-            'code_challenge' => fr001Challenge($verifier),
+            'code_challenge' => productionClientChallenge($verifier),
             'code_challenge_method' => 'S256',
         ]));
 
@@ -139,7 +139,7 @@ it('enforces App B confidential client secret during token exchange', function (
     ])->assertOk();
 
     $sessionId = (string) SsoSession::query()->where('subject_id', $user->subject_id)->value('session_id');
-    $verifier = fr001Verifier();
+    $verifier = productionClientVerifier();
 
     $authorizeResponse = $this
         ->withSession([
@@ -157,7 +157,7 @@ it('enforces App B confidential client secret during token exchange', function (
             'scope' => 'openid profile email offline_access',
             'state' => 'state-'.Str::random(16),
             'nonce' => 'nonce-'.Str::random(16),
-            'code_challenge' => fr001Challenge($verifier),
+            'code_challenge' => productionClientChallenge($verifier),
             'code_challenge_method' => 'S256',
         ]));
 

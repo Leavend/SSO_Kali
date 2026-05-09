@@ -1,4 +1,4 @@
-# FR-004 Production Smoke Harness
+# OIDC Production Smoke Harness
 
 This runbook verifies the public OIDC backend protocol surface after deploy.
 It is intentionally secret-free and safe to run from GitHub Actions or an
@@ -6,7 +6,7 @@ operator terminal.
 
 ## Purpose
 
-Validate FR-004 production readiness for:
+Validate OIDC production readiness for:
 
 ```text
 OIDC discovery metadata
@@ -27,7 +27,7 @@ Frontend UI: https://sso.timeh.my.id
 ## Command
 
 ```bash
-scripts/sso-backend-fr004-production-smoke.sh \
+scripts/sso-backend-oidc-production-smoke.sh \
   --public-base-url https://api-sso.timeh.my.id \
   --client-id app-a \
   --redirect-uri https://sso.timeh.my.id/auth/callback
@@ -54,7 +54,7 @@ revocation endpoint rejects GET OK
 userinfo without bearer is protected OK
 authorize prompt=none redirect includes error=login_required
 authorize invalid prompt redirect includes error=invalid_request
-FR-004 production smoke completed successfully without secrets or tokens
+OIDC production smoke completed successfully without secrets or tokens
 ```
 
 ## Evidence to Retain

@@ -42,7 +42,7 @@ final class CreateExternalIdentityProviderAction
             'method' => 'SYSTEM',
             'path' => '/admin/api/idps',
             'ip_address' => '127.0.0.1',
-            'reason' => 'fr005_external_idp_registry',
+            'reason' => 'externalIdp_external_idp_registry',
             'context' => $this->context($provider),
             'occurred_at' => now(),
         ]);

@@ -67,7 +67,7 @@ it('keeps issue43 tests wired into root ci', function (): void {
         'ScopePolicyTest.php',
         'UserClaimsFactoryScopeEnforcementTest.php',
         'ClientScopeManagementBackendTest.php',
-        'Fr003ScopeManagementHarnessTest.php',
+        'AdminScopeManagementHarnessTest.php',
     ] as $testName) {
         expect($ci)->toContain($testName);
     }

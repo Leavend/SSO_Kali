@@ -71,7 +71,7 @@ final class LinkExternalSubjectAccountAction
             'method' => 'SYSTEM',
             'path' => '/external-idp/account-link',
             'ip_address' => '127.0.0.1',
-            'reason' => 'fr005_external_subject_linking',
+            'reason' => 'externalIdp_external_subject_linking',
             'context' => [
                 'provider_key' => $provider->provider_key,
                 'issuer' => $provider->issuer,

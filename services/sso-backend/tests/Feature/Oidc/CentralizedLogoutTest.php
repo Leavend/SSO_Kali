@@ -23,16 +23,16 @@ it('rejects centralized logout with malformed or incomplete access tokens', func
         ->assertJsonPath('error', 'invalid_token');
 })->with([
     'malformed token' => 'not-a-jwt',
-    'missing sid' => fn (): string => accessTokenFor('user-fr002', null),
-    'missing sub' => fn (): string => accessTokenFor(null, 'sid-fr002'),
-    'expired token' => fn (): string => accessTokenFor('user-fr002', 'sid-fr002', ['exp' => time() - 120]),
+    'missing sid' => fn (): string => accessTokenFor('user-logoutFlow', null),
+    'missing sub' => fn (): string => accessTokenFor(null, 'sid-logoutFlow'),
+    'expired token' => fn (): string => accessTokenFor('user-logoutFlow', 'sid-logoutFlow', ['exp' => time() - 120]),
 ]);
 
 it('queues back-channel logout for every registered client session', function (): void {
     Bus::fake();
 
-    $subjectId = 'user-fr002';
-    $sessionId = 'sid-fr002';
+    $subjectId = 'user-logoutFlow';
+    $sessionId = 'sid-logoutFlow';
     registerBackChannelClient($sessionId, 'app-a', 'https://app-a.example.test/backchannel/logout');
     registerBackChannelClient($sessionId, 'app-b', 'https://app-b.example.test/backchannel/logout');
 
@@ -53,8 +53,8 @@ it('posts a standards-compliant logout token to the client back-channel endpoint
 
     $job = new DispatchBackChannelLogoutJob(
         'app-a',
-        'user-fr002',
-        'sid-fr002',
+        'user-logoutFlow',
+        'sid-logoutFlow',
         'https://app-a.example.test/backchannel/logout',
     );
 
@@ -70,8 +70,8 @@ it('posts a standards-compliant logout token to the client back-channel endpoint
             && $request->method() === 'POST'
             && ($claims['iss'] ?? null) === config('sso.issuer')
             && ($claims['aud'] ?? null) === 'app-a'
-            && ($claims['sub'] ?? null) === 'user-fr002'
-            && ($claims['sid'] ?? null) === 'sid-fr002'
+            && ($claims['sub'] ?? null) === 'user-logoutFlow'
+            && ($claims['sid'] ?? null) === 'sid-logoutFlow'
             && is_string($claims['jti'] ?? null)
             && is_int($claims['iat'] ?? null)
             && is_int($claims['exp'] ?? null)
@@ -88,8 +88,8 @@ it('fails safely when a back-channel client returns a non-success response', fun
 
     $job = new DispatchBackChannelLogoutJob(
         'app-a',
-        'user-fr002',
-        'sid-fr002',
+        'user-logoutFlow',
+        'sid-logoutFlow',
         'https://app-a.example.test/backchannel/logout',
     );
 

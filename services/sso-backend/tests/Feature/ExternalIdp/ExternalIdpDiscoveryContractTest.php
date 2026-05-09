@@ -15,9 +15,9 @@ beforeEach(function (): void {
 });
 
 it('fetches validates caches and persists external idp discovery metadata', function (): void {
-    $provider = fr005DiscoveryProvider();
+    $provider = externalIdpDiscoveryProvider();
     Http::fake([
-        $provider->metadata_url => Http::response(fr005DiscoveryDocument($provider), 200),
+        $provider->metadata_url => Http::response(externalIdpDiscoveryDocument($provider), 200),
     ]);
 
     $metadata = app(ExternalIdpDiscoveryService::class)->refresh($provider);
@@ -39,11 +39,11 @@ it('fetches validates caches and persists external idp discovery metadata', func
 });
 
 it('rejects issuer mismatch missing required fields and non-https metadata url', function (): void {
-    $provider = fr005DiscoveryProvider();
+    $provider = externalIdpDiscoveryProvider();
 
     Http::fake([
         $provider->metadata_url => Http::response([
-            ...fr005DiscoveryDocument($provider),
+            ...externalIdpDiscoveryDocument($provider),
             'issuer' => 'https://evil-idp.example.test',
         ], 200),
     ]);
@@ -52,7 +52,7 @@ it('rejects issuer mismatch missing required fields and non-https metadata url',
         ->toThrow(RuntimeException::class, 'External IdP discovery could not be refreshed.');
 
     Http::fake([
-        $provider->metadata_url => Http::response(Arr::except(fr005DiscoveryDocument($provider), ['jwks_uri']), 200),
+        $provider->metadata_url => Http::response(Arr::except(externalIdpDiscoveryDocument($provider), ['jwks_uri']), 200),
     ]);
 
     expect(fn () => app(ExternalIdpDiscoveryService::class)->refresh($provider))
@@ -65,9 +65,9 @@ it('rejects issuer mismatch missing required fields and non-https metadata url',
 });
 
 it('uses stale discovery cache when refresh fails after a successful fetch', function (): void {
-    $provider = fr005DiscoveryProvider();
+    $provider = externalIdpDiscoveryProvider();
     Http::fake([
-        $provider->metadata_url => Http::response(fr005DiscoveryDocument($provider), 200),
+        $provider->metadata_url => Http::response(externalIdpDiscoveryDocument($provider), 200),
     ]);
     app(ExternalIdpDiscoveryService::class)->refresh($provider);
 
@@ -83,23 +83,23 @@ it('uses stale discovery cache when refresh fails after a successful fetch', fun
 });
 
 it('audits discovery refresh success and failure without leaking secrets or tokens', function (): void {
-    $provider = fr005DiscoveryProvider();
+    $provider = externalIdpDiscoveryProvider();
     Http::fake([
-        $provider->metadata_url => Http::response(fr005DiscoveryDocument($provider), 200),
+        $provider->metadata_url => Http::response(externalIdpDiscoveryDocument($provider), 200),
     ]);
 
-    app(RefreshExternalIdpDiscoveryAction::class)->execute($provider, 'req-fr005-discovery');
+    app(RefreshExternalIdpDiscoveryAction::class)->execute($provider, 'req-externalIdp-discovery');
 
     Http::fake([
         $provider->metadata_url => Http::response([], 500),
     ]);
 
-    $failedProvider = fr005DiscoveryProvider('keycloak-secondary', 'https://idp-secondary.example.test/realms/sso');
+    $failedProvider = externalIdpDiscoveryProvider('keycloak-secondary', 'https://idp-secondary.example.test/realms/sso');
     $failedProvider->forceFill([
         'metadata_url' => 'https://idp-secondary.example.test/realms/sso/.well-known/openid-configuration',
     ])->save();
 
-    expect(fn () => app(RefreshExternalIdpDiscoveryAction::class)->execute($failedProvider, 'req-fr005-fail'))
+    expect(fn () => app(RefreshExternalIdpDiscoveryAction::class)->execute($failedProvider, 'req-externalIdp-fail'))
         ->toThrow(RuntimeException::class);
 
     $events = AdminAuditEvent::query()
@@ -115,7 +115,7 @@ it('audits discovery refresh success and failure without leaking secrets or toke
         ->and(json_encode($events->pluck('context')->all(), JSON_THROW_ON_ERROR))->not->toContain('access_token');
 });
 
-function fr005DiscoveryProvider(
+function externalIdpDiscoveryProvider(
     string $providerKey = 'keycloak-primary',
     string $issuer = 'https://idp.example.test/realms/sso',
 ): ExternalIdentityProvider {
@@ -139,7 +139,7 @@ function fr005DiscoveryProvider(
 /**
  * @return array<string, mixed>
  */
-function fr005DiscoveryDocument(ExternalIdentityProvider $provider): array
+function externalIdpDiscoveryDocument(ExternalIdentityProvider $provider): array
 {
     return [
         'issuer' => $provider->issuer,

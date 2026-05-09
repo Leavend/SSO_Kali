@@ -15,9 +15,9 @@ beforeEach(function (): void {
 });
 
 it('fetches validates caches and resolves external idp jwks keys by kid', function (): void {
-    $provider = fr005JwksProvider();
+    $provider = externalIdpJwksProvider();
     Http::fake([
-        $provider->jwks_uri => Http::response(fr005JwksDocument('kid-primary'), 200),
+        $provider->jwks_uri => Http::response(externalIdpJwksDocument('kid-primary'), 200),
     ]);
 
     $jwks = app(ExternalIdpJwksService::class)->refresh($provider, 'kid-primary');
@@ -39,21 +39,21 @@ it('fetches validates caches and resolves external idp jwks keys by kid', functi
 });
 
 it('rejects non-https jwks uri unknown kid alg none invalid kty and non-signing keys', function (): void {
-    $provider = fr005JwksProvider();
+    $provider = externalIdpJwksProvider();
 
     $provider->forceFill(['jwks_uri' => 'http://idp.example.test/jwks']);
 
     expect(fn () => app(ExternalIdpJwksService::class)->refresh($provider, 'kid-primary'))
         ->toThrow(RuntimeException::class, 'External IdP JWKS could not be refreshed.');
 
-    $provider = fr005JwksProvider('keycloak-unknown-kid');
-    Http::fake([$provider->jwks_uri => Http::response(fr005JwksDocument('kid-other'), 200)]);
+    $provider = externalIdpJwksProvider('keycloak-unknown-kid');
+    Http::fake([$provider->jwks_uri => Http::response(externalIdpJwksDocument('kid-other'), 200)]);
 
     expect(fn () => app(ExternalIdpJwksService::class)->refresh($provider, 'kid-primary'))
         ->toThrow(RuntimeException::class, 'External IdP JWKS could not be refreshed.');
 
-    foreach (fr005InvalidJwksDocuments() as $document) {
-        $provider = fr005JwksProvider('keycloak-invalid-'.sha1(json_encode($document, JSON_THROW_ON_ERROR)));
+    foreach (externalIdpInvalidJwksDocuments() as $document) {
+        $provider = externalIdpJwksProvider('keycloak-invalid-'.sha1(json_encode($document, JSON_THROW_ON_ERROR)));
         Http::fake([$provider->jwks_uri => Http::response($document, 200)]);
 
         expect(fn () => app(ExternalIdpJwksService::class)->refresh($provider))
@@ -62,8 +62,8 @@ it('rejects non-https jwks uri unknown kid alg none invalid kty and non-signing 
 });
 
 it('uses stale jwks cache when key rotation refresh temporarily fails', function (): void {
-    $provider = fr005JwksProvider();
-    Http::fake([$provider->jwks_uri => Http::response(fr005JwksDocument('kid-primary'), 200)]);
+    $provider = externalIdpJwksProvider();
+    Http::fake([$provider->jwks_uri => Http::response(externalIdpJwksDocument('kid-primary'), 200)]);
     app(ExternalIdpJwksService::class)->refresh($provider, 'kid-primary');
 
     Cache::forget('external-idp:jwks:'.$provider->provider_key);
@@ -75,15 +75,15 @@ it('uses stale jwks cache when key rotation refresh temporarily fails', function
 });
 
 it('audits jwks refresh success and failure without leaking token material', function (): void {
-    $provider = fr005JwksProvider();
-    Http::fake([$provider->jwks_uri => Http::response(fr005JwksDocument('kid-primary'), 200)]);
+    $provider = externalIdpJwksProvider();
+    Http::fake([$provider->jwks_uri => Http::response(externalIdpJwksDocument('kid-primary'), 200)]);
 
-    app(RefreshExternalIdpJwksAction::class)->execute($provider, 'kid-primary', 'req-fr005-jwks');
+    app(RefreshExternalIdpJwksAction::class)->execute($provider, 'kid-primary', 'req-externalIdp-jwks');
 
-    $failedProvider = fr005JwksProvider('keycloak-jwks-fail', 'https://idp-fail.example.test/realms/sso');
+    $failedProvider = externalIdpJwksProvider('keycloak-jwks-fail', 'https://idp-fail.example.test/realms/sso');
     Http::fake([$failedProvider->jwks_uri => Http::response([], 500)]);
 
-    expect(fn () => app(RefreshExternalIdpJwksAction::class)->execute($failedProvider, 'kid-primary', 'req-fr005-jwks-fail'))
+    expect(fn () => app(RefreshExternalIdpJwksAction::class)->execute($failedProvider, 'kid-primary', 'req-externalIdp-jwks-fail'))
         ->toThrow(RuntimeException::class);
 
     $events = AdminAuditEvent::query()
@@ -101,7 +101,7 @@ it('audits jwks refresh success and failure without leaking token material', fun
         ->and($encoded)->not->toContain('refresh_token');
 });
 
-function fr005JwksProvider(
+function externalIdpJwksProvider(
     string $providerKey = 'keycloak-primary',
     string $issuer = '',
 ): ExternalIdentityProvider {
@@ -128,7 +128,7 @@ function fr005JwksProvider(
 /**
  * @return array<string, mixed>
  */
-function fr005JwksDocument(string $kid): array
+function externalIdpJwksDocument(string $kid): array
 {
     return [
         'keys' => [[
@@ -145,13 +145,13 @@ function fr005JwksDocument(string $kid): array
 /**
  * @return list<array<string, mixed>>
  */
-function fr005InvalidJwksDocuments(): array
+function externalIdpInvalidJwksDocuments(): array
 {
     return [
-        ['keys' => [[...fr005JwksDocument('kid-none')['keys'][0], 'alg' => 'none']]],
-        ['keys' => [[...fr005JwksDocument('kid-hmac')['keys'][0], 'alg' => 'HS256']]],
-        ['keys' => [[...fr005JwksDocument('kid-oct')['keys'][0], 'kty' => 'oct']]],
-        ['keys' => [[...fr005JwksDocument('kid-enc')['keys'][0], 'use' => 'enc']]],
-        ['keys' => [Arr::except(fr005JwksDocument('kid-missing')['keys'][0], ['kid'])]],
+        ['keys' => [[...externalIdpJwksDocument('kid-none')['keys'][0], 'alg' => 'none']]],
+        ['keys' => [[...externalIdpJwksDocument('kid-hmac')['keys'][0], 'alg' => 'HS256']]],
+        ['keys' => [[...externalIdpJwksDocument('kid-oct')['keys'][0], 'kty' => 'oct']]],
+        ['keys' => [[...externalIdpJwksDocument('kid-enc')['keys'][0], 'use' => 'enc']]],
+        ['keys' => [Arr::except(externalIdpJwksDocument('kid-missing')['keys'][0], ['kid'])]],
     ];
 }

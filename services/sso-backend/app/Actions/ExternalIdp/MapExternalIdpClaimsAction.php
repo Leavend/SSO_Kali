@@ -55,7 +55,7 @@ final class MapExternalIdpClaimsAction
             'method' => 'SYSTEM',
             'path' => '/external-idp/claims/map',
             'ip_address' => '127.0.0.1',
-            'reason' => 'fr005_external_idp_claims_mapping',
+            'reason' => 'externalIdp_external_idp_claims_mapping',
             'context' => [
                 'request_id' => $requestId,
                 'provider_key' => $provider->provider_key,

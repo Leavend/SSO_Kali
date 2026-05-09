@@ -53,7 +53,7 @@ final class RefreshExternalIdpJwksAction
             'method' => 'SYSTEM',
             'path' => '/admin/api/idps/'.$provider->provider_key.'/jwks/refresh',
             'ip_address' => '127.0.0.1',
-            'reason' => 'fr005_external_idp_jwks',
+            'reason' => 'externalIdp_external_idp_jwks',
             'context' => $this->context($provider, $requestId, $expectedKid, $exception),
             'occurred_at' => now(),
         ]);

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-it('locks fr003 user management backend lifecycle into production hardening', function (): void {
+it('locks adminBackend user management backend lifecycle into production hardening', function (): void {
     $contracts = [
         'database/migrations/2026_05_09_000002_add_user_lifecycle_fields.php' => [
             'status',
@@ -33,7 +33,7 @@ it('locks fr003 user management backend lifecycle into production hardening', fu
     ];
 
     foreach ($contracts as $relativePath => $needles) {
-        $content = fr003_user_management_file($relativePath);
+        $content = adminBackend_user_management_file($relativePath);
 
         expect($content, "{$relativePath} must exist")->toBeString()->not->toBe('');
 
@@ -43,18 +43,18 @@ it('locks fr003 user management backend lifecycle into production hardening', fu
     }
 });
 
-it('keeps fr003 user management tests wired into root ci', function (): void {
-    $ci = fr003_user_management_file('../../.github/workflows/ci.yml');
+it('keeps adminBackend user management tests wired into root ci', function (): void {
+    $ci = adminBackend_user_management_file('../../.github/workflows/ci.yml');
 
     foreach ([
         'UserManagementBackendTest.php',
-        'Fr003UserManagementHarnessTest.php',
+        'AdminUserManagementHarnessTest.php',
     ] as $testName) {
         expect($ci)->toContain($testName);
     }
 });
 
-function fr003_user_management_file(string $relativePath): string
+function adminBackend_user_management_file(string $relativePath): string
 {
     $path = base_path($relativePath);
 

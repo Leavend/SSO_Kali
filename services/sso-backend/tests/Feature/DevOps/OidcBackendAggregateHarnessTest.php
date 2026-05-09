@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-it('locks the complete fr004 oidc backend aggregate evidence set', function (): void {
-    foreach (fr004_aggregate_contracts() as $domain => $files) {
+it('locks the complete oidcBackend oidc backend aggregate evidence set', function (): void {
+    foreach (oidcBackend_aggregate_contracts() as $domain => $files) {
         foreach ($files as $relativePath => $needles) {
-            $content = fr004_aggregate_file($relativePath);
+            $content = oidcBackend_aggregate_file($relativePath);
 
             expect($content, "{$domain}: {$relativePath} must exist")->toBeString()->not->toBe('');
 
@@ -16,8 +16,8 @@ it('locks the complete fr004 oidc backend aggregate evidence set', function (): 
     }
 });
 
-it('maps fr004 use cases uc01 through uc23 to backend evidence', function (): void {
-    $coverage = fr004_use_case_coverage();
+it('maps oidcBackend use cases uc01 through uc23 to backend evidence', function (): void {
+    $coverage = oidcBackend_use_case_coverage();
 
     expect(array_keys($coverage))->toBe([
         'UC-01', 'UC-02', 'UC-07', 'UC-08', 'UC-09', 'UC-12', 'UC-13',
@@ -29,15 +29,15 @@ it('maps fr004 use cases uc01 through uc23 to backend evidence', function (): vo
         expect($evidence, "{$useCase} must have at least one evidence file")->not->toBeEmpty();
 
         foreach ($evidence as $relativePath) {
-            expect(fr004_aggregate_file($relativePath), "{$useCase}: {$relativePath} must exist")
+            expect(oidcBackend_aggregate_file($relativePath), "{$useCase}: {$relativePath} must exist")
                 ->toBeString()
                 ->not->toBe('');
         }
     }
 });
 
-it('documents fr004 endpoints and production protection middleware', function (): void {
-    $routes = fr004_aggregate_file('routes/web.php');
+it('documents oidcBackend endpoints and production protection middleware', function (): void {
+    $routes = oidcBackend_aggregate_file('routes/web.php');
 
     foreach ([
         "Route::get('/.well-known/openid-configuration'",
@@ -59,10 +59,10 @@ it('documents fr004 endpoints and production protection middleware', function ()
     }
 });
 
-it('keeps every fr004 aggregate dependency wired into ci', function (): void {
-    $ci = fr004_aggregate_file('../../.github/workflows/ci.yml');
+it('keeps every oidcBackend aggregate dependency wired into ci', function (): void {
+    $ci = oidcBackend_aggregate_file('../../.github/workflows/ci.yml');
 
-    foreach (fr004_ci_tests() as $testName) {
+    foreach (oidcBackend_ci_tests() as $testName) {
         expect($ci, "CI must run {$testName}")->toContain($testName);
     }
 });
@@ -70,7 +70,7 @@ it('keeps every fr004 aggregate dependency wired into ci', function (): void {
 /**
  * @return array<string, array<string, list<string>>>
  */
-function fr004_aggregate_contracts(): array
+function oidcBackend_aggregate_contracts(): array
 {
     return [
         'discovery_and_jwks' => [
@@ -123,10 +123,10 @@ function fr004_aggregate_contracts(): array
             'app/Actions/Profile/RevokeConnectedAppAction.php' => ['revokeClientSessionsForSubject', 'profile.connected_app.revoke'],
             'routes/web.php' => ['/api/profile/connected-apps', 'revokeConnectedApp'],
         ],
-        'fr004_production_smoke' => [
-            'tests/Feature/DevOps/Fr004ProductionSmokeHarnessTest.php' => ['FR-004 production smoke', 'error=login_required', 'error=invalid_request'],
-            '../../scripts/sso-backend-fr004-production-smoke.sh' => ['prompt=none', '/userinfo', 'without secrets or tokens'],
-            '../../docs/devops/sso-backend-fr004-production-smoke.md' => ['OIDC discovery metadata', 'Evidence to Retain', 'RUN_FR004_PRODUCTION_SMOKE=true'],
+        'oidcBackend_production_smoke' => [
+            'tests/Feature/DevOps/OidcProductionSmokeHarnessTest.php' => ['OIDC Backend production smoke', 'error=login_required', 'error=invalid_request'],
+            '../../scripts/sso-backend-oidc-production-smoke.sh' => ['prompt=none', '/userinfo', 'without secrets or tokens'],
+            '../../docs/devops/sso-backend-oidc-production-smoke.md' => ['OIDC discovery metadata', 'Evidence to Retain', 'RUN_FR004_PRODUCTION_SMOKE=true'],
         ],
     ];
 }
@@ -134,7 +134,7 @@ function fr004_aggregate_contracts(): array
 /**
  * @return array<string, list<string>>
  */
-function fr004_use_case_coverage(): array
+function oidcBackend_use_case_coverage(): array
 {
     return [
         'UC-01' => ['tests/Feature/Oidc/DiscoveryDocumentTest.php'],
@@ -157,21 +157,21 @@ function fr004_use_case_coverage(): array
         'UC-24' => ['tests/Feature/Oidc/OidcIncidentAuditLoggingContractTest.php', 'app/Services/Oidc/OidcIncidentAuditLogger.php'],
         'UC-25' => ['tests/Feature/Oidc/ConsentFlowContractTest.php', 'app/Actions/Oidc/CreateAuthorizationRedirect.php'],
         'UC-26' => ['tests/Feature/Profile/ConnectedAppsSelfServiceRevocationContractTest.php', 'app/Actions/Profile/RevokeConnectedAppAction.php'],
-        'UC-27' => ['tests/Feature/DevOps/Fr004ProductionSmokeHarnessTest.php', '../../scripts/sso-backend-fr004-production-smoke.sh'],
+        'UC-27' => ['tests/Feature/DevOps/OidcProductionSmokeHarnessTest.php', '../../scripts/sso-backend-oidc-production-smoke.sh'],
     ];
 }
 
 /**
  * @return list<string>
  */
-function fr004_ci_tests(): array
+function oidcBackend_ci_tests(): array
 {
     return [
-        'Fr004OidcBackendAggregateHarnessTest.php',
+        'OidcBackendAggregateHarnessTest.php',
         'AuthorizationCodeFlowE2EContractTest.php',
         'ConsentFlowContractTest.php',
         'ConnectedAppsSelfServiceRevocationContractTest.php',
-        'Fr004ProductionSmokeHarnessTest.php',
+        'OidcProductionSmokeHarnessTest.php',
         'TokenEndpointHardeningContractTest.php',
         'JwtValidationClaimContractTest.php',
         'RefreshTokenRotationReplayContractTest.php',
@@ -190,7 +190,7 @@ function fr004_ci_tests(): array
     ];
 }
 
-function fr004_aggregate_file(string $relativePath): string
+function oidcBackend_aggregate_file(string $relativePath): string
 {
     $path = base_path($relativePath);
 

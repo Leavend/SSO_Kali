@@ -6,22 +6,22 @@ PUBLIC_BASE_URL="${PUBLIC_BASE_URL:-https://api-sso.timeh.my.id}"
 TIMEOUT_SECONDS="${TIMEOUT_SECONDS:-20}"
 OIDC_CLIENT_ID="${OIDC_CLIENT_ID:-app-a}"
 OIDC_REDIRECT_URI="${OIDC_REDIRECT_URI:-https://sso.timeh.my.id/auth/callback}"
-STATE="${STATE:-fr004-production-smoke-state}"
-NONCE="${NONCE:-fr004-production-smoke-nonce}"
+STATE="${STATE:-oidcBackend-production-smoke-state}"
+NONCE="${NONCE:-oidcBackend-production-smoke-nonce}"
 
 log() {
-  printf '[sso-backend-fr004-production-smoke] %s\n' "$*"
+  printf '[sso-backend-oidc-production-smoke] %s\n' "$*"
 }
 
 fail() {
-  printf '[sso-backend-fr004-production-smoke][FAIL] %s\n' "$*" >&2
+  printf '[sso-backend-oidc-production-smoke][FAIL] %s\n' "$*" >&2
   exit 1
 }
 
 usage() {
   cat <<'USAGE'
 Usage:
-  scripts/sso-backend-fr004-production-smoke.sh [options]
+  scripts/sso-backend-oidc-production-smoke.sh [options]
 
 Options:
   --public-base-url URL  Public backend URL. Default: https://api-sso.timeh.my.id
@@ -30,7 +30,7 @@ Options:
   --timeout SECONDS      Curl max time per request. Default: 20
   -h, --help             Show help
 
-This smoke is secret-free. It validates FR-004 public OIDC protocol surfaces only.
+This smoke is secret-free. It validates OIDC Backend public OIDC protocol surfaces only.
 It must not print bearer tokens, refresh tokens, cookies, or client secrets.
 USAGE
 }
@@ -107,4 +107,4 @@ invalid_prompt_url="$PUBLIC_BASE_URL/authorize?response_type=code&client_id=$OID
 require_redirect_parameter 'authorize prompt=none' "$prompt_none_url" 'error=login_required'
 require_redirect_parameter 'authorize invalid prompt' "$invalid_prompt_url" 'error=invalid_request'
 
-log 'FR-004 production smoke completed successfully without secrets or tokens'
+log 'OIDC Backend production smoke completed successfully without secrets or tokens'

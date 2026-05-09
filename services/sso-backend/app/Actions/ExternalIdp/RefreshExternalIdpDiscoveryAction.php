@@ -49,7 +49,7 @@ final class RefreshExternalIdpDiscoveryAction
             'method' => 'SYSTEM',
             'path' => '/admin/api/idps/'.$provider->provider_key.'/test-discovery',
             'ip_address' => '127.0.0.1',
-            'reason' => 'fr005_external_idp_discovery',
+            'reason' => 'externalIdp_external_idp_discovery',
             'context' => $this->context($provider, $requestId, $exception),
             'occurred_at' => now(),
         ]);

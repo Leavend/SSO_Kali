@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-it('locks fr003 rbac domain and policy contract into the backend', function (): void {
+it('locks adminBackend rbac domain and policy contract into the backend', function (): void {
     $contracts = [
         'database/migrations/2026_05_09_000001_create_rbac_tables.php' => [
             "Schema::create('roles'",
@@ -38,7 +38,7 @@ it('locks fr003 rbac domain and policy contract into the backend', function (): 
     ];
 
     foreach ($contracts as $relativePath => $needles) {
-        $content = fr003_rbac_file_contents($relativePath);
+        $content = adminBackend_rbac_file_contents($relativePath);
 
         expect($content, "{$relativePath} must exist")->toBeString()->not->toBe('');
 
@@ -48,19 +48,19 @@ it('locks fr003 rbac domain and policy contract into the backend', function (): 
     }
 });
 
-it('keeps fr003 rbac tests wired into root ci', function (): void {
-    $ci = fr003_rbac_file_contents('../../.github/workflows/ci.yml');
+it('keeps adminBackend rbac tests wired into root ci', function (): void {
+    $ci = adminBackend_rbac_file_contents('../../.github/workflows/ci.yml');
 
     foreach ([
         'RbacPolicyContractTest.php',
         'AdminPermissionMiddlewareTest.php',
-        'Fr003RbacDomainHarnessTest.php',
+        'AdminRbacDomainHarnessTest.php',
     ] as $testName) {
         expect($ci)->toContain($testName);
     }
 });
 
-function fr003_rbac_file_contents(string $relativePath): string
+function adminBackend_rbac_file_contents(string $relativePath): string
 {
     $path = base_path($relativePath);
 

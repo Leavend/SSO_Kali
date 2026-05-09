@@ -10,9 +10,9 @@ use App\Models\User;
 use App\Services\ExternalIdp\ExternalSubjectAccountMapper;
 
 it('creates a new local external user and durable subject link from verified external claims', function (): void {
-    $provider = fr005MappingProvider();
+    $provider = externalIdpMappingProvider();
 
-    $result = app(ExternalSubjectAccountMapper::class)->map($provider, fr005ExchangeClaims());
+    $result = app(ExternalSubjectAccountMapper::class)->map($provider, externalIdpExchangeClaims());
 
     expect($result['created_user'])->toBeTrue()
         ->and($result['created_link'])->toBeTrue()
@@ -28,7 +28,7 @@ it('creates a new local external user and durable subject link from verified ext
 });
 
 it('links verified external subject to an existing local account and remains idempotent', function (): void {
-    $provider = fr005MappingProvider();
+    $provider = externalIdpMappingProvider();
     $user = User::factory()->create([
         'email' => 'external@example.com',
         'display_name' => 'Existing User',
@@ -36,11 +36,11 @@ it('links verified external subject to an existing local account and remains ide
         'local_account_enabled' => true,
     ]);
 
-    $first = app(ExternalSubjectAccountMapper::class)->map($provider, fr005ExchangeClaims());
+    $first = app(ExternalSubjectAccountMapper::class)->map($provider, externalIdpExchangeClaims());
     $second = app(ExternalSubjectAccountMapper::class)->map($provider, [
-        ...fr005ExchangeClaims(),
+        ...externalIdpExchangeClaims(),
         'name' => 'External User Updated',
-        'claims' => [...fr005ExchangeClaims()['claims'], 'name' => 'External User Updated'],
+        'claims' => [...externalIdpExchangeClaims()['claims'], 'name' => 'External User Updated'],
     ]);
 
     expect($first['created_user'])->toBeFalse()
@@ -54,7 +54,7 @@ it('links verified external subject to an existing local account and remains ide
 });
 
 it('prevents email takeover when external email is unverified and rejects provider mismatch', function (): void {
-    $provider = fr005MappingProvider();
+    $provider = externalIdpMappingProvider();
     User::factory()->create([
         'email' => 'external@example.com',
         'status' => 'active',
@@ -62,18 +62,18 @@ it('prevents email takeover when external email is unverified and rejects provid
     ]);
 
     expect(fn () => app(ExternalSubjectAccountMapper::class)->map($provider, [
-        ...fr005ExchangeClaims(),
-        'claims' => [...fr005ExchangeClaims()['claims'], 'email_verified' => false],
+        ...externalIdpExchangeClaims(),
+        'claims' => [...externalIdpExchangeClaims()['claims'], 'email_verified' => false],
     ]))->toThrow(RuntimeException::class, 'External IdP email must be verified before linking an existing account.');
 
     expect(fn () => app(ExternalSubjectAccountMapper::class)->map($provider, [
-        ...fr005ExchangeClaims(),
+        ...externalIdpExchangeClaims(),
         'provider_key' => 'other-provider',
     ]))->toThrow(RuntimeException::class, 'External IdP exchange provider mismatch.');
 });
 
 it('rejects disabled local account already linked to an external subject', function (): void {
-    $provider = fr005MappingProvider();
+    $provider = externalIdpMappingProvider();
     $user = User::factory()->create([
         'email' => 'disabled@example.com',
         'status' => 'disabled',
@@ -91,23 +91,23 @@ it('rejects disabled local account already linked to an external subject', funct
         'last_login_at' => now(),
     ]);
 
-    expect(fn () => app(ExternalSubjectAccountMapper::class)->map($provider, fr005ExchangeClaims()))
+    expect(fn () => app(ExternalSubjectAccountMapper::class)->map($provider, externalIdpExchangeClaims()))
         ->toThrow(RuntimeException::class, 'Mapped local account is disabled.');
 });
 
 it('audits account mapping success and failure without leaking token material', function (): void {
-    $provider = fr005MappingProvider();
+    $provider = externalIdpMappingProvider();
 
     app(LinkExternalSubjectAccountAction::class)->execute($provider, [
-        ...fr005ExchangeClaims(),
-        'claims' => [...fr005ExchangeClaims()['claims'], 'access_token' => 'must-not-leak'],
-    ], 'req-fr005-link');
+        ...externalIdpExchangeClaims(),
+        'claims' => [...externalIdpExchangeClaims()['claims'], 'access_token' => 'must-not-leak'],
+    ], 'req-externalIdp-link');
 
     expect(fn () => app(LinkExternalSubjectAccountAction::class)->execute($provider, [
-        ...fr005ExchangeClaims(),
+        ...externalIdpExchangeClaims(),
         'provider_key' => 'wrong-provider',
-        'claims' => [...fr005ExchangeClaims()['claims'], 'id_token' => 'must-not-leak'],
-    ], 'req-fr005-link-fail'))->toThrow(RuntimeException::class);
+        'claims' => [...externalIdpExchangeClaims()['claims'], 'id_token' => 'must-not-leak'],
+    ], 'req-externalIdp-link-fail'))->toThrow(RuntimeException::class);
 
     $events = AdminAuditEvent::query()
         ->whereIn('taxonomy', ['external_idp.account_linked', 'external_idp.account_link_failed'])
@@ -121,7 +121,7 @@ it('audits account mapping success and failure without leaking token material', 
         ->and($events[0]->context['created_user'])->toBeTrue()
         ->and($events[0]->context['created_link'])->toBeTrue()
         ->and($events[1]->taxonomy)->toBe('external_idp.account_link_failed')
-        ->and($encoded)->toContain('req-fr005-link')
+        ->and($encoded)->toContain('req-externalIdp-link')
         ->and($encoded)->not->toContain('must-not-leak')
         ->and($encoded)->not->toContain('access_token')
         ->and($encoded)->not->toContain('id_token')
@@ -129,7 +129,7 @@ it('audits account mapping success and failure without leaking token material', 
         ->and($encoded)->not->toContain('code_verifier');
 });
 
-function fr005MappingProvider(string $providerKey = 'keycloak-mapping'): ExternalIdentityProvider
+function externalIdpMappingProvider(string $providerKey = 'keycloak-mapping'): ExternalIdentityProvider
 {
     $issuer = 'https://'.$providerKey.'.keycloak.example.test/realms/sso';
 
@@ -154,7 +154,7 @@ function fr005MappingProvider(string $providerKey = 'keycloak-mapping'): Externa
 /**
  * @return array{provider_key: string, subject: string, email: string, name: string, return_to: string, claims: array<string, mixed>}
  */
-function fr005ExchangeClaims(): array
+function externalIdpExchangeClaims(): array
 {
     return [
         'provider_key' => 'keycloak-mapping',

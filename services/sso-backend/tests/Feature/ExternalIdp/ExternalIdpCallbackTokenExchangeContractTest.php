@@ -17,18 +17,18 @@ beforeEach(function (): void {
 });
 
 it('exchanges an external idp callback authorization code and validates id token claims', function (): void {
-    [$provider, $keys] = fr005CallbackProvider();
-    $redirect = fr005CreateAuthState($provider);
+    [$provider, $keys] = externalIdpCallbackProvider();
+    $redirect = externalIdpCreateAuthState($provider);
     Http::fake([
-        $provider->metadata_url => Http::response(fr005CallbackDiscovery($provider), 200),
+        $provider->metadata_url => Http::response(externalIdpCallbackDiscovery($provider), 200),
         $provider->token_endpoint => Http::response([
             'access_token' => 'upstream-access-token',
             'refresh_token' => 'upstream-refresh-token',
-            'id_token' => fr005IdToken($provider, $redirect['nonce'], $keys),
+            'id_token' => externalIdpIdToken($provider, $redirect['nonce'], $keys),
             'token_type' => 'Bearer',
             'expires_in' => 300,
         ], 200),
-        $provider->jwks_uri => Http::response(fr005CallbackJwks($keys), 200),
+        $provider->jwks_uri => Http::response(externalIdpCallbackJwks($keys), 200),
     ]);
 
     $result = app(ExternalIdpTokenExchangeService::class)->exchange($provider, $redirect['state'], 'auth-code-123');
@@ -50,12 +50,12 @@ it('exchanges an external idp callback authorization code and validates id token
 });
 
 it('rejects invalid replayed state and non-https token endpoint', function (): void {
-    [$provider, $keys] = fr005CallbackProvider();
-    $redirect = fr005CreateAuthState($provider);
+    [$provider, $keys] = externalIdpCallbackProvider();
+    $redirect = externalIdpCreateAuthState($provider);
     Http::fake([
-        $provider->metadata_url => Http::response(fr005CallbackDiscovery($provider), 200),
-        $provider->token_endpoint => Http::response(['id_token' => fr005IdToken($provider, $redirect['nonce'], $keys)], 200),
-        $provider->jwks_uri => Http::response(fr005CallbackJwks($keys), 200),
+        $provider->metadata_url => Http::response(externalIdpCallbackDiscovery($provider), 200),
+        $provider->token_endpoint => Http::response(['id_token' => externalIdpIdToken($provider, $redirect['nonce'], $keys)], 200),
+        $provider->jwks_uri => Http::response(externalIdpCallbackJwks($keys), 200),
     ]);
 
     app(ExternalIdpTokenExchangeService::class)->exchange($provider, $redirect['state'], 'auth-code-123');
@@ -63,7 +63,7 @@ it('rejects invalid replayed state and non-https token endpoint', function (): v
     expect(fn () => app(ExternalIdpTokenExchangeService::class)->exchange($provider, $redirect['state'], 'auth-code-123'))
         ->toThrow(RuntimeException::class, 'External IdP authentication state is invalid or expired.');
 
-    [$badProvider] = fr005CallbackProvider('keycloak-http-token');
+    [$badProvider] = externalIdpCallbackProvider('keycloak-http-token');
     $badProvider->forceFill(['token_endpoint' => 'http://keycloak.example.test/token'])->save();
     $badState = 'bad-http-token-state';
     Cache::put('external-idp:auth-state:'.$badState, [
@@ -74,27 +74,27 @@ it('rejects invalid replayed state and non-https token endpoint', function (): v
         'code_verifier' => 'bad-http-token-verifier',
         'redirect_uri' => 'https://api-sso.timeh.my.id/external-idp/callback',
     ], now()->addMinutes(5));
-    Http::fake([$badProvider->metadata_url => Http::response(fr005CallbackDiscovery($badProvider), 200)]);
+    Http::fake([$badProvider->metadata_url => Http::response(externalIdpCallbackDiscovery($badProvider), 200)]);
 
     expect(fn () => app(ExternalIdpTokenExchangeService::class)->exchange($badProvider, $badState, 'auth-code-123'))
         ->toThrow(RuntimeException::class, 'External IdP discovery could not be refreshed.');
 });
 
 it('rejects issuer nonce algorithm and kid validation failures', function (string $failure, string $message): void {
-    [$provider, $keys] = fr005CallbackProvider('keycloak-'.$failure);
-    $redirect = fr005CreateAuthState($provider);
+    [$provider, $keys] = externalIdpCallbackProvider('keycloak-'.$failure);
+    $redirect = externalIdpCreateAuthState($provider);
     $token = match ($failure) {
-        'issuer' => fr005IdToken($provider, $redirect['nonce'], $keys, ['iss' => 'https://evil.example.test']),
-        'nonce' => fr005IdToken($provider, 'wrong-nonce', $keys),
-        'alg' => fr005IdToken($provider, $redirect['nonce'], $keys, [], 'RS512'),
-        'kid' => fr005IdToken($provider, $redirect['nonce'], $keys, [], 'RS256', 'unknown-kid'),
+        'issuer' => externalIdpIdToken($provider, $redirect['nonce'], $keys, ['iss' => 'https://evil.example.test']),
+        'nonce' => externalIdpIdToken($provider, 'wrong-nonce', $keys),
+        'alg' => externalIdpIdToken($provider, $redirect['nonce'], $keys, [], 'RS512'),
+        'kid' => externalIdpIdToken($provider, $redirect['nonce'], $keys, [], 'RS256', 'unknown-kid'),
         default => throw new RuntimeException('Unknown failure fixture.'),
     };
 
     Http::fake([
-        $provider->metadata_url => Http::response(fr005CallbackDiscovery($provider), 200),
+        $provider->metadata_url => Http::response(externalIdpCallbackDiscovery($provider), 200),
         $provider->token_endpoint => Http::response(['id_token' => $token], 200),
-        $provider->jwks_uri => Http::response(fr005CallbackJwks($keys), 200),
+        $provider->jwks_uri => Http::response(externalIdpCallbackJwks($keys), 200),
     ]);
 
     expect(fn () => app(ExternalIdpTokenExchangeService::class)->exchange($provider, $redirect['state'], 'auth-code-123'))
@@ -107,21 +107,21 @@ it('rejects issuer nonce algorithm and kid validation failures', function (strin
 ]);
 
 it('audits callback token exchange success and failure without leaking upstream tokens', function (): void {
-    [$provider, $keys] = fr005CallbackProvider();
-    $redirect = fr005CreateAuthState($provider);
+    [$provider, $keys] = externalIdpCallbackProvider();
+    $redirect = externalIdpCreateAuthState($provider);
     Http::fake([
-        $provider->metadata_url => Http::response(fr005CallbackDiscovery($provider), 200),
+        $provider->metadata_url => Http::response(externalIdpCallbackDiscovery($provider), 200),
         $provider->token_endpoint => Http::response([
             'access_token' => 'must-not-leak',
             'refresh_token' => 'must-not-leak',
-            'id_token' => fr005IdToken($provider, $redirect['nonce'], $keys),
+            'id_token' => externalIdpIdToken($provider, $redirect['nonce'], $keys),
         ], 200),
-        $provider->jwks_uri => Http::response(fr005CallbackJwks($keys), 200),
+        $provider->jwks_uri => Http::response(externalIdpCallbackJwks($keys), 200),
     ]);
 
-    app(ExchangeExternalIdpCallbackTokenAction::class)->execute($provider, $redirect['state'], 'auth-code-123', 'req-fr005-callback');
+    app(ExchangeExternalIdpCallbackTokenAction::class)->execute($provider, $redirect['state'], 'auth-code-123', 'req-externalIdp-callback');
 
-    expect(fn () => app(ExchangeExternalIdpCallbackTokenAction::class)->execute($provider, 'missing-state', 'auth-code-123', 'req-fr005-callback-fail'))
+    expect(fn () => app(ExchangeExternalIdpCallbackTokenAction::class)->execute($provider, 'missing-state', 'auth-code-123', 'req-externalIdp-callback-fail'))
         ->toThrow(RuntimeException::class);
 
     $events = AdminAuditEvent::query()
@@ -134,7 +134,7 @@ it('audits callback token exchange success and failure without leaking upstream 
         ->and($events[0]->action)->toBe('external_idp.callback.exchange')
         ->and($events[0]->context['subject'])->toBe('external-user-1')
         ->and($events[1]->taxonomy)->toBe('external_idp.callback_exchange_failed')
-        ->and($encoded)->toContain('req-fr005-callback')
+        ->and($encoded)->toContain('req-externalIdp-callback')
         ->and($encoded)->not->toContain('must-not-leak')
         ->and($encoded)->not->toContain('access_token')
         ->and($encoded)->not->toContain('refresh_token')
@@ -145,7 +145,7 @@ it('audits callback token exchange success and failure without leaking upstream 
 /**
  * @return array{0: ExternalIdentityProvider, 1: array{private: string, public_jwk: array<string, mixed>}}
  */
-function fr005CallbackProvider(string $providerKey = 'keycloak-callback'): array
+function externalIdpCallbackProvider(string $providerKey = 'keycloak-callback'): array
 {
     $issuer = 'https://'.$providerKey.'.keycloak.example.test/realms/sso';
     $provider = ExternalIdentityProvider::query()->create([
@@ -169,18 +169,18 @@ function fr005CallbackProvider(string $providerKey = 'keycloak-callback'): array
         'health_status' => 'healthy',
     ]);
 
-    return [$provider, fr005CallbackKeys()];
+    return [$provider, externalIdpCallbackKeys()];
 }
 
 /**
  * @return array{redirect_url: string, state: string, nonce: string, provider_key: string}
  */
-function fr005CreateAuthState(ExternalIdentityProvider $provider): array
+function externalIdpCreateAuthState(ExternalIdentityProvider $provider): array
 {
-    Http::fake([$provider->metadata_url => Http::response(fr005CallbackDiscovery($provider), 200)]);
+    Http::fake([$provider->metadata_url => Http::response(externalIdpCallbackDiscovery($provider), 200)]);
 
     return app(ExternalIdpAuthenticationRedirectService::class)->create($provider, [
-        'request_id' => 'req-fr005-callback-state',
+        'request_id' => 'req-externalIdp-callback-state',
         'return_to' => '/admin/external-idps',
     ]);
 }
@@ -188,7 +188,7 @@ function fr005CreateAuthState(ExternalIdentityProvider $provider): array
 /**
  * @return array<string, mixed>
  */
-function fr005CallbackDiscovery(ExternalIdentityProvider $provider): array
+function externalIdpCallbackDiscovery(ExternalIdentityProvider $provider): array
 {
     return [
         'issuer' => $provider->issuer,
@@ -205,7 +205,7 @@ function fr005CallbackDiscovery(ExternalIdentityProvider $provider): array
 /**
  * @return array{private: string, public_jwk: array<string, mixed>}
  */
-function fr005CallbackKeys(): array
+function externalIdpCallbackKeys(): array
 {
     $privateKey = openssl_pkey_new([
         'private_key_type' => OPENSSL_KEYTYPE_RSA,
@@ -231,7 +231,7 @@ function fr005CallbackKeys(): array
  * @param  array{public_jwk: array<string, mixed>}  $keys
  * @return array<string, mixed>
  */
-function fr005CallbackJwks(array $keys): array
+function externalIdpCallbackJwks(array $keys): array
 {
     return ['keys' => [$keys['public_jwk']]];
 }
@@ -240,7 +240,7 @@ function fr005CallbackJwks(array $keys): array
  * @param  array{private: string}  $keys
  * @param  array<string, mixed>  $overrides
  */
-function fr005IdToken(
+function externalIdpIdToken(
     ExternalIdentityProvider $provider,
     string $nonce,
     array $keys,

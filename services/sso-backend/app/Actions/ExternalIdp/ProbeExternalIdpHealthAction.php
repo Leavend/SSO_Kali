@@ -55,7 +55,7 @@ final class ProbeExternalIdpHealthAction
             'method' => 'SYSTEM',
             'path' => '/external-idp/health/probe',
             'ip_address' => '127.0.0.1',
-            'reason' => 'fr005_external_idp_health_probe',
+            'reason' => 'externalIdp_external_idp_health_probe',
             'context' => [
                 'request_id' => $requestId,
                 'provider_key' => $provider->provider_key,

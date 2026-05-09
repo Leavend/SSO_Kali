@@ -64,7 +64,7 @@ final class CreateExternalIdpAuthenticationRedirectAction
             'method' => 'GET',
             'path' => '/external-idp/'.$provider->provider_key.'/authorize',
             'ip_address' => $this->contextString($context, 'ip_address', '127.0.0.1'),
-            'reason' => 'fr005_external_idp_auth_redirect',
+            'reason' => 'externalIdp_external_idp_auth_redirect',
             'context' => $this->auditContext($provider, $context, $exception),
             'occurred_at' => now(),
         ]);

@@ -56,7 +56,7 @@ final class SelectExternalIdpForAuthenticationAction
             'method' => 'SYSTEM',
             'path' => '/external-idp/failover/select',
             'ip_address' => '127.0.0.1',
-            'reason' => 'fr005_external_idp_failover_policy',
+            'reason' => 'externalIdp_external_idp_failover_policy',
             'context' => [
                 'request_id' => $requestId,
                 'preferred_provider_key' => $preferredProviderKey,

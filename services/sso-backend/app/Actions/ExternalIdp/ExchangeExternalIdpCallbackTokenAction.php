@@ -62,7 +62,7 @@ final class ExchangeExternalIdpCallbackTokenAction
             'method' => 'GET',
             'path' => '/external-idp/callback',
             'ip_address' => '127.0.0.1',
-            'reason' => 'fr005_external_idp_callback_exchange',
+            'reason' => 'externalIdp_external_idp_callback_exchange',
             'context' => [
                 'provider_key' => $provider->provider_key,
                 'issuer' => $provider->issuer,

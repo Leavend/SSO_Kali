@@ -64,7 +64,7 @@ it('locks completed production hardening issues into a single executable contrac
             ],
             'config/oidc_clients.php' => ['locked_production_client_ids'],
         ],
-        'issue_27_29_28_fr002_backend_hardening' => [
+        'issue_27_29_28_logoutFlow_backend_hardening' => [
             'tests/Feature/Oidc/BackChannelLogoutAcceptanceTest.php' => [
                 'structured success audit',
                 'non success client responses',
@@ -231,9 +231,9 @@ it('locks completed production hardening issues into a single executable contrac
                 'scripts/sso-backend-metadata-wrk-smoke.sh',
             ],
         ],
-        'fr003_rbac_domain_policy_contract' => [
-            'tests/Feature/DevOps/Fr003RbacDomainHarnessTest.php' => [
-                'fr003 rbac domain',
+        'adminBackend_rbac_domain_policy_contract' => [
+            'tests/Feature/DevOps/AdminRbacDomainHarnessTest.php' => [
+                'adminBackend rbac domain',
                 'denies unknown roles by default',
                 'RequireAdminPermission.php',
             ],
@@ -248,9 +248,9 @@ it('locks completed production hardening issues into a single executable contrac
                 'AdminPermission::adminDefaults()',
             ],
         ],
-        'fr003_user_management_backend' => [
-            'tests/Feature/DevOps/Fr003UserManagementHarnessTest.php' => [
-                'fr003 user management',
+        'adminBackend_user_management_backend' => [
+            'tests/Feature/DevOps/AdminUserManagementHarnessTest.php' => [
+                'adminBackend user management',
                 'password_reset_token_hash',
                 'AdminPermission::USERS_WRITE',
             ],
@@ -265,11 +265,11 @@ it('locks completed production hardening issues into a single executable contrac
                 'sync_managed_user_profile',
             ],
         ],
-        'fr003_admin_menu_authorization_contract' => [
-            'tests/Feature/DevOps/Fr003AdminMenuAuthorizationHarnessTest.php' => [
-                'fr003 admin menu authorization',
+        'adminBackend_admin_menu_authorization_contract' => [
+            'tests/Feature/DevOps/AdminMenuAuthorizationHarnessTest.php' => [
+                'adminBackend admin menu authorization',
                 'AdminPermissionMatrixMenuContractTest.php',
-                'Fr003AdminMenuAuthorizationHarnessTest.php',
+                'AdminMenuAuthorizationHarnessTest.php',
             ],
             'app/Support/Rbac/AdminMenu.php' => [
                 "public const DASHBOARD = 'dashboard'",
@@ -282,8 +282,8 @@ it('locks completed production hardening issues into a single executable contrac
                 'canViewMenu',
             ],
         ],
-        'fr003_admin_management_crud_backend' => [
-            'tests/Feature/DevOps/Fr003AdminManagementCrudHarnessTest.php' => [
+        'adminBackend_admin_management_crud_backend' => [
+            'tests/Feature/DevOps/AdminManagementCrudHarnessTest.php' => [
                 'issue42 admin management crud',
                 'RolePermissionManagementBackendTest.php',
                 'ClientManagementCrudBackendTest.php',
@@ -300,8 +300,8 @@ it('locks completed production hardening issues into a single executable contrac
                 'has_secret_hash',
             ],
         ],
-        'fr003_scope_management_claim_enforcement' => [
-            'tests/Feature/DevOps/Fr003ScopeManagementHarnessTest.php' => [
+        'adminBackend_scope_management_claim_enforcement' => [
+            'tests/Feature/DevOps/AdminScopeManagementHarnessTest.php' => [
                 'issue43 scope management',
                 'ScopePolicyTest.php',
                 'ClientScopeManagementBackendTest.php',
@@ -317,8 +317,8 @@ it('locks completed production hardening issues into a single executable contrac
                 'OidcScope::PERMISSIONS',
             ],
         ],
-        'fr003_user_profile_portal_backend_contract' => [
-            'tests/Feature/DevOps/Fr003UserProfilePortalHarnessTest.php' => [
+        'adminBackend_user_profile_portal_backend_contract' => [
+            'tests/Feature/DevOps/UserProfilePortalHarnessTest.php' => [
                 'issue44 user profile portal',
                 'ProfilePortalBackendContractTest.php',
             ],
@@ -333,8 +333,8 @@ it('locks completed production hardening issues into a single executable contrac
                 'editableFields',
             ],
         ],
-        'fr003_admin_audit_trail_contract' => [
-            'tests/Feature/DevOps/Fr003AdminAuditTrailHarnessTest.php' => [
+        'adminBackend_admin_audit_trail_contract' => [
+            'tests/Feature/DevOps/AdminAuditTrailHarnessTest.php' => [
                 'issue45 admin audit trail',
                 'AdminAuditTrailContractTest.php',
             ],
@@ -348,18 +348,18 @@ it('locks completed production hardening issues into a single executable contrac
                 'function integrity',
             ],
         ],
-        'fr003_aggregate_harness' => [
-            'tests/Feature/DevOps/Fr003AggregateHarnessTest.php' => [
-                'locks the complete fr003 backend aggregate evidence set',
+        'adminBackend_aggregate_harness' => [
+            'tests/Feature/DevOps/AdminBackendAggregateHarnessTest.php' => [
+                'locks the complete adminBackend backend aggregate evidence set',
                 'issue45_admin_audit_trail',
-                'fr003_aggregate_ci_tests',
+                'adminBackend_aggregate_ci_tests',
             ],
         ],
-        'fr004_oidc_backend_aggregate_harness' => [
-            'tests/Feature/DevOps/Fr004OidcBackendAggregateHarnessTest.php' => [
-                'locks the complete fr004 oidc backend aggregate evidence set',
-                'maps fr004 use cases uc01 through uc23',
-                'fr004_use_case_coverage',
+        'oidcBackend_oidc_backend_aggregate_harness' => [
+            'tests/Feature/DevOps/OidcBackendAggregateHarnessTest.php' => [
+                'locks the complete oidcBackend oidc backend aggregate evidence set',
+                'maps oidcBackend use cases uc01 through uc23',
+                'oidcBackend_use_case_coverage',
             ],
             'tests/Feature/Oidc/AuthorizationCodeFlowE2EContractTest.php' => [
                 'public client authorization code flow',
@@ -406,15 +406,15 @@ it('locks completed production hardening issues into a single executable contrac
                 'profile.connected_app_revoked',
                 'revoked_refresh_tokens',
             ],
-            'tests/Feature/DevOps/Fr004ProductionSmokeHarnessTest.php' => [
-                'FR-004 production smoke',
+            'tests/Feature/DevOps/OidcProductionSmokeHarnessTest.php' => [
+                'OIDC Backend production smoke',
                 'error=login_required',
                 'error=invalid_request',
             ],
         ],
-        'fr005_external_idp_registry_domain_model' => [
-            'tests/Feature/DevOps/Fr005ExternalIdpAggregateHarnessTest.php' => [
-                'fr005 external idp registry',
+        'externalIdp_external_idp_registry_domain_model' => [
+            'tests/Feature/DevOps/ExternalIdpAggregateHarnessTest.php' => [
+                'externalIdp external idp registry',
                 'UC-08',
                 'UC-48',
             ],
@@ -526,12 +526,12 @@ it('keeps completed hardening harnesses wired into root CI', function (): void {
         'ProductionOAuthTokenFlowSmokeHarnessTest.php',
         'ProductionMetadataWrkSmokeHarnessTest.php',
         'ProductionConnectionTuningHarnessTest.php',
-        'Fr004OidcBackendAggregateHarnessTest.php',
+        'OidcBackendAggregateHarnessTest.php',
         'AuthorizationCodeFlowE2EContractTest.php',
         'ConsentFlowContractTest.php',
         'ConnectedAppsSelfServiceRevocationContractTest.php',
-        'Fr004ProductionSmokeHarnessTest.php',
-        'Fr005ExternalIdpAggregateHarnessTest.php',
+        'OidcProductionSmokeHarnessTest.php',
+        'ExternalIdpAggregateHarnessTest.php',
         'ExternalIdentityProviderRegistryContractTest.php',
         'ExternalIdpDiscoveryContractTest.php',
         'ExternalIdpJwksContractTest.php',
@@ -551,24 +551,24 @@ it('keeps completed hardening harnesses wired into root CI', function (): void {
         'RevocationEndpointRfc7009ContractTest.php',
         'UserInfoEndpointClaimsContractTest.php',
         'OidcIncidentAuditLoggingContractTest.php',
-        'Fr003AggregateHarnessTest.php',
-        'Fr003RbacDomainHarnessTest.php',
+        'AdminBackendAggregateHarnessTest.php',
+        'AdminRbacDomainHarnessTest.php',
         'RbacPolicyContractTest.php',
         'AdminPermissionMiddlewareTest.php',
-        'Fr003UserManagementHarnessTest.php',
+        'AdminUserManagementHarnessTest.php',
         'UserManagementBackendTest.php',
-        'Fr003AdminMenuAuthorizationHarnessTest.php',
+        'AdminMenuAuthorizationHarnessTest.php',
         'AdminPermissionMatrixMenuContractTest.php',
-        'Fr003AdminManagementCrudHarnessTest.php',
+        'AdminManagementCrudHarnessTest.php',
         'RolePermissionManagementBackendTest.php',
         'ClientManagementCrudBackendTest.php',
-        'Fr003ScopeManagementHarnessTest.php',
+        'AdminScopeManagementHarnessTest.php',
         'ScopePolicyTest.php',
         'UserClaimsFactoryScopeEnforcementTest.php',
         'ClientScopeManagementBackendTest.php',
-        'Fr003UserProfilePortalHarnessTest.php',
+        'UserProfilePortalHarnessTest.php',
         'ProfilePortalBackendContractTest.php',
-        'Fr003AdminAuditTrailHarnessTest.php',
+        'AdminAuditTrailHarnessTest.php',
         'AdminAuditTrailContractTest.php',
         'ProductionPublicDomainSmokeHarnessTest.php',
         'LogoutAuditRedactionHarnessTest.php',

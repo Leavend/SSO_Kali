@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-it('locks fr003 admin menu authorization into the backend contract', function (): void {
+it('locks adminBackend admin menu authorization into the backend contract', function (): void {
     $contracts = [
         'app/Support/Rbac/AdminMenu.php' => [
             'final class AdminMenu',
@@ -28,7 +28,7 @@ it('locks fr003 admin menu authorization into the backend contract', function ()
     ];
 
     foreach ($contracts as $relativePath => $needles) {
-        $content = fr003_admin_menu_file($relativePath);
+        $content = adminBackend_admin_menu_file($relativePath);
 
         expect($content, "{$relativePath} must exist")->toBeString()->not->toBe('');
 
@@ -38,18 +38,18 @@ it('locks fr003 admin menu authorization into the backend contract', function ()
     }
 });
 
-it('keeps fr003 admin menu authorization tests wired into root ci', function (): void {
-    $ci = fr003_admin_menu_file('../../.github/workflows/ci.yml');
+it('keeps adminBackend admin menu authorization tests wired into root ci', function (): void {
+    $ci = adminBackend_admin_menu_file('../../.github/workflows/ci.yml');
 
     foreach ([
         'AdminPermissionMatrixMenuContractTest.php',
-        'Fr003AdminMenuAuthorizationHarnessTest.php',
+        'AdminMenuAuthorizationHarnessTest.php',
     ] as $testName) {
         expect($ci)->toContain($testName);
     }
 });
 
-function fr003_admin_menu_file(string $relativePath): string
+function adminBackend_admin_menu_file(string $relativePath): string
 {
     $path = base_path($relativePath);
 

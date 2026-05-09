@@ -10,8 +10,8 @@ use App\Services\System\ReadinessProbeService;
 use Illuminate\Support\Facades\Http;
 
 it('marks an enabled external idp healthy when discovery probe validates HTTPS metadata', function (): void {
-    $provider = fr005HealthProvider('keycloak-health');
-    Http::fake([$provider->metadata_url => Http::response(fr005HealthDiscovery($provider), 200)]);
+    $provider = externalIdpHealthProvider('keycloak-health');
+    Http::fake([$provider->metadata_url => Http::response(externalIdpHealthDiscovery($provider), 200)]);
 
     $result = app(ExternalIdpHealthProbeService::class)->probe($provider);
     $provider->refresh();
@@ -24,16 +24,16 @@ it('marks an enabled external idp healthy when discovery probe validates HTTPS m
 });
 
 it('marks external idp unhealthy when discovery probe fails validation or transport', function (): void {
-    $invalid = fr005HealthProvider('keycloak-invalid');
+    $invalid = externalIdpHealthProvider('keycloak-invalid');
     Http::fake([$invalid->metadata_url => Http::response([
-        ...fr005HealthDiscovery($invalid),
+        ...externalIdpHealthDiscovery($invalid),
         'issuer' => 'https://evil.example.test',
     ], 200)]);
 
     $invalidResult = app(ExternalIdpHealthProbeService::class)->probe($invalid);
     $invalid->refresh();
 
-    $transport = fr005HealthProvider('keycloak-transport');
+    $transport = externalIdpHealthProvider('keycloak-transport');
     Http::fake([$transport->metadata_url => Http::response([], 503)]);
 
     $transportResult = app(ExternalIdpHealthProbeService::class)->probe($transport);
@@ -47,7 +47,7 @@ it('marks external idp unhealthy when discovery probe fails validation or transp
 });
 
 it('does not perform network probe for disabled external idp providers', function (): void {
-    $provider = fr005HealthProvider('keycloak-disabled', false);
+    $provider = externalIdpHealthProvider('keycloak-disabled', false);
     Http::fake();
 
     $result = app(ExternalIdpHealthProbeService::class)->probe($provider);
@@ -59,8 +59,8 @@ it('does not perform network probe for disabled external idp providers', functio
 });
 
 it('exposes external idp readiness as advisory summary without failing db redis readiness', function (): void {
-    fr005HealthProvider('primary-healthy', true, false, 10, 'healthy');
-    fr005HealthProvider('backup-unhealthy', true, true, 20, 'unhealthy');
+    externalIdpHealthProvider('primary-healthy', true, false, 10, 'healthy');
+    externalIdpHealthProvider('backup-unhealthy', true, true, 20, 'unhealthy');
 
     $result = app(ReadinessProbeService::class)->inspect();
 
@@ -73,7 +73,7 @@ it('exposes external idp readiness as advisory summary without failing db redis 
 });
 
 it('keeps readiness endpoint shallow even when all external idps are unhealthy', function (): void {
-    fr005HealthProvider('primary-unhealthy', true, false, 10, 'unhealthy');
+    externalIdpHealthProvider('primary-unhealthy', true, false, 10, 'unhealthy');
 
     $result = app(ReadinessProbeService::class)->inspect();
 
@@ -83,13 +83,13 @@ it('keeps readiness endpoint shallow even when all external idps are unhealthy',
 });
 
 it('audits health probe success and failure without leaking sensitive provider material', function (): void {
-    $healthy = fr005HealthProvider('keycloak-audit-healthy');
-    Http::fake([$healthy->metadata_url => Http::response(fr005HealthDiscovery($healthy), 200)]);
-    app(ProbeExternalIdpHealthAction::class)->execute($healthy, 'req-fr005-health');
+    $healthy = externalIdpHealthProvider('keycloak-audit-healthy');
+    Http::fake([$healthy->metadata_url => Http::response(externalIdpHealthDiscovery($healthy), 200)]);
+    app(ProbeExternalIdpHealthAction::class)->execute($healthy, 'req-externalIdp-health');
 
-    $unhealthy = fr005HealthProvider('keycloak-audit-unhealthy');
+    $unhealthy = externalIdpHealthProvider('keycloak-audit-unhealthy');
     Http::fake([$unhealthy->metadata_url => Http::response([], 503)]);
-    app(ProbeExternalIdpHealthAction::class)->execute($unhealthy, 'req-fr005-health-fail');
+    app(ProbeExternalIdpHealthAction::class)->execute($unhealthy, 'req-externalIdp-health-fail');
 
     $events = AdminAuditEvent::query()
         ->whereIn('taxonomy', ['external_idp.health_healthy', 'external_idp.health_unhealthy'])
@@ -101,7 +101,7 @@ it('audits health probe success and failure without leaking sensitive provider m
         ->and($events[0]->action)->toBe('external_idp.health.probe')
         ->and($events[0]->taxonomy)->toBe('external_idp.health_healthy')
         ->and($events[1]->taxonomy)->toBe('external_idp.health_unhealthy')
-        ->and($encoded)->toContain('req-fr005-health')
+        ->and($encoded)->toContain('req-externalIdp-health')
         ->and($encoded)->not->toContain('client_secret')
         ->and($encoded)->not->toContain('access_token')
         ->and($encoded)->not->toContain('refresh_token')
@@ -109,7 +109,7 @@ it('audits health probe success and failure without leaking sensitive provider m
         ->and($encoded)->not->toContain('code_verifier');
 });
 
-function fr005HealthProvider(
+function externalIdpHealthProvider(
     string $providerKey,
     bool $enabled = true,
     bool $isBackup = false,
@@ -143,7 +143,7 @@ function fr005HealthProvider(
 /**
  * @return array<string, mixed>
  */
-function fr005HealthDiscovery(ExternalIdentityProvider $provider): array
+function externalIdpHealthDiscovery(ExternalIdentityProvider $provider): array
 {
     return [
         'issuer' => $provider->issuer,

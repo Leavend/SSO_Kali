@@ -11,7 +11,7 @@ use App\Services\ExternalIdp\ExternalIdpClaimsMapper;
 use App\Services\ExternalIdp\ExternalSubjectAccountMapper;
 
 it('maps default oidc claims into normalized external profile with safe snapshot', function (): void {
-    $provider = fr005ClaimsProvider('keycloak-default');
+    $provider = externalIdpClaimsProvider('keycloak-default');
 
     $mapped = app(ExternalIdpClaimsMapper::class)->map($provider, [
         'iss' => $provider->issuer,
@@ -33,8 +33,8 @@ it('maps default oidc claims into normalized external profile with safe snapshot
 });
 
 it('maps custom nested claims using configured paths and required guards', function (): void {
-    $provider = fr005ClaimsProvider('azure-custom');
-    fr005ClaimMapping($provider, [
+    $provider = externalIdpClaimsProvider('azure-custom');
+    externalIdpClaimMapping($provider, [
         'subject_paths' => ['oid', 'user.id'],
         'email_paths' => ['mail', 'upn'],
         'name_paths' => ['profile.displayName'],
@@ -58,8 +58,8 @@ it('maps custom nested claims using configured paths and required guards', funct
 });
 
 it('rejects missing required custom claims and missing subject claim', function (): void {
-    $provider = fr005ClaimsProvider('adfs-required');
-    fr005ClaimMapping($provider, [
+    $provider = externalIdpClaimsProvider('adfs-required');
+    externalIdpClaimMapping($provider, [
         'subject_paths' => ['custom.sub'],
         'required_paths' => ['custom.sub', 'tenant'],
     ]);
@@ -68,13 +68,13 @@ it('rejects missing required custom claims and missing subject claim', function 
         'custom' => ['sub' => 'subject-only'],
     ]))->toThrow(RuntimeException::class, 'External IdP required claim [tenant] is missing.');
 
-    expect(fn () => app(ExternalIdpClaimsMapper::class)->map(fr005ClaimsProvider('missing-subject'), [
+    expect(fn () => app(ExternalIdpClaimsMapper::class)->map(externalIdpClaimsProvider('missing-subject'), [
         'email' => 'user@example.com',
     ]))->toThrow(RuntimeException::class, 'External IdP required claim [sub] is missing.');
 });
 
 it('does not expose unverified email when verified email is required by mapping', function (): void {
-    $provider = fr005ClaimsProvider('email-policy');
+    $provider = externalIdpClaimsProvider('email-policy');
 
     $default = app(ExternalIdpClaimsMapper::class)->map($provider, [
         'sub' => 'email-policy-subject',
@@ -82,7 +82,7 @@ it('does not expose unverified email when verified email is required by mapping'
         'email_verified' => false,
     ]);
 
-    fr005ClaimMapping($provider, ['require_verified_email' => false]);
+    externalIdpClaimMapping($provider, ['require_verified_email' => false]);
     $custom = app(ExternalIdpClaimsMapper::class)->map($provider->refresh(), [
         'sub' => 'email-policy-subject',
         'email' => 'allowed@example.com',
@@ -94,7 +94,7 @@ it('does not expose unverified email when verified email is required by mapping'
 });
 
 it('integrates raw claims mapping into external subject account linking', function (): void {
-    $provider = fr005ClaimsProvider('link-raw-claims');
+    $provider = externalIdpClaimsProvider('link-raw-claims');
 
     $result = app(ExternalSubjectAccountMapper::class)->map($provider, [
         'raw_claims' => [
@@ -115,17 +115,17 @@ it('integrates raw claims mapping into external subject account linking', functi
 });
 
 it('audits claims mapping success and failure without leaking sensitive claim material', function (): void {
-    $provider = fr005ClaimsProvider('claims-audit');
+    $provider = externalIdpClaimsProvider('claims-audit');
     app(MapExternalIdpClaimsAction::class)->execute($provider, [
         'sub' => 'audit-subject',
         'email' => 'audit@example.com',
         'email_verified' => true,
         'access_token' => 'secret-access-token',
-    ], 'req-fr005-claims');
+    ], 'req-externalIdp-claims');
 
     expect(fn () => app(MapExternalIdpClaimsAction::class)->execute($provider, [
         'access_token' => 'secret-access-token',
-    ], 'req-fr005-claims-fail'))->toThrow(RuntimeException::class);
+    ], 'req-externalIdp-claims-fail'))->toThrow(RuntimeException::class);
 
     $events = AdminAuditEvent::query()
         ->whereIn('taxonomy', ['external_idp.claims_mapped', 'external_idp.claims_mapping_failed'])
@@ -137,7 +137,7 @@ it('audits claims mapping success and failure without leaking sensitive claim ma
         ->and($events[0]->action)->toBe('external_idp.claims.map')
         ->and($events[0]->context['subject'])->toBe('audit-subject')
         ->and($events[1]->taxonomy)->toBe('external_idp.claims_mapping_failed')
-        ->and($encoded)->toContain('req-fr005-claims')
+        ->and($encoded)->toContain('req-externalIdp-claims')
         ->and($encoded)->not->toContain('secret-access-token')
         ->and($encoded)->not->toContain('access_token')
         ->and($encoded)->not->toContain('refresh_token')
@@ -145,7 +145,7 @@ it('audits claims mapping success and failure without leaking sensitive claim ma
         ->and($encoded)->not->toContain('code_verifier');
 });
 
-function fr005ClaimsProvider(string $providerKey): ExternalIdentityProvider
+function externalIdpClaimsProvider(string $providerKey): ExternalIdentityProvider
 {
     $issuer = 'https://'.$providerKey.'.idp.example.test/realms/sso';
 
@@ -174,7 +174,7 @@ function fr005ClaimsProvider(string $providerKey): ExternalIdentityProvider
 /**
  * @param  array<string, mixed>  $overrides
  */
-function fr005ClaimMapping(ExternalIdentityProvider $provider, array $overrides = []): ExternalIdpClaimMapping
+function externalIdpClaimMapping(ExternalIdentityProvider $provider, array $overrides = []): ExternalIdpClaimMapping
 {
     return ExternalIdpClaimMapping::query()->create([
         'external_identity_provider_id' => $provider->id,

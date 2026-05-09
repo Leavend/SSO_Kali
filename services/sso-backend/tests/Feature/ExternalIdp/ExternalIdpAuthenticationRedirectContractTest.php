@@ -15,11 +15,11 @@ beforeEach(function (): void {
 });
 
 it('creates an OIDC conformant external idp authorization redirect with state nonce and pkce cache', function (): void {
-    $provider = fr005AuthRedirectProvider();
-    Http::fake([$provider->metadata_url => Http::response(fr005AuthRedirectDiscovery($provider), 200)]);
+    $provider = externalIdpAuthRedirectProvider();
+    Http::fake([$provider->metadata_url => Http::response(externalIdpAuthRedirectDiscovery($provider), 200)]);
 
     $redirect = app(ExternalIdpAuthenticationRedirectService::class)->create($provider, [
-        'request_id' => 'req-fr005-auth',
+        'request_id' => 'req-externalIdp-auth',
         'return_to' => '/admin/external-idps',
         'login_hint' => 'user@example.com',
         'prompt' => 'login',
@@ -48,27 +48,27 @@ it('creates an OIDC conformant external idp authorization redirect with state no
 });
 
 it('rejects disabled unhealthy and non-https callback or authorization endpoints', function (): void {
-    $provider = fr005AuthRedirectProvider();
-    Http::fake([$provider->metadata_url => Http::response(fr005AuthRedirectDiscovery($provider), 200)]);
+    $provider = externalIdpAuthRedirectProvider();
+    Http::fake([$provider->metadata_url => Http::response(externalIdpAuthRedirectDiscovery($provider), 200)]);
 
     $provider->forceFill(['enabled' => false]);
     expect(fn () => app(ExternalIdpAuthenticationRedirectService::class)->create($provider))
         ->toThrow(RuntimeException::class, 'External IdP is disabled.');
 
-    $provider = fr005AuthRedirectProvider('keycloak-unhealthy');
+    $provider = externalIdpAuthRedirectProvider('keycloak-unhealthy');
     $provider->forceFill(['health_status' => 'unhealthy']);
     expect(fn () => app(ExternalIdpAuthenticationRedirectService::class)->create($provider))
         ->toThrow(RuntimeException::class, 'External IdP is unhealthy.');
 
-    $provider = fr005AuthRedirectProvider('keycloak-bad-callback');
-    Http::fake([$provider->metadata_url => Http::response(fr005AuthRedirectDiscovery($provider), 200)]);
+    $provider = externalIdpAuthRedirectProvider('keycloak-bad-callback');
+    Http::fake([$provider->metadata_url => Http::response(externalIdpAuthRedirectDiscovery($provider), 200)]);
     config(['sso.external_idp.callback_url' => 'http://api-sso.timeh.my.id/external-idp/callback']);
     expect(fn () => app(ExternalIdpAuthenticationRedirectService::class)->create($provider))
         ->toThrow(RuntimeException::class, 'External IdP callback URL must use HTTPS.');
 
-    $provider = fr005AuthRedirectProvider('keycloak-bad-auth');
+    $provider = externalIdpAuthRedirectProvider('keycloak-bad-auth');
     Http::fake([$provider->metadata_url => Http::response([
-        ...fr005AuthRedirectDiscovery($provider),
+        ...externalIdpAuthRedirectDiscovery($provider),
         'authorization_endpoint' => 'http://keycloak.example.test/auth',
     ], 200)]);
     config(['sso.external_idp.callback_url' => 'https://api-sso.timeh.my.id/external-idp/callback']);
@@ -78,21 +78,21 @@ it('rejects disabled unhealthy and non-https callback or authorization endpoints
 });
 
 it('audits external idp auth redirect success and failure without leaking sensitive material', function (): void {
-    $provider = fr005AuthRedirectProvider();
-    Http::fake([$provider->metadata_url => Http::response(fr005AuthRedirectDiscovery($provider), 200)]);
+    $provider = externalIdpAuthRedirectProvider();
+    Http::fake([$provider->metadata_url => Http::response(externalIdpAuthRedirectDiscovery($provider), 200)]);
 
     app(CreateExternalIdpAuthenticationRedirectAction::class)->execute($provider, [
-        'request_id' => 'req-fr005-auth',
+        'request_id' => 'req-externalIdp-auth',
         'return_to' => '/admin/external-idps',
         'login_hint' => 'user@example.com',
         'id_token' => 'must-not-leak',
         'client_secret' => 'must-not-leak',
     ]);
 
-    $failed = fr005AuthRedirectProvider('keycloak-disabled');
+    $failed = externalIdpAuthRedirectProvider('keycloak-disabled');
     $failed->forceFill(['enabled' => false]);
     expect(fn () => app(CreateExternalIdpAuthenticationRedirectAction::class)->execute($failed, [
-        'request_id' => 'req-fr005-auth-fail',
+        'request_id' => 'req-externalIdp-auth-fail',
         'access_token' => 'must-not-leak',
     ]))->toThrow(RuntimeException::class);
 
@@ -105,7 +105,7 @@ it('audits external idp auth redirect success and failure without leaking sensit
     expect($events)->toHaveCount(2)
         ->and($events[0]->action)->toBe('external_idp.auth.redirect')
         ->and($events[1]->taxonomy)->toBe('external_idp.auth_redirect_failed')
-        ->and($encoded)->toContain('req-fr005-auth')
+        ->and($encoded)->toContain('req-externalIdp-auth')
         ->and($encoded)->not->toContain('must-not-leak')
         ->and($encoded)->not->toContain('client_secret')
         ->and($encoded)->not->toContain('id_token')
@@ -113,7 +113,7 @@ it('audits external idp auth redirect success and failure without leaking sensit
         ->and($encoded)->not->toContain('code_verifier');
 });
 
-function fr005AuthRedirectProvider(string $providerKey = 'keycloak-primary'): ExternalIdentityProvider
+function externalIdpAuthRedirectProvider(string $providerKey = 'keycloak-primary'): ExternalIdentityProvider
 {
     $issuer = 'https://'.$providerKey.'.keycloak.example.test/realms/sso';
 
@@ -138,7 +138,7 @@ function fr005AuthRedirectProvider(string $providerKey = 'keycloak-primary'): Ex
 /**
  * @return array<string, mixed>
  */
-function fr005AuthRedirectDiscovery(ExternalIdentityProvider $provider): array
+function externalIdpAuthRedirectDiscovery(ExternalIdentityProvider $provider): array
 {
     return [
         'issuer' => $provider->issuer,

@@ -8,9 +8,9 @@ use App\Models\ExternalIdentityProvider;
 use App\Services\ExternalIdp\ExternalIdpFailoverPolicy;
 
 it('selects the highest priority healthy primary provider before backup providers', function (): void {
-    fr005FailoverProvider('primary-slow', false, 50, 'healthy');
-    fr005FailoverProvider('backup-fast', true, 1, 'healthy');
-    fr005FailoverProvider('primary-fast', false, 10, 'healthy');
+    externalIdpFailoverProvider('primary-slow', false, 50, 'healthy');
+    externalIdpFailoverProvider('backup-fast', true, 1, 'healthy');
+    externalIdpFailoverProvider('primary-fast', false, 10, 'healthy');
 
     $selection = app(ExternalIdpFailoverPolicy::class)->select();
 
@@ -21,10 +21,10 @@ it('selects the highest priority healthy primary provider before backup provider
 });
 
 it('fails over to the highest priority backup provider when primaries are unhealthy or disabled', function (): void {
-    fr005FailoverProvider('primary-disabled', false, 1, 'healthy', false);
-    fr005FailoverProvider('primary-unhealthy', false, 2, 'unhealthy');
-    fr005FailoverProvider('backup-slow', true, 50, 'healthy');
-    fr005FailoverProvider('backup-fast', true, 5, 'unknown');
+    externalIdpFailoverProvider('primary-disabled', false, 1, 'healthy', false);
+    externalIdpFailoverProvider('primary-unhealthy', false, 2, 'unhealthy');
+    externalIdpFailoverProvider('backup-slow', true, 50, 'healthy');
+    externalIdpFailoverProvider('backup-fast', true, 5, 'unknown');
 
     $selection = app(ExternalIdpFailoverPolicy::class)->select();
 
@@ -35,9 +35,9 @@ it('fails over to the highest priority backup provider when primaries are unheal
 });
 
 it('honors an explicitly preferred eligible provider without bypassing health and enabled policy', function (): void {
-    fr005FailoverProvider('primary-fast', false, 1, 'healthy');
-    fr005FailoverProvider('backup-preferred', true, 100, 'healthy');
-    fr005FailoverProvider('backup-unhealthy', true, 1, 'unhealthy');
+    externalIdpFailoverProvider('primary-fast', false, 1, 'healthy');
+    externalIdpFailoverProvider('backup-preferred', true, 100, 'healthy');
+    externalIdpFailoverProvider('backup-unhealthy', true, 1, 'unhealthy');
 
     $selection = app(ExternalIdpFailoverPolicy::class)->select('backup-preferred');
     $fallback = app(ExternalIdpFailoverPolicy::class)->select('backup-unhealthy');
@@ -49,21 +49,21 @@ it('honors an explicitly preferred eligible provider without bypassing health an
 });
 
 it('fails closed when every external idp provider is unavailable', function (): void {
-    fr005FailoverProvider('primary-unhealthy', false, 1, 'unhealthy');
-    fr005FailoverProvider('backup-disabled', true, 1, 'healthy', false);
+    externalIdpFailoverProvider('primary-unhealthy', false, 1, 'unhealthy');
+    externalIdpFailoverProvider('backup-disabled', true, 1, 'healthy', false);
 
     expect(fn () => app(ExternalIdpFailoverPolicy::class)->select())
         ->toThrow(RuntimeException::class, 'No healthy external IdP provider is available.');
 });
 
 it('audits failover selection success and unavailable failure without leaking secret material', function (): void {
-    fr005FailoverProvider('primary-fast', false, 1, 'healthy');
-    app(SelectExternalIdpForAuthenticationAction::class)->execute('primary-fast', 'req-fr005-failover');
+    externalIdpFailoverProvider('primary-fast', false, 1, 'healthy');
+    app(SelectExternalIdpForAuthenticationAction::class)->execute('primary-fast', 'req-externalIdp-failover');
 
     ExternalIdentityProvider::query()->delete();
-    fr005FailoverProvider('backup-unhealthy', true, 1, 'unhealthy');
+    externalIdpFailoverProvider('backup-unhealthy', true, 1, 'unhealthy');
 
-    expect(fn () => app(SelectExternalIdpForAuthenticationAction::class)->execute(null, 'req-fr005-failover-fail'))
+    expect(fn () => app(SelectExternalIdpForAuthenticationAction::class)->execute(null, 'req-externalIdp-failover-fail'))
         ->toThrow(RuntimeException::class);
 
     $events = AdminAuditEvent::query()
@@ -77,7 +77,7 @@ it('audits failover selection success and unavailable failure without leaking se
         ->and($events[0]->context['selected_provider_key'])->toBe('primary-fast')
         ->and($events[0]->context['mode'])->toBe('preferred_primary')
         ->and($events[1]->taxonomy)->toBe('external_idp.failover_unavailable')
-        ->and($encoded)->toContain('req-fr005-failover')
+        ->and($encoded)->toContain('req-externalIdp-failover')
         ->and($encoded)->not->toContain('client_secret')
         ->and($encoded)->not->toContain('access_token')
         ->and($encoded)->not->toContain('refresh_token')
@@ -85,7 +85,7 @@ it('audits failover selection success and unavailable failure without leaking se
         ->and($encoded)->not->toContain('code_verifier');
 });
 
-function fr005FailoverProvider(
+function externalIdpFailoverProvider(
     string $providerKey,
     bool $isBackup,
     int $priority,
