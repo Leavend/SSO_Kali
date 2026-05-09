@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Admin;
 
 use App\Models\AdminAuditEvent;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Str;
 
 final class AdminAuditEventStore
@@ -36,6 +37,7 @@ final class AdminAuditEventStore
             'previous_hash' => $previousHash,
             'created_at' => now(),
         ];
+        $record['occurred_at'] = $this->normalizedTimestamp($record['occurred_at'] ?? now());
 
         $record['event_hash'] = $this->hash($record);
 
@@ -45,7 +47,7 @@ final class AdminAuditEventStore
     /**
      * @param  array<string, mixed>  $record
      */
-    private function hash(array $record): string
+    public function hash(array $record): string
     {
         return hash_hmac('sha256', $this->canonicalPayload($record), $this->signingKey());
     }
@@ -68,9 +70,18 @@ final class AdminAuditEventStore
             'ip_address' => $record['ip_address'],
             'reason' => $record['reason'],
             'context' => $record['context'],
-            'occurred_at' => $record['occurred_at'],
+            'occurred_at' => $this->normalizedTimestamp($record['occurred_at']),
             'previous_hash' => $record['previous_hash'],
         ], JSON_THROW_ON_ERROR);
+    }
+
+    private function normalizedTimestamp(mixed $value): string
+    {
+        if ($value instanceof CarbonInterface) {
+            return $value->format('Y-m-d H:i:s');
+        }
+
+        return (string) $value;
     }
 
     private function signingKey(): string

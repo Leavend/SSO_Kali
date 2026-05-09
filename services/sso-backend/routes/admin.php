@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Admin\AuditTrailController;
 use App\Http\Controllers\Admin\ClientController;
 use App\Http\Controllers\Admin\PrincipalController;
 use App\Http\Controllers\Admin\RoleController;
@@ -42,6 +43,17 @@ Route::middleware(AdminGuard::class)->prefix('admin/api')->group(function (): vo
         Route::get('/scopes', [ClientController::class, 'scopes']);
         Route::get('/client-integrations/registrations', [ClientController::class, 'registrations']);
         Route::post('/client-integrations/contract', [ClientController::class, 'contract']);
+    });
+    Route::middleware([
+        'throttle:admin-read',
+        RequireAdminPermission::class.':'.AdminPermission::AUDIT_READ,
+        EnsureFreshAdminAuth::class.':read',
+        EnsureAdminMfaAssurance::class,
+    ])->group(function (): void {
+        Route::get('/audit/events', [AuditTrailController::class, 'index']);
+        Route::get('/audit/events/{eventId}', [AuditTrailController::class, 'show'])
+            ->where('eventId', '[A-Z0-9]+');
+        Route::get('/audit/integrity', [AuditTrailController::class, 'integrity']);
     });
 
     Route::middleware([

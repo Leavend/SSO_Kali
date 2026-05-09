@@ -333,6 +333,21 @@ it('locks completed production hardening issues into a single executable contrac
                 'editableFields',
             ],
         ],
+        'fr003_admin_audit_trail_contract' => [
+            'tests/Feature/DevOps/Fr003AdminAuditTrailHarnessTest.php' => [
+                'issue45 admin audit trail',
+                'AdminAuditTrailContractTest.php',
+            ],
+            'app/Services/Admin/AdminAuditIntegrityVerifier.php' => [
+                'broken_event_id',
+                'checked_events',
+            ],
+            'app/Http/Controllers/Admin/AuditTrailController.php' => [
+                'function index',
+                'function show',
+                'function integrity',
+            ],
+        ],
     ];
 
     foreach ($contracts as $issue => $files) {
@@ -381,6 +396,8 @@ it('keeps completed hardening harnesses wired into root CI', function (): void {
         'ClientScopeManagementBackendTest.php',
         'Fr003UserProfilePortalHarnessTest.php',
         'ProfilePortalBackendContractTest.php',
+        'Fr003AdminAuditTrailHarnessTest.php',
+        'AdminAuditTrailContractTest.php',
         'ProductionPublicDomainSmokeHarnessTest.php',
         'LogoutAuditRedactionHarnessTest.php',
         'BackChannelLogoutReliabilityHarnessTest.php',
