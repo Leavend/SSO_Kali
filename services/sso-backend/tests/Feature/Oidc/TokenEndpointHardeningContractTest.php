@@ -204,7 +204,7 @@ function issue49BrowserSessionUser(): array
         'user_id' => $user->id,
         'subject_id' => $user->subject_id,
         'ip_address' => '127.0.0.1',
-        'user_agent' => 'Issue49TokenEndpointHardening/1.0',
+        'user_agent' => 'TokenEndpointHardeningContract/1.0',
         'authenticated_at' => now(),
         'last_seen_at' => now(),
         'expires_at' => now()->addHour(),

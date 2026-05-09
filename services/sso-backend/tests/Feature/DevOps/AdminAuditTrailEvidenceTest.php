@@ -56,7 +56,7 @@ it('keeps issue45 audit trail tests wired into root ci', function (): void {
 
     foreach ([
         'AdminAuditTrailContractTest.php',
-        'AdminAuditTrailHarnessTest.php',
+        'AdminAuditTrailEvidenceTest.php',
     ] as $testName) {
         expect($ci)->toContain($testName);
     }

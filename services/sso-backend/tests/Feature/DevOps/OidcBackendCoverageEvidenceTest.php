@@ -124,7 +124,7 @@ function oidcBackend_aggregate_contracts(): array
             'routes/web.php' => ['/api/profile/connected-apps', 'revokeConnectedApp'],
         ],
         'oidcBackend_production_smoke' => [
-            'tests/Feature/DevOps/OidcProductionSmokeHarnessTest.php' => ['OIDC Backend production smoke', 'error=login_required', 'error=invalid_request'],
+            'tests/Feature/DevOps/OidcProductionSmokeEvidenceTest.php' => ['OIDC Backend production smoke', 'error=login_required', 'error=invalid_request'],
             '../../scripts/sso-backend-oidc-production-smoke.sh' => ['prompt=none', '/userinfo', 'without secrets or tokens'],
             '../../docs/devops/sso-backend-oidc-production-smoke.md' => ['OIDC discovery metadata', 'Evidence to Retain', 'RUN_FR004_PRODUCTION_SMOKE=true'],
         ],
@@ -157,7 +157,7 @@ function oidcBackend_use_case_coverage(): array
         'UC-24' => ['tests/Feature/Oidc/OidcIncidentAuditLoggingContractTest.php', 'app/Services/Oidc/OidcIncidentAuditLogger.php'],
         'UC-25' => ['tests/Feature/Oidc/ConsentFlowContractTest.php', 'app/Actions/Oidc/CreateAuthorizationRedirect.php'],
         'UC-26' => ['tests/Feature/Profile/ConnectedAppsSelfServiceRevocationContractTest.php', 'app/Actions/Profile/RevokeConnectedAppAction.php'],
-        'UC-27' => ['tests/Feature/DevOps/OidcProductionSmokeHarnessTest.php', '../../scripts/sso-backend-oidc-production-smoke.sh'],
+        'UC-27' => ['tests/Feature/DevOps/OidcProductionSmokeEvidenceTest.php', '../../scripts/sso-backend-oidc-production-smoke.sh'],
     ];
 }
 
@@ -167,11 +167,11 @@ function oidcBackend_use_case_coverage(): array
 function oidcBackend_ci_tests(): array
 {
     return [
-        'OidcBackendAggregateHarnessTest.php',
+        'OidcBackendCoverageEvidenceTest.php',
         'AuthorizationCodeFlowE2EContractTest.php',
         'ConsentFlowContractTest.php',
         'ConnectedAppsSelfServiceRevocationContractTest.php',
-        'OidcProductionSmokeHarnessTest.php',
+        'OidcProductionSmokeEvidenceTest.php',
         'TokenEndpointHardeningContractTest.php',
         'JwtValidationClaimContractTest.php',
         'RefreshTokenRotationReplayContractTest.php',

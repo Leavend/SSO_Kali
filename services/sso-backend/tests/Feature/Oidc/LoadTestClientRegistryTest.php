@@ -17,7 +17,7 @@ it('keeps the load-test client absent by default', function (): void {
 });
 
 it('registers the load-test client only when explicitly enabled', function (): void {
-    enableIssue30LoadTestClient();
+    enableOidcLoadTestClient();
 
     $client = app(DownstreamClientRegistry::class)->find('sso-load-test-client');
 
@@ -29,7 +29,7 @@ it('registers the load-test client only when explicitly enabled', function (): v
 });
 
 it('passes production registry validation when enabled with HTTPS exact URIs and hashed secret', function (): void {
-    enableIssue30LoadTestClient();
+    enableOidcLoadTestClient();
 
     $result = app(ValidateProductionOidcClientRegistryAction::class)->execute();
 
@@ -38,7 +38,7 @@ it('passes production registry validation when enabled with HTTPS exact URIs and
 });
 
 it('rejects an enabled load-test client without a hashed secret', function (): void {
-    enableIssue30LoadTestClient(['secret' => null]);
+    enableOidcLoadTestClient(['secret' => null]);
 
     $result = app(ValidateProductionOidcClientRegistryAction::class)->execute();
 
@@ -47,7 +47,7 @@ it('rejects an enabled load-test client without a hashed secret', function (): v
 });
 
 it('rejects unsafe enabled load-test redirect URIs in production', function (string $redirectUri): void {
-    enableIssue30LoadTestClient(['redirect_uri' => $redirectUri]);
+    enableOidcLoadTestClient(['redirect_uri' => $redirectUri]);
 
     $result = app(ValidateProductionOidcClientRegistryAction::class)->execute();
 
@@ -60,7 +60,7 @@ it('rejects unsafe enabled load-test redirect URIs in production', function (str
 /**
  * @param  array{secret?: string|null, redirect_uri?: string}  $overrides
  */
-function enableIssue30LoadTestClient(array $overrides = []): void
+function enableOidcLoadTestClient(array $overrides = []): void
 {
     $secret = array_key_exists('secret', $overrides)
         ? $overrides['secret']

@@ -56,7 +56,7 @@ it('keeps issue44 profile portal tests wired into root ci', function (): void {
 
     foreach ([
         'ProfilePortalBackendContractTest.php',
-        'UserProfilePortalHarnessTest.php',
+        'UserProfilePortalEvidenceTest.php',
     ] as $testName) {
         expect($ci)->toContain($testName);
     }

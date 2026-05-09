@@ -77,37 +77,37 @@ function adminBackend_aggregate_contracts(): array
 {
     return [
         'issue39_rbac_domain' => [
-            'tests/Feature/DevOps/AdminRbacDomainHarnessTest.php' => ['adminBackend rbac domain', 'RbacPolicyContractTest.php'],
+            'tests/Feature/DevOps/AdminRbacDomainEvidenceTest.php' => ['adminBackend rbac domain', 'RbacPolicyContractTest.php'],
             'tests/Feature/Admin/RbacPolicyContractTest.php' => ['canManageUsers', 'canReadAuditTrail'],
             'app/Support/Rbac/AdminPermission.php' => ['USERS_READ', 'AUDIT_READ', 'CLIENTS_WRITE'],
         ],
         'issue40_user_management' => [
-            'tests/Feature/DevOps/AdminUserManagementHarnessTest.php' => ['adminBackend user management', 'UserManagementBackendTest.php'],
+            'tests/Feature/DevOps/AdminUserManagementEvidenceTest.php' => ['adminBackend user management', 'UserManagementBackendTest.php'],
             'tests/Feature/Admin/UserManagementBackendTest.php' => ['creates local fallback users', 'syncs selected profile fields'],
             'app/Http/Controllers/Admin/UserController.php' => ['create_managed_user', 'deactivate_managed_user'],
         ],
         'issue41_menu_authorization' => [
-            'tests/Feature/DevOps/AdminMenuAuthorizationHarnessTest.php' => ['adminBackend admin menu authorization'],
+            'tests/Feature/DevOps/AdminMenuAuthorizationEvidenceTest.php' => ['adminBackend admin menu authorization'],
             'tests/Feature/Admin/AdminPermissionMatrixMenuContractTest.php' => ['dashboard', 'audit', 'profile'],
             'app/Services/Admin/AdminPermissionMatrix.php' => ['menusFor', 'capabilitiesFor'],
         ],
         'issue42_admin_management_crud' => [
-            'tests/Feature/DevOps/AdminManagementCrudHarnessTest.php' => ['issue42 admin management crud'],
+            'tests/Feature/DevOps/AdminManagementCrudEvidenceTest.php' => ['issue42 admin management crud'],
             'tests/Feature/Admin/RolePermissionManagementBackendTest.php' => ['creates updates syncs and deletes non-system roles'],
             'tests/Feature/Admin/ClientManagementCrudBackendTest.php' => ['updates managed client metadata without exposing or changing secret hashes'],
         ],
         'issue43_scope_claim_enforcement' => [
-            'tests/Feature/DevOps/AdminScopeManagementHarnessTest.php' => ['issue43 scope management'],
+            'tests/Feature/DevOps/AdminScopeManagementEvidenceTest.php' => ['issue43 scope management'],
             'tests/Unit/Oidc/ScopePolicyTest.php' => ['rejects unknown requested scopes'],
             'tests/Feature/Oidc/UserClaimsFactoryScopeEnforcementTest.php' => ['emits roles and permissions only when RBAC scopes are granted'],
         ],
         'issue44_user_profile_portal' => [
-            'tests/Feature/DevOps/UserProfilePortalHarnessTest.php' => ['issue44 user profile portal'],
+            'tests/Feature/DevOps/UserProfilePortalEvidenceTest.php' => ['issue44 user profile portal'],
             'tests/Feature/Profile/ProfilePortalBackendContractTest.php' => ['updates only allowed self profile fields'],
             'app/Services/Profile/ProfilePortalPresenter.php' => ['ProfilePortalPresenter', 'OidcScope::PERMISSIONS'],
         ],
         'issue45_admin_audit_trail' => [
-            'tests/Feature/DevOps/AdminAuditTrailHarnessTest.php' => ['issue45 admin audit trail'],
+            'tests/Feature/DevOps/AdminAuditTrailEvidenceTest.php' => ['issue45 admin audit trail'],
             'tests/Feature/Admin/AdminAuditTrailContractTest.php' => ['verifies audit hash chain integrity'],
             'app/Services/Admin/AdminAuditIntegrityVerifier.php' => ['broken_event_id', 'checked_events'],
         ],
@@ -120,24 +120,24 @@ function adminBackend_aggregate_contracts(): array
 function adminBackend_aggregate_ci_tests(): array
 {
     return [
-        'AdminBackendAggregateHarnessTest.php',
-        'AdminRbacDomainHarnessTest.php',
+        'AdminBackendCoverageEvidenceTest.php',
+        'AdminRbacDomainEvidenceTest.php',
         'RbacPolicyContractTest.php',
         'AdminPermissionMiddlewareTest.php',
-        'AdminUserManagementHarnessTest.php',
+        'AdminUserManagementEvidenceTest.php',
         'UserManagementBackendTest.php',
-        'AdminMenuAuthorizationHarnessTest.php',
+        'AdminMenuAuthorizationEvidenceTest.php',
         'AdminPermissionMatrixMenuContractTest.php',
-        'AdminManagementCrudHarnessTest.php',
+        'AdminManagementCrudEvidenceTest.php',
         'RolePermissionManagementBackendTest.php',
         'ClientManagementCrudBackendTest.php',
-        'AdminScopeManagementHarnessTest.php',
+        'AdminScopeManagementEvidenceTest.php',
         'ScopePolicyTest.php',
         'UserClaimsFactoryScopeEnforcementTest.php',
         'ClientScopeManagementBackendTest.php',
-        'UserProfilePortalHarnessTest.php',
+        'UserProfilePortalEvidenceTest.php',
         'ProfilePortalBackendContractTest.php',
-        'AdminAuditTrailHarnessTest.php',
+        'AdminAuditTrailEvidenceTest.php',
         'AdminAuditTrailContractTest.php',
     ];
 }

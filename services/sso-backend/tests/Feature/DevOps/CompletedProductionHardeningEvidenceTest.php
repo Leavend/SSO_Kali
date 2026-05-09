@@ -5,7 +5,7 @@ declare(strict_types=1);
 it('locks completed production hardening issues into a single executable contract', function (): void {
     $contracts = [
         'issue_32_runtime_verification' => [
-            'tests/Feature/DevOps/RuntimeAfterTopologyChangeHarnessTest.php' => [
+            'tests/Feature/DevOps/RuntimeAfterTopologyChangeEvidenceTest.php' => [
                 'sso-backend-worker',
                 'sso-admin-vue',
                 'sso-backend-vps-smoke.sh',
@@ -24,14 +24,14 @@ it('locks completed production hardening issues into a single executable contrac
                 'memory_peak_mb',
             ],
             'tests/Feature/System/QueueMetricsControllerTest.php' => ['/_internal/queue-metrics'],
-            'tests/Feature/DevOps/WorkerBootObservabilityHarnessTest.php' => ['sso.worker_boot'],
+            'tests/Feature/DevOps/WorkerBootObservabilityEvidenceTest.php' => ['sso.worker_boot'],
             '../../docs/devops/sso-backend-queue-operations.md' => [
                 'queue:retry',
                 'Do not run docker system prune',
             ],
         ],
         'issue_7_backup_restore' => [
-            'tests/Feature/DevOps/BackupRestoreRunbookHarnessTest.php' => ['restore rehearsal'],
+            'tests/Feature/DevOps/BackupRestoreRunbookEvidenceTest.php' => ['restore rehearsal'],
             '../../docs/devops/sso-backend-backup-restore.md' => [
                 'docker-compose.main.yml',
                 'sha256sum -c SHA256SUMS',
@@ -39,7 +39,7 @@ it('locks completed production hardening issues into a single executable contrac
             ],
         ],
         'issue_9_security_hardening' => [
-            'tests/Feature/DevOps/SecurityHardeningChecklistHarnessTest.php' => ['Penetration-Style Checklist'],
+            'tests/Feature/DevOps/SecurityHardeningChecklistEvidenceTest.php' => ['Penetration-Style Checklist'],
             '../../docs/security/sso-backend-production-checklist.md' => [
                 'APP_DEBUG=false',
                 'SSO_INTERNAL_QUEUE_METRICS_ENABLED=false',
@@ -48,7 +48,7 @@ it('locks completed production hardening issues into a single executable contrac
             ],
         ],
         'issue_8_github_actions_deploy' => [
-            'tests/Feature/DevOps/GitHubActionsProductionDeployHarnessTest.php' => ['docker-compose.main.yml'],
+            'tests/Feature/DevOps/GitHubActionsProductionDeployEvidenceTest.php' => ['docker-compose.main.yml'],
             '../../.github/workflows/sso-backend-deploy.yml' => [
                 'environment: production',
                 'docker-compose.main.yml',
@@ -152,7 +152,7 @@ it('locks completed production hardening issues into a single executable contrac
             ],
         ],
         'production_public_domain_smoke' => [
-            'tests/Feature/DevOps/ProductionPublicDomainSmokeHarnessTest.php' => [
+            'tests/Feature/DevOps/ProductionPublicDomainSmokeEvidenceTest.php' => [
                 'public-domain production smoke',
                 'api-sso.timeh.my.id',
                 'sso.timeh.my.id',
@@ -169,7 +169,7 @@ it('locks completed production hardening issues into a single executable contrac
             ],
         ],
         'push_triggered_deploy_lifecycle' => [
-            'tests/Feature/DevOps/PushTriggeredDeployLifecycleHarnessTest.php' => [
+            'tests/Feature/DevOps/PushTriggeredDeployLifecycleEvidenceTest.php' => [
                 'push-triggered deploy-main',
                 'StrictHostKeyChecking=accept-new',
                 'VPS_SSH_KNOWN_HOSTS',
@@ -181,7 +181,7 @@ it('locks completed production hardening issues into a single executable contrac
             ],
         ],
         'production_oauth_token_flow_smoke' => [
-            'tests/Feature/DevOps/ProductionOAuthTokenFlowSmokeHarnessTest.php' => [
+            'tests/Feature/DevOps/ProductionOAuthTokenFlowSmokeEvidenceTest.php' => [
                 'oauth token-flow smoke',
                 'sso-load-test-client',
                 'without committing plaintext secrets',
@@ -198,7 +198,7 @@ it('locks completed production hardening issues into a single executable contrac
             ],
         ],
         'production_metadata_jwks_wrk_smoke' => [
-            'tests/Feature/DevOps/ProductionMetadataWrkSmokeHarnessTest.php' => [
+            'tests/Feature/DevOps/ProductionMetadataWrkSmokeEvidenceTest.php' => [
                 'metadata and jwks wrk smoke',
                 'PASS with warning',
                 'Nginx worker_connections',
@@ -215,7 +215,7 @@ it('locks completed production hardening issues into a single executable contrac
             ],
         ],
         'production_connection_tuning' => [
-            'tests/Feature/DevOps/ProductionConnectionTuningHarnessTest.php' => [
+            'tests/Feature/DevOps/ProductionConnectionTuningEvidenceTest.php' => [
                 'connection pressure tuning',
                 'worker_connections 4096',
                 'proxy_http_version 1.1',
@@ -232,7 +232,7 @@ it('locks completed production hardening issues into a single executable contrac
             ],
         ],
         'adminBackend_rbac_domain_policy_contract' => [
-            'tests/Feature/DevOps/AdminRbacDomainHarnessTest.php' => [
+            'tests/Feature/DevOps/AdminRbacDomainEvidenceTest.php' => [
                 'adminBackend rbac domain',
                 'denies unknown roles by default',
                 'RequireAdminPermission.php',
@@ -249,7 +249,7 @@ it('locks completed production hardening issues into a single executable contrac
             ],
         ],
         'adminBackend_user_management_backend' => [
-            'tests/Feature/DevOps/AdminUserManagementHarnessTest.php' => [
+            'tests/Feature/DevOps/AdminUserManagementEvidenceTest.php' => [
                 'adminBackend user management',
                 'password_reset_token_hash',
                 'AdminPermission::USERS_WRITE',
@@ -266,10 +266,10 @@ it('locks completed production hardening issues into a single executable contrac
             ],
         ],
         'adminBackend_admin_menu_authorization_contract' => [
-            'tests/Feature/DevOps/AdminMenuAuthorizationHarnessTest.php' => [
+            'tests/Feature/DevOps/AdminMenuAuthorizationEvidenceTest.php' => [
                 'adminBackend admin menu authorization',
                 'AdminPermissionMatrixMenuContractTest.php',
-                'AdminMenuAuthorizationHarnessTest.php',
+                'AdminMenuAuthorizationEvidenceTest.php',
             ],
             'app/Support/Rbac/AdminMenu.php' => [
                 "public const DASHBOARD = 'dashboard'",
@@ -283,7 +283,7 @@ it('locks completed production hardening issues into a single executable contrac
             ],
         ],
         'adminBackend_admin_management_crud_backend' => [
-            'tests/Feature/DevOps/AdminManagementCrudHarnessTest.php' => [
+            'tests/Feature/DevOps/AdminManagementCrudEvidenceTest.php' => [
                 'issue42 admin management crud',
                 'RolePermissionManagementBackendTest.php',
                 'ClientManagementCrudBackendTest.php',
@@ -301,7 +301,7 @@ it('locks completed production hardening issues into a single executable contrac
             ],
         ],
         'adminBackend_scope_management_claim_enforcement' => [
-            'tests/Feature/DevOps/AdminScopeManagementHarnessTest.php' => [
+            'tests/Feature/DevOps/AdminScopeManagementEvidenceTest.php' => [
                 'issue43 scope management',
                 'ScopePolicyTest.php',
                 'ClientScopeManagementBackendTest.php',
@@ -318,7 +318,7 @@ it('locks completed production hardening issues into a single executable contrac
             ],
         ],
         'adminBackend_user_profile_portal_backend_contract' => [
-            'tests/Feature/DevOps/UserProfilePortalHarnessTest.php' => [
+            'tests/Feature/DevOps/UserProfilePortalEvidenceTest.php' => [
                 'issue44 user profile portal',
                 'ProfilePortalBackendContractTest.php',
             ],
@@ -334,7 +334,7 @@ it('locks completed production hardening issues into a single executable contrac
             ],
         ],
         'adminBackend_admin_audit_trail_contract' => [
-            'tests/Feature/DevOps/AdminAuditTrailHarnessTest.php' => [
+            'tests/Feature/DevOps/AdminAuditTrailEvidenceTest.php' => [
                 'issue45 admin audit trail',
                 'AdminAuditTrailContractTest.php',
             ],
@@ -349,14 +349,14 @@ it('locks completed production hardening issues into a single executable contrac
             ],
         ],
         'adminBackend_aggregate_harness' => [
-            'tests/Feature/DevOps/AdminBackendAggregateHarnessTest.php' => [
+            'tests/Feature/DevOps/AdminBackendCoverageEvidenceTest.php' => [
                 'locks the complete adminBackend backend aggregate evidence set',
                 'issue45_admin_audit_trail',
                 'adminBackend_aggregate_ci_tests',
             ],
         ],
         'oidcBackend_oidc_backend_aggregate_harness' => [
-            'tests/Feature/DevOps/OidcBackendAggregateHarnessTest.php' => [
+            'tests/Feature/DevOps/OidcBackendCoverageEvidenceTest.php' => [
                 'locks the complete oidcBackend oidc backend aggregate evidence set',
                 'maps oidcBackend use cases uc01 through uc23',
                 'oidcBackend_use_case_coverage',
@@ -406,14 +406,14 @@ it('locks completed production hardening issues into a single executable contrac
                 'profile.connected_app_revoked',
                 'revoked_refresh_tokens',
             ],
-            'tests/Feature/DevOps/OidcProductionSmokeHarnessTest.php' => [
+            'tests/Feature/DevOps/OidcProductionSmokeEvidenceTest.php' => [
                 'OIDC Backend production smoke',
                 'error=login_required',
                 'error=invalid_request',
             ],
         ],
         'externalIdp_external_idp_registry_domain_model' => [
-            'tests/Feature/DevOps/ExternalIdpAggregateHarnessTest.php' => [
+            'tests/Feature/DevOps/ExternalIdpCoverageEvidenceTest.php' => [
                 'externalIdp external idp registry',
                 'UC-08',
                 'UC-48',
@@ -513,25 +513,25 @@ it('keeps completed hardening harnesses wired into root CI', function (): void {
     $ci = issue_hardening_file_contents('../../.github/workflows/ci.yml');
 
     foreach ([
-        'RuntimeAfterTopologyChangeHarnessTest.php',
+        'RuntimeAfterTopologyChangeEvidenceTest.php',
         'ReadinessObservabilityTest.php',
         'RequestLifecycleObservabilityTest.php',
         'QueueMetricsControllerTest.php',
-        'WorkerBootObservabilityHarnessTest.php',
-        'QueueOperationsRunbookHarnessTest.php',
-        'BackupRestoreRunbookHarnessTest.php',
-        'SecurityHardeningChecklistHarnessTest.php',
-        'GitHubActionsProductionDeployHarnessTest.php',
-        'PushTriggeredDeployLifecycleHarnessTest.php',
-        'ProductionOAuthTokenFlowSmokeHarnessTest.php',
-        'ProductionMetadataWrkSmokeHarnessTest.php',
-        'ProductionConnectionTuningHarnessTest.php',
-        'OidcBackendAggregateHarnessTest.php',
+        'WorkerBootObservabilityEvidenceTest.php',
+        'QueueOperationsRunbookEvidenceTest.php',
+        'BackupRestoreRunbookEvidenceTest.php',
+        'SecurityHardeningChecklistEvidenceTest.php',
+        'GitHubActionsProductionDeployEvidenceTest.php',
+        'PushTriggeredDeployLifecycleEvidenceTest.php',
+        'ProductionOAuthTokenFlowSmokeEvidenceTest.php',
+        'ProductionMetadataWrkSmokeEvidenceTest.php',
+        'ProductionConnectionTuningEvidenceTest.php',
+        'OidcBackendCoverageEvidenceTest.php',
         'AuthorizationCodeFlowE2EContractTest.php',
         'ConsentFlowContractTest.php',
         'ConnectedAppsSelfServiceRevocationContractTest.php',
-        'OidcProductionSmokeHarnessTest.php',
-        'ExternalIdpAggregateHarnessTest.php',
+        'OidcProductionSmokeEvidenceTest.php',
+        'ExternalIdpCoverageEvidenceTest.php',
         'ExternalIdentityProviderRegistryContractTest.php',
         'ExternalIdpDiscoveryContractTest.php',
         'ExternalIdpJwksContractTest.php',
@@ -551,30 +551,30 @@ it('keeps completed hardening harnesses wired into root CI', function (): void {
         'RevocationEndpointRfc7009ContractTest.php',
         'UserInfoEndpointClaimsContractTest.php',
         'OidcIncidentAuditLoggingContractTest.php',
-        'AdminBackendAggregateHarnessTest.php',
-        'AdminRbacDomainHarnessTest.php',
+        'AdminBackendCoverageEvidenceTest.php',
+        'AdminRbacDomainEvidenceTest.php',
         'RbacPolicyContractTest.php',
         'AdminPermissionMiddlewareTest.php',
-        'AdminUserManagementHarnessTest.php',
+        'AdminUserManagementEvidenceTest.php',
         'UserManagementBackendTest.php',
-        'AdminMenuAuthorizationHarnessTest.php',
+        'AdminMenuAuthorizationEvidenceTest.php',
         'AdminPermissionMatrixMenuContractTest.php',
-        'AdminManagementCrudHarnessTest.php',
+        'AdminManagementCrudEvidenceTest.php',
         'RolePermissionManagementBackendTest.php',
         'ClientManagementCrudBackendTest.php',
-        'AdminScopeManagementHarnessTest.php',
+        'AdminScopeManagementEvidenceTest.php',
         'ScopePolicyTest.php',
         'UserClaimsFactoryScopeEnforcementTest.php',
         'ClientScopeManagementBackendTest.php',
-        'UserProfilePortalHarnessTest.php',
+        'UserProfilePortalEvidenceTest.php',
         'ProfilePortalBackendContractTest.php',
-        'AdminAuditTrailHarnessTest.php',
+        'AdminAuditTrailEvidenceTest.php',
         'AdminAuditTrailContractTest.php',
-        'ProductionPublicDomainSmokeHarnessTest.php',
-        'LogoutAuditRedactionHarnessTest.php',
-        'BackChannelLogoutReliabilityHarnessTest.php',
-        'OAuthLoadTestClientHarnessTest.php',
-        'BackendOnlyProductionLifecycleHarnessTest.php',
+        'ProductionPublicDomainSmokeEvidenceTest.php',
+        'LogoutAuditRedactionEvidenceTest.php',
+        'BackChannelLogoutReliabilityEvidenceTest.php',
+        'OAuthLoadTestClientEvidenceTest.php',
+        'BackendProductionLifecycleEvidenceTest.php',
         'LockedProductionClientRegistryTest.php',
         'ProductionClientRegistryTest.php',
         'BackChannelLogoutAcceptanceTest.php',

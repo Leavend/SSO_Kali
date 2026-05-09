@@ -43,7 +43,7 @@ it('keeps adminBackend admin menu authorization tests wired into root ci', funct
 
     foreach ([
         'AdminPermissionMatrixMenuContractTest.php',
-        'AdminMenuAuthorizationHarnessTest.php',
+        'AdminMenuAuthorizationEvidenceTest.php',
     ] as $testName) {
         expect($ci)->toContain($testName);
     }

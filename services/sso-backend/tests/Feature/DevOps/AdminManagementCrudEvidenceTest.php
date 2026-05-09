@@ -53,7 +53,7 @@ it('keeps issue42 tests wired into root ci', function (): void {
     foreach ([
         'RolePermissionManagementBackendTest.php',
         'ClientManagementCrudBackendTest.php',
-        'AdminManagementCrudHarnessTest.php',
+        'AdminManagementCrudEvidenceTest.php',
     ] as $testName) {
         expect($ci)->toContain($testName);
     }

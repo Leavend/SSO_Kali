@@ -54,7 +54,7 @@ it('keeps adminBackend rbac tests wired into root ci', function (): void {
     foreach ([
         'RbacPolicyContractTest.php',
         'AdminPermissionMiddlewareTest.php',
-        'AdminRbacDomainHarnessTest.php',
+        'AdminRbacDomainEvidenceTest.php',
     ] as $testName) {
         expect($ci)->toContain($testName);
     }

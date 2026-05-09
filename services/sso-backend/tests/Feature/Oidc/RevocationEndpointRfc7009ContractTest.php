@@ -249,7 +249,7 @@ function issue52BrowserSessionUser(): array
         'user_id' => $user->id,
         'subject_id' => $user->subject_id,
         'ip_address' => '127.0.0.1',
-        'user_agent' => 'Issue52RevocationContract/1.0',
+        'user_agent' => 'RevocationEndpointContract/1.0',
         'authenticated_at' => now(),
         'last_seen_at' => now(),
         'expires_at' => now()->addHour(),

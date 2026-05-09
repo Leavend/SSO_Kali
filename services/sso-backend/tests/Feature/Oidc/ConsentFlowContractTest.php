@@ -162,7 +162,7 @@ function issue55BrowserSessionUser(string $email): array
         'user_id' => $user->id,
         'subject_id' => $user->subject_id,
         'ip_address' => '127.0.0.1',
-        'user_agent' => 'Issue55ConsentFlowContract/1.0',
+        'user_agent' => 'ConsentFlowContract/1.0',
         'authenticated_at' => now(),
         'last_seen_at' => now(),
         'expires_at' => now()->addHour(),

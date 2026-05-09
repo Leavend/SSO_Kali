@@ -48,7 +48,7 @@ it('keeps adminBackend user management tests wired into root ci', function (): v
 
     foreach ([
         'UserManagementBackendTest.php',
-        'AdminUserManagementHarnessTest.php',
+        'AdminUserManagementEvidenceTest.php',
     ] as $testName) {
         expect($ci)->toContain($testName);
     }
