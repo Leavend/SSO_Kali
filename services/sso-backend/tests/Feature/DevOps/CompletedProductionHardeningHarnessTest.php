@@ -412,6 +412,18 @@ it('locks completed production hardening issues into a single executable contrac
                 'error=invalid_request',
             ],
         ],
+        'fr005_external_idp_registry_domain_model' => [
+            'tests/Feature/DevOps/Fr005ExternalIdpAggregateHarnessTest.php' => [
+                'fr005 external idp registry',
+                'UC-08',
+                'UC-48',
+            ],
+            'tests/Feature/ExternalIdp/ExternalIdentityProviderRegistryContractTest.php' => [
+                'secure production defaults',
+                'rejects non-https',
+                'tamper-evident audit evidence',
+            ],
+        ],
     ];
 
     foreach ($contracts as $issue => $files) {
@@ -449,6 +461,8 @@ it('keeps completed hardening harnesses wired into root CI', function (): void {
         'ConsentFlowContractTest.php',
         'ConnectedAppsSelfServiceRevocationContractTest.php',
         'Fr004ProductionSmokeHarnessTest.php',
+        'Fr005ExternalIdpAggregateHarnessTest.php',
+        'ExternalIdentityProviderRegistryContractTest.php',
         'TokenEndpointHardeningContractTest.php',
         'JwtValidationClaimContractTest.php',
         'RefreshTokenRotationReplayContractTest.php',
