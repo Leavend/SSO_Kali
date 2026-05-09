@@ -265,6 +265,23 @@ it('locks completed production hardening issues into a single executable contrac
                 'sync_managed_user_profile',
             ],
         ],
+        'fr003_admin_menu_authorization_contract' => [
+            'tests/Feature/DevOps/Fr003AdminMenuAuthorizationHarnessTest.php' => [
+                'fr003 admin menu authorization',
+                'AdminPermissionMatrixMenuContractTest.php',
+                'Fr003AdminMenuAuthorizationHarnessTest.php',
+            ],
+            'app/Support/Rbac/AdminMenu.php' => [
+                "public const DASHBOARD = 'dashboard'",
+                'AdminPermission::USERS_READ',
+                'AdminPermission::PROFILE_READ',
+            ],
+            'app/Services/Admin/AdminPermissionMatrix.php' => [
+                'capabilitiesFor',
+                'menusFor',
+                'canViewMenu',
+            ],
+        ],
     ];
 
     foreach ($contracts as $issue => $files) {
@@ -302,6 +319,8 @@ it('keeps completed hardening harnesses wired into root CI', function (): void {
         'AdminPermissionMiddlewareTest.php',
         'Fr003UserManagementHarnessTest.php',
         'UserManagementBackendTest.php',
+        'Fr003AdminMenuAuthorizationHarnessTest.php',
+        'AdminPermissionMatrixMenuContractTest.php',
         'ProductionPublicDomainSmokeHarnessTest.php',
         'LogoutAuditRedactionHarnessTest.php',
         'BackChannelLogoutReliabilityHarnessTest.php',

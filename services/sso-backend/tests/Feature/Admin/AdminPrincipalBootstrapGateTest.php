@@ -28,8 +28,10 @@ it('returns the authenticated admin principal from /admin/api/me', function (): 
         'display_name' => 'Admin User',
     ]);
 
-    $this->withToken(adminPanelAccessToken($admin, $authTime))
-        ->getJson('/admin/api/me')
+    $response = $this->withToken(adminPanelAccessToken($admin, $authTime))
+        ->getJson('/admin/api/me');
+
+    $response
         ->assertOk()
         ->assertJsonPath('principal.subject_id', 'admin-1')
         ->assertJsonPath('principal.email', 'admin@example.com')
@@ -42,7 +44,18 @@ it('returns the authenticated admin principal from /admin/api/me', function (): 
         ->assertJsonPath('principal.auth_context.mfa_verified', true)
         ->assertJsonPath('principal.permissions.view_admin_panel', true)
         ->assertJsonPath('principal.permissions.manage_sessions', true)
+        ->assertJsonPath('principal.permissions.menus.0.id', 'dashboard')
+        ->assertJsonPath('principal.permissions.menus.0.visible', true)
+        ->assertJsonPath('principal.permissions.menus.1.id', 'users')
+        ->assertJsonPath('principal.permissions.menus.1.visible', true)
+        ->assertJsonPath('principal.permissions.menus.4.id', 'sessions')
+        ->assertJsonPath('principal.permissions.menus.4.visible', true)
         ->assertJsonMissingPath('principal.subject_uuid');
+
+    $principal = $response->json('principal');
+
+    expect($principal['permissions']['capabilities']['admin.panel.view'])->toBeTrue()
+        ->and($principal['permissions']['capabilities']['admin.users.write'])->toBeTrue();
 
     /** @var object $event */
     $event = DB::table('admin_audit_events')->orderByDesc('id')->first();
