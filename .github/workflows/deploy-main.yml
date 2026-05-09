@@ -235,6 +235,15 @@ jobs:
              COMPOSE_PROJECT_NAME='${{ env.COMPOSE_PROJECT_NAME }}' \
              bash '${{ env.VPS_PROJECT_DIR }}/scripts/vps-deploy-main.sh'"
 
+      - name: Run FR-004 production smoke
+        if: ${{ vars.RUN_FR004_PRODUCTION_SMOKE == 'true' }}
+        shell: bash
+        run: |
+          scripts/sso-backend-fr004-production-smoke.sh \
+            --public-base-url "${{ vars.SSO_PUBLIC_BASE_URL || 'https://api-sso.timeh.my.id' }}" \
+            --client-id "${{ vars.SSO_FR004_SMOKE_CLIENT_ID || 'app-a' }}" \
+            --redirect-uri "${{ vars.SSO_FR004_SMOKE_REDIRECT_URI || 'https://sso.timeh.my.id/auth/callback' }}"
+
       - name: Cleanup SSH key
         if: always()
         run: rm -f ~/.ssh/deploy_key

@@ -406,6 +406,11 @@ it('locks completed production hardening issues into a single executable contrac
                 'profile.connected_app_revoked',
                 'revoked_refresh_tokens',
             ],
+            'tests/Feature/DevOps/Fr004ProductionSmokeHarnessTest.php' => [
+                'FR-004 production smoke',
+                'error=login_required',
+                'error=invalid_request',
+            ],
         ],
     ];
 
@@ -443,6 +448,7 @@ it('keeps completed hardening harnesses wired into root CI', function (): void {
         'AuthorizationCodeFlowE2EContractTest.php',
         'ConsentFlowContractTest.php',
         'ConnectedAppsSelfServiceRevocationContractTest.php',
+        'Fr004ProductionSmokeHarnessTest.php',
         'TokenEndpointHardeningContractTest.php',
         'JwtValidationClaimContractTest.php',
         'RefreshTokenRotationReplayContractTest.php',

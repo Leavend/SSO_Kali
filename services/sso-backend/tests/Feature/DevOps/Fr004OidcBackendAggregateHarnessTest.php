@@ -22,7 +22,7 @@ it('maps fr004 use cases uc01 through uc23 to backend evidence', function (): vo
     expect(array_keys($coverage))->toBe([
         'UC-01', 'UC-02', 'UC-07', 'UC-08', 'UC-09', 'UC-12', 'UC-13',
         'UC-14', 'UC-15', 'UC-16', 'UC-17', 'UC-18', 'UC-19', 'UC-20',
-        'UC-21', 'UC-22', 'UC-23', 'UC-24', 'UC-25', 'UC-26',
+        'UC-21', 'UC-22', 'UC-23', 'UC-24', 'UC-25', 'UC-26', 'UC-27',
     ]);
 
     foreach ($coverage as $useCase => $evidence) {
@@ -123,6 +123,11 @@ function fr004_aggregate_contracts(): array
             'app/Actions/Profile/RevokeConnectedAppAction.php' => ['revokeClientSessionsForSubject', 'profile.connected_app.revoke'],
             'routes/web.php' => ['/api/profile/connected-apps', 'revokeConnectedApp'],
         ],
+        'fr004_production_smoke' => [
+            'tests/Feature/DevOps/Fr004ProductionSmokeHarnessTest.php' => ['FR-004 production smoke', 'error=login_required', 'error=invalid_request'],
+            '../../scripts/sso-backend-fr004-production-smoke.sh' => ['prompt=none', '/userinfo', 'without secrets or tokens'],
+            '../../docs/devops/sso-backend-fr004-production-smoke.md' => ['OIDC discovery metadata', 'Evidence to Retain', 'RUN_FR004_PRODUCTION_SMOKE=true'],
+        ],
     ];
 }
 
@@ -152,6 +157,7 @@ function fr004_use_case_coverage(): array
         'UC-24' => ['tests/Feature/Oidc/OidcIncidentAuditLoggingContractTest.php', 'app/Services/Oidc/OidcIncidentAuditLogger.php'],
         'UC-25' => ['tests/Feature/Oidc/ConsentFlowContractTest.php', 'app/Actions/Oidc/CreateAuthorizationRedirect.php'],
         'UC-26' => ['tests/Feature/Profile/ConnectedAppsSelfServiceRevocationContractTest.php', 'app/Actions/Profile/RevokeConnectedAppAction.php'],
+        'UC-27' => ['tests/Feature/DevOps/Fr004ProductionSmokeHarnessTest.php', '../../scripts/sso-backend-fr004-production-smoke.sh'],
     ];
 }
 
@@ -165,6 +171,7 @@ function fr004_ci_tests(): array
         'AuthorizationCodeFlowE2EContractTest.php',
         'ConsentFlowContractTest.php',
         'ConnectedAppsSelfServiceRevocationContractTest.php',
+        'Fr004ProductionSmokeHarnessTest.php',
         'TokenEndpointHardeningContractTest.php',
         'JwtValidationClaimContractTest.php',
         'RefreshTokenRotationReplayContractTest.php',
