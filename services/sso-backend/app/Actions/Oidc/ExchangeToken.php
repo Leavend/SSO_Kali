@@ -7,6 +7,7 @@ namespace App\Actions\Oidc;
 use App\Services\Oidc\AuthorizationCodeStore;
 use App\Services\Oidc\DownstreamClientRegistry;
 use App\Services\Oidc\LocalTokenService;
+use App\Services\Oidc\OidcIncidentAuditLogger;
 use App\Services\Oidc\RefreshTokenStore;
 use App\Services\Oidc\UserProfileSynchronizer;
 use App\Services\Zitadel\ZitadelBrokerService;
@@ -26,6 +27,7 @@ final class ExchangeToken
         private readonly LocalTokenService $tokens,
         private readonly ZitadelBrokerService $broker,
         private readonly UserProfileSynchronizer $profiles,
+        private readonly OidcIncidentAuditLogger $incidents,
     ) {}
 
     public function handle(Request $request): JsonResponse
@@ -33,7 +35,7 @@ final class ExchangeToken
         return match ((string) $request->input('grant_type', '')) {
             'authorization_code' => $this->authorizationCodeGrant($request),
             'refresh_token' => $this->refreshGrant($request),
-            default => OidcErrorResponse::json('unsupported_grant_type', 'The requested grant type is not supported.', 400),
+            default => $this->tokenError($request, 'unsupported_grant_type', 'unsupported_grant_type', 'The requested grant type is not supported.', 400),
         };
     }
 
@@ -43,15 +45,15 @@ final class ExchangeToken
         $client = $this->clientForCode($request, $payload);
 
         if ($payload === null || $client === null) {
-            return OidcErrorResponse::json('invalid_grant', 'The authorization code is invalid.', 400);
+            return $this->tokenError($request, 'invalid_authorization_code', 'invalid_grant', 'The authorization code is invalid.', 400);
         }
 
         if (! $this->clients->validSecret($client, $this->clientSecret($request))) {
-            return OidcErrorResponse::json('invalid_client', 'Client authentication failed.', 401);
+            return $this->tokenError($request, 'invalid_client_authentication', 'invalid_client', 'Client authentication failed.', 401);
         }
 
         if (! $this->validPkce($request, $payload)) {
-            return OidcErrorResponse::json('invalid_grant', 'PKCE verification failed.', 400);
+            return $this->tokenError($request, 'pkce_verification_failed', 'invalid_grant', 'PKCE verification failed.', 400);
         }
 
         return response()->json($this->tokens->issue($payload));
@@ -62,13 +64,15 @@ final class ExchangeToken
         $client = $this->clients->find((string) $request->input('client_id', ''));
 
         if ($client === null || ! $this->clients->validSecret($client, $this->clientSecret($request))) {
-            return OidcErrorResponse::json('invalid_client', 'Client authentication failed.', 401);
+            return $this->tokenError($request, 'invalid_client_authentication', 'invalid_client', 'Client authentication failed.', 401);
         }
 
         $record = $this->refreshTokens->findActive((string) $request->input('refresh_token', ''), $client->clientId);
 
         if ($record === null) {
-            return OidcErrorResponse::json('invalid_grant', 'The refresh token is invalid.', 400);
+            return $this->tokenError($request, 'invalid_refresh_token', 'invalid_grant', 'The refresh token is invalid.', 400, [
+                'client_id' => $client->clientId,
+            ]);
         }
 
         return $this->rotatedTokens($request, $record);
@@ -127,7 +131,9 @@ final class ExchangeToken
 
         $upstream = $this->upstreamRefreshContext($request, $record, $context);
 
-        return $upstream ?? OidcErrorResponse::json('invalid_grant', 'The upstream refresh token is no longer valid.', 400);
+        return $upstream ?? $this->tokenError($request, 'upstream_refresh_failed', 'invalid_grant', 'The upstream refresh token is no longer valid.', 400, [
+            'client_id' => (string) $record['client_id'],
+        ]);
     }
 
     /**
@@ -218,5 +224,24 @@ final class ExchangeToken
         $secret = $request->input('client_secret');
 
         return is_string($secret) ? $secret : null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     */
+    private function tokenError(
+        Request $request,
+        string $reason,
+        string $error,
+        string $description,
+        int $status,
+        array $context = [],
+    ): JsonResponse {
+        $this->incidents->record('oidc_token_endpoint_failure', $request, $reason, [
+            'grant_type' => (string) $request->input('grant_type', ''),
+            ...$context,
+        ]);
+
+        return OidcErrorResponse::json($error, $description, $status);
     }
 }

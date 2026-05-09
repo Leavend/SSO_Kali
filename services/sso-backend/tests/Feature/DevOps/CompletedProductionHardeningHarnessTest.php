@@ -391,6 +391,11 @@ it('locks completed production hardening issues into a single executable contrac
                 'scope-bound',
                 'invalid_token',
             ],
+            'tests/Feature/Oidc/OidcIncidentAuditLoggingContractTest.php' => [
+                'oidc.security_incident',
+                'redacted',
+                'chained',
+            ],
         ],
     ];
 
@@ -431,6 +436,7 @@ it('keeps completed hardening harnesses wired into root CI', function (): void {
         'RefreshTokenRotationReplayContractTest.php',
         'RevocationEndpointRfc7009ContractTest.php',
         'UserInfoEndpointClaimsContractTest.php',
+        'OidcIncidentAuditLoggingContractTest.php',
         'Fr003AggregateHarnessTest.php',
         'Fr003RbacDomainHarnessTest.php',
         'RbacPolicyContractTest.php',

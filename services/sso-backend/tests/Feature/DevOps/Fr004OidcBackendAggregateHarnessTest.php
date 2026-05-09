@@ -22,7 +22,7 @@ it('maps fr004 use cases uc01 through uc23 to backend evidence', function (): vo
     expect(array_keys($coverage))->toBe([
         'UC-01', 'UC-02', 'UC-07', 'UC-08', 'UC-09', 'UC-12', 'UC-13',
         'UC-14', 'UC-15', 'UC-16', 'UC-17', 'UC-18', 'UC-19', 'UC-20',
-        'UC-21', 'UC-22', 'UC-23',
+        'UC-21', 'UC-22', 'UC-23', 'UC-24',
     ]);
 
     foreach ($coverage as $useCase => $evidence) {
@@ -106,6 +106,8 @@ function fr004_aggregate_contracts(): array
             'app/Actions/Oidc/BuildUserInfo.php' => ['AccessTokenGuard', 'ClaimsView'],
             'app/Services/Oidc/UserClaimsFactory.php' => ['OidcScope::ROLES', 'OidcScope::PERMISSIONS'],
             'tests/Feature/Oidc/UserClaimsFactoryScopeEnforcementTest.php' => ['emits roles and permissions only when RBAC scopes are granted'],
+            'tests/Feature/Oidc/OidcIncidentAuditLoggingContractTest.php' => ['oidc.security_incident', 'redacted', 'chained'],
+            'app/Services/Oidc/OidcIncidentAuditLogger.php' => ['OIDC_SECURITY_INCIDENT', 'SECRET_KEYS', 'request_id'],
         ],
         'revocation_endpoint' => [
             'tests/Feature/Oidc/RevocationEndpointRfc7009ContractTest.php' => ['rfc7009', 'token_type_hint', 'idempotent'],
@@ -140,6 +142,7 @@ function fr004_use_case_coverage(): array
         'UC-21' => ['tests/Feature/Oidc/RevocationEndpointRfc7009ContractTest.php', 'app/Actions/Oidc/RevokeToken.php'],
         'UC-22' => ['tests/Feature/Oidc/JwtValidationClaimContractTest.php', 'app/Services/Oidc/AccessTokenGuard.php'],
         'UC-23' => ['tests/Feature/Oidc/UserInfoEndpointClaimsContractTest.php', 'tests/Feature/Oidc/JwtValidationClaimContractTest.php', 'app/Http/Controllers/Oidc/UserInfoController.php'],
+        'UC-24' => ['tests/Feature/Oidc/OidcIncidentAuditLoggingContractTest.php', 'app/Services/Oidc/OidcIncidentAuditLogger.php'],
     ];
 }
 
@@ -156,6 +159,7 @@ function fr004_ci_tests(): array
         'RefreshTokenRotationReplayContractTest.php',
         'RevocationEndpointRfc7009ContractTest.php',
         'UserInfoEndpointClaimsContractTest.php',
+        'OidcIncidentAuditLoggingContractTest.php',
         'LockedProductionClientRegistryTest.php',
         'ProductionClientRegistryTest.php',
         'LoadTestClientRegistryTest.php',

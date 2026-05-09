@@ -6,6 +6,7 @@ namespace App\Actions\Oidc;
 
 use App\Models\User;
 use App\Services\Oidc\AccessTokenGuard;
+use App\Services\Oidc\OidcIncidentAuditLogger;
 use App\Support\Oidc\ClaimsView;
 use App\Support\Responses\OidcErrorResponse;
 use Illuminate\Http\JsonResponse;
@@ -18,6 +19,7 @@ final class BuildUserInfo
 {
     public function __construct(
         private readonly AccessTokenGuard $tokens,
+        private readonly OidcIncidentAuditLogger $incidents,
     ) {}
 
     public function handle(Request $request): JsonResponse
@@ -25,7 +27,7 @@ final class BuildUserInfo
         $bearerToken = (string) $request->bearerToken();
 
         if ($this->looksLikeJwt($bearerToken)) {
-            return $this->localUserInfo($bearerToken);
+            return $this->localUserInfo($request, $bearerToken);
         }
 
         try {
@@ -38,14 +40,16 @@ final class BuildUserInfo
             return response()->json($this->passportUserInfo($passportUser));
         }
 
-        return $this->localUserInfo($bearerToken);
+        return $this->localUserInfo($request, $bearerToken);
     }
 
-    private function localUserInfo(string $token): JsonResponse
+    private function localUserInfo(Request $request, string $token): JsonResponse
     {
         try {
             $claims = $this->tokens->claimsFrom($token);
         } catch (RuntimeException) {
+            $this->incidents->record('oidc_userinfo_invalid_token', $request, 'invalid_token');
+
             return OidcErrorResponse::json('invalid_token', 'The bearer token is invalid.', 401);
         }
 

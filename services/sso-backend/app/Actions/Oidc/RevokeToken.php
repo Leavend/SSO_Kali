@@ -6,6 +6,7 @@ namespace App\Actions\Oidc;
 
 use App\Services\Oidc\AccessTokenRevocationStore;
 use App\Services\Oidc\DownstreamClientRegistry;
+use App\Services\Oidc\OidcIncidentAuditLogger;
 use App\Services\Oidc\RefreshTokenStore;
 use App\Services\Oidc\SigningKeyService;
 use App\Services\Zitadel\ZitadelBrokerService;
@@ -22,6 +23,7 @@ final class RevokeToken
         private readonly SigningKeyService $keys,
         private readonly AccessTokenRevocationStore $revocations,
         private readonly ZitadelBrokerService $broker,
+        private readonly OidcIncidentAuditLogger $incidents,
     ) {}
 
     public function handle(Request $request): JsonResponse
@@ -30,10 +32,16 @@ final class RevokeToken
         $client = $this->clients->find($clientId);
 
         if ($client === null || ! $this->clients->validSecret($client, $this->clientSecret($request))) {
+            $reason = $client === null ? 'unknown_client' : 'invalid_secret';
+
             Log::warning('[REVOCATION_INVALID_CLIENT]', [
                 'client_id' => $clientId,
-                'reason' => $client === null ? 'unknown_client' : 'invalid_secret',
+                'reason' => $reason,
                 'ip' => $request->ip(),
+            ]);
+
+            $this->incidents->record('oidc_revocation_invalid_client', $request, $reason, [
+                'client_id' => $clientId,
             ]);
 
             // RFC 7009 §2.1 — always return 200 regardless of client validity
