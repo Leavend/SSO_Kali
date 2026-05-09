@@ -90,6 +90,22 @@ function fr005_external_idp_registry_contracts(): array
             'external_idp.jwks_refreshed',
             'external_idp.jwks_failed',
         ],
+        'app/Services/ExternalIdp/ExternalIdpAuthenticationRedirectService.php' => [
+            'authorization_endpoint',
+            'code_challenge_method',
+            'external-idp:auth-state',
+            'External IdP callback URL must use HTTPS',
+        ],
+        'app/Actions/ExternalIdp/CreateExternalIdpAuthenticationRedirectAction.php' => [
+            'external_idp.auth.redirect',
+            'external_idp.auth_redirect_created',
+            'external_idp.auth_redirect_failed',
+        ],
+        'tests/Feature/ExternalIdp/ExternalIdpAuthenticationRedirectContractTest.php' => [
+            'OIDC conformant external idp authorization redirect',
+            'rejects disabled unhealthy and non-https',
+            'audits external idp auth redirect success and failure',
+        ],
         'tests/Feature/ExternalIdp/ExternalIdpJwksContractTest.php' => [
             'fetches validates caches and resolves',
             'rejects non-https jwks uri unknown kid alg none',

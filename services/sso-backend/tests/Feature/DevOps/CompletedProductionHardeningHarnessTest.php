@@ -433,6 +433,11 @@ it('locks completed production hardening issues into a single executable contrac
                 'rejects non-https jwks uri unknown kid alg none',
                 'uses stale jwks cache',
             ],
+            'tests/Feature/ExternalIdp/ExternalIdpAuthenticationRedirectContractTest.php' => [
+                'OIDC conformant external idp authorization redirect',
+                'rejects disabled unhealthy and non-https',
+                'audits external idp auth redirect success and failure',
+            ],
             'tests/Feature/Admin/ExternalIdentityProviderManagementTest.php' => [
                 'creates updates lists shows and deletes external idps',
                 'validates admin external idp request contracts',
@@ -485,6 +490,7 @@ it('keeps completed hardening harnesses wired into root CI', function (): void {
         'ExternalIdentityProviderRegistryContractTest.php',
         'ExternalIdpDiscoveryContractTest.php',
         'ExternalIdpJwksContractTest.php',
+        'ExternalIdpAuthenticationRedirectContractTest.php',
         'ExternalIdentityProviderManagementTest.php',
         'ExternalIdentityProviderPermissionMatrixTest.php',
         'TokenEndpointHardeningContractTest.php',
