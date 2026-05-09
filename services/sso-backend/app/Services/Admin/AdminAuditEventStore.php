@@ -8,7 +8,7 @@ use App\Models\AdminAuditEvent;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Str;
 
-final class AdminAuditEventStore
+class AdminAuditEventStore
 {
     /**
      * @param  array<string, mixed>  $payload

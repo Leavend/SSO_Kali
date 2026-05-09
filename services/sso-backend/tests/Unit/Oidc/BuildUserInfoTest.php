@@ -3,7 +3,9 @@
 declare(strict_types=1);
 
 use App\Actions\Oidc\BuildUserInfo;
+use App\Services\Admin\AdminAuditEventStore;
 use App\Services\Oidc\AccessTokenGuard;
+use App\Services\Oidc\OidcIncidentAuditLogger;
 use App\Services\Oidc\SigningKeyService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -18,7 +20,7 @@ beforeEach(function (): void {
 });
 
 it('rejects requests without a bearer token', function (): void {
-    $action = new BuildUserInfo(app(AccessTokenGuard::class));
+    $action = new BuildUserInfo(app(AccessTokenGuard::class), buildUserInfoNoopIncidentLogger());
     $request = Request::create('/userinfo', 'GET');
 
     $response = $action->handle($request);
@@ -50,7 +52,7 @@ it('returns user claims from a valid access token', function (): void {
         'exp' => time() + 900,
     ]);
 
-    $action = new BuildUserInfo(app(AccessTokenGuard::class));
+    $action = new BuildUserInfo(app(AccessTokenGuard::class), buildUserInfoNoopIncidentLogger());
     $request = Request::create('/userinfo', 'GET');
     $request->headers->set('Authorization', 'Bearer '.$accessToken);
 
@@ -62,3 +64,13 @@ it('returns user claims from a valid access token', function (): void {
     expect($body)
         ->toHaveKey('sub', 'sub-userinfo-001');
 });
+
+function buildUserInfoNoopIncidentLogger(): OidcIncidentAuditLogger
+{
+    return new OidcIncidentAuditLogger(
+        new class extends AdminAuditEventStore
+        {
+            public function append(array $payload): void {}
+        },
+    );
+}
