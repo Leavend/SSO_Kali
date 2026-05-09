@@ -396,6 +396,11 @@ it('locks completed production hardening issues into a single executable contrac
                 'redacted',
                 'chained',
             ],
+            'tests/Feature/Oidc/ConsentFlowContractTest.php' => [
+                'prompt none',
+                'login_required',
+                'select_account',
+            ],
         ],
     ];
 
@@ -431,6 +436,7 @@ it('keeps completed hardening harnesses wired into root CI', function (): void {
         'ProductionConnectionTuningHarnessTest.php',
         'Fr004OidcBackendAggregateHarnessTest.php',
         'AuthorizationCodeFlowE2EContractTest.php',
+        'ConsentFlowContractTest.php',
         'TokenEndpointHardeningContractTest.php',
         'JwtValidationClaimContractTest.php',
         'RefreshTokenRotationReplayContractTest.php',

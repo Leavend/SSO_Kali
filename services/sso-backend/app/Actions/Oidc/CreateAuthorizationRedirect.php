@@ -56,6 +56,15 @@ final class CreateAuthorizationRedirect
             return $this->localRedirect($context, $browserContext);
         }
 
+        if ($this->prompt($request) === 'none') {
+            return OidcErrorResponse::redirect(
+                (string) $context['redirect_uri'],
+                'login_required',
+                'The request requires user interaction, but prompt=none was requested.',
+                (string) ($context['original_state'] ?? ''),
+            );
+        }
+
         $upstreamState = $this->authRequests->put($context);
 
         if ($upstreamState === null) {
@@ -80,7 +89,7 @@ final class CreateAuthorizationRedirect
             return false;
         }
 
-        if ($this->prompt($request) === 'login') {
+        if (in_array($this->prompt($request), ['login', 'consent', 'select_account'], true)) {
             return false;
         }
 
@@ -137,6 +146,10 @@ final class CreateAuthorizationRedirect
             $this->scopes->validateAuthorizationRequest($this->scope($request), $this->client($request));
         } catch (\RuntimeException $exception) {
             return $this->error('invalid_scope', $exception->getMessage());
+        }
+
+        if ($this->invalidPromptRequested($request)) {
+            return $this->error('invalid_prompt', 'Unsupported prompt value.');
         }
 
         return null;
@@ -253,6 +266,15 @@ final class CreateAuthorizationRedirect
         return in_array($prompt, ['login', 'consent', 'select_account', 'none'], true)
             ? $prompt
             : null;
+    }
+
+    private function invalidPromptRequested(Request $request): bool
+    {
+        $prompt = $request->query('prompt');
+
+        return is_string($prompt)
+            && $prompt !== ''
+            && ! in_array($prompt, ['login', 'consent', 'select_account', 'none'], true);
     }
 
     /**

@@ -22,7 +22,7 @@ it('maps fr004 use cases uc01 through uc23 to backend evidence', function (): vo
     expect(array_keys($coverage))->toBe([
         'UC-01', 'UC-02', 'UC-07', 'UC-08', 'UC-09', 'UC-12', 'UC-13',
         'UC-14', 'UC-15', 'UC-16', 'UC-17', 'UC-18', 'UC-19', 'UC-20',
-        'UC-21', 'UC-22', 'UC-23', 'UC-24',
+        'UC-21', 'UC-22', 'UC-23', 'UC-24', 'UC-25',
     ]);
 
     foreach ($coverage as $useCase => $evidence) {
@@ -81,7 +81,8 @@ function fr004_aggregate_contracts(): array
         ],
         'authorization_request_and_code' => [
             'tests/Feature/Oidc/AuthorizationCodeFlowE2EContractTest.php' => ['public client authorization code flow', 'confidential client secret', 'single use code'],
-            'app/Actions/Oidc/CreateAuthorizationRedirect.php' => ['response_type', 'code_challenge_method', 'S256', 'downstream_code_challenge'],
+            'tests/Feature/Oidc/ConsentFlowContractTest.php' => ['prompt none', 'login_required', 'select_account'],
+            'app/Actions/Oidc/CreateAuthorizationRedirect.php' => ['invalidPromptRequested', 'prompt=none', 'consent'],
             'app/Services/Oidc/AuthorizationCodeStore.php' => ['authorization_codes', 'consumed_at', 'lockForUpdate'],
             'app/Services/Oidc/AuthRequestStore.php' => ['oidc:auth-request'],
             'app/Services/Oidc/ScopePolicy.php' => ['validateAuthorizationRequest', 'assertAllowed'],
@@ -143,6 +144,7 @@ function fr004_use_case_coverage(): array
         'UC-22' => ['tests/Feature/Oidc/JwtValidationClaimContractTest.php', 'app/Services/Oidc/AccessTokenGuard.php'],
         'UC-23' => ['tests/Feature/Oidc/UserInfoEndpointClaimsContractTest.php', 'tests/Feature/Oidc/JwtValidationClaimContractTest.php', 'app/Http/Controllers/Oidc/UserInfoController.php'],
         'UC-24' => ['tests/Feature/Oidc/OidcIncidentAuditLoggingContractTest.php', 'app/Services/Oidc/OidcIncidentAuditLogger.php'],
+        'UC-25' => ['tests/Feature/Oidc/ConsentFlowContractTest.php', 'app/Actions/Oidc/CreateAuthorizationRedirect.php'],
     ];
 }
 
@@ -154,6 +156,7 @@ function fr004_ci_tests(): array
     return [
         'Fr004OidcBackendAggregateHarnessTest.php',
         'AuthorizationCodeFlowE2EContractTest.php',
+        'ConsentFlowContractTest.php',
         'TokenEndpointHardeningContractTest.php',
         'JwtValidationClaimContractTest.php',
         'RefreshTokenRotationReplayContractTest.php',
