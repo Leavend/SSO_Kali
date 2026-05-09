@@ -454,6 +454,8 @@ it('locks completed production hardening issues into a single executable contrac
                 'selects the highest priority healthy primary provider',
                 'fails over to the highest priority backup provider',
                 'fails closed when every external idp provider is unavailable',
+                'deterministic provider key ordering',
+                'excludes disabled and unhealthy providers',
                 'audits failover selection success and unavailable failure',
             ],
             'tests/Feature/ExternalIdp/ExternalIdpHealthReadinessContractTest.php' => [

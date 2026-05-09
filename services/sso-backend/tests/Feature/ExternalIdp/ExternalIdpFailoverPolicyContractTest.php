@@ -85,6 +85,79 @@ it('audits failover selection success and unavailable failure without leaking se
         ->and($encoded)->not->toContain('code_verifier');
 });
 
+it('uses deterministic provider key ordering when eligible providers share the same priority', function (): void {
+    externalIdpFailoverProvider('primary-zulu', false, 10, 'healthy');
+    externalIdpFailoverProvider('primary-alpha', false, 10, 'healthy');
+    externalIdpFailoverProvider('backup-alpha', true, 10, 'healthy');
+
+    $selection = app(ExternalIdpFailoverPolicy::class)->select();
+
+    expect($selection['provider']->provider_key)->toBe('primary-alpha')
+        ->and($selection['mode'])->toBe('primary')
+        ->and(collect($selection['candidates'])->pluck('provider_key')->all())->toBe([
+            'primary-alpha',
+            'primary-zulu',
+            'backup-alpha',
+        ]);
+});
+
+it('excludes disabled and unhealthy providers from failover candidate summaries', function (): void {
+    externalIdpFailoverProvider('primary-disabled', false, 1, 'healthy', false);
+    externalIdpFailoverProvider('primary-unhealthy', false, 2, 'unhealthy');
+    externalIdpFailoverProvider('primary-unknown', false, 3, 'unknown');
+    externalIdpFailoverProvider('backup-healthy', true, 4, 'healthy');
+
+    $selection = app(ExternalIdpFailoverPolicy::class)->select();
+
+    expect($selection['provider']->provider_key)->toBe('primary-unknown')
+        ->and(collect($selection['candidates'])->pluck('provider_key')->all())->toBe([
+            'primary-unknown',
+            'backup-healthy',
+        ])
+        ->and(collect($selection['candidates'])->pluck('provider_key')->all())->not->toContain('primary-disabled')
+        ->and(collect($selection['candidates'])->pluck('provider_key')->all())->not->toContain('primary-unhealthy');
+});
+
+it('falls back to policy ordering when the preferred provider key is missing', function (): void {
+    externalIdpFailoverProvider('primary-fast', false, 1, 'healthy');
+    externalIdpFailoverProvider('backup-fast', true, 1, 'healthy');
+
+    $selection = app(ExternalIdpFailoverPolicy::class)->select('missing-provider');
+
+    expect($selection['provider']->provider_key)->toBe('primary-fast')
+        ->and($selection['mode'])->toBe('primary')
+        ->and(collect($selection['candidates'])->pluck('provider_key')->all())->toBe([
+            'primary-fast',
+            'backup-fast',
+        ]);
+});
+
+it('keeps failover audit candidates limited to operational metadata', function (): void {
+    externalIdpFailoverProvider('primary-fast', false, 1, 'healthy');
+    externalIdpFailoverProvider('backup-fast', true, 2, 'healthy');
+
+    app(SelectExternalIdpForAuthenticationAction::class)->execute(null, 'req-externalIdp-failover-candidates');
+
+    $event = AdminAuditEvent::query()
+        ->where('taxonomy', 'external_idp.failover_selected')
+        ->latest('id')
+        ->firstOrFail();
+    $encoded = json_encode($event->context, JSON_THROW_ON_ERROR);
+
+    expect($event->context['candidates'])->toHaveCount(2)
+        ->and($event->context['candidates'][0])->toHaveKeys([
+            'provider_key',
+            'is_backup',
+            'priority',
+            'health_status',
+        ])
+        ->and($event->context['candidates'][0])->not->toHaveKey('client_id')
+        ->and($encoded)->not->toContain('client_secret')
+        ->and($encoded)->not->toContain('authorization_endpoint')
+        ->and($encoded)->not->toContain('token_endpoint')
+        ->and($encoded)->not->toContain('jwks_uri');
+});
+
 function externalIdpFailoverProvider(
     string $providerKey,
     bool $isBackup,

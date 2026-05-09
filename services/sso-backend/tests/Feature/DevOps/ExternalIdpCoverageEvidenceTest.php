@@ -159,6 +159,8 @@ function externalIdp_external_idp_registry_contracts(): array
             'selects the highest priority healthy primary provider',
             'fails over to the highest priority backup provider',
             'fails closed when every external idp provider is unavailable',
+            'deterministic provider key ordering',
+            'excludes disabled and unhealthy providers',
             'audits failover selection success and unavailable failure',
         ],
         'app/Services/ExternalIdp/ExternalIdpHealthProbeService.php' => [
