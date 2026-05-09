@@ -348,6 +348,13 @@ it('locks completed production hardening issues into a single executable contrac
                 'function integrity',
             ],
         ],
+        'fr003_aggregate_harness' => [
+            'tests/Feature/DevOps/Fr003AggregateHarnessTest.php' => [
+                'locks the complete fr003 backend aggregate evidence set',
+                'issue45_admin_audit_trail',
+                'fr003_aggregate_ci_tests',
+            ],
+        ],
     ];
 
     foreach ($contracts as $issue => $files) {
@@ -380,6 +387,7 @@ it('keeps completed hardening harnesses wired into root CI', function (): void {
         'ProductionOAuthTokenFlowSmokeHarnessTest.php',
         'ProductionMetadataWrkSmokeHarnessTest.php',
         'ProductionConnectionTuningHarnessTest.php',
+        'Fr003AggregateHarnessTest.php',
         'Fr003RbacDomainHarnessTest.php',
         'RbacPolicyContractTest.php',
         'AdminPermissionMiddlewareTest.php',
