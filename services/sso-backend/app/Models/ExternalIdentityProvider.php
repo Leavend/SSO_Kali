@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 
 /**
@@ -77,5 +78,13 @@ final class ExternalIdentityProvider extends Model
             'last_discovered_at' => 'datetime',
             'last_health_checked_at' => 'datetime',
         ];
+    }
+
+    /**
+     * @return HasOne<ExternalIdpClaimMapping, $this>
+     */
+    public function claimMapping(): HasOne
+    {
+        return $this->hasOne(ExternalIdpClaimMapping::class, 'external_identity_provider_id');
     }
 }

@@ -183,6 +183,33 @@ function fr005_external_idp_registry_contracts(): array
             'keeps readiness endpoint shallow',
             'audits health probe success and failure',
         ],
+        'database/migrations/2026_05_09_000003_create_external_idp_claim_mappings_table.php' => [
+            'external_idp_claim_mappings',
+            'subject_paths',
+            'require_verified_email',
+        ],
+        'app/Models/ExternalIdpClaimMapping.php' => [
+            'ExternalIdpClaimMapping',
+            'subject_paths',
+            'require_verified_email',
+        ],
+        'app/Services/ExternalIdp/ExternalIdpClaimsMapper.php' => [
+            'External IdP required claim',
+            'require_verified_email',
+            'safeSnapshot',
+        ],
+        'app/Actions/ExternalIdp/MapExternalIdpClaimsAction.php' => [
+            'external_idp.claims.map',
+            'external_idp.claims_mapped',
+            'external_idp.claims_mapping_failed',
+        ],
+        'tests/Feature/ExternalIdp/ExternalIdpClaimsMappingContractTest.php' => [
+            'maps default oidc claims',
+            'maps custom nested claims',
+            'rejects missing required custom claims',
+            'integrates raw claims mapping',
+            'audits claims mapping success and failure',
+        ],
         'tests/Feature/ExternalIdp/ExternalIdpJwksContractTest.php' => [
             'fetches validates caches and resolves',
             'rejects non-https jwks uri unknown kid alg none',

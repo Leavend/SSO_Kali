@@ -13,19 +13,25 @@ use RuntimeException;
 
 final class ExternalSubjectAccountMapper
 {
+    public function __construct(
+        private readonly ExternalIdpClaimsMapper $claimsMapper,
+    ) {}
+
     /**
      * @param  array{provider_key: string, subject: string, email: ?string, name: ?string, return_to: ?string, claims: array<string, mixed>}  $exchange
      * @return array{user: User, link: ExternalSubjectLink, created_user: bool, created_link: bool}
      */
     public function map(ExternalIdentityProvider $provider, array $exchange): array
     {
-        if (($exchange['provider_key'] ?? null) !== $provider->provider_key) {
+        $mappedExchange = $this->mappedExchange($provider, $exchange);
+
+        if (($mappedExchange['provider_key'] ?? null) !== $provider->provider_key) {
             throw new RuntimeException('External IdP exchange provider mismatch.');
         }
 
-        return DB::transaction(function () use ($provider, $exchange): array {
-            $subject = $this->requiredString($exchange, 'subject', 'External IdP subject is required.');
-            $email = $this->normalEmail($exchange['email'] ?? null);
+        return DB::transaction(function () use ($provider, $mappedExchange): array {
+            $subject = $this->requiredString($mappedExchange, 'subject', 'External IdP subject is required.');
+            $email = $this->normalEmail($mappedExchange['email'] ?? null);
             $existingLink = ExternalSubjectLink::query()
                 ->where('provider_key', $provider->provider_key)
                 ->where('external_subject', $subject)
@@ -35,13 +41,13 @@ final class ExternalSubjectAccountMapper
             if ($existingLink instanceof ExternalSubjectLink) {
                 $user = $existingLink->user()->lockForUpdate()->firstOrFail();
                 $this->assertUserUsable($user);
-                $this->refreshLink($existingLink, $provider, $exchange, $email);
-                $this->touchUserLogin($user, $exchange);
+                $this->refreshLink($existingLink, $provider, $mappedExchange, $email);
+                $this->touchUserLogin($user, $mappedExchange);
 
                 return ['user' => $user->refresh(), 'link' => $existingLink->refresh(), 'created_user' => false, 'created_link' => false];
             }
 
-            $user = $this->resolveUser($email, $exchange);
+            $user = $this->resolveUser($email, $mappedExchange);
             $createdUser = ! $user->exists;
             $user->save();
             $this->assertUserUsable($user);
@@ -53,15 +59,31 @@ final class ExternalSubjectAccountMapper
                 'issuer' => $provider->issuer,
                 'external_subject' => $subject,
                 'email' => $email,
-                'email_verified_at' => $this->emailVerified($exchange) ? now() : null,
-                'display_name' => $this->displayName($exchange),
-                'last_claims_snapshot' => $this->claimSnapshot($exchange),
+                'email_verified_at' => $this->emailVerified($mappedExchange) ? now() : null,
+                'display_name' => $this->displayName($mappedExchange),
+                'last_claims_snapshot' => $this->claimSnapshot($mappedExchange),
                 'last_login_at' => now(),
             ]);
-            $this->touchUserLogin($user, $exchange);
+            $this->touchUserLogin($user, $mappedExchange);
 
             return ['user' => $user->refresh(), 'link' => $link->refresh(), 'created_user' => $createdUser, 'created_link' => true];
         });
+    }
+
+    /**
+     * @param  array<string, mixed>  $exchange
+     * @return array{provider_key: string, subject: string, email: ?string, name: ?string, username?: ?string, email_verified?: bool, return_to?: ?string, claims: array<string, mixed>}
+     */
+    private function mappedExchange(ExternalIdentityProvider $provider, array $exchange): array
+    {
+        if (is_array($exchange['raw_claims'] ?? null)) {
+            return [
+                ...$this->claimsMapper->map($provider, $exchange['raw_claims']),
+                'return_to' => $exchange['return_to'] ?? null,
+            ];
+        }
+
+        return $exchange;
     }
 
     /**
@@ -158,6 +180,10 @@ final class ExternalSubjectAccountMapper
      */
     private function emailVerified(array $exchange): bool
     {
+        if (($exchange['email_verified'] ?? false) === true) {
+            return true;
+        }
+
         $claims = $exchange['claims'] ?? [];
 
         return is_array($claims) && ($claims['email_verified'] ?? false) === true;
