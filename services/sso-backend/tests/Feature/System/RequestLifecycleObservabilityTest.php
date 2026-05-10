@@ -23,7 +23,12 @@ it('adds a request id response header and structured timing log context', functi
                 && ($context['path'] ?? null) === '/health'
                 && ($context['status'] ?? null) === 200
                 && array_key_exists('duration_ms', $context)
-                && array_key_exists('memory_peak_mb', $context);
+                && array_key_exists('memory_peak_mb', $context)
+                && array_key_exists('client_ip_hash', $context)
+                && array_key_exists('user_agent_hash', $context)
+                && array_key_exists('content_length', $context)
+                && array_key_exists('query_count', $context)
+                && array_key_exists('sampled', $context);
         }));
 });
 

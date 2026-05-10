@@ -8,6 +8,7 @@ use App\Support\Performance\CpuMetricsRegistry;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 
 final class TrackCpuPerformance
@@ -31,6 +32,26 @@ final class TrackCpuPerformance
         return $response;
     }
 
+    /**
+     * @return array{should_log: bool, sampled: bool}
+     */
+    private function timingDecision(float $durationMs): array
+    {
+        if (! (bool) config('sso.observability.request_timing_log_enabled', false)) {
+            return ['should_log' => false, 'sampled' => false];
+        }
+
+        $slowMs = (float) config('sso.observability.request_timing_slow_ms', 500);
+        if ($durationMs >= $slowMs) {
+            return ['should_log' => true, 'sampled' => false];
+        }
+
+        $sampleRate = max(0.0, min(1.0, (float) config('sso.observability.request_timing_sample_rate', 0.0)));
+        $sampled = $sampleRate > 0.0 && mt_rand() / mt_getrandmax() <= $sampleRate;
+
+        return ['should_log' => $sampled, 'sampled' => $sampled];
+    }
+
     private function attachMetricsToResponse(Response $response, float $durationMs): void
     {
         $metrics = $this->metrics->getMetricsSnapshot();
@@ -42,7 +63,8 @@ final class TrackCpuPerformance
 
     private function logRequestTiming(Request $request, Response $response, float $durationMs): void
     {
-        if (! $this->shouldLogTiming($durationMs)) {
+        $decision = $this->timingDecision($durationMs);
+        if (! $decision['should_log']) {
             return;
         }
 
@@ -54,22 +76,20 @@ final class TrackCpuPerformance
             'memory_peak_mb' => round(memory_get_peak_usage(true) / 1048576, 2),
             'request_id' => $request->headers->get('X-Request-Id'),
             'route' => $request->route()?->getName(),
+            'client_ip_hash' => $this->hashNullable($request->ip()),
+            'user_agent_hash' => $this->hashNullable($request->userAgent()),
+            'content_length' => (int) ($request->headers->get('Content-Length') ?? 0),
+            'query_count' => 0,
+            'sampled' => $decision['sampled'],
         ]);
     }
 
-    private function shouldLogTiming(float $durationMs): bool
+    private function hashNullable(?string $value): ?string
     {
-        if (! (bool) config('sso.observability.request_timing_log_enabled', false)) {
-            return false;
+        if ($value === null || $value === '') {
+            return null;
         }
 
-        $slowMs = (float) config('sso.observability.request_timing_slow_ms', 500);
-        if ($durationMs >= $slowMs) {
-            return true;
-        }
-
-        $sampleRate = max(0.0, min(1.0, (float) config('sso.observability.request_timing_sample_rate', 0.0)));
-
-        return $sampleRate > 0.0 && mt_rand() / mt_getrandmax() <= $sampleRate;
+        return hash('sha256', Str::limit($value, 256, ''));
     }
 }
