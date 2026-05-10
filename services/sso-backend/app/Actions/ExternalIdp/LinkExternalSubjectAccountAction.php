@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Actions\ExternalIdp;
 
+use App\Actions\Audit\RecordAuthenticationAuditEventAction;
 use App\Models\ExternalIdentityProvider;
 use App\Models\ExternalSubjectLink;
 use App\Models\User;
 use App\Services\Admin\AdminAuditEventStore;
 use App\Services\ExternalIdp\ExternalSubjectAccountMapper;
+use App\Support\Audit\AuthenticationAuditRecord;
 use Throwable;
 
 final class LinkExternalSubjectAccountAction
@@ -17,6 +19,7 @@ final class LinkExternalSubjectAccountAction
         private readonly ExternalSubjectAccountMapper $mapper,
         private readonly AdminAuditEventStore $auditEvents,
         private readonly RecordExternalIdpSecurityIncidentAction $securityIncidents,
+        private readonly RecordAuthenticationAuditEventAction $authenticationAudits,
     ) {}
 
     /**
@@ -28,10 +31,12 @@ final class LinkExternalSubjectAccountAction
         try {
             $result = $this->mapper->map($provider, $exchange);
             $this->audit($provider, $exchange, $requestId, 'success', $result['user'], null, $result);
+            $this->recordAuthenticationAudit($provider, $exchange, 'external_idp_account_linked', 'succeeded', $requestId, $result['user'], $result, null);
 
             return $result;
         } catch (Throwable $exception) {
             $this->audit($provider, $exchange, $requestId, 'failure', null, $exception, null);
+            $this->recordAuthenticationAudit($provider, $exchange, 'external_idp_account_link_failed', 'failed', $requestId, null, null, $exception);
             $this->securityIncidents->execute(
                 'external_idp.account.link_failure',
                 'external_idp_account_link_failed',
@@ -85,5 +90,51 @@ final class LinkExternalSubjectAccountAction
             ],
             'occurred_at' => now(),
         ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $exchange
+     * @param  array<string, mixed>|null  $result
+     */
+    private function recordAuthenticationAudit(
+        ExternalIdentityProvider $provider,
+        array $exchange,
+        string $eventType,
+        string $outcome,
+        string $requestId,
+        ?User $user,
+        ?array $result,
+        ?Throwable $exception,
+    ): void {
+        $this->authenticationAudits->execute(AuthenticationAuditRecord::externalIdpAuthentication(
+            eventType: $eventType,
+            outcome: $outcome,
+            subjectId: $user?->subject_id,
+            email: is_string($exchange['email'] ?? null) ? $exchange['email'] : null,
+            clientId: $provider->client_id,
+            sessionId: null,
+            ipAddress: '127.0.0.1',
+            userAgent: 'system',
+            errorCode: $exception === null ? null : $this->errorCode($exception),
+            requestId: $requestId,
+            context: array_filter([
+                'provider_key' => $provider->provider_key,
+                'issuer_hash' => hash('sha256', $provider->issuer),
+                'external_subject_hash' => $this->hashValue($exchange['subject'] ?? null),
+                'return_to_hash' => $this->hashValue($exchange['return_to'] ?? null),
+                'created_user' => $result['created_user'] ?? null,
+                'created_link' => $result['created_link'] ?? null,
+            ], static fn (mixed $value): bool => $value !== null),
+        ));
+    }
+
+    private function errorCode(Throwable $exception): string
+    {
+        return str($exception->getMessage())->snake()->limit(80, '')->toString();
+    }
+
+    private function hashValue(mixed $value): ?string
+    {
+        return is_string($value) && $value !== '' ? hash('sha256', $value) : null;
     }
 }
