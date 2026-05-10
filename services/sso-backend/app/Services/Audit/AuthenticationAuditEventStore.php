@@ -9,7 +9,7 @@ use App\Support\Audit\AuthenticationAuditRecord;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Str;
 
-final class AuthenticationAuditEventStore
+class AuthenticationAuditEventStore
 {
     public function append(AuthenticationAuditRecord $record): AuthenticationAuditEvent
     {
