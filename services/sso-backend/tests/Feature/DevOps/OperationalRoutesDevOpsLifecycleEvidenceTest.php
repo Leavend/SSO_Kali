@@ -47,7 +47,6 @@ it('sheds hostile oauth write bursts at the nginx edge before upstream workers',
 
     expect($script)
         ->toContain('zone=sso_oauth_write:10m rate=20r/s')
-        ->toContain('limit_req_status 429')
         ->toContain('limit_req zone=sso_oauth_write burst=40 nodelay')
         ->toContain('client_max_body_size 16k')
         ->toContain('client_body_timeout 5s')

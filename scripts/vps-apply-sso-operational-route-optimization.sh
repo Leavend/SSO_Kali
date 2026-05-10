@@ -78,7 +78,6 @@ proxy_cache_path /var/cache/nginx/sso_operational_routes
     use_temp_path=off;
 
 limit_req_zone $binary_remote_addr zone=sso_oauth_write:10m rate=20r/s;
-limit_req_status 429;
 EOF
 
 sudo API_SITE="$API_SITE" UPSTREAM_NAME="$UPSTREAM_NAME" FORWARDED_SNIPPET="$FORWARDED_SNIPPET" python3 - <<'PY'
