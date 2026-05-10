@@ -19,7 +19,8 @@ it('grants baseline admin permissions through the legacy role fallback', functio
         ->and($permissions)->toContain(AdminPermission::SESSIONS_TERMINATE)
         ->and($permissions)->toContain(AdminPermission::CLIENTS_WRITE)
         ->and($permissions)->toContain(AdminPermission::EXTERNAL_IDPS_READ)
-        ->and($permissions)->toContain(AdminPermission::EXTERNAL_IDPS_WRITE);
+        ->and($permissions)->toContain(AdminPermission::EXTERNAL_IDPS_WRITE)
+        ->and($permissions)->toContain(AdminPermission::AUTHENTICATION_AUDIT_READ);
 });
 
 it('keeps normal users least privileged through the legacy role fallback', function (): void {
@@ -31,6 +32,7 @@ it('keeps normal users least privileged through the legacy role fallback', funct
         ->and($matrix->canViewAdminPanel($user))->toBeFalse()
         ->and($matrix->canManageUsers($user))->toBeFalse()
         ->and($matrix->canReadAuditTrail($user))->toBeFalse()
+        ->and($matrix->canReadAuthenticationAudit($user))->toBeFalse()
         ->and($matrix->canReadExternalIdps($user))->toBeFalse()
         ->and($matrix->canManageExternalIdps($user))->toBeFalse();
 });

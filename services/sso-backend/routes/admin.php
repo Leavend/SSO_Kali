@@ -60,15 +60,23 @@ Route::middleware(AdminGuard::class)->prefix('admin/api')->group(function (): vo
     });
     Route::middleware([
         'throttle:admin-read',
+        RequireAdminPermission::class.':'.AdminPermission::AUTHENTICATION_AUDIT_READ,
+        EnsureFreshAdminAuth::class.':read',
+        EnsureAdminMfaAssurance::class,
+    ])->group(function (): void {
+        Route::get('/audit/authentication-events', [AuthenticationAuditController::class, 'index']);
+        Route::get('/audit/authentication-events/{eventId}', [AuthenticationAuditController::class, 'show'])
+            ->where('eventId', '[A-Z0-9]+');
+    });
+
+    Route::middleware([
+        'throttle:admin-read',
         RequireAdminPermission::class.':'.AdminPermission::AUDIT_READ,
         EnsureFreshAdminAuth::class.':read',
         EnsureAdminMfaAssurance::class,
     ])->group(function (): void {
         Route::get('/audit/events', [AuditTrailController::class, 'index']);
         Route::get('/audit/events/{eventId}', [AuditTrailController::class, 'show'])
-            ->where('eventId', '[A-Z0-9]+');
-        Route::get('/audit/authentication-events', [AuthenticationAuditController::class, 'index']);
-        Route::get('/audit/authentication-events/{eventId}', [AuthenticationAuditController::class, 'show'])
             ->where('eventId', '[A-Z0-9]+');
         Route::get('/audit/integrity', [AuditTrailController::class, 'integrity']);
     });

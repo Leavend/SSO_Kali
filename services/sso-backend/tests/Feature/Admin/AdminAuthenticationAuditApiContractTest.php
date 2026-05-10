@@ -20,15 +20,15 @@ beforeEach(function (): void {
     $this->seed(RbacSeeder::class);
 });
 
-it('requires admin audit read permission for authentication audit access', function (): void {
-    $admin = authenticationAuditAdmin([AdminPermission::USERS_READ]);
+it('requires dedicated admin authentication audit read permission for authentication audit access', function (): void {
+    $admin = authenticationAuditAdmin([AdminPermission::AUDIT_READ]);
 
     $this->getJson('/admin/api/audit/authentication-events', authenticationAuditHeaders($admin))
         ->assertStatus(403);
 });
 
 it('lists filters and paginates central authentication audit events safely', function (): void {
-    $admin = authenticationAuditAdmin([AdminPermission::AUDIT_READ]);
+    $admin = authenticationAuditAdmin([AdminPermission::AUTHENTICATION_AUDIT_READ]);
     authenticationAuditRecord('login_succeeded', 'succeeded', [
         'subject_id' => 'subject-login-85',
         'email' => 'login85@example.com',
@@ -63,7 +63,7 @@ it('lists filters and paginates central authentication audit events safely', fun
 });
 
 it('shows one central authentication audit event and returns not found for unknown event ids', function (): void {
-    $admin = authenticationAuditAdmin([AdminPermission::AUDIT_READ]);
+    $admin = authenticationAuditAdmin([AdminPermission::AUTHENTICATION_AUDIT_READ]);
     authenticationAuditRecord('external_idp_callback_failed', 'failed', [
         'subject_id' => null,
         'client_id' => 'sso-broker',

@@ -17,8 +17,9 @@ it('returns all capabilities and visible menus for admin users', function (): vo
         ->and($permissions['capabilities'][AdminPermission::USERS_WRITE])->toBeTrue()
         ->and($permissions['capabilities'][AdminPermission::EXTERNAL_IDPS_READ])->toBeTrue()
         ->and($permissions['capabilities'][AdminPermission::EXTERNAL_IDPS_WRITE])->toBeTrue()
+        ->and($permissions['capabilities'][AdminPermission::AUTHENTICATION_AUDIT_READ])->toBeTrue()
         ->and($permissions['menus'])->toHaveCount(count(AdminMenu::ids()))
-        ->and(visibleMenuIds($permissions['menus']))->toContain('dashboard', 'users', 'roles', 'clients', 'external-idps', 'sessions', 'audit', 'profile');
+        ->and(visibleMenuIds($permissions['menus']))->toContain('dashboard', 'users', 'roles', 'clients', 'external-idps', 'sessions', 'audit', 'authentication-audit', 'profile');
 });
 
 it('limits normal users to profile capabilities and profile menu', function (): void {
@@ -45,10 +46,11 @@ it('denies unknown roles and unknown menu ids by default', function (): void {
 it('uses centralized menu definitions for required permissions', function (): void {
     $menus = AdminMenu::definitions();
 
-    expect(AdminMenu::ids())->toBe(['dashboard', 'users', 'roles', 'clients', 'external-idps', 'sessions', 'audit', 'profile'])
+    expect(AdminMenu::ids())->toBe(['dashboard', 'users', 'roles', 'clients', 'external-idps', 'sessions', 'audit', 'authentication-audit', 'profile'])
         ->and($menus[1]['required_permission'])->toBe(AdminPermission::USERS_READ)
         ->and($menus[4]['required_permission'])->toBe(AdminPermission::EXTERNAL_IDPS_READ)
-        ->and($menus[5]['required_permission'])->toBe(AdminPermission::SESSIONS_READ);
+        ->and($menus[5]['required_permission'])->toBe(AdminPermission::SESSIONS_READ)
+        ->and($menus[7]['required_permission'])->toBe(AdminPermission::AUTHENTICATION_AUDIT_READ);
 });
 
 /**

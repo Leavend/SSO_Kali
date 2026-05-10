@@ -20,6 +20,8 @@ final class AdminMenu
 
     public const AUDIT = 'audit';
 
+    public const AUTHENTICATION_AUDIT = 'authentication-audit';
+
     public const PROFILE = 'profile';
 
     /**
@@ -62,6 +64,11 @@ final class AdminMenu
                 'id' => self::AUDIT,
                 'label' => 'Audit Trail',
                 'required_permission' => AdminPermission::AUDIT_READ,
+            ],
+            [
+                'id' => self::AUTHENTICATION_AUDIT,
+                'label' => 'Authentication Audit',
+                'required_permission' => AdminPermission::AUTHENTICATION_AUDIT_READ,
             ],
             [
                 'id' => self::PROFILE,

@@ -30,6 +30,8 @@ final class AdminPermission
 
     public const AUDIT_READ = 'admin.audit.read';
 
+    public const AUTHENTICATION_AUDIT_READ = 'admin.authentication-audit.read';
+
     public const PROFILE_READ = 'profile.read';
 
     public const PROFILE_WRITE = 'profile.write';
@@ -52,6 +54,7 @@ final class AdminPermission
             self::SESSIONS_READ,
             self::SESSIONS_TERMINATE,
             self::AUDIT_READ,
+            self::AUTHENTICATION_AUDIT_READ,
             self::PROFILE_READ,
             self::PROFILE_WRITE,
         ];

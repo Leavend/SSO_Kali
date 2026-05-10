@@ -72,6 +72,11 @@ final class AdminPermissionMatrix
         return $this->rbac->allows($user, AdminPermission::AUDIT_READ);
     }
 
+    public function canReadAuthenticationAudit(User $user): bool
+    {
+        return $this->rbac->allows($user, AdminPermission::AUTHENTICATION_AUDIT_READ);
+    }
+
     public function allows(User $user, string $permission): bool
     {
         return $this->rbac->allows($user, $permission);
