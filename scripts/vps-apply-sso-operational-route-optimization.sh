@@ -20,6 +20,8 @@ Optimizes active VPS Nginx routes for:
   /ready
   /_internal/performance-metrics
   /_internal/queue-metrics
+  /token and /oauth2/token method guards
+  /revocation, /oauth2/revocation, and /oauth/revoke method guards
 
 Modes:
   --mode audit  Show current active Nginx route/cache state.
@@ -143,6 +145,38 @@ locations = {
 {indent}    add_header Cache-Control "private, no-store" always;
 {indent}}}''',
 }
+
+oauth_method_guard_common = f'''{indent}    if ($request_method !~ ^(POST|OPTIONS)$) {{
+{indent}        add_header Allow "POST, OPTIONS" always;
+{indent}        add_header Cache-Control "no-store" always;
+{indent}        return 405;
+{indent}    }}
+{indent}    add_header Allow "POST, OPTIONS" always;
+{indent}    include {snippet};
+{indent}    proxy_pass http://{upstream};
+{indent}    proxy_buffering on;
+{indent}    proxy_buffer_size 16k;
+{indent}    proxy_buffers 16 16k;'''
+
+oauth_method_guard_locations = {
+    '/token': f'''{indent}location = /token {{
+{oauth_method_guard_common}
+{indent}}}''',
+    '/oauth2/token': f'''{indent}location = /oauth2/token {{
+{oauth_method_guard_common}
+{indent}}}''',
+    '/revocation': f'''{indent}location = /revocation {{
+{oauth_method_guard_common}
+{indent}}}''',
+    '/oauth2/revocation': f'''{indent}location = /oauth2/revocation {{
+{oauth_method_guard_common}
+{indent}}}''',
+    '/oauth/revoke': f'''{indent}location = /oauth/revoke {{
+{oauth_method_guard_common}
+{indent}}}''',
+}
+
+locations.update(oauth_method_guard_locations)
 
 def find_location_end(contents: str, start: int) -> int:
     depth = 0

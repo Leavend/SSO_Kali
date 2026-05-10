@@ -27,6 +27,21 @@ it('keeps the operational route optimization script idempotent for active VPS ng
         ->not->toContain('Existing block found');
 });
 
+it('rejects invalid oauth token and revocation methods at the nginx edge', function (): void {
+    $script = devOpsLifecycleOperationalRoutesFile('scripts/vps-apply-sso-operational-route-optimization.sh');
+
+    expect($script)
+        ->toContain('oauth_method_guard_common')
+        ->toContain('if ($request_method !~ ^(POST|OPTIONS)$)')
+        ->toContain('return 405')
+        ->toContain('location = /token')
+        ->toContain('location = /oauth2/token')
+        ->toContain('location = /revocation')
+        ->toContain('location = /oauth2/revocation')
+        ->toContain('location = /oauth/revoke')
+        ->toContain('add_header Allow "POST, OPTIONS" always');
+});
+
 function devOpsLifecycleOperationalRoutesFile(string $relativePath): string
 {
     $path = dirname(base_path(), 2).DIRECTORY_SEPARATOR.ltrim($relativePath, '/');
