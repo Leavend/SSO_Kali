@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Admin\AuditTrailController;
+use App\Http\Controllers\Admin\AuthenticationAuditController;
 use App\Http\Controllers\Admin\ClientController;
 use App\Http\Controllers\Admin\ClientIntegrationController;
 use App\Http\Controllers\Admin\ExternalIdentityProviderController;
@@ -65,6 +66,9 @@ Route::middleware(AdminGuard::class)->prefix('admin/api')->group(function (): vo
     ])->group(function (): void {
         Route::get('/audit/events', [AuditTrailController::class, 'index']);
         Route::get('/audit/events/{eventId}', [AuditTrailController::class, 'show'])
+            ->where('eventId', '[A-Z0-9]+');
+        Route::get('/audit/authentication-events', [AuthenticationAuditController::class, 'index']);
+        Route::get('/audit/authentication-events/{eventId}', [AuthenticationAuditController::class, 'show'])
             ->where('eventId', '[A-Z0-9]+');
         Route::get('/audit/integrity', [AuditTrailController::class, 'integrity']);
     });
