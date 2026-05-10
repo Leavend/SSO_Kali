@@ -100,10 +100,7 @@ proxy_common = f'''{indent}    include {snippet};
 {indent}    proxy_cache_lock on;
 {indent}    proxy_buffering on;
 {indent}    proxy_buffer_size 16k;
-{indent}    proxy_buffers 16 16k;
-{indent}    proxy_connect_timeout 1s;
-{indent}    proxy_send_timeout 3s;
-{indent}    proxy_read_timeout 3s;'''
+{indent}    proxy_buffers 16 16k;'''
 
 locations = {
     '/up': f'''{indent}location = /up {{

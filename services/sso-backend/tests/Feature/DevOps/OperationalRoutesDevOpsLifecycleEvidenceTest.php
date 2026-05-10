@@ -24,6 +24,7 @@ it('keeps the operational route optimization script idempotent for active VPS ng
         ->toContain('location = /ready')
         ->toContain('keys_zone=sso_operational_routes:10m')
         ->toContain('systemctl reload nginx')
+        ->not->toContain('proxy_connect_timeout 1s')
         ->not->toContain('Existing block found');
 });
 
