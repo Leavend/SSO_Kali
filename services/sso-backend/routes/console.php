@@ -12,4 +12,5 @@ Artisan::command('inspire', function () {
 
 Schedule::command('telescope:prune --hours='.(int) config('telescope.prune_hours', 48))->daily();
 Schedule::command('sso:prune-tokens')->daily();
+Schedule::command('sso:prune-authentication-audit-events')->daily();
 Schedule::command('sso:prune-authorization-codes')->hourly();

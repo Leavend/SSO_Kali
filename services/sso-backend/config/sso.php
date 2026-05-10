@@ -17,6 +17,9 @@ return [
         'request_timing_slow_ms' => (float) env('SSO_REQUEST_TIMING_SLOW_MS', 500),
         'internal_queue_metrics_enabled' => (bool) env('SSO_INTERNAL_QUEUE_METRICS_ENABLED', false),
     ],
+    'audit' => [
+        'authentication_retention_days' => (int) env('SSO_AUTHENTICATION_AUDIT_RETENTION_DAYS', 400),
+    ],
     'logout' => [
         'backchannel_timeout_seconds' => (int) env('OIDC_BACKCHANNEL_LOGOUT_TIMEOUT_SECONDS', 5),
         'backchannel_backoff_seconds' => $csv(env('OIDC_BACKCHANNEL_LOGOUT_BACKOFF_SECONDS', '10,30,90')),
