@@ -244,8 +244,8 @@ jobs:
           source /tmp/sso-backend-ssh-helpers.sh
           ssh_with_retry "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
             "set -euo pipefail
-             bash '${{ env.VPS_PROJECT_DIR }}/scripts/vps-apply-sso-operational-route-optimization.sh' --mode apply
-             nginx -t"
+             sudo -n bash '${{ env.VPS_PROJECT_DIR }}/scripts/vps-apply-sso-operational-route-optimization.sh' --mode apply
+             sudo -n nginx -t"
 
       - name: Run OIDC Backend production smoke
         if: ${{ vars.RUN_FR004_PRODUCTION_SMOKE == 'true' }}

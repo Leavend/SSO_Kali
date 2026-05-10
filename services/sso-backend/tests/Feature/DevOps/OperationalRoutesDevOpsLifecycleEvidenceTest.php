@@ -9,8 +9,9 @@ it('runs operational route optimization through the GitHub Actions deploy lifecy
         ->toContain('vps-apply-sso-operational-route-optimization.sh')
         ->toContain('Install control files on VPS')
         ->toContain('Apply operational route optimization on VPS')
+        ->toContain('sudo -n bash')
         ->toContain('--mode apply')
-        ->toContain('nginx -t')
+        ->toContain('sudo -n nginx -t')
         ->toContain('SSO_APPLY_OPERATIONAL_ROUTE_OPTIMIZATION');
 });
 
