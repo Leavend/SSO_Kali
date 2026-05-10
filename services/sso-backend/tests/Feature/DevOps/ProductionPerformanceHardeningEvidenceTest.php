@@ -11,8 +11,8 @@ it('locks PO1 to protect internal metrics at the nginx edge', function (): void 
         ->toContain('allow 127.0.0.1;')
         ->toContain('allow ::1;')
         ->toContain('deny all;')
-        ->toContain('proxy_connect_timeout 2s')
-        ->toContain('proxy_read_timeout 10s');
+        ->toContain('proxy_connect_timeout 1s')
+        ->toContain('proxy_read_timeout 3s');
 });
 
 it('locks PO2 to keep up as an edge static liveness endpoint', function (): void {
@@ -59,9 +59,9 @@ it('locks PO5 scaling readiness and wrk grouping documentation', function (): vo
         ->toContain('docker compose')
         ->toContain('--scale sso-backend=2')
         ->toContain('--scale sso-backend=1')
-        ->toContain('High-RPS safe group')
-        ->toContain('Low-RPS dependency group')
-        ->toContain('Do not public-load `/_internal/*`');
+        ->toContain('High-RPS public operational group')
+        ->toContain('Internal metrics group')
+        ->toContain('Do not unauthenticated-public load test these endpoints');
 });
 
 function productionPerformanceHardeningContents(string $relativePath): string

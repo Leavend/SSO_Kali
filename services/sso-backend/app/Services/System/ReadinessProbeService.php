@@ -17,16 +17,22 @@ final class ReadinessProbeService
     ) {}
 
     /**
-     * @return array{ready: bool, checks: array{database: bool, redis: bool, queue: array{pending_jobs: int, failed_jobs: int, oldest_pending_age_seconds: int|null}}}
+     * @return array{ready: bool, checks: array{database: bool, redis: bool, queue?: array{pending_jobs: int, failed_jobs: int, oldest_pending_age_seconds: int|null}, external_idps?: array<string, mixed>}}
      */
     public function inspect(): array
     {
         $checks = [
             'database' => $this->databaseIsReady(),
             'redis' => $this->redisIsReady(),
-            'queue' => $this->queueObservability->snapshot(),
-            'external_idps' => $this->externalIdpHealth->readinessSummary(),
         ];
+
+        if (config('sso.observability.readiness_queue_snapshot_enabled', false)) {
+            $checks['queue'] = $this->queueObservability->snapshot();
+        }
+
+        if (config('sso.observability.readiness_external_idp_snapshot_enabled', false)) {
+            $checks['external_idps'] = $this->externalIdpHealth->readinessSummary();
+        }
 
         return [
             'ready' => $checks['database'] && $checks['redis'],

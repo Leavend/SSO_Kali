@@ -5,8 +5,31 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
 
-it('exposes shallow readiness plus queue observability without leaking payloads', function (): void {
+it('exposes lightweight readiness by default without expensive queue snapshots', function (): void {
     Redis::shouldReceive('connection->ping')->andReturn('PONG');
+
+    DB::table('jobs')->insert([
+        'queue' => 'default',
+        'payload' => json_encode(['displayName' => 'SensitiveJob', 'secret' => 'must-not-leak'], JSON_THROW_ON_ERROR),
+        'attempts' => 0,
+        'reserved_at' => null,
+        'available_at' => time(),
+        'created_at' => time(),
+    ]);
+
+    $this->getJson('/ready')
+        ->assertOk()
+        ->assertJsonPath('checks.database', true)
+        ->assertJsonPath('checks.redis', true)
+        ->assertJsonMissingPath('checks.queue')
+        ->assertJsonMissingPath('checks.external_idps')
+        ->assertJsonMissing(['must-not-leak']);
+});
+
+it('can include queue observability in readiness only when explicitly enabled', function (): void {
+    config(['sso.observability.readiness_queue_snapshot_enabled' => true]);
+    Redis::shouldReceive('connection->ping')->andReturn('PONG');
+
     DB::table('jobs')->insert([
         'queue' => 'default',
         'payload' => json_encode(['displayName' => 'SensitiveJob', 'secret' => 'must-not-leak'], JSON_THROW_ON_ERROR),

@@ -16,6 +16,9 @@ return [
         'request_timing_sample_rate' => (float) env('SSO_REQUEST_TIMING_SAMPLE_RATE', 0.0),
         'request_timing_slow_ms' => (float) env('SSO_REQUEST_TIMING_SLOW_MS', 500),
         'internal_queue_metrics_enabled' => (bool) env('SSO_INTERNAL_QUEUE_METRICS_ENABLED', false),
+        'readiness_queue_snapshot_enabled' => (bool) env('SSO_READINESS_QUEUE_SNAPSHOT_ENABLED', false),
+        'readiness_external_idp_snapshot_enabled' => (bool) env('SSO_READINESS_EXTERNAL_IDP_SNAPSHOT_ENABLED', false),
+        'internal_metrics_token_header' => env('SSO_INTERNAL_METRICS_TOKEN_HEADER', 'X-SSO-Internal-Metrics-Token'),
     ],
     'audit' => [
         'authentication_retention_days' => (int) env('SSO_AUTHENTICATION_AUDIT_RETENTION_DAYS', 400),

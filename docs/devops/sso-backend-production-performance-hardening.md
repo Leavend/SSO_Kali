@@ -2,31 +2,32 @@
 
 ## Purpose
 
-This runbook documents PO1-PO5 hardening after production WRK results on
-`https://api-sso.timeh.my.id`.
+This runbook documents production hardening and advanced operational-route
+optimization for `https://api-sso.timeh.my.id`.
 
-## PO1: Internal Metrics Are Private
-
-The following endpoints are operational diagnostics, not public load-test targets:
+The optimized operational routes are:
 
 ```text
+/up
+/health
+/ready
 /_internal/performance-metrics
 /_internal/queue-metrics
 ```
 
-Canonical Nginx edge behavior:
+## Operational Route Optimization Matrix
 
-```nginx
-allow 127.0.0.1;
-allow ::1;
-deny all;
-```
+| Endpoint | Edge behavior | App dependency checks | Intended load profile |
+|---|---|---:|---:|
+| `/up` | Nginx static text | No | High RPS |
+| `/health` | Nginx static JSON | No | High RPS |
+| `/ready` | Laravel + 1s edge microcache | DB/Redis only by default | High burst, truthful enough |
+| `/_internal/performance-metrics` | Protected + 1s microcache | Metrics registry | Approved monitoring only |
+| `/_internal/queue-metrics` | Protected + 1s microcache | Queue tables | Approved monitoring only |
 
-Add private monitoring CIDRs only when needed. Do not allow public internet access.
+## `/up` Edge Static
 
-## PO2: `/up` Is Edge Static
-
-`/up` must stay ultra-light and should not proxy to Laravel/Octane at the edge:
+`/up` must stay ultra-light and must not proxy to Laravel/Octane at the edge:
 
 ```nginx
 location = /up {
@@ -37,21 +38,85 @@ location = /up {
 }
 ```
 
-Use `/up` for container healthchecks and Nginx liveness.
+Use `/up` for Docker healthchecks and shallow Nginx liveness.
 
-## PO3: `/health` vs `/ready`
+## `/health` Edge Static
 
-Use separate semantics:
+`/health` is intentionally shallow and high-RPS:
 
-| Endpoint | Purpose | Dependency checks | High-RPS target |
-|---|---|---:|---:|
-| `/up` | Edge/app liveness | No | Yes |
-| `/health` | Shallow app alive | No | Moderate only |
-| `/ready` | DB/Redis readiness | Yes | No |
+```nginx
+location = /health {
+    access_log off;
+    add_header Content-Type application/json always;
+    add_header Cache-Control "no-store" always;
+    return 200 '{"service":"sso-backend","healthy":true,"edge":"nginx"}\n';
+}
+```
 
-Docker healthcheck should use `/up` only to avoid dependency amplification.
+Use `/ready` for dependency checks.
 
-## PO4: Metadata/JWKS Edge Cache
+## `/ready` Microcache
+
+`/ready` remains the dependency-readiness endpoint, but edge microcache absorbs
+bursts:
+
+```nginx
+proxy_cache sso_operational_routes;
+proxy_cache_valid 200 1s;
+proxy_cache_valid 503 1s;
+proxy_cache_lock on;
+proxy_cache_use_stale error timeout updating http_500 http_502 http_503 http_504;
+add_header X-Edge-Cache $upstream_cache_status always;
+```
+
+Application-level readiness is lightweight by default:
+
+```text
+DB ping: yes
+Redis ping: yes
+Queue snapshot: off by default
+External IdP snapshot: off by default
+```
+
+Enable optional expensive readiness details only when needed:
+
+```env
+SSO_READINESS_QUEUE_SNAPSHOT_ENABLED=true
+SSO_READINESS_EXTERNAL_IDP_SNAPSHOT_ENABLED=true
+```
+
+## Internal Metrics Protection and Microcache
+
+The following endpoints are operational diagnostics:
+
+```text
+/_internal/performance-metrics
+/_internal/queue-metrics
+```
+
+Default canonical edge behavior:
+
+```nginx
+allow 127.0.0.1;
+allow ::1;
+deny all;
+```
+
+They also use 1s microcache when accessed from approved local/private monitoring:
+
+```nginx
+proxy_cache sso_operational_routes;
+proxy_cache_valid 200 1s;
+proxy_cache_valid 403 1s;
+proxy_cache_lock on;
+add_header X-Edge-Cache $upstream_cache_status always;
+```
+
+Do not unauthenticated-public load test these endpoints. If laptop WRK is required,
+temporarily add a private allowlist or token-gated Nginx rule, run the test, then
+revert to private-only.
+
+## Metadata/JWKS Edge Cache
 
 Public OIDC metadata endpoints are safe high-RPS read-only targets:
 
@@ -70,27 +135,40 @@ proxy_cache_use_stale error timeout updating http_500 http_502 http_503 http_504
 proxy_ignore_headers Set-Cookie Cache-Control Expires;
 proxy_hide_header Set-Cookie;
 add_header X-Edge-Cache $upstream_cache_status always;
-add_header Cache-Control "public, max-age=300, stale-while-revalidate=60" always;
 ```
 
-Discovery can use longer cache TTL, e.g. one hour.
+## Active VPS Apply Command
 
-## PO5: Scaling Readiness
+Canonical config in the repository is not enough if the active VPS site file is not
+patched. Use:
+
+```bash
+scripts/vps-apply-sso-operational-route-optimization.sh --mode audit
+scripts/vps-apply-sso-operational-route-optimization.sh --mode apply
+```
+
+The script:
+
+- backs up `/etc/nginx/sites-available/api-sso.timeh.my.id.conf`,
+- creates Nginx cache directories,
+- patches operational route locations,
+- runs `nginx -t`,
+- reloads Nginx,
+- prints rollback instructions.
+
+## Scaling Readiness
 
 Use horizontal scaling only for stateless backend web traffic after edge cache is in
 place.
 
-### When to scale web replicas
-
 Scale web backend when these are true:
 
-- `/jwks`, discovery, `/up` still see high p95/p99 after edge cache/tuning.
+- `/jwks`, discovery, `/up`, `/health`, `/ready` still see high p95/p99 after edge
+  cache/tuning.
 - `sso-backend` CPU is consistently >70%.
 - Postgres CPU is not the primary bottleneck.
 
-### Recommended command pattern
-
-If compose topology supports scaling without fixed container name conflicts:
+Command pattern:
 
 ```bash
 docker compose \
@@ -108,23 +186,27 @@ docker compose \
   up -d --scale sso-backend=1 sso-backend
 ```
 
-### When to scale DB or VPS instead
-
-If `/ready`, `/token`, login, or audit-heavy routes show bottlenecks with high
-Postgres CPU, scaling web replicas will not solve the root cause. Prefer:
-
-- increase VPS CPU,
-- move Postgres to dedicated/managed DB,
-- add read/cache strategy for non-critical reads,
-- avoid load testing dependency-heavy endpoints at 500 concurrent.
+If `/ready`, `/token`, login, or audit-heavy routes bottleneck with high Postgres CPU,
+scale VPS CPU or Postgres instead of only scaling web replicas.
 
 ## WRK Target Groups
 
-### High-RPS safe group
+### High-RPS public operational group
 
 ```bash
 for path in \
   "/up" \
+  "/health" \
+  "/ready"
+do
+  wrk -t8 -c500 -d2m --latency "https://api-sso.timeh.my.id${path}"
+done
+```
+
+### High-RPS public metadata group
+
+```bash
+for path in \
   "/jwks" \
   "/.well-known/jwks.json" \
   "/.well-known/openid-configuration"
@@ -133,16 +215,15 @@ do
 done
 ```
 
-### Low-RPS dependency group
+### Internal metrics group
+
+Run only from VPS/private monitoring or temporary allowlisted/token-gated source:
 
 ```bash
 for path in \
-  "/health" \
-  "/ready"
+  "/_internal/performance-metrics" \
+  "/_internal/queue-metrics"
 do
-  wrk -t4 -c50 -d1m --latency "https://api-sso.timeh.my.id${path}"
+  wrk -t4 -c100 -d1m --latency "https://api-sso.timeh.my.id${path}"
 done
 ```
-
-Do not public-load `/_internal/*`; verify them from localhost/private monitoring
-only.

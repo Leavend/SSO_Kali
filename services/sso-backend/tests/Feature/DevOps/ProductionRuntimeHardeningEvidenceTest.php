@@ -244,9 +244,25 @@ it('locks runtime verification and production devops hardening evidence', functi
                 'proxy_cache_lock on;',
             ],
             '../../docs/devops/sso-backend-production-performance-hardening.md' => [
-                'PO1: Internal Metrics Are Private',
-                'High-RPS safe group',
+                'Operational Route Optimization Matrix',
+                'High-RPS public operational group',
                 '--scale sso-backend=2',
+            ],
+        ],
+        'advanced_operational_route_optimization' => [
+            'tests/Feature/DevOps/ProductionOperationalRoutesOptimizationEvidenceTest.php' => [
+                'optimizes health as an edge static operational route',
+                'microcaches readiness',
+                'active VPS apply script',
+            ],
+            '../../scripts/vps-apply-sso-operational-route-optimization.sh' => [
+                '--mode audit|apply',
+                'sso_operational_routes',
+                'nginx -t',
+            ],
+            'app/Services/System/ReadinessProbeService.php' => [
+                'readiness_queue_snapshot_enabled',
+                'readiness_external_idp_snapshot_enabled',
             ],
         ],
     ];
