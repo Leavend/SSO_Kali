@@ -59,6 +59,8 @@ it('does not perform network probe for disabled external idp providers', functio
 });
 
 it('exposes external idp readiness as advisory summary without failing db redis readiness', function (): void {
+    config(['sso.observability.readiness_external_idp_snapshot_enabled' => true]);
+
     externalIdpHealthProvider('primary-healthy', true, false, 10, 'healthy');
     externalIdpHealthProvider('backup-unhealthy', true, true, 20, 'unhealthy');
 
@@ -73,6 +75,8 @@ it('exposes external idp readiness as advisory summary without failing db redis 
 });
 
 it('keeps readiness endpoint shallow even when all external idps are unhealthy', function (): void {
+    config(['sso.observability.readiness_external_idp_snapshot_enabled' => true]);
+
     externalIdpHealthProvider('primary-unhealthy', true, false, 10, 'unhealthy');
 
     $result = app(ReadinessProbeService::class)->inspect();
