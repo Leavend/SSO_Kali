@@ -142,6 +142,7 @@ final class PerformFrontChannelLogout
             'logout_channel' => 'frontchannel',
             'post_logout_redirect_uri' => $request->query('post_logout_redirect_uri'),
             'result' => $result,
+            'state' => $request->query('state'),
         ];
     }
 }
