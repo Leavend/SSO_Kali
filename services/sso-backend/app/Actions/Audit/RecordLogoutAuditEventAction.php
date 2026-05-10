@@ -7,6 +7,7 @@ namespace App\Actions\Audit;
 use App\Support\Audit\AuthenticationAuditRecord;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Throwable;
 
 final class RecordLogoutAuditEventAction
 {
@@ -22,7 +23,16 @@ final class RecordLogoutAuditEventAction
         $payload = $this->payload($event, $context);
 
         Log::info('[SSO_LOGOUT_AUDIT]', $payload);
-        $this->authenticationAudits->execute($this->authenticationAuditRecord($event, $payload));
+
+        try {
+            $this->authenticationAudits->execute($this->authenticationAuditRecord($event, $payload));
+        } catch (Throwable $exception) {
+            Log::warning('[SSO_LOGOUT_AUDIT_PERSISTENCE_SKIPPED]', [
+                'event' => $event,
+                'reason' => $exception->getMessage(),
+                'request_id' => $payload['request_id'],
+            ]);
+        }
     }
 
     /**
