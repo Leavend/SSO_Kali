@@ -42,6 +42,18 @@ it('rejects invalid oauth token and revocation methods at the nginx edge', funct
         ->toContain('add_header Allow "POST, OPTIONS" always');
 });
 
+it('sheds hostile oauth write bursts at the nginx edge before upstream workers', function (): void {
+    $script = devOpsLifecycleOperationalRoutesFile('scripts/vps-apply-sso-operational-route-optimization.sh');
+
+    expect($script)
+        ->toContain('zone=sso_oauth_write:10m rate=20r/s')
+        ->toContain('limit_req_status 429')
+        ->toContain('limit_req zone=sso_oauth_write burst=40 nodelay')
+        ->toContain('client_max_body_size 16k')
+        ->toContain('client_body_timeout 5s')
+        ->toContain('proxy_request_buffering on');
+});
+
 function devOpsLifecycleOperationalRoutesFile(string $relativePath): string
 {
     $path = dirname(base_path(), 2).DIRECTORY_SEPARATOR.ltrim($relativePath, '/');

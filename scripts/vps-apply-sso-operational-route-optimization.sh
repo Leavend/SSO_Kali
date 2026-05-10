@@ -76,6 +76,9 @@ proxy_cache_path /var/cache/nginx/sso_operational_routes
     max_size=32m
     inactive=10m
     use_temp_path=off;
+
+limit_req_zone $binary_remote_addr zone=sso_oauth_write:10m rate=20r/s;
+limit_req_status 429;
 EOF
 
 sudo API_SITE="$API_SITE" UPSTREAM_NAME="$UPSTREAM_NAME" FORWARDED_SNIPPET="$FORWARDED_SNIPPET" python3 - <<'PY'
@@ -151,6 +154,10 @@ oauth_method_guard_common = f'''{indent}    if ($request_method !~ ^(POST|OPTION
 {indent}        add_header Cache-Control "no-store" always;
 {indent}        return 405;
 {indent}    }}
+{indent}    limit_req zone=sso_oauth_write burst=40 nodelay;
+{indent}    client_max_body_size 16k;
+{indent}    client_body_timeout 5s;
+{indent}    proxy_request_buffering on;
 {indent}    add_header Allow "POST, OPTIONS" always;
 {indent}    include {snippet};
 {indent}    proxy_pass http://{upstream};
