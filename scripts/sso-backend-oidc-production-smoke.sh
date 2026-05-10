@@ -5,7 +5,7 @@ set -Eeuo pipefail
 PUBLIC_BASE_URL="${PUBLIC_BASE_URL:-https://api-sso.timeh.my.id}"
 TIMEOUT_SECONDS="${TIMEOUT_SECONDS:-20}"
 OIDC_CLIENT_ID="${OIDC_CLIENT_ID:-app-a}"
-OIDC_REDIRECT_URI="${OIDC_REDIRECT_URI:-https://sso.timeh.my.id/auth/callback}"
+OIDC_REDIRECT_URI="${OIDC_REDIRECT_URI:-https://sso.timeh.my.id/app-a/auth/callback}"
 STATE="${STATE:-oidcBackend-production-smoke-state}"
 NONCE="${NONCE:-oidcBackend-production-smoke-nonce}"
 
@@ -26,7 +26,7 @@ Usage:
 Options:
   --public-base-url URL  Public backend URL. Default: https://api-sso.timeh.my.id
   --client-id ID         Public OIDC client ID. Default: app-a
-  --redirect-uri URI     Registered redirect URI. Default: https://sso.timeh.my.id/auth/callback
+  --redirect-uri URI     Registered redirect URI. Default: https://sso.timeh.my.id/app-a/auth/callback
   --timeout SECONDS      Curl max time per request. Default: 20
   -h, --help             Show help
 

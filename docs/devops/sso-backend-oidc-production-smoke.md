@@ -30,7 +30,7 @@ Frontend UI: https://sso.timeh.my.id
 scripts/sso-backend-oidc-production-smoke.sh \
   --public-base-url https://api-sso.timeh.my.id \
   --client-id app-a \
-  --redirect-uri https://sso.timeh.my.id/auth/callback
+  --redirect-uri https://sso.timeh.my.id/app-a/auth/callback
 ```
 
 ## GitHub Actions Usage

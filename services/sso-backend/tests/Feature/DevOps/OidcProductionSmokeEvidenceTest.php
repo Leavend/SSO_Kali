@@ -47,7 +47,7 @@ it('wires oidcBackend production smoke after deploy behind an explicit github ac
         ->and($content)->toContain('RUN_FR004_PRODUCTION_SMOKE')
         ->and($content)->toContain('scripts/sso-backend-oidc-production-smoke.sh')
         ->and($content)->toContain('https://api-sso.timeh.my.id')
-        ->and($content)->toContain('https://sso.timeh.my.id/auth/callback');
+        ->and($content)->toContain('https://sso.timeh.my.id/app-a/auth/callback');
 });
 
 function oidcBackend_production_smoke_repository_file(string $path): string
