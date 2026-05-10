@@ -8,8 +8,8 @@ use Illuminate\Support\Facades\Route as RouteFacade;
 it('keeps the production route inventory intentional', function (): void {
     $routes = collect(RouteFacade::getRoutes()->getRoutes());
 
-    expect($routes)->toHaveCount(78);
-    expect(applicationRoutes($routes))->toHaveCount(66);
+    expect($routes)->toHaveCount(80);
+    expect(applicationRoutes($routes))->toHaveCount(68);
     expect(vendorRoutes($routes))->toHaveCount(12);
 });
 
@@ -96,6 +96,8 @@ function expectedApplicationRouteSignatures(): array
         'GET|HEAD /',
         'GET|HEAD _internal/performance-metrics',
         'GET|HEAD _internal/queue-metrics',
+        'GET|HEAD admin/api/audit/authentication-events',
+        'GET|HEAD admin/api/audit/authentication-events/{eventId}',
         'GET|HEAD admin/api/audit/events',
         'GET|HEAD admin/api/audit/events/{eventId}',
         'GET|HEAD admin/api/audit/integrity',
