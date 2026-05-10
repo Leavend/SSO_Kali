@@ -59,29 +59,36 @@ final class RevokeToken
         $token = (string) $request->input('token', '');
         $hint = is_string($request->input('token_type_hint')) ? $request->input('token_type_hint') : null;
 
-        $refreshRevoked = $this->revokeRefreshToken($token, $client->clientId, $hint);
-        $accessRevoked = $this->revokeAccessToken($token, $hint);
+        $refreshResult = $this->revokeRefreshToken($token, $client->clientId, $hint);
+        $accessResult = $this->revokeAccessToken($token, $hint);
 
         $this->recordRevocationAudit($request, 'succeeded', null, $client->clientId, null, [
             'token_type_hint' => $hint,
+            'token_class' => $this->tokenClass($token, $hint),
             'token_hash' => hash('sha256', $token),
-            'refresh_token_revoked' => $refreshRevoked,
-            'access_token_revoked' => $accessRevoked,
+            'refresh_token_revoked' => $refreshResult['revoked'],
+            'access_token_revoked' => $accessResult['revoked'],
+            'refresh_token_family_hash' => $refreshResult['family_hash'],
+            'access_token_jti_hash' => $accessResult['jti_hash'],
+            'idempotent_unknown_token' => ! $refreshResult['revoked'] && ! $accessResult['revoked'],
         ]);
 
         return response()->json((object) [], 200);
     }
 
-    private function revokeRefreshToken(string $token, string $clientId, ?string $hint): bool
+    /**
+     * @return array{revoked: bool, family_hash: string|null}
+     */
+    private function revokeRefreshToken(string $token, string $clientId, ?string $hint): array
     {
         if ($hint !== 'refresh_token' && ! str_starts_with($token, 'rt_')) {
-            return false;
+            return ['revoked' => false, 'family_hash' => null];
         }
 
         $record = $this->refreshTokens->findActive($token, $clientId);
 
         if ($record === null) {
-            return false;
+            return ['revoked' => false, 'family_hash' => null];
         }
 
         $this->refreshTokens->revoke((string) $record['refresh_token_id']);
@@ -96,31 +103,39 @@ final class RevokeToken
             ]);
         }
 
-        return true;
+        return [
+            'revoked' => true,
+            'family_hash' => is_string($record['token_family_id'] ?? null)
+                ? hash('sha256', $record['token_family_id'])
+                : null,
+        ];
     }
 
-    private function revokeAccessToken(string $token, ?string $hint): bool
+    /**
+     * @return array{revoked: bool, jti_hash: string|null}
+     */
+    private function revokeAccessToken(string $token, ?string $hint): array
     {
         if ($hint === 'refresh_token' || str_starts_with($token, 'rt_')) {
-            return false;
+            return ['revoked' => false, 'jti_hash' => null];
         }
 
         try {
             $claims = $this->keys->decode($token);
         } catch (Throwable) {
-            return false;
+            return ['revoked' => false, 'jti_hash' => null];
         }
 
         $jti = is_string($claims['jti'] ?? null) ? $claims['jti'] : null;
         $ttl = max(1, (int) ($claims['exp'] ?? time()) - time());
 
         if ($jti === null) {
-            return false;
+            return ['revoked' => false, 'jti_hash' => null];
         }
 
         $this->revocations->revoke($jti, $ttl);
 
-        return true;
+        return ['revoked' => true, 'jti_hash' => hash('sha256', $jti)];
     }
 
     private function clientSecret(Request $request): ?string
@@ -167,5 +182,18 @@ final class RevokeToken
         $token = $request->input('token');
 
         return is_string($token) && $token !== '' ? hash('sha256', $token) : null;
+    }
+
+    private function tokenClass(string $token, ?string $hint): string
+    {
+        if ($hint === 'refresh_token' || str_starts_with($token, 'rt_')) {
+            return 'refresh_token';
+        }
+
+        if ($hint === 'access_token') {
+            return 'access_token';
+        }
+
+        return 'unknown';
     }
 }
