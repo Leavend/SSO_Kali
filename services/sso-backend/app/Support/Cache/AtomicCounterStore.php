@@ -24,8 +24,10 @@ final class AtomicCounterStore
     public function increment(string $key, int $amount = 1, DateTimeInterface|DateInterval|int|null $ttl = null): int
     {
         try {
-            if (Cache::getStore() instanceof RedisStore) {
-                return $this->redisIncrement($key, $amount, $ttl);
+            $store = Cache::getStore();
+
+            if ($store instanceof RedisStore) {
+                return $this->redisIncrement($store, $key, $amount, $ttl);
             }
 
             return $this->fallbackIncrement($key, $amount, $ttl);
@@ -61,9 +63,9 @@ final class AtomicCounterStore
         }
     }
 
-    private function redisIncrement(string $key, int $amount, DateTimeInterface|DateInterval|int|null $ttl): int
+    private function redisIncrement(RedisStore $store, string $key, int $amount, DateTimeInterface|DateInterval|int|null $ttl): int
     {
-        $redis = Cache::getStore()->connection();
+        $redis = $store->connection();
 
         // Use Redis INCR for atomic operation
         $newValue = (int) $redis->incrby($key, $amount);
@@ -73,8 +75,7 @@ final class AtomicCounterStore
             $seconds = match (true) {
                 $ttl instanceof DateInterval => (int) $ttl->format('%s'),
                 $ttl instanceof DateTimeInterface => max(0, $ttl->getTimestamp() - time()),
-                is_int($ttl) => $ttl,
-                default => 0,
+                default => $ttl,
             };
             if ($seconds > 0) {
                 $redis->expire($key, $seconds);

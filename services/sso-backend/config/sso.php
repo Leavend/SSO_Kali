@@ -20,6 +20,11 @@ return [
     'audit' => [
         'authentication_retention_days' => (int) env('SSO_AUTHENTICATION_AUDIT_RETENTION_DAYS', 400),
     ],
+    'seed' => [
+        'admin_email' => env('SSO_ADMIN_EMAIL', 'admin@example.test'),
+        'admin_password' => env('SSO_ADMIN_PASSWORD', 'change-me-admin-password'),
+        'admin_subject_id' => env('SSO_ADMIN_SUBJECT_ID', 'usr_admin'),
+    ],
     'logout' => [
         'backchannel_timeout_seconds' => (int) env('OIDC_BACKCHANNEL_LOGOUT_TIMEOUT_SECONDS', 5),
         'backchannel_backoff_seconds' => $csv(env('OIDC_BACKCHANNEL_LOGOUT_BACKOFF_SECONDS', '10,30,90')),

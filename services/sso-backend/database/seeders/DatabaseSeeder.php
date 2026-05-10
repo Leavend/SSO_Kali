@@ -17,15 +17,16 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $email = (string) env('SSO_ADMIN_EMAIL', 'admin@example.test');
-        $password = (string) env('SSO_ADMIN_PASSWORD', 'change-me-admin-password');
+        $email = (string) config('sso.seed.admin_email', 'admin@example.test');
+        $password = (string) config('sso.seed.admin_password', 'change-me-admin-password');
+        $subjectId = (string) config('sso.seed.admin_subject_id', 'usr_admin');
 
         $this->call(RbacSeeder::class);
 
         User::query()->updateOrCreate(
             ['email' => $email],
             [
-                'subject_id' => env('SSO_ADMIN_SUBJECT_ID', 'usr_admin'),
+                'subject_id' => $subjectId,
                 'password' => $password,
                 'given_name' => 'SSO',
                 'family_name' => 'Admin',
