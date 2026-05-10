@@ -251,6 +251,13 @@ jobs:
           scripts/sso-backend-external-idp-production-smoke.sh \
             --public-base-url "${{ vars.SSO_PUBLIC_BASE_URL || 'https://api-sso.timeh.my.id' }}"
 
+      - name: Run Authentication Audit production smoke
+        if: ${{ vars.RUN_FR006_PRODUCTION_SMOKE == 'true' }}
+        shell: bash
+        run: |
+          scripts/sso-backend-authentication-audit-production-smoke.sh \
+            --public-base-url "${{ vars.SSO_PUBLIC_BASE_URL || 'https://api-sso.timeh.my.id' }}"
+
       - name: Cleanup SSH key
         if: always()
         run: rm -f ~/.ssh/deploy_key

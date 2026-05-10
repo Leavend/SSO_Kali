@@ -30,6 +30,7 @@ it('maps FR-006 authentication audit coverage to implementation domains', functi
         'admin_permission_matrix',
         'retention_compliance',
         'observability',
+        'production_smoke',
     ]);
 
     foreach ($coverage as $domain => $evidence) {
@@ -244,6 +245,12 @@ function fr006_authentication_audit_coverage_matrix(): array
             'tests/Feature/Auth/AuthenticationAuditObservabilityEvidenceContractTest.php',
             'tests/Feature/DevOps/AuthenticationAuditObservabilityEvidenceTest.php',
         ],
+        'production_smoke' => [
+            'tests/Feature/DevOps/AuthenticationAuditProductionSmokeEvidenceTest.php',
+            '../../scripts/sso-backend-authentication-audit-production-smoke.sh',
+            '../../docs/devops/sso-backend-authentication-audit-production-smoke.md',
+            '../../.github/workflows/deploy-main.yml',
+        ],
     ];
 }
 
@@ -281,6 +288,7 @@ function fr006_authentication_audit_ci_tests(): array
         'AuthenticationAuditPermissionMatrixContractTest.php',
         'AuthenticationAuditRetentionComplianceContractTest.php',
         'AuthenticationAuditObservabilityEvidenceContractTest.php',
+        'AuthenticationAuditProductionSmokeEvidenceTest.php',
     ];
 }
 
