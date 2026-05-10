@@ -231,6 +231,24 @@ it('locks runtime verification and production devops hardening evidence', functi
                 'scripts/sso-backend-metadata-wrk-smoke.sh',
             ],
         ],
+        'production_performance_hardening_po1_po5' => [
+            'tests/Feature/DevOps/ProductionPerformanceHardeningEvidenceTest.php' => [
+                'protect internal metrics',
+                'edge static liveness',
+                'scaling readiness',
+            ],
+            '../../deploy/nginx/nginx-sso-backend-edge.conf' => [
+                'location = /_internal/performance-metrics',
+                'location = /_internal/queue-metrics',
+                'deny all;',
+                'proxy_cache_lock on;',
+            ],
+            '../../docs/devops/sso-backend-production-performance-hardening.md' => [
+                'PO1: Internal Metrics Are Private',
+                'High-RPS safe group',
+                '--scale sso-backend=2',
+            ],
+        ],
     ];
 
     foreach ($contracts as $issue => $files) {
