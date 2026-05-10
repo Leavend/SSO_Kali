@@ -193,6 +193,7 @@ jobs:
           source /tmp/sso-backend-ssh-helpers.sh
           rsync_with_retry \
             scripts/vps-deploy-main.sh \
+            scripts/vps-apply-sso-operational-route-optimization.sh \
             docker-compose.main.yml \
             "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/tmp/sso-backend-deploy/"
 
@@ -203,7 +204,8 @@ jobs:
           ssh_with_retry "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
             "set -e
              install -m 0644 /tmp/sso-backend-deploy/docker-compose.main.yml '${{ env.VPS_PROJECT_DIR }}/docker-compose.main.yml'
-             install -m 0755 /tmp/sso-backend-deploy/vps-deploy-main.sh '${{ env.VPS_PROJECT_DIR }}/scripts/vps-deploy-main.sh'"
+             install -m 0755 /tmp/sso-backend-deploy/vps-deploy-main.sh '${{ env.VPS_PROJECT_DIR }}/scripts/vps-deploy-main.sh'
+             install -m 0755 /tmp/sso-backend-deploy/vps-apply-sso-operational-route-optimization.sh '${{ env.VPS_PROJECT_DIR }}/scripts/vps-apply-sso-operational-route-optimization.sh'"
 
       - name: Install production env on VPS
         shell: bash
@@ -234,6 +236,16 @@ jobs:
              PROJECT_DIR='${{ env.VPS_PROJECT_DIR }}' \
              COMPOSE_PROJECT_NAME='${{ env.COMPOSE_PROJECT_NAME }}' \
              bash '${{ env.VPS_PROJECT_DIR }}/scripts/vps-deploy-main.sh'"
+
+      - name: Apply operational route optimization on VPS
+        if: ${{ vars.SSO_APPLY_OPERATIONAL_ROUTE_OPTIMIZATION != 'false' }}
+        shell: bash
+        run: |
+          source /tmp/sso-backend-ssh-helpers.sh
+          ssh_with_retry "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+            "set -euo pipefail
+             bash '${{ env.VPS_PROJECT_DIR }}/scripts/vps-apply-sso-operational-route-optimization.sh' --mode apply
+             nginx -t"
 
       - name: Run OIDC Backend production smoke
         if: ${{ vars.RUN_FR004_PRODUCTION_SMOKE == 'true' }}

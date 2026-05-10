@@ -2,10 +2,13 @@
 set -euo pipefail
 
 MODE="audit"
-API_SITE="/etc/nginx/sites-available/api-sso.timeh.my.id.conf"
-BACKUP_DIR="/etc/nginx/backups"
-CACHE_DIR="/var/cache/nginx/sso_operational_routes"
-OIDC_CACHE_DIR="/var/cache/nginx/sso_oidc_metadata"
+API_SITE="${API_SITE:-/etc/nginx/sites-available/api-sso.timeh.my.id.conf}"
+CACHE_CONF="${CACHE_CONF:-/etc/nginx/conf.d/sso-operational-routes-cache.conf}"
+BACKUP_DIR="${BACKUP_DIR:-/etc/nginx/backups}"
+CACHE_DIR="${CACHE_DIR:-/var/cache/nginx/sso_operational_routes}"
+OIDC_CACHE_DIR="${OIDC_CACHE_DIR:-/var/cache/nginx/sso_oidc_metadata}"
+UPSTREAM_NAME="${UPSTREAM_NAME:-sso_backend_prod_frankenphp}"
+FORWARDED_SNIPPET="${FORWARDED_SNIPPET:-/etc/nginx/snippets/sso-forwarded-headers.conf}"
 
 usage() {
   cat <<'USAGE'
@@ -19,8 +22,8 @@ Optimizes active VPS Nginx routes for:
   /_internal/queue-metrics
 
 Modes:
-  --mode audit  Show intended patch readiness without writing config.
-  --mode apply  Backup, patch, nginx -t, and reload nginx.
+  --mode audit  Show current active Nginx route/cache state.
+  --mode apply  Backup, patch idempotently, nginx -t, and reload nginx.
 USAGE
 }
 
@@ -52,161 +55,137 @@ if [[ ! -f "$API_SITE" ]]; then
   exit 1
 fi
 
-echo "[sso-op-routes] mode=$MODE site=$API_SITE"
-
-grep -nE 'location = /(up|health|ready)|location = /_internal/(performance-metrics|queue-metrics)|sso_operational_routes' "$API_SITE" || true
+echo "[sso-op-routes] mode=$MODE site=$API_SITE cache_conf=$CACHE_CONF"
+grep -nE 'location = /(up|health|ready)|location = /_internal/(performance-metrics|queue-metrics)|sso_operational_routes|keepalive ' "$API_SITE" "$CACHE_CONF" 2>/dev/null || true
 
 if [[ "$MODE" == "audit" ]]; then
-  echo "[sso-op-routes] audit complete. Re-run with --mode apply to patch active Nginx."
+  echo "[sso-op-routes] audit complete. DevOps Lifecycle uses --mode apply during deploy."
   exit 0
 fi
 
-sudo mkdir -p "$BACKUP_DIR" "$CACHE_DIR" "$OIDC_CACHE_DIR"
+sudo mkdir -p "$BACKUP_DIR" "$CACHE_DIR" "$OIDC_CACHE_DIR" "$(dirname "$CACHE_CONF")"
 sudo chown -R www-data:www-data "$CACHE_DIR" "$OIDC_CACHE_DIR" || true
 sudo cp "$API_SITE" "$BACKUP_DIR/api-sso.timeh.my.id.conf.pre-op-route-optimization.$(date +%Y%m%d%H%M%S)"
 
-python3 - <<'PY'
-from pathlib import Path
-
-path = Path('/etc/nginx/sites-available/api-sso.timeh.my.id.conf')
-text = path.read_text()
-
-cache_block = '''
+sudo tee "$CACHE_CONF" >/dev/null <<'EOF'
 proxy_cache_path /var/cache/nginx/sso_operational_routes
     levels=1:2
     keys_zone=sso_operational_routes:10m
     max_size=32m
     inactive=10m
     use_temp_path=off;
-'''
+EOF
 
-if 'keys_zone=sso_operational_routes:10m' not in text:
-    marker = 'proxy_cache_path /var/cache/nginx/sso_oidc_metadata'
-    if marker in text:
-        insert_at = text.find(marker)
-        next_block_end = text.find('\n\n', insert_at)
-        if next_block_end != -1:
-            text = text[:next_block_end + 2] + cache_block + text[next_block_end + 2:]
-        else:
-            text = cache_block + '\n' + text
-    else:
-        text = cache_block + '\n' + text
+sudo API_SITE="$API_SITE" UPSTREAM_NAME="$UPSTREAM_NAME" FORWARDED_SNIPPET="$FORWARDED_SNIPPET" python3 - <<'PY'
+from __future__ import annotations
 
-ops_locations = r'''
-location = /up {
-    access_log off;
-    add_header Content-Type text/plain always;
-    add_header Cache-Control "no-store" always;
-    return 200 "ok\n";
+import os
+import re
+from pathlib import Path
+
+path = Path(os.environ['API_SITE'])
+upstream = os.environ['UPSTREAM_NAME']
+snippet = os.environ['FORWARDED_SNIPPET']
+text = path.read_text()
+
+text = text.replace('keepalive 32;', 'keepalive 64;')
+text = text.replace('keepalive_requests 1000;', 'keepalive_requests 5000;')
+
+indent = '    '
+proxy_common = f'''{indent}    include {snippet};
+{indent}    proxy_pass http://{upstream};
+{indent}    proxy_cache sso_operational_routes;
+{indent}    proxy_cache_methods GET HEAD;
+{indent}    proxy_cache_use_stale error timeout updating http_500 http_502 http_503 http_504;
+{indent}    proxy_cache_lock on;
+{indent}    proxy_buffering on;
+{indent}    proxy_buffer_size 16k;
+{indent}    proxy_buffers 16 16k;
+{indent}    proxy_connect_timeout 1s;
+{indent}    proxy_send_timeout 3s;
+{indent}    proxy_read_timeout 3s;'''
+
+locations = {
+    '/up': f'''{indent}location = /up {{
+{indent}    access_log off;
+{indent}    default_type text/plain;
+{indent}    add_header Cache-Control "no-store" always;
+{indent}    return 200 "ok\\n";
+{indent}}}''',
+    '/health': f'''{indent}location = /health {{
+{indent}    access_log off;
+{indent}    default_type application/json;
+{indent}    add_header Cache-Control "no-store" always;
+{indent}    return 200 '{{"service":"sso-backend","healthy":true,"edge":"nginx"}}\\n';
+{indent}}}''',
+    '/ready': f'''{indent}location = /ready {{
+{proxy_common}
+{indent}    proxy_cache_valid 200 1s;
+{indent}    proxy_cache_valid 503 1s;
+{indent}    add_header X-Edge-Cache $upstream_cache_status always;
+{indent}    add_header Cache-Control "no-store" always;
+{indent}}}''',
+    '/_internal/performance-metrics': f'''{indent}location = /_internal/performance-metrics {{
+{indent}    allow 127.0.0.1;
+{indent}    allow ::1;
+{indent}    deny all;
+{proxy_common}
+{indent}    proxy_cache_valid 200 1s;
+{indent}    proxy_cache_valid 403 1s;
+{indent}    add_header X-Edge-Cache $upstream_cache_status always;
+{indent}    add_header Cache-Control "private, no-store" always;
+{indent}}}''',
+    '/_internal/queue-metrics': f'''{indent}location = /_internal/queue-metrics {{
+{indent}    allow 127.0.0.1;
+{indent}    allow ::1;
+{indent}    deny all;
+{proxy_common}
+{indent}    proxy_cache_valid 200 1s;
+{indent}    proxy_cache_valid 403 1s;
+{indent}    add_header X-Edge-Cache $upstream_cache_status always;
+{indent}    add_header Cache-Control "private, no-store" always;
+{indent}}}''',
 }
 
-location = /health {
-    access_log off;
-    add_header Content-Type application/json always;
-    add_header Cache-Control "no-store" always;
-    return 200 '{"service":"sso-backend","healthy":true,"edge":"nginx"}\n';
-}
+def find_location_end(contents: str, start: int) -> int:
+    depth = 0
+    index = contents.find('{', start)
+    if index == -1:
+        raise RuntimeError('location block has no opening brace')
 
-location = /ready {
-    proxy_pass http://sso_backend_upstream;
-    proxy_http_version 1.1;
-    proxy_set_header Connection "";
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
+    while index < len(contents):
+        char = contents[index]
+        if char == '{':
+            depth += 1
+        elif char == '}':
+            depth -= 1
+            if depth == 0:
+                return index + 1
+        index += 1
 
-    proxy_cache sso_operational_routes;
-    proxy_cache_methods GET HEAD;
-    proxy_cache_valid 200 1s;
-    proxy_cache_valid 503 1s;
-    proxy_cache_use_stale error timeout updating http_500 http_502 http_503 http_504;
-    proxy_cache_lock on;
-    proxy_buffering on;
-    proxy_buffer_size 16k;
-    proxy_buffers 16 16k;
-    proxy_connect_timeout 1s;
-    proxy_send_timeout 3s;
-    proxy_read_timeout 3s;
+    raise RuntimeError('location block has no closing brace')
 
-    add_header X-Edge-Cache $upstream_cache_status always;
-    add_header Cache-Control "no-store" always;
-}
+def replace_or_insert_location(contents: str, route: str, block: str) -> str:
+    match = re.search(rf'^\s*location\s+=\s+{re.escape(route)}\s*\{{', contents, re.MULTILINE)
+    if match:
+        end = find_location_end(contents, match.start())
+        while end < len(contents) and contents[end] in ' \t\r\n':
+            end += 1
+        return contents[:match.start()] + block + '\n\n' + contents[end:]
 
-location = /_internal/performance-metrics {
-    allow 127.0.0.1;
-    allow ::1;
-    deny all;
+    marker = re.search(r'^\s*location\s+\^~\s+/telescope\s+\{', contents, re.MULTILINE)
+    if marker:
+        return contents[:marker.start()] + block + '\n\n' + contents[marker.start():]
 
-    proxy_pass http://sso_backend_upstream;
-    proxy_http_version 1.1;
-    proxy_set_header Connection "";
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_cache sso_operational_routes;
-    proxy_cache_methods GET HEAD;
-    proxy_cache_valid 200 1s;
-    proxy_cache_valid 403 1s;
-    proxy_cache_use_stale error timeout updating http_500 http_502 http_503 http_504;
-    proxy_cache_lock on;
-    proxy_buffering on;
-    proxy_buffer_size 16k;
-    proxy_buffers 16 16k;
-    proxy_connect_timeout 1s;
-    proxy_send_timeout 3s;
-    proxy_read_timeout 3s;
+    server_end = contents.rfind('\n}')
+    if server_end == -1:
+        raise RuntimeError('could not find server block ending brace')
 
-    add_header X-Edge-Cache $upstream_cache_status always;
-    add_header Cache-Control "private, no-store" always;
-}
+    return contents[:server_end] + '\n' + block + '\n' + contents[server_end:]
 
-location = /_internal/queue-metrics {
-    allow 127.0.0.1;
-    allow ::1;
-    deny all;
+for route, block in locations.items():
+    text = replace_or_insert_location(text, route, block)
 
-    proxy_pass http://sso_backend_upstream;
-    proxy_http_version 1.1;
-    proxy_set_header Connection "";
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_cache sso_operational_routes;
-    proxy_cache_methods GET HEAD;
-    proxy_cache_valid 200 1s;
-    proxy_cache_valid 403 1s;
-    proxy_cache_use_stale error timeout updating http_500 http_502 http_503 http_504;
-    proxy_cache_lock on;
-    proxy_buffering on;
-    proxy_buffer_size 16k;
-    proxy_buffers 16 16k;
-    proxy_connect_timeout 1s;
-    proxy_send_timeout 3s;
-    proxy_read_timeout 3s;
-
-    add_header X-Edge-Cache $upstream_cache_status always;
-    add_header Cache-Control "private, no-store" always;
-}
-'''
-
-for needle in [
-    'location = /up {',
-    'location = /health {',
-    'location = /ready {',
-    'location = /_internal/performance-metrics {',
-    'location = /_internal/queue-metrics {',
-]:
-    if needle in text:
-        raise SystemExit(f'Existing block found for {needle}; apply manually or restore canonical config to avoid duplicate locations.')
-
-server_end = text.rfind('\n}')
-if server_end == -1:
-    raise SystemExit('Could not find server block ending brace.')
-
-text = text[:server_end] + '\n' + ops_locations + text[server_end:]
 path.write_text(text)
 PY
 
