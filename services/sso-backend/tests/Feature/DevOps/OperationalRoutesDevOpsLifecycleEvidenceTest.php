@@ -53,6 +53,23 @@ it('sheds hostile oauth write bursts at the nginx edge before upstream workers',
         ->toContain('proxy_request_buffering on');
 });
 
+it('rejects invalid auth and profile api methods at the nginx edge', function (): void {
+    $script = devOpsLifecycleOperationalRoutesFile('scripts/vps-apply-sso-operational-route-optimization.sh');
+
+    expect($script)
+        ->toContain('auth_profile_method_guard_locations')
+        ->toContain("'/api/auth/login':")
+        ->toContain("'/api/auth/logout':")
+        ->toContain("'/api/auth/session':")
+        ->toContain("'/api/profile':")
+        ->toContain("'/api/profile/connected-apps':")
+        ->toContain('location ~ ^/api/profile/connected-apps/[^/]+$')
+        ->toContain('POST, OPTIONS')
+        ->toContain('GET, HEAD, OPTIONS')
+        ->toContain('GET, PATCH, OPTIONS')
+        ->toContain('DELETE, OPTIONS');
+});
+
 function devOpsLifecycleOperationalRoutesFile(string $relativePath): string
 {
     $path = dirname(base_path(), 2).DIRECTORY_SEPARATOR.ltrim($relativePath, '/');

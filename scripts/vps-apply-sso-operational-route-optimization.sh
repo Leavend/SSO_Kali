@@ -184,6 +184,47 @@ oauth_method_guard_locations = {
 
 locations.update(oauth_method_guard_locations)
 
+def auth_profile_method_guard_block(route: str, allowed_methods: str, allow_header: str) -> str:
+    return f'''{indent}location = {route} {{
+{indent}    if ($request_method !~ ^({allowed_methods})$) {{
+{indent}        add_header Allow "{allow_header}" always;
+{indent}        add_header Cache-Control "no-store" always;
+{indent}        return 405;
+{indent}    }}
+{indent}    add_header Allow "{allow_header}" always;
+{indent}    include {snippet};
+{indent}    proxy_pass http://{upstream};
+{indent}    proxy_buffering on;
+{indent}    proxy_buffer_size 16k;
+{indent}    proxy_buffers 16 16k;
+{indent}}}'''
+
+auth_profile_method_guard_locations = {
+    '/api/auth/login': auth_profile_method_guard_block('/api/auth/login', 'POST|OPTIONS', 'POST, OPTIONS'),
+    '/api/auth/logout': auth_profile_method_guard_block('/api/auth/logout', 'POST|OPTIONS', 'POST, OPTIONS'),
+    '/api/auth/session': auth_profile_method_guard_block('/api/auth/session', 'GET|HEAD|OPTIONS', 'GET, HEAD, OPTIONS'),
+    '/api/profile': auth_profile_method_guard_block('/api/profile', 'GET|HEAD|PATCH|OPTIONS', 'GET, PATCH, OPTIONS'),
+    '/api/profile/connected-apps': auth_profile_method_guard_block('/api/profile/connected-apps', 'GET|HEAD|OPTIONS', 'GET, HEAD, OPTIONS'),
+}
+
+locations.update(auth_profile_method_guard_locations)
+
+regex_locations = {
+    r'^/api/profile/connected-apps/[^/]+$': f'''{indent}location ~ ^/api/profile/connected-apps/[^/]+$ {{
+{indent}    if ($request_method !~ ^(DELETE|OPTIONS)$) {{
+{indent}        add_header Allow "DELETE, OPTIONS" always;
+{indent}        add_header Cache-Control "no-store" always;
+{indent}        return 405;
+{indent}    }}
+{indent}    add_header Allow "DELETE, OPTIONS" always;
+{indent}    include {snippet};
+{indent}    proxy_pass http://{upstream};
+{indent}    proxy_buffering on;
+{indent}    proxy_buffer_size 16k;
+{indent}    proxy_buffers 16 16k;
+{indent}}}''',
+}
+
 def find_location_end(contents: str, start: int) -> int:
     depth = 0
     index = contents.find('{', start)
@@ -222,6 +263,25 @@ def replace_or_insert_location(contents: str, route: str, block: str) -> str:
 
 for route, block in locations.items():
     text = replace_or_insert_location(text, route, block)
+
+for route_pattern, block in regex_locations.items():
+    match = re.search(rf'^\s*location\s+~\s+{re.escape(route_pattern)}\s*\{{', text, re.MULTILINE)
+    if match:
+        end = find_location_end(text, match.start())
+        while end < len(text) and text[end] in ' \t\r\n':
+            end += 1
+        text = text[:match.start()] + block + '\n\n' + text[end:]
+        continue
+
+    marker = re.search(r'^\s*location\s+\^~\s+/telescope\s+\{', text, re.MULTILINE)
+    if marker:
+        text = text[:marker.start()] + block + '\n\n' + text[marker.start():]
+        continue
+
+    server_end = text.rfind('\n}')
+    if server_end == -1:
+        raise RuntimeError('could not find server block ending brace')
+    text = text[:server_end] + '\n' + block + '\n' + text[server_end:]
 
 path.write_text(text)
 PY
