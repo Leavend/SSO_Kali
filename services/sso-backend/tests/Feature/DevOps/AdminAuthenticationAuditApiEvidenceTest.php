@@ -39,7 +39,7 @@ it('locks issue85 admin authentication audit api implementation', function (): v
             'AdminPermission::AUDIT_READ',
         ],
         'tests/Feature/Admin/AdminAuthenticationAuditApiContractTest.php' => [
-            'requires admin audit read permission for authentication audit access',
+            'requires dedicated admin authentication audit read permission for authentication audit access',
             'lists filters and paginates central authentication audit events safely',
             'shows one central authentication audit event and returns not found for unknown event ids',
             'raw-access-token-must-not-leak-85',
