@@ -32,6 +32,10 @@ final class AdminPermission
 
     public const AUTHENTICATION_AUDIT_READ = 'admin.authentication-audit.read';
 
+    public const SSO_ERROR_TEMPLATES_READ = 'admin.sso-error-templates.read';
+
+    public const SSO_ERROR_TEMPLATES_WRITE = 'admin.sso-error-templates.write';
+
     public const PROFILE_READ = 'profile.read';
 
     public const PROFILE_WRITE = 'profile.write';
@@ -55,6 +59,8 @@ final class AdminPermission
             self::SESSIONS_TERMINATE,
             self::AUDIT_READ,
             self::AUTHENTICATION_AUDIT_READ,
+            self::SSO_ERROR_TEMPLATES_READ,
+            self::SSO_ERROR_TEMPLATES_WRITE,
             self::PROFILE_READ,
             self::PROFILE_WRITE,
         ];

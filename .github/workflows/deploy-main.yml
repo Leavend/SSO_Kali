@@ -258,6 +258,16 @@ jobs:
           scripts/sso-backend-authentication-audit-production-smoke.sh \
             --public-base-url "${{ vars.SSO_PUBLIC_BASE_URL || 'https://api-sso.timeh.my.id' }}"
 
+      - name: Run FR-007 SSO error production smoke
+        if: ${{ vars.RUN_FR007_PRODUCTION_SMOKE == 'true' }}
+        shell: bash
+        run: |
+          scripts/sso-backend-sso-error-production-smoke.sh \
+            --public-base-url "${{ vars.SSO_PUBLIC_BASE_URL || 'https://api-sso.timeh.my.id' }}" \
+            --frontend-login-url "${{ vars.SSO_FRONTEND_LOGIN_URL || 'https://sso.timeh.my.id/login' }}" \
+            --client-id "${{ vars.SSO_FR007_SMOKE_CLIENT_ID || 'app-a' }}" \
+            --redirect-uri "${{ vars.SSO_FR007_SMOKE_REDIRECT_URI || 'https://sso.timeh.my.id/app-a/auth/callback' }}"
+
       - name: Cleanup SSH key
         if: always()
         run: rm -f ~/.ssh/deploy_key

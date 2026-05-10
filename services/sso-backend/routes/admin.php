@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\ExternalIdentityProviderController;
 use App\Http\Controllers\Admin\PrincipalController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SessionController;
+use App\Http\Controllers\Admin\SsoErrorTemplateController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Middleware\AdminGuard;
 use App\Http\Middleware\EnsureAdminMfaAssurance;
@@ -67,6 +68,17 @@ Route::middleware(AdminGuard::class)->prefix('admin/api')->group(function (): vo
         Route::get('/audit/authentication-events', [AuthenticationAuditController::class, 'index']);
         Route::get('/audit/authentication-events/{eventId}', [AuthenticationAuditController::class, 'show'])
             ->where('eventId', '[A-Z0-9]+');
+    });
+
+    Route::middleware([
+        'throttle:admin-read',
+        RequireAdminPermission::class.':'.AdminPermission::SSO_ERROR_TEMPLATES_READ,
+        EnsureFreshAdminAuth::class.':read',
+        EnsureAdminMfaAssurance::class,
+    ])->group(function (): void {
+        Route::get('/sso-error-templates', [SsoErrorTemplateController::class, 'index']);
+        Route::get('/sso-error-templates/{errorCode}', [SsoErrorTemplateController::class, 'show'])
+            ->where('errorCode', '[a-z_]+');
     });
 
     Route::middleware([
@@ -144,6 +156,18 @@ Route::middleware(AdminGuard::class)->prefix('admin/api')->group(function (): vo
         Route::post('/external-idps', [ExternalIdentityProviderController::class, 'store']);
         Route::patch('/external-idps/{providerKey}', [ExternalIdentityProviderController::class, 'update'])
             ->where('providerKey', '[a-z0-9_-]+');
+    });
+
+    Route::middleware([
+        'throttle:admin-write',
+        RequireAdminPermission::class.':'.AdminPermission::SSO_ERROR_TEMPLATES_WRITE,
+        EnsureFreshAdminAuth::class.':step_up',
+        EnsureAdminMfaAssurance::class,
+    ])->group(function (): void {
+        Route::patch('/sso-error-templates/{errorCode}', [SsoErrorTemplateController::class, 'update'])
+            ->where('errorCode', '[a-z_]+');
+        Route::post('/sso-error-templates/{errorCode}/reset', [SsoErrorTemplateController::class, 'reset'])
+            ->where('errorCode', '[a-z_]+');
     });
 
     Route::middleware([

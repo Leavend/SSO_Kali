@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Actions\Oidc;
 
+use App\Actions\SsoErrors\BuildSsoErrorRedirectAction;
+use App\Actions\SsoErrors\RecordSsoErrorAction;
+use App\Enums\SsoErrorCode;
 use App\Services\Oidc\AuthContextFactory;
 use App\Services\Oidc\AuthorizationCodeStore;
 use App\Services\Oidc\AuthRequestStore;
@@ -14,7 +17,7 @@ use App\Services\Oidc\UserProfileSynchronizer;
 use App\Services\Zitadel\ZitadelBrokerService;
 use App\Services\Zitadel\ZitadelTokenVerifier;
 use App\Support\Oidc\BrokerAuthFlowCookie;
-use App\Support\Responses\OidcErrorResponse;
+use App\Support\SsoErrors\SsoErrorContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -34,6 +37,8 @@ final class HandleBrokerCallback
         private readonly BrokerAuthFlowCookie $authFlowCookie,
         private readonly BrokerBrowserSession $browserSession,
         private readonly BrokerCallbackSuccessLogger $successLogger,
+        private readonly RecordSsoErrorAction $ssoErrors,
+        private readonly BuildSsoErrorRedirectAction $errorRedirects,
     ) {}
 
     public function handle(Request $request): JsonResponse|RedirectResponse
@@ -45,12 +50,17 @@ final class HandleBrokerCallback
         }
 
         if (is_string($request->query('error'))) {
-            return $this->clearAuthFlowCookie(OidcErrorResponse::redirect(
-                (string) $context['redirect_uri'],
-                (string) $request->query('error'),
-                (string) $request->query('error_description', 'Authentication failed upstream.'),
-                is_string($context['original_state'] ?? null) ? $context['original_state'] : null,
-            ));
+            return $this->clearAuthFlowCookie(
+                redirect()->away($this->frontendErrorRedirect(
+                    code: $this->upstreamErrorCode((string) $request->query('error')),
+                    safeReason: 'upstream_callback_error',
+                    technicalReason: (string) $request->query('error_description', 'Authentication failed upstream.'),
+                    request: $request,
+                    context: $context,
+                    retryAllowed: $this->upstreamErrorCode((string) $request->query('error')) === SsoErrorCode::TemporarilyUnavailable,
+                    alternativeLoginAllowed: $this->upstreamErrorCode((string) $request->query('error')) === SsoErrorCode::TemporarilyUnavailable,
+                ))
+            );
         }
 
         return $this->clearAuthFlowCookie($this->completeAuthorization($request, $context));
@@ -75,21 +85,26 @@ final class HandleBrokerCallback
         $context = $this->authFlowCookie->read($request);
 
         if ($context === null) {
-            // No cache entry AND no auth-flow cookie — redirect to landing page
-            // instead of showing raw JSON to the end-user.
-            $appBaseUrl = (string) config('sso.issuer', config('app.url'));
-
             return $this->clearAuthFlowCookie(
-                redirect()->away($appBaseUrl.'/?error=session_expired')
+                redirect()->away($this->frontendErrorRedirect(
+                    code: SsoErrorCode::SessionExpired,
+                    safeReason: 'missing_broker_context',
+                    technicalReason: 'No cache entry and no auth-flow cookie were available for broker callback.',
+                    request: $request,
+                    context: [],
+                ))
             );
         }
 
-        return $this->clearAuthFlowCookie(OidcErrorResponse::redirect(
-            $context['redirect_uri'],
-            'invalid_request',
-            'The broker authentication session expired before completion. Start a new sign-in attempt.',
-            $context['original_state'],
-        ));
+        return $this->clearAuthFlowCookie(
+            redirect()->away($this->frontendErrorRedirect(
+                code: SsoErrorCode::SessionExpired,
+                safeReason: 'expired_broker_context',
+                technicalReason: 'The broker authentication session expired before completion.',
+                request: $request,
+                context: $context,
+            ))
+        );
     }
 
     /**
@@ -151,12 +166,15 @@ final class HandleBrokerCallback
             'original_state' => is_string($context['original_state'] ?? null) ? $context['original_state'] : null,
         ]);
 
-        return OidcErrorResponse::redirect(
-            (string) $context['redirect_uri'],
-            'temporarily_unavailable',
-            'The upstream identity engine is unavailable.',
-            is_string($context['original_state'] ?? null) ? $context['original_state'] : null,
-        );
+        return redirect()->away($this->frontendErrorRedirect(
+            code: SsoErrorCode::TemporarilyUnavailable,
+            safeReason: 'upstream_handshake_failed',
+            technicalReason: $exception->getMessage(),
+            request: request(),
+            context: $context,
+            retryAllowed: true,
+            alternativeLoginAllowed: true,
+        ));
     }
 
     private function clearAuthFlowCookie(JsonResponse|RedirectResponse $response): JsonResponse|RedirectResponse
@@ -267,5 +285,48 @@ final class HandleBrokerCallback
         ]);
 
         return $redirectUri.(str_contains($redirectUri, '?') ? '&' : '?').$query;
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     */
+    private function frontendErrorRedirect(
+        SsoErrorCode $code,
+        string $safeReason,
+        string $technicalReason,
+        Request $request,
+        array $context,
+        bool $retryAllowed = false,
+        bool $alternativeLoginAllowed = false,
+    ): string {
+        $errorContext = new SsoErrorContext(
+            code: $code,
+            safeReason: $safeReason,
+            technicalReason: $technicalReason,
+            clientId: $this->optionalString($context['client_id'] ?? null),
+            redirectUri: $this->optionalString($context['redirect_uri'] ?? null),
+            sessionId: $this->optionalString($context['session_id'] ?? null),
+            correlationId: $request->headers->get('X-Request-Id'),
+            retryAllowed: $retryAllowed,
+            alternativeLoginAllowed: $alternativeLoginAllowed,
+        );
+
+        return $this->errorRedirects->execute($errorContext, $this->ssoErrors->execute($errorContext));
+    }
+
+    private function upstreamErrorCode(string $error): SsoErrorCode
+    {
+        return match ($error) {
+            'access_denied' => SsoErrorCode::AccessDenied,
+            'invalid_request' => SsoErrorCode::InvalidRequest,
+            'temporarily_unavailable' => SsoErrorCode::TemporarilyUnavailable,
+            'server_error' => SsoErrorCode::ServerError,
+            default => SsoErrorCode::ServerError,
+        };
+    }
+
+    private function optionalString(mixed $value): ?string
+    {
+        return is_string($value) && $value !== '' ? $value : null;
     }
 }

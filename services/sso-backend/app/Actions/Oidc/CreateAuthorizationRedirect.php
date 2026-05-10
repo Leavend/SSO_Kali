@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Actions\Oidc;
 
 use App\Actions\Audit\RecordAuthenticationAuditEventAction;
+use App\Actions\SsoErrors\BuildSsoErrorRedirectAction;
+use App\Actions\SsoErrors\RecordSsoErrorAction;
+use App\Enums\SsoErrorCode;
 use App\Services\Oidc\AuthorizationCodeStore;
 use App\Services\Oidc\AuthRequestStore;
 use App\Services\Oidc\BrokerBrowserSession;
@@ -18,6 +21,7 @@ use App\Support\Oidc\BrokerAuthFlowCookie;
 use App\Support\Oidc\DownstreamClient;
 use App\Support\Oidc\Pkce;
 use App\Support\Responses\OidcErrorResponse;
+use App\Support\SsoErrors\SsoErrorContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -36,6 +40,8 @@ final class CreateAuthorizationRedirect
         private readonly ZitadelBrokerService $broker,
         private readonly ScopePolicy $scopes,
         private readonly RecordAuthenticationAuditEventAction $audits,
+        private readonly RecordSsoErrorAction $ssoErrors,
+        private readonly BuildSsoErrorRedirectAction $errorRedirects,
     ) {}
 
     public function handle(Request $request): JsonResponse|RedirectResponse
@@ -68,11 +74,19 @@ final class CreateAuthorizationRedirect
         if ($this->prompt($request) === 'none') {
             $this->recordRejected($request, $client, 'login_required', $context);
 
+            $this->recordFrontendError(
+                code: SsoErrorCode::LoginRequired,
+                safeReason: 'prompt_none_requires_login',
+                technicalReason: 'The request requires user interaction, but prompt=none was requested.',
+                request: $request,
+                context: $context,
+            );
+
             return OidcErrorResponse::redirect(
                 (string) $context['redirect_uri'],
                 'login_required',
-                'The request requires user interaction, but prompt=none was requested.',
-                (string) ($context['original_state'] ?? ''),
+                'Login is required to continue.',
+                is_string($context['original_state'] ?? null) ? $context['original_state'] : null,
             );
         }
 
@@ -81,11 +95,15 @@ final class CreateAuthorizationRedirect
         if ($upstreamState === null) {
             $this->recordRejected($request, $client, 'temporarily_unavailable', $context);
 
-            return OidcErrorResponse::json(
-                'temporarily_unavailable',
-                'The authentication session could not be started. Please try again.',
-                503,
-            );
+            return redirect()->away($this->frontendErrorRedirect(
+                code: SsoErrorCode::TemporarilyUnavailable,
+                safeReason: 'auth_request_store_unavailable',
+                technicalReason: 'The authentication session could not be started.',
+                request: $request,
+                context: $context,
+                retryAllowed: true,
+                alternativeLoginAllowed: true,
+            ));
         }
 
         $this->recordAccepted($request, $client, $context, 'upstream_redirect');
@@ -415,6 +433,60 @@ final class CreateAuthorizationRedirect
             'reason' => $reason,
             'description' => $description,
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     */
+    private function recordFrontendError(
+        SsoErrorCode $code,
+        string $safeReason,
+        string $technicalReason,
+        Request $request,
+        array $context,
+        bool $retryAllowed = false,
+        bool $alternativeLoginAllowed = false,
+    ): string {
+        $errorContext = new SsoErrorContext(
+            code: $code,
+            safeReason: $safeReason,
+            technicalReason: $technicalReason,
+            clientId: $this->optionalString($context['client_id'] ?? null),
+            redirectUri: $this->optionalString($context['redirect_uri'] ?? null),
+            sessionId: $this->optionalString($context['session_id'] ?? null),
+            correlationId: $request->headers->get('X-Request-Id'),
+            retryAllowed: $retryAllowed,
+            alternativeLoginAllowed: $alternativeLoginAllowed,
+        );
+
+        return $this->ssoErrors->execute($errorContext);
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     */
+    private function frontendErrorRedirect(
+        SsoErrorCode $code,
+        string $safeReason,
+        string $technicalReason,
+        Request $request,
+        array $context,
+        bool $retryAllowed = false,
+        bool $alternativeLoginAllowed = false,
+    ): string {
+        $errorContext = new SsoErrorContext(
+            code: $code,
+            safeReason: $safeReason,
+            technicalReason: $technicalReason,
+            clientId: $this->optionalString($context['client_id'] ?? null),
+            redirectUri: $this->optionalString($context['redirect_uri'] ?? null),
+            sessionId: $this->optionalString($context['session_id'] ?? null),
+            correlationId: $request->headers->get('X-Request-Id'),
+            retryAllowed: $retryAllowed,
+            alternativeLoginAllowed: $alternativeLoginAllowed,
+        );
+
+        return $this->errorRedirects->execute($errorContext, $this->ssoErrors->execute($errorContext));
     }
 
     /**

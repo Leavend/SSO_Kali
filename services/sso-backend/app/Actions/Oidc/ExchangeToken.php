@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Actions\Oidc;
 
 use App\Actions\Audit\RecordAuthenticationAuditEventAction;
+use App\Actions\SsoErrors\RecordSsoErrorAction;
+use App\Enums\SsoErrorCode;
 use App\Services\Oidc\AuthorizationCodeStore;
 use App\Services\Oidc\DownstreamClientRegistry;
 use App\Services\Oidc\LocalTokenService;
@@ -16,6 +18,7 @@ use App\Support\Audit\AuthenticationAuditRecord;
 use App\Support\Oidc\DownstreamClient;
 use App\Support\Oidc\Pkce;
 use App\Support\Responses\OidcErrorResponse;
+use App\Support\SsoErrors\SsoErrorContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Throwable;
@@ -31,6 +34,7 @@ final class ExchangeToken
         private readonly UserProfileSynchronizer $profiles,
         private readonly OidcIncidentAuditLogger $incidents,
         private readonly RecordAuthenticationAuditEventAction $audits,
+        private readonly RecordSsoErrorAction $ssoErrors,
     ) {}
 
     public function handle(Request $request): JsonResponse
@@ -319,6 +323,32 @@ final class ExchangeToken
             ...$context,
         ]);
 
+        $this->recordSsoTokenError($request, $reason, $error, $description, $context);
+
         return OidcErrorResponse::json($error, $description, $status);
+    }
+
+    private function recordSsoTokenError(Request $request, string $reason, string $error, string $description, array $context): void
+    {
+        $this->ssoErrors->execute(new SsoErrorContext(
+            code: $this->ssoErrorCode($error),
+            safeReason: $reason,
+            technicalReason: $description,
+            clientId: $this->optionalString($context['client_id'] ?? $request->input('client_id')),
+            redirectUri: $this->optionalString($request->input('redirect_uri')),
+            correlationId: $request->headers->get('X-Request-Id'),
+        ));
+    }
+
+    private function ssoErrorCode(string $error): SsoErrorCode
+    {
+        return match ($error) {
+            'invalid_grant' => SsoErrorCode::InvalidGrant,
+            'invalid_request' => SsoErrorCode::InvalidRequest,
+            'access_denied' => SsoErrorCode::AccessDenied,
+            'temporarily_unavailable' => SsoErrorCode::TemporarilyUnavailable,
+            'server_error' => SsoErrorCode::ServerError,
+            default => SsoErrorCode::InvalidRequest,
+        };
     }
 }
