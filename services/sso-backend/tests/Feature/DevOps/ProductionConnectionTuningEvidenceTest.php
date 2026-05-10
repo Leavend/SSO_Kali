@@ -49,6 +49,16 @@ it('documents connection pressure tuning verification rollback and wrk compariso
         ->and($content)->not->toContain('plaintext secret');
 });
 
+it('keeps local frankenphp compose capacity aligned with production worker defaults', function (): void {
+    $compose = connection_tuning_repository_file('services/sso-backend/docker-compose.frankenphp.yml');
+    $content = file_get_contents($compose);
+
+    expect($compose)->toBeFile()
+        ->and($content)->toContain('SSO_BACKEND_OCTANE_WORKERS: "auto"')
+        ->and($content)->toContain('SSO_BACKEND_OCTANE_MAX_REQUESTS: "1000"')
+        ->and($content)->not->toContain('SSO_BACKEND_OCTANE_WORKERS: "1"');
+});
+
 function connection_tuning_repository_file(string $path): string
 {
     return dirname(base_path(), 2).DIRECTORY_SEPARATOR.$path;

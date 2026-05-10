@@ -21,8 +21,8 @@ services:
       CACHE_STORE: database
       QUEUE_CONNECTION: database
       SESSION_DRIVER: database
-      SSO_BACKEND_OCTANE_WORKERS: "1"
-      SSO_BACKEND_OCTANE_MAX_REQUESTS: "500"
+      SSO_BACKEND_OCTANE_WORKERS: "auto"
+      SSO_BACKEND_OCTANE_MAX_REQUESTS: "1000"
       SSO_BACKEND_WAIT_FOR_DB: "false"
       SSO_BACKEND_PASSPORT_KEYS: "false"
     volumes:
