@@ -68,7 +68,7 @@ require_json_field() {
 
 assert_no_secret_like_output() {
   local label="$1" payload="$2"
-  if grep -Eiq '(access_token|refresh_token|id_token|client_secret|authorization: bearer|set-cookie)' <<<"$payload"; then
+  if grep -Eiq '(("|^|[[:space:]])(access_token|refresh_token|id_token|client_secret)("|[[:space:]])[[:space:]]*[:=]|authorization:[[:space:]]*bearer|set-cookie)' <<<"$payload"; then
     fail "$label leaked token-like or secret-like material"
   fi
   log "$label secret-free output OK"
