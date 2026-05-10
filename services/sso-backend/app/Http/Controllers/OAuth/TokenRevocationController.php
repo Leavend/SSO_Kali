@@ -32,8 +32,12 @@ final class TokenRevocationController
 
     private function confidentialClient(Request $request): ?Client
     {
-        $client = Client::query()->whereKey($request->string('client_id')->toString())->first();
-        $secret = $request->string('client_secret')->toString();
+        try {
+            $client = Client::query()->whereKey($request->string('client_id')->toString())->first();
+            $secret = $request->string('client_secret')->toString();
+        } catch (\Throwable) {
+            return null;
+        }
 
         if (! $client instanceof Client || ! is_string($client->getAttribute('secret'))) {
             return null;

@@ -33,6 +33,21 @@ it('rejects userinfo without bearer credentials using OIDC error semantics', fun
         ->assertJsonPath('error', 'invalid_token');
 });
 
+it('rejects post userinfo without bearer credentials using OIDC error semantics', function (): void {
+    $this->postJson('/userinfo')
+        ->assertStatus(401)
+        ->assertJsonPath('error', 'invalid_token');
+});
+
+it('keeps legacy oauth revoke invalid requests RFC7009 safe', function (): void {
+    $this->postJson('/oauth/revoke', [
+        'client_id' => 'invalid-client',
+        'client_secret' => 'invalid-secret',
+        'token' => 'invalid-token',
+    ])->assertOk()
+        ->assertExactJson([]);
+});
+
 it('rejects centralized logout without bearer credentials using OIDC error semantics', function (): void {
     $this->postJson('/connect/logout')
         ->assertStatus(401)

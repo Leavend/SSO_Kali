@@ -60,6 +60,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'oauth2/token',
             'oauth2/revocation',
             'oauth/revoke',
+            'userinfo',
             'connect/register-session',
             'connect/logout',
             'connect/backchannel/admin-panel/logout',
