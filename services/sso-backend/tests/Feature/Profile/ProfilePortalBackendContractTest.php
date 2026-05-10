@@ -101,6 +101,21 @@ it('updates only allowed self profile fields and audits changed field names', fu
         ->and(json_encode($context, JSON_THROW_ON_ERROR))->not->toContain('Bearer');
 });
 
+it('uses a dedicated profile api throttle bucket for burst isolation', function (): void {
+    $routes = collect(app('router')->getRoutes())->mapWithKeys(fn ($route): array => [
+        implode('|', $route->methods()).' '.$route->uri() => $route->gatherMiddleware(),
+    ]);
+
+    foreach ([
+        'GET|HEAD api/profile',
+        'PATCH api/profile',
+        'GET|HEAD api/profile/connected-apps',
+        'DELETE api/profile/connected-apps/{clientId}',
+    ] as $route) {
+        expect($routes[$route] ?? [])->toContain('throttle:profile-api');
+    }
+});
+
 function profilePortalUser(): User
 {
     return User::factory()->create([

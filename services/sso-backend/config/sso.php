@@ -92,6 +92,8 @@ return [
         'authorize_per_minute' => (int) env('OIDC_AUTHORIZE_RATE_LIMIT_PER_MINUTE', 20),
         'callback_per_minute' => (int) env('OIDC_CALLBACK_RATE_LIMIT_PER_MINUTE', 30),
         'token_per_minute' => (int) env('OIDC_TOKEN_RATE_LIMIT_PER_MINUTE', 30),
+        'resource_per_minute' => (int) env('OIDC_RESOURCE_RATE_LIMIT_PER_MINUTE', 60),
+        'profile_api_per_minute' => (int) env('SSO_PROFILE_API_RATE_LIMIT_PER_MINUTE', 240),
         'admin_bootstrap_per_minute' => (int) env('ADMIN_PANEL_BOOTSTRAP_RATE_LIMIT_PER_MINUTE', 20),
         'discovery_per_minute' => (int) env('OIDC_DISCOVERY_RATE_LIMIT_PER_MINUTE', 60),
         'jwks_per_minute' => (int) env('OIDC_JWKS_RATE_LIMIT_PER_MINUTE', 60),

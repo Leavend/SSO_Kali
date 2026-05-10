@@ -65,6 +65,7 @@ class AppServiceProvider extends ServiceProvider
         $this->registerOidcCallbackLimiter();
         $this->registerOidcTokenLimiter();
         $this->registerOidcResourceLimiter();
+        $this->registerProfileApiLimiter();
         $this->registerOidcDiscoveryLimiter();
         $this->registerOidcJwksLimiter();
         $this->registerAdminBootstrapLimiter();
@@ -145,6 +146,15 @@ class AppServiceProvider extends ServiceProvider
             $request,
             'oidc-resource',
             (int) config('sso.rate_limits.resource_per_minute', 60),
+        )->response(fn (Request $request, array $headers) => app(AuthThrottleResponder::class)->callback($request, $headers)));
+    }
+
+    private function registerProfileApiLimiter(): void
+    {
+        RateLimiter::for('profile-api', fn (Request $request): Limit => $this->ipLimit(
+            $request,
+            'profile-api',
+            (int) config('sso.rate_limits.profile_api_per_minute', 240),
         )->response(fn (Request $request, array $headers) => app(AuthThrottleResponder::class)->callback($request, $headers)));
     }
 
