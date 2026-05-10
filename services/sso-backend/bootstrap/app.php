@@ -67,6 +67,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin/api/*',
             'api/auth/login',
             'api/auth/logout',
+            'api/profile/connected-apps/*',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

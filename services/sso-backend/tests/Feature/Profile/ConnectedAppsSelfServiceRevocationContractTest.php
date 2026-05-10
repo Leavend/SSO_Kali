@@ -87,6 +87,12 @@ it('rejects missing or invalid connected app bearer tokens', function (): void {
     $this->deleteJson('/api/profile/connected-apps/app-a')->assertStatus(401)->assertJsonPath('error', 'invalid_token');
 });
 
+it('keeps connected app revocation exempt from web csrf before bearer authentication', function (): void {
+    $bootstrap = file_get_contents(base_path('bootstrap/app.php'));
+
+    expect($bootstrap)->toContain("'api/profile/connected-apps/*'");
+});
+
 function issue56User(): User
 {
     return User::factory()->create([
