@@ -35,7 +35,7 @@ it('applies cache headers to discovery endpoint', function (): void {
     expect($cacheControl)
         ->toContain('public')
         ->toContain('max-age=300')
-        ->toContain('must-revalidate');
+        ->toContain('stale-while-revalidate=60');
 
     $response->assertHeaderMissing('Pragma');
 });
@@ -49,7 +49,7 @@ it('applies cache headers to jwks endpoint', function (): void {
     expect($cacheControl)
         ->toContain('public')
         ->toContain('max-age=300')
-        ->toContain('must-revalidate');
+        ->toContain('stale-while-revalidate=60');
 
     $response->assertHeaderMissing('Pragma');
 });

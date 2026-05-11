@@ -70,6 +70,16 @@ it('maps issues one through eight to explicit regression tests', function (): vo
                 'DELETE api/profile/connected-apps/{clientId}',
             ],
         ],
+        'issue_public_metadata_cache_and_stress_assertion' => [
+            'file' => 'tests/Feature/Oidc/PublicMetadataCachingIssueTest.php',
+            'must_contain' => [
+                'issue 1 caches discovery metadata generation by configuration-aware cache key',
+                'issue 2 caches canonical and compatibility JWKS responses through one app cache key',
+                'issue 3 exposes public max age and stale while revalidate cache control headers',
+                'issue 4 documents nginx edge cache sharing for both JWKS URLs',
+                'issue 5 keeps the production stress secret leak assertion precise for OIDC public metadata',
+            ],
+        ],
     ];
 
     foreach ($evidence as $issue => $contract) {

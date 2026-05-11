@@ -17,18 +17,28 @@ use Symfony\Component\HttpFoundation\Response;
  */
 final class ApplyPublicCacheToMetadata
 {
-    private const DEFAULT_MAX_AGE = 300; // 5 minutes
-
     /**
      * @param  Closure(Request): Response  $next
      */
-    public function handle(Request $request, Closure $next, int $maxAge = self::DEFAULT_MAX_AGE): Response
+    public function handle(Request $request, Closure $next, ?int $maxAge = null, ?int $staleWhileRevalidate = null): Response
     {
         $response = $next($request);
+        $maxAge ??= $this->cacheTtlSeconds();
+        $staleWhileRevalidate ??= $this->staleWhileRevalidateSeconds();
 
-        $response->headers->set('Cache-Control', "public, max-age={$maxAge}, must-revalidate");
+        $response->headers->set('Cache-Control', "public, max-age={$maxAge}, stale-while-revalidate={$staleWhileRevalidate}");
         $response->headers->remove('Pragma');
 
         return $response;
+    }
+
+    private function cacheTtlSeconds(): int
+    {
+        return max(60, (int) config('sso.public_metadata.cache_ttl_seconds', 300));
+    }
+
+    private function staleWhileRevalidateSeconds(): int
+    {
+        return max(0, (int) config('sso.public_metadata.stale_while_revalidate_seconds', 60));
     }
 }

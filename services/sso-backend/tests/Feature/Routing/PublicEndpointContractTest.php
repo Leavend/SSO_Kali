@@ -22,6 +22,7 @@ it('serves framework liveness without booting deep dependencies', function (): v
 it('serves OIDC discovery metadata with production-safe shape', function (): void {
     $this->getJson('/.well-known/openid-configuration')
         ->assertOk()
+        ->assertHeader('Cache-Control', 'max-age=300, public, stale-while-revalidate=60')
         ->assertJsonStructure([
             'issuer',
             'authorization_endpoint',
@@ -36,10 +37,23 @@ it('serves OIDC discovery metadata with production-safe shape', function (): voi
 });
 
 it('serves JWKS from both canonical and compatibility endpoints', function (string $uri): void {
-    $this->getJson($uri)
+    $wellKnown = $this->getJson('/.well-known/jwks.json')
         ->assertOk()
+        ->assertHeader('Cache-Control', 'max-age=300, public, stale-while-revalidate=60')
         ->assertJsonStructure(['keys']);
+
+    $compatibility = $this->getJson('/jwks')
+        ->assertOk()
+        ->assertHeader('Cache-Control', 'max-age=300, public, stale-while-revalidate=60')
+        ->assertExactJson($wellKnown->json());
 })->with([
     'well-known jwks' => ['/.well-known/jwks.json'],
     'compatibility jwks' => ['/jwks'],
 ]);
+
+it('serves both JWKS URLs from the same cached catalog contract', function (): void {
+    $wellKnown = $this->getJson('/.well-known/jwks.json')->assertOk();
+    $compatibility = $this->getJson('/jwks')->assertOk();
+
+    expect($compatibility->json())->toBe($wellKnown->json());
+});

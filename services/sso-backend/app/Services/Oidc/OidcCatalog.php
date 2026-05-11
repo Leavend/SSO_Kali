@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Oidc;
 
 use App\Exceptions\InvalidOidcConfigurationException;
+use Illuminate\Support\Facades\Cache;
 
 final class OidcCatalog
 {
@@ -15,12 +16,36 @@ final class OidcCatalog
      */
     public function discovery(): array
     {
+        return Cache::remember(
+            $this->discoveryCacheKey(),
+            $this->cacheTtlSeconds(),
+            fn (): array => $this->freshDiscovery(),
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function jwks(): array
+    {
+        return Cache::remember(
+            'oidc:public-metadata:jwks',
+            $this->cacheTtlSeconds(),
+            fn (): array => $this->keys->jwks(),
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function freshDiscovery(): array
+    {
         $issuer = $this->requiredUrl('sso.issuer');
         $baseUrl = rtrim($this->requiredUrl('sso.base_url'), '/');
         $algorithm = $this->requiredString('sso.signing.alg');
         $scopes = $this->requiredList('sso.default_scopes');
 
-        $this->keys->jwks();
+        $this->jwks();
 
         return [
             'issuer' => $issuer,
@@ -43,12 +68,24 @@ final class OidcCatalog
         ];
     }
 
-    /**
-     * @return array<string, mixed>
-     */
-    public function jwks(): array
+    public function cacheTtlSeconds(): int
     {
-        return $this->keys->jwks();
+        return max(60, (int) config('sso.public_metadata.cache_ttl_seconds', 300));
+    }
+
+    public function staleWhileRevalidateSeconds(): int
+    {
+        return max(0, (int) config('sso.public_metadata.stale_while_revalidate_seconds', 60));
+    }
+
+    private function discoveryCacheKey(): string
+    {
+        return 'oidc:public-metadata:discovery:'.hash('xxh128', json_encode([
+            'issuer' => config('sso.issuer'),
+            'base_url' => config('sso.base_url'),
+            'alg' => config('sso.signing.alg'),
+            'scopes' => config('sso.default_scopes'),
+        ], JSON_THROW_ON_ERROR));
     }
 
     private function requiredString(string $key): string

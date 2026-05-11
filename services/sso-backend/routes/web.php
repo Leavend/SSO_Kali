@@ -37,11 +37,11 @@ Route::get('/ready', ReadinessController::class);
 Route::get('/_internal/performance-metrics', PerformanceMetricsController::class);
 Route::get('/_internal/queue-metrics', QueueMetricsController::class);
 Route::get('/.well-known/openid-configuration', DiscoveryController::class)
-    ->middleware([HandleDiscoveryErrors::class, ApplyPublicCacheToMetadata::class.':300', 'throttle:oidc-discovery']);
+    ->middleware([HandleDiscoveryErrors::class, ApplyPublicCacheToMetadata::class, 'throttle:oidc-discovery']);
 Route::get('/.well-known/jwks.json', JwksController::class)
-    ->middleware([HandleDiscoveryErrors::class, ApplyPublicCacheToMetadata::class.':300', 'throttle:oidc-jwks']);
+    ->middleware([HandleDiscoveryErrors::class, ApplyPublicCacheToMetadata::class, 'throttle:oidc-jwks']);
 Route::get('/jwks', JwksController::class)
-    ->middleware([HandleDiscoveryErrors::class, ApplyPublicCacheToMetadata::class.':300', 'throttle:oidc-jwks']);
+    ->middleware([HandleDiscoveryErrors::class, ApplyPublicCacheToMetadata::class, 'throttle:oidc-jwks']);
 Route::post('/token', TokenController::class)->middleware(['throttle:oidc-token', ValidateTokenOrigin::class]);
 Route::match(['get', 'post'], '/userinfo', UserInfoController::class)->middleware('throttle:oidc-resource');
 Route::post('/revocation', RevocationController::class)->middleware('throttle:oidc-token');

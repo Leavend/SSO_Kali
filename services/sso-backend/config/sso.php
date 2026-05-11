@@ -78,6 +78,10 @@ return [
         'max_cache_ttl_seconds' => (int) env('JWT_JWKS_MAX_CACHE_TTL_SECONDS', 3600),
         'max_refresh_attempts' => (int) env('JWT_JWKS_MAX_REFRESH_ATTEMPTS', 2),
     ],
+    'public_metadata' => [
+        'cache_ttl_seconds' => (int) env('OIDC_PUBLIC_METADATA_CACHE_TTL_SECONDS', 300),
+        'stale_while_revalidate_seconds' => (int) env('OIDC_PUBLIC_METADATA_STALE_WHILE_REVALIDATE_SECONDS', 60),
+    ],
     'client_secret_hash' => [
         'memory_cost' => (int) env('OIDC_CLIENT_SECRET_HASH_MEMORY_KIB', 19456),
         'time_cost' => (int) env('OIDC_CLIENT_SECRET_HASH_TIME_COST', 3),
