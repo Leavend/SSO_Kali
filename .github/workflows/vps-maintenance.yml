@@ -21,6 +21,7 @@ on:
           - set-app-b-hash
           - apply-sso-oidc-edge-cache
           - probe-sso-oidc-edge-latency
+          - probe-sso-admin-clients-latency
       service_name:
         description: "SSO service for runtime policy apply/audit"
         required: false
@@ -352,6 +353,27 @@ jobs:
             -o ServerAliveCountMax=3 \
             "${{ env.VPS_USER }}@${{ env.VPS_HOST }}" \
             "chmod +x /tmp/sso-backend-oidc-metadata-vps-latency-probe.sh && SAMPLES=120 PARALLEL=20 P95_TARGET_MS=300 /tmp/sso-backend-oidc-metadata-vps-latency-probe.sh && rm -f /tmp/sso-backend-oidc-metadata-vps-latency-probe.sh"
+
+      - name: Probe SSO admin clients latency from VPS
+        if: inputs.action == 'probe-sso-admin-clients-latency'
+        run: |
+          SSH_CMD="ssh -i ~/.ssh/deploy_key -p ${{ env.VPS_SSH_PORT }} -o BatchMode=yes -o ConnectTimeout=${{ env.SSH_CONNECT_TIMEOUT }} -o ServerAliveInterval=10 -o ServerAliveCountMax=3"
+          export CI_RETRY_ATTEMPTS="${{ env.SSH_RETRY_ATTEMPTS }}"
+          export CI_RETRY_DELAY_SECONDS="${{ env.SSH_RETRY_DELAY_SECONDS }}"
+
+          bash scripts/ci-retry.sh rsync -avz -e "$SSH_CMD" \
+            scripts/sso-backend-admin-clients-vps-latency-probe.sh \
+            "${{ env.VPS_USER }}@${{ env.VPS_HOST }}":/tmp/sso-backend-admin-clients-vps-latency-probe.sh
+
+          CI_RETRY_ATTEMPTS="1" CI_RETRY_DELAY_SECONDS="0" \
+          bash scripts/ci-retry.sh ssh -i ~/.ssh/deploy_key \
+            -p "${{ env.VPS_SSH_PORT }}" \
+            -o BatchMode=yes \
+            -o ConnectTimeout="${{ env.SSH_CONNECT_TIMEOUT }}" \
+            -o ServerAliveInterval=10 \
+            -o ServerAliveCountMax=3 \
+            "${{ env.VPS_USER }}@${{ env.VPS_HOST }}" \
+            "chmod +x /tmp/sso-backend-admin-clients-vps-latency-probe.sh && SAMPLES=120 PARALLEL=20 P95_TARGET_MS=500 /tmp/sso-backend-admin-clients-vps-latency-probe.sh && rm -f /tmp/sso-backend-admin-clients-vps-latency-probe.sh"
 
       - name: Generate and set APP_B hash
         if: inputs.action == 'set-app-b-hash'
