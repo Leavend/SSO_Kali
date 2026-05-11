@@ -245,7 +245,7 @@ function toggleSessionSelection(sessionId: string) {
     <div v-else class="panel-empty--large" role="status">
       <Inbox :size="32" aria-hidden="true" />
       <h3>Tidak ada sesi aktif</h3>
-      <p>Sesi akan muncul setelah pengguna melakukan login melalui SSO broker.</p>
+      <p>Sesi akan muncul setelah pengguna melakukan login melalui SSO.</p>
     </div>
 
     <SlideOver

@@ -10,7 +10,7 @@ import type {
 const props = defineProps<{
   draft: ClientIntegrationDraft
   contract: ClientIntegrationContract | null
-  brokerReady: boolean
+  ssoReady: boolean
   errors: readonly string[]
 }>()
 
@@ -20,7 +20,7 @@ const lifecycleMessage = ref('')
 const secretHashes = reactive<Record<string, string>>({})
 
 const canStage = computed(() => {
-  return props.brokerReady && props.contract !== null && props.errors.length === 0 && !activeDraftExists()
+  return props.ssoReady && props.contract !== null && props.errors.length === 0 && !activeDraftExists()
 })
 
 onMounted(() => {
@@ -43,7 +43,7 @@ async function stageRegistration(): Promise<void> {
 }
 
 async function activateRegistration(registration: ClientIntegrationRegistration): Promise<void> {
-  await withLifecycle('Client integration aktif dan siap dipakai broker.', async () => {
+  await withLifecycle('Client integration aktif dan siap dipakai SSO.', async () => {
     const path = `/api/admin/client-integrations/${registration.client_id}/activate`
     upsertRegistration(await action(path, { secretHash: secretHashes[registration.client_id] ?? null }))
   })
@@ -141,7 +141,7 @@ type RegistrationPayload = Readonly<{
         <span class="integration-eyebrow">Runtime registration lifecycle</span>
         <h4 id="client-registration-title">Dynamic registrations</h4>
         <p>
-          Stage registration menyimpan artifact audit tanpa menyentuh traffic. Activate membuat client dibaca broker,
+          Stage registration menyimpan artifact audit tanpa menyentuh traffic. Activate membuat client dibaca SSO,
           sedangkan rollback cukup disable registration.
         </p>
       </div>

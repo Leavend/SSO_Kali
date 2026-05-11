@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { ArrowRight } from 'lucide-vue-next'
-import { AUTH_ROUTES, AUTH_SHELL, identityActionHref } from '@parent-ui/auth-shell.mjs'
+import { AUTH_SHELL } from '@parent-ui/auth-shell.mjs'
 import AuthShell from '@/components/auth/AuthShell.vue'
 
 const route = useRoute()
@@ -14,9 +14,6 @@ const returnTo = computed(() => {
   const value = route.query.return_to
   return typeof value === 'string' && value.startsWith('/') && !value.startsWith('//') ? value : '/dashboard'
 })
-
-const passwordResetHref = computed(() => identityActionHref(AUTH_ROUTES.identityActions.passwordReset, email.value))
-const registerHref = computed(() => identityActionHref(AUTH_ROUTES.identityActions.register, email.value))
 
 function submit(): void {
   if (!email.value.trim()) return
@@ -88,7 +85,6 @@ onBeforeUnmount(() => {
       </div>
 
       <div class="signin-actions">
-        <a :href="passwordResetHref">{{ AUTH_SHELL.copy.forgotPassword }}</a>
         <button class="signin-submit" type="submit" :disabled="loading || !email.trim()">
           <span v-if="loading" class="loading-inline">
             <span class="spinner" aria-hidden="true" />
@@ -104,7 +100,6 @@ onBeforeUnmount(() => {
 
     <div class="register-card">
       {{ AUTH_SHELL.copy.registerPrompt }}
-      <a :href="registerHref">{{ AUTH_SHELL.copy.registerAction }}</a>
     </div>
   </AuthShell>
 </template>

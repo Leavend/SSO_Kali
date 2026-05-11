@@ -45,7 +45,7 @@ onMounted(() => {
     <PageHeader
       eyebrow="Operations"
       title="Dashboard"
-      description="Ringkasan operasional dan monitoring SSO admin broker."
+      description="Ringkasan operasional dan monitoring SSO admin."
     />
 
     <!-- Quick Actions -->

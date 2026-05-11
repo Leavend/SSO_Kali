@@ -276,7 +276,7 @@ describe('provisioning manifest', () => {
     const draft = draftWith({ provisioning: 'jit' })
     const contract = createClientIntegrationContract(draft)
 
-    expect(contract.provisioningManifest.identitySource).toBe('https://dev-sso.timeh.my.id SSO broker')
+    expect(contract.provisioningManifest.identitySource).toBe('https://dev-sso.timeh.my.id SSO backend')
   })
 
   it('JIT manifest requires OIDC schemas', () => {

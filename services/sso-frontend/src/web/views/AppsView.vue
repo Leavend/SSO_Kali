@@ -14,7 +14,7 @@ onMounted(() => {
 
 <template>
   <section class="content-stack" aria-labelledby="oidc-title">
-    <PageHeader eyebrow="OIDC" title="Aplikasi" description="Client terdaftar yang dilayani melalui SSO broker." />
+    <PageHeader eyebrow="OIDC" title="Aplikasi" description="Client terdaftar yang dilayani melalui SSO." />
 
     <div class="toolbar" role="toolbar" aria-label="Aksi aplikasi">
       <button

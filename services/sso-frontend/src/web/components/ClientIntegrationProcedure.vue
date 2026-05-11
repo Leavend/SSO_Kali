@@ -83,15 +83,15 @@ const tracks: readonly IntegrationTrack[] = [
 ]
 
 const draft = reactive<MutableIntegrationDraft>({ ...defaultIntegrationDraft() })
-const brokerContract = ref<ClientIntegrationContract | null>(null)
-const brokerErrors = ref<readonly string[]>([])
-const brokerStatus = ref<'idle' | 'loading' | 'ready' | 'error'>('idle')
+const ssoContract = ref<ClientIntegrationContract | null>(null)
+const ssoErrors = ref<readonly string[]>([])
+const ssoStatus = ref<'idle' | 'loading' | 'ready' | 'error'>('idle')
 const validationErrors = computed(() => validateClientIntegrationDraft(draft))
 const localContract = computed(() => validationErrors.value.length === 0 ? createClientIntegrationContract(draft) : null)
-const contract = computed(() => brokerContract.value ?? localContract.value)
-const visibleErrors = computed(() => validationErrors.value.length > 0 ? validationErrors.value : brokerErrors.value)
+const contract = computed(() => ssoContract.value ?? localContract.value)
+const visibleErrors = computed(() => validationErrors.value.length > 0 ? validationErrors.value : ssoErrors.value)
 
-watch(draft, resetBrokerValidation, { deep: true })
+watch(draft, resetSsoValidation, { deep: true })
 
 function setEnvironment(environment: ClientEnvironment): void {
   draft.environment = environment
@@ -109,36 +109,36 @@ function syncClientId(): void {
   draft.clientId = suggestClientId(draft.appName)
 }
 
-async function validateWithBroker(): Promise<void> {
+async function validateWithSso(): Promise<void> {
   if (validationErrors.value.length > 0) return
-  brokerStatus.value = 'loading'
-  brokerErrors.value = []
+  ssoStatus.value = 'loading'
+  ssoErrors.value = []
 
   try {
-    const result = await fetchBrokerContract(draft)
-    brokerContract.value = result.contract
-    brokerErrors.value = result.errors
-    brokerStatus.value = result.errors.length > 0 ? 'error' : 'ready'
+    const result = await fetchSsoContract(draft)
+    ssoContract.value = result.contract
+    ssoErrors.value = result.errors
+    ssoStatus.value = result.errors.length > 0 ? 'error' : 'ready'
   } catch {
-    brokerStatus.value = 'error'
-    brokerErrors.value = ['Broker validation belum tersedia. Coba refresh sesi admin.']
+    ssoStatus.value = 'error'
+    ssoErrors.value = ['Validasi SSO belum tersedia. Coba refresh sesi admin.']
   }
 }
 
-function resetBrokerValidation(): void {
-  brokerContract.value = null
-  brokerErrors.value = []
-  brokerStatus.value = 'idle'
+function resetSsoValidation(): void {
+  ssoContract.value = null
+  ssoErrors.value = []
+  ssoStatus.value = 'idle'
 }
 
-async function fetchBrokerContract(draft: ClientIntegrationDraft): Promise<BrokerResult> {
-  const response = await fetch('/api/admin/client-integrations/contract', brokerRequest(draft))
-  const payload = await brokerPayload(response)
-  if (!response.ok) return { contract: null, errors: brokerErrorsFrom(payload) }
-  return payload.contract ? { contract: payload.contract, errors: [] } : { contract: null, errors: ['Broker contract kosong.'] }
+async function fetchSsoContract(draft: ClientIntegrationDraft): Promise<SsoContractResult> {
+  const response = await fetch('/api/admin/client-integrations/contract', ssoContractRequest(draft))
+  const payload = await ssoContractPayload(response)
+  if (!response.ok) return { contract: null, errors: ssoContractErrorsFrom(payload) }
+  return payload.contract ? { contract: payload.contract, errors: [] } : { contract: null, errors: ['Kontrak SSO kosong.'] }
 }
 
-function brokerRequest(draft: ClientIntegrationDraft): RequestInit {
+function ssoContractRequest(draft: ClientIntegrationDraft): RequestInit {
   return {
     method: 'POST',
     headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
@@ -146,20 +146,20 @@ function brokerRequest(draft: ClientIntegrationDraft): RequestInit {
   }
 }
 
-async function brokerPayload(response: Response): Promise<BrokerPayload> {
-  return response.json().catch(() => ({})) as Promise<BrokerPayload>
+async function ssoContractPayload(response: Response): Promise<SsoContractPayload> {
+  return response.json().catch(() => ({})) as Promise<SsoContractPayload>
 }
 
-function brokerErrorsFrom(payload: BrokerPayload): readonly string[] {
-  return payload.violations?.length ? payload.violations : [payload.message ?? 'Broker validation failed.']
+function ssoContractErrorsFrom(payload: SsoContractPayload): readonly string[] {
+  return payload.violations?.length ? payload.violations : [payload.message ?? 'Validasi SSO gagal.']
 }
 
-type BrokerResult = Readonly<{
+type SsoContractResult = Readonly<{
   contract: ClientIntegrationContract | null
   errors: readonly string[]
 }>
 
-type BrokerPayload = Readonly<{
+type SsoContractPayload = Readonly<{
   contract?: ClientIntegrationContract
   message?: string
   violations?: readonly string[]
@@ -203,7 +203,7 @@ type BrokerPayload = Readonly<{
         </span>
         <div>
           <span class="integration-eyebrow">Client stitching wizard</span>
-          <h3 id="client-stitch-title">Jahit aplikasi ke SSO broker</h3>
+          <h3 id="client-stitch-title">Jahit aplikasi ke SSO</h3>
           <p>
             Isi metadata aplikasi, lalu gunakan contract ini sebagai artifact review untuk konfigurasi OIDC,
             provisioning, session lifecycle, canary, dan rollback.
@@ -301,12 +301,12 @@ type BrokerPayload = Readonly<{
         <button
           class="button button--primary"
           type="button"
-          :disabled="validationErrors.length > 0 || brokerStatus === 'loading'"
-          @click="validateWithBroker"
+          :disabled="validationErrors.length > 0 || ssoStatus === 'loading'"
+          @click="validateWithSso"
         >
-          {{ brokerStatus === 'loading' ? 'Validating...' : 'Validasi via broker' }}
+          {{ ssoStatus === 'loading' ? 'Validating...' : 'Validasi via SSO' }}
         </button>
-        <span v-if="brokerStatus === 'ready'" class="integration-status">Broker validation passed</span>
+        <span v-if="ssoStatus === 'ready'" class="integration-status">Validasi SSO berhasil</span>
       </div>
 
       <div v-if="visibleErrors.length > 0" class="integration-errors" role="alert">
@@ -383,7 +383,7 @@ type BrokerPayload = Readonly<{
       <ClientIntegrationRegistrations
         :draft="draft"
         :contract="contract"
-        :broker-ready="brokerStatus === 'ready'"
+        :sso-ready="ssoStatus === 'ready'"
         :errors="visibleErrors"
       />
     </div>

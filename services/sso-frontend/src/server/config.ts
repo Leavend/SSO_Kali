@@ -10,7 +10,6 @@ export type AdminConfig = {
   readonly redirectUri: string
   readonly adminApiUrl: string
   readonly appBaseUrl: string
-  readonly identityUiBaseUrl: string
   readonly sessionIdleTtlSeconds: number
   readonly sessionAbsoluteTtlSeconds: number
   readonly adminFreshAuthTtlSeconds: number
@@ -35,7 +34,6 @@ export function getConfig(): AdminConfig {
     redirectUri: `${appBase}/auth/callback`,
     adminApiUrl: env('SSO_INTERNAL_ADMIN_API_URL') ?? `${base}/admin/api`,
     appBaseUrl: appBase,
-    identityUiBaseUrl: ensureTrailingSlash(env('SSO_IDENTITY_UI_BASE_URL') ?? `${base}/ui/v2/login/`),
     ...sessionConfig(),
     port: Number(env('PORT') ?? 3000),
   }
@@ -61,6 +59,3 @@ function integerEnv(name: string, fallback: number): number {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback
 }
 
-function ensureTrailingSlash(value: string): string {
-  return value.endsWith('/') ? value : `${value}/`
-}

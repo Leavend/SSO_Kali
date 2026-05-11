@@ -18,10 +18,10 @@ describe('ClientIntegrationProcedure', () => {
     const wrapper = mount(ClientIntegrationProcedure)
 
     expect(wrapper.text()).toContain('Client stitching wizard')
-    expect(wrapper.text()).toContain('Jahit aplikasi ke SSO broker')
+    expect(wrapper.text()).toContain('Jahit aplikasi ke SSO')
     expect(wrapper.text()).toContain('Public + PKCE')
     expect(wrapper.text()).toContain('Env handoff')
-    expect(wrapper.text()).toContain('Validasi via broker')
+    expect(wrapper.text()).toContain('Validasi via SSO')
     expect(wrapper.text()).toContain('Registry patch')
     expect(wrapper.text()).toContain('Provisioning readiness')
     expect(wrapper.text()).toContain('Back-channel logout smoke test passed')

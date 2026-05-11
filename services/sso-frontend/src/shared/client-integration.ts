@@ -242,7 +242,7 @@ function provisioningSteps(draft: ClientIntegrationDraft): readonly string[] {
 function provisioningManifest(draft: ClientIntegrationDraft): ClientProvisioningManifest {
   return {
     mode: draft.provisioning,
-    identitySource: `${issuer} SSO broker`,
+    identitySource: `${issuer} SSO backend`,
     requiredSchemas: requiredSchemas(draft),
     userMapping: userMapping(),
     groupMapping: groupMapping(draft),
