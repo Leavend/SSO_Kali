@@ -80,6 +80,14 @@ it('maps issues one through eight to explicit regression tests', function (): vo
                 'issue 5 keeps the production stress secret leak assertion precise for OIDC public metadata',
             ],
         ],
+        'issue_admin_clients_stress_guard_and_same_region_probe' => [
+            'file' => 'tests/Feature/Admin/AdminClientsStressTddEvidenceTest.php',
+            'must_contain' => [
+                'issue admin clients stress has a live k6 script with guard assertions',
+                'issue admin clients stress has a same region vps latency probe',
+                'issue admin clients stress is exposed through the devops maintenance workflow',
+            ],
+        ],
     ];
 
     foreach ($evidence as $issue => $contract) {
