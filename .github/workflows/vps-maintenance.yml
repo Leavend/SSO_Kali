@@ -329,7 +329,7 @@ jobs:
             -o ServerAliveInterval=10 \
             -o ServerAliveCountMax=3 \
             "${{ env.VPS_USER }}@${{ env.VPS_HOST }}" \
-            "sudo install -m 0755 /tmp/vps-enable-sso-oidc-edge-cache.sh '${{ env.VPS_PROJECT_DIR }}/scripts/vps-enable-sso-oidc-edge-cache.sh' && sudo bash '${{ env.VPS_PROJECT_DIR }}/scripts/vps-enable-sso-oidc-edge-cache.sh' && sudo rm -rf /var/cache/nginx/sso_oidc_metadata/* && rm -f /tmp/vps-enable-sso-oidc-edge-cache.sh"
+            "sudo install -m 0755 /tmp/vps-enable-sso-oidc-edge-cache.sh '${{ env.VPS_PROJECT_DIR }}/scripts/vps-enable-sso-oidc-edge-cache.sh' && sudo bash '${{ env.VPS_PROJECT_DIR }}/scripts/vps-enable-sso-oidc-edge-cache.sh' && rm -f /tmp/vps-enable-sso-oidc-edge-cache.sh"
 
       - name: Generate and set APP_B hash
         if: inputs.action == 'set-app-b-hash'
