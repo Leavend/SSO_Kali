@@ -42,14 +42,14 @@ replacements = {
         include /etc/nginx/snippets/sso-forwarded-headers.conf;
         proxy_pass http://sso_backend_prod_frankenphp;
         proxy_hide_header Cache-Control;
-        add_header Cache-Control \"public, max-age=3600, stale-while-revalidate=300\" always;
+        add_header Cache-Control \"public, max-age=300, stale-while-revalidate=60\" always;
     }
 """: """    location = /.well-known/openid-configuration {
         include /etc/nginx/snippets/sso-forwarded-headers.conf;
         proxy_pass http://sso_backend_prod_frankenphp;
         proxy_cache sso_oidc_metadata;
         proxy_cache_methods GET HEAD;
-        proxy_cache_valid 200 1h;
+        proxy_cache_valid 200 5m;
         proxy_cache_use_stale error timeout updating http_500 http_502 http_503 http_504;
         proxy_cache_lock on;
         proxy_ignore_headers Set-Cookie Cache-Control Expires;
@@ -59,7 +59,7 @@ replacements = {
         proxy_hide_header X-RateLimit-Remaining;
         proxy_hide_header X-RateLimit-Reset;
         add_header X-Edge-Cache $upstream_cache_status always;
-        add_header Cache-Control \"public, max-age=3600, stale-while-revalidate=300\" always;
+        add_header Cache-Control \"public, max-age=300, stale-while-revalidate=60\" always;
     }
 """,
 """    location = /.well-known/jwks.json {
@@ -72,6 +72,7 @@ replacements = {
         include /etc/nginx/snippets/sso-forwarded-headers.conf;
         proxy_pass http://sso_backend_prod_frankenphp;
         proxy_cache sso_oidc_metadata;
+        proxy_cache_key \"$scheme://$host/.well-known/jwks.json\";
         proxy_cache_methods GET HEAD;
         proxy_cache_valid 200 5m;
         proxy_cache_use_stale error timeout updating http_500 http_502 http_503 http_504;
@@ -94,6 +95,7 @@ replacements = {
         include /etc/nginx/snippets/sso-forwarded-headers.conf;
         proxy_pass http://sso_backend_prod_frankenphp;
         proxy_cache sso_oidc_metadata;
+        proxy_cache_key \"$scheme://$host/.well-known/jwks.json\";
         proxy_cache_methods GET HEAD;
         proxy_cache_valid 200 5m;
         proxy_cache_use_stale error timeout updating http_500 http_502 http_503 http_504;
