@@ -19,6 +19,7 @@ on:
           - set-login-api-timeout
           - stop-noncritical-container
           - set-app-b-hash
+          - apply-sso-oidc-edge-cache
       service_name:
         description: "SSO service for runtime policy apply/audit"
         required: false
@@ -308,6 +309,27 @@ jobs:
             -o ServerAliveCountMax=3 \
             "${{ env.VPS_USER }}@${{ env.VPS_HOST }}" \
             "sudo install -m 0755 /tmp/vps-stop-noncritical-container.sh '${{ env.VPS_PROJECT_DIR }}/scripts/vps-stop-noncritical-container.sh' && sudo bash '${{ env.VPS_PROJECT_DIR }}/scripts/vps-stop-noncritical-container.sh' ${REMOTE_CONTAINER_NAME} && rm -f /tmp/vps-stop-noncritical-container.sh"
+
+      - name: Apply SSO OIDC edge cache
+        if: inputs.action == 'apply-sso-oidc-edge-cache'
+        run: |
+          SSH_CMD="ssh -i ~/.ssh/deploy_key -p ${{ env.VPS_SSH_PORT }} -o BatchMode=yes -o ConnectTimeout=${{ env.SSH_CONNECT_TIMEOUT }} -o ServerAliveInterval=10 -o ServerAliveCountMax=3"
+          export CI_RETRY_ATTEMPTS="${{ env.SSH_RETRY_ATTEMPTS }}"
+          export CI_RETRY_DELAY_SECONDS="${{ env.SSH_RETRY_DELAY_SECONDS }}"
+
+          bash scripts/ci-retry.sh rsync -avz -e "$SSH_CMD" \
+            scripts/vps-enable-sso-oidc-edge-cache.sh \
+            "${{ env.VPS_USER }}@${{ env.VPS_HOST }}":/tmp/vps-enable-sso-oidc-edge-cache.sh
+
+          CI_RETRY_ATTEMPTS="1" CI_RETRY_DELAY_SECONDS="0" \
+          bash scripts/ci-retry.sh ssh -i ~/.ssh/deploy_key \
+            -p "${{ env.VPS_SSH_PORT }}" \
+            -o BatchMode=yes \
+            -o ConnectTimeout="${{ env.SSH_CONNECT_TIMEOUT }}" \
+            -o ServerAliveInterval=10 \
+            -o ServerAliveCountMax=3 \
+            "${{ env.VPS_USER }}@${{ env.VPS_HOST }}" \
+            "sudo install -m 0755 /tmp/vps-enable-sso-oidc-edge-cache.sh '${{ env.VPS_PROJECT_DIR }}/scripts/vps-enable-sso-oidc-edge-cache.sh' && sudo bash '${{ env.VPS_PROJECT_DIR }}/scripts/vps-enable-sso-oidc-edge-cache.sh' && sudo rm -rf /var/cache/nginx/sso_oidc_metadata/* && rm -f /tmp/vps-enable-sso-oidc-edge-cache.sh"
 
       - name: Generate and set APP_B hash
         if: inputs.action == 'set-app-b-hash'
