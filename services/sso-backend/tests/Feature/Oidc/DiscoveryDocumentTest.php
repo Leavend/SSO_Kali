@@ -217,7 +217,7 @@ it('validates Peggy configuration ensures secure defaults', function (): void {
     expect(current($data['response_types_supported']))
         ->toBe('code')
         ->and(current($data['token_endpoint_auth_methods_supported']))
-        ->toBeIn(['client_secret_post', 'none'])
+        ->toBeIn(['client_secret_basic', 'client_secret_post', 'none'])
         ->and($data['code_challenge_methods_supported'])
         ->toContain('S256')
         ->and($data['subject_types_supported'])
