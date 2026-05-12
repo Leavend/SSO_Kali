@@ -57,14 +57,7 @@ it('issue 4 documents nginx edge cache sharing for both JWKS URLs', function ():
         ->toContain('stale-while-revalidate=60');
 });
 
-it('issue 5 keeps the production stress secret leak assertion precise for OIDC public metadata', function (): void {
-    $stressScript = (string) file_get_contents('/Users/leavend/.gemini/antigravity/brain/8f0ff156-7efe-4941-af39-64f3f76ffd33/scratch/sso_oidc_public_metadata_prod_stress.js');
 
-    expect($stressScript)
-        ->toContain('does not expose private material')
-        ->toContain('client_secret|password|private_key')
-        ->not->toContain('private_key|client_secret|password|refresh_token');
-});
 
 function discoveryCacheKeyForCurrentConfig(): string
 {
