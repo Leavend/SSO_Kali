@@ -57,8 +57,6 @@ it('issue 4 documents nginx edge cache sharing for both JWKS URLs', function ():
         ->toContain('stale-while-revalidate=60');
 });
 
-
-
 function discoveryCacheKeyForCurrentConfig(): string
 {
     return 'oidc:public-metadata:discovery:'.hash('xxh128', json_encode([
