@@ -15,11 +15,11 @@ beforeEach(function (): void {
     config()->set('sso.issuer', 'https://api-sso.timeh.my.id');
     config()->set('sso.base_url', 'https://api-sso.timeh.my.id');
     config()->set('sso.frontend_url', 'https://sso.timeh.my.id');
-    config()->set('sso.broker.client_id', 'broker-client');
-    config()->set('sso.broker.redirect_uri', 'https://api-sso.timeh.my.id/auth/oidc/callback');
-    config()->set('sso.broker.public_issuer', 'https://accounts.example.test');
-    config()->set('sso.broker.internal_issuer', 'https://accounts.internal.test');
-    config()->set('sso.broker.scope', 'openid profile email');
+    config()->set('sso.upstream_oidc.client_id', 'upstream-client');
+    config()->set('sso.upstream_oidc.redirect_uri', 'https://api-sso.timeh.my.id/auth/oidc/callback');
+    config()->set('sso.upstream_oidc.public_issuer', 'https://accounts.example.test');
+    config()->set('sso.upstream_oidc.internal_issuer', 'https://accounts.internal.test');
+    config()->set('sso.upstream_oidc.scope', 'openid profile email');
     config()->set('sso.admin.panel_client_id', 'high-assurance-admin');
 
     config()->set('oidc_clients.clients', [
@@ -199,7 +199,7 @@ function issue55Authorize(array $parameters, ?User $user, ?string $sessionId): T
 
     if ($user instanceof User && $sessionId !== null) {
         $request = $request->withSession([
-            'broker_browser_session' => [
+            'sso_browser_session' => [
                 'subject_id' => $user->subject_id,
                 'session_id' => $sessionId,
                 'auth_time' => time(),

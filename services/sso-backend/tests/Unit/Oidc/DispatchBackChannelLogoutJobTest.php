@@ -8,7 +8,7 @@ use App\Services\Oidc\LogoutTokenService;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
-it('posts a broker-issued logout token to the downstream client', function (): void {
+it('posts a SSO-issued logout token to the downstream client', function (): void {
     Http::fake([
         'https://app-a.example/api/backchannel/logout*' => Http::response([], 200),
     ]);

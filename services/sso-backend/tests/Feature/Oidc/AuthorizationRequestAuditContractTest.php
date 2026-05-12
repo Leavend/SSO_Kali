@@ -178,7 +178,7 @@ function issue80AuthorizeWithBrowserSession(mixed $test, User $user, string $ses
         ->withHeader('User-Agent', 'Issue80AuthorizeAgent/1.0')
         ->withHeader('X-Request-Id', 'req-authorize-accepted-80')
         ->withSession([
-            'broker_browser_session' => [
+            'sso_browser_session' => [
                 'subject_id' => $user->subject_id,
                 'session_id' => $sessionId,
                 'auth_time' => time(),

@@ -154,7 +154,7 @@ function externalIdpClaimsProvider(string $providerKey): ExternalIdentityProvide
         'display_name' => str($providerKey)->replace('-', ' ')->title()->toString(),
         'issuer' => $issuer,
         'metadata_url' => $issuer.'/.well-known/openid-configuration',
-        'client_id' => 'sso-broker',
+        'client_id' => 'sso-upstream',
         'client_secret_encrypted' => null,
         'authorization_endpoint' => $issuer.'/protocol/openid-connect/auth',
         'token_endpoint' => $issuer.'/protocol/openid-connect/token',

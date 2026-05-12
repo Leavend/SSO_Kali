@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Middleware\ApplyNoStoreToSensitiveResponses;
-use App\Http\Middleware\AssertBrokerSessionCookiePolicy;
+use App\Http\Middleware\AssertSsoSessionCookiePolicy;
 use App\Http\Middleware\EnsureRequestId;
 use App\Http\Middleware\LogForwardedHeaderMismatch;
 use App\Http\Middleware\TrackCpuPerformance;
@@ -43,7 +43,7 @@ return Application::configure(basePath: dirname(__DIR__))
         );
 
         $middleware->web(append: [
-            AssertBrokerSessionCookiePolicy::class,
+            AssertSsoSessionCookiePolicy::class,
             EnsureRequestId::class,
             LogForwardedHeaderMismatch::class,
             ApplyNoStoreToSensitiveResponses::class,
@@ -55,18 +55,24 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->validateCsrfTokens(except: [
-            'token',
-            'revocation',
-            'oauth2/token',
-            'oauth2/revocation',
+            // OAuth / OIDC endpoints: client auth is via RFC 6749 §2.3 or
+            // PKCE, not browser CSRF tokens. Adding these paths under CSRF
+            // protection would completely break the token exchange flow.
+            'oauth/token',
             'oauth/revoke',
             'userinfo',
+            // Back-channel / RP-session endpoints: called server-to-server,
+            // never from a browser form.
             'connect/register-session',
             'connect/logout',
             'connect/backchannel/admin-panel/logout',
+            // Admin API: uses Bearer token auth, not session cookie.
             'admin/api/*',
+            // Portal self-service APIs: protected by XSRF-TOKEN cookie
+            // handshake via apiClient, not the default form CSRF field.
             'api/auth/login',
             'api/auth/logout',
+            'api/auth/register',
             'api/profile/connected-apps/*',
         ]);
     })

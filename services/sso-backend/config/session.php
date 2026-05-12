@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Support\Security\BrokerSessionCookiePolicy;
+use App\Support\Security\SsoSessionCookiePolicy;
 
 return [
 
@@ -129,7 +129,7 @@ return [
     |
     */
 
-    'cookie' => BrokerSessionCookiePolicy::configuredName(env('SESSION_COOKIE')),
+    'cookie' => SsoSessionCookiePolicy::configuredName(env('SESSION_COOKIE')),
 
     /*
     |--------------------------------------------------------------------------

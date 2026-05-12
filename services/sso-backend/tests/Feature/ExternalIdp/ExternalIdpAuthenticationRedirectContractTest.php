@@ -30,7 +30,7 @@ it('creates an OIDC conformant external idp authorization redirect with state no
 
     expect($parts['scheme'])->toBe('https')
         ->and($parts['host'])->toBe('keycloak.example.test')
-        ->and($query['client_id'])->toBe('sso-broker')
+        ->and($query['client_id'])->toBe('sso-upstream')
         ->and($query['redirect_uri'])->toBe('https://api-sso.timeh.my.id/external-idp/callback')
         ->and($query['response_type'])->toBe('code')
         ->and($query['scope'])->toBe('openid profile email')
@@ -122,7 +122,7 @@ function externalIdpAuthRedirectProvider(string $providerKey = 'keycloak-primary
         'display_name' => 'Keycloak Primary',
         'issuer' => $issuer,
         'metadata_url' => $issuer.'/.well-known/openid-configuration',
-        'client_id' => 'sso-broker',
+        'client_id' => 'sso-upstream',
         'client_secret_encrypted' => null,
         'allowed_algorithms' => ['RS256'],
         'scopes' => ['openid', 'profile', 'email'],

@@ -218,7 +218,7 @@ function issue48AuthorizeWithBrowserSession(mixed $test, User $user, string $ses
 
     return $test
         ->withSession([
-            'broker_browser_session' => [
+            'sso_browser_session' => [
                 'subject_id' => $user->subject_id,
                 'session_id' => $sessionId,
                 'auth_time' => time(),

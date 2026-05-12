@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace App\Services\Zitadel;
+namespace App\Services\Oidc\Upstream;
 
 use App\Support\Cache\ResilientCacheStore;
 use Illuminate\Support\Facades\Http;
 
-final class ZitadelMetadataService
+final class UpstreamOidcMetadataService
 {
     private const DISCOVERY_CACHE_TTL_SECONDS = 600;
 
     public function __construct(
-        private readonly ZitadelEndpointContract $contract,
+        private readonly UpstreamOidcEndpointContract $contract,
         private readonly ResilientCacheStore $cache,
     ) {}
 
@@ -96,15 +96,15 @@ final class ZitadelMetadataService
                 return (array) $response->json();
             }
         } catch (\Throwable) {
-            // Fall back to deterministic ZITADEL endpoints when public discovery is temporarily unreachable.
+            // Fall back to deterministic upstream OIDC endpoints when discovery is temporarily unreachable.
         }
 
         return $this->fallback($issuer);
     }
 
     /**
-     * When calling ZITADEL via Docker-internal URL, pass the public issuer's
-     * host so ZITADEL can resolve the correct instance.
+     * When calling the upstream provider through an internal URL, pass the public issuer's
+     * host when the provider requires host-based tenant routing.
      *
      * @return array<string, string>
      */
@@ -158,7 +158,7 @@ final class ZitadelMetadataService
 
     private function discoveryCacheKey(string $scope, string $issuer): string
     {
-        return 'zitadel:'.$scope.'-discovery:'.sha1($issuer);
+        return 'upstream_oidc:'.$scope.'-discovery:'.sha1($issuer);
     }
 
     private function normalizeIssuer(string $issuer): string
@@ -168,11 +168,11 @@ final class ZitadelMetadataService
 
     private function publicIssuer(): string
     {
-        return (string) config('sso.broker.public_issuer');
+        return (string) config('sso.upstream_oidc.public_issuer');
     }
 
     private function internalIssuer(): string
     {
-        return (string) config('sso.broker.internal_issuer');
+        return (string) config('sso.upstream_oidc.internal_issuer');
     }
 }

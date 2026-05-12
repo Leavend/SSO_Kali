@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Services\Zitadel;
+namespace App\Services\Oidc\Upstream;
 
 use RuntimeException;
 
-final class ZitadelEndpointContract
+final class UpstreamOidcEndpointContract
 {
     /**
      * @return array<string, string>
@@ -38,7 +38,7 @@ final class ZitadelEndpointContract
         $path = $this->supportedPaths()[$endpoint] ?? null;
 
         if ($path === null) {
-            throw new RuntimeException("Unsupported ZITADEL endpoint contract [{$endpoint}].");
+            throw new RuntimeException("Unsupported upstream OIDC endpoint contract [{$endpoint}].");
         }
 
         return $path;

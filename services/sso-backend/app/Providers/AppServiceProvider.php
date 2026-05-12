@@ -10,7 +10,7 @@ use App\Services\Directory\DatabaseDirectoryUserProvider;
 use App\Services\Directory\DirectoryUserProvider;
 use App\Services\Oidc\DownstreamClientRegistry;
 use App\Support\Security\AuthThrottleResponder;
-use App\Support\Security\BrokerSessionCookiePolicy;
+use App\Support\Security\SsoSessionCookiePolicy;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -28,12 +28,18 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configurePassport();
-        $this->assertBrokerSessionCookiePolicy();
+        $this->assertSsoSessionCookiePolicy();
         $this->registerRateLimiters();
     }
 
     private function configurePassport(): void
     {
+        // FR-005/FR-006: client IDs in this SSO are the string slugs declared
+        // in config/oidc_clients.php (sso-frontend-portal, app-a, app-b, ...).
+        // Disable Passport's default UUID identifier so oauth_clients.id is
+        // a plain string that matches the config registry.
+        Passport::$clientUuids = false;
+
         Passport::useClientModel(Client::class);
         Passport::authorizationView('passport.authorize');
         Passport::tokensCan([
@@ -45,13 +51,13 @@ class AppServiceProvider extends ServiceProvider
         Passport::refreshTokensExpireIn(now()->addDays((int) config('sso.ttl.refresh_token_days', 30)));
     }
 
-    private function assertBrokerSessionCookiePolicy(): void
+    private function assertSsoSessionCookiePolicy(): void
     {
         if ($this->app->environment('testing')) {
             return;
         }
 
-        BrokerSessionCookiePolicy::assertConfigured(
+        SsoSessionCookiePolicy::assertConfigured(
             (string) config('session.cookie'),
             (bool) config('session.secure'),
             (string) config('session.path'),

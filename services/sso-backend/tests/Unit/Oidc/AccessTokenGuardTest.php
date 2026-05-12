@@ -8,7 +8,7 @@ use App\Services\Oidc\SigningKeyService;
 use Illuminate\Support\Facades\Cache;
 
 beforeEach(function (): void {
-    config()->set('sso.issuer', 'https://broker.example');
+    config()->set('sso.issuer', 'https://sso.example');
     config()->set('sso.resource_audience', 'sso-resource-api');
     config()->set('sso.signing.alg', 'ES256');
     config()->set('sso.jwt.local_allowed_algs', ['ES256']);
@@ -69,7 +69,7 @@ it('rejects access tokens whose client is no longer active', function (): void {
 function localClaims(array $overrides = []): array
 {
     return array_replace([
-        'iss' => 'https://broker.example',
+        'iss' => 'https://sso.example',
         'aud' => 'sso-resource-api',
         'sub' => 'subject-123',
         'sid' => 'shared-sid',

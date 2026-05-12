@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
-use App\Support\Security\BrokerSessionCookiePolicy;
+use App\Support\Security\SsoSessionCookiePolicy;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -12,7 +12,7 @@ use RuntimeException;
 use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\Response;
 
-final class AssertBrokerSessionCookiePolicy
+final class AssertSsoSessionCookiePolicy
 {
     /**
      * @param  Closure(Request): Response  $next
@@ -40,9 +40,9 @@ final class AssertBrokerSessionCookiePolicy
     private function assertCookie(Cookie $cookie, string $expectedName): void
     {
         try {
-            BrokerSessionCookiePolicy::assertCookie($cookie, $expectedName);
+            SsoSessionCookiePolicy::assertCookie($cookie, $expectedName);
         } catch (RuntimeException $exception) {
-            Log::critical('[BROKER_SESSION_COOKIE_POLICY_VIOLATION]', [
+            Log::critical('[SSO_SESSION_COOKIE_POLICY_VIOLATION]', [
                 'cookie' => $cookie->getName(),
                 'path' => $cookie->getPath(),
                 'secure' => $cookie->isSecure(),

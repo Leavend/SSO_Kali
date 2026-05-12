@@ -112,7 +112,7 @@ function externalIdpJwksProvider(
         'display_name' => 'Keycloak Primary',
         'issuer' => $issuer,
         'metadata_url' => $issuer.'/.well-known/openid-configuration',
-        'client_id' => 'sso-broker',
+        'client_id' => 'sso-upstream',
         'jwks_uri' => $issuer.'/jwks',
         'allowed_algorithms' => ['RS256'],
         'scopes' => ['openid', 'profile', 'email'],

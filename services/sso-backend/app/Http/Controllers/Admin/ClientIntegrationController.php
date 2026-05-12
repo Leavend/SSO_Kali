@@ -22,7 +22,7 @@ final class ClientIntegrationController
 
         return $violations === []
             ? AdminApiResponse::ok(['contract' => $builder->build($draft)])
-            : AdminApiResponse::error('client_integration_invalid', 'Client integration contract belum memenuhi guardrail broker.', 422, ['violations' => $violations]);
+            : AdminApiResponse::error('client_integration_invalid', 'Client integration contract belum memenuhi guardrail SSO.', 422, ['violations' => $violations]);
     }
 
     public function registrations(ClientIntegrationRegistrationService $registrations): JsonResponse

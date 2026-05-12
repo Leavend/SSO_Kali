@@ -11,7 +11,7 @@ final class PruneTokens extends Command
 {
     protected $signature = 'sso:prune-tokens';
 
-    protected $description = 'Prune expired or revoked refresh tokens from the broker store';
+    protected $description = 'Prune expired or revoked refresh tokens from the SSO store';
 
     public function handle(RefreshTokenStore $tokens): int
     {

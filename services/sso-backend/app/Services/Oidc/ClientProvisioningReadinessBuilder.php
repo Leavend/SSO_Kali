@@ -27,7 +27,7 @@ final class ClientProvisioningReadinessBuilder
 
     private function identitySource(): string
     {
-        return 'SSO broker at '.rtrim((string) config('sso.base_url'), '/');
+        return 'SSO backend at '.rtrim((string) config('sso.base_url'), '/');
     }
 
     /**

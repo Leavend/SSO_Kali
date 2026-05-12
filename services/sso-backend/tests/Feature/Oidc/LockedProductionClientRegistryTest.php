@@ -14,6 +14,7 @@ beforeEach(function (): void {
         'app-a',
         'app-b',
         'sso-admin-panel',
+        'sso-frontend-portal',
     ]);
 
     config()->set('oidc_clients.clients', issue4ValidRegistry());
@@ -23,7 +24,7 @@ it('accepts only the locked production client id set', function (): void {
     $result = app(ValidateProductionOidcClientRegistryAction::class)->execute();
 
     expect($result['valid'])->toBeTrue()
-        ->and($result['checked_clients'])->toBe(3)
+        ->and($result['checked_clients'])->toBe(4)
         ->and($result['errors'])->toBe([]);
 });
 
@@ -53,6 +54,29 @@ it('rejects missing locked production clients', function (): void {
         ->and(implode(' ', $result['errors']))->toContain('missing locked production client');
 });
 
+it('rejects missing sso-frontend-portal client registration', function (): void {
+    $clients = issue4ValidRegistry();
+    unset($clients['sso-frontend-portal']);
+    config()->set('oidc_clients.clients', $clients);
+
+    $result = app(ValidateProductionOidcClientRegistryAction::class)->execute();
+
+    expect($result['valid'])->toBeFalse()
+        ->and(implode(' ', $result['errors']))->toContain('sso-frontend-portal');
+});
+
+it('registers sso-frontend-portal as PKCE public client (no secret, explicit redirect)', function (): void {
+    $registry = config('oidc_clients.clients');
+
+    expect($registry)->toHaveKey('sso-frontend-portal');
+
+    $portal = $registry['sso-frontend-portal'];
+    expect($portal['type'])->toBe('public')
+        ->and($portal)->not->toHaveKey('secret')
+        ->and($portal['redirect_uris'])->toContain('https://sso.timeh.my.id/auth/callback')
+        ->and($portal['post_logout_redirect_uris'])->toContain('https://sso.timeh.my.id');
+});
+
 function issue4ValidRegistry(): array
 {
     return [
@@ -72,6 +96,11 @@ function issue4ValidRegistry(): array
             'redirect_uris' => ['https://sso.timeh.my.id/auth/callback'],
             'post_logout_redirect_uris' => ['https://sso.timeh.my.id'],
             'backchannel_logout_uri' => 'https://api-sso.timeh.my.id/connect/backchannel/admin-panel/logout',
+        ],
+        'sso-frontend-portal' => [
+            'type' => 'public',
+            'redirect_uris' => ['https://sso.timeh.my.id/auth/callback'],
+            'post_logout_redirect_uris' => ['https://sso.timeh.my.id'],
         ],
     ];
 }

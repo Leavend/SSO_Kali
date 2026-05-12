@@ -5,7 +5,7 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
-it('prunes expired and revoked refresh tokens from the broker store', function (): void {
+it('prunes expired and revoked refresh tokens from the SSO store', function (): void {
     /** @var TestCase $this */
     seedRefreshTokenRow('expired-token', now()->subHour(), null);
     seedRefreshTokenRow('revoked-token', now()->addDay(), now()->subMinute());

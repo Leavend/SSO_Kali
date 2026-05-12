@@ -40,7 +40,7 @@ return [
         'email',
         'offline_access',
     ],
-    'broker' => [
+    'upstream_oidc' => [
         'public_issuer' => env('OIDC_UPSTREAM_PUBLIC_ISSUER', env('SSO_ISSUER', env('APP_URL', 'http://localhost:8200'))),
         'internal_issuer' => env('OIDC_UPSTREAM_INTERNAL_ISSUER', env('SSO_ISSUER', env('APP_URL', 'http://localhost:8200'))),
         'client_id' => env('OIDC_UPSTREAM_CLIENT_ID', ''),
@@ -86,6 +86,12 @@ return [
         'memory_cost' => (int) env('OIDC_CLIENT_SECRET_HASH_MEMORY_KIB', 19456),
         'time_cost' => (int) env('OIDC_CLIENT_SECRET_HASH_TIME_COST', 3),
         'threads' => (int) env('OIDC_CLIENT_SECRET_HASH_THREADS', 1),
+    ],
+    // FR-009: secret lifecycle. After rotation, secret_expires_at is set to
+    // now()+ttl_days. Clients should rotate before that window closes.
+    'client_secret' => [
+        'ttl_days' => (int) env('SSO_CLIENT_SECRET_TTL_DAYS', 90),
+        'plaintext_length' => (int) env('SSO_CLIENT_SECRET_PLAINTEXT_LENGTH', 64),
     ],
     'stores' => [
         'auth_request_seconds' => (int) env('OIDC_AUTH_REQUEST_TTL', 900),

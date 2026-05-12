@@ -141,7 +141,7 @@ function oidcBackend_use_case_coverage(): array
         'UC-02' => ['app/Http/Controllers/Oidc/JwksController.php', 'app/Services/Oidc/SigningKeyService.php'],
         'UC-07' => ['tests/Feature/Oidc/AuthorizationCodeFlowE2EContractTest.php', 'app/Actions/Oidc/CreateAuthorizationRedirect.php'],
         'UC-08' => ['routes/auth.php', 'app/Http/Controllers/Auth/LoginController.php'],
-        'UC-09' => ['app/Services/Oidc/BrokerBrowserSession.php'],
+        'UC-09' => ['app/Services/Oidc/SsoBrowserSession.php'],
         'UC-12' => ['tests/Feature/Oidc/AuthorizationCodeFlowE2EContractTest.php', 'app/Services/Oidc/AuthorizationCodeStore.php'],
         'UC-13' => ['tests/Feature/Oidc/AuthorizationCodeFlowE2EContractTest.php', 'app/Actions/Oidc/CreateAuthorizationRedirect.php'],
         'UC-14' => ['tests/Feature/Oidc/TokenEndpointHardeningContractTest.php', 'tests/Feature/Oidc/AuthorizationCodeFlowE2EContractTest.php', 'app/Actions/Oidc/ExchangeToken.php'],

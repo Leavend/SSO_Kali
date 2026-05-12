@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Services\Zitadel;
+namespace App\Services\Oidc\Upstream;
 
 use App\Services\Oidc\JwksRotationMetrics;
 use App\Support\Cache\ResilientCacheStore;
@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Http;
 use RuntimeException;
 use Throwable;
 
-final class ZitadelJwksCache
+final class UpstreamOidcJwksCache
 {
     public function __construct(
         private readonly JwksRotationMetrics $metrics,
@@ -96,14 +96,14 @@ final class ZitadelJwksCache
     }
 
     /**
-     * When fetching JWKS from the Docker-internal ZITADEL URL, pass the public
-     * issuer's host so ZITADEL can resolve the correct instance.
+     * When fetching JWKS through an internal provider URL, pass the public issuer's
+     * host when the provider requires host-based tenant routing.
      *
      * @return array<string, string>
      */
     private function internalHostHeader(): array
     {
-        $publicIssuer = (string) config('sso.broker.public_issuer');
+        $publicIssuer = (string) config('sso.upstream_oidc.public_issuer');
         $host = parse_url($publicIssuer, PHP_URL_HOST);
 
         return is_string($host) && $host !== '' ? ['Host' => $host] : [];
@@ -174,7 +174,7 @@ final class ZitadelJwksCache
 
     private function cacheKey(string $url): string
     {
-        return 'zitadel:jwks:'.sha1($url);
+        return 'upstream_oidc:jwks:'.sha1($url);
     }
 
     private function defaultCacheTtlSeconds(): int

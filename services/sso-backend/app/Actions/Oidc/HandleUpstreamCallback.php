@@ -10,13 +10,13 @@ use App\Enums\SsoErrorCode;
 use App\Services\Oidc\AuthContextFactory;
 use App\Services\Oidc\AuthorizationCodeStore;
 use App\Services\Oidc\AuthRequestStore;
-use App\Services\Oidc\BrokerBrowserSession;
-use App\Services\Oidc\BrokerCallbackSuccessLogger;
 use App\Services\Oidc\LogicalSessionStore;
+use App\Services\Oidc\SsoBrowserSession;
+use App\Services\Oidc\Upstream\UpstreamOidcClient;
+use App\Services\Oidc\Upstream\UpstreamOidcTokenVerifier;
+use App\Services\Oidc\UpstreamCallbackSuccessLogger;
 use App\Services\Oidc\UserProfileSynchronizer;
-use App\Services\Zitadel\ZitadelBrokerService;
-use App\Services\Zitadel\ZitadelTokenVerifier;
-use App\Support\Oidc\BrokerAuthFlowCookie;
+use App\Support\Oidc\SsoAuthFlowCookie;
 use App\Support\SsoErrors\SsoErrorContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -24,19 +24,19 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
-final class HandleBrokerCallback
+final class HandleUpstreamCallback
 {
     public function __construct(
         private readonly AuthRequestStore $authRequests,
         private readonly AuthorizationCodeStore $codes,
         private readonly AuthContextFactory $authContext,
-        private readonly ZitadelBrokerService $broker,
-        private readonly ZitadelTokenVerifier $verifier,
+        private readonly UpstreamOidcClient $upstream,
+        private readonly UpstreamOidcTokenVerifier $verifier,
         private readonly UserProfileSynchronizer $profiles,
         private readonly LogicalSessionStore $sessions,
-        private readonly BrokerAuthFlowCookie $authFlowCookie,
-        private readonly BrokerBrowserSession $browserSession,
-        private readonly BrokerCallbackSuccessLogger $successLogger,
+        private readonly SsoAuthFlowCookie $authFlowCookie,
+        private readonly SsoBrowserSession $browserSession,
+        private readonly UpstreamCallbackSuccessLogger $successLogger,
         private readonly RecordSsoErrorAction $ssoErrors,
         private readonly BuildSsoErrorRedirectAction $errorRedirects,
     ) {}
@@ -88,8 +88,8 @@ final class HandleBrokerCallback
             return $this->clearAuthFlowCookie(
                 redirect()->away($this->frontendErrorRedirect(
                     code: SsoErrorCode::SessionExpired,
-                    safeReason: 'missing_broker_context',
-                    technicalReason: 'No cache entry and no auth-flow cookie were available for broker callback.',
+                    safeReason: 'missing_upstream_context',
+                    technicalReason: 'No cache entry and no auth-flow cookie were available for upstream callback.',
                     request: $request,
                     context: [],
                 ))
@@ -99,8 +99,8 @@ final class HandleBrokerCallback
         return $this->clearAuthFlowCookie(
             redirect()->away($this->frontendErrorRedirect(
                 code: SsoErrorCode::SessionExpired,
-                safeReason: 'expired_broker_context',
-                technicalReason: 'The broker authentication session expired before completion.',
+                safeReason: 'expired_upstream_context',
+                technicalReason: 'The upstream authentication session expired before completion.',
                 request: $request,
                 context: $context,
             ))
@@ -158,7 +158,7 @@ final class HandleBrokerCallback
      */
     private function failureRedirect(array $context, Throwable $exception): RedirectResponse
     {
-        Log::error('[OIDC_BROKER_CALLBACK_FAILED]', [
+        Log::error('[OIDC_UPSTREAM_CALLBACK_FAILED]', [
             'error' => $exception->getMessage(),
             'trace' => $exception->getTraceAsString(),
             'redirect_uri' => (string) ($context['redirect_uri'] ?? ''),
@@ -188,7 +188,7 @@ final class HandleBrokerCallback
      */
     private function exchangeTokens(Request $request, array $context): array
     {
-        return $this->broker->token($this->payload((string) $request->query('code', ''), $context));
+        return $this->upstream->token($this->payload((string) $request->query('code', ''), $context));
     }
 
     /**
@@ -199,7 +199,7 @@ final class HandleBrokerCallback
     private function claims(array $tokens, array $context): array
     {
         $verified = $this->verifiedIdToken($tokens, $context);
-        $claims = $this->broker->userInfo((string) $tokens['access_token']);
+        $claims = $this->upstream->userInfo((string) $tokens['access_token']);
         $this->assertMatchingSubject($verified, $claims);
 
         return [$claims, $this->authContext->fromUpstreamClaims($verified)];
@@ -243,9 +243,9 @@ final class HandleBrokerCallback
     {
         return [
             'grant_type' => 'authorization_code',
-            'client_id' => (string) config('sso.broker.client_id'),
-            'client_secret' => (string) config('sso.broker.client_secret'),
-            'redirect_uri' => (string) config('sso.broker.redirect_uri'),
+            'client_id' => (string) config('sso.upstream_oidc.client_id'),
+            'client_secret' => (string) config('sso.upstream_oidc.client_secret'),
+            'redirect_uri' => (string) config('sso.upstream_oidc.redirect_uri'),
             'code' => $code,
             'code_verifier' => (string) $context['upstream_code_verifier'],
         ];

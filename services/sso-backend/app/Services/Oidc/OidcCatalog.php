@@ -59,7 +59,11 @@ final class OidcCatalog
             'subject_types_supported' => ['public'],
             'id_token_signing_alg_values_supported' => [$algorithm],
             'scopes_supported' => $scopes,
-            'token_endpoint_auth_methods_supported' => ['client_secret_post', 'client_secret_basic'],
+            // FR-007: advertise every auth method the token endpoint accepts.
+            // 'none' covers public PKCE clients (SPAs like sso-frontend-portal)
+            // which authenticate via PKCE verifier instead of a client_secret
+            // per RFC 8414 §2 + RFC 7636.
+            'token_endpoint_auth_methods_supported' => ['client_secret_basic', 'client_secret_post', 'none'],
             'code_challenge_methods_supported' => ['S256'],
             'claims_supported' => ['sub', 'iss', 'aud', 'exp', 'iat', 'auth_time', 'email', 'email_verified', 'name'],
             'end_session_endpoint' => $baseUrl.'/connect/logout',

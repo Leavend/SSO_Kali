@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Services\Zitadel;
+namespace App\Services\Oidc\Upstream;
 
 use App\Services\Oidc\JwtRejectMetrics;
 use App\Support\Jwt\JwtHeader;
@@ -13,11 +13,11 @@ use Firebase\JWT\JWT;
 use RuntimeException;
 use Throwable;
 
-final class ZitadelTokenVerifier
+final class UpstreamOidcTokenVerifier
 {
     public function __construct(
-        private readonly ZitadelMetadataService $metadata,
-        private readonly ZitadelJwksCache $jwks,
+        private readonly UpstreamOidcMetadataService $metadata,
+        private readonly UpstreamOidcJwksCache $jwks,
         private readonly JwtRejectMetrics $metrics,
     ) {}
 
@@ -159,7 +159,7 @@ final class ZitadelTokenVerifier
 
     private function expectedAudience(): string
     {
-        return (string) config('sso.broker.client_id');
+        return (string) config('sso.upstream_oidc.client_id');
     }
 
     private function clockSkewSeconds(): int

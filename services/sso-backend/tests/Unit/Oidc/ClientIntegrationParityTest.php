@@ -7,7 +7,7 @@ declare(strict_types=1);
  *
  * These tests verify the PHP (backend) side of the integration validation rules
  * documented in the parity contract between the admin frontend form and the
- * broker's ClientIntegrationContractBuilder.
+ * SSO backend's ClientIntegrationContractBuilder.
  *
  * The frontend must enforce identical rules before submission. When adding or
  * modifying a rule here, the corresponding frontend validation in the admin

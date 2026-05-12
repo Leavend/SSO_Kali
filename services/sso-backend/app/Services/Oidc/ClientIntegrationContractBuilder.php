@@ -216,7 +216,7 @@ final class ClientIntegrationContractBuilder
      */
     private function clientIdConflict(ClientIntegrationDraft $draft): array
     {
-        return $this->clients->find($draft->clientId) === null ? [] : ['Client ID sudah terdaftar di broker.'];
+        return $this->clients->find($draft->clientId) === null ? [] : ['Client ID sudah terdaftar di SSO.'];
     }
 
     /**

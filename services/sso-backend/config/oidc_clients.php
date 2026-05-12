@@ -10,7 +10,11 @@ $loadTestClientId = (string) env('SSO_LOAD_TEST_CLIENT_ID', 'sso-load-test-clien
 $lockedProductionClientIds = [
     env('APP_A_CLIENT_ID', 'app-a'),
     env('APP_B_CLIENT_ID', 'app-b'),
+    // sso-admin-panel: legacy entry kept as archive. Admin UI will move to a
+    // dedicated sso-frontend-admin service in the future; removal deferred
+    // until that migration lands to avoid breaking existing contract tests.
     env('ADMIN_PANEL_CLIENT_ID', 'sso-admin-panel'),
+    env('SSO_PORTAL_CLIENT_ID', 'sso-frontend-portal'),
 ];
 
 $clients = [
@@ -39,6 +43,7 @@ $clients = [
         'allowed_scopes' => ['openid', 'profile', 'email', 'offline_access'],
     ],
 
+    // sso-admin-panel: legacy archive; see $lockedProductionClientIds note above.
     env('ADMIN_PANEL_CLIENT_ID', 'sso-admin-panel') => [
         'type' => 'public',
         'redirect_uris' => [
@@ -51,6 +56,18 @@ $clients = [
             'ADMIN_PANEL_BACKCHANNEL_LOGOUT_URI',
             $appUrl.'/connect/backchannel/admin-panel/logout',
         ),
+        'allowed_scopes' => ['openid', 'profile', 'email', 'offline_access', 'roles', 'permissions'],
+    ],
+
+    env('SSO_PORTAL_CLIENT_ID', 'sso-frontend-portal') => [
+        'type' => 'public',
+        'redirect_uris' => [
+            env('SSO_PORTAL_REDIRECT_URI', $frontendUrl.'/auth/callback'),
+        ],
+        'post_logout_redirect_uris' => [
+            env('SSO_PORTAL_POST_LOGOUT_REDIRECT_URI', $frontendUrl),
+        ],
+        'backchannel_logout_uri' => env('SSO_PORTAL_BACKCHANNEL_LOGOUT_URI'),
         'allowed_scopes' => ['openid', 'profile', 'email', 'offline_access', 'roles', 'permissions'],
     ],
 ];

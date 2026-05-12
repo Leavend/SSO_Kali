@@ -10,16 +10,16 @@ use App\Actions\SsoErrors\RecordSsoErrorAction;
 use App\Enums\SsoErrorCode;
 use App\Services\Oidc\AuthorizationCodeStore;
 use App\Services\Oidc\AuthRequestStore;
-use App\Services\Oidc\BrokerBrowserSession;
 use App\Services\Oidc\DownstreamClientRegistry;
 use App\Services\Oidc\HighAssuranceClientPolicy;
 use App\Services\Oidc\OidcProfileMetrics;
 use App\Services\Oidc\ScopePolicy;
-use App\Services\Zitadel\ZitadelBrokerService;
+use App\Services\Oidc\SsoBrowserSession;
+use App\Services\Oidc\Upstream\UpstreamOidcClient;
 use App\Support\Audit\AuthenticationAuditRecord;
-use App\Support\Oidc\BrokerAuthFlowCookie;
 use App\Support\Oidc\DownstreamClient;
 use App\Support\Oidc\Pkce;
+use App\Support\Oidc\SsoAuthFlowCookie;
 use App\Support\Responses\OidcErrorResponse;
 use App\Support\SsoErrors\SsoErrorContext;
 use Illuminate\Http\JsonResponse;
@@ -33,11 +33,11 @@ final class CreateAuthorizationRedirect
         private readonly DownstreamClientRegistry $clients,
         private readonly AuthRequestStore $authRequests,
         private readonly AuthorizationCodeStore $codes,
-        private readonly BrokerBrowserSession $browserSession,
+        private readonly SsoBrowserSession $browserSession,
         private readonly HighAssuranceClientPolicy $assurance,
         private readonly OidcProfileMetrics $metrics,
-        private readonly BrokerAuthFlowCookie $authFlowCookie,
-        private readonly ZitadelBrokerService $broker,
+        private readonly SsoAuthFlowCookie $authFlowCookie,
+        private readonly UpstreamOidcClient $upstream,
         private readonly ScopePolicy $scopes,
         private readonly RecordAuthenticationAuditEventAction $audits,
         private readonly RecordSsoErrorAction $ssoErrors,
@@ -109,7 +109,7 @@ final class CreateAuthorizationRedirect
         $this->recordAccepted($request, $client, $context, 'upstream_redirect');
 
         return redirect()
-            ->away($this->broker->authorizationUrl($this->upstreamParameters($upstreamState, $context)))
+            ->away($this->upstream->authorizationUrl($this->upstreamParameters($upstreamState, $context)))
             ->withCookie($this->authFlowCookie->issue($context));
     }
 
@@ -221,7 +221,7 @@ final class CreateAuthorizationRedirect
      */
     private function upstreamParameters(string $state, array $context): array
     {
-        $scope = (string) config('sso.broker.scope');
+        $scope = (string) config('sso.upstream_oidc.scope');
 
         // When access_type=offline, ensure offline_access scope is included upstream
         // to request a refresh token from the upstream IdP (per Google's convention)
@@ -230,8 +230,8 @@ final class CreateAuthorizationRedirect
         }
 
         return array_filter([
-            'client_id' => (string) config('sso.broker.client_id'),
-            'redirect_uri' => (string) config('sso.broker.redirect_uri'),
+            'client_id' => (string) config('sso.upstream_oidc.client_id'),
+            'redirect_uri' => (string) config('sso.upstream_oidc.redirect_uri'),
             'response_type' => 'code',
             'scope' => $scope,
             'state' => $state,

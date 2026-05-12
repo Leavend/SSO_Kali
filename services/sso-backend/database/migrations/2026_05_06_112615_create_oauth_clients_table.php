@@ -12,7 +12,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('oauth_clients', function (Blueprint $table) {
-            $table->uuid('id')->primary();
+            // FR-005/FR-006: client_id in this SSO is a string slug from
+            // config/oidc_clients.php (matches Passport::$clientUuids=false in
+            // AppServiceProvider), not a UUID.
+            $table->string('id')->primary();
             $table->nullableMorphs('owner');
             $table->string('name');
             $table->string('secret')->nullable();

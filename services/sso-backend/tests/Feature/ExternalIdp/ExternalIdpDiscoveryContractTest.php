@@ -124,7 +124,7 @@ function externalIdpDiscoveryProvider(
         'display_name' => 'Keycloak Primary',
         'issuer' => $issuer,
         'metadata_url' => $issuer.'/.well-known/openid-configuration',
-        'client_id' => 'sso-broker',
+        'client_id' => 'sso-upstream',
         'allowed_algorithms' => ['RS256'],
         'scopes' => ['openid', 'profile', 'email'],
         'enabled' => false,

@@ -46,6 +46,11 @@ beforeEach(function (): void {
             'post_logout_redirect_uris' => ['https://sso.timeh.my.id'],
             'backchannel_logout_uri' => 'https://api-sso.timeh.my.id/connect/backchannel/admin-panel/logout',
         ],
+        'sso-frontend-portal' => [
+            'type' => 'public',
+            'redirect_uris' => ['https://sso.timeh.my.id/auth/callback'],
+            'post_logout_redirect_uris' => ['https://sso.timeh.my.id'],
+        ],
     ]);
 });
 
@@ -53,7 +58,7 @@ it('validates the production oidc client registry', function (): void {
     $result = app(ValidateProductionOidcClientRegistryAction::class)->execute();
 
     expect($result['valid'])->toBeTrue()
-        ->and($result['checked_clients'])->toBe(3)
+        ->and($result['checked_clients'])->toBe(4)
         ->and($result['checked_confidential_clients'])->toBe(1)
         ->and($result['errors'])->toBe([]);
 });
@@ -90,7 +95,7 @@ it('completes App A public PKCE authorization code flow with state and userinfo 
 
     $authorizeResponse = $this
         ->withSession([
-            'broker_browser_session' => [
+            'sso_browser_session' => [
                 'subject_id' => $user->subject_id,
                 'session_id' => $sessionId,
                 'auth_time' => time(),
@@ -143,7 +148,7 @@ it('enforces App B confidential client secret during token exchange', function (
 
     $authorizeResponse = $this
         ->withSession([
-            'broker_browser_session' => [
+            'sso_browser_session' => [
                 'subject_id' => $user->subject_id,
                 'session_id' => $sessionId,
                 'auth_time' => time(),

@@ -35,7 +35,7 @@ it('records external idp redirect callback and account-link authentication audit
         ->firstOrFail();
 
     expect($redirectEvent->outcome)->toBe('succeeded')
-        ->and($redirectEvent->client_id)->toBe('sso-broker')
+        ->and($redirectEvent->client_id)->toBe('sso-upstream')
         ->and($redirectEvent->ip_address)->toBe('203.0.113.141')
         ->and($redirectEvent->user_agent)->toBe('Issue84ExternalIdpAgent/redirect')
         ->and($redirectEvent->context)->toMatchArray([
@@ -204,7 +204,7 @@ function issue84ExternalIdpProvider(string $providerKey = 'keycloak-issue84'): a
         'display_name' => 'Keycloak Issue 84',
         'issuer' => $issuer,
         'metadata_url' => $issuer.'/.well-known/openid-configuration',
-        'client_id' => 'sso-broker',
+        'client_id' => 'sso-upstream',
         'client_secret_encrypted' => null,
         'authorization_endpoint' => $issuer.'/protocol/openid-connect/auth',
         'token_endpoint' => $issuer.'/protocol/openid-connect/token',
