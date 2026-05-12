@@ -33,7 +33,7 @@ final class ProfileUpdateController
             return response()->json(['message' => 'Pengguna tidak ditemukan.'], 404);
         }
 
-        $validator = Validator::make($request->all(), [
+        $validator = Validator::make($request->only(['display_name', 'given_name', 'family_name']), [
             'display_name' => ['sometimes', 'string', 'max:100'],
             'given_name' => ['sometimes', 'nullable', 'string', 'max:50'],
             'family_name' => ['sometimes', 'nullable', 'string', 'max:50'],

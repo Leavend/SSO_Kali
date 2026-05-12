@@ -46,6 +46,11 @@ beforeEach(function (): void {
             'post_logout_redirect_uris' => ['https://sso.timeh.my.id'],
             'backchannel_logout_uri' => 'https://api-sso.timeh.my.id/connect/backchannel/admin-panel/logout',
         ],
+        'sso-frontend-portal' => [
+            'type' => 'public',
+            'redirect_uris' => ['https://sso.timeh.my.id/auth/callback'],
+            'post_logout_redirect_uris' => ['https://sso.timeh.my.id'],
+        ],
     ]);
 });
 
@@ -53,7 +58,7 @@ it('validates the production oidc client registry', function (): void {
     $result = app(ValidateProductionOidcClientRegistryAction::class)->execute();
 
     expect($result['valid'])->toBeTrue()
-        ->and($result['checked_clients'])->toBe(3)
+        ->and($result['checked_clients'])->toBe(4)
         ->and($result['checked_confidential_clients'])->toBe(1)
         ->and($result['errors'])->toBe([]);
 });
