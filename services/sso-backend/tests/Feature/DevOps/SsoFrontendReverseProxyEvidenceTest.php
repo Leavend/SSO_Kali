@@ -10,7 +10,6 @@ declare(strict_types=1);
  * portal: same-origin reverse-proxy ke backend, security headers, dan
  * rate-limiting endpoint sensitif.
  */
-
 function ssoFrontendFile(string $relativePath): string
 {
     $path = dirname(base_path(), 1).DIRECTORY_SEPARATOR.'sso-frontend'.DIRECTORY_SEPARATOR.ltrim($relativePath, '/');
@@ -115,7 +114,7 @@ describe('Nginx template reverse-proxy contract', function (): void {
 
         expect($template)
             ->toContain('location = /healthz')
-            ->toContain("return 200 \"ok\\n\"");
+            ->toContain('return 200 "ok\\n"');
     });
 
     it('caps request body size and hides Nginx version banner', function (): void {

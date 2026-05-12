@@ -32,5 +32,3 @@ final class Client extends PassportClient
         return $this->getKey() === config('sso.admin.panel_client_id', 'sso-admin-panel');
     }
 }
-
-

@@ -11,6 +11,7 @@ use App\Services\Oidc\DownstreamClientRegistry;
 use App\Support\Security\ClientSecretHashPolicy;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 
 uses(RefreshDatabase::class);
 
@@ -113,8 +114,8 @@ it('sets secret_expires_at to now + ttl days', function (): void {
         $registration->client_id,
     );
 
-    $rotatedAt = \Illuminate\Support\Carbon::parse($result['rotated_at']);
-    $expiresAt = \Illuminate\Support\Carbon::parse($result['expires_at']);
+    $rotatedAt = Carbon::parse($result['rotated_at']);
+    $expiresAt = Carbon::parse($result['expires_at']);
 
     expect($expiresAt->diffInDays($rotatedAt, true))->toBe(90.0);
 });
@@ -125,14 +126,14 @@ it('rejects rotation for public clients', function (): void {
     $action = app(RotateClientSecretAction::class);
 
     expect(fn () => $action->execute(fr009Request(), fr009Admin(), $registration->client_id))
-        ->toThrow(\DomainException::class, 'Only confidential clients');
+        ->toThrow(DomainException::class, 'Only confidential clients');
 });
 
 it('rejects rotation for unknown clients', function (): void {
     $action = app(RotateClientSecretAction::class);
 
     expect(fn () => $action->execute(fr009Request(), fr009Admin(), 'does-not-exist'))
-        ->toThrow(\DomainException::class, 'not found');
+        ->toThrow(DomainException::class, 'not found');
 });
 
 it('flushes the downstream client registry cache after rotation', function (): void {
