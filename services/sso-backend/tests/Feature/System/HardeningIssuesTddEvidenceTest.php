@@ -77,7 +77,6 @@ it('maps issues one through eight to explicit regression tests', function (): vo
                 'issue 2 caches canonical and compatibility JWKS responses through one app cache key',
                 'issue 3 exposes public max age and stale while revalidate cache control headers',
                 'issue 4 documents nginx edge cache sharing for both JWKS URLs',
-                'issue 5 keeps the production stress secret leak assertion precise for OIDC public metadata',
             ],
         ],
         'issue_admin_clients_stress_guard_and_same_region_probe' => [
