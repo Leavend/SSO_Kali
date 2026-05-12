@@ -28,6 +28,11 @@ final readonly class DownstreamClient
             return false;
         }
 
+        // FR-008: OAuth 2.1 BCP §4.1.1 mandates byte-for-byte exact match
+        // for redirect URIs. The `true` flag on in_array (strict comparison)
+        // is deliberate — do NOT loosen this to case-insensitive or prefix
+        // matching. Unit tests in tests/Unit/Oidc/RedirectUriExactMatchTest
+        // guard every attack vector observed on production.
         return in_array($redirectUri, $this->redirectUris, true);
     }
 
