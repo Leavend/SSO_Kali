@@ -145,6 +145,10 @@ Route::middleware(AdminGuard::class)->prefix('admin/api')->group(function (): vo
             ->where('clientId', '[a-z0-9-]+');
         Route::put('/clients/{clientId}/scopes', [ClientController::class, 'syncScopes'])
             ->where('clientId', '[a-z0-9-]+');
+        // FR-009 / UC-61 — admin-triggered secret rotation. Returns the new
+        // plaintext ONCE; caller must deliver it out-of-band.
+        Route::post('/clients/{clientId}/rotate-secret', [ClientController::class, 'rotateSecret'])
+            ->where('clientId', '[a-z0-9-]+');
     });
 
     Route::middleware([

@@ -44,6 +44,9 @@ final class AdminClientPresenter
                 'status',
                 'activated_at',
                 'disabled_at',
+                // FR-009 lifecycle timestamps
+                'secret_rotated_at',
+                'secret_expires_at',
             ]),
             'has_secret_hash' => is_string($registration->secret_hash) && $registration->secret_hash !== '',
         ];

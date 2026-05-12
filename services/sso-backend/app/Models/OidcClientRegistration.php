@@ -18,6 +18,8 @@ use Illuminate\Support\Carbon;
  * @property array<int, string>|null $allowed_scopes
  * @property string|null $backchannel_logout_uri
  * @property string|null $secret_hash
+ * @property Carbon|null $secret_rotated_at
+ * @property Carbon|null $secret_expires_at
  * @property string $owner_email
  * @property string $provisioning
  * @property array<string, mixed>|null $contract
@@ -41,6 +43,8 @@ final class OidcClientRegistration extends Model
         'allowed_scopes',
         'backchannel_logout_uri',
         'secret_hash',
+        'secret_rotated_at',
+        'secret_expires_at',
         'owner_email',
         'provisioning',
         'contract',
@@ -65,6 +69,8 @@ final class OidcClientRegistration extends Model
             'contract' => 'array',
             'activated_at' => 'datetime',
             'disabled_at' => 'datetime',
+            'secret_rotated_at' => 'datetime',
+            'secret_expires_at' => 'datetime',
         ];
     }
 }
