@@ -131,7 +131,7 @@ function issue81TokenSet(): array
 
     $authorize = test()
         ->withSession([
-            'broker_browser_session' => [
+            'sso_browser_session' => [
                 'subject_id' => $user->subject_id,
                 'session_id' => $sessionId,
                 'auth_time' => time(),

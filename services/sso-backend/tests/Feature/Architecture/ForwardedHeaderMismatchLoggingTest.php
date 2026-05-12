@@ -12,7 +12,7 @@ beforeEach(function (): void {
     config()->set('sso.issuer', 'https://dev-sso.timeh.my.id');
 });
 
-it('logs structured warnings when forwarded host and proto drift from the public broker url', function (): void {
+it('logs structured warnings when forwarded host and proto drift from the public SSO URL', function (): void {
     /** @var TestCase $this */
     $logger = new ArrayLogger;
     Log::swap($logger);
@@ -35,7 +35,7 @@ it('logs structured warnings when forwarded host and proto drift from the public
     expect($logger->warnings[0]['context']['reasons'])->toContain('forwarded_proto_mismatch');
 });
 
-it('stays silent when forwarded host and proto match the public broker url', function (): void {
+it('stays silent when forwarded host and proto match the public SSO URL', function (): void {
     /** @var TestCase $this */
     $logger = new ArrayLogger;
     Log::swap($logger);

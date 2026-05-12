@@ -84,7 +84,7 @@ function externalIdpExternalIdpPayload(): array
         'display_name' => 'Keycloak Primary',
         'issuer' => 'https://idp.example.test/realms/sso',
         'metadata_url' => 'https://idp.example.test/realms/sso/.well-known/openid-configuration',
-        'client_id' => 'sso-broker',
+        'client_id' => 'sso-upstream',
         'client_secret' => 'super-secret-idp-client-secret',
         'created_by_subject_id' => 'admin-externalIdp',
         'created_by_email' => 'admin-externalIdp@example.test',

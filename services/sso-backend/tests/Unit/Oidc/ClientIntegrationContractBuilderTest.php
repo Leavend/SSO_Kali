@@ -16,7 +16,7 @@ beforeEach(function (): void {
     ]);
 });
 
-it('builds a broker-authoritative client integration contract', function (): void {
+it('builds a SSO-authoritative client integration contract', function (): void {
     $builder = app(ClientIntegrationContractBuilder::class);
     $draft = $builder->draftFrom([
         'appName' => 'Customer Portal',
@@ -43,7 +43,7 @@ it('builds a broker-authoritative client integration contract', function (): voi
         ->and($contract['findings'])->toContain('RFC 7642 lifecycle covered by SCIM provisioning.');
 });
 
-it('rejects unsafe live clients and existing broker registrations', function (): void {
+it('rejects unsafe live clients and existing SSO registrations', function (): void {
     $builder = app(ClientIntegrationContractBuilder::class);
     $draft = $builder->draftFrom([
         'appName' => 'Prototype App A',
@@ -61,7 +61,7 @@ it('rejects unsafe live clients and existing broker registrations', function ():
         ->toContain('Live client wajib memakai HTTPS.')
         ->toContain('Callback path tidak boleh wildcard.')
         ->toContain('Owner email harus valid.')
-        ->toContain('Client ID sudah terdaftar di broker.');
+        ->toContain('Client ID sudah terdaftar di SSO.');
 });
 
 it('rejects non-canonical origins and ambiguous callback paths', function (): void {

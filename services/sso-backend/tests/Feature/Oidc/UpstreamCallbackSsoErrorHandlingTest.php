@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-use App\Http\Controllers\Oidc\BrokerCallbackController;
+use App\Http\Controllers\Oidc\UpstreamCallbackController;
 use App\Services\Oidc\AuthRequestStore;
-use App\Support\Oidc\BrokerAuthFlowCookie;
+use App\Support\Oidc\SsoAuthFlowCookie;
 use Illuminate\Support\Facades\Log;
 
 beforeEach(function (): void {
     config(['sso.frontend_url' => 'https://sso.timeh.my.id']);
-    Route::get('/test/broker/callback', BrokerCallbackController::class);
+    Route::get('/test/upstream/callback', UpstreamCallbackController::class);
 });
 
 it('maps upstream access denied callback to safe frontend error with reference', function (): void {
@@ -17,7 +17,7 @@ it('maps upstream access denied callback to safe frontend error with reference',
 
     $state = app(AuthRequestStore::class)->put(issue95Context());
 
-    $response = $this->get('/test/broker/callback?'.http_build_query([
+    $response = $this->get('/test/upstream/callback?'.http_build_query([
         'state' => $state,
         'error' => 'access_denied',
         'error_description' => 'raw upstream denied with access_token=secret',
@@ -38,13 +38,13 @@ it('maps upstream access denied callback to safe frontend error with reference',
         && str_starts_with((string) $context['error_ref'], 'SSOERR-'));
 });
 
-it('maps missing broker callback context to frontend session expired error', function (): void {
+it('maps missing upstream callback context to frontend session expired error', function (): void {
     Log::spy();
 
     $response = $this->withCookie(
-        BrokerAuthFlowCookie::NAME,
-        app(BrokerAuthFlowCookie::class)->issue(issue95Context())->getValue(),
-    )->get('/test/broker/callback?state=missing-state');
+        SsoAuthFlowCookie::NAME,
+        app(SsoAuthFlowCookie::class)->issue(issue95Context())->getValue(),
+    )->get('/test/upstream/callback?state=missing-state');
 
     $response->assertRedirect();
     $location = (string) $response->headers->get('Location');

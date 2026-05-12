@@ -15,8 +15,8 @@ it('keeps production lifecycle free from removed legacy gates', function (): voi
         $content = file_get_contents(backend_lifecycle_repository_file($file));
 
         expect($content)->toBeString()
-            ->and($content)->not->toContain('services/zitadel-login-vue')
-            ->and($content)->not->toContain('infra/zitadel-login')
+            ->and($content)->not->toContain('services/sso-frontend')
+            ->and($content)->not->toContain('infra/sso-frontend')
             ->and($content)->not->toContain('packages/dev-sso-parent-ui')
             ->and($content)->not->toContain('apps/app-a-next')
             ->and($content)->not->toContain('apps/app-b-laravel');

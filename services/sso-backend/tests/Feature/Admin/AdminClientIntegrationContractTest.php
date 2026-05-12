@@ -32,7 +32,7 @@ beforeEach(function (): void {
     ]);
 });
 
-it('returns a broker validated client integration contract for admins', function (): void {
+it('returns a session validated client integration contract for admins', function (): void {
     /** @var TestCase $this */
     $admin = User::factory()->create([
         'subject_id' => 'admin-contract-1',
@@ -60,7 +60,7 @@ it('returns a broker validated client integration contract for admins', function
         ->assertJsonPath('contract.env.1', 'SSO_CLIENT_ID=customer-portal');
 });
 
-it('returns validation violations without mutating broker clients', function (): void {
+it('returns validation violations without mutating session clients', function (): void {
     /** @var TestCase $this */
     $admin = User::factory()->create([
         'subject_id' => 'admin-contract-2',

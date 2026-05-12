@@ -35,7 +35,7 @@ it('enforces external idp admin CRUD validation boundaries', function (): void {
         'display_name' => 'Invalid IdP',
         'issuer' => 'http://idp.example.test/realms/sso',
         'metadata_url' => 'http://idp.example.test/.well-known/openid-configuration',
-        'client_id' => 'sso-broker',
+        'client_id' => 'sso-upstream',
         'allowed_algorithms' => ['none'],
         'scopes' => ['openid', 'profile'],
     ], $storeRules);
@@ -202,7 +202,7 @@ function externalIdpAdminPayload(): array
         'display_name' => 'Keycloak Primary',
         'issuer' => 'https://keycloak.example.test/realms/sso',
         'metadata_url' => 'https://keycloak.example.test/realms/sso/.well-known/openid-configuration',
-        'client_id' => 'sso-broker',
+        'client_id' => 'sso-upstream',
         'client_secret' => 'super-secret',
         'allowed_algorithms' => ['RS256'],
         'scopes' => ['openid', 'profile', 'email'],

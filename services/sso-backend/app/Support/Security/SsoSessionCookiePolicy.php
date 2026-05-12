@@ -7,9 +7,9 @@ namespace App\Support\Security;
 use RuntimeException;
 use Symfony\Component\HttpFoundation\Cookie;
 
-final class BrokerSessionCookiePolicy
+final class SsoSessionCookiePolicy
 {
-    public const string DEFAULT_NAME = '__Host-broker_session';
+    public const string DEFAULT_NAME = '__Host-sso_session';
 
     public static function configuredName(?string $configured): string
     {
@@ -37,7 +37,7 @@ final class BrokerSessionCookiePolicy
     private static function assertCookieName(Cookie $cookie, string $expectedName): void
     {
         if ($cookie->getName() !== $expectedName) {
-            throw new RuntimeException('Broker session cookie name is invalid.');
+            throw new RuntimeException('SSO session cookie name is invalid.');
         }
 
         self::assertHostPrefix($expectedName);
@@ -46,32 +46,32 @@ final class BrokerSessionCookiePolicy
     private static function assertHostPrefix(string $name): void
     {
         if (! str_starts_with($name, '__Host-')) {
-            throw new RuntimeException('Broker session cookie must use the __Host- prefix.');
+            throw new RuntimeException('SSO session cookie must use the __Host- prefix.');
         }
     }
 
     private static function assertSecure(bool $secure): void
     {
         if (! $secure) {
-            throw new RuntimeException('Broker session cookie must be Secure.');
+            throw new RuntimeException('SSO session cookie must be Secure.');
         }
     }
 
     private static function assertPath(string $path): void
     {
         if ($path !== '/') {
-            throw new RuntimeException('Broker session cookie must use Path=/.');
+            throw new RuntimeException('SSO session cookie must use Path=/.');
         }
     }
 
     private static function assertNoDomain(mixed $domain): void
     {
         if (is_string($domain) && trim($domain) !== '') {
-            throw new RuntimeException('Broker session cookie must omit the Domain attribute.');
+            throw new RuntimeException('SSO session cookie must omit the Domain attribute.');
         }
 
         if (! is_string($domain) && $domain !== null) {
-            throw new RuntimeException('Broker session cookie must omit the Domain attribute.');
+            throw new RuntimeException('SSO session cookie must omit the Domain attribute.');
         }
     }
 }

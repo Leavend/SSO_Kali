@@ -43,7 +43,7 @@ it('exchanges an external idp callback authorization code and validates id token
 
     Http::assertSent(fn ($request): bool => $request->url() === $provider->token_endpoint
         && $request['grant_type'] === 'authorization_code'
-        && $request['client_id'] === 'sso-broker'
+        && $request['client_id'] === 'sso-upstream'
         && $request['code'] === 'auth-code-123'
         && $request['redirect_uri'] === 'https://api-sso.timeh.my.id/external-idp/callback'
         && is_string($request['code_verifier']));
@@ -153,7 +153,7 @@ function externalIdpCallbackProvider(string $providerKey = 'keycloak-callback'):
         'display_name' => 'Keycloak Callback',
         'issuer' => $issuer,
         'metadata_url' => $issuer.'/.well-known/openid-configuration',
-        'client_id' => 'sso-broker',
+        'client_id' => 'sso-upstream',
         'client_secret_encrypted' => null,
         'authorization_endpoint' => $issuer.'/protocol/openid-connect/auth',
         'token_endpoint' => $issuer.'/protocol/openid-connect/token',

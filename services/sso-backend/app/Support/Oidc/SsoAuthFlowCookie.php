@@ -8,9 +8,9 @@ use Illuminate\Http\Request;
 use JsonException;
 use Symfony\Component\HttpFoundation\Cookie;
 
-final class BrokerAuthFlowCookie
+final class SsoAuthFlowCookie
 {
-    public const string NAME = '__Host-broker_auth_flow';
+    public const string NAME = '__Host-sso_auth_flow';
 
     /**
      * @param  array<string, mixed>  $context

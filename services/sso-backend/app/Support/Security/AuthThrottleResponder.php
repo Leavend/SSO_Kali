@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Support\Security;
 
 use App\Services\Oidc\AuthRequestStore;
-use App\Support\Oidc\BrokerAuthFlowCookie;
+use App\Support\Oidc\SsoAuthFlowCookie;
 use App\Support\Responses\OidcErrorResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,7 +15,7 @@ final class AuthThrottleResponder
 {
     public function __construct(
         private readonly AuthRequestStore $authRequests,
-        private readonly BrokerAuthFlowCookie $authFlowCookie,
+        private readonly SsoAuthFlowCookie $authFlowCookie,
     ) {}
 
     /**

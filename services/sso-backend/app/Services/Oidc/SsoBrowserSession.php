@@ -6,9 +6,9 @@ namespace App\Services\Oidc;
 
 use Illuminate\Http\Request;
 
-final class BrokerBrowserSession
+final class SsoBrowserSession
 {
-    private const string KEY = 'broker_browser_session';
+    private const string KEY = 'sso_browser_session';
 
     /**
      * @param  array<string, mixed>  $authContext

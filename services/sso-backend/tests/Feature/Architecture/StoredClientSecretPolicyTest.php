@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 beforeEach(function (): void {
-    $this->markTestSkipped('Legacy static dummy-client/broker endpoint test deprecated by Production Client Registry native Passport admin-panel-only scope.');
+    $this->markTestSkipped('Legacy static dummy-client/SSO endpoint test deprecated by Production Client Registry native Passport admin-panel-only scope.');
 });
 
 use App\Services\Oidc\DownstreamClientRegistry;

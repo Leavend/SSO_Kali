@@ -12,7 +12,7 @@ use App\Services\Oidc\BackChannelSessionRegistry;
 use App\Services\Oidc\LogicalSessionStore;
 use App\Services\Oidc\LogoutOutcomeMetrics;
 use App\Services\Oidc\RefreshTokenStore;
-use App\Services\Zitadel\ZitadelBrokerService;
+use App\Services\Oidc\Upstream\UpstreamOidcClient;
 use App\Support\Responses\OidcErrorResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -29,7 +29,7 @@ final class PerformSingleSignOut
         private readonly BackChannelSessionRegistry $registry,
         private readonly BackChannelLogoutDispatcher $dispatcher,
         private readonly LogicalSessionStore $sessions,
-        private readonly ZitadelBrokerService $broker,
+        private readonly UpstreamOidcClient $upstream,
         private readonly LogoutOutcomeMetrics $metrics,
         private readonly RecordLogoutAuditEventAction $audit,
     ) {}
@@ -243,7 +243,7 @@ final class PerformSingleSignOut
     private function revokeUpstreamToken(string $refreshToken): void
     {
         try {
-            $this->broker->revoke($refreshToken, 'refresh_token');
+            $this->upstream->revoke($refreshToken, 'refresh_token');
         } catch (Throwable $exception) {
             Log::warning('[UPSTREAM_REVOCATION_FAILED]', [
                 'error' => $exception->getMessage(),

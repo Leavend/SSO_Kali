@@ -66,7 +66,7 @@ it('shows one central authentication audit event and returns not found for unkno
     $admin = authenticationAuditAdmin([AdminPermission::AUTHENTICATION_AUDIT_READ]);
     authenticationAuditRecord('external_idp_callback_failed', 'failed', [
         'subject_id' => null,
-        'client_id' => 'sso-broker',
+        'client_id' => 'sso-upstream',
         'error_code' => 'external_id_p_nonce_claim_mismatch.',
         'request_id' => 'req-auth-audit-show-85',
         'context' => ['id_token' => 'raw-id-token-must-not-leak-85', 'state_hash' => hash('sha256', 'state-85')],

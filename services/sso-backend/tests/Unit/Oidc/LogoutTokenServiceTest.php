@@ -6,7 +6,7 @@ use App\Services\Oidc\LogoutTokenService;
 use App\Services\Oidc\SigningKeyService;
 
 beforeEach(function (): void {
-    config()->set('sso.issuer', 'https://broker.example');
+    config()->set('sso.issuer', 'https://sso.example');
 });
 
 it('issues logout tokens with the required security claims', function (): void {
@@ -18,7 +18,7 @@ it('issues logout tokens with the required security claims', function (): void {
 
     $claims = app(SigningKeyService::class)->decode($token);
 
-    expect($claims['iss'])->toBe('https://broker.example');
+    expect($claims['iss'])->toBe('https://sso.example');
     expect($claims['aud'])->toBe('prototype-app-a');
     expect($claims['sub'])->toBe('subject-123');
     expect($claims['sid'])->toBe('shared-sid');

@@ -12,7 +12,7 @@ it('keeps the main production deployment backend-only', function (): void {
         ->and($script)->toContain('COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-sso-backend-prod}"')
         ->and($script)->toContain('compose up -d postgres redis')
         ->and($script)->toContain('compose up -d --remove-orphans sso-backend sso-backend-worker')
-        ->and($script)->not->toContain('zitadel-login')
+        ->and($script)->not->toContain('sso-frontend')
         ->and($script)->not->toContain('app-a-next')
         ->and($script)->not->toContain('app-b-laravel');
 });
@@ -22,8 +22,8 @@ it('keeps backend compose runtime free from removed legacy services', function (
 
     expect($content)->toContain('sso-backend')
         ->and($content)->toMatch('/sso-(backend-)?worker/')
-        ->and($content)->not->toContain('zitadel-login:')
-        ->and($content)->not->toContain('zitadel-login-vue:')
+        ->and($content)->not->toContain('sso-frontend:')
+        ->and($content)->not->toContain('sso-frontend:')
         ->and($content)->not->toContain('app-a-next:')
         ->and($content)->not->toContain('app-b-laravel:');
 })->with([

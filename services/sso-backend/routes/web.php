@@ -53,6 +53,9 @@ Route::get('/api/profile', [ProfileController::class, 'show'])->middleware('thro
 Route::patch('/api/profile', [ProfileController::class, 'update'])->middleware('throttle:profile-api');
 Route::get('/api/profile/connected-apps', [ProfileController::class, 'connectedApps'])->middleware('throttle:profile-api');
 Route::delete('/api/profile/connected-apps/{clientId}', [ProfileController::class, 'revokeConnectedApp'])->middleware('throttle:profile-api');
+Route::get('/api/profile/sessions', [ProfileController::class, 'sessions'])->middleware('throttle:profile-api');
+Route::delete('/api/profile/sessions', [ProfileController::class, 'revokeAllSessions'])->middleware('throttle:profile-api');
+Route::delete('/api/profile/sessions/{sessionId}', [ProfileController::class, 'revokeSession'])->middleware('throttle:profile-api');
 
 Route::middleware('throttle:oidc-authorize')->group(function (): void {
     Route::get('/authorize', AuthorizeController::class);

@@ -74,7 +74,7 @@ function fr007_sso_error_handling_contracts(): array
         'app/Actions/SsoErrors/ResolveSsoErrorMessageAction.php' => ['is_enabled', 'SsoErrorMessageTemplate', 'catalog'],
         'app/Actions/Oidc/CreateAuthorizationRedirect.php' => ['frontendErrorRedirect', 'LoginRequired', 'auth_request_store_unavailable'],
         'app/Actions/Oidc/ExchangeToken.php' => ['recordSsoTokenError', 'invalid_grant', 'OidcErrorResponse::json'],
-        'app/Actions/Oidc/HandleBrokerCallback.php' => ['upstream_callback_error', 'SessionExpired', 'upstream_handshake_failed'],
+        'app/Actions/Oidc/HandleUpstreamCallback.php' => ['upstream_callback_error', 'SessionExpired', 'upstream_handshake_failed'],
         'database/migrations/2026_05_10_000001_create_sso_error_message_templates_table.php' => ['sso_error_message_templates', 'action_url', 'is_enabled'],
         'app/Actions/SsoErrors/ManageSsoErrorTemplateAction.php' => ['updateOrCreate', 'defaultPayload', 'is_enabled'],
         'app/Http/Controllers/Admin/SsoErrorTemplateController.php' => ['ManageSsoErrorTemplateAction', 'AdminApiResponse', 'templates->update'],
@@ -87,7 +87,7 @@ function fr007_sso_error_handling_contracts(): array
         'tests/Unit/SsoErrors/ResolveSsoErrorMessageActionTest.php' => ['enabled database', 'falls back to catalog'],
         'tests/Feature/Oidc/SsoErrorHandlingContractTest.php' => ['prompt none login_required', '[SSO_ERROR_RECORDED]'],
         'tests/Feature/Oidc/TokenEndpointSsoErrorObservabilityTest.php' => ['oauth error format', 'secret-verifier-material'],
-        'tests/Feature/Oidc/BrokerCallbackSsoErrorHandlingTest.php' => ['access_denied', 'session_expired'],
+        'tests/Feature/Oidc/UpstreamCallbackSsoErrorHandlingTest.php' => ['access_denied', 'session_expired'],
         'tests/Feature/Admin/SsoErrorTemplateManagementTest.php' => ['unsafe action urls', 'sso-error-templates'],
     ];
 }
@@ -103,7 +103,7 @@ function fr007_sso_error_handling_coverage_matrix(): array
         'structured_logging' => ['app/Actions/SsoErrors/RecordSsoErrorAction.php', 'tests/Unit/SsoErrors/RecordSsoErrorActionTest.php'],
         'browser_error_redirect' => ['app/Actions/SsoErrors/BuildSsoErrorRedirectAction.php', 'tests/Feature/Oidc/SsoErrorHandlingContractTest.php'],
         'token_endpoint_observability' => ['app/Actions/Oidc/ExchangeToken.php', 'tests/Feature/Oidc/TokenEndpointSsoErrorObservabilityTest.php'],
-        'upstream_network_error_handling' => ['app/Actions/Oidc/HandleBrokerCallback.php', 'tests/Feature/Oidc/BrokerCallbackSsoErrorHandlingTest.php'],
+        'upstream_network_error_handling' => ['app/Actions/Oidc/HandleUpstreamCallback.php', 'tests/Feature/Oidc/UpstreamCallbackSsoErrorHandlingTest.php'],
         'admin_template_management' => ['app/Actions/SsoErrors/ManageSsoErrorTemplateAction.php', 'app/Http/Controllers/Admin/SsoErrorTemplateController.php', 'tests/Feature/Admin/SsoErrorTemplateManagementTest.php'],
         'template_resolver' => ['app/Actions/SsoErrors/ResolveSsoErrorMessageAction.php', 'tests/Unit/SsoErrors/ResolveSsoErrorMessageActionTest.php'],
         'secret_redaction' => ['app/Actions/SsoErrors/RecordSsoErrorAction.php', 'tests/Feature/Oidc/TokenEndpointSsoErrorObservabilityTest.php'],
@@ -133,7 +133,7 @@ function fr007_sso_error_handling_ci_tests(): array
     return [
         'SsoErrorHandlingCoverageMatrixTest.php',
         'SsoErrorTemplateManagementTest.php',
-        'BrokerCallbackSsoErrorHandlingTest.php',
+        'UpstreamCallbackSsoErrorHandlingTest.php',
         'TokenEndpointSsoErrorObservabilityTest.php',
         'ResolveSsoErrorMessageActionTest.php',
     ];

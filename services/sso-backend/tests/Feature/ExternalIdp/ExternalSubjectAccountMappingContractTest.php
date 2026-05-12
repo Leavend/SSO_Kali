@@ -138,7 +138,7 @@ function externalIdpMappingProvider(string $providerKey = 'keycloak-mapping'): E
         'display_name' => 'Keycloak Mapping',
         'issuer' => $issuer,
         'metadata_url' => $issuer.'/.well-known/openid-configuration',
-        'client_id' => 'sso-broker',
+        'client_id' => 'sso-upstream',
         'client_secret_encrypted' => null,
         'allowed_algorithms' => ['RS256'],
         'scopes' => ['openid', 'profile', 'email'],
@@ -165,7 +165,7 @@ function externalIdpExchangeClaims(): array
         'claims' => [
             'iss' => 'https://keycloak-mapping.keycloak.example.test/realms/sso',
             'sub' => 'external-user-1',
-            'aud' => 'sso-broker',
+            'aud' => 'sso-upstream',
             'email' => 'external@example.com',
             'email_verified' => true,
             'name' => 'External User',

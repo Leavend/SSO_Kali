@@ -13,7 +13,7 @@ use App\Services\Oidc\LocalTokenService;
 use App\Services\Oidc\OidcIncidentAuditLogger;
 use App\Services\Oidc\RefreshTokenStore;
 use App\Services\Oidc\UserProfileSynchronizer;
-use App\Services\Zitadel\ZitadelBrokerService;
+use App\Services\Oidc\Upstream\UpstreamOidcClient;
 use App\Support\Audit\AuthenticationAuditRecord;
 use App\Support\Oidc\DownstreamClient;
 use App\Support\Oidc\Pkce;
@@ -30,7 +30,7 @@ final class ExchangeToken
         private readonly AuthorizationCodeStore $codes,
         private readonly RefreshTokenStore $refreshTokens,
         private readonly LocalTokenService $tokens,
-        private readonly ZitadelBrokerService $broker,
+        private readonly UpstreamOidcClient $upstream,
         private readonly UserProfileSynchronizer $profiles,
         private readonly OidcIncidentAuditLogger $incidents,
         private readonly RecordAuthenticationAuditEventAction $audits,
@@ -164,8 +164,8 @@ final class ExchangeToken
     private function upstreamRefreshContext(Request $request, array $record, array $context): ?JsonResponse
     {
         try {
-            $upstream = $this->broker->token($this->refreshPayload((string) $record['upstream_refresh_token']));
-            $claims = $this->broker->userInfo((string) $upstream['access_token']);
+            $upstream = $this->upstream->token($this->refreshPayload((string) $record['upstream_refresh_token']));
+            $claims = $this->upstream->userInfo((string) $upstream['access_token']);
         } catch (Throwable) {
             return null;
         }
@@ -218,8 +218,8 @@ final class ExchangeToken
     {
         return [
             'grant_type' => 'refresh_token',
-            'client_id' => (string) config('sso.broker.client_id'),
-            'client_secret' => (string) config('sso.broker.client_secret'),
+            'client_id' => (string) config('sso.upstream_oidc.client_id'),
+            'client_secret' => (string) config('sso.upstream_oidc.client_secret'),
             'refresh_token' => $refreshToken,
         ];
     }

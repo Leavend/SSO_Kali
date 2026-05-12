@@ -90,7 +90,7 @@ it('completes App A public PKCE authorization code flow with state and userinfo 
 
     $authorizeResponse = $this
         ->withSession([
-            'broker_browser_session' => [
+            'sso_browser_session' => [
                 'subject_id' => $user->subject_id,
                 'session_id' => $sessionId,
                 'auth_time' => time(),
@@ -143,7 +143,7 @@ it('enforces App B confidential client secret during token exchange', function (
 
     $authorizeResponse = $this
         ->withSession([
-            'broker_browser_session' => [
+            'sso_browser_session' => [
                 'subject_id' => $user->subject_id,
                 'session_id' => $sessionId,
                 'auth_time' => time(),

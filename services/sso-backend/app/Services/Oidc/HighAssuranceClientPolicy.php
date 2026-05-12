@@ -10,7 +10,7 @@ final class HighAssuranceClientPolicy
 {
     /**
      * Valid OIDC prompt values per OpenID Connect Core §3.1.2.1.
-     * 'none' is intentionally excluded — the broker always requires interactive login for high-assurance clients.
+     * 'none' is intentionally excluded — the SSO always requires interactive login for high-assurance clients.
      */
     private const VALID_PROMPTS = ['login', 'consent', 'select_account'];
 

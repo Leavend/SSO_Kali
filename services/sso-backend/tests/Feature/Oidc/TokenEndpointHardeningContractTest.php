@@ -165,7 +165,7 @@ function issue49AuthorizationCode(string $clientId, string $redirectUri): array
 
     $response = test()
         ->withSession([
-            'broker_browser_session' => [
+            'sso_browser_session' => [
                 'subject_id' => $user->subject_id,
                 'session_id' => $sessionId,
                 'auth_time' => time(),
