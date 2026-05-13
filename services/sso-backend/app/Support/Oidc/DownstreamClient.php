@@ -23,6 +23,7 @@ final readonly class DownstreamClient
         public ?string $secret = null,
         public ?Carbon $secretExpiresAt = null,
         public ?Carbon $secretRotatedAt = null,
+        public bool $skipConsent = true,
     ) {}
 
     /**

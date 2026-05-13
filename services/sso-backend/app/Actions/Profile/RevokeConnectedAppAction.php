@@ -6,6 +6,7 @@ namespace App\Actions\Profile;
 
 use App\Services\Admin\AdminAuditEventStore;
 use App\Services\Oidc\AccessTokenRevocationStore;
+use App\Services\Oidc\ConsentService;
 use App\Services\Oidc\RefreshTokenStore;
 use App\Services\Profile\ProfilePrincipalException;
 use App\Services\Profile\ProfilePrincipalResolver;
@@ -19,6 +20,7 @@ final class RevokeConnectedAppAction
         private readonly ProfilePrincipalResolver $principals,
         private readonly RefreshTokenStore $refreshTokens,
         private readonly AccessTokenRevocationStore $accessTokens,
+        private readonly ConsentService $consents,
         private readonly AdminAuditEventStore $audits,
     ) {}
 
@@ -33,6 +35,7 @@ final class RevokeConnectedAppAction
 
         $revoked = $this->refreshTokens->revokeClientSessionsForSubject((string) $claims['sub'], $clientId);
         $this->accessTokens->revokeClient($clientId);
+        $this->consents->revoke((string) $claims['sub'], $clientId);
         $this->audit($request, $claims, $clientId, count($revoked));
 
         return response()->json([

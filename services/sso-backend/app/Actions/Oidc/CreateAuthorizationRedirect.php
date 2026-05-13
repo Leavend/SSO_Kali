@@ -10,6 +10,7 @@ use App\Actions\SsoErrors\RecordSsoErrorAction;
 use App\Enums\SsoErrorCode;
 use App\Services\Oidc\AuthorizationCodeStore;
 use App\Services\Oidc\AuthRequestStore;
+use App\Services\Oidc\ConsentService;
 use App\Services\Oidc\DownstreamClientRegistry;
 use App\Services\Oidc\HighAssuranceClientPolicy;
 use App\Services\Oidc\OidcProfileMetrics;
@@ -19,6 +20,7 @@ use App\Services\Oidc\Upstream\UpstreamOidcClient;
 use App\Support\Audit\AuthenticationAuditRecord;
 use App\Support\Oidc\DownstreamClient;
 use App\Support\Oidc\Pkce;
+use App\Support\Oidc\ScopeSet;
 use App\Support\Oidc\SsoAuthFlowCookie;
 use App\Support\Responses\OidcErrorResponse;
 use App\Support\SsoErrors\SsoErrorContext;
@@ -39,6 +41,7 @@ final class CreateAuthorizationRedirect
         private readonly SsoAuthFlowCookie $authFlowCookie,
         private readonly UpstreamOidcClient $upstream,
         private readonly ScopePolicy $scopes,
+        private readonly ConsentService $consents,
         private readonly RecordAuthenticationAuditEventAction $audits,
         private readonly RecordSsoErrorAction $ssoErrors,
         private readonly BuildSsoErrorRedirectAction $errorRedirects,
@@ -66,6 +69,13 @@ final class CreateAuthorizationRedirect
         $browserContext = $this->browserSession->context($request);
 
         if ($browserContext !== null && $this->canUseBrowserSession($request, $client, $browserContext)) {
+            // FR-011: check consent before issuing tokens
+            if ($this->requiresConsent($client, $browserContext, $request)) {
+                $consentState = $this->authRequests->put([...$context, ...$browserContext]);
+
+                return redirect()->away($this->consentRedirectUri($client, $context, $consentState));
+            }
+
             $this->recordAccepted($request, $client, $context, 'local_session', $browserContext);
 
             return $this->localRedirect($context, $browserContext);
@@ -497,5 +507,44 @@ final class CreateAuthorizationRedirect
         $this->metrics->incrementReject($error['reason']);
 
         return OidcErrorResponse::json('invalid_request', $error['description'], 400);
+    }
+
+    /**
+     * FR-011: Determine if consent prompt is required for this authorization.
+     *
+     * @param  array<string, mixed>  $browserContext
+     */
+    private function requiresConsent(DownstreamClient $client, array $browserContext, Request $request): bool
+    {
+        // First-party clients skip consent entirely
+        if ($client->skipConsent) {
+            return false;
+        }
+
+        // prompt=consent forces the consent screen
+        if ($this->prompt($request) === 'consent') {
+            return true;
+        }
+
+        $subjectId = (string) ($browserContext['subject_id'] ?? '');
+        $requestedScopes = ScopeSet::fromString((string) ($browserContext['scope'] ?? $request->query('scope', 'openid')));
+
+        return ! $this->consents->hasConsent($subjectId, $client->clientId, $requestedScopes);
+    }
+
+    /**
+     * FR-011: Build the consent page redirect URI.
+     *
+     * @param  array<string, mixed>  $context
+     */
+    private function consentRedirectUri(DownstreamClient $client, array $context, ?string $state): string
+    {
+        $frontendUrl = rtrim((string) config('sso.frontend_url', ''), '/');
+
+        return $frontendUrl.'/auth/consent?'.http_build_query([
+            'client_id' => $client->clientId,
+            'scope' => $context['scope'] ?? 'openid',
+            'state' => $state,
+        ]);
     }
 }

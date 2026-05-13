@@ -191,6 +191,7 @@ final class DownstreamClientRegistry
                 ? $config['backchannel_logout_uri']
                 : null,
             secret: is_string($config['secret'] ?? null) ? $config['secret'] : null,
+            skipConsent: (bool) ($config['skip_consent'] ?? true),
         );
     }
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Profile;
 
+use App\Models\UserConsent;
 use Illuminate\Support\Facades\DB;
 
 final class ConnectedAppsService
@@ -13,7 +14,7 @@ final class ConnectedAppsService
      */
     public function listForSubject(string $subjectId): array
     {
-        return DB::table('refresh_token_rotations')
+        $apps = DB::table('refresh_token_rotations')
             ->select([
                 'client_id',
                 DB::raw('MIN(created_at) as first_connected_at'),
@@ -30,6 +31,21 @@ final class ConnectedAppsService
             ->map(fn (object $row): array => $this->app($row))
             ->values()
             ->all();
+
+        // FR-011: enrich with granted scopes from consent records
+        $consents = UserConsent::query()
+            ->active()
+            ->forSubject($subjectId)
+            ->get()
+            ->keyBy('client_id');
+
+        return array_map(function (array $app) use ($consents): array {
+            $consent = $consents->get($app['client_id']);
+            $app['granted_scopes'] = $consent?->scopes ?? [];
+            $app['consent_granted_at'] = $consent?->granted_at?->toIso8601String();
+
+            return $app;
+        }, $apps);
     }
 
     /**

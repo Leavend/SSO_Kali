@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAdminStore } from '@/stores/admin'
 import LoginView from '@/views/LoginView.vue'
+import ConsentView from '@/views/ConsentView.vue'
 import DashboardView from '@/views/DashboardView.vue'
 import UsersView from '@/views/UsersView.vue'
 import UserDetailView from '@/views/UserDetailView.vue'
@@ -24,6 +25,7 @@ export const router = createRouter({
   history: createWebHistory(),
   routes: [
     { path: '/', name: 'login', component: LoginView },
+    { path: '/auth/consent', name: 'consent', component: ConsentView },
     { path: '/dashboard', name: 'dashboard', component: DashboardView, meta: { requiresAuth: true } },
     { path: '/users', name: 'users', component: UsersView, meta: { requiresAuth: true } },
     { path: '/users/:id', name: 'user-detail', component: UserDetailView, meta: { requiresAuth: true } },
