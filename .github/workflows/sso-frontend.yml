@@ -5,11 +5,13 @@ on:
     branches: [main, develop]
     paths:
       - 'services/sso-frontend/**'
+      - 'packages/dev-sso-parent-ui/**'
       - '.github/workflows/sso-frontend.yml'
   pull_request:
     branches: [main]
     paths:
       - 'services/sso-frontend/**'
+      - 'packages/dev-sso-parent-ui/**'
 
 env:
   REGISTRY: ghcr.io
