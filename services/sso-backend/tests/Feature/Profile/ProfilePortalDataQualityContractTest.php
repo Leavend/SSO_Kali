@@ -61,11 +61,14 @@ it('returns audit event dates in ISO 8601 format', function (): void {
         ->getJson('/api/profile/audit?limit=1');
 
     $response->assertOk();
-    $occurredAt = $response->json('events.0.occurred_at');
+    $event = $response->json('events.0');
 
     // Must be parseable by JavaScript's new Date() — ISO 8601 with T separator
-    expect($occurredAt)->toContain('T')
-        ->and($occurredAt)->toMatch('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/');
+    expect($event['created_at'])->toContain('T')
+        ->and($event['created_at'])->toMatch('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/')
+        ->and($event)->toHaveKey('id')
+        ->and($event)->toHaveKey('event')
+        ->and($event['event'])->toBe('login');
 });
 
 it('includes roles and permissions in profile for session-authenticated users with admin role', function (): void {

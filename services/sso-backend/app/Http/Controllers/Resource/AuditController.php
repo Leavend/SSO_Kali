@@ -49,19 +49,39 @@ final class AuditController
         }
 
         $events = $query->get()->map(fn (object $row) => [
-            'event_id' => $row->event_id,
-            'event_type' => $row->event_type,
-            'outcome' => $row->outcome,
+            'id' => $row->event_id,
+            'event' => self::mapEventType((string) $row->event_type),
             'ip_address' => $row->ip_address,
             'user_agent' => $row->user_agent,
-            'occurred_at' => str_replace(' ', 'T', (string) $row->occurred_at).'Z',
-            'client_id' => $row->client_id,
-            'session_id' => $row->session_id,
+            'created_at' => str_replace(' ', 'T', (string) $row->occurred_at).'Z',
+            'metadata' => array_filter([
+                'outcome' => $row->outcome,
+                'client_id' => $row->client_id,
+                'session_id' => $row->session_id,
+            ], fn (mixed $v): bool => $v !== null),
         ]);
 
         return response()->json([
             'events' => $events,
             'total' => $events->count(),
         ]);
+    }
+
+    /**
+     * Map internal event_type to frontend AuditEventType enum.
+     */
+    private static function mapEventType(string $type): string
+    {
+        return match ($type) {
+            'login_succeeded', 'login_failed' => 'login',
+            'logout_succeeded', 'logout_completed' => 'logout',
+            'logout_all_sessions' => 'logout_all',
+            'session_revoked' => 'session_revoked',
+            'token_refreshed' => 'token_refreshed',
+            'password_changed' => 'password_changed',
+            'profile_updated' => 'profile_updated',
+            'connected_app_revoked' => 'connected_app_revoked',
+            default => $type,
+        };
     }
 }
