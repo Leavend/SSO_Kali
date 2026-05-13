@@ -5,7 +5,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { profileApi } from '@/services/profile.api'
-import { handleSessionExpiry } from '@/composables/useSessionGuard'
+import { handleSessionExpiry } from '@/composables/handleSessionExpiry'
 import type {
   ConnectedApp,
   ProfilePortal,

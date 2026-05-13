@@ -37,6 +37,9 @@ export function useSessionGuard(): void {
 /**
  * Handle API errors — if 401, clear session and let the router guard redirect.
  * Use this in composables/stores that call profile/session APIs.
+ *
+ * NOTE: This function is intentionally decoupled from useRouter to avoid
+ * pulling vue-router into the profile store's critical chunk.
  */
 export function handleSessionExpiry(error: unknown): boolean {
   if (isUnauthorized(error)) {
