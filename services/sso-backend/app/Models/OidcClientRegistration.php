@@ -26,6 +26,8 @@ use Illuminate\Support\Carbon;
  * @property string $status
  * @property Carbon|null $activated_at
  * @property Carbon|null $disabled_at
+ * @property string|null $disabled_reason
+ * @property Carbon|null $decommissioned_at
  */
 final class OidcClientRegistration extends Model
 {
@@ -55,6 +57,8 @@ final class OidcClientRegistration extends Model
         'activated_by_email',
         'activated_at',
         'disabled_at',
+        'disabled_reason',
+        'decommissioned_at',
     ];
 
     /**
@@ -69,6 +73,7 @@ final class OidcClientRegistration extends Model
             'contract' => 'array',
             'activated_at' => 'datetime',
             'disabled_at' => 'datetime',
+            'decommissioned_at' => 'datetime',
             'secret_rotated_at' => 'datetime',
             'secret_expires_at' => 'datetime',
         ];

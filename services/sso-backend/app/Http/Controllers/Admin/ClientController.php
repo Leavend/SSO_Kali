@@ -71,7 +71,7 @@ final class ClientController
 
     public function destroy(Request $request, ClientIntegrationRegistrationService $registrations, string $clientId): JsonResponse
     {
-        return $this->integrations->disable($request, $registrations, $clientId);
+        return $this->integrations->decommission($request, $registrations, $clientId);
     }
 
     public function rotateSecret(Request $request, RotateClientSecretAction $action, string $clientId): JsonResponse

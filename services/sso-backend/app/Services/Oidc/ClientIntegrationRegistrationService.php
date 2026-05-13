@@ -48,6 +48,11 @@ final class ClientIntegrationRegistrationService
     public function activate(Request $request, User $admin, string $clientId, ?string $secretHash): OidcClientRegistration
     {
         $registration = $this->stagedRegistration($clientId);
+
+        if ($registration->status === 'decommissioned') {
+            throw new RuntimeException('Cannot reactivate a decommissioned client.');
+        }
+
         $this->assertActivationSecret($registration, $secretHash);
         $registration->update($this->activationPayload($admin, $secretHash));
         $this->clients->flush();
@@ -56,14 +61,46 @@ final class ClientIntegrationRegistrationService
         return $registration;
     }
 
-    public function disable(Request $request, User $admin, string $clientId): OidcClientRegistration
+    public function disable(Request $request, User $admin, string $clientId, ?string $reason = null): OidcClientRegistration
     {
         $registration = $this->rollbackRegistration($clientId);
         $outcome = $this->revoker->revoke($registration);
 
-        $registration->update(['status' => 'disabled', 'disabled_at' => now()]);
+        $registration->update([
+            'status' => 'disabled',
+            'disabled_at' => now(),
+            'disabled_reason' => $reason,
+        ]);
         $this->clients->flush();
         $this->auditSuccess('disable_client_integration', $request, $admin, $registration->refresh(), $outcome);
+
+        return $registration;
+    }
+
+    /**
+     * FR-012 / UC-09: Permanently decommission a client.
+     *
+     * Irreversible — revokes all tokens, clears sensitive config,
+     * and sets status to 'decommissioned'. Cannot be reactivated.
+     */
+    public function decommission(Request $request, User $admin, string $clientId, ?string $reason = null): OidcClientRegistration
+    {
+        $registration = $this->rollbackRegistration($clientId);
+        $outcome = $this->revoker->revoke($registration);
+
+        $registration->update([
+            'status' => 'decommissioned',
+            'disabled_at' => $registration->disabled_at ?? now(),
+            'disabled_reason' => $reason ?? 'Decommissioned by admin.',
+            'decommissioned_at' => now(),
+            'allowed_scopes' => [],
+            'redirect_uris' => [],
+            'post_logout_redirect_uris' => [],
+            'backchannel_logout_uri' => null,
+            'secret_hash' => null,
+        ]);
+        $this->clients->flush();
+        $this->auditSuccess('decommission_client_integration', $request, $admin, $registration->refresh(), $outcome);
 
         return $registration;
     }

@@ -55,7 +55,20 @@ final class ClientIntegrationController
     public function disable(Request $request, ClientIntegrationRegistrationService $registrations, string $clientId): JsonResponse
     {
         try {
-            $registration = $registrations->disable($request, $this->admin($request), $clientId);
+            $reason = is_string($request->input('reason')) ? $request->input('reason') : null;
+            $registration = $registrations->disable($request, $this->admin($request), $clientId, $reason);
+        } catch (RuntimeException $exception) {
+            return $this->invalidIntegration($exception);
+        }
+
+        return AdminApiResponse::ok(['registration' => $registrations->payload($registration)]);
+    }
+
+    public function decommission(Request $request, ClientIntegrationRegistrationService $registrations, string $clientId): JsonResponse
+    {
+        try {
+            $reason = is_string($request->input('reason')) ? $request->input('reason') : null;
+            $registration = $registrations->decommission($request, $this->admin($request), $clientId, $reason);
         } catch (RuntimeException $exception) {
             return $this->invalidIntegration($exception);
         }
