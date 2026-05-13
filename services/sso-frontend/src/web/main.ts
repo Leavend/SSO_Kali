@@ -10,3 +10,10 @@ const app = createApp(App)
 app.use(createPinia())
 app.use(router)
 app.mount('#app')
+
+// Dismiss loading screen after Vue mount
+const loader = document.getElementById('app-loader')
+if (loader) {
+  loader.classList.add('is-hidden')
+  loader.addEventListener('transitionend', () => loader.remove(), { once: true })
+}
