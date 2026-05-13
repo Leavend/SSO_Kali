@@ -105,4 +105,17 @@ final readonly class DownstreamClient
     {
         return ! $this->isPublic();
     }
+
+    /**
+     * FR-010: Whether the backchannel logout URI is well-formed.
+     * Returns true if no URI is configured (public clients, or clients without backchannel).
+     */
+    public function hasValidBackchannelLogoutUri(): bool
+    {
+        if ($this->backchannelLogoutUri === null || $this->backchannelLogoutUri === '') {
+            return true;
+        }
+
+        return self::isWellFormedRedirectUri($this->backchannelLogoutUri);
+    }
 }
