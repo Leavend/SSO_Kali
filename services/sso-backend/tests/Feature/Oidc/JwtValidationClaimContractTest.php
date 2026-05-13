@@ -11,6 +11,17 @@ use App\Support\Security\ClientSecretHashPolicy;
 use Illuminate\Support\Str;
 
 beforeEach(function (): void {
+    // Reset singletons that cache mutable state (signing keys, client list)
+    // to prevent test ordering pollution from other OIDC tests.
+    app()->forgetInstance(SigningKeyService::class);
+    app()->forgetInstance(AccessTokenGuard::class);
+    app()->forgetInstance(AccessTokenRevocationStore::class);
+    app()->forgetInstance(\App\Services\Oidc\DownstreamClientRegistry::class);
+    app()->forgetInstance(\App\Support\Cache\ResilientCacheStore::class);
+
+    // Flush array cache to prevent stale revocation entries from prior tests
+    \Illuminate\Support\Facades\Cache::flush();
+
     config()->set('app.env', 'production');
     config()->set('app.url', 'https://api-sso.timeh.my.id');
     config()->set('sso.issuer', 'https://api-sso.timeh.my.id');
@@ -98,8 +109,8 @@ it('rejects access tokens with invalid issuer audience expiry token use required
 })->with([
     'invalid issuer' => [['iss' => 'https://evil.example.test']],
     'invalid audience' => [['aud' => 'wrong-api']],
-    'expired token' => [['exp' => time() - 120]],
-    'future issued-at' => [['iat' => time() + 120, 'nbf' => time()]],
+    'expired token' => [['exp' => time() - 600]],
+    'future issued-at' => [['iat' => time() + 600, 'nbf' => time()]],
     'id token used as access token' => [['token_use' => 'id']],
     'missing jti' => [['jti' => null]],
     'missing sid' => [['sid' => null]],
@@ -132,11 +143,20 @@ it('rejects tampered signed tokens and unsigned alg none tokens', function (): v
 });
 
 it('rejects access tokens after their jti is revoked', function (): void {
-    $token = app(SigningKeyService::class)->sign(issue50AccessClaims(['jti' => 'issue50-revoked-jti']));
+    $jti = 'issue50-revoked-'.Str::random(8);
 
-    app(AccessTokenRevocationStore::class)->revoke('issue50-revoked-jti', 900);
+    // Resolve fresh instances to ensure key material consistency
+    app()->forgetInstance(SigningKeyService::class);
+    app()->forgetInstance(AccessTokenGuard::class);
 
-    expect(fn () => app(AccessTokenGuard::class)->claimsFrom($token))->toThrow(RuntimeException::class);
+    $signer = app(SigningKeyService::class);
+    $guard = app(AccessTokenGuard::class);
+
+    $token = $signer->sign(issue50AccessClaims(['jti' => $jti]));
+
+    app(AccessTokenRevocationStore::class)->revoke($jti, 900);
+
+    expect(fn () => $guard->claimsFrom($token))->toThrow(RuntimeException::class);
 });
 
 /**
