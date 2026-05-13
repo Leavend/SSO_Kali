@@ -110,7 +110,7 @@ function portalSessionWithRole(string $id, string $role = 'user'): array
         }
     }
 
-    $sessionId = (string) Str::ulid();
+    $sessionId = (string) Str::uuid();
     SsoSession::query()->create([
         'session_id' => $sessionId,
         'user_id' => $user->getKey(),

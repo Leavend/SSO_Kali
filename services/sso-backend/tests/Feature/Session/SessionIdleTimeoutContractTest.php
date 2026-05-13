@@ -86,7 +86,7 @@ function createIdleTestUser(string $id): User
 
 function createTestSession(User $user, int $lastSeenMinutesAgo, int $expiredMinutesAgo = -60): SsoSession
 {
-    $sessionId = (string) Str::ulid();
+    $sessionId = (string) Str::uuid();
 
     return SsoSession::query()->create([
         'session_id' => $sessionId,

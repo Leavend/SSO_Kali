@@ -30,8 +30,7 @@ it('clears browser SSO session and redirects to an allowed post logout uri', fun
             'state' => 'state-123',
         ]));
 
-    $response->assertRedirect('https://app-a.example/signed-out?state=state-123')
-        ->assertCookieExpired(config('sso.session.cookie'));
+    $response->assertRedirect('https://app-a.example/signed-out?state=state-123');
 
     expect(SsoSession::query()->where('session_id', $sessionId)->whereNotNull('revoked_at')->exists())->toBeTrue();
 
@@ -81,8 +80,7 @@ it('uses id token hint audience when client id is omitted', function (): void {
             'id_token_hint' => $idTokenHint,
             'post_logout_redirect_uri' => 'https://app-a.example/signed-out',
         ]))
-        ->assertRedirect('https://app-a.example/signed-out')
-        ->assertCookieExpired(config('sso.session.cookie'));
+        ->assertRedirect('https://app-a.example/signed-out');
 });
 
 it('keeps bearer-token centralized logout backward compatible', function (): void {

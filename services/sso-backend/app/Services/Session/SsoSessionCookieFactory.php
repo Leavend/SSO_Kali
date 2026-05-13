@@ -4,8 +4,15 @@ declare(strict_types=1);
 
 namespace App\Services\Session;
 
+use App\Support\Security\SsoSessionCookiePolicy;
 use Symfony\Component\HttpFoundation\Cookie;
 
+/**
+ * FR-017: SSO session cookie factory.
+ *
+ * Uses SsoSessionCookiePolicy to enforce __Host- prefix, Secure, Path=/,
+ * and no Domain attribute — preventing cookie tossing attacks.
+ */
 final class SsoSessionCookieFactory
 {
     public function make(string $sessionId): Cookie
@@ -15,8 +22,8 @@ final class SsoSessionCookieFactory
             value: $sessionId,
             minutes: (int) config('sso.session.ttl_minutes', 480),
             path: '/',
-            domain: config('sso.session.cookie_domain'),
-            secure: (bool) config('sso.session.cookie_secure', true),
+            domain: null, // Required by __Host- prefix
+            secure: true, // Required by __Host- prefix
             httpOnly: true,
             raw: false,
             sameSite: (string) config('sso.session.cookie_same_site', 'lax'),
@@ -28,12 +35,14 @@ final class SsoSessionCookieFactory
         return cookie()->forget(
             name: $this->name(),
             path: '/',
-            domain: config('sso.session.cookie_domain'),
+            domain: null, // Required by __Host- prefix
         );
     }
 
     public function name(): string
     {
-        return (string) config('sso.session.cookie', 'sso_session');
+        return SsoSessionCookiePolicy::configuredName(
+            config('sso.session.cookie')
+        );
     }
 }

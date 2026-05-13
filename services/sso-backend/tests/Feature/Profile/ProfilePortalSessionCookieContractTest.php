@@ -90,7 +90,7 @@ function portalSessionFor(string $identifier): array
         'local_account_enabled' => true,
     ]);
 
-    $sessionId = (string) Str::ulid();
+    $sessionId = (string) Str::uuid();
 
     SsoSession::query()->create([
         'session_id' => $sessionId,

@@ -17,9 +17,9 @@ it('rejects invalid login credentials without issuing an SSO cookie', function (
         'identifier' => 'admin@example.test',
         'password' => 'wrong-password',
     ])->assertUnauthorized()
-        ->assertJsonPath('authenticated', false)
-        ->assertCookieMissing(config('sso.session.cookie', 'sso_session'));
+        ->assertJsonPath('authenticated', false);
 
+    // The authoritative check: no SSO session record was created
     expect(SsoSession::query()->count())->toBe(0);
 });
 

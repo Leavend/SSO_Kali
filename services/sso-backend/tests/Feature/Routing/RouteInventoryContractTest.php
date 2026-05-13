@@ -8,8 +8,8 @@ use Illuminate\Support\Facades\Route as RouteFacade;
 it('keeps the production route inventory intentional', function (): void {
     $routes = collect(RouteFacade::getRoutes()->getRoutes());
 
-    expect($routes)->toHaveCount(91);
-    expect(applicationRoutes($routes))->toHaveCount(79);
+    expect($routes)->toHaveCount(94);
+    expect(applicationRoutes($routes))->toHaveCount(82);
     expect(vendorRoutes($routes))->toHaveCount(12);
 });
 
@@ -156,6 +156,9 @@ function expectedApplicationRouteSignatures(): array
         'PATCH api/profile',
         'GET|HEAD authorize',
         'POST connect/backchannel/admin-panel/logout',
+        'GET|HEAD connect/consent',
+        'POST connect/consent',
+        'POST connect/local-login',
         'GET|POST|HEAD connect/logout',
         'POST connect/register-session',
         'GET|HEAD health',

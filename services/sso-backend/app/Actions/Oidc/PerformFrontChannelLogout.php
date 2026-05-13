@@ -8,6 +8,7 @@ use App\Actions\Audit\RecordLogoutAuditEventAction;
 use App\Actions\Auth\LogoutSsoSessionAction;
 use App\Services\Oidc\DownstreamClientRegistry;
 use App\Services\Oidc\SigningKeyService;
+use App\Services\Session\SsoSessionCookieFactory;
 use App\Services\Session\SsoSessionCookieResolver;
 use App\Support\Oidc\DownstreamClient;
 use App\Support\Responses\OidcErrorResponse;
@@ -24,6 +25,7 @@ final class PerformFrontChannelLogout
         private readonly RecordLogoutAuditEventAction $audit,
         private readonly SigningKeyService $keys,
         private readonly SsoSessionCookieResolver $cookies,
+        private readonly SsoSessionCookieFactory $cookieFactory,
     ) {}
 
     public function handle(Request $request): Response
@@ -93,11 +95,11 @@ final class PerformFrontChannelLogout
 
         if (! is_string($redirectUri) || $redirectUri === '') {
             return response()->json(['signed_out' => true])
-                ->withoutCookie((string) config('sso.session.cookie'));
+                ->withCookie($this->cookieFactory->forget());
         }
 
         return redirect()->away($this->redirectUri($redirectUri, $request))
-            ->withoutCookie((string) config('sso.session.cookie'));
+            ->withCookie($this->cookieFactory->forget());
     }
 
     private function redirectUri(string $redirectUri, Request $request): string

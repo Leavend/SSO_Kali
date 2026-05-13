@@ -35,7 +35,7 @@ beforeEach(function (): void {
         'local_account_enabled' => true,
     ]);
 
-    $this->sessionId = (string) Str::ulid();
+    $this->sessionId = (string) Str::uuid();
     SsoSession::query()->create([
         'session_id' => $this->sessionId,
         'user_id' => $this->user->getKey(),

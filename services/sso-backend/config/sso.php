@@ -49,9 +49,7 @@ return [
         'scope' => env('OIDC_UPSTREAM_SCOPE', 'openid profile email offline_access'),
     ],
     'session' => [
-        'cookie' => env('SSO_SESSION_COOKIE', 'sso_session'),
-        'cookie_domain' => env('SSO_SESSION_COOKIE_DOMAIN'),
-        'cookie_secure' => (bool) env('SSO_SESSION_COOKIE_SECURE', true),
+        'cookie' => env('SSO_SESSION_COOKIE', '__Host-sso_session'),
         'cookie_same_site' => env('SSO_SESSION_COOKIE_SAME_SITE', 'lax'),
         'ttl_minutes' => (int) env('SSO_SESSION_TTL_MINUTES', 480),
         'idle_minutes' => (int) env('SSO_SESSION_IDLE_MINUTES', 30),
