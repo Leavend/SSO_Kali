@@ -5,12 +5,10 @@ import { WifiOff } from 'lucide-vue-next'
 import AuthLayout from '@/components/layouts/AuthLayout.vue'
 import PortalLayout from '@/components/layouts/PortalLayout.vue'
 import { useThemeStore } from '@/stores/theme.store'
-import { useSessionStore } from '@/stores/session.store'
 import { useNetworkStatus } from '@/composables/useNetworkStatus'
 
 const route = useRoute()
 const theme = useThemeStore()
-const session = useSessionStore()
 const { isOnline, cleanup } = useNetworkStatus()
 
 const Layout = computed(() => (route.meta.layout === 'portal' ? PortalLayout : AuthLayout))

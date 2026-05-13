@@ -28,6 +28,13 @@ export default defineConfigWithVueTs(
     ...pluginVitest.configs.recommended,
     files: ['src/**/*.test.ts', 'src/**/*.spec.ts'],
   },
+  {
+    name: 'sso-frontend/ui-primitives',
+    files: ['src/components/ui/**/*.vue'],
+    rules: {
+      'vue/multi-word-component-names': 'off',
+    },
+  },
   ...pluginOxlint.buildFromOxlintConfigFile('.oxlintrc.json'),
   skipFormatting,
 )
