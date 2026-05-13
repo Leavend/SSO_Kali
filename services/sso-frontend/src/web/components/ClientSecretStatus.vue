@@ -9,8 +9,8 @@ import { computed } from 'vue'
 import { KeyRound, AlertTriangle, CheckCircle2, XCircle } from 'lucide-vue-next'
 
 export type SecretLifecycle = {
-  readonly secret_rotated_at: string | null
-  readonly secret_expires_at: string | null
+  readonly secret_rotated_at?: string | null
+  readonly secret_expires_at?: string | null
   readonly type: string
 }
 
