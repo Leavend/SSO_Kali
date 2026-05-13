@@ -31,11 +31,14 @@ final class UserSessionsService
             ->get()
             ->map(fn (object $row): array => [
                 'session_id' => $row->session_id,
-                'authenticated_at' => str_replace(' ', 'T', (string) $row->authenticated_at).'Z',
-                'last_seen_at' => str_replace(' ', 'T', (string) $row->last_seen_at).'Z',
+                'opened_at' => str_replace(' ', 'T', (string) $row->authenticated_at).'Z',
+                'last_used_at' => str_replace(' ', 'T', (string) $row->last_seen_at).'Z',
                 'expires_at' => str_replace(' ', 'T', (string) $row->expires_at).'Z',
                 'ip_address' => $row->ip_address,
                 'user_agent' => $row->user_agent,
+                'client_count' => 1,
+                'client_ids' => ['sso-portal'],
+                'client_display_names' => ['SSO Portal'],
                 'type' => 'portal',
             ])
             ->all();

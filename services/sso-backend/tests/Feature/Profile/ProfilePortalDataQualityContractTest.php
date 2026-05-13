@@ -32,8 +32,13 @@ it('includes sso_sessions in the sessions list for cookie-authenticated users', 
 
     $session = $response->json('sessions.0');
     expect($session)->toHaveKey('session_id')
-        ->and($session)->toHaveKey('authenticated_at')
-        ->and($session)->toHaveKey('ip_address');
+        ->and($session)->toHaveKey('opened_at')
+        ->and($session)->toHaveKey('last_used_at')
+        ->and($session)->toHaveKey('client_display_names')
+        ->and($session)->toHaveKey('client_count')
+        ->and($session)->toHaveKey('ip_address')
+        ->and($session)->toHaveKey('user_agent')
+        ->and($session['client_display_names'])->toBeArray();
 });
 
 it('returns audit event dates in ISO 8601 format', function (): void {
