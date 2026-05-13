@@ -3,12 +3,70 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Dev SSO admin control plane" />
+    <meta name="description" content="Dev-SSO Portal — Single Sign-On Platform" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
-    <title>SSO Admin Panel</title>
+    <title>Dev-SSO Portal</title>
+    <style>
+      /* Inline critical loading screen — visible before Vue mounts */
+      :root {
+        --splash-bg: #0f1117;
+        --splash-text: #a1a1aa;
+        --splash-accent: #6366f1;
+      }
+      body {
+        margin: 0;
+        background: var(--splash-bg);
+      }
+      #app-loader {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 20px;
+        background: var(--splash-bg);
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+      }
+      #app-loader.is-hidden {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+      }
+      #app-loader .loader-brand {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #f4f4f5;
+        letter-spacing: -0.01em;
+      }
+      #app-loader .loader-spinner {
+        width: 32px;
+        height: 32px;
+        border: 3px solid #27272a;
+        border-top-color: var(--splash-accent);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      #app-loader .loader-hint {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-size: 0.8125rem;
+        color: var(--splash-text);
+      }
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+    </style>
   </head>
   <body>
+    <!-- Loading screen: visible instantly, removed after Vue mount -->
+    <div id="app-loader" aria-label="Memuat aplikasi">
+      <span class="loader-brand">Dev-SSO</span>
+      <div class="loader-spinner" aria-hidden="true"></div>
+      <span class="loader-hint">Memuat...</span>
+    </div>
     <div id="app"></div>
-    <script type="module" src="/src/web/main.ts"></script>
+    <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
