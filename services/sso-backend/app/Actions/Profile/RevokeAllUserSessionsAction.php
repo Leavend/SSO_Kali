@@ -40,6 +40,7 @@ final class RevokeAllUserSessionsAction
         foreach ($activeSessions as $session) {
             $sessionId = (string) $session['session_id'];
             $result = $this->sessionService->revokeSession($sessionId);
+            $this->sessions->revokePortalSession($sessionId);
             $this->logicalSessions->clear($subjectId, $sessionId);
             $revokedSessions++;
             $revokedRefreshTokens += (int) $result['revoked_tokens'];

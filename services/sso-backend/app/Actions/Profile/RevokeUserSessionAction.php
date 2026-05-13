@@ -39,6 +39,7 @@ final class RevokeUserSessionAction
         }
 
         $result = $this->sessionService->revokeSession($sessionId);
+        $this->sessions->revokePortalSession($sessionId);
         $this->logicalSessions->clear($subjectId, $sessionId);
         $this->audit($request, $subjectId, $sessionId, $result);
 

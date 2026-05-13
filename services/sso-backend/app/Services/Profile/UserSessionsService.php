@@ -48,11 +48,34 @@ final class UserSessionsService
 
     public function belongsToSubject(string $subjectId, string $sessionId): bool
     {
-        return DB::table('refresh_token_rotations')
+        $inOauthSessions = DB::table('refresh_token_rotations')
             ->where('subject_id', $subjectId)
             ->where('session_id', $sessionId)
             ->whereNull('revoked_at')
             ->exists();
+
+        if ($inOauthSessions) {
+            return true;
+        }
+
+        return DB::table('sso_sessions')
+            ->where('subject_id', $subjectId)
+            ->where('session_id', $sessionId)
+            ->whereNull('revoked_at')
+            ->where('expires_at', '>', now())
+            ->exists();
+    }
+
+    /**
+     * Revoke a portal session in the sso_sessions table.
+     * Returns the number of rows affected (0 or 1).
+     */
+    public function revokePortalSession(string $sessionId): int
+    {
+        return DB::table('sso_sessions')
+            ->where('session_id', $sessionId)
+            ->whereNull('revoked_at')
+            ->update(['revoked_at' => now()]);
     }
 
     /**
