@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Actions\Admin\CreateManagedUserAction;
 use App\Actions\Admin\DeactivateManagedUserAction;
+use App\Actions\Admin\EmergencyMfaResetAction;
 use App\Actions\Admin\IssueManagedUserPasswordResetAction;
 use App\Actions\Admin\ReactivateManagedUserAction;
 use App\Actions\Admin\SyncManagedUserProfileAction;
@@ -40,15 +41,9 @@ final class UserController
     {
         $user = $this->users->find($subjectId);
 
-        if (! $user instanceof User) {
-            return AdminApiResponse::error('not_found', 'User not found.', 404);
-        }
-
-        return AdminApiResponse::ok([
-            'user' => $this->presenter->user($user),
-            'login_context' => $this->presenter->latestLoginContext($subjectId),
-            'sessions' => $this->sessions->sessionsForUser($subjectId),
-        ]);
+        return $user instanceof User
+            ? AdminApiResponse::ok(['user' => $this->presenter->user($user), 'login_context' => $this->presenter->latestLoginContext($subjectId), 'sessions' => $this->sessions->sessionsForUser($subjectId)])
+            : AdminApiResponse::error('not_found', 'User not found.', 404);
     }
 
     public function store(CreateManagedUserRequest $request, CreateManagedUserAction $action): JsonResponse
@@ -69,7 +64,6 @@ final class UserController
     public function issuePasswordReset(Request $request, IssueManagedUserPasswordResetAction $action, string $subjectId): JsonResponse
     {
         $target = $this->users->find($subjectId);
-
         return $target instanceof User
             ? $this->mutate($request, 'issue_managed_user_password_reset', ['target_subject_id' => $subjectId], fn (): array => $this->presenter->passwordReset($action->execute($target)))
             : AdminApiResponse::error('not_found', 'User not found.', 404);
@@ -78,6 +72,14 @@ final class UserController
     public function syncProfile(SyncManagedUserProfileRequest $request, SyncManagedUserProfileAction $action, string $subjectId): JsonResponse
     {
         return $this->mutateUser($request, $subjectId, 'sync_managed_user_profile', fn (User $target): User => $action->execute($target, $request->validated()));
+    }
+
+    public function resetMfa(Request $request, EmergencyMfaResetAction $action, string $subjectId): JsonResponse
+    {
+        $target = $this->users->find($subjectId);
+        return $target instanceof User
+            ? $this->mutate($request, 'emergency_mfa_reset', ['target_subject_id' => $subjectId], function () use ($action, $target): array { $action->execute($target); return ['reset' => true, 'message' => 'MFA credential removed.']; })
+            : AdminApiResponse::error('not_found', 'User not found.', 404);
     }
 
     /** @param Closure(): array<string, mixed> $callback */
@@ -90,7 +92,6 @@ final class UserController
     private function mutateUser(Request $request, string $subjectId, string $action, Closure $callback, array $context = []): JsonResponse
     {
         $target = $this->users->find($subjectId);
-
         return $target instanceof User
             ? $this->mutate($request, $action, ['target_subject_id' => $subjectId, ...$context], fn (): array => ['user' => $this->presenter->user($callback($target, $request->attributes->get('admin_user')))])
             : AdminApiResponse::error('not_found', 'User not found.', 404);
