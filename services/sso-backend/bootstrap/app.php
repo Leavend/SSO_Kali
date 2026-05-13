@@ -51,7 +51,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->encryptCookies(except: [
-            env('SSO_SESSION_COOKIE', 'sso_session'),
+            env('SSO_SESSION_COOKIE', '__Host-sso_session'),
         ]);
 
         $middleware->validateCsrfTokens(except: [
