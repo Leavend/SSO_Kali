@@ -13,6 +13,7 @@ use App\Http\Controllers\Oidc\SessionRegistrationController;
 use App\Http\Controllers\Oidc\TokenController;
 use App\Http\Controllers\Oidc\UserInfoController;
 use App\Http\Controllers\Resource\AuditController;
+use App\Http\Controllers\Resource\ChangePasswordController;
 use App\Http\Controllers\Resource\ProfileController;
 use App\Http\Controllers\System\HealthController;
 use App\Http\Controllers\System\PerformanceMetricsController;
@@ -52,6 +53,7 @@ Route::match(['get', 'post'], '/connect/logout', SessionLogoutController::class)
 Route::post('/connect/backchannel/admin-panel/logout', AdminPanelBackChannelLogoutController::class)->middleware('throttle:oidc-callback');
 Route::get('/api/profile', [ProfileController::class, 'show'])->middleware('throttle:profile-api');
 Route::patch('/api/profile', [ProfileController::class, 'update'])->middleware('throttle:profile-api');
+Route::post('/api/profile/change-password', ChangePasswordController::class)->middleware('throttle:profile-api');
 Route::get('/api/profile/audit', AuditController::class)->middleware('throttle:profile-api');
 Route::get('/api/profile/connected-apps', [ProfileController::class, 'connectedApps'])->middleware('throttle:profile-api');
 Route::delete('/api/profile/connected-apps/{clientId}', [ProfileController::class, 'revokeConnectedApp'])->middleware('throttle:profile-api');
