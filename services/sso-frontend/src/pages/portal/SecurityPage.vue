@@ -83,58 +83,69 @@ function formatAuditDate(value: string): string {
 </script>
 
 <template>
-  <section class="grid gap-6">
+  <section class="grid gap-6 sm:gap-8">
     <header class="flex flex-col gap-1">
-      <h1 class="text-2xl font-bold tracking-tight">Keamanan</h1>
+      <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">Keamanan</h1>
       <p class="text-muted-foreground text-sm">
         Status keamanan akun dan kontrol tambahan yang akan datang.
       </p>
     </header>
 
-    <div v-if="load.pending.value" class="grid gap-4 md:grid-cols-3">
-      <Skeleton v-for="i in 3" :key="i" class="h-40" />
+    <div v-if="load.pending.value" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <Skeleton v-for="i in 3" :key="i" class="h-44 rounded-xl" />
     </div>
 
-    <div v-else class="grid gap-4 md:grid-cols-3">
-      <Card>
-        <CardHeader>
-          <span class="bg-primary/10 text-primary grid size-10 place-items-center rounded-lg">
+    <div v-else class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <!-- MFA Card -->
+      <Card class="relative overflow-hidden">
+        <CardHeader class="flex flex-row items-start gap-3 space-y-0">
+          <span class="bg-primary/10 text-primary grid size-10 shrink-0 place-items-center rounded-lg">
             <ShieldCheck class="size-5" />
           </span>
-          <CardTitle>Multi-Factor Auth</CardTitle>
-          <CardDescription>
-            <Badge :variant="mfaEnabled ? 'default' : 'secondary'">
-              {{ mfaEnabled ? 'Aktif' : 'Belum diaktifkan' }}
-            </Badge>
-          </CardDescription>
+          <div class="grid gap-1">
+            <CardTitle class="text-sm font-semibold">Multi-Factor Auth</CardTitle>
+            <CardDescription>
+              <Badge :variant="mfaEnabled ? 'default' : 'secondary'" class="text-[10px]">
+                {{ mfaEnabled ? 'Aktif' : 'Belum diaktifkan' }}
+              </Badge>
+            </CardDescription>
+          </div>
         </CardHeader>
         <CardContent class="text-muted-foreground text-xs">
           Manajemen MFA akan tersedia di rilis berikutnya.
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <span class="bg-primary/10 text-primary grid size-10 place-items-center rounded-lg">
+      <!-- Risk Score Card -->
+      <Card class="relative overflow-hidden">
+        <CardHeader class="flex flex-row items-start gap-3 space-y-0">
+          <span class="bg-primary/10 text-primary grid size-10 shrink-0 place-items-center rounded-lg">
             <Fingerprint class="size-5" />
           </span>
-          <CardTitle>Risiko Login</CardTitle>
-          <CardDescription>Skor risiko: <strong>{{ riskScore }}</strong></CardDescription>
+          <div class="grid gap-1">
+            <CardTitle class="text-sm font-semibold">Risiko Login</CardTitle>
+            <CardDescription>
+              Skor risiko: <strong class="text-foreground">{{ riskScore }}</strong>
+            </CardDescription>
+          </div>
         </CardHeader>
         <CardContent class="text-muted-foreground text-xs">
           Dihitung dari pola login terbaru dan device fingerprint.
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <span class="bg-primary/10 text-primary grid size-10 place-items-center rounded-lg">
+      <!-- Password Card -->
+      <Card class="relative overflow-hidden sm:col-span-2 lg:col-span-1">
+        <CardHeader class="flex flex-row items-start gap-3 space-y-0">
+          <span class="bg-primary/10 text-primary grid size-10 shrink-0 place-items-center rounded-lg">
             <KeyRound class="size-5" />
           </span>
-          <CardTitle>Password</CardTitle>
-          <CardDescription>
-            Terakhir aktif: {{ lastSeen ? new Date(lastSeen).toLocaleString('id-ID') : '—' }}
-          </CardDescription>
+          <div class="grid gap-1">
+            <CardTitle class="text-sm font-semibold">Password</CardTitle>
+            <CardDescription class="text-xs">
+              Terakhir aktif: {{ lastSeen ? new Date(lastSeen).toLocaleString('id-ID') : '—' }}
+            </CardDescription>
+          </div>
         </CardHeader>
         <CardContent class="grid gap-3">
           <p class="text-muted-foreground text-xs">
@@ -168,7 +179,7 @@ function formatAuditDate(value: string): string {
             class="grid gap-3"
             @submit.prevent="submitPasswordChange"
           >
-            <div class="grid gap-1">
+            <div class="grid gap-1.5">
               <label for="current_password" class="text-xs font-medium">Password Saat Ini</label>
               <input
                 id="current_password"
@@ -183,7 +194,7 @@ function formatAuditDate(value: string): string {
               </p>
             </div>
 
-            <div class="grid gap-1">
+            <div class="grid gap-1.5">
               <label for="new_password" class="text-xs font-medium">Password Baru</label>
               <input
                 id="new_password"
@@ -199,7 +210,7 @@ function formatAuditDate(value: string): string {
               </p>
             </div>
 
-            <div class="grid gap-1">
+            <div class="grid gap-1.5">
               <label for="new_password_confirmation" class="text-xs font-medium">Konfirmasi Password Baru</label>
               <input
                 id="new_password_confirmation"
@@ -216,7 +227,7 @@ function formatAuditDate(value: string): string {
               {{ passwordErrors._general[0] }}
             </p>
 
-            <div class="flex gap-2">
+            <div class="flex gap-2 pt-1">
               <Button type="submit" size="sm" :disabled="passwordPending">
                 {{ passwordPending ? 'Menyimpan...' : 'Simpan' }}
               </Button>
@@ -237,31 +248,31 @@ function formatAuditDate(value: string): string {
     <!-- Hak Akses (FR-003 — user transparency) -->
     <Card v-if="!load.pending.value && profile.profile">
       <CardHeader>
-        <CardTitle class="text-base">Hak Akses</CardTitle>
+        <CardTitle class="text-base font-semibold">Hak Akses</CardTitle>
         <CardDescription>Role dan izin yang diberikan ke akun kamu oleh administrator.</CardDescription>
       </CardHeader>
-      <CardContent class="grid gap-3">
-        <div class="grid gap-1">
-          <span class="text-muted-foreground text-xs font-medium uppercase tracking-wide">Roles</span>
-          <div class="flex flex-wrap gap-1">
+      <CardContent class="grid gap-4 sm:grid-cols-3">
+        <div class="grid gap-1.5">
+          <span class="text-muted-foreground text-[11px] font-medium uppercase tracking-wider">Roles</span>
+          <div class="flex flex-wrap gap-1.5">
             <Badge v-for="role in userRoles" :key="role" variant="default" class="text-xs">
               {{ role }}
             </Badge>
             <span v-if="userRoles.length === 0" class="text-muted-foreground text-xs italic">Tidak ada role.</span>
           </div>
         </div>
-        <div class="grid gap-1">
-          <span class="text-muted-foreground text-xs font-medium uppercase tracking-wide">Permissions</span>
-          <div class="flex flex-wrap gap-1">
+        <div class="grid gap-1.5">
+          <span class="text-muted-foreground text-[11px] font-medium uppercase tracking-wider">Permissions</span>
+          <div class="flex flex-wrap gap-1.5">
             <Badge v-for="perm in userPermissions" :key="perm" variant="secondary" class="text-xs font-mono">
               {{ perm }}
             </Badge>
             <span v-if="userPermissions.length === 0" class="text-muted-foreground text-xs italic">Tidak ada permission khusus.</span>
           </div>
         </div>
-        <div class="grid gap-1">
-          <span class="text-muted-foreground text-xs font-medium uppercase tracking-wide">OAuth Scope</span>
-          <p class="text-xs font-mono">{{ userScope || '—' }}</p>
+        <div class="grid gap-1.5">
+          <span class="text-muted-foreground text-[11px] font-medium uppercase tracking-wider">OAuth Scope</span>
+          <p class="text-xs font-mono leading-relaxed break-all">{{ userScope || '—' }}</p>
         </div>
       </CardContent>
     </Card>
@@ -269,27 +280,28 @@ function formatAuditDate(value: string): string {
     <!-- Audit Trail (UC-46 partial — user-facing) -->
     <Card>
       <CardHeader>
-        <CardTitle class="text-base">Riwayat Keamanan Terakhir</CardTitle>
+        <CardTitle class="text-base font-semibold">Riwayat Keamanan Terakhir</CardTitle>
         <CardDescription>Aktivitas login, logout, dan perubahan keamanan akun.</CardDescription>
       </CardHeader>
       <CardContent>
         <div v-if="auditLoad.pending.value" class="grid gap-2">
-          <Skeleton v-for="i in 3" :key="i" class="h-8 w-full" />
+          <Skeleton v-for="i in 3" :key="i" class="h-10 w-full rounded-lg" />
         </div>
-        <div v-else-if="auditEvents.length === 0" class="text-muted-foreground text-sm text-center py-4">
+        <div v-else-if="auditEvents.length === 0" class="text-muted-foreground flex flex-col items-center gap-2 py-8 text-center text-sm">
+          <ShieldCheck class="text-muted-foreground/50 size-8" />
           Belum ada riwayat keamanan.
         </div>
         <ul v-else class="grid gap-2">
           <li
             v-for="event in auditEvents"
             :key="event.id"
-            class="flex items-center justify-between rounded-md border px-3 py-2 text-xs"
+            class="flex flex-col gap-1 rounded-lg border px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2"
           >
             <div class="flex items-center gap-2">
-              <Badge variant="outline" class="text-[10px] font-mono">{{ event.event }}</Badge>
-              <span class="text-muted-foreground">{{ event.ip_address ?? '—' }}</span>
+              <Badge variant="outline" class="shrink-0 text-[10px] font-mono">{{ event.event }}</Badge>
+              <span class="text-muted-foreground truncate text-xs">{{ event.ip_address ?? '—' }}</span>
             </div>
-            <time class="text-muted-foreground" :datetime="event.created_at">
+            <time class="text-muted-foreground text-[11px] tabular-nums sm:text-xs" :datetime="event.created_at">
               {{ formatAuditDate(event.created_at) }}
             </time>
           </li>
@@ -298,3 +310,4 @@ function formatAuditDate(value: string): string {
     </Card>
   </section>
 </template>
+
