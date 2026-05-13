@@ -12,7 +12,12 @@ it('keeps the main production deployment backend-only', function (): void {
         ->and($script)->toContain('COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-sso-backend-prod}"')
         ->and($script)->toContain('compose up -d postgres redis')
         ->and($script)->toContain('compose up -d --remove-orphans sso-backend sso-backend-worker')
-        ->and($script)->not->toContain('sso-frontend')
+        // The deploy script may reference 'sso-frontend-prod' (container name) only
+        // inside reattach_frontend_to_backend_network(), which heals the
+        // cross-project docker network connectivity after compose recreates.
+        // It must still NOT contain a compose service definition for the
+        // frontend ('sso-frontend:') or any other application.
+        ->and($script)->not->toContain("\n  sso-frontend:")
         ->and($script)->not->toContain('app-a-next')
         ->and($script)->not->toContain('app-b-laravel');
 });
