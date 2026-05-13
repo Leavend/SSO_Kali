@@ -16,7 +16,7 @@ beforeEach(function (): void {
     config()->set('sso.base_url', 'https://api-sso.timeh.my.id');
     config()->set('sso.frontend_url', 'https://sso.timeh.my.id');
     config()->set('sso.resource_audience', 'sso-api');
-    config()->set('sso.session.cookie', 'sso_session');
+    config()->set('sso.session.cookie', '__Host-sso_session');
 
     config()->set('oidc_clients.clients', [
         'app-a' => [
@@ -38,7 +38,7 @@ it('records front-channel logout success and failure in the central authenticati
     $redirectUri = 'https://sso.timeh.my.id/app-a/signed-out';
     $state = 'logout-state-'.Str::random(24);
 
-    $this->withHeader('Cookie', 'sso_session='.$sessionId)
+    $this->withHeader('Cookie', '__Host-sso_session='.$sessionId)
         ->withServerVariables(['REMOTE_ADDR' => '203.0.113.131'])
         ->withHeader('User-Agent', 'Issue83LogoutAgent/front-success')
         ->withHeader('X-Request-Id', 'req-front-logout-success-83')

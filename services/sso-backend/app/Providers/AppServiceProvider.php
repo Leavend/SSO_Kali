@@ -58,7 +58,7 @@ class AppServiceProvider extends ServiceProvider
         }
 
         SsoSessionCookiePolicy::assertConfigured(
-            (string) config('session.cookie'),
+            (string) config('sso.session.cookie'),
             (bool) config('session.secure'),
             (string) config('session.path'),
             config('session.domain'),

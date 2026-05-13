@@ -28,7 +28,7 @@ final class AssertSsoSessionCookiePolicy
 
     private function assertSessionCookieHeaders(Response $response): void
     {
-        $expectedName = (string) config('session.cookie');
+        $expectedName = (string) config('sso.session.cookie');
 
         foreach ($response->headers->getCookies() as $cookie) {
             if ($cookie->getName() === $expectedName) {

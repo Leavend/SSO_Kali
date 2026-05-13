@@ -30,7 +30,7 @@
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="SESSION_SECURE_COOKIE" value="true"/>
-        <env name="SESSION_COOKIE" value="__Host-sso_session"/>
+        <env name="SESSION_COOKIE" value="__Host-laravel_session"/>
         <env name="SESSION_DOMAIN" value=""/>
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>

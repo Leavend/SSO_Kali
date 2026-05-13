@@ -2,8 +2,6 @@
 
 declare(strict_types=1);
 
-use App\Support\Security\SsoSessionCookiePolicy;
-
 return [
 
     /*
@@ -129,7 +127,7 @@ return [
     |
     */
 
-    'cookie' => SsoSessionCookiePolicy::configuredName(env('SESSION_COOKIE')),
+    'cookie' => env('SESSION_COOKIE', '__Host-laravel_session'),
 
     /*
     |--------------------------------------------------------------------------
