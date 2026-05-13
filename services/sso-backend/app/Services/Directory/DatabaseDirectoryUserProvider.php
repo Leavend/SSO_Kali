@@ -27,11 +27,35 @@ final class DatabaseDirectoryUserProvider implements DirectoryUserProvider
 
         $model = $this->users->findById($user->id);
 
-        if (! $model instanceof User || ! is_string($model->password ?? null)) {
+        if (! $model instanceof User) {
             return false;
         }
 
-        return Hash::check($password, $model->password);
+        // Bypass the 'hashed' cast to avoid RuntimeException when the stored
+        // hash uses a different algorithm (e.g. bcrypt) than the configured
+        // driver (argon2id). getRawOriginal() returns the raw DB value.
+        $storedHash = $model->getRawOriginal('password');
+
+        if (! is_string($storedHash) || $storedHash === '') {
+            return false;
+        }
+
+        // Use password_verify() directly instead of Hash::check() because
+        // Laravel 13's Argon2IdHasher throws RuntimeException when it encounters
+        // a hash from a different algorithm (e.g. bcrypt). password_verify() is
+        // algorithm-agnostic and handles all PHP-supported hash formats.
+        if (! password_verify($password, $storedHash)) {
+            return false;
+        }
+
+        // Transparent rehash: upgrade legacy hashes to the current algorithm.
+        if (Hash::needsRehash($storedHash)) {
+            $model->newQuery()
+                ->whereKey($model->getKey())
+                ->update(['password' => Hash::make($password)]);
+        }
+
+        return true;
     }
 
     public function rolesFor(string $subjectId): array
@@ -60,3 +84,4 @@ final class DatabaseDirectoryUserProvider implements DirectoryUserProvider
         );
     }
 }
+

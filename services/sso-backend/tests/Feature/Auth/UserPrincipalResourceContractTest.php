@@ -48,7 +48,7 @@ it('never leaks sensitive model attributes (password, remember_token, timestamps
         'subject_id' => 'dto-leak-test',
         'email' => 'leak@example.test',
         'display_name' => 'Leak Test',
-        'password' => bcrypt('secret'),
+        'password' => 'secret',
     ]);
 
     $resource = (new UserPrincipalResource($user))->resolve();
