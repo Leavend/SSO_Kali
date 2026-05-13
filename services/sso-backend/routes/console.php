@@ -14,3 +14,4 @@ Schedule::command('telescope:prune --hours='.(int) config('telescope.prune_hours
 Schedule::command('sso:prune-tokens')->daily();
 Schedule::command('sso:prune-authentication-audit-events')->daily();
 Schedule::command('sso:prune-authorization-codes')->hourly();
+Schedule::command('sso:check-secret-expiry')->daily();

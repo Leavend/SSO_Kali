@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { CheckCircle2, RotateCcw, ShieldCheck } from 'lucide-vue-next'
+import ClientSecretStatus from './ClientSecretStatus.vue'
 import type {
   ClientIntegrationContract,
   ClientIntegrationDraft,
@@ -189,6 +190,8 @@ type RegistrationPayload = Readonly<{
             <dd>{{ registration.redirect_uris[0] }}</dd>
           </div>
         </dl>
+
+        <ClientSecretStatus :client="registration" />
 
         <label v-if="registration.status === 'staged' && registration.type === 'confidential'">
           <span>Argon2id secret hash dari Vault</span>
