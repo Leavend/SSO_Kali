@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Admin;
 
+use App\Rules\StrongPassword;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -25,7 +26,7 @@ final class CreateManagedUserRequest extends FormRequest
             'given_name' => ['nullable', 'string', 'max:80'],
             'family_name' => ['nullable', 'string', 'max:80'],
             'role' => ['required', 'string', Rule::in(['admin', 'user'])],
-            'password' => ['nullable', 'string', 'min:12', 'max:128'],
+            'password' => ['nullable', 'string', new StrongPassword],
             'local_account_enabled' => ['sometimes', 'boolean'],
         ];
     }

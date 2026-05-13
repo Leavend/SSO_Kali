@@ -104,6 +104,15 @@ final class AuthenticateLocalCredentials
         // Success — clear throttle
         $this->throttle->clear($email);
 
+        // FR-015 / UC-20: Check password expiry
+        if ($this->isPasswordExpired($user)) {
+            return response()->json([
+                'error' => 'password_expired',
+                'message' => 'Password Anda telah kedaluwarsa. Silakan ubah password.',
+                'change_password_url' => '/profile/security',
+            ], 403);
+        }
+
         // Validate scope
         try {
             $validatedScope = $this->scopes->validateAuthorizationRequest($scope, $client);
@@ -188,5 +197,24 @@ final class AuthenticateLocalCredentials
                 'scope' => $payload['scope'] ?? 'openid',
             ],
         ));
+    }
+
+    /**
+     * FR-015 / UC-20: Check if user's password has expired.
+     */
+    private function isPasswordExpired(User $user): bool
+    {
+        $maxAgeDays = (int) config('sso.auth.password_max_age_days', 90);
+
+        if ($maxAgeDays <= 0) {
+            return false;
+        }
+
+        // If password_changed_at is null, treat as expired (force initial change)
+        if ($user->password_changed_at === null) {
+            return true;
+        }
+
+        return $user->password_changed_at->diffInDays(now()) >= $maxAgeDays;
     }
 }

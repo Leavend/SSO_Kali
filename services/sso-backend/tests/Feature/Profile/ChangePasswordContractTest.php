@@ -83,7 +83,7 @@ it('returns 422 when new password is too short', function (): void {
             'new_password_confirmation' => 'short',
         ])
         ->assertStatus(422)
-        ->assertJsonPath('errors.new_password.0', 'Password baru minimal 8 karakter.');
+        ->assertJsonPath('errors.new_password.0', 'Password minimal 12 karakter.');
 });
 
 it('returns 422 when confirmation does not match', function (): void {

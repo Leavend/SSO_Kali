@@ -37,6 +37,7 @@ beforeEach(function (): void {
         'subject_uuid' => 'local-user-1',
         'email' => 'user@example.com',
         'password' => Hash::make('SecurePass123!'),
+        'password_changed_at' => now(),
         'role' => 'user',
     ]);
 });
@@ -183,5 +184,27 @@ describe('POST /connect/local-login', function (): void {
         ]);
 
         expect($throttle->attempts('user@example.com'))->toBe(0);
+    });
+
+    it('returns 403 when password is expired (UC-20)', function (): void {
+        User::query()->where('email', 'user@example.com')->update([
+            'password_changed_at' => now()->subDays(91),
+        ]);
+
+        $response = $this->postJson('/connect/local-login', [
+            'email' => 'user@example.com',
+            'password' => 'SecurePass123!',
+            'client_id' => 'local-test-app',
+            'redirect_uri' => 'https://local-app.test/callback',
+            'code_challenge' => 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM',
+            'code_challenge_method' => 'S256',
+            'state' => 'state-7',
+            'nonce' => 'nonce-7',
+            'scope' => 'openid',
+        ]);
+
+        $response->assertStatus(403);
+        expect($response->json('error'))->toBe('password_expired')
+            ->and($response->json('change_password_url'))->toBe('/profile/security');
     });
 });

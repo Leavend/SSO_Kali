@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Resource;
 
 use App\Models\User;
+use App\Rules\StrongPassword;
 use App\Services\Session\SsoSessionCookieResolver;
 use App\Services\Session\SsoSessionService;
 use Illuminate\Http\JsonResponse;
@@ -36,7 +37,7 @@ final class ChangePasswordController
 
         $validator = Validator::make($request->only(['current_password', 'new_password', 'new_password_confirmation']), [
             'current_password' => ['required', 'string'],
-            'new_password' => ['required', 'string', 'min:8', 'confirmed'],
+            'new_password' => ['required', 'string', new StrongPassword, 'confirmed'],
         ], [
             'current_password.required' => 'Password saat ini wajib diisi.',
             'new_password.required' => 'Password baru wajib diisi.',
@@ -69,6 +70,7 @@ final class ChangePasswordController
 
         // Update password with Argon2id
         $user->password = Hash::make($request->input('new_password'));
+        $user->password_changed_at = now();
         $user->save();
 
         return response()->json([
