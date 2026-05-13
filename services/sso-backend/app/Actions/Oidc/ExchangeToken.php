@@ -17,6 +17,7 @@ use App\Services\Oidc\UserProfileSynchronizer;
 use App\Support\Audit\AuthenticationAuditRecord;
 use App\Support\Oidc\DownstreamClient;
 use App\Support\Oidc\Pkce;
+use App\Support\Oidc\ScopeSet;
 use App\Support\Responses\OidcErrorResponse;
 use App\Support\SsoErrors\SsoErrorContext;
 use Illuminate\Http\JsonResponse;
@@ -88,6 +89,9 @@ final class ExchangeToken
                 'client_id' => $client->clientId,
             ]);
         }
+
+        // FR-011: downscope to intersection of original scope and current allowed_scopes
+        $record['scope'] = $this->downscopeForClient($record['scope'] ?? '', $client);
 
         return $this->rotatedTokens($request, $record);
     }
@@ -209,6 +213,22 @@ final class ExchangeToken
             'acr' => $record['acr'] ?? null,
             'upstream_refresh_token' => $record['upstream_refresh_token'],
         ];
+    }
+
+    /**
+     * FR-011: Downscope the token scope to the intersection of the original
+     * granted scope and the client's current allowed_scopes. This ensures
+     * that if an admin removes a scope from a client, existing refresh tokens
+     * no longer grant that scope.
+     */
+    private function downscopeForClient(string $scope, DownstreamClient $client): string
+    {
+        $original = ScopeSet::fromString($scope);
+        $allowed = $client->allowedScopes;
+
+        $intersection = array_values(array_intersect($original, $allowed));
+
+        return ScopeSet::toString($intersection !== [] ? $intersection : $original);
     }
 
     /**
