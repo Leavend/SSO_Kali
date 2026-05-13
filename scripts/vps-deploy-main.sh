@@ -123,6 +123,42 @@ run_smoke_tests() {
   :
 }
 
+# Reattach sso-frontend-prod to the backend deploy network so the
+# reverse-proxy can reach the freshly-recreated backend container by
+# its compose service DNS. Compose `up -d --force-recreate` gives the
+# new backend a new IP on a new network subnet; the frontend, which
+# belongs to a separate compose project, stays on its existing
+# network(s) and keeps serving stale DNS until something re-attaches
+# it. Idempotent: docker network connect is a no-op if the container
+# is already on the network. Failures are soft since the frontend
+# container may not be present on every host (e.g. backend-only
+# deploys or staging).
+#
+# Regression guard: tests/Feature/DevOps/SsoFrontendReachabilityEvidenceTest.php
+reattach_frontend_to_backend_network() {
+  local frontend_container="${SSO_FRONTEND_CONTAINER:-sso-frontend-prod}"
+  local network="${COMPOSE_PROJECT_NAME}_sso-main"
+
+  if ! docker inspect "$frontend_container" >/dev/null 2>&1; then
+    log "Frontend container '$frontend_container' not present on this host; skipping network reattach"
+    return 0
+  fi
+
+  if docker network inspect "$network" >/dev/null 2>&1; then
+    if docker network connect "$network" "$frontend_container" 2>&1 | grep -q 'already exists in network'; then
+      log "Frontend container '$frontend_container' already on network '$network'"
+    else
+      log "Attached frontend container '$frontend_container' to network '$network'"
+      # nginx caches upstream IPs at worker start; reload picks up the
+      # newly-resolvable backend service DNS without a hard restart.
+      docker exec "$frontend_container" nginx -s reload >/dev/null 2>&1 || \
+        warn "nginx reload failed inside $frontend_container; manual reload may be required"
+    fi
+  else
+    warn "Network '$network' not found; cannot reattach frontend"
+  fi
+}
+
 main() {
   require_runtime
   backup_release_metadata
@@ -145,6 +181,8 @@ main() {
   compose up -d --remove-orphans sso-backend sso-backend-worker
   wait_for_service sso-backend 240
   log 'sso-backend-worker started; worker health is supervised by restart policy and queue logs'
+
+  reattach_frontend_to_backend_network
 
   run_smoke_tests
   compose ps
