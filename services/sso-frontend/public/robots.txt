@@ -1,0 +1,16 @@
+# robots.txt — Dev-SSO Portal
+# Portal autentikasi tidak perlu di-index search engine.
+
+User-agent: *
+Disallow: /api/
+Disallow: /oauth/
+Disallow: /oauth2/
+Disallow: /connect/
+Disallow: /auth/callback
+
+# Izinkan halaman publik (login, 404) untuk crawling.
+Allow: /
+Allow: /favicon.svg
+Allow: /site.webmanifest
+
+Sitemap: https://sso.timeh.my.id/sitemap.xml

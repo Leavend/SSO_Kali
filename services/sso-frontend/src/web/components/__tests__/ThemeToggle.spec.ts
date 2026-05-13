@@ -90,7 +90,7 @@ describe('ThemeToggle Component', () => {
         addEventListener: vi.fn(),
         removeEventListener: vi.fn(),
         dispatchEvent: vi.fn()
-      } as any)
+      } as unknown as MediaQueryList)
       const wrapper = mount(ThemeToggle, { props: { systemPreference: true } })
       expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
       wrapper.unmount()

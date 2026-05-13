@@ -1,0 +1,109 @@
+# Nginx template untuk `sso-frontend` SPA portal.
+#
+# Diproses lewat `envsubst` saat container startup supaya upstream host
+# dan domain bisa di-config tanpa rebuild image.
+#
+# Env wajib saat runtime:
+#   SSO_BACKEND_UPSTREAM       — host:port backend Laravel (mis. backend:8200)
+#   SSO_FRONTEND_SERVER_NAME   — domain portal (mis. sso.example.com)
+#
+# Env opsional:
+#   SSO_CSP_CONNECT_SRC        — daftar origin tambahan untuk CSP (default kosong)
+
+# --- Rate limiting zones (shared memory) ---
+limit_req_zone $binary_remote_addr zone=sso_auth_login:10m rate=30r/m;
+limit_req_zone $binary_remote_addr zone=sso_api_general:10m rate=300r/m;
+
+# --- Upstream backend Laravel ---
+upstream sso_backend {
+  server ${SSO_BACKEND_UPSTREAM};
+  keepalive 16;
+}
+
+server {
+  listen 80 default_server;
+  server_name ${SSO_FRONTEND_SERVER_NAME};
+  root /usr/share/nginx/html;
+  index index.html;
+
+  # Batasi body size (login & PATCH profile cukup kecil).
+  client_max_body_size 64k;
+
+  # --- Security headers (design.md §13 + standar §13) ---
+  add_header X-Content-Type-Options "nosniff" always;
+  add_header X-Frame-Options "DENY" always;
+  add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+  add_header Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()" always;
+  add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+  add_header Cross-Origin-Opener-Policy "same-origin" always;
+  add_header Cross-Origin-Resource-Policy "same-origin" always;
+  add_header Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' ${SSO_CSP_CONNECT_SRC}; form-action 'self'; upgrade-insecure-requests" always;
+
+  # --- Proxy defaults ---
+  proxy_http_version 1.1;
+  proxy_set_header Host              $host;
+  proxy_set_header X-Real-IP         $remote_addr;
+  proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+  proxy_set_header X-Forwarded-Proto $scheme;
+  proxy_set_header X-Forwarded-Host  $host;
+  proxy_set_header X-Request-ID      $http_x_request_id;
+  proxy_set_header Connection        "";
+  proxy_read_timeout  30s;
+  proxy_send_timeout  30s;
+  proxy_connect_timeout 5s;
+
+  # --- Brute-force guard untuk login ---
+  location = /api/auth/login {
+    limit_req zone=sso_auth_login burst=5 nodelay;
+    proxy_pass http://sso_backend;
+  }
+
+  # --- Same-origin reverse proxy ke backend Laravel SSO ---
+  # Semua path ini harus pass-through tanpa SPA fallback.
+  location /api/ {
+    limit_req zone=sso_api_general burst=60 nodelay;
+    proxy_pass http://sso_backend;
+  }
+  location /oauth/          { proxy_pass http://sso_backend; }
+  location /oauth2/         { proxy_pass http://sso_backend; }
+  location /connect/        { proxy_pass http://sso_backend; }
+  location = /authorize     { proxy_pass http://sso_backend; }
+  location = /token         { proxy_pass http://sso_backend; }
+  location = /revocation    { proxy_pass http://sso_backend; }
+  location = /userinfo      { proxy_pass http://sso_backend; }
+  location = /jwks          { proxy_pass http://sso_backend; }
+  location /.well-known/    { proxy_pass http://sso_backend; }
+
+  # --- Aset Vite (content-hash) — cache agresif + immutable ---
+  location /assets/ {
+    try_files $uri =404;
+    access_log off;
+    expires 1y;
+    add_header Cache-Control "public, max-age=31536000, immutable" always;
+    add_header X-Content-Type-Options "nosniff" always;
+  }
+
+  # --- Static root assets (favicon, robots, etc.) ---
+  location ~* ^/(favicon\.svg|favicon\.ico|robots\.txt|site\.webmanifest)$ {
+    access_log off;
+    expires 7d;
+    add_header Cache-Control "public, max-age=604800" always;
+  }
+
+  # --- SPA fallback untuk Vue Router ---
+  location / {
+    try_files $uri $uri/ /index.html;
+    # index.html tidak boleh di-cache supaya deploy baru langsung terpasang.
+    add_header Cache-Control "no-cache, no-store, must-revalidate" always;
+  }
+
+  # --- Health check endpoint (untuk probe LB/K8s) ---
+  location = /healthz {
+    access_log off;
+    default_type text/plain;
+    return 200 "ok\n";
+  }
+
+  # --- Hide Nginx version leakage ---
+  server_tokens off;
+}

@@ -65,7 +65,7 @@ function resolveInitialTheme(): Theme {
 function saveTheme(value: Theme): void {
   try {
     localStorage.setItem(THEME_STORAGE_KEY, value)
-  } catch (error) {
+  } catch {
     console.warn('localStorage unavailable, using cookie fallback')
     saveThemeCookie(value)
   }
@@ -77,16 +77,17 @@ function loadTheme(): Theme | null {
     if (stored && (stored === 'light' || stored === 'dark')) {
       return stored as Theme
     }
-  } catch (error) {
+  } catch {
     console.warn('localStorage unavailable, reading from cookie')
   }
   return loadThemeCookie()
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function clearTheme(): void {
   try {
     localStorage.removeItem(THEME_STORAGE_KEY)
-  } catch (error) {
+  } catch {
     clearThemeCookie()
   }
 }

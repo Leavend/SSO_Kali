@@ -1,0 +1,42 @@
+# docker-compose.yml — SSO Frontend standalone (for service-level dev/deploy)
+#
+# Untuk full-stack, gunakan root docker-compose.yml di /Project_SSO/
+# File ini hanya untuk build/test sso-frontend secara isolated.
+#
+# Usage:
+#   docker compose up -d --build
+#   docker compose logs -f
+
+services:
+  sso-frontend:
+    build:
+      context: ../..
+      dockerfile: services/sso-frontend/Dockerfile
+      args:
+        VITE_SSO_API_URL: ""
+        VITE_APP_NAME: "${VITE_APP_NAME:-Dev-SSO Portal}"
+        VITE_OIDC_ISSUER: "${VITE_OIDC_ISSUER:-http://localhost:8200}"
+        VITE_OIDC_CLIENT_ID: "${VITE_OIDC_CLIENT_ID:-sso-frontend-portal}"
+        VITE_OIDC_SCOPE: "openid profile email offline_access"
+        VITE_OIDC_REDIRECT_URI: "${VITE_OIDC_REDIRECT_URI:-http://localhost:3000/auth/callback}"
+        VITE_OIDC_AUTHORIZE_ENDPOINT: ""
+        VITE_OIDC_TOKEN_ENDPOINT: ""
+        VITE_OIDC_END_SESSION_ENDPOINT: ""
+        VITE_OIDC_POST_LOGOUT_REDIRECT_URI: ""
+        VITE_CHANGE_PASSWORD_URL: ""
+    image: sso-frontend:local
+    container_name: sso-frontend
+    ports:
+      - "${SSO_FRONTEND_PORT:-3000}:80"
+    environment:
+      # Points to sso-backend container (use host.docker.internal for local dev without compose network)
+      SSO_BACKEND_UPSTREAM: "${SSO_BACKEND_UPSTREAM:-host.docker.internal:8200}"
+      SSO_FRONTEND_SERVER_NAME: "${SSO_FRONTEND_SERVER_NAME:-_}"
+      SSO_CSP_CONNECT_SRC: "${SSO_CSP_CONNECT_SRC:-}"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
