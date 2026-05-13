@@ -1,0 +1,85 @@
+{
+  "app": {
+    "name": "Dev-SSO",
+    "tagline": "Portal autentikasi tunggal untuk semua aplikasi kamu."
+  },
+  "auth": {
+    "login": {
+      "title": "Masuk ke akunmu",
+      "subtitle": "Gunakan kredensial SSO-mu untuk mengakses semua aplikasi kerja.",
+      "identifier_label": "Email atau username",
+      "identifier_placeholder": "user@company.com",
+      "password_label": "Password",
+      "submit": "Masuk",
+      "submitting": "Memproses…",
+      "no_account": "Belum punya akun? Hubungi administrator organisasi kamu.",
+      "error_generic": "Email atau password yang kamu masukkan salah. Silakan coba lagi.",
+      "error_unexpected": "Gagal memproses login. Coba lagi beberapa saat."
+    },
+    "callback": {
+      "title_loading": "Memverifikasi login…",
+      "title_error": "Login gagal",
+      "title_done": "Selesai",
+      "description": "Memproses respons OIDC dan menyiapkan sesi aman untuk kamu.",
+      "wait": "Mohon tunggu sebentar.",
+      "fallback_error": "Tidak dapat memproses callback login.",
+      "back_to_login": "Kembali ke login"
+    },
+    "skip_link": "Langsung ke konten utama",
+    "theme_toggle": "Ganti tema"
+  },
+  "portal": {
+    "sessions": {
+      "title": "Sesi Aktif",
+      "subtitle": "Daftar sesi login aktif pada perangkat dan aplikasi terhubung. Kamu dapat mencabut sesi satu per satu atau keluar dari semuanya sekaligus.",
+      "logout_all": "Logout Semua Perangkat",
+      "logout_all_processing": "Memproses…",
+      "empty_title": "Tidak ada sesi lain",
+      "empty_description": "Kamu hanya aktif di perangkat ini. Sesi lain akan tampil di sini.",
+      "revoke_button": "Cabut Sesi",
+      "apps_count": "{count} aplikasi",
+      "opened_at": "Dibuka {date}",
+      "last_active": "Terakhir aktif {date}",
+      "confirm_revoke_title": "Akhiri sesi ini?",
+      "confirm_revoke_description": "Perangkat yang memakai sesi ini akan dipaksa logout dan harus autentikasi ulang.",
+      "confirm_logout_all_title": "Logout dari semua perangkat?",
+      "confirm_logout_all_description": "Semua sesi aktif akan direvoke dan kamu akan diarahkan ke halaman login.",
+      "confirm_logout_all_button": "Logout Semua"
+    },
+    "nav": {
+      "home": "Beranda",
+      "profile": "Profil",
+      "apps": "Aplikasi Terhubung",
+      "sessions": "Sesi Aktif",
+      "security": "Keamanan"
+    },
+    "footer": "© {year} Dev-SSO Platform"
+  },
+  "errors": {
+    "not_found_title": "404 — Halaman tidak ditemukan",
+    "not_found_description": "URL tidak terdaftar di portal. Kembali ke beranda atau login.",
+    "go_home": "Beranda",
+    "go_login": "Login"
+  },
+  "api": {
+    "status_400": "Permintaan tidak valid. Periksa data lalu coba lagi.",
+    "status_401": "Sesi SSO kedaluwarsa. Silakan masuk lagi.",
+    "status_403": "Akses ke sumber daya ini tidak diizinkan.",
+    "status_404": "Sumber daya tidak ditemukan.",
+    "status_408": "Server terlalu lama merespons. Coba lagi.",
+    "status_409": "Terjadi konflik data. Muat ulang lalu coba lagi.",
+    "status_422": "Data yang dikirim tidak valid.",
+    "status_429": "Terlalu banyak percobaan. Tunggu sebentar sebelum mencoba lagi.",
+    "status_5xx": "Layanan SSO sedang tidak tersedia. Coba lagi nanti.",
+    "network_error": "Tidak dapat menghubungi server SSO.",
+    "timeout": "Permintaan ke server terlalu lama. Coba lagi.",
+    "aborted": "Permintaan dibatalkan."
+  },
+  "common": {
+    "continue": "Lanjutkan",
+    "cancel": "Batal",
+    "confirm": "Konfirmasi",
+    "loading": "Memuat…",
+    "retry": "Coba lagi"
+  }
+}

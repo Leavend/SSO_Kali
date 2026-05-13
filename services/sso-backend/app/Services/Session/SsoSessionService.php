@@ -40,6 +40,14 @@ final class SsoSessionService
             return null;
         }
 
+        // FR-039 / UC-49: idle timeout — revoke if inactive beyond threshold
+        $idleMinutes = (int) config('sso.session.idle_minutes', 30);
+        if ($idleMinutes > 0 && $session->last_seen_at->addMinutes($idleMinutes)->isPast()) {
+            $this->revoke($session);
+
+            return null;
+        }
+
         $this->sessions->touchLastSeen($session);
 
         return $session;

@@ -54,6 +54,7 @@ return [
         'cookie_secure' => (bool) env('SSO_SESSION_COOKIE_SECURE', true),
         'cookie_same_site' => env('SSO_SESSION_COOKIE_SAME_SITE', 'lax'),
         'ttl_minutes' => (int) env('SSO_SESSION_TTL_MINUTES', 480),
+        'idle_minutes' => (int) env('SSO_SESSION_IDLE_MINUTES', 30),
     ],
     'ttl' => [
         'access_token_minutes' => (int) env('OIDC_ACCESS_TOKEN_TTL', 15),

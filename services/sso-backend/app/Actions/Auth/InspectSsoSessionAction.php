@@ -28,7 +28,21 @@ final readonly class InspectSsoSessionAction
             'subject_id' => $user->subject_id,
             'email' => $user->email,
             'display_name' => $user->display_name,
-            'roles' => $this->directory->rolesFor($user->subject_id),
+            'roles' => $this->resolveRoles($user),
         ]);
+    }
+
+    /**
+     * Merge directory role with RBAC relationship roles for consistency
+     * with ProfilePrincipalResolver (ISSUE-04 alignment).
+     *
+     * @return list<string>
+     */
+    private function resolveRoles(User $user): array
+    {
+        $directoryRoles = $this->directory->rolesFor($user->subject_id);
+        $rbacRoles = $user->roles()->pluck('slug')->all();
+
+        return array_values(array_unique(array_merge($directoryRoles, $rbacRoles)));
     }
 }
