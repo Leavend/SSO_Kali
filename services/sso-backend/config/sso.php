@@ -122,10 +122,21 @@ return [
         'mfa' => [
             'enforced' => (bool) env('ADMIN_PANEL_REQUIRE_MFA', true),
             'accepted_amr' => $csv(env('ADMIN_PANEL_MFA_ACCEPTED_AMR', 'mfa')),
+            'grace_period_hours' => (int) env('ADMIN_MFA_GRACE_PERIOD_HOURS', 72),
         ],
     ],
     'admin_emails' => array_filter(array_map(
         'trim',
         explode(',', env('ADMIN_PANEL_ADMIN_EMAIL', '')),
     )),
+    'mfa' => [
+        'totp' => [
+            'issuer' => env('MFA_TOTP_ISSUER', env('APP_NAME', 'SSO')),
+            'digits' => (int) env('MFA_TOTP_DIGITS', 6),
+            'period' => (int) env('MFA_TOTP_PERIOD', 30),
+        ],
+        'challenge_ttl_seconds' => (int) env('MFA_CHALLENGE_TTL_SECONDS', 300),
+        'challenge_max_attempts' => (int) env('MFA_CHALLENGE_MAX_ATTEMPTS', 5),
+        'recovery_code_count' => (int) env('MFA_RECOVERY_CODE_COUNT', 8),
+    ],
 ];

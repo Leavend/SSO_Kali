@@ -6,6 +6,11 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\LogoutController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\SessionController;
+use App\Http\Controllers\Mfa\MfaChallengeController;
+use App\Http\Controllers\Mfa\MfaStatusController;
+use App\Http\Controllers\Mfa\TotpEnrollmentController;
+use App\Http\Controllers\Mfa\TotpRemovalController;
+use App\Http\Middleware\ResolveSsoSessionUser;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -36,3 +41,13 @@ Route::prefix('api/auth')->group(function (): void {
     Route::post('/logout', LogoutController::class)->middleware('throttle:oidc-callback');
     Route::post('/register', RegisterController::class)->middleware('throttle:oidc-callback');
 });
+
+Route::prefix('api/mfa')->middleware(['throttle:profile-api', ResolveSsoSessionUser::class])->group(function (): void {
+    Route::get('/status', MfaStatusController::class);
+    Route::post('/totp/enroll', [TotpEnrollmentController::class, 'store']);
+    Route::post('/totp/verify', [TotpEnrollmentController::class, 'verify']);
+    Route::delete('/totp', TotpRemovalController::class);
+});
+
+// Challenge verification does not require an active session (user is mid-login)
+Route::post('/api/mfa/challenge/verify', MfaChallengeController::class)->middleware('throttle:profile-api');

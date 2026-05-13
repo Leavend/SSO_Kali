@@ -12,7 +12,8 @@
         "laravel/octane": "^2.17",
         "laravel/passport": "^13.7",
         "laravel/tinker": "^3.0",
-        "predis/predis": "^3.4"
+        "predis/predis": "^3.4",
+        "spomky-labs/otphp": "^11.4"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
