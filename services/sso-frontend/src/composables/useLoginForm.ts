@@ -12,6 +12,7 @@ import { computed, reactive, ref, type ComputedRef, type Reactive, type Ref } fr
 import { useRoute, useRouter } from 'vue-router'
 import { ApiError, isValidationError } from '@/lib/api/api-error'
 import { useSessionStore } from '@/stores/session.store'
+import { useMfaChallengeStore } from '@/stores/mfa-challenge.store'
 import type { SsoLoginResponse } from '@/types/auth.types'
 
 const GENERIC_FAILURE_MESSAGE =
@@ -50,6 +51,7 @@ export function useLoginForm(): UseLoginFormReturn {
   const route = useRoute()
   const router = useRouter()
   const session = useSessionStore()
+  const mfaChallengeStore = useMfaChallengeStore()
 
   const form = reactive<LoginFormState>({
     identifier: '',
@@ -86,6 +88,13 @@ export function useLoginForm(): UseLoginFormReturn {
   }
 
   async function onLoginResponse(response: SsoLoginResponse): Promise<void> {
+    // FR-019: Handle MFA challenge response
+    if ('mfa_required' in response && response.mfa_required) {
+      mfaChallengeStore.setChallenge(response.challenge)
+      await router.push({ name: 'auth.mfa-challenge' })
+      return
+    }
+
     if (!response.authenticated) {
       bannerError.value = GENERIC_FAILURE_MESSAGE
       return

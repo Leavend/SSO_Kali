@@ -44,6 +44,12 @@ const routes: RouteRecordRaw[] = [
     meta: { layout: 'auth', title: 'Otorisasi Aplikasi' },
   },
   {
+    path: '/auth/mfa-challenge',
+    name: 'auth.mfa-challenge',
+    component: () => import('@/pages/auth/MfaChallengePage.vue'),
+    meta: { layout: 'auth', title: 'Verifikasi MFA' },
+  },
+  {
     path: '/home',
     name: 'portal.home',
     component: () => import('@/pages/portal/HomePage.vue'),

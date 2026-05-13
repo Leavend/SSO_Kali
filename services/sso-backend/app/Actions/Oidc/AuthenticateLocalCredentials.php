@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Actions\Oidc;
 
 use App\Actions\Audit\RecordAuthenticationAuditEventAction;
+use App\Models\MfaCredential;
 use App\Models\User;
 use App\Services\Auth\LocalCredentialVerifier;
 use App\Services\Auth\LoginAttemptThrottle;
+use App\Services\Mfa\MfaChallengeStore;
 use App\Services\Oidc\AuthorizationCodeStore;
 use App\Services\Oidc\ConsentService;
 use App\Services\Oidc\DownstreamClientRegistry;
@@ -37,6 +39,7 @@ final class AuthenticateLocalCredentials
         private readonly AuthorizationCodeStore $codes,
         private readonly ConsentService $consents,
         private readonly RecordAuthenticationAuditEventAction $audits,
+        private readonly MfaChallengeStore $challenges,
     ) {}
 
     public function handle(Request $request): JsonResponse
@@ -113,6 +116,29 @@ final class AuthenticateLocalCredentials
             ], 403);
         }
 
+        // FR-019 / UC-67: Check if user has MFA enrolled — require challenge
+        if ($this->requiresMfaChallenge($user)) {
+            $challenge = $this->challenges->create($user->getKey());
+
+            return response()->json([
+                'mfa_required' => true,
+                'challenge' => [
+                    'challenge_id' => $challenge['challenge_id'],
+                    'methods_available' => ['totp', 'recovery_code'],
+                    'expires_at' => $challenge['expires_at'],
+                ],
+                // Preserve OIDC context for post-MFA code issuance
+                'oidc_context' => [
+                    'client_id' => $clientId,
+                    'redirect_uri' => $redirectUri,
+                    'code_challenge' => $codeChallenge,
+                    'state' => $state,
+                    'nonce' => $nonce,
+                    'scope' => $scope,
+                ],
+            ]);
+        }
+
         // Validate scope
         try {
             $validatedScope = $this->scopes->validateAuthorizationRequest($scope, $client);
@@ -161,6 +187,18 @@ final class AuthenticateLocalCredentials
         return response()->json([
             'redirect_uri' => $callbackUri,
         ]);
+    }
+
+    /**
+     * FR-019: Check if user has a verified MFA credential requiring challenge.
+     */
+    private function requiresMfaChallenge(User $user): bool
+    {
+        return MfaCredential::query()
+            ->forUser($user->getKey())
+            ->totp()
+            ->verified()
+            ->exists();
     }
 
     private function recordFailed(Request $request, string $email, DownstreamClient $client, string $errorCode): void

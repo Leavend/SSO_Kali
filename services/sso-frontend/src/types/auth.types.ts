@@ -32,7 +32,19 @@ export type SsoLoginFailure = {
   readonly message: string
 }
 
-export type SsoLoginResponse = SsoLoginSuccess | SsoLoginFailure
+/** FR-019: MFA challenge response when user has TOTP enrolled. */
+export type SsoLoginMfaRequired = {
+  readonly authenticated: false
+  readonly mfa_required: true
+  readonly challenge: {
+    readonly challenge_id: string
+    readonly methods_available: readonly ('totp' | 'recovery_code')[]
+    readonly expires_at: string
+  }
+}
+
+export type SsoLoginResponse = SsoLoginSuccess | SsoLoginFailure | SsoLoginMfaRequired
+
 
 export type SsoSessionResponse =
   | { readonly authenticated: true; readonly user: SsoUser }

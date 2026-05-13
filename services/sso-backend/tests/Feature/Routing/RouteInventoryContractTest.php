@@ -8,13 +8,13 @@ use Illuminate\Support\Facades\Route as RouteFacade;
 it('keeps the production route inventory intentional', function (): void {
     $routes = collect(RouteFacade::getRoutes()->getRoutes());
 
-    expect($routes)->toHaveCount(94);
-    expect(applicationRoutes($routes))->toHaveCount(82);
+    expect($routes)->toHaveCount(99);
+    expect(applicationRoutes($routes))->toHaveCount(87);
     expect(vendorRoutes($routes))->toHaveCount(12);
 });
 
 it('documents the production route inventory observed by artisan route:list', function (): void {
-    expect(95)->toBe(95);
+    expect(100)->toBe(100);
 });
 
 it('registers every required application route contract', function (): void {
@@ -68,7 +68,7 @@ function routeCategory(Route $route): string
         return 'logout';
     }
 
-    if (str_starts_with($uri, 'api/auth') || str_starts_with($uri, 'api/profile') || $uri === 'login') {
+    if (str_starts_with($uri, 'api/auth') || str_starts_with($uri, 'api/profile') || str_starts_with($uri, 'api/mfa') || $uri === 'login') {
         return 'auth';
     }
 
@@ -145,6 +145,11 @@ function expectedApplicationRouteSignatures(): array
         'POST api/auth/logout',
         'POST api/auth/register',
         'GET|HEAD api/auth/session',
+        'DELETE api/mfa/totp',
+        'GET|HEAD api/mfa/status',
+        'POST api/mfa/challenge/verify',
+        'POST api/mfa/totp/enroll',
+        'POST api/mfa/totp/verify',
         'GET|HEAD api/profile',
         'GET|HEAD api/profile/audit',
         'POST api/profile/change-password',
