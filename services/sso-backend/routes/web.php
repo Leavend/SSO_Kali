@@ -8,6 +8,7 @@ use App\Http\Controllers\Oidc\AuthorizeController;
 use App\Http\Controllers\Oidc\ConsentController;
 use App\Http\Controllers\Oidc\DiscoveryController;
 use App\Http\Controllers\Oidc\JwksController;
+use App\Http\Controllers\Oidc\LocalLoginController;
 use App\Http\Controllers\Oidc\RevocationController;
 use App\Http\Controllers\Oidc\SessionLogoutController;
 use App\Http\Controllers\Oidc\SessionRegistrationController;
@@ -54,6 +55,7 @@ Route::match(['get', 'post'], '/connect/logout', SessionLogoutController::class)
 Route::post('/connect/backchannel/admin-panel/logout', AdminPanelBackChannelLogoutController::class)->middleware('throttle:oidc-callback');
 Route::get('/connect/consent', [ConsentController::class, 'show'])->middleware('throttle:oidc-authorize');
 Route::post('/connect/consent', [ConsentController::class, 'decide'])->middleware('throttle:oidc-authorize');
+Route::post('/connect/local-login', LocalLoginController::class)->middleware('throttle:oidc-token');
 Route::get('/api/profile', [ProfileController::class, 'show'])->middleware('throttle:profile-api');
 Route::patch('/api/profile', [ProfileController::class, 'update'])->middleware('throttle:profile-api');
 Route::post('/api/profile/change-password', ChangePasswordController::class)->middleware('throttle:profile-api');
