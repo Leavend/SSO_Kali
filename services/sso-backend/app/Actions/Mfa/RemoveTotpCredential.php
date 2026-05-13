@@ -7,6 +7,7 @@ namespace App\Actions\Mfa;
 use App\Models\MfaCredential;
 use App\Models\MfaRecoveryCode;
 use App\Models\User;
+use App\Notifications\MfaDisabledNotification;
 use Illuminate\Support\Facades\Hash;
 use RuntimeException;
 
@@ -39,5 +40,9 @@ final class RemoveTotpCredential
 
         MfaRecoveryCode::query()->forUser($user->getKey())->delete();
         $credential->delete();
+
+        if (config('security-notifications.enabled', true)) {
+            $user->notify(new MfaDisabledNotification);
+        }
     }
 }

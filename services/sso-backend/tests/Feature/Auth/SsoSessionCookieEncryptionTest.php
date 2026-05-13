@@ -16,10 +16,9 @@ declare(strict_types=1);
  * fallback 'sso_session' sementara cookie factory membuat '__Host-sso_session'.
  */
 
-use App\Models\User;
 use App\Models\SsoSession;
+use App\Models\User;
 use Illuminate\Cookie\Middleware\EncryptCookies;
-use Illuminate\Support\Facades\Hash;
 
 it('registers the SSO session cookie in the EncryptCookies never-encrypt list', function (): void {
     $cookieName = config('sso.session.cookie', '__Host-sso_session');

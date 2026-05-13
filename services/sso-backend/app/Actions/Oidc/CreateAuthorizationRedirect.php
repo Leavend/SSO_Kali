@@ -8,6 +8,7 @@ use App\Actions\Audit\RecordAuthenticationAuditEventAction;
 use App\Actions\SsoErrors\BuildSsoErrorRedirectAction;
 use App\Actions\SsoErrors\RecordSsoErrorAction;
 use App\Enums\SsoErrorCode;
+use App\Services\Oidc\AcrEvaluator;
 use App\Services\Oidc\AuthorizationCodeStore;
 use App\Services\Oidc\AuthRequestStore;
 use App\Services\Oidc\ConsentService;
@@ -45,6 +46,7 @@ final class CreateAuthorizationRedirect
         private readonly RecordAuthenticationAuditEventAction $audits,
         private readonly RecordSsoErrorAction $ssoErrors,
         private readonly BuildSsoErrorRedirectAction $errorRedirects,
+        private readonly AcrEvaluator $acrEvaluator,
     ) {}
 
     public function handle(Request $request): JsonResponse|RedirectResponse
@@ -136,7 +138,30 @@ final class CreateAuthorizationRedirect
             return false;
         }
 
+        // FR-019 / UC-19: Step-up authentication via acr_values
+        if (! $this->acrSatisfied($request, $context)) {
+            return false;
+        }
+
         return $this->maxAgeIsFresh($request, $context);
+    }
+
+    /**
+     * FR-019: Check if the browser session's ACR satisfies the requested acr_values.
+     *
+     * @param  array<string, mixed>  $context
+     */
+    private function acrSatisfied(Request $request, array $context): bool
+    {
+        $requestedAcr = $request->query('acr_values');
+
+        if (! is_string($requestedAcr) || $requestedAcr === '') {
+            return true;
+        }
+
+        $sessionAcr = is_string($context['acr'] ?? null) ? $context['acr'] : null;
+
+        return $this->acrEvaluator->satisfies($sessionAcr, $requestedAcr);
     }
 
     /**

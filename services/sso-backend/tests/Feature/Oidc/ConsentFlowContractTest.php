@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Actions\Oidc\CreateAuthorizationRedirect;
 use App\Models\UserConsent;
 use App\Services\Oidc\AuthRequestStore;
 use App\Services\Oidc\DownstreamClientRegistry;
@@ -153,7 +154,7 @@ describe('prompt none and authorization prompt behaviors', function (): void {
         // authenticated, the OP MUST return error=login_required.
         // The CreateAuthorizationRedirect action handles this by checking
         // for an active SSO session before processing prompt none requests.
-        $action = app(\App\Actions\Oidc\CreateAuthorizationRedirect::class);
+        $action = app(CreateAuthorizationRedirect::class);
 
         // Verify the action class contains prompt none handling
         $ref = new ReflectionClass($action);
@@ -166,7 +167,7 @@ describe('prompt none and authorization prompt behaviors', function (): void {
     it('validates select_account prompt redirects to login for account selection', function (): void {
         // OpenID Connect Core §3.1.2.1: prompt=select_account asks the OP
         // to prompt the user to select an account.
-        $action = app(\App\Actions\Oidc\CreateAuthorizationRedirect::class);
+        $action = app(CreateAuthorizationRedirect::class);
 
         $ref = new ReflectionClass($action);
         $source = file_get_contents($ref->getFileName());

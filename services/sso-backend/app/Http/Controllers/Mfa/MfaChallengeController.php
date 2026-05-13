@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Mfa;
 
+use App\Actions\Mfa\PersistMfaAuthContext;
 use App\Actions\Mfa\VerifyMfaChallenge;
 use App\Models\SsoSession;
 use App\Models\User;
@@ -23,6 +24,7 @@ final class MfaChallengeController
     public function __invoke(
         Request $request,
         VerifyMfaChallenge $action,
+        PersistMfaAuthContext $persistContext,
         SsoSessionCookieFactory $cookies,
     ): JsonResponse {
         $request->validate([
@@ -65,6 +67,12 @@ final class MfaChallengeController
 
         // Create SSO session with MFA-verified amr
         $session = $this->createSession($user, $request);
+
+        // FR-019 / ISSUE-04+06: Persist MFA auth context for token claims
+        $persistContext->execute(
+            subjectId: $user->subject_id,
+            ipAddress: (string) $request->ip(),
+        );
 
         return response()->json([
             'authenticated' => true,

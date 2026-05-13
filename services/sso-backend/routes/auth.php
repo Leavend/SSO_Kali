@@ -8,6 +8,7 @@ use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\SessionController;
 use App\Http\Controllers\Mfa\MfaChallengeController;
 use App\Http\Controllers\Mfa\MfaStatusController;
+use App\Http\Controllers\Mfa\RecoveryCodeController;
 use App\Http\Controllers\Mfa\TotpEnrollmentController;
 use App\Http\Controllers\Mfa\TotpRemovalController;
 use App\Http\Middleware\ResolveSsoSessionUser;
@@ -47,6 +48,7 @@ Route::prefix('api/mfa')->middleware(['throttle:profile-api', ResolveSsoSessionU
     Route::post('/totp/enroll', [TotpEnrollmentController::class, 'store']);
     Route::post('/totp/verify', [TotpEnrollmentController::class, 'verify']);
     Route::delete('/totp', TotpRemovalController::class);
+    Route::post('/recovery-codes/regenerate', [RecoveryCodeController::class, 'regenerate']);
 });
 
 // Challenge verification does not require an active session (user is mid-login)

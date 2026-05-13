@@ -134,6 +134,8 @@ Route::middleware([AdminGuard::class, EnsureAdminMfaEnrolled::class])->prefix('a
             ->where('subjectId', '[a-zA-Z0-9_-]+');
         Route::post('/users/{subjectId}/sync-profile', [UserController::class, 'syncProfile'])
             ->where('subjectId', '[a-zA-Z0-9_-]+');
+        Route::post('/users/{subjectId}/reset-mfa', [UserController::class, 'resetMfa'])
+            ->where('subjectId', '[a-zA-Z0-9_-]+');
     });
 
     Route::middleware([

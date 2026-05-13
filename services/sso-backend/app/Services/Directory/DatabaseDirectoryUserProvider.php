@@ -84,4 +84,3 @@ final class DatabaseDirectoryUserProvider implements DirectoryUserProvider
         );
     }
 }
-

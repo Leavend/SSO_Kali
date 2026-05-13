@@ -6,6 +6,7 @@ namespace App\Actions\Mfa;
 
 use App\Models\MfaCredential;
 use App\Models\User;
+use App\Notifications\MfaEnabledNotification;
 use App\Services\Mfa\RecoveryCodeService;
 use App\Services\Mfa\TotpService;
 use RuntimeException;
@@ -54,6 +55,10 @@ final class ConfirmTotpEnrollment
         $credential->update(['verified_at' => now()]);
 
         $codes = $this->recoveryCodes->generate($user->getKey());
+
+        if (config('security-notifications.enabled', true)) {
+            $user->notify(new MfaEnabledNotification('totp'));
+        }
 
         return [
             'verified' => true,

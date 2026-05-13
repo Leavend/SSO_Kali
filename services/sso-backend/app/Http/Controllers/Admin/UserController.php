@@ -63,8 +63,7 @@ final class UserController
 
     public function issuePasswordReset(Request $request, IssueManagedUserPasswordResetAction $action, string $subjectId): JsonResponse
     {
-        $target = $this->users->find($subjectId);
-        return $target instanceof User
+        return ($target = $this->users->find($subjectId)) instanceof User
             ? $this->mutate($request, 'issue_managed_user_password_reset', ['target_subject_id' => $subjectId], fn (): array => $this->presenter->passwordReset($action->execute($target)))
             : AdminApiResponse::error('not_found', 'User not found.', 404);
     }
@@ -76,9 +75,8 @@ final class UserController
 
     public function resetMfa(Request $request, EmergencyMfaResetAction $action, string $subjectId): JsonResponse
     {
-        $target = $this->users->find($subjectId);
-        return $target instanceof User
-            ? $this->mutate($request, 'emergency_mfa_reset', ['target_subject_id' => $subjectId], function () use ($action, $target): array { $action->execute($target); return ['reset' => true, 'message' => 'MFA credential removed.']; })
+        return ($target = $this->users->find($subjectId)) instanceof User
+            ? $this->mutate($request, 'emergency_mfa_reset', ['target_subject_id' => $subjectId], fn (): array => tap(['reset' => true, 'message' => 'MFA credential removed.'], fn () => $action->execute($target)))
             : AdminApiResponse::error('not_found', 'User not found.', 404);
     }
 
@@ -92,6 +90,7 @@ final class UserController
     private function mutateUser(Request $request, string $subjectId, string $action, Closure $callback, array $context = []): JsonResponse
     {
         $target = $this->users->find($subjectId);
+
         return $target instanceof User
             ? $this->mutate($request, $action, ['target_subject_id' => $subjectId, ...$context], fn (): array => ['user' => $this->presenter->user($callback($target, $request->attributes->get('admin_user')))])
             : AdminApiResponse::error('not_found', 'User not found.', 404);

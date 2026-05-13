@@ -6,6 +6,8 @@ namespace App\Actions\Mfa;
 
 use App\Models\MfaCredential;
 use App\Models\User;
+use App\Notifications\LowRecoveryCodesNotification;
+use App\Notifications\RecoveryCodeUsedNotification;
 use App\Services\Mfa\MfaChallengeStore;
 use App\Services\Mfa\RecoveryCodeService;
 use App\Services\Mfa\TotpService;
@@ -57,6 +59,10 @@ final class VerifyMfaChallenge
         $this->challenges->consume($challengeId);
         $this->touchCredential($userId);
 
+        if ($method === 'recovery_code') {
+            $this->notifyRecoveryCodeUsed($userId);
+        }
+
         return [
             'authenticated' => true,
             'method' => $method,
@@ -92,5 +98,27 @@ final class VerifyMfaChallenge
             ->totp()
             ->verified()
             ->update(['last_used_at' => now()]);
+    }
+
+    private function notifyRecoveryCodeUsed(int $userId): void
+    {
+        if (! config('security-notifications.enabled', true)) {
+            return;
+        }
+
+        $user = User::query()->find($userId);
+
+        if (! $user instanceof User) {
+            return;
+        }
+
+        $remaining = $this->recoveryCodes->remaining($userId);
+        $threshold = (int) config('security-notifications.low_recovery_codes_threshold', 2);
+
+        $user->notify(new RecoveryCodeUsedNotification($remaining));
+
+        if ($remaining <= $threshold) {
+            $user->notify(new LowRecoveryCodesNotification($remaining));
+        }
     }
 }

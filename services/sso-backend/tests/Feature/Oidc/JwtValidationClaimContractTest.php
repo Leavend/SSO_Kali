@@ -6,8 +6,11 @@ use App\Models\SsoSession;
 use App\Models\User;
 use App\Services\Oidc\AccessTokenGuard;
 use App\Services\Oidc\AccessTokenRevocationStore;
+use App\Services\Oidc\DownstreamClientRegistry;
 use App\Services\Oidc\SigningKeyService;
+use App\Support\Cache\ResilientCacheStore;
 use App\Support\Security\ClientSecretHashPolicy;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
 beforeEach(function (): void {
@@ -16,11 +19,11 @@ beforeEach(function (): void {
     app()->forgetInstance(SigningKeyService::class);
     app()->forgetInstance(AccessTokenGuard::class);
     app()->forgetInstance(AccessTokenRevocationStore::class);
-    app()->forgetInstance(\App\Services\Oidc\DownstreamClientRegistry::class);
-    app()->forgetInstance(\App\Support\Cache\ResilientCacheStore::class);
+    app()->forgetInstance(DownstreamClientRegistry::class);
+    app()->forgetInstance(ResilientCacheStore::class);
 
     // Flush array cache to prevent stale revocation entries from prior tests
-    \Illuminate\Support\Facades\Cache::flush();
+    Cache::flush();
 
     config()->set('app.env', 'production');
     config()->set('app.url', 'https://api-sso.timeh.my.id');
