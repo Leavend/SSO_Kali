@@ -6,18 +6,18 @@ namespace App\Actions\Profile;
 
 use App\Services\Admin\AdminAuditEventStore;
 use App\Services\Admin\AdminSessionService;
-use App\Services\Oidc\AccessTokenGuard;
 use App\Services\Oidc\LogicalSessionStore;
+use App\Services\Profile\ProfilePrincipalException;
+use App\Services\Profile\ProfilePrincipalResolver;
 use App\Services\Profile\UserSessionsService;
 use App\Support\Responses\OidcErrorResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use RuntimeException;
 
 final class RevokeAllUserSessionsAction
 {
     public function __construct(
-        private readonly AccessTokenGuard $tokens,
+        private readonly ProfilePrincipalResolver $principals,
         private readonly AdminSessionService $sessionService,
         private readonly LogicalSessionStore $logicalSessions,
         private readonly UserSessionsService $sessions,
@@ -27,12 +27,12 @@ final class RevokeAllUserSessionsAction
     public function handle(Request $request): JsonResponse
     {
         try {
-            $claims = $this->tokens->claimsFrom((string) $request->bearerToken());
-        } catch (RuntimeException) {
-            return OidcErrorResponse::json('invalid_token', 'The bearer token is invalid.', 401);
+            $principal = $this->principals->resolve($request);
+        } catch (ProfilePrincipalException $e) {
+            return OidcErrorResponse::json($e->errorCode, $e->getMessage(), 401);
         }
 
-        $subjectId = (string) $claims['sub'];
+        $subjectId = (string) $principal['claims']['sub'];
         $activeSessions = $this->sessions->listForSubject($subjectId);
         $revokedSessions = 0;
         $revokedRefreshTokens = 0;

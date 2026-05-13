@@ -5,18 +5,18 @@ declare(strict_types=1);
 namespace App\Actions\Profile;
 
 use App\Services\Admin\AdminAuditEventStore;
-use App\Services\Oidc\AccessTokenGuard;
 use App\Services\Oidc\AccessTokenRevocationStore;
 use App\Services\Oidc\RefreshTokenStore;
+use App\Services\Profile\ProfilePrincipalException;
+use App\Services\Profile\ProfilePrincipalResolver;
 use App\Support\Responses\OidcErrorResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use RuntimeException;
 
 final class RevokeConnectedAppAction
 {
     public function __construct(
-        private readonly AccessTokenGuard $tokens,
+        private readonly ProfilePrincipalResolver $principals,
         private readonly RefreshTokenStore $refreshTokens,
         private readonly AccessTokenRevocationStore $accessTokens,
         private readonly AdminAuditEventStore $audits,
@@ -25,10 +25,11 @@ final class RevokeConnectedAppAction
     public function handle(Request $request, string $clientId): JsonResponse
     {
         try {
-            $claims = $this->tokens->claimsFrom((string) $request->bearerToken());
-        } catch (RuntimeException) {
-            return OidcErrorResponse::json('invalid_token', 'The bearer token is invalid.', 401);
+            $principal = $this->principals->resolve($request);
+        } catch (ProfilePrincipalException $e) {
+            return OidcErrorResponse::json($e->errorCode, $e->getMessage(), 401);
         }
+        $claims = $principal['claims'];
 
         $revoked = $this->refreshTokens->revokeClientSessionsForSubject((string) $claims['sub'], $clientId);
         $this->accessTokens->revokeClient($clientId);

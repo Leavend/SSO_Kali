@@ -12,7 +12,7 @@ it('locks issue44 user profile portal backend contracts', function (): void {
             'OidcScope::PERMISSIONS',
         ],
         'app/Actions/Profile/ShowProfilePortalAction.php' => [
-            'AccessTokenGuard',
+            'ProfilePrincipalResolver',
             'no-store, no-cache, must-revalidate, private',
             'OidcErrorResponse::json',
         ],
@@ -31,7 +31,7 @@ it('locks issue44 user profile portal backend contracts', function (): void {
         'routes/web.php' => [
             "Route::get('/api/profile'",
             "Route::patch('/api/profile'",
-            'throttle:oidc-resource',
+            'throttle:profile-api',
         ],
         'tests/Feature/Profile/ProfilePortalBackendContractTest.php' => [
             'stable no-store profile portal contract',

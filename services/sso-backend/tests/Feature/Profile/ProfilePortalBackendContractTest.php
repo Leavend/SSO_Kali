@@ -19,7 +19,10 @@ beforeEach(function (): void {
 
 it('rejects missing or invalid profile portal tokens', function (): void {
     $this->getJson('/api/profile')->assertStatus(401)->assertJsonPath('error', 'invalid_token');
-    $this->patchJson('/api/profile', ['display_name' => 'Blocked'])->assertStatus(403);
+    // Anonymous PATCH: authentication required comes first (401),
+    // not scope-check (403). Scope-check still fires for authenticated
+    // bearer tokens without the profile scope — covered separately.
+    $this->patchJson('/api/profile', ['display_name' => 'Blocked'])->assertStatus(401);
 });
 
 it('returns the stable no-store profile portal contract with scoped claims only', function (): void {
