@@ -1,0 +1,148 @@
+name: SSO Frontend CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'services/sso-frontend/**'
+      - '.github/workflows/sso-frontend.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'services/sso-frontend/**'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/sso-frontend
+  NODE_VERSION: '24'
+
+defaults:
+  run:
+    working-directory: services/sso-frontend
+
+jobs:
+  # ─── Gate: Lint + Typecheck + Test ───────────────────────────────
+  quality-gate:
+    name: Quality Gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: services/sso-frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: TypeScript check
+        run: npm run typecheck
+
+      - name: ESLint
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm run test -- --reporter=junit --outputFile=test-results.xml
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: services/sso-frontend/test-results.xml
+
+  # ─── Build: Production bundle ────────────────────────────────────
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: quality-gate
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: services/sso-frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Build production bundle
+        run: npm run build
+        env:
+          VITE_SSO_API_URL: ''
+          VITE_APP_NAME: 'Dev-SSO Portal'
+          VITE_OIDC_ISSUER: ''
+          VITE_OIDC_CLIENT_ID: 'sso-frontend-portal'
+
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: services/sso-frontend/dist
+          retention-days: 7
+
+  # ─── Docker: Build & Push Image ──────────────────────────────────
+  docker:
+    name: Docker Build & Push
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=
+            type=raw,value=latest
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: services/sso-frontend/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VITE_SSO_API_URL=
+            VITE_APP_NAME=Dev-SSO Portal
+            VITE_OIDC_ISSUER=
+            VITE_OIDC_CLIENT_ID=sso-frontend-portal
+
+  # ─── Deploy: Staging ─────────────────────────────────────────────
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: docker
+    environment: staging
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.STAGING_HOST }}
+          username: ${{ secrets.STAGING_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          script: |
+            cd /opt/sso
+            docker compose pull sso-frontend
+            docker compose up -d sso-frontend --no-deps
+            docker compose exec sso-frontend nginx -t
+            echo "✅ sso-frontend deployed to staging"
