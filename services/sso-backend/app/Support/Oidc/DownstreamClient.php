@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Support\Oidc;
 
+use Illuminate\Support\Carbon;
+
 final readonly class DownstreamClient
 {
     /**
@@ -19,7 +21,18 @@ final readonly class DownstreamClient
         public array $allowedScopes,
         public ?string $backchannelLogoutUri = null,
         public ?string $secret = null,
+        public ?Carbon $secretExpiresAt = null,
+        public ?Carbon $secretRotatedAt = null,
     ) {}
+
+    /**
+     * FR-009: Whether the client secret has passed its expiry date.
+     * Returns false if no expiry is set (config-based clients without TTL).
+     */
+    public function isSecretExpired(): bool
+    {
+        return $this->secretExpiresAt !== null && $this->secretExpiresAt->isPast();
+    }
 
     public function allowsRedirectUri(string $redirectUri): bool
     {

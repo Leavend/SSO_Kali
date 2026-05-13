@@ -53,6 +53,11 @@ final class DownstreamClientRegistry
             return false;
         }
 
+        // FR-009: reject expired secrets — rotation is not cosmetic.
+        if ($client->isSecretExpired()) {
+            return false;
+        }
+
         try {
             return $this->hashes->verify($secret, $client->secret);
         } catch (RuntimeException) {
@@ -199,6 +204,8 @@ final class DownstreamClientRegistry
             allowedScopes: $this->scopeList($registration->allowed_scopes),
             backchannelLogoutUri: $registration->backchannel_logout_uri,
             secret: is_string($registration->secret_hash) ? $registration->secret_hash : null,
+            secretExpiresAt: $registration->secret_expires_at,
+            secretRotatedAt: $registration->secret_rotated_at,
         );
     }
 
