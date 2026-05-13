@@ -6,12 +6,14 @@ on:
     paths:
       - 'services/sso-frontend/**'
       - 'packages/dev-sso-parent-ui/**'
+      - 'tools/frontend-security/**'
       - '.github/workflows/sso-frontend.yml'
   pull_request:
     branches: [main]
     paths:
       - 'services/sso-frontend/**'
       - 'packages/dev-sso-parent-ui/**'
+      - 'tools/frontend-security/**'
 
 env:
   REGISTRY: ghcr.io
