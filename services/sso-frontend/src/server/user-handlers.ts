@@ -13,8 +13,8 @@ import { isUserApiError } from './user-api-error.js'
 import { resolveSsoSession, sessionHeaders } from './sso-session-resolver.js'
 import type { ResolvedSsoSession } from './sso-session-resolver.js'
 import { getConfig } from './config.js'
-import { clearSessionCookie, publicPrincipal } from './session.js'
-import type { SsoSession } from './session.js'
+import { clearSessionCookie, publicSession } from './session.js'
+import type { AdminSession } from './session.js'
 import type { AppResponse } from './response.js'
 import type { HeaderValue } from './response.js'
 import { json, redirect } from './response.js'
@@ -28,7 +28,7 @@ export async function handleSession(request: IncomingMessage): Promise<AppRespon
   const resolved = await resolveSessionOrNull(request)
   if (!resolved) return unauthenticatedResponse()
 
-  return json(200, { principal: publicPrincipal(resolved.session) }, sessionHeaders(resolved))
+  return json(200, { principal: publicSession(resolved.session) }, sessionHeaders(resolved))
 }
 
 export async function handleUserApi(context: RouteContext): Promise<AppResponse> {
@@ -82,7 +82,7 @@ export function redirectForLegacyError(requestUrl: URL): AppResponse | null {
 
 async function updateProfileEndpoint(
   request: IncomingMessage,
-  session: SsoSession,
+  session: AdminSession,
   headers: Record<string, HeaderValue>,
 ): Promise<AppResponse> {
   const body = await readJsonBody(request)
@@ -98,7 +98,7 @@ async function updateProfileEndpoint(
 }
 
 async function revokeConnectedAppEndpoint(
-  session: SsoSession,
+  session: AdminSession,
   pathname: string,
   headers: Record<string, HeaderValue>,
 ): Promise<AppResponse> {
@@ -110,7 +110,7 @@ async function revokeConnectedAppEndpoint(
 }
 
 async function revokeMySessionEndpoint(
-  session: SsoSession,
+  session: AdminSession,
   pathname: string,
   headers: Record<string, HeaderValue>,
 ): Promise<AppResponse> {

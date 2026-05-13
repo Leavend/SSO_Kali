@@ -1,10 +1,10 @@
 import type { IncomingMessage } from 'node:http'
-import { refreshSsoSession, sessionNeedsRefresh } from './session-refresh.js'
-import type { SsoSession } from './session.js'
+import { refreshAdminSession, sessionNeedsRefresh } from './session-refresh.js'
+import type { AdminSession } from './session.js'
 import { readSession, sessionCookie } from './session.js'
 
 export type ResolvedSsoSession = {
-  readonly session: SsoSession
+  readonly session: AdminSession
   readonly cookies: readonly string[]
 }
 
@@ -13,7 +13,7 @@ export async function resolveSsoSession(request: IncomingMessage): Promise<Resol
   if (!session) return null
   if (!sessionNeedsRefresh(session)) return { session, cookies: [] }
 
-  const refreshed = await refreshSsoSession(session)
+  const refreshed = await refreshAdminSession(session)
   return { session: refreshed, cookies: [sessionCookie(refreshed)] }
 }
 
