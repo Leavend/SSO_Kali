@@ -14,14 +14,33 @@ final class UserSessionsService
      */
     public function listForSubject(string $subjectId): array
     {
-        $rows = DB::table('refresh_token_rotations')
+        $oauthSessions = DB::table('refresh_token_rotations')
             ->select(['session_id', 'client_id', 'created_at', 'updated_at', 'expires_at'])
             ->where('subject_id', $subjectId)
             ->whereNull('revoked_at')
             ->where('expires_at', '>', now())
             ->get();
 
-        return $this->aggregateBySession($rows);
+        $aggregated = $this->aggregateBySession($oauthSessions);
+
+        $portalSessions = DB::table('sso_sessions')
+            ->where('subject_id', $subjectId)
+            ->whereNull('revoked_at')
+            ->where('expires_at', '>', now())
+            ->orderByDesc('last_seen_at')
+            ->get()
+            ->map(fn (object $row): array => [
+                'session_id' => $row->session_id,
+                'authenticated_at' => str_replace(' ', 'T', (string) $row->authenticated_at).'Z',
+                'last_seen_at' => str_replace(' ', 'T', (string) $row->last_seen_at).'Z',
+                'expires_at' => str_replace(' ', 'T', (string) $row->expires_at).'Z',
+                'ip_address' => $row->ip_address,
+                'user_agent' => $row->user_agent,
+                'type' => 'portal',
+            ])
+            ->all();
+
+        return array_merge($portalSessions, $aggregated);
     }
 
     public function belongsToSubject(string $subjectId, string $sessionId): bool

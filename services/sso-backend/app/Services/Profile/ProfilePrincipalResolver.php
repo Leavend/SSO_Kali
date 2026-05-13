@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Profile;
 
 use App\Models\User;
+use App\Services\Directory\DirectoryUserProvider;
 use App\Services\Oidc\AccessTokenGuard;
 use App\Services\Session\SsoSessionCookieResolver;
 use App\Services\Session\SsoSessionService;
@@ -43,12 +44,15 @@ final class ProfilePrincipalResolver
         OidcScope::OPENID,
         OidcScope::PROFILE,
         OidcScope::EMAIL,
+        OidcScope::ROLES,
+        OidcScope::PERMISSIONS,
     ];
 
     public function __construct(
         private readonly AccessTokenGuard $tokens,
         private readonly SsoSessionCookieResolver $cookies,
         private readonly SsoSessionService $sessions,
+        private readonly DirectoryUserProvider $directory,
     ) {}
 
     /**
@@ -108,11 +112,22 @@ final class ProfilePrincipalResolver
             return null;
         }
 
+        $roles = $this->directory->rolesFor($user->subject_id);
+        $permissions = $user->roles()
+            ->with('permissions')
+            ->get()
+            ->flatMap(fn ($role) => $role->permissions->pluck('slug'))
+            ->unique()
+            ->values()
+            ->all();
+
         return [
             'user' => $user,
             'claims' => [
                 'sub' => $user->subject_id,
                 'scope' => implode(' ', self::PORTAL_SCOPES),
+                'roles' => $roles,
+                'permissions' => $permissions,
             ],
             'source' => 'session',
         ];

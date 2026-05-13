@@ -54,7 +54,7 @@ final class AuditController
             'outcome' => $row->outcome,
             'ip_address' => $row->ip_address,
             'user_agent' => $row->user_agent,
-            'occurred_at' => $row->occurred_at,
+            'occurred_at' => str_replace(' ', 'T', (string) $row->occurred_at).'Z',
             'client_id' => $row->client_id,
             'session_id' => $row->session_id,
         ]);
