@@ -53,6 +53,16 @@ x-sso-backend-env: &sso-backend-env
 
 x-sso-frontend-env: &sso-frontend-env
   PORT: 3000
+  VITE_ADMIN_BASE_URL: ${ADMIN_PANEL_BASE_URL:-https://sso.timeh.my.id}
+  NEXT_PUBLIC_APP_BASE_URL: ${ADMIN_PANEL_BASE_URL:-https://sso.timeh.my.id}
+  VITE_SSO_BASE_URL: ${SSO_BASE_URL:-https://api-sso.timeh.my.id}
+  NEXT_PUBLIC_SSO_BASE_URL: ${SSO_BASE_URL:-https://api-sso.timeh.my.id}
+  VITE_CLIENT_ID: ${ADMIN_PANEL_CLIENT_ID:-sso-frontend-portal}
+  NEXT_PUBLIC_CLIENT_ID: ${ADMIN_PANEL_CLIENT_ID:-sso-frontend-portal}
+  SSO_INTERNAL_BASE_URL: ${SSO_INTERNAL_BASE_URL:-http://sso-backend:8000}
+  SSO_INTERNAL_TOKEN_URL: ${SSO_INTERNAL_TOKEN_URL:-http://sso-backend:8000/token}
+  SSO_INTERNAL_JWKS_URL: ${SSO_INTERNAL_JWKS_URL:-http://sso-backend:8000/jwks}
+  SSO_INTERNAL_ADMIN_API_URL: ${SSO_INTERNAL_ADMIN_API_URL:-http://sso-backend:8000/admin/api}
   SSO_BACKEND_UPSTREAM: sso-backend:8000
   SSO_FRONTEND_SERVER_NAME: ${SSO_FRONTEND_SERVER_NAME:-_}
   SSO_CSP_CONNECT_SRC: ${SSO_CSP_CONNECT_SRC:-https://api-sso.timeh.my.id}
