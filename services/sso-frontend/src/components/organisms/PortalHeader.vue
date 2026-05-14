@@ -37,18 +37,25 @@ function closeMenu(): void {
   <header
     class="bg-background/85 supports-[backdrop-filter]:bg-background/70 sticky top-0 z-30 border-b backdrop-blur"
   >
-    <div class="mx-auto flex h-16 max-w-6xl items-center gap-4 px-4 sm:px-6">
-      <RouterLink to="/home" class="flex items-center gap-2 font-semibold">
+    <div
+      data-testid="portal-header-row"
+      class="mx-auto flex h-16 max-w-6xl min-w-0 items-center gap-2 px-3 sm:gap-3 sm:px-5 lg:gap-4 lg:px-6"
+    >
+      <RouterLink
+        to="/home"
+        data-testid="portal-header-brand"
+        class="flex min-w-0 items-center gap-2 font-semibold"
+      >
         <AppBrandMark />
-        <span class="flex flex-col leading-none">
-          <strong class="text-sm font-bold tracking-tight">Dev-SSO</strong>
-          <span class="text-muted-foreground text-[11px]">Portal Pengguna</span>
+        <span class="flex min-w-0 flex-col leading-none">
+          <strong class="truncate text-sm font-bold tracking-tight">Dev-SSO</strong>
+          <span class="text-muted-foreground truncate text-[11px]">Portal Pengguna</span>
         </span>
       </RouterLink>
 
-      <!-- Desktop nav -->
       <nav
-        class="hidden flex-1 items-center justify-center gap-1 md:flex"
+        data-testid="portal-desktop-nav"
+        class="hidden min-w-0 flex-1 items-center justify-center gap-0.5 overflow-hidden md:flex lg:gap-1"
         aria-label="Navigasi portal"
       >
         <PortalNavLink
@@ -60,13 +67,13 @@ function closeMenu(): void {
         />
       </nav>
 
-      <div class="ml-auto flex items-center gap-2">
+      <div data-testid="portal-header-actions" class="ml-auto flex min-w-0 shrink-0 items-center gap-1.5 sm:gap-2">
         <ThemeToggleButton />
         <PortalUserMenu />
         <!-- Mobile hamburger -->
         <button
           type="button"
-          class="text-muted-foreground hover:text-foreground inline-flex size-9 items-center justify-center rounded-md transition-colors md:hidden"
+          class="text-muted-foreground hover:text-foreground inline-flex size-11 items-center justify-center rounded-md transition-colors md:hidden"
           :aria-label="mobileMenuOpen ? 'Tutup menu' : 'Buka menu'"
           :aria-expanded="mobileMenuOpen"
           @click="toggleMenu"
@@ -81,10 +88,10 @@ function closeMenu(): void {
     <Transition name="mobile-nav">
       <nav
         v-if="mobileMenuOpen"
-        class="bg-background border-b px-4 pb-4 pt-2 md:hidden"
+        class="bg-background border-b px-3 pb-4 pt-2 md:hidden"
         aria-label="Navigasi portal mobile"
       >
-        <div class="grid gap-1">
+        <div class="grid gap-2">
           <PortalNavLink
             v-for="item in navItems"
             :key="item.to"

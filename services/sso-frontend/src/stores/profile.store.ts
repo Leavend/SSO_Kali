@@ -84,7 +84,9 @@ export const useProfileStore = defineStore('sso-profile', () => {
       sessions.value = []
       return response
     } catch (error: unknown) {
-      if (handleSessionExpiry(error)) return { revoked_count: 0 } as RevokeAllSessionsResponse
+      if (handleSessionExpiry(error)) {
+        return { revoked: true, revoked_sessions: 0, revoked_refresh_tokens: 0 }
+      }
       throw error
     }
   }

@@ -21,6 +21,9 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
   REGISTRY: ghcr.io
   IMAGE_PREFIX: ghcr.io/leavend/sso-prototype
+  SSO_BASE_URL: https://dev-sso.timeh.my.id
+  SSO_ADMIN_VUE_BASE_PATH: /__vue-preview
+  ZITADEL_ISSUER: https://id.dev-sso.timeh.my.id
 
 # Cancel in-progress runs for the same branch/PR
 concurrency:
@@ -158,10 +161,10 @@ jobs:
             context: ./services/sso-admin-vue
             dockerfile: ./services/sso-admin-vue/Dockerfile
             build-args: |
-              VITE_ADMIN_BASE_URL=${{ vars.SSO_BASE_URL || 'https://dev-sso.timeh.my.id' }}
-              VITE_PUBLIC_BASE_PATH=${{ vars.SSO_ADMIN_VUE_BASE_PATH || '/__vue-preview' }}
-              VITE_SSO_BASE_URL=${{ vars.SSO_BASE_URL || 'https://dev-sso.timeh.my.id' }}
-              VITE_ZITADEL_ISSUER_URL=${{ vars.ZITADEL_ISSUER || 'https://id.dev-sso.timeh.my.id' }}
+              VITE_ADMIN_BASE_URL=https://dev-sso.timeh.my.id
+              VITE_PUBLIC_BASE_PATH=/__vue-preview
+              VITE_SSO_BASE_URL=https://dev-sso.timeh.my.id
+              VITE_ZITADEL_ISSUER_URL=https://id.dev-sso.timeh.my.id
 
     steps:
       - uses: actions/checkout@v5

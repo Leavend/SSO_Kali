@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { useSessionStore } from '@/stores/session'
+import { useSessionStore } from '@/stores/session.store'
 
 const session = useSessionStore()
 

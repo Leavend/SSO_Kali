@@ -23,9 +23,13 @@
     "preview": "vite preview --host 0.0.0.0 --port 4173"
   },
   "dependencies": {
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "jose": "^6.2.2",
     "lucide-vue-next": "^1.0.0",
     "pinia": "^3.0.4",
+    "reka-ui": "^2.9.7",
+    "tailwind-merge": "^3.6.0",
     "vue": "^3.5.33",
     "vue-router": "^5.0.6"
   },

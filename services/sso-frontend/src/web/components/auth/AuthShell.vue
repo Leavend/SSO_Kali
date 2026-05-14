@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ShieldCheck } from 'lucide-vue-next'
 import { AUTH_SHELL } from '@parent-ui/auth-shell.mjs'
-import FloatingActions from '@/components/FloatingActions.vue'
+import FloatingActions from '@/web/components/FloatingActions.vue'
 import AuthFooter from './AuthFooter.vue'
 
 withDefaults(

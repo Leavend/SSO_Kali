@@ -2,8 +2,8 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { ChevronRight } from 'lucide-vue-next'
-import ThemeToggle from '@/components/ThemeToggle.vue'
-import { useAdminStore } from '@/stores/admin'
+import ThemeToggle from '@/web/components/ThemeToggle.vue'
+import { useAdminStore } from '@/web/stores/admin'
 
 const route = useRoute()
 const admin = useAdminStore()

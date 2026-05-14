@@ -114,7 +114,7 @@ it('locks runtime verification and production devops hardening evidence', functi
                 'frontchannel_logout_completed',
                 'post_logout_redirect_uri',
             ],
-            'routes/web.php' => [
+            'routes/oidc.php' => [
                 "Route::match(['get', 'post'], '/connect/logout'",
             ],
         ],

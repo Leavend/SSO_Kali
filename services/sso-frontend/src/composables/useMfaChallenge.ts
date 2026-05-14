@@ -95,7 +95,7 @@ export function useMfaChallenge(): UseMfaChallengeReturn {
 
       // MFA verified — session cookie set by backend
       challengeStore.clear()
-      await sessionStore.refresh()
+      await sessionStore.ensureSession()
       await router.push('/home')
     } catch {
       error.value = 'Gagal memproses verifikasi. Coba lagi beberapa saat.'

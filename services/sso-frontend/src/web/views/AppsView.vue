@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
 import { Inbox, RefreshCw } from 'lucide-vue-next'
-import PageHeader from '@/components/PageHeader.vue'
-import { useAdminStore } from '@/stores/admin'
+import PageHeader from '@/web/components/PageHeader.vue'
+import { useAdminStore } from '@/web/stores/admin'
 
 const admin = useAdminStore()
 const isLoading = computed(() => admin.status === 'loading')
@@ -36,7 +36,7 @@ onMounted(() => {
         class="panel"
         :aria-label="`Client: ${client.client_id}`"
       >
-        <div class="panel-title">
+        <div data-testid="app-card-header" class="panel-title items-center text-center">
           <h2>{{ client.client_id }}</h2>
           <span class="pill" role="status">{{ client.type }}</span>
         </div>
@@ -51,8 +51,10 @@ onMounted(() => {
       </article>
     </div>
 
-    <div v-else class="panel panel-empty--large" role="status">
-      <Inbox :size="32" aria-hidden="true" />
+    <div v-else data-testid="apps-empty-state" class="panel panel-empty--large items-center text-center" role="status">
+      <span data-testid="apps-empty-state-icon" class="mx-auto grid size-14 place-items-center rounded-2xl bg-primary/10 text-primary">
+        <Inbox :size="32" aria-hidden="true" />
+      </span>
       <h3>Belum ada aplikasi terdaftar</h3>
       <p>Gunakan prosedur integrasi client di dashboard untuk mendaftarkan aplikasi baru.</p>
     </div>

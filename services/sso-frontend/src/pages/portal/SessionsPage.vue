@@ -47,8 +47,8 @@ onMounted(() => {
 
 <template>
   <section class="grid gap-6">
-    <header class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div>
+    <header class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div data-testid="sessions-header-copy" class="min-w-0">
         <h1 class="text-heading-1 font-display font-semibold tracking-tight">Sesi Aktif</h1>
         <p class="text-muted-foreground text-sm leading-relaxed">
           Daftar sesi login aktif pada perangkat dan aplikasi terhubung. Kamu dapat mencabut sesi satu per satu atau keluar dari semuanya sekaligus.
@@ -57,6 +57,7 @@ onMounted(() => {
       <Button
         variant="destructive"
         size="lg"
+        class="w-full sm:w-fit"
         :disabled="revocation.pendingGlobalLogout.value || sessions.length === 0"
         aria-label="Logout dari semua perangkat"
         @click="revocation.askRevokeAll()"
@@ -91,7 +92,7 @@ onMounted(() => {
       </CardHeader>
     </Card>
 
-    <div v-else class="grid gap-3">
+    <div v-else data-testid="sessions-list" class="grid w-full min-w-0 gap-3 xl:grid-cols-2">
       <SessionCard
         v-for="item in sessions"
         :key="item.session_id"

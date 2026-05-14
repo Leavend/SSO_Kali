@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
 import { ShieldCheck, KeyRound, Fingerprint } from 'lucide-vue-next'
-import PageHeader from '@/components/PageHeader.vue'
-import { useSessionStore } from '@/stores/session'
+import PageHeader from '@/web/components/PageHeader.vue'
+import { useSessionStore } from '@/web/stores/session'
 
 const session = useSessionStore()
 

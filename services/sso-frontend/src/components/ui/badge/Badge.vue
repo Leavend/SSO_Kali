@@ -1,9 +1,13 @@
 <script setup lang="ts">
-import { Primitive, type PrimitiveProps } from 'reka-ui'
+import { Primitive } from 'reka-ui'
 import { cn } from '@/lib/utils'
 import { badgeVariants, type BadgeVariants } from '.'
 
-interface Props extends PrimitiveProps {
+type BadgeAs = string | object
+
+interface Props {
+  as?: BadgeAs
+  asChild?: boolean
   variant?: BadgeVariants['variant']
   class?: string
 }

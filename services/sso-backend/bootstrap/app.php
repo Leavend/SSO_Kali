@@ -24,6 +24,11 @@ return Application::configure(basePath: dirname(__DIR__))
 
             Route::middleware('web')
                 ->group(base_path('routes/admin.php'));
+
+            // Stateless OIDC endpoints — bypass session/CSRF/cookie encryption
+            // for ~200-500ms faster response on token, JWKS, discovery, etc.
+            Route::middleware('oidc-stateless')
+                ->group(base_path('routes/oidc.php'));
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
@@ -41,6 +46,15 @@ return Application::configure(basePath: dirname(__DIR__))
                 | Request::HEADER_X_FORWARDED_PROTO
                 | Request::HEADER_X_FORWARDED_AWS_ELB,
         );
+
+        // Lightweight group for stateless OIDC/system endpoints.
+        // No session, no CSRF, no cookie encryption — just security headers + perf tracking.
+        $middleware->group('oidc-stateless', [
+            EnsureRequestId::class,
+            LogForwardedHeaderMismatch::class,
+            ApplyNoStoreToSensitiveResponses::class,
+            TrackCpuPerformance::class,
+        ]);
 
         $middleware->web(append: [
             AssertSsoSessionCookiePolicy::class,
@@ -79,3 +93,4 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions): void {
         //
     })->create();
+

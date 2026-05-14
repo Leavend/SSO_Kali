@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { Download, Inbox, RefreshCw, ShieldOff } from 'lucide-vue-next'
-import PageHeader from '@/components/PageHeader.vue'
-import DataTable from '@/components/ui/DataTable.vue'
-import FilterBar from '@/components/ui/FilterBar.vue'
-import BulkActionBar from '@/components/ui/BulkActionBar.vue'
-import TablePagination from '@/components/ui/TablePagination.vue'
-import Badge from '@/components/ui/Badge.vue'
-import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
-import { useAdminStore } from '@/stores/admin'
+import PageHeader from '@/web/components/PageHeader.vue'
+import DataTable from '@/web/components/ui/DataTable.vue'
+import FilterBar from '@/web/components/ui/FilterBar.vue'
+import BulkActionBar from '@/web/components/ui/BulkActionBar.vue'
+import TablePagination from '@/web/components/ui/TablePagination.vue'
+import Badge from '@/web/components/ui/Badge.vue'
+import ConfirmDialog from '@/web/components/ui/ConfirmDialog.vue'
+import { useAdminStore } from '@/web/stores/admin'
 import { formatDateTime } from '@shared/format'
 
 const admin = useAdminStore()

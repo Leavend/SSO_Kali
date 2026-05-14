@@ -63,7 +63,7 @@ it('locks oidcBackend oidc backend aggregate and logout hardening evidence', fun
                 'frontchannel_logout_completed',
                 'post_logout_redirect_uri',
             ],
-            'routes/web.php' => [
+            'routes/oidc.php' => [
                 "Route::match(['get', 'post'], '/connect/logout'",
             ],
         ],

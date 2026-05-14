@@ -37,26 +37,27 @@ it('maps oidcBackend use cases uc01 through uc23 to backend evidence', function 
 });
 
 it('documents oidcBackend endpoints and production protection middleware', function (): void {
-    $routes = oidcBackend_aggregate_file('routes/web.php');
+    $routes = oidcBackend_aggregate_file('routes/oidc.php');
 
     foreach ([
         "Route::get('/.well-known/openid-configuration'",
         "Route::get('/.well-known/jwks.json'",
         "Route::get('/jwks'",
-        "Route::get('/authorize'",
         "Route::post('/token'",
         "Route::match(['get', 'post'], '/userinfo'",
         "Route::post('/revocation'",
         "Route::post('/oauth/revoke'",
-        "Route::middleware('throttle:oidc-authorize')",
-        "Route::post('/token', TokenController::class)",
-        "Route::post('/revocation', RevocationController::class)",
         'ValidateTokenOrigin::class',
         'throttle:oidc-token',
         'throttle:oidc-resource',
     ] as $needle) {
         expect($routes)->toContain($needle);
     }
+
+    // Authorize route remains in web.php (requires session)
+    $webRoutes = oidcBackend_aggregate_file('routes/web.php');
+    expect($webRoutes)->toContain("Route::get('/authorize'");
+    expect($webRoutes)->toContain("Route::middleware('throttle:oidc-authorize')");
 });
 
 it('keeps every oidcBackend aggregate dependency wired into ci', function (): void {

@@ -117,8 +117,8 @@ describe('ThemeToggle Component', () => {
       const wrapper = mount(ThemeToggle, { props: { initialTheme: 'dark', systemPreference: false } })
       expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
       await wrapper.find('button').trigger('click')
-      expect(document.documentElement.getAttribute('data-theme')).toBe('light')
-      expect(localStorageMock.getItem(THEME_STORAGE_KEY)).toBe('light')
+      expect(document.documentElement.getAttribute('data-theme')).toBe('system')
+      expect(localStorageMock.getItem(THEME_STORAGE_KEY)).toBe('system')
       wrapper.unmount()
     })
 
@@ -137,14 +137,14 @@ describe('ThemeToggle Component', () => {
     it('has correct aria-label for dark mode', () => {
       const wrapper = mount(ThemeToggle, { props: { initialTheme: 'dark', systemPreference: false } })
       const button = wrapper.find('button')
-      expect(button.attributes('aria-label')).toBe('Switch to light theme')
+      expect(button.attributes('aria-label')).toBe('Beralih ke mode terang')
       wrapper.unmount()
     })
 
     it('has correct aria-label for light mode', () => {
       const wrapper = mount(ThemeToggle, { props: { initialTheme: 'light', systemPreference: true } })
       const button = wrapper.find('button')
-      expect(button.attributes('aria-label')).toBe('Switch to dark theme')
+      expect(button.attributes('aria-label')).toBe('Beralih ke mode gelap')
       wrapper.unmount()
     })
 
@@ -184,7 +184,7 @@ describe('ThemeToggle Component', () => {
       expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
       await wrapper.find('button').trigger('click')
       expect(mockSetCookie).toHaveBeenCalled()
-      expect(mockSetCookie.mock.calls[0][0]).toContain('devsso-theme-preference=light')
+      expect(mockSetCookie.mock.calls[0][0]).toContain('devsso-theme-preference=system')
       wrapper.unmount()
     })
   })

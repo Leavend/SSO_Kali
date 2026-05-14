@@ -11,7 +11,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { ArrowRight, KeyRound, Lock } from 'lucide-vue-next'
 import { AUTH_SHELL } from '@parent-ui/auth-shell.mjs'
-import AuthShell from '@/components/auth/AuthShell.vue'
+import AuthShell from '@/web/components/auth/AuthShell.vue'
 
 const route = useRoute()
 const email = ref('')

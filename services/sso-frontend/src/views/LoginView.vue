@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { useSessionStore } from '@/stores/session'
+import { useSessionStore } from '@/stores/session.store'
 
 const route = useRoute()
 const session = useSessionStore()

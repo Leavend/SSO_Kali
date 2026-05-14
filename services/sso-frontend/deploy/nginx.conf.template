@@ -14,6 +14,9 @@
 limit_req_zone $binary_remote_addr zone=sso_auth_login:10m rate=30r/m;
 limit_req_zone $binary_remote_addr zone=sso_api_general:10m rate=300r/m;
 
+# --- Proxy cache zone for public OIDC metadata (JWKS, discovery) ---
+proxy_cache_path /tmp/nginx-oidc-cache levels=1:2 keys_zone=oidc_meta:1m max_size=10m inactive=10m;
+
 # --- Upstream backend Laravel ---
 upstream sso_backend {
   server ${SSO_BACKEND_UPSTREAM};
@@ -28,6 +31,30 @@ server {
 
   # Batasi body size (login & PATCH profile cukup kecil).
   client_max_body_size 64k;
+
+  # --- Gzip compression — reduces response body 60-80% ---
+  gzip on;
+  gzip_vary on;
+  gzip_proxied any;
+  gzip_comp_level 5;
+  gzip_min_length 256;
+  gzip_types
+    text/plain
+    text/css
+    application/json
+    application/javascript
+    text/javascript
+    text/xml
+    application/xml
+    application/xml+rss
+    image/svg+xml;
+  gzip_static on;
+
+  # --- Proxy buffer tuning — faster relay from backend ---
+  proxy_buffering on;
+  proxy_buffer_size 8k;
+  proxy_buffers 16 8k;
+  proxy_busy_buffers_size 16k;
 
   # --- Security headers (design.md §13 + standar §13) ---
   add_header X-Content-Type-Options "nosniff" always;
@@ -71,8 +98,25 @@ server {
   location = /token         { proxy_pass http://sso_backend; }
   location = /revocation    { proxy_pass http://sso_backend; }
   location = /userinfo      { proxy_pass http://sso_backend; }
-  location = /jwks          { proxy_pass http://sso_backend; }
-  location /.well-known/    { proxy_pass http://sso_backend; }
+
+  # --- OIDC public metadata — cached at edge (5 min TTL) ---
+  location = /jwks {
+    proxy_pass http://sso_backend;
+    proxy_cache oidc_meta;
+    proxy_cache_valid 200 5m;
+    proxy_cache_use_stale error timeout updating http_500 http_502 http_503;
+    proxy_cache_lock on;
+    add_header X-Cache-Status $upstream_cache_status always;
+  }
+
+  location /.well-known/ {
+    proxy_pass http://sso_backend;
+    proxy_cache oidc_meta;
+    proxy_cache_valid 200 5m;
+    proxy_cache_use_stale error timeout updating http_500 http_502 http_503;
+    proxy_cache_lock on;
+    add_header X-Cache-Status $upstream_cache_status always;
+  }
 
   # --- Aset Vite (content-hash) — cache agresif + immutable ---
   location /assets/ {

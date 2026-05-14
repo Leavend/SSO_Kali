@@ -1,9 +1,14 @@
-/* Admin shell and navigation tokens. */
 .app-shell {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: 1fr auto;
   min-height: 100vh;
+}
+
+.app-shell--responsive {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: clip;
 }
 
 /* ─────────────────────────────────────────────────────
@@ -374,9 +379,21 @@ html[data-theme='light'] .app-shell--admin .sidebar-close {
   min-height: 100dvh;
 }
 
+.admin-content-shell--responsive {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: clip;
+}
+
 .main-surface {
   min-width: 0;
   padding: 72px var(--space-5) 120px;
+}
+
+.main-surface--responsive {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: clip;
 }
 
 .app-shell--admin .main-surface {

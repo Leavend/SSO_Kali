@@ -54,7 +54,6 @@ async function prefetchQuietly(): Promise<void> {
         assertCanonicalMetadata(discovery.value, config.issuer)
       } catch (err) {
         if (err instanceof CanonicalizationError) {
-          // eslint-disable-next-line no-console
           console.error(
             `[OIDC] Discovery canonicalization violation (${err.code}): ${err.message}`,
           )

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { TrendingUp, TrendingDown, Minus } from 'lucide-vue-next'
-import DashboardSurface from '@/components/ui/DashboardSurface.vue'
+import DashboardSurface from '@/web/components/ui/DashboardSurface.vue'
 
 type TrendDirection = 'up' | 'down' | 'neutral'
 
