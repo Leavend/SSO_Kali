@@ -90,7 +90,7 @@ jobs:
           die() { printf '[frontend-restore][ERROR] %s\n' "$*" >&2; exit 1; }
 
           case "$IMAGE" in
-            ghcr.io/leavend/sso-kali/sso-frontend@sha256:*|ghcr.io/leavend/sso-kali/sso-frontend:*) ;;
+            ghcr.io/leavend/sso-kali/sso-frontend@sha256:*|ghcr.io/leavend/sso-kali/sso-frontend:*|ghcr.io/leavend/sso_kali/sso-frontend@sha256:*|ghcr.io/leavend/sso_kali/sso-frontend:*) ;;
             *) die "refusing unexpected image ref: $IMAGE" ;;
           esac
 
