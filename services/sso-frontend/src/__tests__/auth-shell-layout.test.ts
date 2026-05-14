@@ -6,16 +6,14 @@ import { describe, expect, it } from 'vitest'
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
 describe('auth shell layout CSS', () => {
-  it('uses the production portal login canvas without white browser gutters', () => {
+  it('uses flexbox sticky-footer pattern so footer stays at bottom without overlapping content', () => {
     const authCss = readFileSync(resolve(root, 'web/styles/auth.css'), 'utf8')
     const adminCss = readFileSync(resolve(root, 'web/styles/admin.css'), 'utf8')
 
-    expect(authCss).toContain('.portal-login {')
     expect(authCss).toContain('min-height: 100dvh;')
-    expect(authCss).toContain('display: grid;')
-    expect(authCss).toContain('align-items: center;')
-    expect(authCss).toContain('justify-content: center;')
-    expect(authCss).toContain('overflow: clip;')
+    expect(authCss).toContain('display: flex;')
+    expect(authCss).toContain('flex-direction: column;')
+    expect(authCss).toContain('overscroll-behavior: none;')
     expect(adminCss).toContain('.app-shell--auth')
     expect(adminCss).toContain('min-height: 100dvh;')
   })

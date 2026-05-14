@@ -1,30 +1,59 @@
 <script setup lang="ts">
 /**
- * LoginView — production SSO Portal login.
+ * FR-014 / ISSUE-04: Dual-mode login view.
  *
- * This page intentionally mirrors the portal login contract referenced by
- * GitHub Actions run 25839593179. The older `AuthShell` / `.signin-card`
- * shell is not used here to prevent future wrong-target fixes.
+ * Supports:
+ * - Upstream OIDC login (email → redirect to IdP)
+ * - Local password login (email + password → POST /connect/local-login)
  */
 
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { ArrowRight, Eye, EyeOff, Lock, Moon, ShieldCheck, Sun } from 'lucide-vue-next'
+import { useRoute } from 'vue-router'
+import { ArrowRight, KeyRound, Lock } from 'lucide-vue-next'
+import { AUTH_SHELL } from '@parent-ui/auth-shell.mjs'
+import AuthShell from '@/web/components/auth/AuthShell.vue'
 
-const identifier = ref('')
+const route = useRoute()
+const email = ref('')
 const password = ref('')
-const isPasswordVisible = ref(false)
-const isLoading = ref(false)
+const loading = ref(false)
+const mode = ref<'email' | 'password'>('email')
 const error = ref('')
 const remainingAttempts = ref<number | null>(null)
-const themeMode = ref<'light' | 'dark'>('light')
+let loadingResetTimer: number | undefined
 
-const canSubmit = computed(() => identifier.value.trim().length > 0 && password.value.length > 0 && !isLoading.value)
-const passwordInputType = computed(() => (isPasswordVisible.value ? 'text' : 'password'))
-const themeToggleLabel = computed(() => (themeMode.value === 'dark' ? 'Beralih ke mode terang' : 'Beralih ke mode gelap'))
+const returnTo = computed(() => {
+  const value = route.query.return_to
+  return typeof value === 'string' && value.startsWith('/') && !value.startsWith('//') ? value : '/dashboard'
+})
+
+function submitSso(): void {
+  if (!email.value.trim()) return
+  loading.value = true
+  error.value = ''
+  const params = new URLSearchParams({ return_to: returnTo.value })
+  params.set('login_hint', email.value.trim())
+  const target = `/auth/login?${params.toString()}`
+  clearLoadingResetTimer()
+  loadingResetTimer = window.setTimeout(resetLoading, 8000)
+  window.location.assign(target)
+}
+
+function showPasswordMode(): void {
+  mode.value = 'password'
+  error.value = ''
+}
+
+function backToEmail(): void {
+  mode.value = 'email'
+  password.value = ''
+  error.value = ''
+  remainingAttempts.value = null
+}
 
 async function submitLocalLogin(): Promise<void> {
-  if (!canSubmit.value) return
-  isLoading.value = true
+  if (!email.value.trim() || !password.value) return
+  loading.value = true
   error.value = ''
 
   try {
@@ -32,7 +61,7 @@ async function submitLocalLogin(): Promise<void> {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify({
-        email: identifier.value.trim(),
+        email: email.value.trim(),
         password: password.value,
         client_id: getClientId(),
         redirect_uri: getRedirectUri(),
@@ -62,7 +91,7 @@ async function submitLocalLogin(): Promise<void> {
   } catch {
     error.value = 'Terjadi kesalahan jaringan.'
   } finally {
-    isLoading.value = false
+    loading.value = false
   }
 }
 
@@ -91,7 +120,19 @@ function getScope(): string {
 }
 
 function resetLoading(): void {
-  isLoading.value = false
+  loading.value = false
+  clearLoadingResetTimer()
+}
+
+function clearLoadingResetTimer(): void {
+  if (loadingResetTimer !== undefined) {
+    window.clearTimeout(loadingResetTimer)
+    loadingResetTimer = undefined
+  }
+}
+
+function resetLoadingAfterIdentityReturn(): void {
+  resetLoading()
 }
 
 function resetLoadingWhenVisible(): void {
@@ -100,134 +141,166 @@ function resetLoadingWhenVisible(): void {
   }
 }
 
-function togglePasswordVisibility(): void {
-  isPasswordVisible.value = !isPasswordVisible.value
-}
-
-function syncThemeFromDocument(): void {
-  themeMode.value = document.documentElement.classList.contains('dark') ? 'dark' : 'light'
-}
-
-function toggleTheme(): void {
-  const nextTheme = themeMode.value === 'dark' ? 'light' : 'dark'
-  document.documentElement.classList.toggle('dark', nextTheme === 'dark')
-  themeMode.value = nextTheme
-}
-
 onMounted(() => {
   resetLoading()
-  syncThemeFromDocument()
-  window.addEventListener('pageshow', resetLoading)
-  window.addEventListener('focus', resetLoading)
+  window.addEventListener('pageshow', resetLoadingAfterIdentityReturn)
+  window.addEventListener('focus', resetLoadingAfterIdentityReturn)
   document.addEventListener('visibilitychange', resetLoadingWhenVisible)
 })
 
 onBeforeUnmount(() => {
-  window.removeEventListener('pageshow', resetLoading)
-  window.removeEventListener('focus', resetLoading)
+  clearLoadingResetTimer()
+  window.removeEventListener('pageshow', resetLoadingAfterIdentityReturn)
+  window.removeEventListener('focus', resetLoadingAfterIdentityReturn)
   document.removeEventListener('visibilitychange', resetLoadingWhenVisible)
 })
 </script>
 
 <template>
-  <main class="portal-login" aria-labelledby="login-title">
-    <div class="portal-login__backdrop" aria-hidden="true" />
+  <AuthShell labelledby="login-title">
+    <form class="signin-card" @submit.prevent="mode === 'password' ? submitLocalLogin() : submitSso()">
+      <h1 id="login-title">{{ AUTH_SHELL.copy.loginTitle }}</h1>
+      <p>{{ AUTH_SHELL.copy.loginSubtitle }}</p>
 
-    <button
-      id="portal-theme-toggle"
-      class="portal-login__theme-toggle"
-      type="button"
-      :aria-label="themeToggleLabel"
-      @click="toggleTheme"
-    >
-      <Sun v-if="themeMode === 'dark'" :size="18" aria-hidden="true" />
-      <Moon v-else :size="18" aria-hidden="true" />
-    </button>
-
-    <section class="portal-login__shell">
-      <header class="portal-login__brand" aria-label="Dev-SSO">
-        <span class="portal-login__logo" aria-hidden="true">
-          <ShieldCheck :size="22" />
+      <div v-if="error" class="login-error" role="alert">
+        <Lock :size="14" aria-hidden="true" />
+        <span>{{ error }}</span>
+        <span v-if="remainingAttempts !== null" class="login-error__attempts">
+          ({{ remainingAttempts }} percobaan tersisa)
         </span>
-        <h2>Dev-SSO</h2>
-        <p>Portal autentikasi tunggal untuk semua aplikasi kamu.</p>
-      </header>
+      </div>
 
-      <form class="portal-login__card" novalidate @submit.prevent="submitLocalLogin">
-        <div class="portal-login__card-header">
-          <h1 id="login-title">Masuk ke akunmu</h1>
-          <p>Gunakan kredensial SSO-mu untuk mengakses semua aplikasi kerja.</p>
-        </div>
+      <div class="field-group">
+        <label for="login-email">Email <span aria-hidden="true">*</span></label>
+        <input
+          id="login-email"
+          v-model="email"
+          name="email"
+          type="email"
+          autocomplete="username"
+          autofocus
+          required
+          placeholder="user@company.com"
+          :disabled="loading || mode === 'password'"
+        />
+      </div>
 
-        <div v-if="error" class="portal-login__alert" role="alert">
-          <Lock :size="16" aria-hidden="true" />
-          <span>{{ error }}</span>
-          <span v-if="remainingAttempts !== null" class="portal-login__attempts">
-            ({{ remainingAttempts }} percobaan tersisa)
-          </span>
-        </div>
+      <div v-if="mode === 'password'" class="field-group">
+        <label for="login-password">Password <span aria-hidden="true">*</span></label>
+        <input
+          id="login-password"
+          v-model="password"
+          name="password"
+          type="password"
+          autocomplete="current-password"
+          required
+          placeholder="••••••••"
+          :disabled="loading"
+        />
+      </div>
 
-        <div class="portal-login__field">
-          <label for="login-identifier">Email atau username</label>
-          <input
-            id="login-identifier"
-            v-model="identifier"
-            name="identifier"
-            type="text"
-            autocomplete="username"
-            inputmode="email"
-            required
-            autofocus
-            placeholder="user@company.com"
-            :disabled="isLoading"
-          />
-        </div>
-
-        <div class="portal-login__field">
-          <label for="login-password">Password</label>
-          <div class="portal-login__password-control">
-            <input
-              id="login-password"
-              v-model="password"
-              name="password"
-              :type="passwordInputType"
-              autocomplete="current-password"
-              required
-              placeholder="••••••••"
-              :disabled="isLoading"
-            />
-            <button
-              id="portal-password-toggle"
-              type="button"
-              class="portal-login__password-toggle"
-              :aria-label="isPasswordVisible ? 'Sembunyikan password' : 'Tampilkan password'"
-              @click="togglePasswordVisibility"
-            >
-              <EyeOff v-if="isPasswordVisible" :size="18" aria-hidden="true" />
-              <Eye v-else :size="18" aria-hidden="true" />
-            </button>
-          </div>
-        </div>
-
+      <div class="signin-actions">
         <button
-          id="portal-login-submit"
-          class="portal-login__submit"
+          v-if="mode === 'email'"
+          class="signin-submit"
           type="submit"
-          :disabled="!canSubmit"
-          :aria-busy="isLoading || undefined"
+          :disabled="loading || !email.trim()"
         >
-          <span v-if="isLoading">Memproses…</span>
-          <span v-else class="portal-login__submit-label">
-            Masuk
+          <span v-if="loading" class="loading-inline">
+            <span class="spinner" aria-hidden="true" />
+            {{ AUTH_SHELL.copy.processingButton }}
+          </span>
+          <span v-else class="signin-submit__label">
+            {{ AUTH_SHELL.copy.continueButton }}
             <ArrowRight :size="17" aria-hidden="true" />
           </span>
         </button>
 
-        <footer class="portal-login__register">
-          Belum punya akun?
-          <a href="/auth/register">Daftar sekarang</a>
-        </footer>
-      </form>
-    </section>
-  </main>
+        <button
+          v-if="mode === 'password'"
+          class="signin-submit"
+          type="submit"
+          :disabled="loading || !email.trim() || !password"
+        >
+          <span v-if="loading" class="loading-inline">
+            <span class="spinner" aria-hidden="true" />
+            {{ AUTH_SHELL.copy.processingButton }}
+          </span>
+          <span v-else class="signin-submit__label">
+            <KeyRound :size="17" aria-hidden="true" />
+            Login
+          </span>
+        </button>
+      </div>
+
+      <div class="login-mode-switch">
+        <button
+          v-if="mode === 'email'"
+          type="button"
+          class="login-mode-link"
+          @click="showPasswordMode"
+        >
+          <KeyRound :size="14" aria-hidden="true" />
+          Login dengan password
+        </button>
+        <button
+          v-if="mode === 'password'"
+          type="button"
+          class="login-mode-link"
+          @click="backToEmail"
+        >
+          <ArrowRight :size="14" aria-hidden="true" style="transform: rotate(180deg)" />
+          Kembali ke login SSO
+        </button>
+      </div>
+    </form>
+
+    <div class="register-card">
+      {{ AUTH_SHELL.copy.registerPrompt }}
+    </div>
+  </AuthShell>
 </template>
+
+<style scoped>
+.login-error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: #f87171;
+  font-size: 0.8125rem;
+  margin-bottom: 4px;
+}
+
+.login-error__attempts {
+  color: #a1a1aa;
+  font-size: 0.75rem;
+}
+
+.login-mode-switch {
+  display: flex;
+  justify-content: center;
+  margin-top: 12px;
+}
+
+.login-mode-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: #6366f1;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background 0.15s ease;
+}
+
+.login-mode-link:hover {
+  background: rgba(99, 102, 241, 0.1);
+}
+</style>
