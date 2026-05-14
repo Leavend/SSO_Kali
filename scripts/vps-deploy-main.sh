@@ -144,6 +144,22 @@ verify_frontend_release() {
   log "$service release verified: $image_ref with assets: $(echo "$assets" | tr '\n' ' ')"
 }
 
+adopt_legacy_frontend_container() {
+  local service="sso-frontend" frontend_container="${SSO_FRONTEND_CONTAINER:-sso-frontend-prod}" owner
+
+  if ! docker inspect "$frontend_container" >/dev/null 2>&1; then
+    return 0
+  fi
+
+  owner="$(docker inspect --format '{{ index .Config.Labels "com.docker.compose.project" }}:{{ index .Config.Labels "com.docker.compose.service" }}' "$frontend_container" 2>/dev/null || true)"
+  if [[ "$owner" == "$COMPOSE_PROJECT_NAME:$service" ]]; then
+    return 0
+  fi
+
+  warn "Removing legacy standalone frontend container '$frontend_container' before compose adoption (owner: ${owner:-unknown})"
+  docker rm -f "$frontend_container" >/dev/null
+}
+
 # Reattach sso-frontend-prod to the backend deploy network so the
 # reverse-proxy can reach the freshly-recreated backend container by
 # its compose service DNS. Compose `up -d --force-recreate` gives the
@@ -199,6 +215,7 @@ main() {
 
   run_migrations
 
+  adopt_legacy_frontend_container
   compose up -d --remove-orphans sso-backend sso-backend-worker sso-frontend
   wait_for_service sso-backend 240
   wait_for_service sso-frontend 180
