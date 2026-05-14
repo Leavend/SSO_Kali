@@ -36,6 +36,8 @@
 		"vue-router": "^5.0.6"
 	},
 	"devDependencies": {
+		"@emnapi/core": "^1.10.0",
+		"@emnapi/runtime": "^1.10.0",
 		"@tailwindcss/vite": "^4.3.0",
 		"@tsconfig/node24": "^24.0.4",
 		"@types/node": "^24.12.2",
