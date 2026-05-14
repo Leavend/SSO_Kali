@@ -17,8 +17,8 @@ permissions:
   packages: read
 
 env:
-  VPS_PROJECT_DIR: ${{ secrets.VPS_PROJECT_DIR || '/opt/sso-backend-prod' }}
-  VPS_SSH_PORT: ${{ secrets.VPS_SSH_PORT || '22' }}
+  VPS_PROJECT_DIR: ${{ vars.VPS_PROJECT_DIR || '/opt/sso-backend-prod' }}
+  VPS_SSH_PORT: ${{ vars.VPS_SSH_PORT || '22' }}
   SSH_CONNECT_TIMEOUT: "20"
   SSH_RETRY_ATTEMPTS: "3"
   SSH_RETRY_DELAY_SECONDS: "10"
@@ -39,7 +39,7 @@ jobs:
         env:
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
           VPS_HOST: ${{ secrets.VPS_HOST }}
-          VPS_SSH_KNOWN_HOSTS: ${{ secrets.VPS_SSH_KNOWN_HOSTS }}
+          VPS_SSH_KNOWN_HOSTS: ${{ vars.VPS_SSH_KNOWN_HOSTS }}
         run: |
           set -euo pipefail
           test -n "${VPS_SSH_KEY}" || { echo "VPS_SSH_KEY secret is required" >&2; exit 1; }

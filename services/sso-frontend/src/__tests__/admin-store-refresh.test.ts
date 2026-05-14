@@ -43,7 +43,7 @@ describe('admin store refresh-token lifecycle', () => {
 })
 
 function guestSessionFetch(): ReturnType<typeof vi.fn> {
-  return vi.fn(async (input: RequestInfo | URL) => {
+  return vi.fn(async (input: string | URL) => {
     if (String(input) === '/api/session') return jsonResponse({ redirectTo: '/' }, 401)
     return jsonResponse({ message: 'Unexpected request' }, 500)
   })

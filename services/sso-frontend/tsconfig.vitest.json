@@ -2,8 +2,15 @@
   "extends": "./tsconfig.app.json",
   "compilerOptions": {
     "composite": true,
-    "lib": [],
-    "types": ["node", "jsdom"]
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": ["node", "vitest/globals"]
   },
-  "include": ["src/**/*.test.ts", "src/**/*.spec.ts"]
+  "include": [
+    "src/__tests__/**/*.ts",
+    "src/**/*.d.ts",
+    "src/web/**/*.ts",
+    "src/web/**/*.vue",
+    "src/shared/**/*.ts",
+    "src/server/**/*.ts"
+  ]
 }

@@ -37,8 +37,8 @@ env:
   IMAGE_PREFIX: ghcr.io/leavend/sso-prototype
   VPS_HOST: ${{ secrets.VPS_HOST }}
   VPS_USER: ${{ secrets.VPS_USER }}
-  VPS_PROJECT_DIR: ${{ secrets.VPS_PROJECT_DIR || '/opt/sso-prototype-dev' }}
-  VPS_SSH_PORT: ${{ secrets.VPS_SSH_PORT || '22' }}
+  VPS_PROJECT_DIR: ${{ vars.VPS_PROJECT_DIR || '/opt/sso-prototype-dev' }}
+  VPS_SSH_PORT: ${{ vars.VPS_SSH_PORT || '22' }}
   SSH_CONNECT_TIMEOUT: "20"
   SSH_RETRY_ATTEMPTS: "5"
   SSH_RETRY_DELAY_SECONDS: "15"
