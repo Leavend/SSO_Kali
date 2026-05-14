@@ -1,13 +1,34 @@
 {
-  "extends": "@vue/tsconfig/tsconfig.dom.json",
-  "compilerOptions": {
-    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
-    "types": ["vite/client"],
-    "paths": {
-      "@/*": ["./src/web/*"],
-      "@shared/*": ["./src/shared/*"],
-      "@parent-ui/*": ["../../packages/dev-sso-parent-ui/*"]
-    }
-  },
-  "include": ["src/web/**/*.ts", "src/web/**/*.vue", "src/shared/**/*.ts"]
+	"extends": "@vue/tsconfig/tsconfig.dom.json",
+	"compilerOptions": {
+		"tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+		"types": ["vite/client"],
+		"paths": {
+			"@/*": ["./src/*"],
+			"@shared/*": ["./src/shared/*"],
+			"@parent-ui/*": ["../../packages/dev-sso-parent-ui/*"]
+		}
+	},
+	"include": [
+		"src/env.d.ts",
+		"src/main.ts",
+		"src/App.vue",
+		"src/assets/**/*.css",
+		"src/components/**/*.vue",
+		"src/components/**/*.ts",
+		"src/composables/**/*.ts",
+		"src/layouts/**/*.vue",
+		"src/lib/**/*.ts",
+		"src/pages/**/*.vue",
+		"src/router/**/*.ts",
+		"src/services/**/*.ts",
+		"src/stores/**/*.ts",
+		"src/types/**/*.ts"
+	],
+	"exclude": [
+		"src/**/*.test.ts",
+		"src/**/*.spec.ts",
+		"src/web/**",
+		"src/server/**"
+	]
 }

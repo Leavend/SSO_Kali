@@ -63,6 +63,7 @@ x-sso-frontend-env: &sso-frontend-env
   SSO_INTERNAL_TOKEN_URL: ${SSO_INTERNAL_TOKEN_URL:-http://sso-backend:8000/token}
   SSO_INTERNAL_JWKS_URL: ${SSO_INTERNAL_JWKS_URL:-http://sso-backend:8000/jwks}
   SSO_INTERNAL_ADMIN_API_URL: ${SSO_INTERNAL_ADMIN_API_URL:-http://sso-backend:8000/admin/api}
+  SESSION_ENCRYPTION_SECRET: ${SESSION_ENCRYPTION_SECRET:-}
   SSO_BACKEND_UPSTREAM: sso-backend:8000
   SSO_FRONTEND_SERVER_NAME: ${SSO_FRONTEND_SERVER_NAME:-_}
   SSO_CSP_CONNECT_SRC: ${SSO_CSP_CONNECT_SRC:-https://api-sso.timeh.my.id}

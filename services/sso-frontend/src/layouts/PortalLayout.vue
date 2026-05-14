@@ -1,47 +1,49 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { RouterLink, RouterView, useRoute } from 'vue-router'
+import { computed } from "vue";
+import { RouterLink, RouterView, useRoute } from "vue-router";
 import {
-  Activity,
-  AppWindow,
-  Home,
-  LogOut,
-  Moon,
-  RefreshCcw,
-  ShieldCheck,
-  Sun,
-  UserCircle2,
-  UserRound,
-} from 'lucide-vue-next'
-import { Button } from '@/components/ui/button'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
-import { useSessionStore } from '@/stores/session'
-import { useThemeStore } from '@/stores/theme'
+	Activity,
+	AppWindow,
+	Home,
+	LogOut,
+	Moon,
+	RefreshCcw,
+	ShieldCheck,
+	Sun,
+	UserCircle2,
+	UserRound,
+} from "lucide-vue-next";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { useSessionStore } from "@/stores/session.store";
+import { useThemeStore } from "@/stores/theme.store";
 
-const route = useRoute()
-const session = useSessionStore()
-const theme = useThemeStore()
+const route = useRoute();
+const session = useSessionStore();
+const theme = useThemeStore();
 
 const navItems = [
-  { to: '/home', label: 'Beranda', icon: Home },
-  { to: '/profile', label: 'Profil', icon: UserRound },
-  { to: '/apps', label: 'Aplikasi', icon: AppWindow },
-  { to: '/sessions', label: 'Sesi Aktif', icon: Activity },
-  { to: '/security', label: 'Keamanan', icon: ShieldCheck },
-]
+	{ to: "/home", label: "Beranda", icon: Home },
+	{ to: "/profile", label: "Profil", icon: UserRound },
+	{ to: "/apps", label: "Aplikasi", icon: AppWindow },
+	{ to: "/sessions", label: "Sesi Aktif", icon: Activity },
+	{ to: "/security", label: "Keamanan", icon: ShieldCheck },
+];
 
 const initials = computed(() => {
-  const name = session.principal?.displayName ?? session.principal?.email ?? ''
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((piece) => piece.charAt(0).toUpperCase())
-    .join('') || 'S'
-})
+	const name = session.user?.display_name ?? session.user?.email ?? "";
+	return (
+		name
+			.split(/\s+/)
+			.filter(Boolean)
+			.slice(0, 2)
+			.map((piece) => piece.charAt(0).toUpperCase())
+			.join("") || "S"
+	);
+});
 
-const activePath = computed(() => route.path)
+const activePath = computed(() => route.path);
 </script>
 
 <template>
@@ -100,11 +102,11 @@ const activePath = computed(() => route.path)
               <AvatarFallback>{{ initials }}</AvatarFallback>
             </Avatar>
             <div class="hidden text-xs leading-tight sm:flex sm:flex-col">
-              <strong class="font-semibold">{{ session.principal?.displayName ?? 'Pengguna' }}</strong>
-              <span class="text-muted-foreground">{{ session.principal?.email ?? '' }}</span>
+              <strong class="font-semibold">{{ session.user?.display_name ?? 'Pengguna' }}</strong>
+              <span class="text-muted-foreground">{{ session.user?.email ?? '' }}</span>
             </div>
             <Badge variant="secondary" class="hidden md:inline-flex">
-              {{ session.principal?.role ?? 'user' }}
+              {{ session.user?.roles?.[0] ?? 'user' }}
             </Badge>
           </div>
           <Button variant="outline" size="icon" aria-label="Keluar" @click="session.logout">

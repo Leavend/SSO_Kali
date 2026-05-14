@@ -1,45 +1,49 @@
-import { mount } from '@vue/test-utils'
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import { AUTH_SHELL } from '@parent-ui/auth-shell.mjs'
-import LoginView from '../web/views/LoginView.vue'
+import { mount } from "@vue/test-utils";
+import { createPinia, setActivePinia } from "pinia";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import LoginPage from "../pages/auth/LoginPage.vue";
 
-vi.mock('vue-router', () => ({
-  useRoute: () => ({ query: {} }),
-}))
+vi.mock("vue-router", () => ({
+	useRoute: () => ({ query: {} }),
+	useRouter: () => ({ push: vi.fn() }),
+	RouterLink: { template: "<a><slot /></a>" },
+}));
 
-describe('LoginView', () => {
-  afterEach(() => {
-    vi.restoreAllMocks()
-    vi.unstubAllGlobals()
-  })
+describe("LoginPage", () => {
+	beforeEach(() => {
+		setActivePinia(createPinia());
+	});
 
-  it('keeps the legacy Next login experience copy and actions in Vue', async () => {
-    const wrapper = mount(LoginView)
+	afterEach(() => {
+		vi.restoreAllMocks();
+	});
 
-    expect(wrapper.text()).toContain('Dev-SSO')
-    expect(wrapper.text()).toContain(AUTH_SHELL.copy.loginTitle)
-    expect(wrapper.text()).toContain(AUTH_SHELL.copy.loginSubtitle)
-    expect(wrapper.find('input[type="email"]').attributes('placeholder')).toBe('user@company.com')
-    expect(wrapper.find('button[type="submit"]').attributes('disabled')).toBeDefined()
+	it("renders the production entry login page from src/pages/auth", async () => {
+		const wrapper = mount(LoginPage, {
+			global: {
+				stubs: {
+					RouterLink: { template: "<a><slot /></a>" },
+				},
+			},
+		});
 
-    await wrapper.find('input[type="email"]').setValue('admin@example.com')
+		expect(wrapper.text()).toContain("Masuk ke akunmu");
+		expect(wrapper.text()).toContain(
+			"Gunakan kredensial SSO-mu untuk mengakses semua aplikasi kerja.",
+		);
+		expect(wrapper.find("#login-identifier").attributes("placeholder")).toBe(
+			"user@company.com",
+		);
+		expect(wrapper.find("#login-password").exists()).toBe(true);
+		expect(
+			wrapper.find('button[type="submit"]').attributes("disabled"),
+		).toBeDefined();
 
-    expect(wrapper.find('button[type="submit"]').attributes('disabled')).toBeUndefined()
-    expect(wrapper.find('.floating-actions').exists()).toBe(true)
-    expect(wrapper.find('.floating-actions').attributes('style')).toBeUndefined()
-    expect(wrapper.find('footer.auth-footer').text()).toContain('© 2026 Dev-SSO')
-  })
+		await wrapper.find("#login-identifier").setValue("admin@example.com");
+		await wrapper.find("#login-password").setValue("password-secret");
 
-  it('defaults SSO login return target to the public user home', async () => {
-    const assign = vi.fn()
-    vi.stubGlobal('location', { ...window.location, assign })
-    const wrapper = mount(LoginView)
-
-    await wrapper.find('input[type="email"]').setValue('huanamasi123@gmail.com')
-    await wrapper.find('form').trigger('submit')
-
-    expect(assign).toHaveBeenCalledWith(
-      '/auth/login?return_to=%2Fhome&login_hint=huanamasi123%40gmail.com',
-    )
-  })
-})
+		expect(
+			wrapper.find('button[type="submit"]').attributes("disabled"),
+		).toBeUndefined();
+	});
+});

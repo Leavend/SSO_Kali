@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { Moon, ShieldCheck, Sun } from 'lucide-vue-next'
-import { Button } from '@/components/ui/button'
-import { useThemeStore } from '@/stores/theme'
+import { Moon, ShieldCheck, Sun } from "lucide-vue-next";
+import { Button } from "@/components/ui/button";
+import { useThemeStore } from "@/stores/theme.store";
 
-const theme = useThemeStore()
+const theme = useThemeStore();
 </script>
 
 <template>

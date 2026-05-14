@@ -1,16 +1,18 @@
 {
-  "extends": "./tsconfig.app.json",
-  "compilerOptions": {
-    "composite": true,
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "types": ["node", "vitest/globals"]
-  },
-  "include": [
-    "src/__tests__/**/*.ts",
-    "src/**/*.d.ts",
-    "src/web/**/*.ts",
-    "src/web/**/*.vue",
-    "src/shared/**/*.ts",
-    "src/server/**/*.ts"
-  ]
+	"extends": "./tsconfig.app.json",
+	"compilerOptions": {
+		"composite": true,
+		"lib": ["ES2022", "DOM", "DOM.Iterable"],
+		"types": ["node", "vitest/globals"]
+	},
+	"include": [
+		"src/__tests__/**/*.ts",
+		"src/**/*.d.ts",
+		"src/**/*.ts",
+		"src/**/*.vue",
+		"src/shared/**/*.ts",
+		"src/server/**/*.ts",
+		"src/web/**/*.ts",
+		"src/web/**/*.vue"
+	]
 }
