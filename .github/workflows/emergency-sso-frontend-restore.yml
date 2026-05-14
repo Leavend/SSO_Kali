@@ -80,7 +80,7 @@ jobs:
           REMOTE_SCRIPT=$(cat <<'REMOTE'
           set -Eeuo pipefail
 
-          IMAGE="${IMAGE_DIGEST}"
+          IMAGE="__IMAGE_DIGEST__"
           CONTAINER='sso-frontend-prod'
           NETWORK='sso-backend-prod_sso-main'
           BIND='127.0.0.1:3080:3000'
@@ -94,7 +94,7 @@ jobs:
             *) die "refusing unexpected image digest: $IMAGE" ;;
           esac
 
-          log "Reason: ${RESTORE_REASON}"
+          log "Reason: __RESTORE_REASON__"
           command -v docker >/dev/null || die 'docker is required'
           docker network inspect "$NETWORK" >/dev/null 2>&1 || die "missing docker network: $NETWORK"
 
@@ -147,9 +147,12 @@ jobs:
           REMOTE
           )
 
+          REMOTE_SCRIPT="${REMOTE_SCRIPT//__IMAGE_DIGEST__/${IMAGE_DIGEST}}"
+          REMOTE_SCRIPT="${REMOTE_SCRIPT//__RESTORE_REASON__/${RESTORE_REASON}}"
+
           printf '%s\n' "$REMOTE_SCRIPT" | \
             ssh "${SSH_OPTS[@]}" "${VPS_USER}@${VPS_HOST}" \
-              "sudo IMAGE_DIGEST='${IMAGE_DIGEST}' RESTORE_REASON='${RESTORE_REASON}' bash -s"
+              "sudo bash -s"
 
       - name: Cleanup SSH key
         if: always()
