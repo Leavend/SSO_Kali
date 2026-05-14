@@ -1,3 +1,4 @@
+import { webcrypto } from 'node:crypto'
 import { afterEach, vi } from 'vitest'
 
 type StorageState = Record<string, string>
@@ -45,6 +46,13 @@ function installStorageMock(name: 'localStorage' | 'sessionStorage'): void {
 
 installStorageMock('localStorage')
 installStorageMock('sessionStorage')
+
+if (typeof globalThis.crypto?.subtle === 'undefined') {
+  Object.defineProperty(globalThis, 'crypto', {
+    configurable: true,
+    value: webcrypto,
+  })
+}
 
 afterEach(() => {
   window.localStorage.clear()

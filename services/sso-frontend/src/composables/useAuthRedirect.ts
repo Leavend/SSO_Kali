@@ -6,6 +6,7 @@
  */
 
 import { useRouter } from 'vue-router'
+import { getLocationPort } from '@/lib/browser/location-port'
 
 export function useAuthRedirect() {
   const router = useRouter()
@@ -19,7 +20,7 @@ export function useAuthRedirect() {
   }
 
   function reloadTo(path: string): void {
-    window.location.assign(path)
+    getLocationPort().assign(path)
   }
 
   return { toLogin, toHome, reloadTo }

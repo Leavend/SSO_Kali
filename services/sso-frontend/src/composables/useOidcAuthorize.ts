@@ -5,6 +5,7 @@
  * `/oauth2/authorize`, lalu redirect user. Tidak me-render UI apapun.
  */
 
+import { getLocationPort } from '@/lib/browser/location-port'
 import { readOidcConfig, type OidcConfig } from '@/lib/oidc/config'
 import { createNonce, createPkcePair, createState } from '@/lib/oidc/pkce'
 import { saveAuthorizeRequest } from '@/lib/oidc/request-storage'
@@ -42,7 +43,7 @@ export function useOidcAuthorize(): UseOidcAuthorizeReturn {
       issued_at: Date.now(),
     })
 
-    window.location.assign(buildAuthorizeUrl(config, pkce.code_challenge, state, nonce, scope, options))
+    getLocationPort().assign(buildAuthorizeUrl(config, pkce.code_challenge, state, nonce, scope, options))
   }
 
   return { start }

@@ -3,6 +3,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { useLoginForm } from '../useLoginForm'
 import { useSessionStore } from '@/stores/session.store'
 import { ApiError } from '@/lib/api/api-error'
+import { setLocationPortForTest } from '@/lib/browser/location-port'
 import type { SsoLoginResponse } from '@/types/auth.types'
 
 const routerPushMock = vi.fn<(...args: unknown[]) => Promise<void>>()
@@ -23,10 +24,11 @@ describe('useLoginForm', () => {
     routeQuery.redirect = undefined
     routeQuery.auth_request_id = undefined
 
-    vi.stubGlobal('location', { ...window.location, assign: windowAssignMock, origin: 'https://sso.test' })
+    setLocationPortForTest({ assign: windowAssignMock, origin: 'https://sso.test' })
   })
 
   afterEach(() => {
+    setLocationPortForTest(null)
     vi.unstubAllGlobals()
     vi.restoreAllMocks()
   })

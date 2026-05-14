@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useOidcAuthorize } from '../useOidcAuthorize'
+import { setLocationPortForTest } from '@/lib/browser/location-port'
 import * as pkceModule from '@/lib/oidc/pkce'
 import * as storageModule from '@/lib/oidc/request-storage'
 
@@ -12,7 +13,7 @@ vi.mock('vue-router', () => ({
 describe('useOidcAuthorize', () => {
   beforeEach(() => {
     windowAssignMock.mockReset()
-    vi.stubGlobal('location', { ...window.location, assign: windowAssignMock, origin: 'https://sso.test' })
+    setLocationPortForTest({ assign: windowAssignMock, origin: 'https://sso.test' })
     vi.stubEnv('VITE_OIDC_ISSUER', 'https://sso.example.com')
     vi.stubEnv('VITE_OIDC_CLIENT_ID', 'portal-client')
     vi.stubEnv('VITE_OIDC_REDIRECT_URI', 'https://sso.test/auth/callback')
@@ -27,6 +28,7 @@ describe('useOidcAuthorize', () => {
   })
 
   afterEach(() => {
+    setLocationPortForTest(null)
     vi.unstubAllGlobals()
     vi.unstubAllEnvs()
     vi.restoreAllMocks()

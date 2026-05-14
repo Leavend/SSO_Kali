@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useAuthRedirect } from '../useAuthRedirect'
+import { setLocationPortForTest } from '@/lib/browser/location-port'
 
 const routerPushMock = vi.fn()
 const windowAssignMock = vi.fn()
@@ -12,10 +13,11 @@ describe('useAuthRedirect', () => {
   beforeEach(() => {
     routerPushMock.mockReset()
     windowAssignMock.mockReset()
-    vi.stubGlobal('location', { ...window.location, assign: windowAssignMock })
+    setLocationPortForTest({ assign: windowAssignMock, origin: 'https://sso.test' })
   })
 
   afterEach(() => {
+    setLocationPortForTest(null)
     vi.unstubAllGlobals()
   })
 
