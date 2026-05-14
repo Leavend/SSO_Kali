@@ -38,6 +38,14 @@ jobs:
           - service: sso-backend
             context: ./services/sso-backend
             dockerfile: ./services/sso-backend/Dockerfile
+          - service: sso-frontend
+            context: ./
+            dockerfile: ./services/sso-frontend/Dockerfile
+            build_args: |
+              VITE_SSO_API_URL=
+              VITE_APP_NAME=Dev-SSO Portal
+              VITE_OIDC_ISSUER=${{ vars.SSO_PUBLIC_BASE_URL || 'https://api-sso.timeh.my.id' }}
+              VITE_OIDC_CLIENT_ID=sso-frontend-portal
           - service: sso-admin-vue
             context: ./services/sso-admin-vue
             dockerfile: ./services/sso-admin-vue/Dockerfile

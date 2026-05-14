@@ -51,6 +51,12 @@ x-sso-backend-env: &sso-backend-env
   SSO_BACKEND_EVENT_CACHE: ${SSO_BACKEND_EVENT_CACHE:-true}
   SSO_BACKEND_FIX_PERMISSIONS: ${SSO_BACKEND_FIX_PERMISSIONS:-true}
 
+x-sso-frontend-env: &sso-frontend-env
+  PORT: 3000
+  SSO_BACKEND_UPSTREAM: sso-backend:8000
+  SSO_FRONTEND_SERVER_NAME: ${SSO_FRONTEND_SERVER_NAME:-_}
+  SSO_CSP_CONNECT_SRC: ${SSO_CSP_CONNECT_SRC:-https://api-sso.timeh.my.id}
+
 services:
   postgres:
     image: ${POSTGRES_IMAGE:-postgres:17-alpine}
@@ -149,6 +155,28 @@ services:
     networks:
       - sso-main
     mem_limit: 384m
+    cpus: "0.25"
+
+  sso-frontend:
+    image: ${SSO_IMAGE_PREFIX:-ghcr.io/leavend/sso-kali}/sso-frontend:${SSO_DEPLOY_TAG:-main}
+    container_name: ${SSO_FRONTEND_CONTAINER:-sso-frontend-prod}
+    restart: unless-stopped
+    init: true
+    environment: *sso-frontend-env
+    depends_on:
+      sso-backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/healthz', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))\""]
+      interval: 30s
+      timeout: 10s
+      retries: 8
+      start_period: 30s
+    ports:
+      - ${SSO_FRONTEND_BIND:-127.0.0.1:3080}:3000
+    networks:
+      - sso-main
+    mem_limit: 256m
     cpus: "0.25"
 
 networks:

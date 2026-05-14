@@ -123,6 +123,27 @@ run_smoke_tests() {
   :
 }
 
+verify_frontend_release() {
+  local service="sso-frontend" container_id image_ref labels assets
+
+  container_id="$(compose ps -q "$service" 2>/dev/null || true)"
+  [[ -n "$container_id" ]] || die "Missing running $service container after deploy"
+
+  image_ref="$(docker inspect --format '{{.Config.Image}}' "$container_id" 2>/dev/null || true)"
+  [[ "$image_ref" == "$IMAGE_PREFIX/$service:$DEPLOY_TAG" ]] || \
+    die "$service is running unexpected image '$image_ref' (expected '$IMAGE_PREFIX/$service:$DEPLOY_TAG')"
+
+  labels="$(docker inspect --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}' "$container_id" 2>/dev/null || true)"
+  if [[ "$DEPLOY_TAG" == sha-* && -n "$labels" ]]; then
+    [[ "$labels" == "${DEPLOY_TAG#sha-}"* ]] || \
+      warn "$service image revision label '$labels' does not match deploy tag '$DEPLOY_TAG'"
+  fi
+
+  assets="$(docker exec "$container_id" sh -lc "grep -Eo 'assets/index-[^\" ]+\\.(js|css)' /app/dist/client/index.html | sort -u" 2>/dev/null || true)"
+  [[ -n "$assets" ]] || die "$service index.html does not reference built Vite assets"
+  log "$service release verified: $image_ref with assets: $(echo "$assets" | tr '\n' ' ')"
+}
+
 # Reattach sso-frontend-prod to the backend deploy network so the
 # reverse-proxy can reach the freshly-recreated backend container by
 # its compose service DNS. Compose `up -d --force-recreate` gives the
@@ -170,7 +191,7 @@ main() {
   export SSO_DEPLOY_TAG="$DEPLOY_TAG"
 
   compose config >/dev/null
-  compose pull sso-backend sso-backend-worker || compose pull
+  compose pull sso-backend sso-backend-worker sso-frontend || compose pull
 
   compose up -d postgres redis
   wait_for_service postgres 180
@@ -178,11 +199,13 @@ main() {
 
   run_migrations
 
-  compose up -d --remove-orphans sso-backend sso-backend-worker
+  compose up -d --remove-orphans sso-backend sso-backend-worker sso-frontend
   wait_for_service sso-backend 240
+  wait_for_service sso-frontend 180
   log 'sso-backend-worker started; worker health is supervised by restart policy and queue logs'
 
   reattach_frontend_to_backend_network
+  verify_frontend_release
 
   run_smoke_tests
   compose ps
