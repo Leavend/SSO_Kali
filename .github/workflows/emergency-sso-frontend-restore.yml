@@ -149,7 +149,7 @@ jobs:
 
           printf '%s\n' "$REMOTE_SCRIPT" | \
             ssh "${SSH_OPTS[@]}" "${VPS_USER}@${VPS_HOST}" \
-              "IMAGE_DIGEST='${IMAGE_DIGEST}' RESTORE_REASON='${RESTORE_REASON}' sudo -E bash -s"
+              "sudo IMAGE_DIGEST='${IMAGE_DIGEST}' RESTORE_REASON='${RESTORE_REASON}' bash -s"
 
       - name: Cleanup SSH key
         if: always()
