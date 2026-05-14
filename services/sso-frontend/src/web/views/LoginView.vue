@@ -24,7 +24,7 @@ let loadingResetTimer: number | undefined
 
 const returnTo = computed(() => {
   const value = route.query.return_to
-  return typeof value === 'string' && value.startsWith('/') && !value.startsWith('//') ? value : '/dashboard'
+  return typeof value === 'string' && value.startsWith('/') && !value.startsWith('//') ? value : '/home'
 })
 
 function submitSso(): void {

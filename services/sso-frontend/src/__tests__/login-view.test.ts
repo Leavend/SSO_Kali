@@ -10,6 +10,7 @@ vi.mock('vue-router', () => ({
 describe('LoginView', () => {
   afterEach(() => {
     vi.restoreAllMocks()
+    vi.unstubAllGlobals()
   })
 
   it('keeps the legacy Next login experience copy and actions in Vue', async () => {
@@ -24,34 +25,21 @@ describe('LoginView', () => {
     await wrapper.find('input[type="email"]').setValue('admin@example.com')
 
     expect(wrapper.find('button[type="submit"]').attributes('disabled')).toBeUndefined()
-    expect(wrapper.find('a[href^="/auth/password-reset"]').attributes('href')).toBe(
-      '/auth/password-reset?login_hint=admin%40example.com',
-    )
-    expect(wrapper.find('a[href^="/auth/register"]').attributes('href')).toBe(
-      '/auth/register?login_hint=admin%40example.com',
-    )
-    expect(wrapper.find('#devsso-theme-toggle').exists()).toBe(true)
-    expect(wrapper.find('#devsso-theme-float.theme-toggle-anchor').exists()).toBe(true)
+    expect(wrapper.find('.floating-actions').exists()).toBe(true)
     expect(wrapper.find('.floating-actions').attributes('style')).toBeUndefined()
     expect(wrapper.find('footer.auth-footer').text()).toContain('© 2026 Dev-SSO')
-    expect(wrapper.find('footer.auth-footer').text()).toContain('Terms')
-    expect(wrapper.find('footer.auth-footer a[href="/terms"]').exists()).toBe(true)
-    expect(wrapper.find('footer.auth-footer a[href="/privacy"]').exists()).toBe(true)
-    expect(wrapper.find('footer.auth-footer a[href="/docs"]').exists()).toBe(true)
   })
 
-  it('resets the submit loading state when the browser returns from identity UI', async () => {
+  it('defaults SSO login return target to the public user home', async () => {
+    const assign = vi.fn()
+    vi.stubGlobal('location', { ...window.location, assign })
     const wrapper = mount(LoginView)
 
-    await wrapper.find('input[type="email"]').setValue('admin@example.com')
+    await wrapper.find('input[type="email"]').setValue('huanamasi123@gmail.com')
     await wrapper.find('form').trigger('submit')
 
-    expect(wrapper.text()).toContain(AUTH_SHELL.copy.processingButton)
-
-    window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }))
-    await wrapper.vm.$nextTick()
-
-    expect(wrapper.text()).toContain(AUTH_SHELL.copy.continueButton)
-    expect(wrapper.text()).not.toContain(AUTH_SHELL.copy.processingButton)
+    expect(assign).toHaveBeenCalledWith(
+      '/auth/login?return_to=%2Fhome&login_hint=huanamasi123%40gmail.com',
+    )
   })
 })

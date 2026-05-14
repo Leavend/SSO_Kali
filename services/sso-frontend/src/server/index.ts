@@ -5,7 +5,8 @@ import { createReadStream } from 'node:fs'
 import { extname, join, normalize, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { getConfig } from './config.js'
-import { handleAdminApi, handleSession, redirectForLegacyError } from './admin-handlers.js'
+import { handleAdminApi, redirectForLegacyError } from './admin-handlers.js'
+import { handleSession, handleUserApi } from './user-handlers.js'
 import {
   handleCallback,
   handleLogin,
@@ -53,6 +54,7 @@ async function route(request: IncomingMessage, requestUrl: URL): Promise<AppResp
   if (pathname === '/auth/refresh') return method === 'POST' ? handleRefresh(request) : methodNotAllowed()
 
   if (pathname === '/api/session') return method === 'GET' ? handleSession(request) : methodNotAllowed()
+  if (pathname.startsWith('/api/me/')) return handleUserApi({ request, requestUrl })
   if (pathname.startsWith('/api/admin/')) return handleAdminApi({ request, requestUrl })
 
   return redirectForLegacyError(requestUrl)

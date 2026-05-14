@@ -1,7 +1,13 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAdminStore } from '@/stores/admin'
+import { useSessionStore } from '@/stores/session'
 import LoginView from '@/views/LoginView.vue'
 import ConsentView from '@/views/ConsentView.vue'
+import HomeView from '@/views/HomeView.vue'
+import ProfileView from '@/views/ProfileView.vue'
+import MySessionsView from '@/views/MySessionsView.vue'
+import ConnectedAppsView from '@/views/ConnectedAppsView.vue'
+import SecurityView from '@/views/SecurityView.vue'
 import DashboardView from '@/views/DashboardView.vue'
 import UsersView from '@/views/UsersView.vue'
 import UserDetailView from '@/views/UserDetailView.vue'
@@ -26,11 +32,17 @@ export const router = createRouter({
   routes: [
     { path: '/', name: 'login', component: LoginView },
     { path: '/auth/consent', name: 'consent', component: ConsentView },
-    { path: '/dashboard', name: 'dashboard', component: DashboardView, meta: { requiresAuth: true } },
-    { path: '/users', name: 'users', component: UsersView, meta: { requiresAuth: true } },
-    { path: '/users/:id', name: 'user-detail', component: UserDetailView, meta: { requiresAuth: true } },
-    { path: '/sessions', name: 'sessions', component: SessionsView, meta: { requiresAuth: true } },
-    { path: '/apps', name: 'apps', component: AppsView, meta: { requiresAuth: true } },
+    { path: '/home', name: 'home', component: HomeView, meta: { requiresUserAuth: true } },
+    { path: '/profile', name: 'profile', component: ProfileView, meta: { requiresUserAuth: true } },
+    { path: '/sessions', name: 'my-sessions', component: MySessionsView, meta: { requiresUserAuth: true } },
+    { path: '/apps', name: 'connected-apps', component: ConnectedAppsView, meta: { requiresUserAuth: true } },
+    { path: '/security', name: 'security', component: SecurityView, meta: { requiresUserAuth: true } },
+    { path: '/dashboard', name: 'dashboard', component: DashboardView, meta: { requiresAdminAuth: true } },
+    { path: '/admin', redirect: '/dashboard' },
+    { path: '/users', name: 'users', component: UsersView, meta: { requiresAdminAuth: true } },
+    { path: '/users/:id', name: 'user-detail', component: UserDetailView, meta: { requiresAdminAuth: true } },
+    { path: '/admin/sessions', name: 'admin-sessions', component: SessionsView, meta: { requiresAdminAuth: true } },
+    { path: '/admin/apps', name: 'admin-apps', component: AppsView, meta: { requiresAdminAuth: true } },
     { path: '/terms', name: 'terms', component: LegalView },
     { path: '/privacy', name: 'privacy', component: LegalView },
     { path: '/docs', name: 'docs', component: LegalView },
@@ -49,13 +61,16 @@ export const router = createRouter({
 })
 
 router.beforeEach(async (to) => {
-  if (!to.meta.requiresAuth) return true
+  if (to.meta.requiresUserAuth) {
+    const session = useSessionStore()
+    const ok = await session.ensureSession()
+    return ok ? true : '/'
+  }
 
-  const admin = useAdminStore()
-  const ok = await admin.ensureSession()
-
-  if (!ok) {
-    return admin.redirectTo ? admin.redirectTo : '/'
+  if (to.meta.requiresAdminAuth) {
+    const admin = useAdminStore()
+    const ok = await admin.ensureSession()
+    return ok ? true : (admin.redirectTo ?? '/')
   }
 
   return true

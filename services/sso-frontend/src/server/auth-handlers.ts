@@ -106,7 +106,7 @@ export async function handleCallback(request: IncomingMessage, requestUrl: URL):
       principal,
     )
 
-    return redirect(new URL(normalizeReturnTo(tx.returnTo) ?? '/dashboard', config.appBaseUrl).toString(), [
+    return redirect(new URL(normalizeReturnTo(tx.returnTo) ?? '/home', config.appBaseUrl).toString(), [
       sessionCookie(session),
       clearTransactionCookie(),
     ])
