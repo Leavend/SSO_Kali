@@ -84,6 +84,7 @@ jobs:
           CONTAINER='sso-frontend-prod'
           NETWORK='sso-backend-prod_sso-main'
           BIND='127.0.0.1:3080:3000'
+          ENV_FILE="/tmp/${CONTAINER}-env"
           BACKUP_NAME="${CONTAINER}-backup-$(date +%Y%m%d%H%M%S)"
 
           log() { printf '[frontend-restore] %s\n' "$*"; }
@@ -104,10 +105,17 @@ jobs:
           log "Current frontend container:"
           docker ps -a --filter "name=^/${CONTAINER}$" --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}' || true
 
+          rm -f "$ENV_FILE"
           if docker ps -a --format '{{.Names}}' | grep -Fxq "$CONTAINER"; then
+            log "Capturing existing runtime environment"
+            docker inspect "$CONTAINER" --format '{{range .Config.Env}}{{println .}}{{end}}' > "$ENV_FILE"
             log "Renaming existing $CONTAINER to $BACKUP_NAME"
             docker stop "$CONTAINER" >/dev/null || true
             docker rename "$CONTAINER" "$BACKUP_NAME"
+          fi
+
+          if [[ ! -s "$ENV_FILE" ]] && [[ -f /opt/sso-frontend-prod/sso-frontend.env ]]; then
+            cp /opt/sso-frontend-prod/sso-frontend.env "$ENV_FILE"
           fi
 
 
@@ -117,6 +125,7 @@ jobs:
             --restart unless-stopped \
             --network "$NETWORK" \
             -p "$BIND" \
+            --env-file "$ENV_FILE" \
             -e PORT=3000 \
             -e SSO_BACKEND_UPSTREAM=sso-backend:8000 \
             -e SSO_FRONTEND_SERVER_NAME=_ \
