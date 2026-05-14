@@ -8,6 +8,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY services/sso-frontend/ .
 COPY packages/dev-sso-parent-ui/ /packages/dev-sso-parent-ui/
+RUN rm -rf dist
 ARG VITE_SSO_BASE_URL
 ARG VITE_ADMIN_BASE_URL
 ARG VITE_CLIENT_ID

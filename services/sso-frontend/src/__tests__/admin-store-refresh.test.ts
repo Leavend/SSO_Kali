@@ -13,18 +13,19 @@ describe('admin store refresh-token lifecycle', () => {
     vi.restoreAllMocks()
   })
 
-  it('uses silent refresh before asking the admin to authenticate again', async () => {
-    const fetchMock = refreshBootstrapFetch()
+  it('keeps guest bootstrap idle without refreshing when no session exists', async () => {
+    const fetchMock = guestSessionFetch()
     vi.stubGlobal('fetch', fetchMock)
 
     const store = useAdminStore()
     const loaded = await store.ensureSession()
 
-    expect(loaded).toBe(true)
-    expect(store.principal?.email).toBe('huanamasi123@gmail.com')
+    expect(loaded).toBe(false)
+    expect(store.principal).toBeNull()
+    expect(store.status).toBe('idle')
+    expect(store.redirectTo).toBeNull()
+    expect(fetchMock).toHaveBeenCalledTimes(1)
     expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/session', expect.any(Object))
-    expect(fetchMock).toHaveBeenNthCalledWith(2, '/auth/refresh', expect.objectContaining({ method: 'POST' }))
-    expect(fetchMock).toHaveBeenNthCalledWith(3, '/api/session', expect.any(Object))
   })
 
   it('broadcasts successful manual refreshes to sibling admin tabs', async () => {
@@ -41,14 +42,10 @@ describe('admin store refresh-token lifecycle', () => {
   })
 })
 
-function refreshBootstrapFetch(): ReturnType<typeof vi.fn> {
-  let sessionAttempts = 0
-
+function guestSessionFetch(): ReturnType<typeof vi.fn> {
   return vi.fn(async (input: RequestInfo | URL) => {
-    if (String(input) === '/auth/refresh') return jsonResponse({ expiresAt: now() + 900 })
-    sessionAttempts += 1
-    if (sessionAttempts === 1) return jsonResponse({ redirectTo: '/' }, 401)
-    return jsonResponse({ principal: principalView({ expiresAt: now() + 900 }) })
+    if (String(input) === '/api/session') return jsonResponse({ redirectTo: '/' }, 401)
+    return jsonResponse({ message: 'Unexpected request' }, 500)
   })
 }
 

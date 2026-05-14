@@ -4,6 +4,7 @@
 .gitignore
 .next
 node_modules
+dist
 *.md
 *.test.ts
 *.test.tsx

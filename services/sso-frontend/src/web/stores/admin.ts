@@ -52,6 +52,13 @@ export const useAdminStore = defineStore('admin', () => {
       failure = error
     }
 
+    if (isGuestSessionFailure(failure)) {
+      clearSessionState()
+      status.value = 'idle'
+      redirectTo.value = null
+      return false
+    }
+
     if (await trySilentRefresh()) return retryPrincipalLoad(failure)
 
     clearSessionState()
@@ -266,6 +273,11 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   }
 
   return payload as T
+}
+
+function isGuestSessionFailure(error: unknown): boolean {
+  const apiError = error as ApiError
+  return apiError.status === 401 && redirectFromError(apiError) === '/'
 }
 
 function redirectFromError(error: unknown): string | null {
