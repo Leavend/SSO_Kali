@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { useOidcLogout } from '../useOidcLogout'
-import { setLocationPortForTest } from '@/lib/browser/location-port'
 import { useSessionStore } from '@/stores/session.store'
 
 const windowAssignMock = vi.fn()
@@ -41,7 +40,7 @@ describe('useOidcLogout', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     windowAssignMock.mockReset()
-    setLocationPortForTest({ assign: windowAssignMock, origin: 'https://sso.test' })
+    vi.stubGlobal('location', { ...window.location, assign: windowAssignMock, origin: 'https://sso.test' })
     vi.stubGlobal('BroadcastChannel', MockBroadcastChannel)
     vi.stubEnv('VITE_OIDC_ISSUER', 'https://sso.example.com')
     vi.stubEnv('VITE_OIDC_CLIENT_ID', 'portal-client')
@@ -50,7 +49,6 @@ describe('useOidcLogout', () => {
   })
 
   afterEach(() => {
-    setLocationPortForTest(null)
     vi.unstubAllGlobals()
     vi.unstubAllEnvs()
     vi.restoreAllMocks()
@@ -69,7 +67,7 @@ describe('useOidcLogout', () => {
     const url = new URL(windowAssignMock.mock.calls[0]![0] as string)
     expect(url.origin + url.pathname).toBe('https://sso.example.com/connect/logout')
     expect(url.searchParams.get('client_id')).toBe('portal-client')
-    expect(url.searchParams.get('post_logout_redirect_uri')).toBe('http://localhost:3000/')
+    expect(url.searchParams.get('post_logout_redirect_uri')).toBe('https://sso.test/')
   })
 
   it('logout() includes id_token_hint when set', async () => {

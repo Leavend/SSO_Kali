@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Moon, ShieldCheck, Sun } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
-import { useThemeStore } from '@/stores/theme.store'
+import { useThemeStore } from '@/stores/theme'
 
 const theme = useThemeStore()
 </script>

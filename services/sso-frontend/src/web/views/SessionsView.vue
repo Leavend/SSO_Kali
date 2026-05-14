@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { Inbox, RefreshCw, Trash2 } from 'lucide-vue-next'
-import PageHeader from '@/web/components/PageHeader.vue'
-import FilterBar from '@/web/components/ui/FilterBar.vue'
-import BulkActionBar from '@/web/components/ui/BulkActionBar.vue'
-import SlideOver from '@/web/components/ui/SlideOver.vue'
-import ConfirmDialog from '@/web/components/ui/ConfirmDialog.vue'
-import { useAdminStore } from '@/web/stores/admin'
+import PageHeader from '@/components/PageHeader.vue'
+import FilterBar from '@/components/ui/FilterBar.vue'
+import BulkActionBar from '@/components/ui/BulkActionBar.vue'
+import SlideOver from '@/components/ui/SlideOver.vue'
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+import { useAdminStore } from '@/stores/admin'
 import { formatDateTime, truncateId } from '@shared/format'
 
 const admin = useAdminStore()
@@ -124,13 +124,11 @@ function toggleSessionSelection(sessionId: string) {
 
 <template>
   <section class="content-stack" aria-labelledby="runtime-title">
-    <div data-testid="sessions-page-header" class="sessions-page-header">
-      <PageHeader
-        eyebrow="Runtime"
-        title="Sessions"
-        description="Sesi SSO aktif yang bisa dicabut oleh administrator."
-      />
-    </div>
+    <PageHeader
+      eyebrow="Runtime"
+      title="Sessions"
+      description="Sesi SSO aktif yang bisa dicabut oleh administrator."
+    />
 
     <div class="toolbar" role="toolbar" aria-label="Aksi sesi">
       <button
@@ -180,18 +178,11 @@ function toggleSessionSelection(sessionId: string) {
       </article>
     </div>
 
-    <div
-      v-else-if="filteredSessions.length > 0"
-      data-testid="sessions-list"
-      class="sessions-list sessions-list--compact sessions-list--responsive-polished"
-      role="list"
-      aria-label="Daftar sesi aktif"
-    >
+    <div v-else-if="filteredSessions.length > 0" class="sessions-list" role="list" aria-label="Daftar sesi aktif">
       <article
         v-for="session in filteredSessions"
         :key="`${session.session_id}:${session.client_id}`"
-        class="session-card session-card--responsive session-card--mobile-polished"
-        data-testid="session-card"
+        class="session-card"
         :class="{ 'session-card--readonly': !admin.canManageSessions }"
         role="listitem"
         :aria-label="`Sesi aktif ${session.display_name} untuk ${session.client_id}`"
@@ -205,14 +196,14 @@ function toggleSessionSelection(sessionId: string) {
           />
         </label>
 
-        <div data-testid="session-card-main" class="session-card__main session-card__main--responsive session-card__main--mobile-polished">
-          <div data-testid="session-card-identity" class="session-card__identity session-card__identity--responsive">
+        <div class="session-card__main">
+          <div class="session-card__identity">
             <span class="session-card__eyebrow">Pengguna aktif</span>
             <h2>{{ session.display_name }}</h2>
-            <p data-testid="session-card-email" class="session-card__text-truncate">{{ session.email }}</p>
+            <p>{{ session.email }}</p>
           </div>
 
-          <dl data-testid="session-card-meta" class="session-card__meta session-card__meta--responsive session-card__meta--mobile-polished" aria-label="Detail sesi">
+          <dl class="session-card__meta" aria-label="Detail sesi">
             <div class="session-detail session-detail--client">
               <dt>Client</dt>
               <dd>{{ session.client_id }}</dd>
@@ -228,7 +219,7 @@ function toggleSessionSelection(sessionId: string) {
           </dl>
         </div>
 
-        <div data-testid="session-card-actions" class="session-card__actions session-card__actions--responsive">
+        <div class="session-card__actions">
           <button
             class="button button--secondary button--sm"
             type="button"
@@ -239,14 +230,13 @@ function toggleSessionSelection(sessionId: string) {
           </button>
           <button
             v-if="admin.canManageSessions"
-            data-testid="session-revoke-button"
-            class="button button--danger session-card__revoke session-card__revoke--responsive"
+            class="button button--danger session-card__revoke"
             type="button"
             :aria-label="`Cabut sesi milik ${session.display_name}`"
             @click="confirmRevokeSession(session)"
           >
             <Trash2 :size="16" aria-hidden="true" />
-            <span data-testid="session-revoke-label" class="session-card__revoke-label">Cabut</span>
+            Cabut
           </button>
         </div>
       </article>
@@ -330,19 +320,9 @@ function toggleSessionSelection(sessionId: string) {
 </template>
 
 <style scoped>
-.sessions-page-header {
-  position: relative;
-  min-width: 0;
-}
-
 .sessions-list {
   display: grid;
   gap: var(--space-4);
-}
-
-.sessions-list--responsive-polished {
-  width: 100%;
-  min-width: 0;
 }
 
 .session-card {
@@ -479,53 +459,6 @@ function toggleSessionSelection(sessionId: string) {
   white-space: nowrap;
 }
 
-.session-card__text-truncate,
-.session-card__identity--responsive h2,
-.session-detail dd {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.session-card__revoke-label {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  white-space: nowrap;
-  clip: rect(0, 0, 0, 0);
-  border: 0;
-}
-
-.session-card__revoke--responsive {
-  width: 40px;
-  min-width: 40px;
-  height: 40px;
-  padding-inline: 0;
-  justify-content: center;
-}
-
-@media (min-width: 769px) {
-  .session-card__revoke-label {
-    position: static;
-    width: auto;
-    height: auto;
-    padding: 0;
-    margin: 0;
-    overflow: visible;
-    clip: auto;
-  }
-
-  .session-card__revoke--responsive {
-    width: auto;
-    min-width: 0;
-    height: auto;
-    padding-inline: var(--space-3);
-  }
-}
-
 .session-card--readonly {
   grid-template-columns: 1fr auto;
 }
@@ -614,114 +547,21 @@ function toggleSessionSelection(sessionId: string) {
 }
 
 @media (max-width: 768px) {
-  .sessions-page-header {
-    padding: var(--space-4);
-    background: linear-gradient(135deg,
-      color-mix(in srgb, var(--admin-panel) 92%, transparent),
-      color-mix(in srgb, var(--admin-accent-soft) 28%, var(--admin-panel))
-    );
-    border: 1px solid color-mix(in srgb, var(--admin-accent) 24%, var(--admin-line));
-    border-radius: calc(var(--radius-lg) + 6px);
-    box-shadow: 0 18px 44px color-mix(in srgb, var(--admin-shadow) 60%, transparent);
-    overflow: hidden;
+  .session-card {
+    grid-template-columns: auto 1fr;
   }
 
-  .sessions-page-header::after {
-    position: absolute;
-    right: -48px;
-    bottom: -56px;
-    width: 140px;
-    height: 140px;
-    content: '';
-    pointer-events: none;
-    background: radial-gradient(circle, color-mix(in srgb, var(--admin-accent) 24%, transparent), transparent 68%);
-  }
-
-  .sessions-list--compact {
-    width: 100%;
-    max-width: none;
-  }
-
-  .sessions-list--responsive-polished {
-    gap: var(--space-3);
-  }
-
-  .session-card--mobile-polished {
-    grid-template-columns: auto minmax(0, 1fr);
-    align-items: start;
-    gap: var(--space-3);
-    padding: var(--space-4);
-    background:
-      linear-gradient(135deg, color-mix(in srgb, var(--admin-panel) 96%, transparent), var(--admin-panel)),
-      radial-gradient(circle at top right, color-mix(in srgb, var(--admin-accent) 16%, transparent), transparent 42%);
-    border-color: color-mix(in srgb, var(--admin-accent) 20%, var(--admin-line));
-    border-radius: calc(var(--radius-lg) + 4px);
-    box-shadow: 0 14px 34px color-mix(in srgb, var(--admin-shadow) 54%, transparent);
-  }
-
-  .session-card__main--mobile-polished {
-    gap: var(--space-3);
-  }
-
-  .session-card__identity--responsive h2 {
-    font-size: var(--text-lg);
-  }
-
-  .session-card__meta--mobile-polished {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--space-2);
-  }
-
-  .session-detail {
-    padding: var(--space-2) var(--space-3);
-    background: color-mix(in srgb, var(--admin-panel-muted) 76%, transparent);
-    border-radius: var(--radius-md);
-  }
-
-  .session-detail--mono {
-    grid-column: 1 / -1;
-  }
-
-  .session-card__actions--responsive {
+  .session-card__actions {
     grid-column: 1 / -1;
     flex-direction: row;
-    align-items: stretch;
-    justify-content: flex-end;
-    padding-top: var(--space-3);
     padding-left: 0;
+    padding-top: var(--space-4);
+    border-left: none;
     border-top: 1px solid var(--admin-line);
-    border-left: 0;
   }
 
-  .session-card__actions--responsive .button--secondary {
-    flex: 1 1 auto;
-    justify-content: center;
-  }
-
-  .session-card__revoke--responsive {
-    width: 44px;
-    min-width: 44px;
-    height: 44px;
-  }
-}
-
-@media (max-width: 420px) {
-  .session-card--mobile-polished {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .session-card__select {
-    position: absolute;
-    top: var(--space-4);
-    right: var(--space-4);
-  }
-
-  .session-card__main--mobile-polished {
-    padding-right: var(--space-8);
-  }
-
-  .session-card__meta--mobile-polished {
-    grid-template-columns: 1fr;
+  .session-card__revoke {
+    width: 100%;
   }
 }
 

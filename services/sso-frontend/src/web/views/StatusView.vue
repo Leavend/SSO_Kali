@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useRoute } from "vue-router";
-import AuthShell from "@/web/components/auth/AuthShell.vue";
-import StatusPanel from "@/web/components/StatusPanel.vue";
+import AuthShell from "@/components/auth/AuthShell.vue";
+import StatusPanel from "@/components/StatusPanel.vue";
 import { GENERIC_ERROR_ROUTE, authStatusCopy } from "@shared/auth-status";
 
 const route = useRoute();

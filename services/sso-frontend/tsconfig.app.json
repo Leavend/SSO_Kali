@@ -4,29 +4,10 @@
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
     "types": ["vite/client"],
     "paths": {
-      "@/*": ["./src/*"],
+      "@/*": ["./src/web/*"],
       "@shared/*": ["./src/shared/*"],
       "@parent-ui/*": ["../../packages/dev-sso-parent-ui/*"]
     }
   },
-  "include": [
-    "src/main.ts",
-    "src/App.vue",
-    "src/assets/**/*.ts",
-    "src/components/**/*.ts",
-    "src/components/**/*.vue",
-    "src/composables/**/*.ts",
-    "src/layouts/**/*.ts",
-    "src/layouts/**/*.vue",
-    "src/lib/**/*.ts",
-    "src/pages/**/*.ts",
-    "src/pages/**/*.vue",
-    "src/router/**/*.ts",
-    "src/services/**/*.ts",
-    "src/shared/**/*.ts",
-    "src/stores/**/*.ts",
-    "src/types/**/*.ts",
-    "src/web/**/*.ts",
-    "src/web/**/*.vue"
-  ]
+  "include": ["src/web/**/*.ts", "src/web/**/*.vue", "src/shared/**/*.ts"]
 }

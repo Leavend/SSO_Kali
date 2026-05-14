@@ -24,14 +24,14 @@ const server = createServer(async (request, response) => {
     const appResponse = await route(request, requestUrl)
 
     if (appResponse) {
-      send(response, appResponse, request)
+      send(response, appResponse)
       return
     }
 
     await serveStatic(requestUrl, response)
   } catch (error) {
     console.error(error)
-    send(response, errorPage(500, 'Panel admin sedang bermasalah', 'Silakan muat ulang halaman atau kembali ke halaman utama.'), request)
+    send(response, errorPage(500, 'Panel admin sedang bermasalah', 'Silakan muat ulang halaman atau kembali ke halaman utama.'))
   }
 })
 

@@ -11,11 +11,9 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import SecurityPasswordForm from '@/components/molecules/SecurityPasswordForm.vue'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useProfileStore } from '@/stores/profile.store'
 import { profileApi } from '@/services/profile.api'
-import type { ChangePasswordPayload } from '@/services/profile.api'
 import type { AuditEvent } from '@/types/audit.types'
 
 const profile = useProfileStore()
@@ -40,13 +38,9 @@ const userPermissions = computed<readonly string[]>(() => profile.profile?.autho
 /** OAuth scope granted to this session. */
 const userScope = computed<string>(() => profile.profile?.authorization.scope ?? '')
 
-type PasswordFormState = {
-  -readonly [Key in keyof ChangePasswordPayload]: ChangePasswordPayload[Key]
-}
-
 // --- Change Password Form (FR-047 / UC-36) ---
 const showPasswordForm = ref(false)
-const passwordForm = reactive<PasswordFormState>({
+const passwordForm = reactive({
   current_password: '',
   new_password: '',
   new_password_confirmation: '',
@@ -79,19 +73,6 @@ async function submitPasswordChange(): Promise<void> {
   }
 }
 
-function openPasswordForm(): void {
-  passwordSuccess.value = null
-  showPasswordForm.value = true
-}
-
-function closePasswordForm(): void {
-  showPasswordForm.value = false
-}
-
-function updatePasswordField(field: keyof ChangePasswordPayload, value: string): void {
-  passwordForm[field] = value
-}
-
 function formatAuditDate(value: string): string {
   try {
     return new Date(value).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' })
@@ -118,10 +99,7 @@ function formatAuditDate(value: string): string {
       <!-- MFA Card -->
       <Card class="relative overflow-hidden">
         <CardHeader class="flex flex-row items-start gap-3 space-y-0">
-          <span
-            class="grid size-10 shrink-0 place-items-center rounded-lg"
-            :class="mfaEnabled ? 'bg-green-500/10 text-green-600 dark:text-green-400' : 'bg-primary/10 text-primary'"
-          >
+          <span class="bg-primary/10 text-primary grid size-10 shrink-0 place-items-center rounded-lg">
             <ShieldCheck class="size-5" />
           </span>
           <div class="grid gap-1">
@@ -133,19 +111,8 @@ function formatAuditDate(value: string): string {
             </CardDescription>
           </div>
         </CardHeader>
-        <CardContent class="grid gap-3">
-          <p class="text-muted-foreground text-xs">
-            {{ mfaEnabled
-              ? 'Akun dilindungi verifikasi dua langkah.'
-              : 'Aktifkan MFA untuk keamanan ekstra.'
-            }}
-          </p>
-          <RouterLink :to="{ name: 'portal.mfa-settings' }">
-            <Button variant="outline" size="sm" class="w-fit">
-              <ShieldCheck class="size-4" />
-              {{ mfaEnabled ? 'Kelola MFA' : 'Aktifkan MFA' }}
-            </Button>
-          </RouterLink>
+        <CardContent class="text-muted-foreground text-xs">
+          Manajemen MFA akan tersedia di rilis berikutnya.
         </CardContent>
       </Card>
 
@@ -199,23 +166,81 @@ function formatAuditDate(value: string): string {
             v-if="!showPasswordForm"
             variant="outline"
             size="sm"
-            data-testid="password-form-toggle"
-            class="w-full sm:w-fit"
-            @click="openPasswordForm"
+            class="w-fit"
+            @click="showPasswordForm = true; passwordSuccess = null"
           >
             <KeyRound class="size-4" />
             Ganti Password
           </Button>
 
-          <SecurityPasswordForm
+          <!-- Inline form -->
+          <form
             v-if="showPasswordForm"
-            :form="passwordForm"
-            :errors="passwordErrors"
-            :is-pending="passwordPending"
-            @update:field="updatePasswordField"
-            @submit="submitPasswordChange"
-            @cancel="closePasswordForm"
-          />
+            class="grid gap-3"
+            @submit.prevent="submitPasswordChange"
+          >
+            <div class="grid gap-1.5">
+              <label for="current_password" class="text-xs font-medium">Password Saat Ini</label>
+              <input
+                id="current_password"
+                v-model="passwordForm.current_password"
+                type="password"
+                autocomplete="current-password"
+                class="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-9 w-full rounded-md border px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1"
+                required
+              />
+              <p v-if="passwordErrors.current_password" class="text-destructive text-xs">
+                {{ passwordErrors.current_password[0] }}
+              </p>
+            </div>
+
+            <div class="grid gap-1.5">
+              <label for="new_password" class="text-xs font-medium">Password Baru</label>
+              <input
+                id="new_password"
+                v-model="passwordForm.new_password"
+                type="password"
+                autocomplete="new-password"
+                class="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-9 w-full rounded-md border px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1"
+                required
+                minlength="8"
+              />
+              <p v-if="passwordErrors.new_password" class="text-destructive text-xs">
+                {{ passwordErrors.new_password[0] }}
+              </p>
+            </div>
+
+            <div class="grid gap-1.5">
+              <label for="new_password_confirmation" class="text-xs font-medium">Konfirmasi Password Baru</label>
+              <input
+                id="new_password_confirmation"
+                v-model="passwordForm.new_password_confirmation"
+                type="password"
+                autocomplete="new-password"
+                class="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-9 w-full rounded-md border px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1"
+                required
+                minlength="8"
+              />
+            </div>
+
+            <p v-if="passwordErrors._general" class="text-destructive text-xs">
+              {{ passwordErrors._general[0] }}
+            </p>
+
+            <div class="flex gap-2 pt-1">
+              <Button type="submit" size="sm" :disabled="passwordPending">
+                {{ passwordPending ? 'Menyimpan...' : 'Simpan' }}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                @click="showPasswordForm = false"
+              >
+                Batal
+              </Button>
+            </div>
+          </form>
         </CardContent>
       </Card>
     </div>
@@ -266,28 +291,17 @@ function formatAuditDate(value: string): string {
           <ShieldCheck class="text-muted-foreground/50 size-8" />
           Belum ada riwayat keamanan.
         </div>
-        <ul v-else data-testid="audit-events-list" class="grid min-w-0 gap-2">
+        <ul v-else class="grid gap-2">
           <li
             v-for="event in auditEvents"
             :key="event.id"
-            class="grid min-w-0 gap-2 rounded-lg border px-3 py-2.5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
+            class="flex flex-col gap-1 rounded-lg border px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2"
           >
-            <div data-testid="audit-event-meta" class="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
-              <Badge
-                data-testid="audit-event-badge"
-                variant="outline"
-                class="max-w-full min-w-0 truncate text-[10px] font-mono"
-              >
-                {{ event.event }}
-              </Badge>
-              <span
-                data-testid="audit-event-ip-address"
-                class="text-muted-foreground min-w-0 truncate whitespace-nowrap font-mono text-xs tabular-nums"
-              >
-                {{ event.ip_address ?? '—' }}
-              </span>
+            <div class="flex items-center gap-2">
+              <Badge variant="outline" class="shrink-0 text-[10px] font-mono">{{ event.event }}</Badge>
+              <span class="text-muted-foreground truncate text-xs">{{ event.ip_address ?? '—' }}</span>
             </div>
-            <time class="text-muted-foreground shrink-0 text-[11px] tabular-nums sm:text-xs" :datetime="event.created_at">
+            <time class="text-muted-foreground text-[11px] tabular-nums sm:text-xs" :datetime="event.created_at">
               {{ formatAuditDate(event.created_at) }}
             </time>
           </li>

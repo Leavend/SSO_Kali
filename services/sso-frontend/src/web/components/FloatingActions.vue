@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import ScrollToTop from '@/web/components/ScrollToTop.vue'
-import ThemeToggle from '@/web/components/ThemeToggle.vue'
+import ScrollToTop from '@/components/ScrollToTop.vue'
+import ThemeToggle from '@/components/ThemeToggle.vue'
 
 withDefaults(
   defineProps<{

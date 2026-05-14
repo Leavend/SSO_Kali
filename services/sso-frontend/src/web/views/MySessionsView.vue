@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { Activity, LogOut, Monitor, Trash2 } from 'lucide-vue-next'
-import PageHeader from '../components/PageHeader.vue'
-import { useSessionStore } from '../stores/session'
+import PageHeader from '@/components/PageHeader.vue'
+import { useSessionStore } from '@/stores/session'
 
 const session = useSessionStore()
 const revokingId = ref<string | null>(null)
@@ -72,41 +72,24 @@ function formatDate(value: string): string {
     </p>
 
     <ul v-else class="sessions-list" aria-label="Sesi aktif">
-      <li
-        v-for="item in sessions"
-        :key="item.session_id"
-        data-testid="my-session-item"
-        class="sessions-item grid grid-cols-[2.5rem_minmax(0,1fr)_2.5rem] items-center gap-3 sm:grid-cols-[2.5rem_minmax(0,1fr)_auto] sm:gap-4"
-      >
-        <span
-          data-testid="my-session-icon"
-          class="sessions-item__icon self-center justify-self-center"
-          aria-hidden="true"
-        >
-          <Monitor :size="20" />
-        </span>
-        <div data-testid="my-session-meta" class="sessions-item__meta min-w-0">
-          <strong class="truncate">Sesi {{ item.session_id }}</strong>
-          <small data-testid="my-session-client-names" class="truncate">
-            {{ item.client_count }} aplikasi · {{ item.client_display_names.join(', ') }}
-          </small>
-          <p data-testid="my-session-activity" class="truncate">
+      <li v-for="item in sessions" :key="item.session_id" class="sessions-item">
+        <span class="sessions-item__icon" aria-hidden="true"><Monitor :size="22" /></span>
+        <div class="sessions-item__meta">
+          <strong>Sesi {{ item.session_id }}</strong>
+          <small>{{ item.client_count }} aplikasi · {{ item.client_display_names.join(', ') }}</small>
+          <p>
             Dibuka {{ formatDate(item.opened_at) }} · Terakhir aktif {{ formatDate(item.last_used_at) }} · Berakhir
             {{ formatDate(item.expires_at) }}
           </p>
         </div>
         <button
           type="button"
-          data-testid="my-session-revoke-button"
-          class="button button--danger size-10 shrink-0 justify-self-end px-0 sm:w-fit sm:px-3"
+          class="button button--danger"
           :disabled="revokingId === item.session_id"
-          :aria-label="`Cabut sesi ${item.session_id}`"
           @click="revoke(item.session_id)"
         >
           <Trash2 :size="14" aria-hidden="true" />
-          <span data-testid="my-session-revoke-label" class="sr-only sm:not-sr-only">
-            {{ revokingId === item.session_id ? 'Memproses…' : 'Cabut Sesi' }}
-          </span>
+          {{ revokingId === item.session_id ? 'Memproses…' : 'Cabut Sesi' }}
         </button>
       </li>
     </ul>
@@ -237,8 +220,13 @@ function formatDate(value: string): string {
 }
 
 @media (max-width: 640px) {
-  .sessions-toolbar .button {
-    width: 100%;
+  .sessions-item {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .sessions-item .button {
+    grid-column: 1 / -1;
+    justify-self: stretch;
     justify-content: center;
   }
 }

@@ -24,12 +24,12 @@ const isActive = computed<boolean>(() => route.path.startsWith(props.to))
     :to="props.to"
     :class="
       cn(
-        'text-muted-foreground hover:text-foreground hover:bg-accent inline-flex min-w-0 items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition-colors lg:gap-2 lg:px-3 lg:text-sm',
+        'text-muted-foreground hover:text-foreground hover:bg-accent inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
         isActive && 'text-foreground bg-accent',
       )
     "
   >
-    <component :is="props.icon" class="size-4 shrink-0" aria-hidden="true" />
-    <span class="min-w-0 truncate">{{ props.label }}</span>
+    <component :is="props.icon" class="size-4" aria-hidden="true" />
+    {{ props.label }}
   </RouterLink>
 </template>

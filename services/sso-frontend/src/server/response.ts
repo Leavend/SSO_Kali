@@ -1,5 +1,4 @@
-import type { IncomingMessage, ServerResponse } from 'node:http'
-import { gzipSync } from 'node:zlib'
+import type { ServerResponse } from 'node:http'
 
 export type HeaderValue = string | readonly string[]
 
@@ -67,17 +66,8 @@ export function unauthorized(): AppResponse {
   return json(401, { error: 'no_session', message: 'No active admin session.' })
 }
 
-/** Minimum body size (bytes) to justify gzip overhead. */
-const COMPRESS_THRESHOLD = 256
-
-function acceptsGzip(request: IncomingMessage | undefined): boolean {
-  if (!request) return false
-  const accept = request.headers['accept-encoding']
-  return typeof accept === 'string' && accept.includes('gzip')
-}
-
-export function send(res: ServerResponse, appResponse: AppResponse, request?: IncomingMessage): void {
-  const headers: Record<string, HeaderValue> = {
+export function send(res: ServerResponse, appResponse: AppResponse): void {
+  const headers = {
     'x-content-type-options': 'nosniff',
     'referrer-policy': 'same-origin',
     'permissions-policy': 'camera=(), microphone=(), geolocation=()',
@@ -97,21 +87,10 @@ export function send(res: ServerResponse, appResponse: AppResponse, request?: In
     ...appResponse.headers,
   }
 
-  let body = appResponse.body
-
-  // Compress text responses when client supports gzip and body is large enough
-  if (body && body.length > COMPRESS_THRESHOLD && acceptsGzip(request)) {
-    const raw = typeof body === 'string' ? Buffer.from(body, 'utf-8') : body
-    body = gzipSync(raw, { level: 6 })
-    headers['content-encoding'] = 'gzip'
-    headers['vary'] = 'Accept-Encoding'
-  }
-
   for (const [name, value] of Object.entries(headers)) {
     res.setHeader(name, value)
   }
 
   res.statusCode = appResponse.status
-  res.end(body)
+  res.end(appResponse.body)
 }
-

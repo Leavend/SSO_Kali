@@ -1,13 +1,9 @@
 <script setup lang="ts">
-import { Primitive } from 'reka-ui'
+import { Primitive, type PrimitiveProps } from 'reka-ui'
 import { cn } from '@/lib/utils'
 import { buttonVariants, type ButtonVariants } from '.'
 
-type ButtonAs = string | object
-
-interface Props {
-  as?: ButtonAs
-  asChild?: boolean
+interface Props extends PrimitiveProps {
   variant?: ButtonVariants['variant']
   size?: ButtonVariants['size']
   class?: string

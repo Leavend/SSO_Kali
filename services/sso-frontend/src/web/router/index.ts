@@ -1,6 +1,15 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { useAdminStore } from '@/web/stores/admin'
-import LoginView from '@/web/views/LoginView.vue'
+import { useAdminStore } from '@/stores/admin'
+import LoginView from '@/views/LoginView.vue'
+import ConsentView from '@/views/ConsentView.vue'
+import DashboardView from '@/views/DashboardView.vue'
+import UsersView from '@/views/UsersView.vue'
+import UserDetailView from '@/views/UserDetailView.vue'
+import SessionsView from '@/views/SessionsView.vue'
+import AppsView from '@/views/AppsView.vue'
+import LegalView from '@/views/LegalView.vue'
+import StatusView from '@/views/StatusView.vue'
+import NotFoundView from '@/views/NotFoundView.vue'
 import {
   ACCESS_DENIED_ROUTE,
   GENERIC_ERROR_ROUTE,
@@ -11,17 +20,6 @@ import {
   SESSION_EXPIRED_ROUTE,
   TOO_MANY_ATTEMPTS_ROUTE,
 } from '@shared/auth-status'
-
-// Lazy-loaded views — code-split into separate chunks for faster initial load
-const ConsentView = () => import('@/web/views/ConsentView.vue')
-const DashboardView = () => import('@/web/views/DashboardView.vue')
-const UsersView = () => import('@/web/views/UsersView.vue')
-const UserDetailView = () => import('@/web/views/UserDetailView.vue')
-const SessionsView = () => import('@/web/views/SessionsView.vue')
-const AppsView = () => import('@/web/views/AppsView.vue')
-const LegalView = () => import('@/web/views/LegalView.vue')
-const StatusView = () => import('@/web/views/StatusView.vue')
-const NotFoundView = () => import('@/web/views/NotFoundView.vue')
 
 export const router = createRouter({
   history: createWebHistory(),

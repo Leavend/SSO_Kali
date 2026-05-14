@@ -1,0 +1,156 @@
+name: Emergency SSO Frontend Restore
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_digest:
+        description: "Immutable sso-frontend image digest to run"
+        required: true
+        type: string
+      reason:
+        description: "Reason for emergency frontend-only restore"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: read
+
+env:
+  VPS_PROJECT_DIR: ${{ secrets.VPS_PROJECT_DIR || '/opt/sso-backend-prod' }}
+  VPS_SSH_PORT: ${{ secrets.VPS_SSH_PORT || '22' }}
+  SSH_CONNECT_TIMEOUT: "20"
+  SSH_RETRY_ATTEMPTS: "3"
+  SSH_RETRY_DELAY_SECONDS: "10"
+
+jobs:
+  restore-frontend:
+    name: Restore sso-frontend-prod by digest
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup SSH key
+        shell: bash
+        env:
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_SSH_KNOWN_HOSTS: ${{ secrets.VPS_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          test -n "${VPS_SSH_KEY}" || { echo "VPS_SSH_KEY secret is required" >&2; exit 1; }
+          test -n "${VPS_HOST}" || { echo "VPS_HOST secret is required" >&2; exit 1; }
+
+          mkdir -p ~/.ssh
+          printf '%s\n' "${VPS_SSH_KEY}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          touch ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+          if [ -n "${VPS_SSH_KNOWN_HOSTS}" ]; then
+            printf '%s\n' "${VPS_SSH_KNOWN_HOSTS}" >> ~/.ssh/known_hosts
+          else
+            ssh-keyscan -T 10 -p "${{ env.VPS_SSH_PORT }}" -H "${VPS_HOST}" >> ~/.ssh/known_hosts
+          fi
+
+      - name: Execute frontend-only digest restore
+        shell: bash
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          IMAGE_DIGEST: ${{ inputs.image_digest }}
+          RESTORE_REASON: ${{ inputs.reason }}
+        run: |
+          set -euo pipefail
+          test -n "${VPS_USER}" || { echo "VPS_USER secret is required" >&2; exit 1; }
+
+          SSH_OPTS=(
+            -i ~/.ssh/deploy_key
+            -p "${{ env.VPS_SSH_PORT }}"
+            -o BatchMode=yes
+            -o ConnectTimeout="${{ env.SSH_CONNECT_TIMEOUT }}"
+            -o ServerAliveInterval=10
+            -o ServerAliveCountMax=3
+          )
+
+          REMOTE_SCRIPT=$(cat <<'REMOTE'
+          set -Eeuo pipefail
+
+          IMAGE="${IMAGE_DIGEST}"
+          CONTAINER='sso-frontend-prod'
+          NETWORK='sso-backend-prod_sso-main'
+          BIND='127.0.0.1:3080:3000'
+          BACKUP_NAME="${CONTAINER}-backup-$(date +%Y%m%d%H%M%S)"
+
+          log() { printf '[frontend-restore] %s\n' "$*"; }
+          die() { printf '[frontend-restore][ERROR] %s\n' "$*" >&2; exit 1; }
+
+          case "$IMAGE" in
+            ghcr.io/leavend/sso-kali/sso-frontend@sha256:*) ;;
+            *) die "refusing unexpected image digest: $IMAGE" ;;
+          esac
+
+          log "Reason: ${RESTORE_REASON}"
+          command -v docker >/dev/null || die 'docker is required'
+          docker network inspect "$NETWORK" >/dev/null 2>&1 || die "missing docker network: $NETWORK"
+
+          log "Current frontend container:"
+          docker ps -a --filter "name=^/${CONTAINER}$" --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}' || true
+
+          if docker ps -a --format '{{.Names}}' | grep -Fxq "$CONTAINER"; then
+            log "Renaming existing $CONTAINER to $BACKUP_NAME"
+            docker stop "$CONTAINER" >/dev/null || true
+            docker rename "$CONTAINER" "$BACKUP_NAME"
+          fi
+
+          log "Pulling immutable image digest"
+          docker pull "$IMAGE"
+
+          log "Starting $CONTAINER from digest"
+          docker run -d \
+            --name "$CONTAINER" \
+            --restart unless-stopped \
+            --network "$NETWORK" \
+            -p "$BIND" \
+            -e PORT=3000 \
+            -e SSO_BACKEND_UPSTREAM=sso-backend:8000 \
+            -e SSO_FRONTEND_SERVER_NAME=_ \
+            -e SSO_CSP_CONNECT_SRC=https://api-sso.timeh.my.id \
+            "$IMAGE"
+
+          log "Waiting for health endpoint"
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:3080/healthz >/dev/null 2>&1; then
+              break
+            fi
+            sleep 2
+            if [[ "$i" == 30 ]]; then
+              docker logs --tail=120 "$CONTAINER" || true
+              die 'frontend health check failed'
+            fi
+          done
+
+          log "Running container image identity"
+          docker inspect "$CONTAINER" --format 'image={{.Config.Image}} image_id={{.Image}}'
+
+          log "Public HTTPS headers"
+          curl -fsSI https://sso.timeh.my.id/ | sed -n '1,24p'
+
+          log "Public asset hashes"
+          curl -fsSL https://sso.timeh.my.id/ | grep -Eo 'assets/index-[^" ]+\.(js|css)' | sort -u || true
+
+          log "Restore completed. Backup container: $BACKUP_NAME"
+          REMOTE
+          )
+
+          printf '%s\n' "$REMOTE_SCRIPT" | \
+            ssh "${SSH_OPTS[@]}" "${VPS_USER}@${VPS_HOST}" \
+              "IMAGE_DIGEST='${IMAGE_DIGEST}' RESTORE_REASON='${RESTORE_REASON}' sudo -E bash -s"
+
+      - name: Cleanup SSH key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key

@@ -80,12 +80,6 @@ const routes: RouteRecordRaw[] = [
     meta: { layout: 'portal', requiresAuth: true, title: 'Keamanan' },
   },
   {
-    path: '/security/mfa',
-    name: 'portal.mfa-settings',
-    component: () => import('@/pages/portal/MfaSettingsPage.vue'),
-    meta: { layout: 'portal', requiresAuth: true, title: 'Pengaturan MFA' },
-  },
-  {
     path: '/:pathMatch(.*)*',
     name: 'error.not-found',
     component: () => import('@/pages/errors/NotFoundPage.vue'),

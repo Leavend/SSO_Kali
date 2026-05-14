@@ -2,12 +2,12 @@
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { Activity, AppWindow, ChevronsLeft, ChevronsRight, LogOut, LayoutDashboard, Menu, RefreshCw, ShieldCheck, Users, X } from "lucide-vue-next";
 import { RouterLink, RouterView, useRoute } from "vue-router";
-import FloatingActions from "@/web/components/FloatingActions.vue";
-import AuthFooter from "@/web/components/auth/AuthFooter.vue";
-import ToastContainer from "@/web/components/ui/ToastContainer.vue";
-import BottomNav from "@/web/components/layout/BottomNav.vue";
-import CommandPalette from "@/web/components/layout/CommandPalette.vue";
-import AdminHeader from "@/web/components/layout/AdminHeader.vue";
+import FloatingActions from "@/components/FloatingActions.vue";
+import AuthFooter from "@/components/auth/AuthFooter.vue";
+import ToastContainer from "@/components/ui/ToastContainer.vue";
+import BottomNav from "@/components/layout/BottomNav.vue";
+import CommandPalette from "@/components/layout/CommandPalette.vue";
+import AdminHeader from "@/components/layout/AdminHeader.vue";
 import { useAdminStore } from "./stores/admin";
 
 const admin = useAdminStore();
@@ -50,8 +50,7 @@ watch(() => route.path, closeSidebar);
 
 <template>
   <div
-    data-testid="admin-app-shell"
-    class="app-shell app-shell--responsive"
+    class="app-shell"
     :class="{
       'app-shell--auth': !showAdminShell,
       'app-shell--admin': showAdminShell,
@@ -175,9 +174,9 @@ watch(() => route.path, closeSidebar);
         </div>
       </aside>
 
-      <div data-testid="admin-content-shell" class="admin-content-shell admin-content-shell--responsive">
+      <div class="admin-content-shell">
         <AdminHeader />
-        <main id="main-content" data-testid="admin-main-surface" class="main-surface main-surface--responsive" role="main">
+        <main id="main-content" class="main-surface" role="main">
           <RouterView v-slot="{ Component }">
             <Transition name="page" mode="out-in">
               <component :is="Component" />

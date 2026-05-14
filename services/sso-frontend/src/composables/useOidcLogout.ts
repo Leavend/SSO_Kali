@@ -18,7 +18,6 @@
 import { ref } from 'vue'
 import { useSessionStore } from '@/stores/session.store'
 import { useAuthRedirect } from '@/composables/useAuthRedirect'
-import { getLocationPort } from '@/lib/browser/location-port'
 import { readOidcConfig } from '@/lib/oidc/config'
 import { logger } from '@/lib/logger'
 
@@ -71,7 +70,7 @@ export function useOidcLogout(): UseOidcLogoutReturn {
     try {
       const config = readOidcConfig()
       const endSessionUrl = buildEndSessionUrl(config, hint)
-      getLocationPort().assign(endSessionUrl)
+      window.location.assign(endSessionUrl)
     } catch {
       // Fallback: OIDC config tidak tersedia (native cookie mode).
       redirect.toLogin()

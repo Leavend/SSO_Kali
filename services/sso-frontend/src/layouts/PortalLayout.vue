@@ -16,8 +16,8 @@ import {
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
-import { useSessionStore } from '@/stores/session.store'
-import { useThemeStore } from '@/stores/theme.store'
+import { useSessionStore } from '@/stores/session'
+import { useThemeStore } from '@/stores/theme'
 
 const route = useRoute()
 const session = useSessionStore()
@@ -31,29 +31,25 @@ const navItems = [
   { to: '/security', label: 'Keamanan', icon: ShieldCheck },
 ]
 
-const accountName = computed(() => session.user?.display_name ?? 'Pengguna')
-const accountEmail = computed(() => session.user?.email ?? '')
-const accountRole = computed(() => session.user?.roles[0] ?? 'user')
-
 const initials = computed(() => {
-  const name = accountName.value || accountEmail.value
+  const name = session.principal?.displayName ?? session.principal?.email ?? ''
   return name
     .split(/\s+/)
     .filter(Boolean)
     .slice(0, 2)
-    .map((piece: string) => piece.charAt(0).toUpperCase())
+    .map((piece) => piece.charAt(0).toUpperCase())
     .join('') || 'S'
 })
 
-const activePath = computed(() => route?.path ?? '')
+const activePath = computed(() => route.path)
 </script>
 
 <template>
-  <div data-testid="portal-shell" class="bg-background text-foreground min-h-screen overflow-x-clip">
+  <div class="bg-background text-foreground min-h-screen">
     <header
       class="bg-background/85 sticky top-0 z-30 border-b backdrop-blur supports-[backdrop-filter]:bg-background/70"
     >
-      <div data-testid="portal-header-inner" class="mx-auto flex h-16 max-w-6xl min-w-0 flex-nowrap items-center gap-2 px-3 sm:px-5 lg:gap-4 lg:px-6">
+      <div class="mx-auto flex h-16 max-w-6xl flex-wrap items-center gap-4 px-4 sm:px-6">
         <RouterLink to="/home" class="flex items-center gap-2 font-semibold">
           <span
             class="bg-primary text-primary-foreground grid size-9 place-items-center rounded-xl shadow-sm"
@@ -66,22 +62,22 @@ const activePath = computed(() => route?.path ?? '')
           </span>
         </RouterLink>
 
-        <nav data-testid="portal-primary-nav" class="hidden min-w-0 flex-1 items-center justify-center gap-0.5 overflow-hidden lg:flex">
+        <nav class="order-3 flex w-full flex-wrap items-center gap-1 md:order-none md:w-auto md:flex-1 md:justify-center">
           <RouterLink
             v-for="item in navItems"
             :key="item.to"
             :to="item.to"
-            class="text-muted-foreground hover:text-foreground hover:bg-accent inline-flex min-w-0 items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition-colors xl:gap-2 xl:px-3 xl:text-sm"
+            class="text-muted-foreground hover:text-foreground hover:bg-accent inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
             :class="{
               'text-foreground bg-accent': activePath.startsWith(item.to),
             }"
           >
-            <component :is="item.icon" class="size-4 shrink-0" aria-hidden="true" />
-            <span class="min-w-0 truncate">{{ item.label }}</span>
+            <component :is="item.icon" class="size-4" aria-hidden="true" />
+            {{ item.label }}
           </RouterLink>
         </nav>
 
-        <div class="ml-auto flex min-w-0 shrink-0 items-center gap-1.5 sm:gap-2">
+        <div class="flex items-center gap-2">
           <Button
             variant="ghost"
             size="icon"
@@ -99,16 +95,16 @@ const activePath = computed(() => route?.path ?? '')
           >
             <RefreshCcw class="size-4" />
           </Button>
-          <div class="flex min-w-0 items-center gap-2 rounded-full border py-1 pr-2 pl-1 sm:pr-3">
-            <Avatar class="size-7 shrink-0">
+          <div class="flex items-center gap-2 rounded-full border pr-3 pl-1 py-1">
+            <Avatar class="size-7">
               <AvatarFallback>{{ initials }}</AvatarFallback>
             </Avatar>
-            <div data-testid="portal-account-summary" class="hidden min-w-0 max-w-[8rem] text-xs leading-tight sm:flex sm:flex-col md:max-w-[10rem]">
-              <strong data-testid="portal-account-name" class="truncate font-semibold">{{ accountName }}</strong>
-              <span data-testid="portal-account-email" class="text-muted-foreground truncate">{{ accountEmail }}</span>
+            <div class="hidden text-xs leading-tight sm:flex sm:flex-col">
+              <strong class="font-semibold">{{ session.principal?.displayName ?? 'Pengguna' }}</strong>
+              <span class="text-muted-foreground">{{ session.principal?.email ?? '' }}</span>
             </div>
             <Badge variant="secondary" class="hidden md:inline-flex">
-              {{ accountRole }}
+              {{ session.principal?.role ?? 'user' }}
             </Badge>
           </div>
           <Button variant="outline" size="icon" aria-label="Keluar" @click="session.logout">
@@ -118,7 +114,7 @@ const activePath = computed(() => route?.path ?? '')
       </div>
     </header>
 
-    <main id="main" data-testid="portal-main" class="mx-auto w-full max-w-6xl min-w-0 px-4 py-8 sm:px-6">
+    <main id="main" class="mx-auto max-w-6xl px-4 py-8 sm:px-6">
       <RouterView v-slot="{ Component }">
         <Transition name="page" mode="out-in">
           <component :is="Component" />

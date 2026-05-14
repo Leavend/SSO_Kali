@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
 import { Activity, AlertCircle, AppWindow, Inbox, RefreshCw, UsersRound, ShieldCheck } from 'lucide-vue-next'
-import ClientIntegrationProcedure from '@/web/components/ClientIntegrationProcedure.vue'
-import PageHeader from '@/web/components/PageHeader.vue'
-import KpiCard from '@/web/components/dashboard/KpiCard.vue'
-import QuickAction from '@/web/components/dashboard/QuickAction.vue'
-import DashboardSurface from '@/web/components/ui/DashboardSurface.vue'
-import { useAdminStore } from '@/web/stores/admin'
+import ClientIntegrationProcedure from '@/components/ClientIntegrationProcedure.vue'
+import PageHeader from '@/components/PageHeader.vue'
+import KpiCard from '@/components/dashboard/KpiCard.vue'
+import QuickAction from '@/components/dashboard/QuickAction.vue'
+import DashboardSurface from '@/components/ui/DashboardSurface.vue'
+import { useAdminStore } from '@/stores/admin'
 import { formatDateTime, formatRelative } from '@shared/format'
 
 const admin = useAdminStore()

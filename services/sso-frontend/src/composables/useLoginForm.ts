@@ -11,7 +11,6 @@
 import { computed, reactive, ref, type ComputedRef, type Reactive, type Ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ApiError, isValidationError } from '@/lib/api/api-error'
-import { getLocationPort } from '@/lib/browser/location-port'
 import { useSessionStore } from '@/stores/session.store'
 import { useMfaChallengeStore } from '@/stores/mfa-challenge.store'
 import type { SsoLoginResponse } from '@/types/auth.types'
@@ -144,10 +143,9 @@ export function useLoginForm(): UseLoginFormReturn {
   }
 
   function continueAuthorize(authRequestId: string): void {
-    const locationPort = getLocationPort()
-    const url = new URL('/authorize', locationPort.origin)
+    const url = new URL('/authorize', window.location.origin)
     url.searchParams.set('auth_request_id', authRequestId)
-    locationPort.assign(url.toString())
+    window.location.assign(url.toString())
   }
 
   return { form, pending, bannerError, fieldErrors, canSubmit, submit }

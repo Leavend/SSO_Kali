@@ -3,8 +3,8 @@ import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { Inbox, Trash2, ArrowLeft } from 'lucide-vue-next'
 import type { ApiSession, ApiUser } from '@shared/admin'
-import PageHeader from '@/web/components/PageHeader.vue'
-import { useAdminStore } from '@/web/stores/admin'
+import PageHeader from '@/components/PageHeader.vue'
+import { useAdminStore } from '@/stores/admin'
 import { formatDateTime, truncateId } from '@shared/format'
 
 const route = useRoute()

@@ -27,11 +27,7 @@ useSessionHeartbeat({
 
     <PortalHeader />
 
-    <main
-      id="portal-main"
-      class="mx-auto w-full max-w-6xl flex-1 px-3 py-5 sm:px-6 sm:py-8"
-      tabindex="-1"
-    >
+    <main id="portal-main" class="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6" tabindex="-1">
       <RouterView v-slot="{ Component }">
         <Transition name="page" mode="out-in">
           <component :is="Component" />
@@ -41,12 +37,12 @@ useSessionHeartbeat({
 
     <footer class="text-muted-foreground mt-auto border-t py-6 text-center text-xs">
       <div
-        class="mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 px-3 sm:flex-row sm:px-6"
+        class="mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 px-4 sm:flex-row sm:px-6"
       >
-        <span class="flex min-w-0 items-center gap-2 text-center sm:text-left">
-          <UserCircle2 class="size-4 shrink-0" /> Dev-SSO Portal Pengguna
+        <span class="flex items-center gap-2">
+          <UserCircle2 class="size-4" /> Dev-SSO Portal Pengguna
         </span>
-        <span class="text-center sm:text-right">© {{ new Date().getFullYear() }} Dev-SSO Platform</span>
+        <span>© {{ new Date().getFullYear() }} Dev-SSO Platform</span>
       </div>
     </footer>
   </div>
