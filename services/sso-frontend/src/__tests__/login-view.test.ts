@@ -1,6 +1,5 @@
 import { mount } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { AUTH_SHELL } from '@parent-ui/auth-shell.mjs'
 import LoginView from '../web/views/LoginView.vue'
 
 vi.mock('vue-router', () => ({
@@ -12,35 +11,40 @@ describe('LoginView', () => {
     vi.restoreAllMocks()
   })
 
-  it('keeps the legacy Next login experience copy and actions in Vue', async () => {
+  it('renders the production portal login experience', async () => {
     const wrapper = mount(LoginView)
 
+    expect(wrapper.find('.portal-login').exists()).toBe(true)
     expect(wrapper.text()).toContain('Dev-SSO')
-    expect(wrapper.text()).toContain(AUTH_SHELL.copy.loginTitle)
-    expect(wrapper.text()).toContain(AUTH_SHELL.copy.loginSubtitle)
-    expect(wrapper.find('input[type="email"]').attributes('placeholder')).toBe('user@company.com')
-    expect(wrapper.find('button[type="submit"]').attributes('disabled')).toBeDefined()
+    expect(wrapper.text()).toContain('Masuk ke akunmu')
+    expect(wrapper.text()).toContain('Portal autentikasi tunggal untuk semua aplikasi kamu.')
+    expect(wrapper.find('#login-identifier').attributes('placeholder')).toBe('user@company.com')
+    expect(wrapper.find('#login-password').exists()).toBe(true)
+    expect(wrapper.find('#portal-theme-toggle').exists()).toBe(true)
+    expect(wrapper.find('#portal-password-toggle').exists()).toBe(true)
+    expect(wrapper.find('#portal-login-submit').attributes('disabled')).toBeDefined()
 
-    await wrapper.find('input[type="email"]').setValue('admin@example.com')
+    await wrapper.find('#login-identifier').setValue('admin@example.com')
+    await wrapper.find('#login-password').setValue('secret')
 
-    expect(wrapper.find('button[type="submit"]').attributes('disabled')).toBeUndefined()
-    expect(wrapper.find('#devsso-theme-float.theme-toggle-anchor').exists()).toBe(true)
-    expect(wrapper.find('.floating-actions').attributes('style')).toBeUndefined()
-    expect(wrapper.find('footer.auth-footer').text()).toContain('© 2026 Dev-SSO')
+    expect(wrapper.find('#portal-login-submit').attributes('disabled')).toBeUndefined()
   })
 
   it('resets the submit loading state when the browser returns from identity UI', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(() => new Promise(() => {}))
     const wrapper = mount(LoginView)
 
-    await wrapper.find('input[type="email"]').setValue('admin@example.com')
+    await wrapper.find('#login-identifier').setValue('admin@example.com')
+    await wrapper.find('#login-password').setValue('secret')
     await wrapper.find('form').trigger('submit')
 
-    expect(wrapper.text()).toContain(AUTH_SHELL.copy.processingButton)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(wrapper.text()).toContain('Memproses…')
 
     window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }))
     await wrapper.vm.$nextTick()
 
-    expect(wrapper.text()).toContain(AUTH_SHELL.copy.continueButton)
-    expect(wrapper.text()).not.toContain(AUTH_SHELL.copy.processingButton)
+    expect(wrapper.text()).toContain('Masuk')
+    expect(wrapper.text()).not.toContain('Memproses…')
   })
 })
