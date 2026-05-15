@@ -19,12 +19,14 @@ beforeEach(function (): void {
             'type' => 'public',
             'redirect_uris' => ['https://sso.timeh.my.id/app-a/auth/callback'],
             'post_logout_redirect_uris' => ['https://sso.timeh.my.id/app-a'],
+            'allowed_scopes' => ['openid', 'profile', 'email', 'offline_access'],
         ],
         'app-b' => [
             'type' => 'confidential',
             'secret' => app(ClientSecretHashPolicy::class)->make('app-b-secret'),
             'redirect_uris' => ['https://sso.timeh.my.id/app-b/auth/callback'],
             'post_logout_redirect_uris' => ['https://sso.timeh.my.id/app-b'],
+            'allowed_scopes' => ['openid', 'profile', 'email', 'offline_access'],
         ],
     ]);
 });

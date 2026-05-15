@@ -27,7 +27,7 @@ $clients = [
             env('APP_A_POST_LOGOUT_REDIRECT_URI', $frontendUrl.'/app-a'),
         ],
         'backchannel_logout_uri' => env('APP_A_BACKCHANNEL_LOGOUT_URI'),
-        'allowed_scopes' => ['openid', 'profile', 'email', 'offline_access'],
+        'allowed_scopes' => ['openid', 'profile', 'email'],
     ],
 
     env('APP_B_CLIENT_ID', 'app-b') => [
@@ -40,7 +40,7 @@ $clients = [
             env('APP_B_POST_LOGOUT_REDIRECT_URI', $frontendUrl.'/app-b'),
         ],
         'backchannel_logout_uri' => env('APP_B_BACKCHANNEL_LOGOUT_URI'),
-        'allowed_scopes' => ['openid', 'profile', 'email', 'offline_access'],
+        'allowed_scopes' => ['openid', 'profile', 'email'],
     ],
 
     // sso-admin-panel: legacy archive; see $lockedProductionClientIds note above.
@@ -56,7 +56,7 @@ $clients = [
             'ADMIN_PANEL_BACKCHANNEL_LOGOUT_URI',
             $appUrl.'/connect/backchannel/admin-panel/logout',
         ),
-        'allowed_scopes' => ['openid', 'profile', 'email', 'offline_access', 'roles', 'permissions'],
+        'allowed_scopes' => ['openid', 'profile', 'email', 'roles', 'permissions'],
     ],
 
     env('SSO_PORTAL_CLIENT_ID', 'sso-frontend-portal') => [
@@ -68,7 +68,7 @@ $clients = [
             env('SSO_PORTAL_POST_LOGOUT_REDIRECT_URI', $frontendUrl),
         ],
         'backchannel_logout_uri' => env('SSO_PORTAL_BACKCHANNEL_LOGOUT_URI'),
-        'allowed_scopes' => ['openid', 'profile', 'email', 'offline_access', 'roles', 'permissions'],
+        'allowed_scopes' => ['openid', 'profile', 'email', 'roles', 'permissions'],
     ],
 ];
 
@@ -84,7 +84,7 @@ if ($loadTestEnabled) {
             env('SSO_LOAD_TEST_POST_LOGOUT_REDIRECT_URI', 'https://load-test.timeh.my.id/signed-out'),
         ],
         'backchannel_logout_uri' => env('SSO_LOAD_TEST_BACKCHANNEL_LOGOUT_URI'),
-        'allowed_scopes' => ['openid', 'profile', 'email', 'offline_access'],
+        'allowed_scopes' => ['openid', 'profile', 'email'],
     ];
 }
 

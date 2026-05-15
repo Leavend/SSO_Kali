@@ -18,12 +18,9 @@ export type OidcConfig = {
 export function readOidcConfig(): OidcConfig {
   const issuer = read('VITE_OIDC_ISSUER')
   const client_id = read('VITE_OIDC_CLIENT_ID')
-  const scope = readOrDefault('VITE_OIDC_SCOPE', 'openid profile email offline_access')
+  const scope = readOrDefault('VITE_OIDC_SCOPE', 'openid profile email')
   const baseIssuer = issuer.replace(/\/$/, '')
-  const redirect = readOrDefault(
-    'VITE_OIDC_REDIRECT_URI',
-    `${originOrEmpty()}/auth/callback`,
-  )
+  const redirect = readOrDefault('VITE_OIDC_REDIRECT_URI', `${originOrEmpty()}/auth/callback`)
 
   return {
     issuer,
@@ -34,10 +31,7 @@ export function readOidcConfig(): OidcConfig {
       'VITE_OIDC_AUTHORIZE_ENDPOINT',
       `${baseIssuer}/oauth/authorize`,
     ),
-    token_endpoint: readOrDefault(
-      'VITE_OIDC_TOKEN_ENDPOINT',
-      `${baseIssuer}/oauth/token`,
-    ),
+    token_endpoint: readOrDefault('VITE_OIDC_TOKEN_ENDPOINT', `${baseIssuer}/oauth/token`),
     end_session_endpoint: readOrDefault(
       'VITE_OIDC_END_SESSION_ENDPOINT',
       `${baseIssuer}/connect/logout`,

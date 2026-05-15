@@ -42,7 +42,7 @@ final class OidcScope
             self::OFFLINE_ACCESS => [
                 'description' => 'Refresh-token eligible access for trusted clients.',
                 'claims' => ['refresh_token'],
-                'default_allowed' => true,
+                'default_allowed' => false,
             ],
             self::ROLES => [
                 'description' => 'Normalized RBAC role slugs assigned to the subject.',

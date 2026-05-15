@@ -30,7 +30,7 @@ export function buildAuthorizeUrl(params: {
   url.searchParams.set('client_id', config.clientId)
   url.searchParams.set('redirect_uri', config.redirectUri)
   url.searchParams.set('response_type', 'code')
-  url.searchParams.set('scope', 'openid profile email offline_access')
+  url.searchParams.set('scope', 'openid profile email')
   url.searchParams.set('state', params.state)
   url.searchParams.set('nonce', params.nonce)
   url.searchParams.set('code_challenge', params.codeChallenge)

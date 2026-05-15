@@ -251,7 +251,7 @@ describe('contract generation edge cases', () => {
     const draft = draftWith({ clientType: 'public' })
     const contract = createClientIntegrationContract(draft)
 
-    expect(contract.scopes).toEqual(['openid', 'profile', 'email', 'offline_access'])
+    expect(contract.scopes).toEqual(['openid', 'profile', 'email'])
     expect(contract.scopes).not.toContain('sso:session.register')
   })
 
@@ -259,7 +259,7 @@ describe('contract generation edge cases', () => {
     const draft = draftWith({ clientType: 'confidential' })
     const contract = createClientIntegrationContract(draft)
 
-    expect(contract.scopes).toEqual(['openid', 'profile', 'email', 'offline_access', 'sso:session.register'])
+    expect(contract.scopes).toEqual(['openid', 'profile', 'email', 'sso:session.register'])
     expect(contract.scopes).toContain('sso:session.register')
   })
 
@@ -276,7 +276,9 @@ describe('provisioning manifest', () => {
     const draft = draftWith({ provisioning: 'jit' })
     const contract = createClientIntegrationContract(draft)
 
-    expect(contract.provisioningManifest.identitySource).toBe('https://dev-sso.timeh.my.id SSO backend')
+    expect(contract.provisioningManifest.identitySource).toBe(
+      'https://dev-sso.timeh.my.id SSO backend',
+    )
   })
 
   it('JIT manifest requires OIDC schemas', () => {

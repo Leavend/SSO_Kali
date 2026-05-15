@@ -14,7 +14,7 @@ describe('client integration contract', () => {
     expect(validateClientIntegrationDraft(draft)).toEqual([])
     expect(contract.clientId).toBe('customer-portal')
     expect(contract.redirectUri).toBe('https://customer-dev.timeh.my.id/auth/callback')
-    expect(contract.scopes).toContain('offline_access')
+    expect(contract.scopes).not.toContain('offline_access')
     expect(contract.env).toContain('SSO_CLIENT_ID=customer-portal')
     expect(contract.registryPatch).toContain("'customer-portal' => [")
     expect(contract.provisioningManifest.mode).toBe('jit')
@@ -63,7 +63,9 @@ describe('client integration contract', () => {
 
     expect(validateClientIntegrationDraft(draft)).toEqual([])
     expect(contract.redirectUri).toBe('https://customer-dev.timeh.my.id/auth/callback')
-    expect(contract.registryPatch).toContain("  'post_logout_redirect_uris' => ['https://customer-dev.timeh.my.id'],")
+    expect(contract.registryPatch).toContain(
+      "  'post_logout_redirect_uris' => ['https://customer-dev.timeh.my.id'],",
+    )
   })
 
   it('adds confidential SCIM controls without exposing a browser-generated secret', () => {
@@ -75,7 +77,9 @@ describe('client integration contract', () => {
     const contract = createClientIntegrationContract(draft)
 
     expect(contract.env).toContain('SSO_CLIENT_SECRET=<store-in-vault>')
-    expect(contract.registryPatch).toContain("  'secret' => env('CUSTOMER_PORTAL_CLIENT_SECRET_HASH'),")
+    expect(contract.registryPatch).toContain(
+      "  'secret' => env('CUSTOMER_PORTAL_CLIENT_SECRET_HASH'),",
+    )
     expect(contract.scopes).toContain('sso:session.register')
     expect(contract.provisioningSteps).toContain('Sync Users and Groups.')
     expect(contract.provisioningManifest.requiredSchemas).toContain('SCIM User resource')

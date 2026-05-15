@@ -38,7 +38,6 @@ return [
         'openid',
         'profile',
         'email',
-        'offline_access',
     ],
     'upstream_oidc' => [
         'public_issuer' => env('OIDC_UPSTREAM_PUBLIC_ISSUER', env('SSO_ISSUER', env('APP_URL', 'http://localhost:8200'))),

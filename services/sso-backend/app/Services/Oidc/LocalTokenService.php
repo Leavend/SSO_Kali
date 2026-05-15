@@ -171,8 +171,12 @@ final class LocalTokenService
     private function shouldIssueRefreshToken(array $context): bool
     {
         $scope = ScopeSet::fromString((string) ($context['scope'] ?? ''));
+        $clientId = $context['client_id'] ?? null;
+        $client = is_string($clientId) ? $this->clients->find($clientId) : null;
 
-        return ScopeSet::contains($scope, 'offline_access');
+        return ScopeSet::contains($scope, 'offline_access')
+            && $client !== null
+            && ScopeSet::contains($client->allowedScopes, 'offline_access');
     }
 
     /**

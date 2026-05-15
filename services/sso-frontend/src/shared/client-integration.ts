@@ -99,7 +99,9 @@ export function validateClientIntegrationDraft(draft: ClientIntegrationDraft): r
   ]
 }
 
-export function createClientIntegrationContract(draft: ClientIntegrationDraft): ClientIntegrationContract {
+export function createClientIntegrationContract(
+  draft: ClientIntegrationDraft,
+): ClientIntegrationContract {
   const uris = clientUris(draft)
 
   return {
@@ -128,7 +130,9 @@ function requiredFieldErrors(draft: ClientIntegrationDraft): readonly string[] {
     ['appBaseUrl', 'Base URL'],
     ['ownerEmail', 'Owner email'],
   ]
-  return labels.filter(([field]) => !draft[field].trim()).map(([, label]) => `${label} wajib diisi.`)
+  return labels
+    .filter(([field]) => !draft[field].trim())
+    .map(([, label]) => `${label} wajib diisi.`)
 }
 
 function clientIdErrors(clientId: string): readonly string[] {
@@ -140,10 +144,7 @@ function baseUrlErrors(input: string, environment: ClientEnvironment): readonly 
   const parsed = parseUrl(input)
   if (!parsed) return ['Base URL harus URL valid.']
 
-  return [
-    ...baseUrlStructuralErrors(parsed),
-    ...secureBaseUrlErrors(parsed, environment),
-  ]
+  return [...baseUrlStructuralErrors(parsed), ...secureBaseUrlErrors(parsed, environment)]
 }
 
 function pathErrors(path: string, label: string): readonly string[] {
@@ -185,7 +186,9 @@ function baseUrlStructuralErrors(url: URL): readonly string[] {
 
 function secureBaseUrlErrors(url: URL, environment: ClientEnvironment): readonly string[] {
   if (url.protocol === 'https:') return []
-  return environment === 'development' && isLocalhost(url) ? [] : ['Live client wajib memakai HTTPS.']
+  return environment === 'development' && isLocalhost(url)
+    ? []
+    : ['Live client wajib memakai HTTPS.']
 }
 
 function normalizeBaseUrl(input: string): string {
@@ -206,8 +209,8 @@ function clientUris(draft: ClientIntegrationDraft): ClientUris {
 
 function scopesFor(draft: ClientIntegrationDraft): readonly string[] {
   return draft.clientType === 'public'
-    ? ['openid', 'profile', 'email', 'offline_access']
-    : ['openid', 'profile', 'email', 'offline_access', 'sso:session.register']
+    ? ['openid', 'profile', 'email']
+    : ['openid', 'profile', 'email', 'sso:session.register']
 }
 
 function envLines(draft: ClientIntegrationDraft, uris: ClientUris): readonly string[] {
@@ -217,7 +220,9 @@ function envLines(draft: ClientIntegrationDraft, uris: ClientUris): readonly str
     `SSO_REDIRECT_URI=${uris.redirectUri}`,
     `SSO_BACKCHANNEL_LOGOUT_URI=${uris.backchannelLogoutUri}`,
   ]
-  return draft.clientType === 'confidential' ? [...lines, 'SSO_CLIENT_SECRET=<store-in-vault>'] : lines
+  return draft.clientType === 'confidential'
+    ? [...lines, 'SSO_CLIENT_SECRET=<store-in-vault>']
+    : lines
 }
 
 function registryPatchLines(draft: ClientIntegrationDraft, uris: ClientUris): readonly string[] {
@@ -228,7 +233,9 @@ function registryPatchLines(draft: ClientIntegrationDraft, uris: ClientUris): re
     `  'post_logout_redirect_uris' => ['${normalizeBaseUrl(draft.appBaseUrl)}'],`,
     `  'backchannel_logout_uri' => '${uris.backchannelLogoutUri}',`,
   ]
-  return draft.clientType === 'confidential' ? [...base, `  'secret' => env('${secretEnvName(draft.clientId)}'),`, '],'] : [...base, '],']
+  return draft.clientType === 'confidential'
+    ? [...base, `  'secret' => env('${secretEnvName(draft.clientId)}'),`, '],']
+    : [...base, '],']
 }
 
 function secretEnvName(clientId: string): string {
@@ -259,7 +266,12 @@ function requiredSchemas(draft: ClientIntegrationDraft): readonly string[] {
 }
 
 function userMapping(): readonly string[] {
-  return ['sub -> external_id', 'email -> primary email', 'name -> display name', 'active -> local access state']
+  return [
+    'sub -> external_id',
+    'email -> primary email',
+    'name -> display name',
+    'active -> local access state',
+  ]
 }
 
 function groupMapping(draft: ClientIntegrationDraft): readonly string[] {
@@ -270,7 +282,10 @@ function groupMapping(draft: ClientIntegrationDraft): readonly string[] {
 
 function deprovisioning(draft: ClientIntegrationDraft): readonly string[] {
   return draft.provisioning === 'scim'
-    ? ['SCIM active=false disables local account before next login', 'Back-channel logout revokes sessions by sid']
+    ? [
+        'SCIM active=false disables local account before next login',
+        'Back-channel logout revokes sessions by sid',
+      ]
     : ['Back-channel logout revokes sessions by sid', 'Next login revalidates SSO account state']
 }
 
@@ -283,25 +298,42 @@ function auditEvidence(draft: ClientIntegrationDraft): readonly string[] {
 }
 
 function riskGates(draft: ClientIntegrationDraft): readonly string[] {
-  const trafficGate = draft.environment === 'live' ? 'Canary cohort before full cutover' : 'Isolated dev callback'
+  const trafficGate =
+    draft.environment === 'live' ? 'Canary cohort before full cutover' : 'Isolated dev callback'
   return [trafficGate, 'Refresh token rotation verified', 'Back-channel logout smoke test passed']
 }
 
 function jitSteps(): readonly string[] {
-  return ['Create local profile on first login.', 'Map sub, email, name, role, sid.', 'Deactivate from SSO session revoke.']
+  return [
+    'Create local profile on first login.',
+    'Map sub, email, name, role, sid.',
+    'Deactivate from SSO session revoke.',
+  ]
 }
 
 function scimSteps(): readonly string[] {
-  return ['Create SCIM service token in vault.', 'Sync Users and Groups.', 'Handle deactivate before local login.']
+  return [
+    'Create SCIM service token in vault.',
+    'Sync Users and Groups.',
+    'Handle deactivate before local login.',
+  ]
 }
 
 function rolloutSteps(draft: ClientIntegrationDraft): readonly string[] {
-  const first = draft.environment === 'live' ? 'Route 5% admin/tester traffic to SSO.' : 'Use isolated dev redirect URI.'
-  return [first, 'Verify callback, refresh rotation, and back-channel logout.', 'Promote only after health and audit checks pass.']
+  const first =
+    draft.environment === 'live'
+      ? 'Route 5% admin/tester traffic to SSO.'
+      : 'Use isolated dev redirect URI.'
+  return [
+    first,
+    'Verify callback, refresh rotation, and back-channel logout.',
+    'Promote only after health and audit checks pass.',
+  ]
 }
 
 function rollbackSteps(draft: ClientIntegrationDraft): readonly string[] {
-  const first = draft.environment === 'live' ? 'Disable SSO client toggle.' : 'Delete dev client registration.'
+  const first =
+    draft.environment === 'live' ? 'Disable SSO client toggle.' : 'Delete dev client registration.'
   return [first, 'Restore previous auth route.', 'Revoke issued sessions for this client_id.']
 }
 
@@ -309,6 +341,8 @@ function complianceFindings(draft: ClientIntegrationDraft): readonly string[] {
   return [
     'No wildcard redirect URI.',
     'Token storage must use HttpOnly Secure cookie.',
-    draft.provisioning === 'scim' ? 'RFC 7642 lifecycle covered by SCIM provisioning.' : 'JIT provisioning is acceptable for login-only apps.',
+    draft.provisioning === 'scim'
+      ? 'RFC 7642 lifecycle covered by SCIM provisioning.'
+      : 'JIT provisioning is acceptable for login-only apps.',
   ]
 }

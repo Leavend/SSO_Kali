@@ -308,7 +308,7 @@ final class ClientIntegrationContractBuilder
      */
     private function scopes(ClientIntegrationDraft $draft): array
     {
-        $scopes = ['openid', 'profile', 'email', 'offline_access'];
+        $scopes = ['openid', 'profile', 'email'];
 
         return $draft->clientType === 'confidential' ? [...$scopes, 'sso:session.register'] : $scopes;
     }
