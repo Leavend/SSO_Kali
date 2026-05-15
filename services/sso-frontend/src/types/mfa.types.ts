@@ -53,9 +53,15 @@ export type MfaChallengeVerifyPayload = {
 }
 
 /** Response dari POST /api/mfa/challenge/verify. */
+export type MfaChallengeContinuation = {
+  readonly type: 'authorization_code' | 'consent'
+  readonly redirect_uri: string
+}
+
 export type MfaChallengeVerifyResponse = {
   readonly authenticated: boolean
   readonly error?: string
+  readonly continuation?: MfaChallengeContinuation
 }
 
 /** Extended login response ketika MFA diperlukan. */

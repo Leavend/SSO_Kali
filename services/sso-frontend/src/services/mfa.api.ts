@@ -7,10 +7,14 @@
 import { apiClient } from '@/lib/api/api-client'
 import type {
   MfaEnrollmentStatus,
+  MfaChallengeVerifyPayload,
+  MfaChallengeVerifyResponse,
   MfaTotpEnrollResponse,
   MfaTotpVerifyPayload,
   MfaTotpVerifyResponse,
 } from '@/types/mfa.types'
+
+export type { MfaChallengeVerifyResponse } from '@/types/mfa.types'
 
 export type MfaRemovePayload = {
   readonly password: string
@@ -41,6 +45,10 @@ export const mfaApi = {
 
   verifyTotp(payload: MfaTotpVerifyPayload): Promise<MfaTotpVerifyResponse> {
     return apiClient.post<MfaTotpVerifyResponse>('/api/mfa/totp/verify', payload)
+  },
+
+  verifyChallenge(payload: MfaChallengeVerifyPayload): Promise<MfaChallengeVerifyResponse> {
+    return apiClient.post<MfaChallengeVerifyResponse>('/api/mfa/challenge/verify', payload)
   },
 
   remove(payload: MfaRemovePayload): Promise<MfaRemoveResponse> {
