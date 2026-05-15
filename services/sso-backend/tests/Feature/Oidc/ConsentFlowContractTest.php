@@ -3,9 +3,13 @@
 declare(strict_types=1);
 
 use App\Actions\Oidc\CreateAuthorizationRedirect;
+use App\Models\SsoSession;
+use App\Models\User;
 use App\Models\UserConsent;
 use App\Services\Oidc\AuthRequestStore;
 use App\Services\Oidc\DownstreamClientRegistry;
+use App\Support\Security\ClientSecretHashPolicy;
+use Illuminate\Support\Str;
 
 /**
  * FR-011: Consent flow contract test.
@@ -20,7 +24,7 @@ beforeEach(function (): void {
     config()->set('oidc_clients.clients', [
         'third-party-app' => [
             'type' => 'confidential',
-            'secret' => password_hash('tp-secret', PASSWORD_ARGON2ID),
+            'secret' => app(ClientSecretHashPolicy::class)->make('tp-secret'),
             'redirect_uris' => ['https://third-party.example/callback'],
             'post_logout_redirect_uris' => ['https://third-party.example/'],
             'allowed_scopes' => ['openid', 'profile', 'email', 'offline_access'],
@@ -37,6 +41,51 @@ beforeEach(function (): void {
     ]);
 
     app(DownstreamClientRegistry::class)->flush();
+});
+
+it('evaluates browser session consent against the current authorization request scopes', function (): void {
+    [$user, $sessionId] = consentIssueLoggedInUser();
+
+    UserConsent::query()->create([
+        'subject_id' => $user->subject_id,
+        'client_id' => 'third-party-app',
+        'scopes' => ['openid', 'profile'],
+        'granted_at' => now(),
+    ]);
+
+    $response = $this->withSession([
+        'sso_browser_session' => [
+            'subject_id' => $user->subject_id,
+            'session_id' => $sessionId,
+            'auth_time' => time(),
+            'amr' => ['pwd'],
+            'scope' => 'openid profile',
+        ],
+    ])->get('/authorize?'.http_build_query([
+        'response_type' => 'code',
+        'client_id' => 'third-party-app',
+        'redirect_uri' => 'https://third-party.example/callback',
+        'scope' => 'openid profile email',
+        'state' => 'scope-upgrade-state',
+        'nonce' => 'scope-upgrade-nonce',
+        'code_challenge' => consentIssuePkceChallenge(),
+        'code_challenge_method' => 'S256',
+    ]));
+
+    $response->assertRedirect();
+
+    $redirectUri = (string) $response->headers->get('Location');
+    parse_str((string) parse_url($redirectUri, PHP_URL_QUERY), $query);
+
+    expect($redirectUri)->toStartWith('http://localhost/auth/consent?')
+        ->and($redirectUri)->toContain('scope=openid+profile+email')
+        ->and($redirectUri)->not->toContain('code=');
+
+    $payload = app(AuthRequestStore::class)->peek((string) ($query['state'] ?? ''));
+
+    expect($payload)->not->toBeNull()
+        ->and($payload['scope'] ?? null)->toBe('openid profile email')
+        ->and($payload['subject_id'] ?? null)->toBe($user->subject_id);
 });
 
 describe('GET /connect/consent', function (): void {
@@ -176,3 +225,32 @@ describe('prompt none and authorization prompt behaviors', function (): void {
         expect($source)->toContain('select_account');
     });
 });
+
+/**
+ * @return array{0: User, 1: string}
+ */
+function consentIssueLoggedInUser(): array
+{
+    $user = User::factory()->create();
+    $sessionId = (string) Str::uuid();
+
+    SsoSession::query()->create([
+        'session_id' => $sessionId,
+        'user_id' => $user->id,
+        'subject_id' => $user->subject_id,
+        'ip_address' => '127.0.0.1',
+        'user_agent' => 'ConsentFlowContract/1.0',
+        'authenticated_at' => now(),
+        'last_seen_at' => now(),
+        'expires_at' => now()->addHour(),
+    ]);
+
+    return [$user, $sessionId];
+}
+
+function consentIssuePkceChallenge(): string
+{
+    $verifier = rtrim(strtr(base64_encode(random_bytes(64)), '+/', '-_'), '=');
+
+    return rtrim(strtr(base64_encode(hash('sha256', $verifier, true)), '+/', '-_'), '=');
+}

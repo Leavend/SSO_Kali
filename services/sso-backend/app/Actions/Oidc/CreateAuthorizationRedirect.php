@@ -72,8 +72,8 @@ final class CreateAuthorizationRedirect
 
         if ($browserContext !== null && $this->canUseBrowserSession($request, $client, $browserContext)) {
             // FR-011: check consent before issuing tokens
-            if ($this->requiresConsent($client, $browserContext, $request)) {
-                $consentState = $this->authRequests->put([...$context, ...$browserContext]);
+            if ($this->requiresConsent($client, $browserContext, $context, $request)) {
+                $consentState = $this->authRequests->put([...$context, ...$browserContext, 'scope' => $context['scope']]);
 
                 return redirect()->away($this->consentRedirectUri($client, $context, $consentState));
             }
@@ -541,7 +541,7 @@ final class CreateAuthorizationRedirect
      *
      * @param  array<string, mixed>  $browserContext
      */
-    private function requiresConsent(DownstreamClient $client, array $browserContext, Request $request): bool
+    private function requiresConsent(DownstreamClient $client, array $browserContext, array $context, Request $request): bool
     {
         // First-party clients skip consent entirely
         if ($client->skipConsent) {
@@ -554,7 +554,7 @@ final class CreateAuthorizationRedirect
         }
 
         $subjectId = (string) ($browserContext['subject_id'] ?? '');
-        $requestedScopes = ScopeSet::fromString((string) ($browserContext['scope'] ?? $request->query('scope', 'openid')));
+        $requestedScopes = ScopeSet::fromString((string) ($context['scope'] ?? 'openid'));
 
         return ! $this->consents->hasConsent($subjectId, $client->clientId, $requestedScopes);
     }
