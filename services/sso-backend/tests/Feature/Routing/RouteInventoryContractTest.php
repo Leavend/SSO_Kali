@@ -172,7 +172,6 @@ function expectedApplicationRouteSignatures(): array
         'GET|HEAD jwks',
         'GET|HEAD login',
         'POST oauth/revoke',
-        'POST oauth/token',
         'GET|HEAD oauth2/authorize',
         'POST oauth2/revocation',
         'POST oauth2/token',

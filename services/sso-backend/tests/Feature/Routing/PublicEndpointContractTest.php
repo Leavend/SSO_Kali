@@ -51,6 +51,7 @@ it('resolves every endpoint advertised by OIDC discovery metadata', function ():
 
     assertAdvertisedEndpointResolves($metadata, 'authorization_endpoint', 'GET');
     assertAdvertisedEndpointResolves($metadata, 'token_endpoint', 'POST');
+    assertAdvertisedEndpointResponseIsNotNotFound($metadata, 'token_endpoint');
     assertAdvertisedEndpointResolves($metadata, 'userinfo_endpoint', 'GET');
     assertAdvertisedEndpointResolves($metadata, 'revocation_endpoint', 'POST');
     assertAdvertisedEndpointResolves($metadata, 'jwks_uri', 'GET');
@@ -76,6 +77,13 @@ function assertAdvertisedEndpointResolves(array $metadata, string $key, string $
     $routes = Route::getRoutes()->get($method);
 
     expect(array_key_exists($path, $routes))->toBeTrue("Discovery {$key} route [{$method} {$path}] must exist.");
+}
+
+function assertAdvertisedEndpointResponseIsNotNotFound(array $metadata, string $key): void
+{
+    $path = '/'.advertisedEndpointPath($metadata, $key);
+
+    test()->post($path, [])->assertStatus(400);
 }
 
 it('serves JWKS from both canonical and compatibility endpoints', function (string $uri): void {

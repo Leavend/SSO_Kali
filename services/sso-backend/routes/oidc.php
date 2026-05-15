@@ -56,9 +56,6 @@ Route::get('/jwks', JwksController::class)
 Route::post('/token', TokenController::class)->middleware(['throttle:oidc-token', ValidateTokenOrigin::class]);
 Route::match(['get', 'post'], '/userinfo', UserInfoController::class)->middleware('throttle:oidc-resource');
 Route::post('/revocation', RevocationController::class)->middleware('throttle:oidc-token');
-
-// --- OAuth compatibility endpoints advertised by discovery metadata ---
-Route::post('/oauth/token', TokenController::class)->middleware(['throttle:oidc-token', ValidateTokenOrigin::class]);
 Route::post('/oauth/revoke', TokenRevocationController::class)->middleware('throttle:oidc-token');
 
 // --- OIDC Session Management (server-to-server) ---
