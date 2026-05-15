@@ -38,13 +38,13 @@ describe('readOidcConfig', () => {
     expect(config.token_endpoint).toBe('https://custom/token')
   })
 
-  it('defaults scope to openid profile email offline_access', () => {
+  it('defaults scope to openid profile email (offline_access is explicit opt-in)', () => {
     vi.stubEnv('VITE_OIDC_ISSUER', 'https://sso.example.com')
     vi.stubEnv('VITE_OIDC_CLIENT_ID', 'c')
 
     const config = readOidcConfig()
 
-    expect(config.scope).toBe('openid profile email offline_access')
+    expect(config.scope).toBe('openid profile email')
   })
 
   it('throws when VITE_OIDC_ISSUER is missing', () => {

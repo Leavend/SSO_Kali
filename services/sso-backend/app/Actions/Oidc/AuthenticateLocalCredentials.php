@@ -116,9 +116,30 @@ final class AuthenticateLocalCredentials
 
         $user = $verification->user;
 
-        // FR-019 / UC-67: Check if user has MFA enrolled — require challenge
+        // FR-019 / UC-67 / BE-FR019-001: Check if user has MFA enrolled.
+        // The pending OIDC authorization request is bound to the challenge
+        // server-side. The client only receives an opaque challenge id and
+        // can never alter the redemption parameters.
         if ($this->requiresMfaChallenge($user)) {
-            $challenge = $this->challenges->create($user->getKey());
+            try {
+                $validatedScope = $this->scopes->validateAuthorizationRequest($scope, $client);
+            } catch (\RuntimeException) {
+                $validatedScope = 'openid';
+            }
+
+            $challenge = $this->challenges->create($user->getKey(), [
+                'flow' => 'local_login',
+                'client_id' => $client->clientId,
+                'redirect_uri' => $redirectUri,
+                'code_challenge' => $codeChallenge,
+                'code_challenge_method' => $codeChallengeMethod,
+                'state' => $state,
+                'nonce' => $nonce,
+                'scope' => $validatedScope,
+                'subject_id' => $user->subject_id,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
 
             return response()->json([
                 'mfa_required' => true,
@@ -126,15 +147,6 @@ final class AuthenticateLocalCredentials
                     'challenge_id' => $challenge['challenge_id'],
                     'methods_available' => ['totp', 'recovery_code'],
                     'expires_at' => $challenge['expires_at'],
-                ],
-                // Preserve OIDC context for post-MFA code issuance
-                'oidc_context' => [
-                    'client_id' => $clientId,
-                    'redirect_uri' => $redirectUri,
-                    'code_challenge' => $codeChallenge,
-                    'state' => $state,
-                    'nonce' => $nonce,
-                    'scope' => $scope,
                 ],
             ]);
         }

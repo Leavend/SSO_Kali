@@ -1,8 +1,13 @@
 /**
- * MFA Challenge Store — FR-019 / UC-67.
+ * MFA Challenge Store — FR-019 / UC-67 / BE-FR019-001.
  *
  * Menyimpan state challenge MFA selama proses login.
  * Challenge disimpan sementara antara halaman login dan halaman MFA challenge.
+ *
+ * BE-FR019-001: pending OIDC authorization context tidak lagi disimpan di
+ * client. Backend mengikat konteks ke challenge_id server-side dan akan
+ * mengembalikan `continuation.redirect_uri` saat MFA berhasil. Frontend
+ * cukup memegang opaque challenge handle.
  *
  * 1 store = 1 domain state (MFA challenge lifecycle).
  */
@@ -11,17 +16,7 @@ import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import type { SsoLoginMfaRequired } from '@/types/auth.types'
 
-export type MfaChallengeState = SsoLoginMfaRequired['challenge'] & {
-  /** OIDC context jika login via /connect/local-login */
-  readonly oidc_context?: {
-    readonly client_id: string
-    readonly redirect_uri: string
-    readonly code_challenge: string
-    readonly state: string
-    readonly nonce: string
-    readonly scope: string
-  } | null
-}
+export type MfaChallengeState = SsoLoginMfaRequired['challenge']
 
 export const useMfaChallengeStore = defineStore('mfa-challenge', () => {
   const challenge = ref<MfaChallengeState | null>(null)

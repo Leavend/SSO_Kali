@@ -6,8 +6,10 @@ namespace App\Http\Controllers\Mfa;
 
 use App\Actions\Mfa\PersistMfaAuthContext;
 use App\Actions\Mfa\VerifyMfaChallenge;
+use App\Actions\Oidc\CompletePendingOidcAuthorization;
 use App\Models\SsoSession;
 use App\Models\User;
+use App\Services\Mfa\MfaChallengeStore;
 use App\Services\Session\SsoSessionCookieFactory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,7 +17,13 @@ use Illuminate\Support\Str;
 use RuntimeException;
 
 /**
- * FR-018 / UC-67: MFA challenge verification during login.
+ * FR-018 / UC-67 / BE-FR019-001: MFA challenge verification during login.
+ *
+ * On success, creates the SSO session, persists the MFA-upgraded auth
+ * context, and — when the challenge was started from an OIDC authorize
+ * request — finalizes the pending authorization server-side and returns
+ * the redirect URI (with code or consent state). The client never sees
+ * the redemption parameters.
  *
  * POST /api/mfa/challenge/verify
  */
@@ -25,6 +33,8 @@ final class MfaChallengeController
         Request $request,
         VerifyMfaChallenge $action,
         PersistMfaAuthContext $persistContext,
+        MfaChallengeStore $challenges,
+        CompletePendingOidcAuthorization $completePending,
         SsoSessionCookieFactory $cookies,
     ): JsonResponse {
         $request->validate([
@@ -46,6 +56,10 @@ final class MfaChallengeController
                 'error' => 'Challenge expired or not found.',
             ], 422);
         }
+
+        // BE-FR019-001: capture the bound OIDC context BEFORE the action
+        // consumes the challenge. The store deletes the challenge on success.
+        $pendingContext = $challenges->pendingOidcContext($challengeId);
 
         try {
             $action->execute($challengeId, $method, $code);
@@ -74,7 +88,7 @@ final class MfaChallengeController
             ipAddress: (string) $request->ip(),
         );
 
-        return response()->json([
+        $payload = [
             'authenticated' => true,
             'mfa_method' => $method,
             'user' => [
@@ -83,7 +97,34 @@ final class MfaChallengeController
                 'display_name' => $user->display_name,
             ],
             'session' => ['expires_at' => $session->expires_at->toIso8601String()],
-        ])->withCookie($cookies->make($session->session_id));
+        ];
+
+        // BE-FR019-001: when a pending OIDC authorize request is bound to
+        // this challenge, finalize it now and return the redirect URI.
+        if ($pendingContext !== null) {
+            $continuation = $completePending->execute(
+                user: $user,
+                context: $pendingContext,
+                sessionId: $session->session_id,
+                request: $request,
+            );
+
+            if ($continuation === null) {
+                return response()->json([
+                    'authenticated' => false,
+                    'error' => 'The pending authorization request is no longer valid.',
+                ], 409);
+            }
+
+            $payload['continuation'] = [
+                'type' => $continuation['requires_consent'] ? 'consent' : 'authorization_code',
+                'redirect_uri' => $continuation['redirect_uri'],
+            ];
+            // Backwards-compatible top-level field for legacy callers.
+            $payload['redirect_uri'] = $continuation['redirect_uri'];
+        }
+
+        return response()->json($payload)->withCookie($cookies->make($session->session_id));
     }
 
     private function createSession(User $user, Request $request): SsoSession

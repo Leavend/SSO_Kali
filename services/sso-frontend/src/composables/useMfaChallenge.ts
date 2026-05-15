@@ -23,10 +23,31 @@ const ERROR_TRANSLATIONS: Record<string, string> = {
 	"Invalid verification code.":
 		"Kode verifikasi tidak valid. Silakan coba lagi.",
 	"Unsupported MFA method.": "Metode MFA tidak didukung.",
+	"The pending authorization request is no longer valid.":
+		"Permintaan otorisasi sudah tidak berlaku. Silakan masuk ulang.",
+};
+
+type MfaContinuation = {
+	readonly type: "authorization_code" | "consent";
+	readonly redirect_uri: string;
 };
 
 function translateError(message: string): string {
 	return ERROR_TRANSLATIONS[message] ?? message;
+}
+
+/**
+ * BE-FR019-001: only follow redirects to URLs the backend would have
+ * derived itself. Reject anything that does not start with the configured
+ * SSO frontend origin or a known absolute URL coming from the backend.
+ */
+function isSafeContinuationRedirect(value: string): boolean {
+	try {
+		const url = new URL(value, window.location.origin);
+		return url.protocol === "https:" || url.origin === window.location.origin;
+	} catch {
+		return false;
+	}
 }
 
 export type UseMfaChallengeReturn = {
@@ -96,8 +117,18 @@ export function useMfaChallenge(): UseMfaChallengeReturn {
 				return;
 			}
 
-			// MFA verified — session cookie set by backend
+			// MFA verified — session cookie set by backend.
 			challengeStore.clear();
+
+			// BE-FR019-001: when the backend bound an OIDC authorize request to
+			// the challenge, follow the server-issued redirect URI; never
+			// reconstruct it from client state.
+			const continuation = data.continuation as MfaContinuation | undefined;
+			if (continuation && isSafeContinuationRedirect(continuation.redirect_uri)) {
+				window.location.assign(continuation.redirect_uri);
+				return;
+			}
+
 			await sessionStore.ensureSession();
 			await router.push("/home");
 		} catch {

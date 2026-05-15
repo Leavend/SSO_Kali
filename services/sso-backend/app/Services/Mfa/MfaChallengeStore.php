@@ -24,9 +24,15 @@ final class MfaChallengeStore
     /**
      * Create a new challenge for a user.
      *
+     * BE-FR019-001: optional `oidc_context` is the server-side authoritative
+     * pending OIDC authorization request that MUST be redeemed only after the
+     * MFA challenge succeeds. The context never leaves the server; the client
+     * only ever sees the opaque challenge id.
+     *
+     * @param  array<string, mixed>|null  $oidcContext
      * @return array{challenge_id: string, expires_at: string}
      */
-    public function create(int $userId): array
+    public function create(int $userId, ?array $oidcContext = null): array
     {
         $challengeId = (string) Str::uuid();
         $expiresAt = now()->addSeconds(self::TTL_SECONDS);
@@ -35,6 +41,7 @@ final class MfaChallengeStore
             'user_id' => $userId,
             'attempts' => 0,
             'created_at' => now()->toIso8601String(),
+            'oidc_context' => $oidcContext,
         ], self::TTL_SECONDS);
 
         return [
@@ -46,13 +53,31 @@ final class MfaChallengeStore
     /**
      * Retrieve challenge data. Returns null if expired or not found.
      *
-     * @return array{user_id: int, attempts: int, created_at: string}|null
+     * @return array{user_id: int, attempts: int, created_at: string, oidc_context?: array<string, mixed>|null}|null
      */
     public function find(string $challengeId): ?array
     {
         $data = Cache::get(self::PREFIX.$challengeId);
 
         return is_array($data) ? $data : null;
+    }
+
+    /**
+     * BE-FR019-001: read the server-side pending OIDC authorization context.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function pendingOidcContext(string $challengeId): ?array
+    {
+        $data = $this->find($challengeId);
+
+        if ($data === null) {
+            return null;
+        }
+
+        $context = $data['oidc_context'] ?? null;
+
+        return is_array($context) ? $context : null;
     }
 
     /**
