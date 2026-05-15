@@ -18,6 +18,9 @@ import type { SsoLoginResponse } from '@/types/auth.types'
 const GENERIC_FAILURE_MESSAGE =
   'Email atau password yang kamu masukkan salah. Silakan coba lagi.'
 const UNEXPECTED_FAILURE_MESSAGE = 'Gagal memproses login. Coba lagi beberapa saat.'
+const LOCKED_OR_DISABLED_MESSAGE =
+  'Akun tidak dapat digunakan untuk masuk saat ini. Hubungi administrator jika kamu membutuhkan bantuan.'
+const RATE_LIMIT_MESSAGE = 'Terlalu banyak percobaan login. Coba lagi dalam {seconds} detik.'
 
 /** Map common backend English error messages to Indonesian. */
 const ERROR_TRANSLATIONS: Record<string, string> = {
@@ -43,6 +46,7 @@ export type UseLoginFormReturn = {
   readonly pending: Ref<boolean>
   readonly bannerError: Ref<string | null>
   readonly fieldErrors: Ref<Record<string, string>>
+  readonly retryAfterSeconds: Ref<number>
   readonly canSubmit: ComputedRef<boolean>
   submit: () => Promise<void>
 }
@@ -61,9 +65,15 @@ export function useLoginForm(): UseLoginFormReturn {
   const pending = ref<boolean>(false)
   const bannerError = ref<string | null>(null)
   const fieldErrors = ref<Record<string, string>>({})
+  const retryAfterSeconds = ref<number>(0)
+  let retryTimer: ReturnType<typeof window.setInterval> | null = null
 
   const canSubmit = computed<boolean>(
-    () => !pending.value && form.identifier.trim().length > 0 && form.password.length > 0,
+    () =>
+      !pending.value &&
+      retryAfterSeconds.value <= 0 &&
+      form.identifier.trim().length > 0 &&
+      form.password.length > 0,
   )
 
   async function submit(): Promise<void> {
@@ -133,12 +143,55 @@ export function useLoginForm(): UseLoginFormReturn {
     }
 
     if (error instanceof ApiError) {
-      // Unauthorized / forbidden / rate limit → pesan backend sudah aman (tidak bocor enum).
-      bannerError.value = translateError(error.message)
+      applyStructuredLoginError(error)
       return
     }
 
     bannerError.value = UNEXPECTED_FAILURE_MESSAGE
+  }
+
+  function applyStructuredLoginError(error: ApiError): void {
+    if (error.status === 429) {
+      startRetryCountdown(error.retryAfterSeconds ?? 60)
+      return
+    }
+
+    if (error.status === 423 || error.status === 403) {
+      bannerError.value = LOCKED_OR_DISABLED_MESSAGE
+      return
+    }
+
+    if (error.status === 401) {
+      bannerError.value = GENERIC_FAILURE_MESSAGE
+      return
+    }
+
+    bannerError.value = safeLoginErrorMessage(error)
+  }
+
+  function startRetryCountdown(seconds: number): void {
+    if (retryTimer) window.clearInterval(retryTimer)
+    retryAfterSeconds.value = Math.max(1, seconds)
+    updateRateLimitMessage()
+    retryTimer = window.setInterval(() => {
+      retryAfterSeconds.value = Math.max(0, retryAfterSeconds.value - 1)
+      if (retryAfterSeconds.value <= 0 && retryTimer) {
+        window.clearInterval(retryTimer)
+        retryTimer = null
+      }
+      updateRateLimitMessage()
+    }, 1000)
+  }
+
+  function updateRateLimitMessage(): void {
+    bannerError.value = retryAfterSeconds.value > 0
+      ? RATE_LIMIT_MESSAGE.replace('{seconds}', retryAfterSeconds.value.toString())
+      : null
+  }
+
+  function safeLoginErrorMessage(error: ApiError): string {
+    if (error.status >= 500 || error.status === 0) return UNEXPECTED_FAILURE_MESSAGE
+    return translateError(error.message)
   }
 
   function readRedirectTarget(): string {
@@ -159,5 +212,5 @@ export function useLoginForm(): UseLoginFormReturn {
     window.location.assign(url.toString())
   }
 
-  return { form, pending, bannerError, fieldErrors, canSubmit, submit }
+  return { form, pending, bannerError, fieldErrors, retryAfterSeconds, canSubmit, submit }
 }

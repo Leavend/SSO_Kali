@@ -66,6 +66,10 @@ const login = useLoginForm()
           :error="login.fieldErrors.value['password'] ?? null"
         />
 
+        <p v-if="login.retryAfterSeconds.value > 0" class="text-muted-foreground text-caption" aria-live="polite">
+          Tombol masuk aktif kembali dalam {{ login.retryAfterSeconds.value }} detik.
+        </p>
+
         <Button
           type="submit"
           size="lg"

@@ -28,6 +28,7 @@ export class ApiError extends Error {
   readonly code: string | null
   readonly violations: readonly ApiViolation[]
   readonly kind: ApiErrorKind
+  readonly retryAfterSeconds: number | null
 
   constructor(
     status: number,
@@ -35,6 +36,7 @@ export class ApiError extends Error {
     code: string | null = null,
     violations: readonly ApiViolation[] = [],
     kind: ApiErrorKind = 'http',
+    retryAfterSeconds: number | null = null,
   ) {
     super(message)
     this.name = 'ApiError'
@@ -42,6 +44,7 @@ export class ApiError extends Error {
     this.code = code
     this.violations = violations
     this.kind = kind
+    this.retryAfterSeconds = retryAfterSeconds
   }
 
   static async fromResponse(response: Response): Promise<ApiError> {
@@ -52,6 +55,7 @@ export class ApiError extends Error {
       payload.code,
       payload.violations,
       'http',
+      readRetryAfterSeconds(response.headers.get('retry-after')),
     )
   }
 
@@ -217,6 +221,17 @@ function localizeMessage(message: string | null): string | null {
 
 function readString(value: unknown): string | null {
   return typeof value === 'string' && value.length > 0 ? value : null
+}
+
+function readRetryAfterSeconds(value: string | null): number | null {
+  if (!value) return null
+  const seconds = Number.parseInt(value, 10)
+  if (Number.isFinite(seconds) && seconds > 0) return seconds
+
+  const retryAt = Date.parse(value)
+  if (!Number.isFinite(retryAt)) return null
+
+  return Math.max(1, Math.ceil((retryAt - Date.now()) / 1000))
 }
 
 function readViolations(

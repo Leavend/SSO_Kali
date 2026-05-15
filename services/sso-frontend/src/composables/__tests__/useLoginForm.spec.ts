@@ -189,6 +189,61 @@ describe('useLoginForm', () => {
     })
   })
 
+  it('submit() shows localized retry countdown for 429 Retry-After', async () => {
+    vi.useFakeTimers()
+    const session = useSessionStore()
+    vi.spyOn(session, 'login').mockRejectedValue(
+      new ApiError(429, 'raw throttle backend trace', 'too_many_requests', [], 'http', 3),
+    )
+
+    const login = useLoginForm()
+    login.form.identifier = 'x'
+    login.form.password = 'y'
+    await login.submit()
+
+    expect(login.bannerError.value).toBe('Terlalu banyak percobaan login. Coba lagi dalam 3 detik.')
+    expect(login.bannerError.value).not.toContain('raw throttle backend trace')
+    expect(login.canSubmit.value).toBe(false)
+
+    vi.advanceTimersByTime(3000)
+    expect(login.retryAfterSeconds.value).toBe(0)
+    expect(login.canSubmit.value).toBe(true)
+    vi.useRealTimers()
+  })
+
+  it.each([423, 403])('submit() shows safe non-enumerating locked copy for HTTP %i', async (status) => {
+    const session = useSessionStore()
+    vi.spyOn(session, 'login').mockRejectedValue(
+      new ApiError(status, 'User disabled stack trace: user@example.com'),
+    )
+
+    const login = useLoginForm()
+    login.form.identifier = 'x'
+    login.form.password = 'y'
+    await login.submit()
+
+    expect(login.bannerError.value).toBe(
+      'Akun tidak dapat digunakan untuk masuk saat ini. Hubungi administrator jika kamu membutuhkan bantuan.',
+    )
+    expect(login.bannerError.value).not.toContain('user@example.com')
+    expect(login.bannerError.value).not.toContain('stack trace')
+  })
+
+  it('submit() shows generic copy for 401 without raw backend message', async () => {
+    const session = useSessionStore()
+    vi.spyOn(session, 'login').mockRejectedValue(
+      new ApiError(401, 'SQLSTATE user not found for alice@example.com'),
+    )
+
+    const login = useLoginForm()
+    login.form.identifier = 'x'
+    login.form.password = 'y'
+    await login.submit()
+
+    expect(login.bannerError.value).toBe('Email atau password yang kamu masukkan salah. Silakan coba lagi.')
+    expect(login.bannerError.value).not.toContain('alice@example.com')
+  })
+
   it('submit() shows fallback message for unexpected errors', async () => {
     const session = useSessionStore()
     vi.spyOn(session, 'login').mockRejectedValue(new Error('boom'))
