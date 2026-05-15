@@ -25,31 +25,31 @@ final readonly class VerifyLocalPasswordLoginAction
     public function execute(string $identifier, string $password): LocalPasswordLoginResult
     {
         $normalized = $this->normalize($identifier);
+        $user = $this->findUser($normalized);
 
         if ($normalized === '' || $this->throttle->isThrottled($normalized)) {
             return new LocalPasswordLoginResult(
                 outcome: LocalPasswordLoginOutcome::TooManyAttempts,
+                user: $user,
                 remainingAttempts: $this->throttle->remainingAttempts($normalized),
                 retryAfter: $this->throttle->availableIn($normalized),
             );
         }
 
-        $user = $this->findUser($normalized);
-
         if (! $user instanceof User) {
             Hash::check($password, self::DUMMY_HASH);
 
-            return $this->failed($normalized, LocalPasswordLoginOutcome::InvalidCredentials);
+            return $this->failed($normalized, LocalPasswordLoginOutcome::InvalidCredentials, null);
         }
 
         if ($user->disabled_at !== null || $user->local_account_enabled === false) {
-            return $this->failed($normalized, LocalPasswordLoginOutcome::AccountLocked);
+            return $this->failed($normalized, LocalPasswordLoginOutcome::AccountLocked, $user);
         }
 
         $storedHash = $user->getRawOriginal('password');
 
         if (! is_string($storedHash) || $storedHash === '' || ! password_verify($password, $storedHash)) {
-            return $this->failed($normalized, LocalPasswordLoginOutcome::InvalidCredentials);
+            return $this->failed($normalized, LocalPasswordLoginOutcome::InvalidCredentials, $user);
         }
 
         if (Hash::needsRehash($storedHash)) {
@@ -73,12 +73,13 @@ final readonly class VerifyLocalPasswordLoginAction
         );
     }
 
-    private function failed(string $normalized, LocalPasswordLoginOutcome $outcome): LocalPasswordLoginResult
+    private function failed(string $normalized, LocalPasswordLoginOutcome $outcome, ?User $user): LocalPasswordLoginResult
     {
         $this->throttle->recordFailure($normalized);
 
         return new LocalPasswordLoginResult(
             outcome: $outcome,
+            user: $user,
             remainingAttempts: $this->throttle->remainingAttempts($normalized),
         );
     }
