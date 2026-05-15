@@ -26,6 +26,7 @@ use Illuminate\Support\Facades\Route;
 // --- OIDC Authorization (requires browser session for login state) ---
 Route::middleware('throttle:oidc-authorize')->group(function (): void {
     Route::get('/authorize', AuthorizeController::class);
+    Route::get('/oauth/authorize', AuthorizeController::class);
 });
 
 Route::prefix('/oauth2')->group(function (): void {
