@@ -105,6 +105,24 @@ describe('ApiError.fromResponse', () => {
     )
   })
 
+  it('maps the BE-FR020 lost-factor reset English copy to localized copy', async () => {
+    const response = new Response(
+      JSON.stringify({
+        error: 'mfa_reenrollment_required',
+        error_description:
+          'Your administrator has reset your multi-factor authentication. Enroll a new second factor before continuing.',
+      }),
+      { status: 403, headers: { 'content-type': 'application/json' } },
+    )
+
+    const error = await ApiError.fromResponse(response)
+
+    expect(error.code).toBe('mfa_reenrollment_required')
+    expect(error.message).toBe(
+      'Akun Anda telah direset oleh admin. Aktifkan kembali autentikasi multi-faktor (MFA) sebelum melanjutkan.',
+    )
+  })
+
   it('maps Laravel CSRF failures to user-friendly copy', async () => {
     const response = new Response(JSON.stringify({ message: 'CSRF token mismatch.' }), {
       status: 419,

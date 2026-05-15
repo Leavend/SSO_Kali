@@ -197,6 +197,13 @@ const MESSAGE_ID_MAP: Record<string, string> = {
   'Not Found': 'Sumber daya tidak ditemukan.',
   'You must enroll a multi-factor authentication method before accessing the admin panel.':
     'Aktifkan autentikasi multi-faktor (MFA) sebelum mengakses panel admin.',
+  // BE-FR020-001 — lost-factor recovery: backend sends Indonesian copy by
+  // default, but legacy or proxy-translated builds may surface the English
+  // form. Map both to keep UI copy consistent.
+  'Akun Anda telah direset oleh admin. Aktifkan kembali autentikasi multi-faktor (MFA) sebelum melanjutkan.':
+    'Akun Anda telah direset oleh admin. Aktifkan kembali autentikasi multi-faktor (MFA) sebelum melanjutkan.',
+  'Your administrator has reset your multi-factor authentication. Enroll a new second factor before continuing.':
+    'Akun Anda telah direset oleh admin. Aktifkan kembali autentikasi multi-faktor (MFA) sebelum melanjutkan.',
 }
 
 function localizeMessage(message: string | null): string | null {

@@ -34,6 +34,10 @@ final class MfaStatusController
             'methods' => $enrolled ? ['totp'] : [],
             'totp_verified_at' => $credential?->verified_at?->toIso8601String(),
             'recovery_codes_remaining' => $enrolled ? $recoveryCodes->remaining($userId) : 0,
+            // BE-FR020-001 — surface lost-factor recovery state to the client.
+            'reenrollment_required' => (bool) $user->mfa_reset_required,
+            'reset_at' => $user->mfa_reset_at?->toIso8601String(),
+            'reset_reason' => $user->mfa_reset_required ? $user->mfa_reset_reason : null,
         ]);
     }
 }

@@ -11,6 +11,7 @@ final class ProfilePrincipalException extends RuntimeException
     public function __construct(
         public readonly string $errorCode,
         string $message,
+        public readonly int $statusCode = 401,
     ) {
         parent::__construct($message);
     }

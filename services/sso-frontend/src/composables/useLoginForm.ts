@@ -95,6 +95,17 @@ export function useLoginForm(): UseLoginFormReturn {
       return
     }
 
+    // BE-FR020-001: lost-factor recovery — admin reset MFA, force enrolment.
+    if (
+      !response.authenticated &&
+      'error' in response &&
+      response.error === 'mfa_reenrollment_required'
+    ) {
+      bannerError.value = response.message
+      await router.push({ name: 'portal.security', query: { reason: 'mfa_reset' } })
+      return
+    }
+
     if (!response.authenticated) {
       bannerError.value = GENERIC_FAILURE_MESSAGE
       return

@@ -43,7 +43,25 @@ export type SsoLoginMfaRequired = {
   }
 }
 
-export type SsoLoginResponse = SsoLoginSuccess | SsoLoginFailure | SsoLoginMfaRequired
+/**
+ * BE-FR020-001: Lost-factor recovery response.
+ *
+ * Returned when an admin has performed an emergency MFA reset on the user.
+ * The frontend must redirect the authenticated session to the enrolment
+ * surface and surface `mfa_reset_at` so the UX banner can explain why.
+ */
+export type SsoLoginMfaReenrollmentRequired = {
+  readonly authenticated: false
+  readonly error: 'mfa_reenrollment_required'
+  readonly message: string
+  readonly mfa_reset_at: string | null
+}
+
+export type SsoLoginResponse =
+  | SsoLoginSuccess
+  | SsoLoginFailure
+  | SsoLoginMfaRequired
+  | SsoLoginMfaReenrollmentRequired
 
 
 export type SsoSessionResponse =

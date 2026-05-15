@@ -56,6 +56,12 @@ final class ConfirmTotpEnrollment
 
         $codes = $this->recoveryCodes->generate($user->getKey());
 
+        // BE-FR020-001: clear the lost-factor flag once a fresh second factor
+        // is in place. Reason and audit timestamp are retained for forensics.
+        if ($user->mfa_reset_required) {
+            $user->forceFill(['mfa_reset_required' => false])->save();
+        }
+
         if (config('security-notifications.enabled', true)) {
             $user->notify(new MfaEnabledNotification('totp'));
         }

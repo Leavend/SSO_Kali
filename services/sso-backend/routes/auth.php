@@ -11,6 +11,7 @@ use App\Http\Controllers\Mfa\MfaStatusController;
 use App\Http\Controllers\Mfa\RecoveryCodeController;
 use App\Http\Controllers\Mfa\TotpEnrollmentController;
 use App\Http\Controllers\Mfa\TotpRemovalController;
+use App\Http\Middleware\EnsureMfaReenrollmentCompleted;
 use App\Http\Middleware\ResolveSsoSessionUser;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -43,7 +44,7 @@ Route::prefix('api/auth')->group(function (): void {
     Route::post('/register', RegisterController::class)->middleware('throttle:oidc-callback');
 });
 
-Route::prefix('api/mfa')->middleware(['throttle:profile-api', ResolveSsoSessionUser::class])->group(function (): void {
+Route::prefix('api/mfa')->middleware(['throttle:profile-api', ResolveSsoSessionUser::class, EnsureMfaReenrollmentCompleted::class])->group(function (): void {
     Route::get('/status', MfaStatusController::class);
     Route::post('/totp/enroll', [TotpEnrollmentController::class, 'store']);
     Route::post('/totp/verify', [TotpEnrollmentController::class, 'verify']);

@@ -116,6 +116,20 @@ final class AuthenticateLocalCredentials
 
         $user = $verification->user;
 
+        // BE-FR020-001: a user whose MFA was emergency-reset must finish a
+        // fresh enrolment before any privileged authentication can complete.
+        // Returning a structured 403 lets the frontend surface the
+        // re-enrolment prompt and cancels any downstream OIDC continuation.
+        if ($user->mfa_reset_required) {
+            $this->recordFailed($request, $email, $client, 'mfa_reenrollment_required');
+
+            return response()->json([
+                'error' => 'mfa_reenrollment_required',
+                'message' => 'Akun Anda telah direset oleh admin. Aktifkan kembali autentikasi multi-faktor (MFA) sebelum melanjutkan.',
+                'mfa_reset_at' => $user->mfa_reset_at?->toIso8601String(),
+            ], 403);
+        }
+
         // FR-019 / UC-67 / BE-FR019-001: Check if user has MFA enrolled.
         // The pending OIDC authorization request is bound to the challenge
         // server-side. The client only receives an opaque challenge id and

@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Auth;
 use App\Actions\Auth\LoginSsoUserAction;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Models\MfaCredential;
+use App\Models\User;
 use App\Services\Mfa\MfaChallengeStore;
 use App\Services\Session\SsoSessionCookieFactory;
 use Illuminate\Http\JsonResponse;
@@ -42,6 +43,22 @@ final class LoginController
             }
 
             return response()->json($payload, $this->errorStatus($result->error), $headers);
+        }
+
+        // BE-FR020-001 — lost-factor recovery: a user with `mfa_reset_required`
+        // must enrol a fresh second factor before any privileged login
+        // succeeds. Revoke the pre-created session and surface a structured
+        // 403 so the SPA can show the re-enrolment prompt.
+        $resolvedUser = User::query()->where('subject_id', $result->user->subjectId)->first();
+        if ($resolvedUser instanceof User && $resolvedUser->mfa_reset_required) {
+            $result->session->update(['revoked_at' => now()]);
+
+            return response()->json([
+                'authenticated' => false,
+                'error' => 'mfa_reenrollment_required',
+                'message' => 'Akun Anda telah direset oleh admin. Aktifkan kembali autentikasi multi-faktor (MFA) sebelum melanjutkan.',
+                'mfa_reset_at' => $resolvedUser->mfa_reset_at?->toIso8601String(),
+            ], 403);
         }
 
         // FR-018: Check if user has MFA enrolled — require challenge

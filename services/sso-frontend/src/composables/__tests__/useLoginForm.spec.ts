@@ -147,6 +147,28 @@ describe('useLoginForm', () => {
     expect(login.bannerError.value).toMatch(/email atau password/i)
   })
 
+  it('submit() routes to portal.security with reason=mfa_reset on lost-factor recovery (BE-FR020-001)', async () => {
+    const session = useSessionStore()
+    vi.spyOn(session, 'login').mockResolvedValue({
+      authenticated: false,
+      error: 'mfa_reenrollment_required',
+      message:
+        'Akun Anda telah direset oleh admin. Aktifkan kembali autentikasi multi-faktor (MFA) sebelum melanjutkan.',
+      mfa_reset_at: '2026-05-15T11:30:00Z',
+    })
+
+    const login = useLoginForm()
+    login.form.identifier = 'u'
+    login.form.password = 'p'
+    await login.submit()
+
+    expect(routerPushMock).toHaveBeenCalledWith({
+      name: 'portal.security',
+      query: { reason: 'mfa_reset' },
+    })
+    expect(login.bannerError.value).toMatch(/direset oleh admin/i)
+  })
+
   it('submit() populates fieldErrors when BE returns 422 violations', async () => {
     const session = useSessionStore()
     vi.spyOn(session, 'login').mockRejectedValue(

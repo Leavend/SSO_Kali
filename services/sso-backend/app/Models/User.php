@@ -30,6 +30,10 @@ use Laravel\Passport\HasApiTokens;
  * @property bool $local_account_enabled
  * @property Carbon|null $profile_synced_at
  * @property Carbon|null $password_changed_at
+ * @property bool $mfa_reset_required
+ * @property Carbon|null $mfa_reset_at
+ * @property string|null $mfa_reset_reason
+ * @property int|null $mfa_reset_by_user_id
  * @property string|null $password_reset_token_hash
  * @property Carbon|null $password_reset_token_expires_at
  * @property Carbon|null $email_verified_at
@@ -53,6 +57,10 @@ class User extends Authenticatable implements OAuthenticatable
         'email',
         'password',
         'password_changed_at',
+        'mfa_reset_required',
+        'mfa_reset_at',
+        'mfa_reset_reason',
+        'mfa_reset_by_user_id',
         'given_name',
         'family_name',
         'display_name',
@@ -103,6 +111,8 @@ class User extends Authenticatable implements OAuthenticatable
             'local_account_enabled' => 'boolean',
             'profile_synced_at' => 'datetime',
             'password_changed_at' => 'datetime',
+            'mfa_reset_required' => 'boolean',
+            'mfa_reset_at' => 'datetime',
             'password_reset_token_expires_at' => 'datetime',
             'password' => 'hashed',
         ];

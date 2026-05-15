@@ -60,21 +60,52 @@ final class ProfilePrincipalResolver
      *
      * @return array{user: User, claims: array<string, mixed>, source: 'bearer'|'session'}
      *
-     * @throws ProfilePrincipalException when neither credential is present or valid.
+     * @throws ProfilePrincipalException when neither credential is present or valid,
+     *                                   or when the user must re-enroll MFA after
+     *                                   an admin-initiated lost-factor reset.
      */
     public function resolve(Request $request): array
     {
         $bearer = (string) $request->bearerToken();
         if ($bearer !== '') {
-            return $this->fromBearer($bearer);
+            $resolved = $this->fromBearer($bearer);
+            $this->guardMfaReenrollment($resolved['user']);
+
+            return $resolved;
         }
 
         $cookieSession = $this->fromSession($request);
         if ($cookieSession !== null) {
+            $this->guardMfaReenrollment($cookieSession['user']);
+
             return $cookieSession;
         }
 
         throw new ProfilePrincipalException('invalid_token', 'Authentication required.');
+    }
+
+    /**
+     * BE-FR020-001 — lost-factor MFA recovery enforcement.
+     *
+     * After an admin emergency reset, every privileged self-service
+     * endpoint MUST refuse the user until they finish a fresh enrolment.
+     * The MFA enrolment surface lives on `/api/mfa/*` and bypasses this
+     * resolver entirely (see `EnsureMfaReenrollmentCompleted`), so it is
+     * safe to gate all callers of `ProfilePrincipalResolver` here.
+     *
+     * @throws ProfilePrincipalException
+     */
+    private function guardMfaReenrollment(User $user): void
+    {
+        if (! $user->mfa_reset_required) {
+            return;
+        }
+
+        throw new ProfilePrincipalException(
+            'mfa_reenrollment_required',
+            'Akun Anda telah direset oleh admin. Aktifkan kembali autentikasi multi-faktor (MFA) sebelum melanjutkan.',
+            statusCode: 403,
+        );
     }
 
     /**

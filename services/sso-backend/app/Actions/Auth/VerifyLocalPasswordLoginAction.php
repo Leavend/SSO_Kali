@@ -37,7 +37,7 @@ final readonly class VerifyLocalPasswordLoginAction
         }
 
         if (! $user instanceof User) {
-            Hash::check($password, self::DUMMY_HASH);
+            $this->timingSafeProbe($password);
 
             return $this->failed($normalized, LocalPasswordLoginOutcome::InvalidCredentials, null);
         }
@@ -71,6 +71,17 @@ final readonly class VerifyLocalPasswordLoginAction
             user: $user,
             remainingAttempts: $this->throttle->remainingAttempts($normalized),
         );
+    }
+
+    /**
+     * Run a timing-safe probe so a missing-user lookup costs roughly the
+     * same as a real verification. Uses the algorithm-agnostic
+     * `password_verify()` so a strict driver mismatch cannot leak control
+     * flow via an unhandled exception.
+     */
+    private function timingSafeProbe(string $password): void
+    {
+        password_verify($password, self::DUMMY_HASH);
     }
 
     private function failed(string $normalized, LocalPasswordLoginOutcome $outcome, ?User $user): LocalPasswordLoginResult

@@ -12,6 +12,7 @@ use App\Actions\Admin\ReactivateManagedUserAction;
 use App\Actions\Admin\SyncManagedUserProfileAction;
 use App\Http\Requests\Admin\CreateManagedUserRequest;
 use App\Http\Requests\Admin\DeactivateManagedUserRequest;
+use App\Http\Requests\Admin\EmergencyMfaResetRequest;
 use App\Http\Requests\Admin\SyncManagedUserProfileRequest;
 use App\Models\User;
 use App\Services\Admin\AdminMutationResponder;
@@ -73,11 +74,35 @@ final class UserController
         return $this->mutateUser($request, $subjectId, 'sync_managed_user_profile', fn (User $target): User => $action->execute($target, $request->validated()));
     }
 
-    public function resetMfa(Request $request, EmergencyMfaResetAction $action, string $subjectId): JsonResponse
+    public function resetMfa(EmergencyMfaResetRequest $request, EmergencyMfaResetAction $action, string $subjectId): JsonResponse
     {
-        return ($target = $this->users->find($subjectId)) instanceof User
-            ? $this->mutate($request, 'emergency_mfa_reset', ['target_subject_id' => $subjectId], fn (): array => tap(['reset' => true, 'message' => 'MFA credential removed.'], fn () => $action->execute($target)))
-            : AdminApiResponse::error('not_found', 'User not found.', 404);
+        $target = $this->users->find($subjectId);
+
+        if (! $target instanceof User) {
+            return AdminApiResponse::error('not_found', 'User not found.', 404);
+        }
+
+        /** @var User $admin */
+        $admin = $request->attributes->get('admin_user');
+        $reason = (string) $request->validated('reason');
+
+        return $this->mutate(
+            $request,
+            'emergency_mfa_reset',
+            [
+                'target_subject_id' => $subjectId,
+                'reason' => $reason,
+                'reason_length' => mb_strlen($reason),
+            ],
+            fn (): array => tap(
+                [
+                    'reset' => true,
+                    'message' => 'MFA credential removed. The user must re-enroll a second factor before continuing.',
+                    'reenrollment_required' => true,
+                ],
+                fn () => $action->execute($target, $admin, $reason),
+            ),
+        );
     }
 
     /** @param Closure(): array<string, mixed> $callback */

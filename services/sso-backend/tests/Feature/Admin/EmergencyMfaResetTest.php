@@ -57,14 +57,26 @@ describe('POST /admin/api/users/{subjectId}/reset-mfa', function (): void {
         expect($this->recoveryCodes->remaining($this->targetUser->getKey()))->toBe(8);
 
         $response = $this->withToken(emergencyAdminToken($this->admin))
-            ->postJson("/admin/api/users/{$this->targetUser->subject_id}/reset-mfa");
+            ->postJson("/admin/api/users/{$this->targetUser->subject_id}/reset-mfa", [
+                'reason' => 'Lost device confirmed via support call SR-12345',
+            ]);
 
         $response->assertOk();
         $response->assertJsonPath('reset', true);
-        $response->assertJsonPath('message', 'MFA credential removed.');
+        $response->assertJsonPath('reenrollment_required', true);
+        $response->assertJsonPath(
+            'message',
+            'MFA credential removed. The user must re-enroll a second factor before continuing.',
+        );
 
         expect(MfaCredential::query()->forUser($this->targetUser->getKey())->exists())->toBeFalse();
         expect($this->recoveryCodes->remaining($this->targetUser->getKey()))->toBe(0);
+
+        $this->targetUser->refresh();
+        expect($this->targetUser->mfa_reset_required)->toBeTrue();
+        expect($this->targetUser->mfa_reset_at)->not->toBeNull();
+        expect($this->targetUser->mfa_reset_reason)->toBe('Lost device confirmed via support call SR-12345');
+        expect($this->targetUser->mfa_reset_by_user_id)->toBe($this->admin->getKey());
 
         Notification::assertSentTo($this->targetUser, MfaDisabledNotification::class, function ($notification) {
             $mail = $notification->toMail($this->targetUser);
@@ -76,20 +88,42 @@ describe('POST /admin/api/users/{subjectId}/reset-mfa', function (): void {
 
     it('returns error when user has no MFA enrolled', function (): void {
         $response = $this->withToken(emergencyAdminToken($this->admin))
-            ->postJson("/admin/api/users/{$this->targetUser->subject_id}/reset-mfa");
+            ->postJson("/admin/api/users/{$this->targetUser->subject_id}/reset-mfa", [
+                'reason' => 'Recovery flow precondition probe',
+            ]);
 
         $response->assertUnprocessable();
     });
 
+    it('rejects when reason is missing or too short', function (): void {
+        MfaCredential::factory()->totp()->verified()->create([
+            'user_id' => $this->targetUser->getKey(),
+        ]);
+
+        $this->withToken(emergencyAdminToken($this->admin))
+            ->postJson("/admin/api/users/{$this->targetUser->subject_id}/reset-mfa")
+            ->assertStatus(422);
+
+        $this->withToken(emergencyAdminToken($this->admin))
+            ->postJson("/admin/api/users/{$this->targetUser->subject_id}/reset-mfa", [
+                'reason' => 'short',
+            ])
+            ->assertStatus(422);
+    });
+
     it('returns 404 for non-existent user', function (): void {
         $response = $this->withToken(emergencyAdminToken($this->admin))
-            ->postJson('/admin/api/users/non-existent-id/reset-mfa');
+            ->postJson('/admin/api/users/non-existent-id/reset-mfa', [
+                'reason' => 'Probe for missing subject id',
+            ]);
 
         $response->assertNotFound();
     });
 
     it('rejects request without admin token', function (): void {
-        $response = $this->postJson("/admin/api/users/{$this->targetUser->subject_id}/reset-mfa");
+        $response = $this->postJson("/admin/api/users/{$this->targetUser->subject_id}/reset-mfa", [
+            'reason' => 'Some plausible reason',
+        ]);
 
         $response->assertUnauthorized();
     });

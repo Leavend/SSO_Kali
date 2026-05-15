@@ -29,7 +29,7 @@ final class RevokeConnectedAppAction
         try {
             $principal = $this->principals->resolve($request);
         } catch (ProfilePrincipalException $e) {
-            return OidcErrorResponse::json($e->errorCode, $e->getMessage(), 401);
+            return OidcErrorResponse::json($e->errorCode, $e->getMessage(), $e->statusCode);
         }
         $claims = $principal['claims'];
 
