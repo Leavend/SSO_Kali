@@ -5,7 +5,7 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { useSessionStore } from '@/stores/session.store'
 
-export type RouteLayout = 'auth' | 'portal'
+export type RouteLayout = 'auth' | 'portal' | 'admin'
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -78,6 +78,17 @@ const routes: RouteRecordRaw[] = [
     name: 'portal.security',
     component: () => import('@/pages/portal/SecurityPage.vue'),
     meta: { layout: 'portal', requiresAuth: true, title: 'Keamanan' },
+  },
+  {
+    path: '/admin/clients',
+    name: 'admin.clients',
+    component: () => import('@/pages/admin/ClientManagementPage.vue'),
+    meta: {
+      layout: 'admin',
+      requiresAuth: true,
+      requiredRoles: ['admin'],
+      title: 'Admin Client Management',
+    },
   },
   {
     path: '/:pathMatch(.*)*',
