@@ -17,6 +17,7 @@ import {
 } from './admin-api-error.js'
 import type { AdminConfig } from './config.js'
 import { getConfig } from './config.js'
+import { fetchDiscovery, type DiscoveryMetadata } from '../lib/oidc/discovery.js'
 import {
   clearSessionCookie,
   clearTransactionCookie,
@@ -38,7 +39,7 @@ import {
   generateState,
 } from './pkce.js'
 
-let jwks: ReturnType<typeof createRemoteJWKSet> | null = null
+const jwksByUrl = new Map<string, ReturnType<typeof createRemoteJWKSet>>()
 
 export async function handleLogin(requestUrl: URL): Promise<AppResponse> {
   const state = generateState()
@@ -240,8 +241,9 @@ async function completeCallbackSession(
   let verifiedSubjectId: string | null = null
 
   try {
+    const discovery = await fetchValidatedDiscoveryMetadata()
     const tokens = await exchangeCode(code, tx.codeVerifier)
-    const claims = await verifyIdToken(tokens.id_token, tx.nonce)
+    const claims = await verifyIdToken(tokens.id_token, tx.nonce, discovery)
     verifiedSubjectId = claims.sub
     const principal = await fetchPrincipalWithAccessToken(tokens.access_token)
 
@@ -290,11 +292,36 @@ async function exchangeCode(code: string, codeVerifier: string): Promise<TokenSe
   return res.json() as Promise<TokenSet>
 }
 
-async function verifyIdToken(token: string, expectedNonce: string): Promise<{ readonly sub: string; readonly exp: number }> {
+async function fetchValidatedDiscoveryMetadata(): Promise<DiscoveryMetadata> {
   const config = getConfig()
-  jwks ??= createRemoteJWKSet(new URL(config.jwksUrl))
+  const metadata = await fetchDiscovery(`${config.issuer.replace(/\/$/, '')}/.well-known/openid-configuration`)
+
+  if (metadata.issuer !== config.issuer) {
+    throw new Error('Discovery issuer mismatch.')
+  }
+
+  if (metadata.jwks_uri !== config.jwksUrl) {
+    throw new Error('Discovery JWKS URI mismatch.')
+  }
+
+  return metadata
+}
+
+async function verifyIdToken(
+  token: string,
+  expectedNonce: string,
+  discovery: DiscoveryMetadata,
+): Promise<{ readonly sub: string; readonly exp: number }> {
+  const config = getConfig()
+  const jwksUrl = discovery.jwks_uri
+  let jwks = jwksByUrl.get(jwksUrl)
+  if (!jwks) {
+    jwks = createRemoteJWKSet(new URL(jwksUrl))
+    jwksByUrl.set(jwksUrl, jwks)
+  }
+
   const { payload } = await jwtVerify(token, jwks, {
-    issuer: config.issuer,
+    issuer: discovery.issuer,
     audience: config.clientId,
   })
 
