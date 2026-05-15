@@ -9,6 +9,7 @@ import { handleAdminApi, redirectForLegacyError } from './admin-handlers.js'
 import { handleSession, handleUserApi } from './user-handlers.js'
 import {
   handleCallback,
+  handleCallbackSession,
   handleLogin,
   handleLogout,
   handleRefresh,
@@ -48,7 +49,9 @@ async function route(request: IncomingMessage, requestUrl: URL): Promise<AppResp
 
   if (pathname === '/auth/login') return method === 'GET' ? handleLogin(requestUrl) : methodNotAllowed()
   if (pathname === '/auth/callback') {
-    return method === 'GET' ? handleCallback(request, requestUrl) : methodNotAllowed()
+    if (method === 'GET') return handleCallback(request, requestUrl)
+    if (method === 'POST') return handleCallbackSession(request)
+    return methodNotAllowed()
   }
   if (pathname === '/auth/logout') return method === 'GET' ? handleLogout(request) : methodNotAllowed()
   if (pathname === '/auth/refresh') return method === 'POST' ? handleRefresh(request) : methodNotAllowed()

@@ -1,29 +1,24 @@
 /**
  * useOidcCallback — UC-13 + UC-14.
  *
- * Mengambil `code`/`state` dari query, validasi state terhadap snapshot
- * yang disimpan saat authorize, exchange code di `/oauth2/token`, dan
- * validasi `nonce` pada ID Token.
+ * FE-FR013-001: Browser-side callback only forwards `code`/`state` to the
+ * same-origin BFF. Token exchange, ID-token validation, principal bootstrap,
+ * and session storage happen server-side; the SPA never receives raw OAuth
+ * tokens.
  */
 
 import { ref, type Ref } from 'vue'
-import { exchangeAuthorizationCode, type TokenResponse } from '@/services/oidc.api'
-import { validateIdToken, type IdTokenClaims } from '@/lib/oidc/id-token'
-import { takeAuthorizeRequest, type AuthorizeRequestSnapshot } from '@/lib/oidc/request-storage'
+import {
+  completeOidcCallback,
+  type OidcCallbackSessionResult,
+} from '@/services/oidc-callback.api'
 
 export type OidcCallbackError =
   | 'missing_params'
-  | 'state_missing'
-  | 'state_mismatch'
   | 'authorize_error'
-  | 'token_exchange_failed'
-  | 'id_token_invalid'
+  | 'session_exchange_failed'
 
-export type OidcCallbackResult = {
-  readonly tokens: TokenResponse
-  readonly claims: IdTokenClaims
-  readonly post_login_redirect: string
-}
+export type OidcCallbackResult = OidcCallbackSessionResult
 
 export type OidcCallbackQuery = {
   readonly code?: string
@@ -61,39 +56,17 @@ export function useOidcCallback(): UseOidcCallbackReturn {
         return fail('missing_params', 'Parameter code atau state tidak ditemukan.')
       }
 
-      const snapshot = takeAuthorizeRequest()
-      if (!snapshot) {
-        return fail('state_missing', 'Sesi authorize tidak ditemukan.')
-      }
-
-      if (snapshot.state !== query.state) {
-        return fail('state_mismatch', 'State tidak cocok. Kemungkinan CSRF atau sesi expired.')
-      }
-
-      const tokens = await exchangeAuthorizationCode({
-        token_endpoint: resolveTokenEndpoint(snapshot),
-        client_id: snapshot.client_id,
+      const sessionResult = await completeOidcCallback({
         code: query.code,
-        redirect_uri: snapshot.redirect_uri,
-        code_verifier: snapshot.code_verifier,
+        state: query.state,
       }).catch(() => null)
 
-      if (!tokens) {
-        return fail('token_exchange_failed', 'Gagal menukar authorization code.')
+      if (!sessionResult) {
+        return fail('session_exchange_failed', 'Gagal menyiapkan sesi aman.')
       }
 
-      const claims = await safeValidateIdToken(tokens.id_token, snapshot)
-      if (!claims) {
-        return fail('id_token_invalid', 'ID Token tidak valid.')
-      }
-
-      const payload: OidcCallbackResult = {
-        tokens,
-        claims,
-        post_login_redirect: snapshot.post_login_redirect,
-      }
-      result.value = payload
-      return payload
+      result.value = sessionResult
+      return sessionResult
     } finally {
       pending.value = false
     }
@@ -106,27 +79,4 @@ export function useOidcCallback(): UseOidcCallbackReturn {
   }
 
   return { pending, error, errorDescription, result, handle }
-}
-
-function resolveTokenEndpoint(snapshot: AuthorizeRequestSnapshot): string {
-  // FR-005: derive from snapshot issuer with canonical /oauth/token path
-  // (aligned with backend). Using the snapshot ties the token exchange to
-  // whatever issuer authorized the flow, preventing cross-issuer confusion.
-  return `${snapshot.issuer.replace(/\/$/, '')}/oauth/token`
-}
-
-async function safeValidateIdToken(
-  token: string,
-  snapshot: AuthorizeRequestSnapshot,
-): Promise<IdTokenClaims | null> {
-  try {
-    return await validateIdToken({
-      token,
-      expectedIssuer: snapshot.issuer,
-      expectedAudience: snapshot.client_id,
-      expectedNonce: snapshot.nonce,
-    })
-  } catch {
-    return null
-  }
 }

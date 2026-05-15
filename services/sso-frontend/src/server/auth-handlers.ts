@@ -72,48 +72,46 @@ export async function handleCallback(request: IncomingMessage, requestUrl: URL):
   if (earlyRoute) return redirect(new URL(earlyRoute, config.appBaseUrl).toString())
   if (!params.code || !params.state) return redirectWithClearedTx(config, HANDSHAKE_FAILED_ROUTE)
 
-  const tx = pullTransaction(request)
-  if (!tx || tx.state !== params.state) {
-    return redirectWithClearedTx(config, HANDSHAKE_FAILED_ROUTE)
-  }
-
-  // RFC 9207 — Authorization Server Issuer Identification
-  // Validates `iss` parameter to prevent mix-up attacks in multi-IdP scenarios.
   const receivedIssuer = requestUrl.searchParams.get('iss')
   if (receivedIssuer && receivedIssuer !== config.issuer) {
     return redirectWithClearedTx(config, HANDSHAKE_FAILED_ROUTE)
   }
 
-  let verifiedSubjectId: string | null = null
+  const result = await completeCallbackSession(request, params.code, params.state)
+  if (!result.ok) return redirectWithClearedTx(config, callbackErrorRoute(result.error))
 
-  try {
-    const tokens = await exchangeCode(params.code, tx.codeVerifier)
-    const claims = await verifyIdToken(tokens.id_token, tx.nonce)
-    verifiedSubjectId = claims.sub
-    const principal = await fetchPrincipalWithAccessToken(tokens.access_token)
+  return redirect(new URL(result.returnTo, config.appBaseUrl).toString(), [
+    sessionCookie(result.session),
+    clearTransactionCookie(),
+  ])
+}
 
-    if (principal.subject_id !== claims.sub) {
-      throw new Error('Admin principal subject does not match the verified ID token subject.')
-    }
+export async function handleCallbackSession(request: IncomingMessage): Promise<AppResponse> {
+  const body = await readJsonBody(request)
+  const code = typeof body.code === 'string' ? body.code : null
+  const state = typeof body.state === 'string' ? body.state : null
 
-    const session = sessionFromBootstrap(
-      {
-        accessToken: tokens.access_token,
-        idToken: tokens.id_token,
-        refreshToken: tokens.refresh_token,
-        expiresAt: Math.floor(Date.now() / 1000) + tokens.expires_in,
-      },
-      principal,
-    )
-
-    return redirect(new URL(normalizeReturnTo(tx.returnTo) ?? '/home', config.appBaseUrl).toString(), [
-      sessionCookie(session),
-      clearTransactionCookie(),
-    ])
-  } catch (error) {
-    logCallbackFailure(error, verifiedSubjectId)
-    return redirectWithClearedTx(config, callbackErrorRoute(error))
+  if (!code || !state) {
+    return json(422, { error: 'missing_params', message: 'Parameter code atau state tidak ditemukan.' }, {
+      'set-cookie': [clearTransactionCookie()],
+    })
   }
+
+  const result = await completeCallbackSession(request, code, state)
+  if (!result.ok) {
+    return json(401, { error: 'callback_failed', message: 'Gagal menyiapkan sesi aman.' }, {
+      'set-cookie': [clearTransactionCookie()],
+    })
+  }
+
+  return json(
+    200,
+    {
+      authenticated: true,
+      post_login_redirect: result.returnTo,
+    },
+    { 'set-cookie': [sessionCookie(result.session), clearTransactionCookie()] },
+  )
 }
 
 export async function handleLogout(request: IncomingMessage): Promise<AppResponse> {
@@ -220,11 +218,54 @@ function redirectWithClearedTx(config: AdminConfig, route: string): AppResponse 
   return redirect(new URL(route, config.appBaseUrl).toString(), [clearTransactionCookie()])
 }
 
+type CallbackSessionResult =
+  | { readonly ok: true; readonly session: AdminSession; readonly returnTo: string }
+  | { readonly ok: false; readonly error: unknown }
+
 type TokenSet = {
   readonly access_token: string
   readonly id_token: string
   readonly refresh_token: string
   readonly expires_in: number
+}
+
+async function completeCallbackSession(
+  request: IncomingMessage,
+  code: string,
+  state: string,
+): Promise<CallbackSessionResult> {
+  const tx = pullTransaction(request)
+  if (!tx || tx.state !== state) return { ok: false, error: new Error('OIDC callback transaction mismatch.') }
+
+  let verifiedSubjectId: string | null = null
+
+  try {
+    const tokens = await exchangeCode(code, tx.codeVerifier)
+    const claims = await verifyIdToken(tokens.id_token, tx.nonce)
+    verifiedSubjectId = claims.sub
+    const principal = await fetchPrincipalWithAccessToken(tokens.access_token)
+
+    if (principal.subject_id !== claims.sub) {
+      throw new Error('Admin principal subject does not match the verified ID token subject.')
+    }
+
+    return {
+      ok: true,
+      returnTo: normalizeReturnTo(tx.returnTo) ?? '/home',
+      session: sessionFromBootstrap(
+        {
+          accessToken: tokens.access_token,
+          idToken: tokens.id_token,
+          refreshToken: tokens.refresh_token,
+          expiresAt: Math.floor(Date.now() / 1000) + tokens.expires_in,
+        },
+        principal,
+      ),
+    }
+  } catch (error) {
+    logCallbackFailure(error, verifiedSubjectId)
+    return { ok: false, error }
+  }
 }
 
 async function exchangeCode(code: string, codeVerifier: string): Promise<TokenSet> {
@@ -287,6 +328,23 @@ async function revokeRefreshToken(config: AdminConfig, refreshToken: string): Pr
     }),
     signal: AbortSignal.timeout(5_000),
   })
+}
+
+async function readJsonBody(request: IncomingMessage): Promise<Record<string, unknown>> {
+  const chunks: Buffer[] = []
+
+  for await (const chunk of request) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
+  }
+
+  if (chunks.length === 0) return {}
+
+  try {
+    const value = JSON.parse(Buffer.concat(chunks).toString('utf8'))
+    return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
+  } catch {
+    return {}
+  }
 }
 
 function normalizeReturnTo(returnTo: string | null | undefined): string | null {
