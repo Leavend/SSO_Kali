@@ -21,9 +21,37 @@ final class TokenOriginPolicy
             return true;
         }
 
-        $client = $this->clients->find((string) $request->input('client_id', ''));
+        $client = $this->clients->find($this->clientId($request));
 
         return $client !== null && in_array($origin, $this->allowedOrigins($client->redirectUris), true);
+    }
+
+    private function clientId(Request $request): string
+    {
+        $clientId = $request->input('client_id');
+
+        if (is_string($clientId) && $clientId !== '') {
+            return $clientId;
+        }
+
+        return $this->clientIdFromBasicAuthorization($request);
+    }
+
+    private function clientIdFromBasicAuthorization(Request $request): string
+    {
+        $header = $request->headers->get('Authorization');
+
+        if (! is_string($header) || ! str_starts_with($header, 'Basic ')) {
+            return '';
+        }
+
+        $decoded = base64_decode(substr($header, 6), true);
+
+        if (! is_string($decoded) || ! str_contains($decoded, ':')) {
+            return '';
+        }
+
+        return (string) explode(':', $decoded, 2)[0];
     }
 
     private function presentedOrigin(Request $request): ?string

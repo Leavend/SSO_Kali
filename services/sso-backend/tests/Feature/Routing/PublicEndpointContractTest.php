@@ -75,7 +75,7 @@ function assertAdvertisedEndpointResolves(array $metadata, string $key, string $
     $path = advertisedEndpointPath($metadata, $key);
     $routes = Route::getRoutes()->get($method);
 
-    expect($routes)->toHaveKey($path);
+    expect(array_key_exists($path, $routes))->toBeTrue("Discovery {$key} route [{$method} {$path}] must exist.");
 }
 
 it('serves JWKS from both canonical and compatibility endpoints', function (string $uri): void {
