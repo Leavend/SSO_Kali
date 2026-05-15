@@ -8,6 +8,7 @@ use App\Actions\Audit\RecordAuthenticationAuditEventAction;
 use App\Actions\SsoErrors\BuildSsoErrorRedirectAction;
 use App\Actions\SsoErrors\RecordSsoErrorAction;
 use App\Enums\SsoErrorCode;
+use App\Enums\SsoSessionLifecycleOutcome;
 use App\Services\Oidc\AcrEvaluator;
 use App\Services\Oidc\AuthorizationCodeStore;
 use App\Services\Oidc\AuthRequestStore;
@@ -17,6 +18,7 @@ use App\Services\Oidc\HighAssuranceClientPolicy;
 use App\Services\Oidc\OidcProfileMetrics;
 use App\Services\Oidc\ScopePolicy;
 use App\Services\Oidc\SsoBrowserSession;
+use App\Services\Oidc\SsoSessionLifecycleGuard;
 use App\Services\Oidc\Upstream\UpstreamOidcClient;
 use App\Support\Audit\AuthenticationAuditRecord;
 use App\Support\Oidc\DownstreamClient;
@@ -47,6 +49,7 @@ final class CreateAuthorizationRedirect
         private readonly RecordSsoErrorAction $ssoErrors,
         private readonly BuildSsoErrorRedirectAction $errorRedirects,
         private readonly AcrEvaluator $acrEvaluator,
+        private readonly SsoSessionLifecycleGuard $sessionLifecycle,
     ) {}
 
     public function handle(Request $request): JsonResponse|RedirectResponse
@@ -68,7 +71,7 @@ final class CreateAuthorizationRedirect
         }
 
         $context = $this->context($request, $client);
-        $browserContext = $this->browserSession->context($request);
+        $browserContext = $this->resolveBrowserContext($request, $client, $context);
 
         if ($browserContext !== null && $this->canUseBrowserSession($request, $client, $browserContext)) {
             // FR-011: check consent before issuing tokens
@@ -123,6 +126,50 @@ final class CreateAuthorizationRedirect
         return redirect()
             ->away($this->upstream->authorizationUrl($this->upstreamParameters($upstreamState, $context)))
             ->withCookie($this->authFlowCookie->issue($context));
+    }
+
+    /**
+     * FR-022 / UC-50, UC-55, UC-76: Re-validate the underlying user state
+     * before reusing the browser session for code issuance. When the
+     * account is no longer eligible, drop the browser session, audit the
+     * rejection, and let the caller fall through to the standard upstream
+     * authentication flow.
+     *
+     * @param  array<string, mixed>  $context
+     * @return array<string, mixed>|null
+     */
+    private function resolveBrowserContext(Request $request, DownstreamClient $client, array $context): ?array
+    {
+        $browserContext = $this->browserSession->context($request);
+
+        if ($browserContext === null) {
+            return null;
+        }
+
+        $subjectId = is_string($browserContext['subject_id'] ?? null)
+            ? (string) $browserContext['subject_id']
+            : '';
+
+        $lifecycle = $this->sessionLifecycle->evaluate($subjectId);
+
+        if ($lifecycle->isAllowed()) {
+            return $browserContext;
+        }
+
+        $this->browserSession->forget($request);
+        $this->recordRejected(
+            $request,
+            $client,
+            $this->lifecycleAuditCode($lifecycle->outcome),
+            $context,
+        );
+
+        return null;
+    }
+
+    private function lifecycleAuditCode(SsoSessionLifecycleOutcome $outcome): string
+    {
+        return 'sso_session_lifecycle_'.$outcome->value;
     }
 
     /**

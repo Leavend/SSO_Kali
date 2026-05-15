@@ -29,6 +29,20 @@ final class SsoBrowserSession
     }
 
     /**
+     * FR-022: Forget the browser session payload when the underlying
+     * account state has become invalid so the next authorization request
+     * forces a fresh credential check.
+     */
+    public function forget(Request $request): void
+    {
+        if (! $request->hasSession()) {
+            return;
+        }
+
+        $request->session()->forget(self::KEY);
+    }
+
+    /**
      * @return array<string, mixed>|null
      */
     public function context(Request $request): ?array
