@@ -49,10 +49,12 @@ export async function handleLogin(requestUrl: URL): Promise<AppResponse> {
   const returnTo = normalizeReturnTo(requestUrl.searchParams.get('return_to'))
   const loginHint = requestUrl.searchParams.get('login_hint')
 
+  const discovery = await fetchValidatedDiscoveryMetadata()
   const location = buildAuthorizeUrl({
     state,
     nonce,
     codeChallenge,
+    authorizationEndpoint: discovery.authorization_endpoint,
     ...(loginHint ? { loginHint } : {}),
   })
 
@@ -242,7 +244,7 @@ async function completeCallbackSession(
 
   try {
     const discovery = await fetchValidatedDiscoveryMetadata()
-    const tokens = await exchangeCode(code, tx.codeVerifier)
+    const tokens = await exchangeCode(discovery, code, tx.codeVerifier)
     const claims = await verifyIdToken(tokens.id_token, tx.nonce, discovery)
     verifiedSubjectId = claims.sub
     const principal = await fetchPrincipalWithAccessToken(tokens.access_token)
@@ -270,9 +272,9 @@ async function completeCallbackSession(
   }
 }
 
-async function exchangeCode(code: string, codeVerifier: string): Promise<TokenSet> {
+async function exchangeCode(discovery: DiscoveryMetadata, code: string, codeVerifier: string): Promise<TokenSet> {
   const config = getConfig()
-  const res = await fetch(config.tokenUrl, {
+  const res = await fetch(discovery.token_endpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
@@ -300,11 +302,20 @@ async function fetchValidatedDiscoveryMetadata(): Promise<DiscoveryMetadata> {
     throw new Error('Discovery issuer mismatch.')
   }
 
-  if (metadata.jwks_uri !== config.jwksUrl) {
-    throw new Error('Discovery JWKS URI mismatch.')
-  }
+  assertValidHttpsUrl(metadata.authorization_endpoint, 'Discovery authorization endpoint invalid.')
+  assertValidHttpsUrl(metadata.token_endpoint, 'Discovery token endpoint invalid.')
+  assertValidHttpsUrl(metadata.jwks_uri, 'Discovery JWKS URI invalid.')
 
   return metadata
+}
+
+function assertValidHttpsUrl(value: string, message: string): void {
+  try {
+    const url = new URL(value)
+    if (url.protocol !== 'https:' && url.hostname !== 'localhost') throw new Error(message)
+  } catch {
+    throw new Error(message)
+  }
 }
 
 async function verifyIdToken(

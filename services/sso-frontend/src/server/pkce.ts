@@ -24,9 +24,10 @@ export function buildAuthorizeUrl(params: {
   readonly nonce: string
   readonly codeChallenge: string
   readonly loginHint?: string
+  readonly authorizationEndpoint?: string
 }): string {
   const config = getConfig()
-  const url = new URL(config.authorizeUrl)
+  const url = new URL(params.authorizationEndpoint ?? config.authorizeUrl)
   url.searchParams.set('client_id', config.clientId)
   url.searchParams.set('redirect_uri', config.redirectUri)
   url.searchParams.set('response_type', 'code')

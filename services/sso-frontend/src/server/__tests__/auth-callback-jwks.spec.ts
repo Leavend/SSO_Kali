@@ -11,7 +11,8 @@ import type { AdminPrincipal } from '../../shared/admin.js'
 
 const issuer = 'https://sso.example.test'
 const jwksUrl = `${issuer}/jwks`
-const tokenUrl = `${issuer}/token`
+const configuredTokenUrl = `${issuer}/token`
+const metadataTokenUrl = `${issuer}/oauth/token`
 const appBaseUrl = 'https://admin.example.test'
 const clientId = 'sso-admin-panel'
 
@@ -20,7 +21,7 @@ let originalFetch: typeof fetch
 beforeEach(() => {
   originalFetch = globalThis.fetch
   process.env.VITE_SSO_BASE_URL = issuer
-  process.env.SSO_INTERNAL_TOKEN_URL = tokenUrl
+  process.env.SSO_INTERNAL_TOKEN_URL = configuredTokenUrl
   process.env.SSO_INTERNAL_JWKS_URL = jwksUrl
   process.env.VITE_ADMIN_BASE_URL = appBaseUrl
   process.env.VITE_CLIENT_ID = clientId
@@ -45,6 +46,8 @@ describe('BFF OIDC callback ID token validation', () => {
     expect(response.status).toBe(200)
     expect(fetchMock).toHaveBeenCalledWith(`${issuer}/.well-known/openid-configuration`, expect.objectContaining({ method: 'GET' }))
     expect(fetchMock).toHaveBeenCalledWith(jwksUrl, expect.objectContaining({ method: 'GET' }))
+    expect(fetchMock).toHaveBeenCalledWith(metadataTokenUrl, expect.objectContaining({ method: 'POST' }))
+    expect(fetchMock).not.toHaveBeenCalledWith(configuredTokenUrl, expect.anything())
     expect(response.body).toBe(JSON.stringify({ authenticated: true, post_login_redirect: '/dashboard' }))
     expect(response.headers?.['set-cookie']).toEqual(
       expect.arrayContaining([
@@ -80,6 +83,13 @@ describe('BFF OIDC callback ID token validation', () => {
     await expectRejected({ audienceOverride: 'wrong-client' })
     await expectRejected({ nonceOverride: 'wrong-nonce' })
   })
+
+  it('rejects metadata issuer mismatch and missing token endpoint safely', async () => {
+    expect.hasAssertions()
+
+    await expectRejectedMetadata({ issuerOverride: 'https://issuer-mismatch.example.test' })
+    await expectRejectedMetadata({ tokenEndpointOverride: undefined })
+  })
 })
 
 async function expectRejected(overrides: {
@@ -89,6 +99,18 @@ async function expectRejected(overrides: {
 }): Promise<void> {
   __clearDiscoveryCacheForTests()
   mockOidcFetch(await tokenFixture({ tokenKid: 'valid-kid', jwksKid: 'valid-kid', ...overrides }))
+
+  const response = await handleCallbackSession(request({ code: 'code', state: 'state' }))
+
+  expect(response.status).toBe(401)
+}
+
+async function expectRejectedMetadata(overrides: {
+  readonly issuerOverride?: string
+  readonly tokenEndpointOverride?: string
+}): Promise<void> {
+  __clearDiscoveryCacheForTests()
+  mockOidcFetch(await tokenFixture({ tokenKid: 'valid-kid', jwksKid: 'valid-kid' }), overrides)
 
   const response = await handleCallbackSession(request({ code: 'code', state: 'state' }))
 
@@ -136,15 +158,20 @@ async function tokenFixture(options: {
   }
 }
 
-function mockOidcFetch(fixture: { readonly token: string; readonly jwk: Record<string, unknown> }) {
+function mockOidcFetch(
+  fixture: { readonly token: string; readonly jwk: Record<string, unknown> },
+  metadataOverrides: { readonly issuerOverride?: string; readonly tokenEndpointOverride?: string } = {},
+) {
   const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
     const url = String(input)
 
     if (url === `${issuer}/.well-known/openid-configuration`) {
       return jsonResponse({
-        issuer,
+        issuer: metadataOverrides.issuerOverride ?? issuer,
         authorization_endpoint: `${issuer}/authorize`,
-        token_endpoint: tokenUrl,
+        ...(metadataOverrides.tokenEndpointOverride === undefined && 'tokenEndpointOverride' in metadataOverrides
+          ? {}
+          : { token_endpoint: metadataOverrides.tokenEndpointOverride ?? metadataTokenUrl }),
         jwks_uri: jwksUrl,
         response_types_supported: ['code'],
         subject_types_supported: ['public'],
@@ -152,7 +179,7 @@ function mockOidcFetch(fixture: { readonly token: string; readonly jwk: Record<s
       })
     }
 
-    if (url === tokenUrl) {
+    if (url === metadataTokenUrl) {
       expect(init?.method).toBe('POST')
       return jsonResponse({ access_token: 'access-token', refresh_token: 'refresh-token', id_token: fixture.token, expires_in: 300 })
     }
