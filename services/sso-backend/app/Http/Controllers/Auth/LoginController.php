@@ -29,11 +29,19 @@ final class LoginController
         );
 
         if (! $result->authenticated || $result->user === null || $result->session === null) {
-            return response()->json([
+            $payload = [
                 'authenticated' => false,
                 'error' => $result->error,
                 'message' => $this->errorMessage($result->error),
-            ], $this->errorStatus($result->error));
+            ];
+            $headers = [];
+
+            if ($result->error === 'too_many_attempts' && $result->retryAfter !== null) {
+                $payload['retry_after'] = $result->retryAfter;
+                $headers['Retry-After'] = (string) $result->retryAfter;
+            }
+
+            return response()->json($payload, $this->errorStatus($result->error), $headers);
         }
 
         // FR-018: Check if user has MFA enrolled — require challenge

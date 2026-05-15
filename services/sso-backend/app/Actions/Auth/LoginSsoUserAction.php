@@ -36,7 +36,7 @@ final readonly class LoginSsoUserAction
         if ($verification->outcome !== LocalPasswordLoginOutcome::Authenticated || $directoryUser === null) {
             $this->recordFailure($identifier, $directoryUser, $ipAddress, $userAgent, $authRequestId, $requestId, $verification->outcome->value);
 
-            return new LoginSsoUserResult(false, error: $verification->outcome->value);
+            return new LoginSsoUserResult(false, error: $verification->outcome->value, retryAfter: $verification->retryAfter);
         }
 
         $session = $this->sessions->create($directoryUser, $ipAddress, $userAgent);

@@ -43,9 +43,13 @@ it('locks out api auth login after the shared local password threshold', functio
     $this->postJson('/api/auth/login', $payload)->assertUnauthorized();
     $this->postJson('/api/auth/login', $payload)->assertUnauthorized();
 
-    $this->postJson('/api/auth/login', ['identifier' => 'consolidated@example.test', 'password' => 'CorrectPassword123!'])
+    $response = $this->postJson('/api/auth/login', ['identifier' => 'consolidated@example.test', 'password' => 'CorrectPassword123!'])
         ->assertStatus(429)
         ->assertJsonPath('error', 'too_many_attempts');
+
+    expect((int) $response->headers->get('Retry-After'))->toBeGreaterThan(0)
+        ->and((int) $response->headers->get('Retry-After'))->toBeLessThanOrEqual(900)
+        ->and($response->json('retry_after'))->toBe((int) $response->headers->get('Retry-After'));
 });
 
 it('locks out connect local login after the shared local password threshold', function (): void {
@@ -55,9 +59,13 @@ it('locks out connect local login after the shared local password threshold', fu
     $this->postJson('/connect/local-login', $payload)->assertUnauthorized();
     $this->postJson('/connect/local-login', $payload)->assertUnauthorized();
 
-    $this->postJson('/connect/local-login', localLoginPayload('CorrectPassword123!'))
+    $response = $this->postJson('/connect/local-login', localLoginPayload('CorrectPassword123!'))
         ->assertStatus(429)
         ->assertJsonPath('error', 'too_many_attempts');
+
+    expect((int) $response->headers->get('Retry-After'))->toBeGreaterThan(0)
+        ->and((int) $response->headers->get('Retry-After'))->toBeLessThanOrEqual(900)
+        ->and($response->json('retry_after'))->toBe((int) $response->headers->get('Retry-After'));
 });
 
 it('rejects disabled accounts consistently on every local password login path', function (): void {

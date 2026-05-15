@@ -14,5 +14,6 @@ final readonly class LoginSsoUserResult
         public ?DirectoryUser $user = null,
         public ?SsoSession $session = null,
         public ?string $error = null,
+        public ?int $retryAfter = null,
     ) {}
 }

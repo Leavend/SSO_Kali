@@ -82,7 +82,7 @@ final class AuthenticateLocalCredentials
                 'error' => 'too_many_attempts',
                 'message' => 'Terlalu banyak percobaan login. Silakan coba lagi nanti.',
                 'retry_after' => $verification->retryAfter,
-            ], 429);
+            ], 429, ['Retry-After' => (string) $verification->retryAfter]);
         }
 
         if ($verification->outcome === LocalPasswordLoginOutcome::PasswordExpired) {

@@ -4,29 +4,26 @@ declare(strict_types=1);
 
 namespace App\Services\Auth;
 
-use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\RateLimiter;
 
 /**
- * FR-014 / ISSUE-03: Login attempt throttle.
+ * FR-016: Atomic login attempt throttle.
  *
- * Tracks failed login attempts per email using Redis.
- * After max attempts, the account is considered throttled.
+ * Uses Laravel RateLimiter so failed login counters are incremented atomically by
+ * the configured cache backend and carry a clear lockout TTL.
  */
 final class LoginAttemptThrottle
 {
     private const string PREFIX = 'login_attempts:';
 
     /**
-     * Record a failed login attempt.
+     * Record a failed login attempt atomically.
      */
     public function recordFailure(string $email): int
     {
-        $key = $this->key($email);
-        $attempts = (int) Cache::get($key, 0) + 1;
+        RateLimiter::hit($this->key($email), $this->decaySeconds());
 
-        Cache::put($key, $attempts, $this->decaySeconds());
-
-        return $attempts;
+        return $this->attempts($email);
     }
 
     /**
@@ -34,7 +31,7 @@ final class LoginAttemptThrottle
      */
     public function isThrottled(string $email): bool
     {
-        return $this->attempts($email) >= $this->maxAttempts();
+        return RateLimiter::tooManyAttempts($this->key($email), $this->maxAttempts());
     }
 
     /**
@@ -42,7 +39,7 @@ final class LoginAttemptThrottle
      */
     public function remainingAttempts(string $email): int
     {
-        return max(0, $this->maxAttempts() - $this->attempts($email));
+        return RateLimiter::remaining($this->key($email), $this->maxAttempts());
     }
 
     /**
@@ -50,7 +47,7 @@ final class LoginAttemptThrottle
      */
     public function attempts(string $email): int
     {
-        return (int) Cache::get($this->key($email), 0);
+        return RateLimiter::attempts($this->key($email));
     }
 
     /**
@@ -58,7 +55,7 @@ final class LoginAttemptThrottle
      */
     public function clear(string $email): void
     {
-        Cache::forget($this->key($email));
+        RateLimiter::clear($this->key($email));
     }
 
     /**
@@ -66,11 +63,7 @@ final class LoginAttemptThrottle
      */
     public function availableIn(string $email): int
     {
-        if (! $this->isThrottled($email)) {
-            return 0;
-        }
-
-        return $this->decaySeconds();
+        return RateLimiter::availableIn($this->key($email));
     }
 
     private function key(string $email): string
