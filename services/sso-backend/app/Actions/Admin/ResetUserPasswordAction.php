@@ -41,7 +41,9 @@ final class ResetUserPasswordAction
         ]);
 
         if ($validator->fails()) {
-            throw new RuntimeException($validator->errors()->first('password') ?? 'Password tidak memenuhi kebijakan.');
+            $message = $validator->errors()->first('password');
+
+            throw new RuntimeException($message !== '' ? $message : 'Password tidak memenuhi kebijakan.');
         }
 
         $user->update([

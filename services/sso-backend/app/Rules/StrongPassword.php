@@ -6,6 +6,7 @@ namespace App\Rules;
 
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Translation\PotentiallyTranslatedString;
 
 /**
  * FR-015 / ISSUE-02: Enterprise password policy.
@@ -21,7 +22,7 @@ use Illuminate\Contracts\Validation\ValidationRule;
 final class StrongPassword implements ValidationRule
 {
     /**
-     * @param  Closure(string, ?string=): void  $fail
+     * @param  Closure(string, ?string=): PotentiallyTranslatedString  $fail
      */
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {

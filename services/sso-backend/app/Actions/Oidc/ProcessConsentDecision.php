@@ -7,8 +7,6 @@ namespace App\Actions\Oidc;
 use App\Services\Oidc\AuthorizationCodeStore;
 use App\Services\Oidc\AuthRequestStore;
 use App\Services\Oidc\ConsentService;
-use App\Services\Oidc\DownstreamClientRegistry;
-use App\Services\Oidc\ScopePolicy;
 use App\Support\Oidc\ScopeSet;
 use App\Support\Responses\OidcErrorResponse;
 use Illuminate\Http\JsonResponse;
@@ -27,8 +25,6 @@ final class ProcessConsentDecision
         private readonly AuthRequestStore $authRequests,
         private readonly AuthorizationCodeStore $codes,
         private readonly ConsentService $consents,
-        private readonly DownstreamClientRegistry $clients,
-        private readonly ScopePolicy $scopes,
     ) {}
 
     public function handle(Request $request): JsonResponse

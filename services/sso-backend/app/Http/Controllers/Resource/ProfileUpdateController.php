@@ -75,7 +75,7 @@ final class ProfileUpdateController
                 'email' => $user->email,
                 'email_verified' => $user->email_verified_at !== null,
                 'status' => $user->status ?? 'active',
-                'profile_synced_at' => $user->profile_synced_at?->toIso8601String(),
+                'profile_synced_at' => $user->profile_synced_at->toIso8601String(),
                 'last_login_at' => $user->last_login_at?->toIso8601String(),
             ],
         ]);

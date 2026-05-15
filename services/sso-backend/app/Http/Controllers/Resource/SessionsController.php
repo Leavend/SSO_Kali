@@ -54,9 +54,9 @@ final class SessionsController
         $sessions = collect($activeSessions)
             ->map(fn (SsoSession $s) => [
                 'session_id' => $s->session_id,
-                'opened_at' => $s->authenticated_at?->toIso8601String(),
-                'last_used_at' => $s->last_seen_at?->toIso8601String() ?? $s->authenticated_at?->toIso8601String(),
-                'expires_at' => $s->expires_at?->toIso8601String(),
+                'opened_at' => $s->authenticated_at->toIso8601String(),
+                'last_used_at' => $s->last_seen_at?->toIso8601String() ?? $s->authenticated_at->toIso8601String(),
+                'expires_at' => $s->expires_at->toIso8601String(),
                 'client_count' => 0,
                 'client_ids' => [],
                 'client_display_names' => [],

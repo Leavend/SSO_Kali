@@ -82,7 +82,7 @@ final class UserSessionsService
      * Aggregasi dilakukan di PHP untuk portability antar driver (MySQL/Postgres/SQLite).
      * Volume data per user terbatas (puluhan session aktif maksimal) sehingga biaya rendah.
      *
-     * @param  Collection<int, object>  $rows
+     * @param  Collection<int, \stdClass>  $rows
      * @return list<array<string, mixed>>
      */
     private function aggregateBySession(Collection $rows): array
@@ -96,7 +96,7 @@ final class UserSessionsService
     }
 
     /**
-     * @param  Collection<int, object>  $group
+     * @param  Collection<int, \stdClass>  $group
      * @return array<string, mixed>
      */
     private function buildSession(string $sessionId, Collection $group): array

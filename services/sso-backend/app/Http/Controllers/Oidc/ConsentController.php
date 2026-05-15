@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Oidc;
 
 use App\Actions\Oidc\ProcessConsentDecision;
-use App\Services\Oidc\ConsentService;
 use App\Services\Oidc\DownstreamClientRegistry;
 use App\Services\Oidc\ScopePolicy;
 use App\Support\Oidc\ScopeSet;
@@ -23,7 +22,6 @@ final class ConsentController
     public function __construct(
         private readonly DownstreamClientRegistry $clients,
         private readonly ScopePolicy $scopes,
-        private readonly ConsentService $consents,
         private readonly ProcessConsentDecision $processDecision,
     ) {}
 

@@ -41,7 +41,7 @@ final class ConnectedAppsService
 
         return array_map(function (array $app) use ($consents): array {
             $consent = $consents->get($app['client_id']);
-            $app['granted_scopes'] = $consent?->scopes ?? [];
+            $app['granted_scopes'] = $consent !== null ? $consent->scopes : [];
             $app['consent_granted_at'] = $consent?->granted_at?->toIso8601String();
 
             return $app;
