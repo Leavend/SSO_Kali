@@ -8,6 +8,8 @@ final class AdminAuditTaxonomy
 {
     public const CLIENT_INTEGRATION_ACTIVATED = 'client_integration_activated';
 
+    public const CLIENT_INTEGRATION_DECOMMISSIONED = 'client_integration_decommissioned';
+
     public const CLIENT_INTEGRATION_DISABLED = 'client_integration_disabled';
 
     public const CLIENT_INTEGRATION_STAGED = 'client_integration_staged';

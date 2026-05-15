@@ -280,6 +280,7 @@ final class ClientIntegrationRegistrationService
         return match ($action) {
             'activate_client_integration' => AdminAuditTaxonomy::CLIENT_INTEGRATION_ACTIVATED,
             'disable_client_integration' => AdminAuditTaxonomy::CLIENT_INTEGRATION_DISABLED,
+            'decommission_client_integration' => AdminAuditTaxonomy::CLIENT_INTEGRATION_DECOMMISSIONED,
             default => AdminAuditTaxonomy::CLIENT_INTEGRATION_STAGED,
         };
     }
