@@ -64,6 +64,10 @@ final class AuthenticateLocalCredentials
             return OidcErrorResponse::json('invalid_request', 'client_id, redirect_uri, code_challenge, and state are required.', 400);
         }
 
+        if ($nonce === '') {
+            return OidcErrorResponse::json('invalid_request', 'nonce is required.', 400);
+        }
+
         if ($codeChallengeMethod !== 'S256') {
             return OidcErrorResponse::json('invalid_request', 'code_challenge_method must be S256.', 400);
         }
@@ -147,7 +151,7 @@ final class AuthenticateLocalCredentials
             'client_id' => $client->clientId,
             'redirect_uri' => $redirectUri,
             'scope' => $validatedScope,
-            'nonce' => $nonce !== '' ? $nonce : null,
+            'nonce' => $nonce,
             'original_state' => $state,
             'downstream_code_challenge' => $codeChallenge,
             'session_id' => (string) Str::uuid(),

@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\User;
 use App\Services\Auth\LoginAttemptThrottle;
 use App\Services\Oidc\DownstreamClientRegistry;
+use App\Services\Oidc\SigningKeyService;
 use Illuminate\Support\Facades\Hash;
 
 /**
@@ -66,6 +67,54 @@ describe('POST /connect/local-login', function (): void {
         expect($data['redirect_uri'])->toContain('https://local-app.test/callback')
             ->and($data['redirect_uri'])->toContain('code=')
             ->and($data['redirect_uri'])->toContain('state=random-state-123');
+    });
+
+    it('returns OIDC-safe error when nonce is missing', function (): void {
+        $response = $this->postJson('/connect/local-login', [
+            'email' => 'user@example.com',
+            'password' => 'SecurePass123!',
+            'client_id' => 'local-test-app',
+            'redirect_uri' => 'https://local-app.test/callback',
+            'code_challenge' => 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM',
+            'code_challenge_method' => 'S256',
+            'state' => 'random-state-123',
+            'scope' => 'openid profile email',
+        ]);
+
+        $response->assertStatus(400)
+            ->assertJsonPath('error', 'invalid_request');
+
+        expect((string) $response->headers->get('Cache-Control'))->toContain('no-store');
+    });
+
+    it('round-trips valid nonce into the issued ID token', function (): void {
+        $nonce = 'nonce-local-round-trip';
+
+        $response = $this->postJson('/connect/local-login', [
+            'email' => 'user@example.com',
+            'password' => 'SecurePass123!',
+            'client_id' => 'local-test-app',
+            'redirect_uri' => 'https://local-app.test/callback',
+            'code_challenge' => 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM',
+            'code_challenge_method' => 'S256',
+            'state' => 'round-trip-state',
+            'nonce' => $nonce,
+            'scope' => 'openid profile email',
+        ])->assertOk();
+
+        parse_str((string) parse_url((string) $response->json('redirect_uri'), PHP_URL_QUERY), $callback);
+
+        $token = $this->postJson('/token', [
+            'grant_type' => 'authorization_code',
+            'client_id' => 'local-test-app',
+            'redirect_uri' => 'https://local-app.test/callback',
+            'code' => (string) $callback['code'],
+            'code_verifier' => 'dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk',
+        ])->assertOk();
+
+        $claims = app(SigningKeyService::class)->decode((string) $token->json('id_token'));
+
+        expect($claims['nonce'] ?? null)->toBe($nonce);
     });
 
     it('returns 401 with invalid credentials', function (): void {
