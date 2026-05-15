@@ -92,6 +92,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'api/auth/login',
             'api/auth/logout',
             'api/auth/register',
+            'api/profile/sessions',
+            'api/profile/sessions/*',
             'api/profile/connected-apps/*',
         ]);
     })

@@ -89,6 +89,26 @@ describe('DELETE /api/profile/sessions/{sessionId} — portal session revocation
             ->and($otherUserSession->revoked_at)->toBeNull();
     });
 
+    it('keeps portal session revocation exempt from web csrf before cookie authentication', function (): void {
+        [, $authCookie, $targetSessionId] = revokePortalSetup('csrf-single');
+
+        test()
+            ->withHeader('Cookie', config('sso.session.cookie').'='.$authCookie)
+            ->deleteJson("/api/profile/sessions/{$targetSessionId}")
+            ->assertOk()
+            ->assertJsonPath('revoked', true);
+    });
+
+    it('keeps revoke all portal sessions exempt from web csrf before cookie authentication', function (): void {
+        [, $authCookie] = revokePortalSetup('csrf-all');
+
+        test()
+            ->withHeader('Cookie', config('sso.session.cookie').'='.$authCookie)
+            ->deleteJson('/api/profile/sessions')
+            ->assertOk()
+            ->assertJsonPath('revoked', true);
+    });
+
     it('returns 401 when no authentication is provided', function (): void {
         $fakeSessionId = (string) Str::uuid();
 
