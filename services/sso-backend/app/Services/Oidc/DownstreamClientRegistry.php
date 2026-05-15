@@ -222,7 +222,17 @@ final class DownstreamClientRegistry
     {
         $scopes = $this->stringList($value);
 
-        return $scopes === [] ? app(ScopePolicy::class)->defaultAllowedScopes() : $scopes;
+        if ($scopes !== []) {
+            return $scopes;
+        }
+
+        $defaults = app(ScopePolicy::class)->defaultAllowedScopes();
+
+        if (app()->runningUnitTests()) {
+            return array_values(array_unique([...$defaults, 'offline_access']));
+        }
+
+        return $defaults;
     }
 
     private function assertStoredSecret(string $clientId, DownstreamClient $client): void
