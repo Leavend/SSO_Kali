@@ -2,8 +2,6 @@
 
 declare(strict_types=1);
 
-use App\Exceptions\InvalidOidcConfigurationException;
-use App\Services\Oidc\OidcCatalog;
 use Illuminate\Support\Facades\Config;
 use Tests\TestCase;
 
@@ -132,77 +130,6 @@ it('respects rate limits on jwks endpoint', function (): void {
         ->assertStatus(429)
         ->assertJsonPath('error', 'too_many_attempts');
 });
-
-it('returns 503 error when issuer configuration is missing', function (): void {
-    $this->withoutExceptionHandling();
-
-    Config::set('sso.issuer', '');
-
-    $this->getJson('/.well-known/openid-configuration')
-        ->assertStatus(503)
-        ->assertJsonPath('error', 'server_error')
-        ->assertHeader('Cache-Control', 'no-store')
-        ->assertHeader('Pragma', 'no-cache');
-})->skip('Skipped: Config::set does not persist in service container during test. Use integration test with fresh app containers.');
-
-it('returns 503 error when base_url configuration is missing', function (): void {
-    /** @var TestCase $this */
-    Config::set('sso.base_url', '');
-
-    $this->getJson('/.well-known/openid-configuration')
-        ->assertStatus(503)
-        ->assertJsonPath('error', 'server_error')
-        ->assertHeader('Cache-Control', 'no-store')
-        ->assertHeader('Pragma', 'no-cache');
-})->skip('Skipped: Config::set does not persist in service container during test. Use integration test with fresh app containers.');
-
-it('returns 503 error when signing_alg configuration is missing', function (): void {
-    /** @var TestCase $this */
-    Config::set('sso.signing.alg', '');
-
-    $this->getJson('/.well-known/openid-configuration')
-        ->assertStatus(503)
-        ->assertJsonPath('error', 'server_error')
-        ->assertHeader('Cache-Control', 'no-store')
-        ->assertHeader('Pragma', 'no-cache');
-})->skip('Skipped: Config::set does not persist in service container during test. Use integration test with fresh app containers.');
-
-it('returns 503 error when default_scopes configuration is missing', function (): void {
-    /** @var TestCase $this */
-    Config::set('sso.default_scopes', []);
-
-    $this->getJson('/.well-known/openid-configuration')
-        ->assertStatus(503)
-        ->assertJsonPath('error', 'server_error')
-        ->assertHeader('Cache-Control', 'no-store')
-        ->assertHeader('Pragma', 'no-cache');
-})->skip('Skipped: Config::set does not persist in service container during test. Use integration test with fresh app containers.');
-
-it('returns 503 error when issuer is invalid URL', function (): void {
-    /** @var TestCase $this */
-    Config::set('sso.issuer', 'not-a-valid-url');
-
-    $this->getJson('/.well-known/openid-configuration')
-        ->assertStatus(503)
-        ->assertJsonPath('error', 'server_error');
-})->skip('Skipped: Config::set does not persist in service container during test. Use integration test with fresh app containers.');
-
-it('returns 503 error when base_url is invalid URL', function (): void {
-    /** @var TestCase $this */
-    Config::set('sso.base_url', 'not-a-valid-url');
-
-    $this->getJson('/.well-known/openid-configuration')
-        ->assertStatus(503)
-        ->assertJsonPath('error', 'server_error');
-})->skip('Skipped: Config::set does not persist in service container during test. Use integration test with fresh app containers.');
-
-it('returns 503 error when signing keys cannot be loaded', function (): void {
-    /** @var TestCase $this */
-    $catalog = new OidcCatalog(app('App\Services\Oidc\SigningKeyService'));
-
-    expect(fn () => $catalog->discovery())
-        ->toThrow(InvalidOidcConfigurationException::class);
-})->skip('Skipped: Requires mocking key service. Test with real key service default behavior.');
 
 it('validates Peggy configuration ensures secure defaults', function (): void {
     /** @var TestCase $this */
