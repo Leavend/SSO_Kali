@@ -108,6 +108,28 @@ smoke_url() {
   log "$label smoke OK ($code): $url"
 }
 
+smoke_cors_preflight() {
+  local base_url="$1" origin="$2" headers status allow_origin allow_credentials
+  [[ -n "$base_url" && -n "$origin" ]] || { warn 'Skipping CORS smoke because base URL or origin is empty'; return 0; }
+
+  headers="$(mktemp)"
+  status="$(curl -ksS -o /dev/null -D "$headers" -w '%{http_code}' --max-time 20 \
+    -X OPTIONS "${base_url%/}/api/auth/login" \
+    -H "Origin: $origin" \
+    -H 'Access-Control-Request-Method: POST' \
+    -H 'Access-Control-Request-Headers: content-type,x-request-id' || true)"
+
+  allow_origin="$(awk 'BEGIN{IGNORECASE=1} /^access-control-allow-origin:/ {sub(/^[^:]+:[[:space:]]*/, ""); sub(/\r$/, ""); print; exit}' "$headers")"
+  allow_credentials="$(awk 'BEGIN{IGNORECASE=1} /^access-control-allow-credentials:/ {sub(/^[^:]+:[[:space:]]*/, ""); sub(/\r$/, ""); print; exit}' "$headers")"
+  rm -f "$headers"
+
+  [[ "$status" =~ ^(200|204)$ ]] || die "CORS preflight failed: ${base_url%/}/api/auth/login returned ${status:-000}"
+  [[ "$allow_origin" == "$origin" ]] || die "CORS preflight returned invalid Access-Control-Allow-Origin '$allow_origin' (expected '$origin')"
+  [[ "$allow_credentials" == "true" ]] || die "CORS preflight returned invalid Access-Control-Allow-Credentials '$allow_credentials'"
+
+  log "CORS preflight OK (${status}): ${base_url%/}/api/auth/login allows $origin"
+}
+
 run_smoke_tests() {
   # shellcheck disable=SC1090
   source "$ENV_FILE" || true
@@ -119,6 +141,7 @@ run_smoke_tests() {
   smoke_url 'SSO /health' "$base_url/health" '^(200)$'
   smoke_url 'SSO discovery' "$base_url/.well-known/openid-configuration" '^(200)$'
   smoke_url 'SSO JWKS' "$base_url/.well-known/jwks.json" '^(200)$'
+  smoke_cors_preflight "$base_url" "${SSO_FRONTEND_URL:-https://sso.timeh.my.id}"
 
   :
 }

@@ -115,6 +115,28 @@ smoke_url() {
   log "$label OK ($code): $url"
 }
 
+smoke_cors_preflight() {
+  local base_url="$1" origin="$2" headers status allow_origin allow_credentials
+  [[ -n "$base_url" && -n "$origin" ]] || die 'CORS smoke requires base URL and origin'
+
+  headers="$(mktemp)"
+  status="$(curl -ksS -o /dev/null -D "$headers" -w '%{http_code}' --max-time 20 \
+    -X OPTIONS "${base_url%/}/api/auth/login" \
+    -H "Origin: $origin" \
+    -H 'Access-Control-Request-Method: POST' \
+    -H 'Access-Control-Request-Headers: content-type,x-request-id' || true)"
+
+  allow_origin="$(awk 'BEGIN{IGNORECASE=1} /^access-control-allow-origin:/ {sub(/^[^:]+:[[:space:]]*/, ""); sub(/\r$/, ""); print; exit}' "$headers")"
+  allow_credentials="$(awk 'BEGIN{IGNORECASE=1} /^access-control-allow-credentials:/ {sub(/^[^:]+:[[:space:]]*/, ""); sub(/\r$/, ""); print; exit}' "$headers")"
+  rm -f "$headers"
+
+  [[ "$status" =~ ^(200|204)$ ]] || die "CORS preflight failed: ${base_url%/}/api/auth/login returned ${status:-000}"
+  [[ "$allow_origin" == "$origin" ]] || die "CORS preflight returned invalid Access-Control-Allow-Origin '$allow_origin' (expected '$origin')"
+  [[ "$allow_credentials" == "true" ]] || die "CORS preflight returned invalid Access-Control-Allow-Credentials '$allow_credentials'"
+
+  log "CORS preflight OK (${status}): ${base_url%/}/api/auth/login allows $origin"
+}
+
 verify_topology() {
   local service
 
@@ -178,12 +200,17 @@ smoke_url '/health' "$base/health" '^(200)$'
 smoke_url 'discovery' "$base/.well-known/openid-configuration" '^(200)$'
 smoke_url 'jwks' "$base/.well-known/jwks.json" '^(200)$'
 
+cors_origin="$(grep -E '^SSO_FRONTEND_URL=' "$ENV_FILE" | tail -n 1 | cut -d= -f2- | tr -d '\"' || true)"
+cors_origin="${cors_origin:-https://sso.timeh.my.id}"
+smoke_cors_preflight "$base" "$cors_origin"
+
 if [[ -n "${PUBLIC_BASE_URL:-}" ]]; then
   public_base="${PUBLIC_BASE_URL%/}"
   smoke_url 'public /up' "$public_base/up" '^(200)$'
   smoke_url 'public /health' "$public_base/health" '^(200)$'
   smoke_url 'public discovery' "$public_base/.well-known/openid-configuration" '^(200)$'
   smoke_url 'public jwks' "$public_base/.well-known/jwks.json" '^(200)$'
+  smoke_cors_preflight "$public_base" "$cors_origin"
 fi
 
 verify_topology
