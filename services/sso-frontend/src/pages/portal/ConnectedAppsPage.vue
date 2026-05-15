@@ -55,7 +55,8 @@ function formatDate(value: string): string {
     <header class="flex flex-col gap-1">
       <h1 class="text-2xl font-bold tracking-tight">Aplikasi Terhubung</h1>
       <p class="text-muted-foreground text-sm">
-        Aplikasi yang pernah kamu otorisasi via Dev-SSO. Cabut akses kapan saja untuk mengakhiri sesi OAuth di aplikasi tersebut.
+        Aplikasi yang pernah kamu otorisasi via Dev-SSO. Cabut akses kapan saja untuk mengakhiri
+        sesi OAuth di aplikasi tersebut.
       </p>
     </header>
 
@@ -63,13 +64,18 @@ function formatDate(value: string): string {
       <Skeleton v-for="i in 3" :key="i" class="h-24 w-full" />
     </div>
 
-    <Card v-else-if="isEmpty">
-      <CardHeader class="items-center text-center">
-        <span class="bg-muted text-muted-foreground grid size-10 place-items-center rounded-full">
+    <Card v-else-if="isEmpty" class="px-5 py-2">
+      <CardHeader data-testid="connected-apps-empty-state" class="items-center text-center">
+        <span
+          data-testid="connected-apps-empty-icon"
+          class="bg-muted text-muted-foreground mx-auto grid size-12 place-items-center rounded-full"
+        >
           <AppWindow class="size-5" />
         </span>
         <CardTitle class="text-base">Belum ada aplikasi terhubung</CardTitle>
-        <CardDescription>Aplikasi yang kamu authorize akan muncul di sini.</CardDescription>
+        <CardDescription data-testid="connected-apps-empty-copy" class="mx-auto max-w-[18rem]"
+          >Aplikasi yang kamu authorize akan muncul di sini.</CardDescription
+        >
       </CardHeader>
     </Card>
 
@@ -77,18 +83,27 @@ function formatDate(value: string): string {
       <Card
         v-for="app in apps"
         :key="app.client_id"
-        class="flex flex-row items-center gap-4 px-6 py-4"
+        data-testid="connected-app-card"
+        class="flex min-w-0 flex-col gap-4 px-6 py-4 sm:flex-row sm:items-center"
       >
-        <span class="bg-primary/10 text-primary grid size-10 shrink-0 place-items-center rounded-lg">
+        <span
+          class="bg-primary/10 text-primary grid size-10 shrink-0 place-items-center rounded-lg"
+        >
           <AppWindow class="size-5" />
         </span>
-        <div class="min-w-0 flex-1">
-          <div class="flex flex-wrap items-center gap-2">
+        <div data-testid="connected-app-content" class="min-w-0 flex-1">
+          <div class="flex min-w-0 flex-wrap items-center gap-2">
             <strong class="text-sm">{{ app.display_name }}</strong>
-            <Badge variant="outline" class="font-mono text-[10px]">{{ app.client_id }}</Badge>
+            <Badge
+              data-testid="connected-app-client-id"
+              variant="outline"
+              class="max-w-full truncate font-mono text-[10px]"
+              >{{ app.client_id }}</Badge
+            >
           </div>
           <p class="text-muted-foreground mt-1 text-xs">
-            Terhubung sejak {{ formatDate(app.first_connected_at) }} · Terakhir dipakai {{ formatDate(app.last_used_at) }}
+            Terhubung sejak {{ formatDate(app.first_connected_at) }} · Terakhir dipakai
+            {{ formatDate(app.last_used_at) }}
           </p>
         </div>
         <Button
