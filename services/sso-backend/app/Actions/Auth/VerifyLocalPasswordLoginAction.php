@@ -102,7 +102,7 @@ final readonly class VerifyLocalPasswordLoginAction
         }
 
         if ($user->password_changed_at === null) {
-            return true;
+            return false;
         }
 
         return $user->password_changed_at->diffInDays(now()) >= $maxAgeDays;

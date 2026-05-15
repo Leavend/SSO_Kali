@@ -30,6 +30,7 @@ class UserFactory extends Factory
             'family_name' => fake()->lastName(),
             'display_name' => fake()->name(),
             'role' => 'user',
+            'local_account_enabled' => true,
             'email_verified_at' => now(),
             'last_login_at' => now(),
         ];
