@@ -39,7 +39,7 @@ it('serves OIDC discovery metadata with production-safe shape', function (): voi
             'id_token_signing_alg_values_supported',
         ])
         ->assertJsonPath('issuer', config('sso.issuer'))
-        ->assertJsonPath('authorization_endpoint', $baseUrl.'/oauth/authorize')
+        ->assertJsonPath('authorization_endpoint', $baseUrl.'/authorize')
         ->assertJsonPath('token_endpoint', $baseUrl.'/oauth/token')
         ->assertJsonPath('revocation_endpoint', $baseUrl.'/oauth/revoke');
 });

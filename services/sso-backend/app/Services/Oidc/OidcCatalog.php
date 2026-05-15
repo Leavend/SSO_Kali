@@ -49,7 +49,7 @@ final class OidcCatalog
 
         return [
             'issuer' => $issuer,
-            'authorization_endpoint' => $baseUrl.'/oauth/authorize',
+            'authorization_endpoint' => $baseUrl.'/authorize',
             'token_endpoint' => $baseUrl.'/oauth/token',
             'userinfo_endpoint' => $baseUrl.'/userinfo',
             'revocation_endpoint' => $baseUrl.'/oauth/revoke',

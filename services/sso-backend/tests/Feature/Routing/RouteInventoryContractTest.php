@@ -171,7 +171,6 @@ function expectedApplicationRouteSignatures(): array
         'GET|HEAD health',
         'GET|HEAD jwks',
         'GET|HEAD login',
-        'GET|HEAD oauth/authorize',
         'POST oauth/revoke',
         'POST oauth/token',
         'GET|HEAD oauth2/authorize',
