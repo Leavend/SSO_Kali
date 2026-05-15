@@ -94,7 +94,6 @@ jobs:
             ${{ env.IMAGE_PREFIX }}/${{ matrix.service }}:main
           build-args: ${{ matrix.build_args || '' }}
           cache-from: type=gha,scope=${{ matrix.service }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
