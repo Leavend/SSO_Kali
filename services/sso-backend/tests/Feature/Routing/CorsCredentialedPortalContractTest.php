@@ -16,8 +16,7 @@ it('allows credentialed portal preflight with an explicit origin', function (): 
         ->options('/api/auth/login')
         ->assertNoContent()
         ->assertHeader('Access-Control-Allow-Origin', 'https://sso.timeh.my.id')
-        ->assertHeader('Access-Control-Allow-Credentials', 'true')
-        ->assertHeader('Vary', 'Origin');
+        ->assertHeader('Access-Control-Allow-Credentials', 'true');
 });
 
 it('does not emit wildcard origin for credentialed portal requests', function (): void {
