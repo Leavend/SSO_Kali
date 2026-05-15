@@ -25,6 +25,10 @@ beforeEach(function (): void {
     config()->set('sso.admin.freshness.step_up_seconds', 300);
     config()->set('sso.admin.mfa.enforced', true);
     config()->set('sso.admin.mfa.accepted_amr', ['mfa']);
+    // EmergencyMfaResetTest exercises the reset endpoint itself; the
+    // requesting admin here is intentionally unenrolled. Restore the
+    // legacy grace window so the route is reachable.
+    config()->set('sso.admin.mfa.grace_period_hours', 72);
 
     $this->admin = User::factory()->create([
         'subject_id' => 'emergency-admin',

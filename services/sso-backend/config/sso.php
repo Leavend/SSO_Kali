@@ -121,7 +121,10 @@ return [
         'mfa' => [
             'enforced' => (bool) env('ADMIN_PANEL_REQUIRE_MFA', true),
             'accepted_amr' => $csv(env('ADMIN_PANEL_MFA_ACCEPTED_AMR', 'mfa')),
-            'grace_period_hours' => (int) env('ADMIN_MFA_GRACE_PERIOD_HOURS', 72),
+            // FR-018 / BE-FR018-001: production safe default. Grace period MUST be 0
+            // in production. The deploy guard `sso:check-admin-mfa-policy` enforces
+            // this and the EnsureAdminMfaEnrolled middleware clamps to 0 at runtime.
+            'grace_period_hours' => (int) env('ADMIN_MFA_GRACE_PERIOD_HOURS', 0),
         ],
     ],
     'admin_emails' => array_filter(array_map(

@@ -195,6 +195,8 @@ const MESSAGE_ID_MAP: Record<string, string> = {
   'CSRF token mismatch.': 'Sesi keamanan kedaluwarsa. Muat ulang halaman lalu coba lagi.',
   'Page Expired': 'Sesi keamanan kedaluwarsa. Muat ulang halaman lalu coba lagi.',
   'Not Found': 'Sumber daya tidak ditemukan.',
+  'You must enroll a multi-factor authentication method before accessing the admin panel.':
+    'Aktifkan autentikasi multi-faktor (MFA) sebelum mengakses panel admin.',
 }
 
 function localizeMessage(message: string | null): string | null {

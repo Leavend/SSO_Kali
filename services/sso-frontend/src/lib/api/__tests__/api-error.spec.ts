@@ -87,6 +87,24 @@ describe('ApiError.fromResponse', () => {
     expect(error.message).toBe('code expired')
   })
 
+  it('maps the admin MFA enrollment-required message to a localized copy', async () => {
+    const response = new Response(
+      JSON.stringify({
+        error: 'mfa_enrollment_required',
+        error_description:
+          'You must enroll a multi-factor authentication method before accessing the admin panel.',
+      }),
+      { status: 403, headers: { 'content-type': 'application/json' } },
+    )
+
+    const error = await ApiError.fromResponse(response)
+
+    expect(error.code).toBe('mfa_enrollment_required')
+    expect(error.message).toBe(
+      'Aktifkan autentikasi multi-faktor (MFA) sebelum mengakses panel admin.',
+    )
+  })
+
   it('maps Laravel CSRF failures to user-friendly copy', async () => {
     const response = new Response(JSON.stringify({ message: 'CSRF token mismatch.' }), {
       status: 419,

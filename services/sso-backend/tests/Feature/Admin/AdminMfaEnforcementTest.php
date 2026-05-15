@@ -18,6 +18,11 @@ beforeEach(function (): void {
     config()->set('sso.admin.freshness.step_up_seconds', 300);
     config()->set('sso.admin.mfa.enforced', true);
     config()->set('sso.admin.mfa.accepted_amr', ['mfa']);
+    // Existing tests cover AMR enforcement at the bootstrap layer; the admin
+    // here intentionally has no enrolled credential. Allow the legacy grace
+    // window so EnsureAdminMfaEnrolled does not short-circuit before the
+    // AMR check this suite is designed to verify.
+    config()->set('sso.admin.mfa.grace_period_hours', 72);
 });
 
 it('returns 403 mfa_required for admin bootstrap when the token lacks a second factor', function (): void {

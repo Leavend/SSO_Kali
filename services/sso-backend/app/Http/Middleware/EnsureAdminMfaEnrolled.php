@@ -59,12 +59,24 @@ final class EnsureAdminMfaEnrolled
 
     private function withinGracePeriod(User $user): bool
     {
-        $graceHours = (int) config('sso.admin.mfa.grace_period_hours', 72);
+        if ($this->isProduction()) {
+            // BE-FR018-001: enforce grace period = 0 in production regardless of
+            // misconfigured env. Production admins MUST enroll MFA before any
+            // privileged action.
+            return false;
+        }
+
+        $graceHours = (int) config('sso.admin.mfa.grace_period_hours', 0);
 
         if ($graceHours <= 0) {
             return false;
         }
 
         return $user->created_at->diffInHours(now()) < $graceHours;
+    }
+
+    private function isProduction(): bool
+    {
+        return (string) config('app.env', 'production') === 'production';
     }
 }
