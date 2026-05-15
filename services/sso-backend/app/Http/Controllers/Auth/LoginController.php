@@ -32,8 +32,8 @@ final class LoginController
             return response()->json([
                 'authenticated' => false,
                 'error' => $result->error,
-                'message' => 'The supplied credentials are invalid.',
-            ], 401);
+                'message' => $this->errorMessage($result->error),
+            ], $this->errorStatus($result->error));
         }
 
         // FR-018: Check if user has MFA enrolled — require challenge
@@ -63,6 +63,25 @@ final class LoginController
                 'auth_request_id' => $request->validated('auth_request_id'),
             ],
         ])->withCookie($cookies->make($result->session->session_id));
+    }
+
+    private function errorMessage(?string $error): string
+    {
+        return match ($error) {
+            'account_locked' => 'Akun Anda telah dikunci. Hubungi administrator.',
+            'password_expired' => 'Password Anda telah kedaluwarsa. Silakan ubah password.',
+            'too_many_attempts' => 'Terlalu banyak percobaan login. Silakan coba lagi nanti.',
+            default => 'The supplied credentials are invalid.',
+        };
+    }
+
+    private function errorStatus(?string $error): int
+    {
+        return match ($error) {
+            'password_expired' => 403,
+            'too_many_attempts' => 429,
+            default => 401,
+        };
     }
 
     private function requiresMfaChallenge(int $userId): bool

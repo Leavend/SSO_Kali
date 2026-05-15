@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Actions\Oidc;
 
 use App\Actions\Audit\RecordAuthenticationAuditEventAction;
+use App\Actions\Auth\VerifyLocalPasswordLoginAction;
 use App\Models\MfaCredential;
 use App\Models\User;
-use App\Services\Auth\LocalCredentialVerifier;
-use App\Services\Auth\LoginAttemptThrottle;
+use App\Support\Auth\LocalPasswordLoginOutcome;
 use App\Services\Mfa\MfaChallengeStore;
 use App\Services\Oidc\AuthorizationCodeStore;
 use App\Services\Oidc\ConsentService;
@@ -32,8 +32,7 @@ use Illuminate\Support\Str;
 final class AuthenticateLocalCredentials
 {
     public function __construct(
-        private readonly LocalCredentialVerifier $verifier,
-        private readonly LoginAttemptThrottle $throttle,
+        private readonly VerifyLocalPasswordLoginAction $verifier,
         private readonly DownstreamClientRegistry $clients,
         private readonly ScopePolicy $scopes,
         private readonly AuthorizationCodeStore $codes,
@@ -74,25 +73,30 @@ final class AuthenticateLocalCredentials
             return OidcErrorResponse::json('invalid_client', 'Unknown client or redirect URI.', 400);
         }
 
-        // Check throttle
-        if ($this->throttle->isThrottled($email)) {
-            $this->recordFailed($request, $email, $client, 'account_throttled');
+        $verification = $this->verifier->execute($email, $password);
+
+        if ($verification->outcome === LocalPasswordLoginOutcome::TooManyAttempts) {
+            $this->recordFailed($request, $email, $client, $verification->outcome->value);
 
             return response()->json([
                 'error' => 'too_many_attempts',
                 'message' => 'Terlalu banyak percobaan login. Silakan coba lagi nanti.',
-                'retry_after' => $this->throttle->availableIn($email),
+                'retry_after' => $verification->retryAfter,
             ], 429);
         }
 
-        // Verify credentials
-        $user = $this->verifier->verify($email, $password);
+        if ($verification->outcome === LocalPasswordLoginOutcome::PasswordExpired) {
+            $this->recordFailed($request, $email, $client, $verification->outcome->value);
 
-        if ($user === null) {
-            $attempts = $this->throttle->recordFailure($email);
-            $remaining = $this->throttle->remainingAttempts($email);
-            $errorCode = $this->verifier->isLocked($email) ? 'account_locked' : 'invalid_credentials';
+            return response()->json([
+                'error' => 'password_expired',
+                'message' => 'Password Anda telah kedaluwarsa. Silakan ubah password.',
+                'change_password_url' => '/profile/security',
+            ], 403);
+        }
 
+        if (! $verification->authenticated() || $verification->user === null) {
+            $errorCode = $verification->outcome->value;
             $this->recordFailed($request, $email, $client, $errorCode);
 
             return response()->json([
@@ -100,21 +104,11 @@ final class AuthenticateLocalCredentials
                 'message' => $errorCode === 'account_locked'
                     ? 'Akun Anda telah dikunci. Hubungi administrator.'
                     : 'Email atau password salah.',
-                'remaining_attempts' => $remaining,
+                'remaining_attempts' => $verification->remainingAttempts,
             ], 401);
         }
 
-        // Success — clear throttle
-        $this->throttle->clear($email);
-
-        // FR-015 / UC-20: Check password expiry
-        if ($this->isPasswordExpired($user)) {
-            return response()->json([
-                'error' => 'password_expired',
-                'message' => 'Password Anda telah kedaluwarsa. Silakan ubah password.',
-                'change_password_url' => '/profile/security',
-            ], 403);
-        }
+        $user = $verification->user;
 
         // FR-019 / UC-67: Check if user has MFA enrolled — require challenge
         if ($this->requiresMfaChallenge($user)) {
@@ -237,22 +231,4 @@ final class AuthenticateLocalCredentials
         ));
     }
 
-    /**
-     * FR-015 / UC-20: Check if user's password has expired.
-     */
-    private function isPasswordExpired(User $user): bool
-    {
-        $maxAgeDays = (int) config('sso.auth.password_max_age_days', 90);
-
-        if ($maxAgeDays <= 0) {
-            return false;
-        }
-
-        // If password_changed_at is null, treat as expired (force initial change)
-        if ($user->password_changed_at === null) {
-            return true;
-        }
-
-        return $user->password_changed_at->diffInDays(now()) >= $maxAgeDays;
-    }
 }
