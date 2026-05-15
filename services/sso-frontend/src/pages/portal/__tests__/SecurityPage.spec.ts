@@ -4,6 +4,22 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import SecurityPage from '../SecurityPage.vue'
 
+vi.mock('@/services/mfa.api', () => ({
+  mfaApi: {
+    getStatus: vi.fn().mockResolvedValue({
+      enrolled: false,
+      methods: [],
+      totp_verified_at: null,
+      recovery_codes_remaining: 0,
+    }),
+    startEnrollment: vi.fn().mockResolvedValue({
+      secret: 'SECRET',
+      qr_uri: 'otpauth://totp/test',
+      provisioning_uri: 'otpauth://totp/test',
+    }),
+  },
+}))
+
 vi.mock('@/services/profile.api', () => ({
   profileApi: {
     getAuditEvents: vi.fn().mockResolvedValue({
@@ -28,6 +44,24 @@ vi.mock('@/services/profile.api', () => ({
 describe('SecurityPage', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+  })
+
+  it('exposes active MFA management instead of future-release copy', async () => {
+    const wrapper = mount(SecurityPage, {
+      global: {
+        stubs: {
+          RouterLink: true,
+          Skeleton: true,
+        },
+      },
+    })
+
+    await flushPromises()
+    await nextTick()
+
+    expect(wrapper.text()).toContain('Kelola MFA')
+    expect(wrapper.text()).toContain('Aktifkan MFA')
+    expect(wrapper.text()).not.toContain('Manajemen MFA akan tersedia di rilis berikutnya')
   })
 
   it('renders password form actions as mobile-first full-width controls', async () => {

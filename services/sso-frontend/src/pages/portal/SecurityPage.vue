@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { Fingerprint, KeyRound, ShieldCheck } from 'lucide-vue-next'
+import { useMfaEnrollment } from '@/composables/useMfaEnrollment'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -19,15 +20,17 @@ import type { AuditEvent } from '@/types/audit.types'
 const profile = useProfileStore()
 const load = useAsyncAction(() => profile.loadProfile())
 const auditLoad = useAsyncAction(() => profileApi.getAuditEvents(undefined, 10))
+const mfa = useMfaEnrollment()
 
 const auditEvents = computed<readonly AuditEvent[]>(() => auditLoad.lastResult.value?.events ?? [])
 
 onMounted(() => {
   if (!profile.profile) void load.run()
   void auditLoad.run()
+  void mfa.fetchStatus()
 })
 
-const mfaEnabled = computed<boolean>(() => Boolean(profile.profile?.security.mfa_required))
+const mfaEnabled = computed<boolean>(() => mfa.isEnrolled.value || Boolean(profile.profile?.security.mfa_required))
 const riskScore = computed<number>(() => profile.profile?.security.risk_score ?? 0)
 const lastSeen = computed<string | null>(() => profile.profile?.security.last_seen_at ?? null)
 
@@ -111,8 +114,31 @@ function formatAuditDate(value: string): string {
             </CardDescription>
           </div>
         </CardHeader>
-        <CardContent class="text-muted-foreground text-xs">
-          Manajemen MFA akan tersedia di rilis berikutnya.
+        <CardContent class="grid gap-3 text-xs">
+          <p class="text-muted-foreground">
+            Kelola TOTP authenticator dan recovery codes untuk akun kamu.
+          </p>
+          <div v-if="mfa.error.value" role="alert" class="text-destructive">
+            {{ mfa.error.value }}
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <Button as-child size="sm" class="w-fit">
+              <RouterLink :to="{ name: 'portal.mfa-settings' }">Kelola MFA</RouterLink>
+            </Button>
+            <Button
+              v-if="!mfaEnabled"
+              size="sm"
+              variant="outline"
+              class="w-fit"
+              :disabled="mfa.pending.value"
+              @click="mfa.startEnrollment()"
+            >
+              Aktifkan MFA
+            </Button>
+          </div>
+          <p v-if="mfa.step.value === 'scanning'" class="text-muted-foreground">
+            Enrollment dimulai. Buka Kelola MFA untuk scan QR dan verifikasi kode.
+          </p>
         </CardContent>
       </Card>
 

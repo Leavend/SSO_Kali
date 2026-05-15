@@ -80,6 +80,12 @@ const routes: RouteRecordRaw[] = [
     meta: { layout: 'portal', requiresAuth: true, title: 'Keamanan' },
   },
   {
+    path: '/security/mfa',
+    name: 'portal.mfa-settings',
+    component: () => import('@/pages/portal/MfaSettingsPage.vue'),
+    meta: { layout: 'portal', requiresAuth: true, title: 'Pengaturan MFA' },
+  },
+  {
     path: '/admin/clients',
     name: 'admin.clients',
     component: () => import('@/pages/admin/ClientManagementPage.vue'),

@@ -44,7 +44,7 @@ export const mfaApi = {
   },
 
   remove(payload: MfaRemovePayload): Promise<MfaRemoveResponse> {
-    return apiClient.delete<MfaRemoveResponse>('/api/mfa/totp')
+    return apiClient.delete<MfaRemoveResponse>('/api/mfa/totp', { body: payload })
   },
 
   regenerateRecoveryCodes(payload: MfaRegenerateCodesPayload): Promise<MfaRegenerateCodesResponse> {

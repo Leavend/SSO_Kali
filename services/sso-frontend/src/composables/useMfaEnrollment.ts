@@ -1,136 +1,140 @@
 /**
- * useMfaEnrollment — placeholder composable UC-49 (Enroll TOTP).
+ * useMfaEnrollment — FR-018 / FR-020 portal MFA lifecycle.
  *
- * Status: ON-HOLD. Implementasi akan dilakukan setelah backend
- * endpoint `/api/mfa/totp/enroll` dan `/api/mfa/totp/verify` ready.
- *
- * Composable ini akan mengemas:
- *   - Generate QR code URI dari backend.
- *   - Verify 6-digit TOTP code.
- *   - Store recovery codes.
- *   - Error handling (invalid code, expired enrollment).
+ * Handles status, TOTP enrollment, verification, one-time recovery codes,
+ * regeneration, and removal with safe localized errors.
  */
 
-import { computed, ref } from "vue";
-import { mfaApi } from "@/services/mfa.api";
+import { computed, ref } from 'vue'
+import { ApiError } from '@/lib/api/api-error'
+import { mfaApi } from '@/services/mfa.api'
 import type {
-	MfaEnrollmentStatus,
-	MfaTotpEnrollResponse,
-	MfaTotpVerifyPayload,
-	MfaTotpVerifyResponse,
-} from "@/types/mfa.types";
+  MfaEnrollmentStatus,
+  MfaTotpEnrollResponse,
+  MfaTotpVerifyPayload,
+  MfaTotpVerifyResponse,
+} from '@/types/mfa.types'
+
+const SAFE_MFA_ERROR = 'Aksi MFA gagal diproses. Periksa data lalu coba lagi.'
+const INVALID_CODE_ERROR = 'Kode verifikasi tidak valid atau sudah kedaluwarsa.'
+const PASSWORD_CONFIRMATION_ERROR = 'Password tidak valid. Coba lagi.'
 
 export function useMfaEnrollment() {
-	const status = ref<MfaEnrollmentStatus | null>(null);
-	const enrollData = ref<MfaTotpEnrollResponse | null>(null);
-	const recoveryCodes = ref<readonly string[]>([]);
-	const pending = ref<boolean>(false);
-	const error = ref<string | null>(null);
-	const step = ref<"idle" | "scanning" | "verifying" | "recovery" | "complete">(
-		"idle",
-	);
+  const status = ref<MfaEnrollmentStatus | null>(null)
+  const enrollData = ref<MfaTotpEnrollResponse | null>(null)
+  const recoveryCodes = ref<readonly string[]>([])
+  const pending = ref<boolean>(false)
+  const error = ref<string | null>(null)
+  const step = ref<'idle' | 'scanning' | 'verifying' | 'recovery' | 'complete'>('idle')
 
-	const isEnrolled = computed<boolean>(() => status.value?.enrolled ?? false);
-	const recoveryCodesRemaining = computed<number>(
-		() => status.value?.recovery_codes_remaining ?? 0,
-	);
+  const isEnrolled = computed<boolean>(() => status.value?.enrolled ?? false)
+  const recoveryCodesRemaining = computed<number>(
+    () => status.value?.recovery_codes_remaining ?? 0,
+  )
 
-	async function fetchStatus(): Promise<void> {
-		await run(async () => {
-			status.value = await mfaApi.getStatus();
-			step.value = "idle";
-		});
-	}
+  async function fetchStatus(): Promise<void> {
+    await run(async () => {
+      status.value = await mfaApi.getStatus()
+      step.value = 'idle'
+    })
+  }
 
-	async function startEnrollment(): Promise<void> {
-		await run(async () => {
-			enrollData.value = await mfaApi.startEnrollment();
-			step.value = "scanning";
-		});
-	}
+  async function startEnrollment(): Promise<void> {
+    await run(async () => {
+      enrollData.value = await mfaApi.startEnrollment()
+      step.value = 'scanning'
+    })
+  }
 
-	async function verifyTotp(
-		payload: MfaTotpVerifyPayload,
-	): Promise<MfaTotpVerifyResponse> {
-		let response: MfaTotpVerifyResponse | null = null;
-		await run(async () => {
-			response = await mfaApi.verifyTotp(payload);
-			recoveryCodes.value = response.recovery_codes ?? [];
-			step.value = recoveryCodes.value.length > 0 ? "recovery" : "complete";
-			await fetchStatus();
-		});
+  async function verifyTotp(payload: MfaTotpVerifyPayload): Promise<MfaTotpVerifyResponse> {
+    let response: MfaTotpVerifyResponse | null = null
+    await run(async () => {
+      response = await mfaApi.verifyTotp(payload)
+      recoveryCodes.value = response.recovery_codes ?? []
+      await refreshStatus()
+      step.value = recoveryCodes.value.length > 0 ? 'recovery' : 'complete'
+    })
 
-		if (response === null) {
-			throw new Error("MFA verification failed.");
-		}
+    if (response === null) throw new Error('MFA verification failed.')
+    return response
+  }
 
-		return response;
-	}
+  async function verifyCode(code: string): Promise<void> {
+    await verifyTotp({ code })
+  }
 
-	async function verifyCode(code: string): Promise<void> {
-		await verifyTotp({ code });
-	}
+  async function remove(password: string): Promise<boolean> {
+    return runBoolean(async () => {
+      await mfaApi.remove({ password })
+      await fetchStatus()
+      step.value = 'idle'
+    })
+  }
 
-	async function remove(password: string): Promise<boolean> {
-		return runBoolean(async () => {
-			await mfaApi.remove({ password });
-			await fetchStatus();
-			step.value = "idle";
-		});
-	}
+  async function regenerateCodes(password: string): Promise<boolean> {
+    return runBoolean(async () => {
+      const response = await mfaApi.regenerateRecoveryCodes({ password })
+      recoveryCodes.value = response.recovery_codes
+      await refreshStatus()
+      step.value = 'recovery'
+    })
+  }
 
-	async function regenerateCodes(password: string): Promise<boolean> {
-		return runBoolean(async () => {
-			const response = await mfaApi.regenerateRecoveryCodes({ password });
-			recoveryCodes.value = response.recovery_codes;
-			step.value = "recovery";
-			await fetchStatus();
-		});
-	}
+  function completeSetup(): void {
+    recoveryCodes.value = []
+    step.value = 'complete'
+  }
 
-	function completeSetup(): void {
-		recoveryCodes.value = [];
-		step.value = "complete";
-	}
+  async function refreshStatus(): Promise<void> {
+    status.value = await mfaApi.getStatus()
+  }
 
-	async function run(callback: () => Promise<void>): Promise<void> {
-		pending.value = true;
-		error.value = null;
-		try {
-			await callback();
-		} catch (exception) {
-			error.value =
-				exception instanceof Error ? exception.message : "Gagal memproses MFA.";
-			throw exception;
-		} finally {
-			pending.value = false;
-		}
-	}
+  async function run(callback: () => Promise<void>): Promise<void> {
+    pending.value = true
+    error.value = null
+    try {
+      await callback()
+    } catch (exception) {
+      error.value = safeMfaErrorMessage(exception)
+      throw exception
+    } finally {
+      pending.value = false
+    }
+  }
 
-	async function runBoolean(callback: () => Promise<void>): Promise<boolean> {
-		try {
-			await run(callback);
-			return true;
-		} catch {
-			return false;
-		}
-	}
+  async function runBoolean(callback: () => Promise<void>): Promise<boolean> {
+    try {
+      await run(callback)
+      return true
+    } catch {
+      return false
+    }
+  }
 
-	return {
-		status,
-		enrollData,
-		recoveryCodes,
-		pending,
-		error,
-		step,
-		isEnrolled,
-		recoveryCodesRemaining,
-		fetchStatus,
-		startEnrollment,
-		verifyTotp,
-		verifyCode,
-		remove,
-		regenerateCodes,
-		completeSetup,
-	};
+  function safeMfaErrorMessage(exception: unknown): string {
+    if (!(exception instanceof ApiError)) return SAFE_MFA_ERROR
+    if (exception.status === 422 && exception.violations.length > 0) return INVALID_CODE_ERROR
+    if (exception.status === 401 || exception.status === 403 || exception.status === 422) {
+      return PASSWORD_CONFIRMATION_ERROR
+    }
+    return SAFE_MFA_ERROR
+  }
+
+  return {
+    status,
+    enrollData,
+    recoveryCodes,
+    pending,
+    error,
+    step,
+    isEnrolled,
+    recoveryCodesRemaining,
+    fetchStatus,
+    startEnrollment,
+    verifyTotp,
+    verifyCode,
+    remove,
+    regenerateCodes,
+    completeSetup,
+  }
 }

@@ -33,7 +33,7 @@ export type ApiClient = {
   post<T>(path: string, body?: unknown, options?: Omit<RequestOptions, 'method'>): Promise<T>
   patch<T>(path: string, body?: unknown, options?: Omit<RequestOptions, 'method'>): Promise<T>
   put<T>(path: string, body?: unknown, options?: Omit<RequestOptions, 'method'>): Promise<T>
-  delete<T>(path: string, options?: Omit<RequestOptions, 'method' | 'body'>): Promise<T>
+  delete<T>(path: string, options?: Omit<RequestOptions, 'method'>): Promise<T>
 }
 
 const MUTATING_METHODS = new Set<HttpMethod>(['POST', 'PUT', 'PATCH', 'DELETE'])
@@ -183,6 +183,6 @@ export const apiClient: ApiClient = {
     request<T>(path, { ...(options ?? {}), method: 'PATCH', body }),
   put: <T>(path: string, body?: unknown, options?: Omit<RequestOptions, 'method'>): Promise<T> =>
     request<T>(path, { ...(options ?? {}), method: 'PUT', body }),
-  delete: <T>(path: string, options?: Omit<RequestOptions, 'method' | 'body'>): Promise<T> =>
+  delete: <T>(path: string, options?: Omit<RequestOptions, 'method'>): Promise<T> =>
     request<T>(path, { ...(options ?? {}), method: 'DELETE' }),
 }
