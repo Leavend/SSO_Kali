@@ -6,13 +6,11 @@ namespace App\Http\Controllers\Admin;
 
 use App\Actions\Admin\CreateManagedUserAction;
 use App\Actions\Admin\DeactivateManagedUserAction;
-use App\Actions\Admin\EmergencyMfaResetAction;
 use App\Actions\Admin\IssueManagedUserPasswordResetAction;
 use App\Actions\Admin\ReactivateManagedUserAction;
 use App\Actions\Admin\SyncManagedUserProfileAction;
 use App\Http\Requests\Admin\CreateManagedUserRequest;
 use App\Http\Requests\Admin\DeactivateManagedUserRequest;
-use App\Http\Requests\Admin\EmergencyMfaResetRequest;
 use App\Http\Requests\Admin\SyncManagedUserProfileRequest;
 use App\Models\User;
 use App\Services\Admin\AdminMutationResponder;
@@ -72,37 +70,6 @@ final class UserController
     public function syncProfile(SyncManagedUserProfileRequest $request, SyncManagedUserProfileAction $action, string $subjectId): JsonResponse
     {
         return $this->mutateUser($request, $subjectId, 'sync_managed_user_profile', fn (User $target): User => $action->execute($target, $request->validated()));
-    }
-
-    public function resetMfa(EmergencyMfaResetRequest $request, EmergencyMfaResetAction $action, string $subjectId): JsonResponse
-    {
-        $target = $this->users->find($subjectId);
-
-        if (! $target instanceof User) {
-            return AdminApiResponse::error('not_found', 'User not found.', 404);
-        }
-
-        /** @var User $admin */
-        $admin = $request->attributes->get('admin_user');
-        $reason = (string) $request->validated('reason');
-
-        return $this->mutate(
-            $request,
-            'emergency_mfa_reset',
-            [
-                'target_subject_id' => $subjectId,
-                'reason' => $reason,
-                'reason_length' => mb_strlen($reason),
-            ],
-            fn (): array => tap(
-                [
-                    'reset' => true,
-                    'message' => 'MFA credential removed. The user must re-enroll a second factor before continuing.',
-                    'reenrollment_required' => true,
-                ],
-                fn () => $action->execute($target, $admin, $reason),
-            ),
-        );
     }
 
     /** @param Closure(): array<string, mixed> $callback */

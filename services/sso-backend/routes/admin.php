@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SessionController;
 use App\Http\Controllers\Admin\SsoErrorTemplateController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\UserMfaResetController;
 use App\Http\Middleware\AdminGuard;
 use App\Http\Middleware\EnsureAdminMfaAssurance;
 use App\Http\Middleware\EnsureAdminMfaEnrolled;
@@ -134,7 +135,7 @@ Route::middleware([AdminGuard::class, EnsureAdminMfaEnrolled::class])->prefix('a
             ->where('subjectId', '[a-zA-Z0-9_-]+');
         Route::post('/users/{subjectId}/sync-profile', [UserController::class, 'syncProfile'])
             ->where('subjectId', '[a-zA-Z0-9_-]+');
-        Route::post('/users/{subjectId}/reset-mfa', [UserController::class, 'resetMfa'])
+        Route::post('/users/{subjectId}/reset-mfa', UserMfaResetController::class)
             ->where('subjectId', '[a-zA-Z0-9_-]+');
     });
 
