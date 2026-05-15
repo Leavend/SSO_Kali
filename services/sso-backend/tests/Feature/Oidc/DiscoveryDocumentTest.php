@@ -12,8 +12,8 @@ it('exposes an OpenID discovery document', function (): void {
     $this->getJson('/.well-known/openid-configuration')
         ->assertOk()
         ->assertJsonPath('issuer', config('sso.issuer'))
-        ->assertJsonPath('authorization_endpoint', config('sso.base_url').'/oauth/authorize')
-        ->assertJsonPath('token_endpoint', config('sso.base_url').'/oauth/token')
+        ->assertJsonPath('authorization_endpoint', config('sso.base_url').'/authorize')
+        ->assertJsonPath('token_endpoint', config('sso.base_url').'/token')
         ->assertJsonPath('jwks_uri', config('sso.base_url').'/.well-known/jwks.json')
         ->assertJsonPath('userinfo_endpoint', config('sso.base_url').'/userinfo');
 });
@@ -58,8 +58,8 @@ it('includes all required RFC 8414 fields', function (): void {
     /** @var TestCase $this */
     $this->getJson('/.well-known/openid-configuration')
         ->assertJsonPath('issuer', fn ($value) => is_string($value) && $value !== '')
-        ->assertJsonPath('authorization_endpoint', fn ($value) => str_ends_with($value, '/oauth/authorize'))
-        ->assertJsonPath('token_endpoint', fn ($value) => str_ends_with($value, '/oauth/token'))
+        ->assertJsonPath('authorization_endpoint', fn ($value) => str_ends_with($value, '/authorize'))
+        ->assertJsonPath('token_endpoint', fn ($value) => str_ends_with($value, '/token'))
         ->assertJsonPath('jwks_uri', fn ($value) => str_ends_with($value, '/.well-known/jwks.json'))
         ->assertJsonPath('response_types_supported', fn ($value) => in_array('code', $value, true));
 });
