@@ -8,7 +8,10 @@ use App\Actions\Audit\RecordAuthenticationAuditEventAction;
 use App\Services\Oidc\AuthorizationCodeStore;
 use App\Services\Oidc\AuthRequestStore;
 use App\Services\Oidc\ConsentService;
+use App\Services\Oidc\DownstreamClientRegistry;
+use App\Services\Oidc\ScopePolicy;
 use App\Support\Audit\AuthenticationAuditRecord;
+use App\Support\Oidc\DownstreamClient;
 use App\Support\Oidc\ScopeSet;
 use App\Support\Responses\OidcErrorResponse;
 use Illuminate\Http\JsonResponse;
@@ -28,6 +31,8 @@ final class ProcessConsentDecision
         private readonly AuthorizationCodeStore $codes,
         private readonly ConsentService $consents,
         private readonly RecordAuthenticationAuditEventAction $audits,
+        private readonly DownstreamClientRegistry $clients,
+        private readonly ScopePolicy $scopes,
     ) {}
 
     public function handle(Request $request): JsonResponse
@@ -54,15 +59,40 @@ final class ProcessConsentDecision
             $this->recordDecision($request, $payload, 'failed', 'access_denied');
 
             return response()->json([
-                'redirect_uri' => $this->denyRedirect($redirectUri, $payload),
+                'redirect_uri' => $this->errorRedirect($redirectUri, $payload, 'access_denied', 'The user denied the consent request.'),
             ]);
         }
 
-        // Persist consent
+        // BE-FR023-001: re-resolve the client and re-validate the scope at
+        // allow-time. If the registry or scope policy tightened between the
+        // consent screen render and the user's allow click, fail safe with
+        // a standard invalid_scope redirect — never silently downgrade.
+        $client = $this->clients->resolve($clientId, $redirectUri);
+
+        if (! $client instanceof DownstreamClient) {
+            $this->recordDecision($request, $payload, 'failed', 'invalid_client');
+
+            return response()->json([
+                'redirect_uri' => $this->errorRedirect($redirectUri, $payload, 'invalid_client', 'The client is no longer registered.'),
+            ]);
+        }
+
+        try {
+            $scope = $this->scopes->validateAuthorizationRequest($scope, $client);
+        } catch (\RuntimeException $exception) {
+            $this->recordDecision($request, $payload, 'failed', 'invalid_scope');
+
+            return response()->json([
+                'redirect_uri' => $this->errorRedirect($redirectUri, $payload, 'invalid_scope', $exception->getMessage()),
+            ]);
+        }
+
+        // Persist consent (using the validated scope set).
         $this->consents->grant($subjectId, $clientId, ScopeSet::fromString($scope));
         $this->recordDecision($request, $payload, 'succeeded');
 
-        // Issue authorization code
+        // Issue authorization code with the validated scope.
+        $payload['scope'] = $scope;
         $code = $this->codes->issue($payload);
 
         $query = http_build_query(array_filter([
@@ -102,11 +132,11 @@ final class ProcessConsentDecision
     /**
      * @param  array<string, mixed>  $payload
      */
-    private function denyRedirect(string $redirectUri, array $payload): string
+    private function errorRedirect(string $redirectUri, array $payload, string $error, string $description): string
     {
         $query = http_build_query(array_filter([
-            'error' => 'access_denied',
-            'error_description' => 'The user denied the consent request.',
+            'error' => $error,
+            'error_description' => $description,
             'state' => $payload['original_state'] ?? null,
         ]));
 

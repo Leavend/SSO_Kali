@@ -11,6 +11,7 @@ use App\Models\SsoSession;
 use App\Models\User;
 use App\Services\Mfa\MfaChallengeStore;
 use App\Services\Session\SsoSessionCookieFactory;
+use App\Support\Oidc\OidcContinuationOutcome;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -109,19 +110,37 @@ final class MfaChallengeController
                 request: $request,
             );
 
-            if ($continuation === null) {
-                return response()->json([
+            return match ($continuation->outcome) {
+                OidcContinuationOutcome::AuthorizationCode,
+                OidcContinuationOutcome::Consent => response()->json([
+                    ...$payload,
+                    'continuation' => [
+                        'type' => $continuation->outcome === OidcContinuationOutcome::Consent
+                            ? 'consent'
+                            : 'authorization_code',
+                        'redirect_uri' => (string) $continuation->redirectUri,
+                    ],
+                    // Backwards-compatible top-level field for legacy callers.
+                    'redirect_uri' => (string) $continuation->redirectUri,
+                ])->withCookie($cookies->make($session->session_id)),
+
+                // BE-FR023-001: scope policy tightened mid-flow.
+                // Surface a deterministic invalid_scope so the SPA can
+                // localize the error and the user retries from /authorize.
+                OidcContinuationOutcome::InvalidScope => response()->json([
+                    'authenticated' => false,
+                    'error' => 'invalid_scope',
+                    'error_description' => $continuation->errorDescription
+                        ?? 'The requested scope is no longer allowed for this client.',
+                ], 400),
+
+                OidcContinuationOutcome::InvalidClient,
+                OidcContinuationOutcome::InvalidContext,
+                OidcContinuationOutcome::TemporarilyUnavailable => response()->json([
                     'authenticated' => false,
                     'error' => 'The pending authorization request is no longer valid.',
-                ], 409);
-            }
-
-            $payload['continuation'] = [
-                'type' => $continuation['requires_consent'] ? 'consent' : 'authorization_code',
-                'redirect_uri' => $continuation['redirect_uri'],
-            ];
-            // Backwards-compatible top-level field for legacy callers.
-            $payload['redirect_uri'] = $continuation['redirect_uri'];
+                ], 409),
+            };
         }
 
         return response()->json($payload)->withCookie($cookies->make($session->session_id));

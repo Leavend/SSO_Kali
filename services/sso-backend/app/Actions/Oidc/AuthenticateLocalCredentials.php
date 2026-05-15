@@ -130,17 +130,22 @@ final class AuthenticateLocalCredentials
             ], 403);
         }
 
+        // BE-FR023-001: Validate scope BEFORE MFA branch so an invalid or
+        // disallowed scope returns a deterministic invalid_scope error
+        // instead of a silent rewrite to "openid".
+        try {
+            $validatedScope = $this->scopes->validateAuthorizationRequest($scope, $client);
+        } catch (\RuntimeException $exception) {
+            $this->recordFailed($request, $email, $client, 'invalid_scope');
+
+            return OidcErrorResponse::json('invalid_scope', $exception->getMessage(), 400);
+        }
+
         // FR-019 / UC-67 / BE-FR019-001: Check if user has MFA enrolled.
         // The pending OIDC authorization request is bound to the challenge
         // server-side. The client only receives an opaque challenge id and
         // can never alter the redemption parameters.
         if ($this->requiresMfaChallenge($user)) {
-            try {
-                $validatedScope = $this->scopes->validateAuthorizationRequest($scope, $client);
-            } catch (\RuntimeException) {
-                $validatedScope = 'openid';
-            }
-
             $challenge = $this->challenges->create($user->getKey(), [
                 'flow' => 'local_login',
                 'client_id' => $client->clientId,
@@ -163,13 +168,6 @@ final class AuthenticateLocalCredentials
                     'expires_at' => $challenge['expires_at'],
                 ],
             ]);
-        }
-
-        // Validate scope
-        try {
-            $validatedScope = $this->scopes->validateAuthorizationRequest($scope, $client);
-        } catch (\RuntimeException) {
-            $validatedScope = 'openid';
         }
 
         // Build authorization code payload

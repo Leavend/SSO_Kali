@@ -13,6 +13,7 @@ use App\Services\Oidc\DownstreamClientRegistry;
 use App\Services\Oidc\ScopePolicy;
 use App\Support\Audit\AuthenticationAuditRecord;
 use App\Support\Oidc\DownstreamClient;
+use App\Support\Oidc\OidcContinuationResult;
 use App\Support\Oidc\ScopeSet;
 use Illuminate\Http\Request;
 
@@ -41,9 +42,8 @@ final class CompletePendingOidcAuthorization
 
     /**
      * @param  array<string, mixed>  $context
-     * @return array{redirect_uri: string, requires_consent: bool}|null
      */
-    public function execute(User $user, array $context, string $sessionId, Request $request): ?array
+    public function execute(User $user, array $context, string $sessionId, Request $request): OidcContinuationResult
     {
         $clientId = $this->stringFrom($context, 'client_id');
         $redirectUri = $this->stringFrom($context, 'redirect_uri');
@@ -55,7 +55,7 @@ final class CompletePendingOidcAuthorization
 
         if ($clientId === null || $redirectUri === null || $codeChallenge === null
             || $state === null || $nonce === null || $codeChallengeMethod !== 'S256') {
-            return null;
+            return OidcContinuationResult::invalidContext();
         }
 
         // BE-FR019-001: re-validate the bound client + redirect on every
@@ -64,10 +64,17 @@ final class CompletePendingOidcAuthorization
         $client = $this->clients->resolve($clientId, $redirectUri);
 
         if (! $client instanceof DownstreamClient) {
-            return null;
+            return OidcContinuationResult::invalidClient();
         }
 
-        $validatedScope = $this->safeValidateScope($scope, $client);
+        // BE-FR023-001: NEVER silently downgrade scope. If the policy has
+        // tightened mid-flow, surface invalid_scope to the caller so the
+        // pending authorization fails safe with no code.
+        try {
+            $validatedScope = $this->scopes->validateAuthorizationRequest($scope, $client);
+        } catch (\RuntimeException $exception) {
+            return OidcContinuationResult::invalidScope($exception->getMessage());
+        }
 
         $payload = [
             'client_id' => $client->clientId,
@@ -89,13 +96,12 @@ final class CompletePendingOidcAuthorization
             $consentState = $this->authRequests->put($payload);
 
             if ($consentState === null) {
-                return null;
+                return OidcContinuationResult::temporarilyUnavailable();
             }
 
-            return [
-                'redirect_uri' => $this->consentRedirectUri($client, $validatedScope, $consentState),
-                'requires_consent' => true,
-            ];
+            return OidcContinuationResult::consent(
+                $this->consentRedirectUri($client, $validatedScope, $consentState),
+            );
         }
 
         $code = $this->codes->issue($payload);
@@ -110,19 +116,7 @@ final class CompletePendingOidcAuthorization
 
         $redirect = $redirectUri.(str_contains($redirectUri, '?') ? '&' : '?').$query;
 
-        return [
-            'redirect_uri' => $redirect,
-            'requires_consent' => false,
-        ];
-    }
-
-    private function safeValidateScope(string $scope, DownstreamClient $client): string
-    {
-        try {
-            return $this->scopes->validateAuthorizationRequest($scope, $client);
-        } catch (\RuntimeException) {
-            return 'openid';
-        }
+        return OidcContinuationResult::authorizationCode($redirect);
     }
 
     private function requiresConsent(DownstreamClient $client, string $subjectId, string $scope): bool
