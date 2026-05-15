@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Actions\Oidc;
 
+use App\Actions\Audit\RecordAuthenticationAuditEventAction;
 use App\Services\Oidc\AuthorizationCodeStore;
 use App\Services\Oidc\AuthRequestStore;
 use App\Services\Oidc\ConsentService;
+use App\Support\Audit\AuthenticationAuditRecord;
 use App\Support\Oidc\ScopeSet;
 use App\Support\Responses\OidcErrorResponse;
 use Illuminate\Http\JsonResponse;
@@ -25,6 +27,7 @@ final class ProcessConsentDecision
         private readonly AuthRequestStore $authRequests,
         private readonly AuthorizationCodeStore $codes,
         private readonly ConsentService $consents,
+        private readonly RecordAuthenticationAuditEventAction $audits,
     ) {}
 
     public function handle(Request $request): JsonResponse
@@ -48,6 +51,8 @@ final class ProcessConsentDecision
         $redirectUri = (string) ($payload['redirect_uri'] ?? '');
 
         if ($decision === 'deny') {
+            $this->recordDecision($request, $payload, 'failed', 'access_denied');
+
             return response()->json([
                 'redirect_uri' => $this->denyRedirect($redirectUri, $payload),
             ]);
@@ -55,6 +60,7 @@ final class ProcessConsentDecision
 
         // Persist consent
         $this->consents->grant($subjectId, $clientId, ScopeSet::fromString($scope));
+        $this->recordDecision($request, $payload, 'succeeded');
 
         // Issue authorization code
         $code = $this->codes->issue($payload);
@@ -72,6 +78,30 @@ final class ProcessConsentDecision
         ]);
     }
 
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function recordDecision(Request $request, array $payload, string $outcome, ?string $errorCode = null): void
+    {
+        $this->audits->execute(AuthenticationAuditRecord::consentDecision(
+            outcome: $outcome,
+            subjectId: (string) ($payload['subject_id'] ?? ''),
+            clientId: (string) ($payload['client_id'] ?? ''),
+            sessionId: is_string($payload['session_id'] ?? null) ? $payload['session_id'] : null,
+            ipAddress: $request->ip(),
+            userAgent: $request->userAgent(),
+            errorCode: $errorCode,
+            requestId: $request->headers->get('X-Request-Id'),
+            context: [
+                'scope' => (string) ($payload['scope'] ?? 'openid'),
+                'decision' => $outcome === 'succeeded' ? 'allow' : 'deny',
+            ],
+        ));
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
     private function denyRedirect(string $redirectUri, array $payload): string
     {
         $query = http_build_query(array_filter([

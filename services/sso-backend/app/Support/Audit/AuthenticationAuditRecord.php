@@ -88,6 +88,23 @@ final readonly class AuthenticationAuditRecord
     /**
      * @param  array<string, mixed>|null  $context
      */
+    public static function consentDecision(
+        string $outcome,
+        string $subjectId,
+        string $clientId,
+        ?string $sessionId,
+        ?string $ipAddress,
+        ?string $userAgent,
+        ?string $errorCode = null,
+        ?string $requestId = null,
+        ?array $context = null,
+    ): self {
+        return new self('consent_decision', $outcome, $subjectId, null, $clientId, $sessionId, $ipAddress, $userAgent, $errorCode, $requestId, $context, now());
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $context
+     */
     public static function tokenLifecycle(
         string $eventType,
         string $outcome,

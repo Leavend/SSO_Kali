@@ -10,6 +10,7 @@ use App\Models\MfaCredential;
 use App\Models\User;
 use App\Services\Mfa\MfaChallengeStore;
 use App\Services\Oidc\AuthorizationCodeStore;
+use App\Services\Oidc\AuthRequestStore;
 use App\Services\Oidc\ConsentService;
 use App\Services\Oidc\DownstreamClientRegistry;
 use App\Services\Oidc\ScopePolicy;
@@ -36,6 +37,7 @@ final class AuthenticateLocalCredentials
         private readonly DownstreamClientRegistry $clients,
         private readonly ScopePolicy $scopes,
         private readonly AuthorizationCodeStore $codes,
+        private readonly AuthRequestStore $authRequests,
         private readonly ConsentService $consents,
         private readonly RecordAuthenticationAuditEventAction $audits,
         private readonly MfaChallengeStore $challenges,
@@ -157,10 +159,16 @@ final class AuthenticateLocalCredentials
             'user_agent' => $request->userAgent(),
         ];
 
-        // FR-011: auto-grant consent for local login (user is authenticating directly)
-        $scopeList = ScopeSet::fromString($validatedScope);
-        if (! $client->skipConsent) {
-            $this->consents->grant($user->subject_id, $client->clientId, $scopeList);
+        if ($this->requiresConsent($client, $user->subject_id, $validatedScope)) {
+            $consentState = $this->authRequests->put($payload);
+
+            if ($consentState === null) {
+                return OidcErrorResponse::json('temporarily_unavailable', 'The consent session could not be started.', 503);
+            }
+
+            return response()->json([
+                'redirect_uri' => $this->consentRedirectUri($client, $validatedScope, $consentState),
+            ]);
         }
 
         // Issue authorization code
@@ -180,6 +188,26 @@ final class AuthenticateLocalCredentials
 
         return response()->json([
             'redirect_uri' => $callbackUri,
+        ]);
+    }
+
+    private function requiresConsent(DownstreamClient $client, string $subjectId, string $scope): bool
+    {
+        if ($client->skipConsent) {
+            return false;
+        }
+
+        return ! $this->consents->hasConsent($subjectId, $client->clientId, ScopeSet::fromString($scope));
+    }
+
+    private function consentRedirectUri(DownstreamClient $client, string $scope, string $state): string
+    {
+        $frontendUrl = rtrim((string) config('sso.frontend_url', ''), '/');
+
+        return $frontendUrl.'/auth/consent?'.http_build_query([
+            'client_id' => $client->clientId,
+            'scope' => $scope,
+            'state' => $state,
         ]);
     }
 
