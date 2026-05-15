@@ -12,6 +12,7 @@ use App\Services\Oidc\DownstreamClientRegistry;
 use App\Services\Oidc\LocalTokenService;
 use App\Services\Oidc\OidcIncidentAuditLogger;
 use App\Services\Oidc\RefreshTokenStore;
+use App\Services\Oidc\TokenClientAuthenticationResolver;
 use App\Services\Oidc\Upstream\UpstreamOidcClient;
 use App\Services\Oidc\UserProfileSynchronizer;
 use App\Support\Audit\AuthenticationAuditRecord;
@@ -28,6 +29,7 @@ final class ExchangeToken
 {
     public function __construct(
         private readonly DownstreamClientRegistry $clients,
+        private readonly TokenClientAuthenticationResolver $clientAuthentication,
         private readonly AuthorizationCodeStore $codes,
         private readonly RefreshTokenStore $refreshTokens,
         private readonly LocalTokenService $tokens,
@@ -50,13 +52,14 @@ final class ExchangeToken
     private function authorizationCodeGrant(Request $request): JsonResponse
     {
         $payload = $this->codes->pull((string) $request->input('code', ''));
-        $client = $this->clientForCode($request, $payload);
+        $credentials = $this->clientAuthentication->resolve($request);
+        $client = $this->clientForCode($request, $payload, $credentials->clientId);
 
         if ($payload === null || $client === null) {
             return $this->tokenError($request, 'invalid_authorization_code', 'invalid_grant', 'The authorization code is invalid.', 400);
         }
 
-        if (! $this->clients->validSecret($client, $this->clientSecret($request))) {
+        if (! $this->clients->validSecret($client, $credentials->clientSecret)) {
             return $this->tokenError($request, 'invalid_client_authentication', 'invalid_client', 'Client authentication failed.', 401);
         }
 
@@ -76,9 +79,10 @@ final class ExchangeToken
 
     private function refreshGrant(Request $request): JsonResponse
     {
-        $client = $this->clients->find((string) $request->input('client_id', ''));
+        $credentials = $this->clientAuthentication->resolve($request);
+        $client = $this->clients->find($credentials->clientId);
 
-        if ($client === null || ! $this->clients->validSecret($client, $this->clientSecret($request))) {
+        if ($client === null || ! $this->clients->validSecret($client, $credentials->clientSecret)) {
             return $this->tokenError($request, 'invalid_client_authentication', 'invalid_client', 'Client authentication failed.', 401);
         }
 
@@ -99,14 +103,14 @@ final class ExchangeToken
     /**
      * @param  array<string, mixed>|null  $payload
      */
-    private function clientForCode(Request $request, ?array $payload): ?DownstreamClient
+    private function clientForCode(Request $request, ?array $payload, string $clientId): ?DownstreamClient
     {
         if ($payload === null) {
             return null;
         }
 
         $client = $this->clients->resolve(
-            (string) $request->input('client_id', ''),
+            $clientId,
             (string) $request->input('redirect_uri', ''),
         );
 
@@ -267,13 +271,6 @@ final class ExchangeToken
             'amr' => $record['amr'] ?? [],
             'acr' => $record['acr'] ?? null,
         ];
-    }
-
-    private function clientSecret(Request $request): ?string
-    {
-        $secret = $request->input('client_secret');
-
-        return is_string($secret) ? $secret : null;
     }
 
     /**

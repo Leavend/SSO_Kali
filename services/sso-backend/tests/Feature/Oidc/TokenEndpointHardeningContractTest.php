@@ -46,7 +46,8 @@ it('allows public clients to exchange a valid authorization code without a clien
 it('requires confidential clients to provide the exact client secret', function (): void {
     [$missingSecretCode, $missingSecretVerifier] = issue49AuthorizationCode('app-b', 'https://sso.timeh.my.id/app-b/auth/callback');
     [$wrongSecretCode, $wrongSecretVerifier] = issue49AuthorizationCode('app-b', 'https://sso.timeh.my.id/app-b/auth/callback');
-    [$validCode, $validVerifier] = issue49AuthorizationCode('app-b', 'https://sso.timeh.my.id/app-b/auth/callback');
+    [$postSecretCode, $postSecretVerifier] = issue49AuthorizationCode('app-b', 'https://sso.timeh.my.id/app-b/auth/callback');
+    [$basicSecretCode, $basicSecretVerifier] = issue49AuthorizationCode('app-b', 'https://sso.timeh.my.id/app-b/auth/callback');
 
     $this->postJson('/token', [
         'grant_type' => 'authorization_code',
@@ -71,10 +72,19 @@ it('requires confidential clients to provide the exact client secret', function 
         'grant_type' => 'authorization_code',
         'client_id' => 'app-b',
         'redirect_uri' => 'https://sso.timeh.my.id/app-b/auth/callback',
-        'code' => $validCode,
-        'code_verifier' => $validVerifier,
+        'code' => $postSecretCode,
+        'code_verifier' => $postSecretVerifier,
         'client_secret' => 'app-b-secret',
     ])->assertOk()
+        ->assertJsonPath('token_type', 'Bearer');
+
+    $this->withHeader('Authorization', 'Basic '.base64_encode('app-b:app-b-secret'))
+        ->postJson('/token', [
+            'grant_type' => 'authorization_code',
+            'redirect_uri' => 'https://sso.timeh.my.id/app-b/auth/callback',
+            'code' => $basicSecretCode,
+            'code_verifier' => $basicSecretVerifier,
+        ])->assertOk()
         ->assertJsonPath('token_type', 'Bearer');
 });
 
@@ -139,6 +149,26 @@ it('rejects refresh grants with missing unknown or client-mismatched refresh tok
     'confidential client missing secret' => [['client_id' => 'app-b', 'expected_status' => 401, 'expected_error' => 'invalid_client']],
     'confidential client wrong secret' => [['client_id' => 'app-b', 'client_secret' => 'wrong-secret', 'expected_status' => 401, 'expected_error' => 'invalid_client']],
 ]);
+
+it('allows confidential clients to refresh tokens with HTTP Basic authentication', function (): void {
+    [$code, $verifier] = issue49AuthorizationCode('app-b', 'https://sso.timeh.my.id/app-b/auth/callback');
+
+    $issued = $this->withHeader('Authorization', 'Basic '.base64_encode('app-b:app-b-secret'))
+        ->postJson('/token', [
+            'grant_type' => 'authorization_code',
+            'redirect_uri' => 'https://sso.timeh.my.id/app-b/auth/callback',
+            'code' => $code,
+            'code_verifier' => $verifier,
+        ])->assertOk()
+        ->json();
+
+    $this->withHeader('Authorization', 'Basic '.base64_encode('app-b:app-b-secret'))
+        ->postJson('/token', [
+            'grant_type' => 'refresh_token',
+            'refresh_token' => $issued['refresh_token'],
+        ])->assertOk()
+        ->assertJsonPath('token_type', 'Bearer');
+});
 
 it('returns no-store cache directives for token endpoint errors', function (): void {
     $response = $this->postJson('/token', [
