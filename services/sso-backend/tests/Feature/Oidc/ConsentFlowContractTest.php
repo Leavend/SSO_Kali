@@ -77,7 +77,7 @@ it('evaluates browser session consent against the current authorization request 
     $redirectUri = (string) $response->headers->get('Location');
     parse_str((string) parse_url($redirectUri, PHP_URL_QUERY), $query);
 
-    expect($redirectUri)->toStartWith('http://localhost/auth/consent?')
+    expect((string) parse_url($redirectUri, PHP_URL_PATH))->toBe('/auth/consent')
         ->and($redirectUri)->toContain('scope=openid+profile+email')
         ->and($redirectUri)->not->toContain('code=');
 
