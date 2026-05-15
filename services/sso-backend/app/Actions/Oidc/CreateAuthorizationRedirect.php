@@ -64,7 +64,7 @@ final class CreateAuthorizationRedirect
         if ($error !== null) {
             $this->recordRejected($request, $client, $error['reason']);
 
-            return $this->invalidRequest($error);
+            return $this->errorResponse($error);
         }
 
         $context = $this->context($request, $client);
@@ -527,11 +527,13 @@ final class CreateAuthorizationRedirect
     /**
      * @param  array{reason: string, description: string}  $error
      */
-    private function invalidRequest(array $error): JsonResponse
+    private function errorResponse(array $error): JsonResponse
     {
         $this->metrics->incrementReject($error['reason']);
 
-        return OidcErrorResponse::json('invalid_request', $error['description'], 400);
+        $code = $error['reason'] === 'invalid_scope' ? 'invalid_scope' : 'invalid_request';
+
+        return OidcErrorResponse::json($code, $error['description'], 400);
     }
 
     /**
