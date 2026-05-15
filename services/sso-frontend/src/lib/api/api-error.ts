@@ -17,11 +17,11 @@
 import type { ApiValidationPayload, ApiViolation } from '@/types/api.types'
 
 export type ApiErrorKind =
-  | 'http'        // Response 4xx/5xx standar dari server.
-  | 'network'     // Fetch gagal (offline / DNS / CORS).
-  | 'timeout'     // AbortController timeout trigger.
-  | 'aborted'     // Caller membatalkan.
-  | 'parse'       // Body tidak dapat di-parse saat fallback.
+  | 'http' // Response 4xx/5xx standar dari server.
+  | 'network' // Fetch gagal (offline / DNS / CORS).
+  | 'timeout' // AbortController timeout trigger.
+  | 'aborted' // Caller membatalkan.
+  | 'parse' // Body tidak dapat di-parse saat fallback.
 
 export class ApiError extends Error {
   readonly status: number
@@ -57,11 +57,23 @@ export class ApiError extends Error {
 
   static fromNetworkError(error: unknown): ApiError {
     const reason = error instanceof Error ? error.message : String(error)
-    return new ApiError(0, 'Tidak dapat menghubungi server SSO.', 'network_error', [], 'network').withCause(reason)
+    return new ApiError(
+      0,
+      'Tidak dapat menghubungi server SSO.',
+      'network_error',
+      [],
+      'network',
+    ).withCause(reason)
   }
 
   static fromTimeout(): ApiError {
-    return new ApiError(0, 'Permintaan ke server terlalu lama. Coba lagi.', 'timeout', [], 'timeout')
+    return new ApiError(
+      0,
+      'Permintaan ke server terlalu lama. Coba lagi.',
+      'timeout',
+      [],
+      'timeout',
+    )
   }
 
   static fromAbort(): ApiError {
@@ -158,9 +170,9 @@ async function readErrorPayload(response: Response): Promise<ParsedPayload> {
     return { code: null, message: null, violations: [] }
   }
 
-  const raw = (await response.json().catch((): ApiValidationPayload | null => null)) as
-    | ApiValidationPayload
-    | null
+  const raw = (await response
+    .json()
+    .catch((): ApiValidationPayload | null => null)) as ApiValidationPayload | null
   if (!raw) return { code: null, message: null, violations: [] }
 
   return {
@@ -180,6 +192,8 @@ const MESSAGE_ID_MAP: Record<string, string> = {
   'Server Error': 'Layanan SSO sedang tidak tersedia. Coba lagi nanti.',
   'Too Many Attempts.': 'Terlalu banyak percobaan. Tunggu sebentar sebelum mencoba lagi.',
   'This action is unauthorized.': 'Akses ke sumber daya ini tidak diizinkan.',
+  'CSRF token mismatch.': 'Sesi keamanan kedaluwarsa. Muat ulang halaman lalu coba lagi.',
+  'Page Expired': 'Sesi keamanan kedaluwarsa. Muat ulang halaman lalu coba lagi.',
   'Not Found': 'Sumber daya tidak ditemukan.',
 }
 
@@ -222,6 +236,7 @@ function fallbackMessage(status: number): string {
   if (status === 404) return 'Sumber daya tidak ditemukan.'
   if (status === 408) return 'Server terlalu lama merespons. Coba lagi.'
   if (status === 409) return 'Terjadi konflik data. Muat ulang lalu coba lagi.'
+  if (status === 419) return 'Sesi keamanan kedaluwarsa. Muat ulang halaman lalu coba lagi.'
   if (status === 422) return 'Data yang dikirim tidak valid.'
   if (status === 429) return 'Terlalu banyak percobaan. Tunggu sebentar sebelum mencoba lagi.'
   if (status >= 500) return 'Layanan SSO sedang tidak tersedia. Coba lagi nanti.'

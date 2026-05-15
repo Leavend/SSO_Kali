@@ -86,6 +86,18 @@ describe('ApiError.fromResponse', () => {
     expect(error.code).toBe('invalid_grant')
     expect(error.message).toBe('code expired')
   })
+
+  it('maps Laravel CSRF failures to user-friendly copy', async () => {
+    const response = new Response(JSON.stringify({ message: 'CSRF token mismatch.' }), {
+      status: 419,
+      headers: { 'content-type': 'application/json' },
+    })
+
+    const error = await ApiError.fromResponse(response)
+
+    expect(error.status).toBe(419)
+    expect(error.message).toBe('Sesi keamanan kedaluwarsa. Muat ulang halaman lalu coba lagi.')
+  })
 })
 
 describe('ApiError factories for transport failures', () => {
