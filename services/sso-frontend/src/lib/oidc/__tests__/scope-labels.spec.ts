@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   hasUnknownScopes,
+  mergeBackendScopes,
   resolveScopeLabel,
   resolveScopeList,
 } from '../scope-labels'
@@ -19,11 +20,22 @@ describe('resolveScopeLabel', () => {
     expect(descriptor.description).toMatch(/refresh|offline/i)
   })
 
-  it('returns unknown descriptor for unrecognized scope', () => {
+  it('exposes labels for the full backend MVP scope catalog', () => {
+    for (const scope of ['openid', 'profile', 'email', 'offline_access', 'roles', 'permissions']) {
+      const descriptor = resolveScopeLabel(scope)
+      expect(descriptor.level).not.toBe('unknown')
+      expect(descriptor.label.length).toBeGreaterThan(0)
+      expect(descriptor.description.length).toBeGreaterThan(0)
+    }
+  })
+
+  it('returns a safe generic fallback for unknown scopes', () => {
     const descriptor = resolveScopeLabel('admin:accounting')
     expect(descriptor.level).toBe('unknown')
     expect(descriptor.name).toBe('admin:accounting')
-    expect(descriptor.description).toMatch(/belum dikenali/i)
+    expect(descriptor.label).not.toContain('admin:accounting')
+    expect(descriptor.label).toMatch(/belum terverifikasi/i)
+    expect(descriptor.description).toMatch(/belum terdaftar/i)
   })
 
   it('trims whitespace around scope names', () => {
@@ -63,6 +75,37 @@ describe('resolveScopeList', () => {
   it('returns empty array for empty input', () => {
     expect(resolveScopeList('')).toEqual([])
     expect(resolveScopeList([])).toEqual([])
+  })
+})
+
+describe('mergeBackendScopes', () => {
+  it('overrides description with backend copy while preserving localized label', () => {
+    const merged = mergeBackendScopes(
+      ['openid'],
+      new Map([['openid', 'Backend authoritative description.']]),
+    )
+
+    expect(merged).toHaveLength(1)
+    expect(merged[0].name).toBe('openid')
+    expect(merged[0].label).toBe('Identitas Dasar')
+    expect(merged[0].description).toBe('Backend authoritative description.')
+    expect(merged[0].level).toBe('standard')
+  })
+
+  it('keeps the localized description when the backend omits it', () => {
+    const merged = mergeBackendScopes(['email'], new Map())
+
+    expect(merged[0].description).toMatch(/email/i)
+    expect(merged[0].label).toBe('Alamat Email')
+  })
+
+  it('still surfaces unknown scopes with the safe fallback even when backend skips them', () => {
+    const merged = mergeBackendScopes(['openid', 'evil:scope'], new Map([['openid', 'desc']]))
+
+    expect(merged.map((scope) => scope.name)).toEqual(['openid', 'evil:scope'])
+    expect(merged[1].level).toBe('unknown')
+    expect(merged[1].label).toMatch(/belum terverifikasi/i)
+    expect(merged[1].label).not.toContain('evil:scope')
   })
 })
 

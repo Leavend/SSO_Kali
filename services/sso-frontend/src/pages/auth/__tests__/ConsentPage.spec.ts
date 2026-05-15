@@ -52,14 +52,23 @@ describe('ConsentPage', () => {
     expect(wrapper.text()).toContain('Keputusan persetujuan gagal diproses. Silakan coba lagi.')
     expect(wrapper.text()).not.toContain('stack trace')
   })
+
+  it('renders unknown scopes from the request with a safe generic fallback', async () => {
+    mockFetch({ decisionRedirect: 'https://rp.example/callback?code=abc' })
+    const wrapper = await mountConsentPage('/auth/consent?client_id=rp-client&scope=openid+admin%3Acustom&state=tx-state')
+
+    expect(wrapper.text()).toContain('Akses tambahan (belum terverifikasi)')
+    expect(wrapper.text()).toContain('admin:custom')
+    expect(wrapper.text()).toContain('Permintaan ini berisi scope yang tidak dikenal')
+  })
 })
 
-async function mountConsentPage() {
+async function mountConsentPage(initialPath = '/auth/consent?client_id=rp-client&scope=openid+email&state=tx-state') {
   const router = createRouter({
     history: createWebHistory(),
     routes: [{ path: '/auth/consent', component: ConsentPage }],
   })
-  await router.push('/auth/consent?client_id=rp-client&scope=openid+email&state=tx-state')
+  await router.push(initialPath)
   await router.isReady()
 
   const wrapper = mount(ConsentPage, { global: { plugins: [router] } })

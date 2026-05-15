@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/card'
 import {
   hasUnknownScopes,
+  mergeBackendScopes,
   resolveScopeList,
   type ScopeDescriptor,
 } from '@/lib/oidc/scope-labels'
@@ -38,16 +39,17 @@ const state = computed<string>(() => String(route.query['state'] ?? ''))
 const rawScope = computed<string>(() => String(route.query['scope'] ?? 'openid'))
 
 const scopes = computed<readonly ScopeDescriptor[]>(() => {
-  if (consent.value?.scopes.length) {
-    return consent.value.scopes.map((scope) => ({
-      name: scope.name,
-      label: scope.name,
-      description: scope.description,
-      level: 'standard',
-    }))
-  }
+  const requested = (rawScope.value || 'openid').split(/\s+/u).filter((token) => token !== '')
+  const backendScopes = consent.value?.scopes ?? []
 
-  return resolveScopeList(rawScope.value)
+  if (requested.length === 0 && backendScopes.length === 0) return resolveScopeList(rawScope.value)
+
+  const requestedNames = requested.length > 0 ? requested : backendScopes.map((scope) => scope.name)
+  const backendDescriptions = new Map<string, string>(
+    backendScopes.map((scope) => [scope.name, scope.description]),
+  )
+
+  return mergeBackendScopes(requestedNames, backendDescriptions)
 })
 
 const containsUnknown = computed<boolean>(() => hasUnknownScopes(scopes.value))

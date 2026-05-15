@@ -1,17 +1,20 @@
 /**
  * Scope registry for consent UI (FR-004 / UC-13).
  *
- * Maps OIDC scope strings to human-readable Indonesian labels and
- * descriptions. Used by `ConsentPage` to show users what a client
- * is actually requesting permission for.
+ * Mirrors the backend scope catalog (`App\Support\Oidc\OidcScope::catalog()`).
+ * Both sides MUST stay in lock-step; consent endpoint enriches each scope
+ * with backend-authored description text, while the frontend owns the
+ * localized label and risk level used by the consent UI.
  *
- * Design note:
- *   - Unknown scopes are NOT silently rendered as-is (phishing risk).
- *     Callers should use `resolveScopeLabel()` which returns an
- *     explicit unknown-scope descriptor so the UI can flag visually.
- *   - Label text is intentionally short for list rendering; the
- *     `description` field is used for expanded/tooltip details.
- *   - `level` hints risk so UI can color-code (default/standard/sensitive).
+ * Design rules:
+ *   - Known scopes get a localized Indonesian label and a risk level.
+ *   - Unknown scopes fall back to a generic safe label that does NOT
+ *     echo the raw scope string as the headline (anti-phishing) — the
+ *     raw name is still shown beneath the label as a code reference so
+ *     the user can verify it.
+ *   - Backend-supplied descriptions override the frontend default when
+ *     a consent transaction is loaded; this keeps copy authoritative
+ *     and consistent across portals.
  */
 
 export type ScopeLevel = 'standard' | 'sensitive' | 'unknown'
@@ -45,24 +48,38 @@ const REGISTRY: Readonly<Record<string, Omit<ScopeDescriptor, 'name'>>> = {
       'Aplikasi dapat memperbarui sesinya tanpa meminta login ulang, termasuk saat kamu offline.',
     level: 'sensitive',
   },
+  roles: {
+    label: 'Peran (Roles)',
+    description: 'Akses ke daftar peran RBAC yang ditugaskan ke akun kamu.',
+    level: 'sensitive',
+  },
+  permissions: {
+    label: 'Izin (Permissions)',
+    description: 'Akses ke daftar izin terperinci yang diberikan ke akun kamu.',
+    level: 'sensitive',
+  },
 }
+
+const UNKNOWN_LABEL = 'Akses tambahan (belum terverifikasi)'
+const UNKNOWN_DESCRIPTION =
+  'Scope ini belum terdaftar pada portal SSO. Verifikasi kebutuhannya bersama administrator sebelum kamu menyetujui.'
 
 /**
  * Resolve a scope string to a human-readable descriptor.
  *
- * Unknown scopes return a descriptor with `level: 'unknown'` so the UI can
- * flag them. Callers should treat these visibly different (warning color).
+ * Unknown scopes return a safe generic label so an attacker cannot inject
+ * misleading copy via the scope string itself. The raw scope name is kept
+ * as `name` so the UI can still surface it as a code reference.
  */
 export function resolveScopeLabel(scope: string): ScopeDescriptor {
   const trimmed = scope.trim()
   const known = REGISTRY[trimmed]
-  if (known) {
-    return { name: trimmed, ...known }
-  }
+  if (known) return { name: trimmed, ...known }
+
   return {
     name: trimmed,
-    label: trimmed || 'Scope tidak dikenal',
-    description: 'Scope ini belum dikenali oleh portal SSO. Periksa ulang permintaan aplikasi sebelum menyetujui.',
+    label: UNKNOWN_LABEL,
+    description: UNKNOWN_DESCRIPTION,
     level: 'unknown',
   }
 }
@@ -83,6 +100,34 @@ export function resolveScopeList(scopeString: string | readonly string[]): reado
     if (name === '' || seen.has(name)) continue
     seen.add(name)
     out.push(resolveScopeLabel(name))
+  }
+  return out
+}
+
+/**
+ * Merge backend-authored descriptions into the local scope descriptors,
+ * preserving the localized label + level. Used by the consent UI so the
+ * displayed copy stays in lock-step with the backend registry without
+ * losing localization or risk indicators.
+ */
+export function mergeBackendScopes(
+  requested: readonly string[],
+  backend: ReadonlyMap<string, string>,
+): readonly ScopeDescriptor[] {
+  const seen = new Set<string>()
+  const out: ScopeDescriptor[] = []
+  for (const raw of requested) {
+    const name = raw.trim()
+    if (name === '' || seen.has(name)) continue
+    seen.add(name)
+
+    const base = resolveScopeLabel(name)
+    const backendDescription = backend.get(name)
+    if (backendDescription && backendDescription.trim() !== '') {
+      out.push({ ...base, description: backendDescription })
+      continue
+    }
+    out.push(base)
   }
   return out
 }
