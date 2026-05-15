@@ -33,6 +33,7 @@ $clients = [
     env('APP_B_CLIENT_ID', 'app-b') => [
         'type' => 'confidential',
         'secret' => env('APP_B_CLIENT_SECRET_HASH'),
+        'secret_expires_at' => env('APP_B_CLIENT_SECRET_EXPIRES_AT'),
         'redirect_uris' => [
             env('APP_B_REDIRECT_URI', $frontendUrl.'/app-b/auth/callback'),
         ],
@@ -77,6 +78,7 @@ if ($loadTestEnabled) {
     $clients[$loadTestClientId] = [
         'type' => 'confidential',
         'secret' => env('SSO_LOAD_TEST_CLIENT_SECRET_HASH'),
+        'secret_expires_at' => env('SSO_LOAD_TEST_CLIENT_SECRET_EXPIRES_AT'),
         'redirect_uris' => [
             env('SSO_LOAD_TEST_REDIRECT_URI', 'https://load-test.timeh.my.id/oauth/callback'),
         ],
@@ -93,6 +95,7 @@ return [
         'enabled' => $loadTestEnabled,
         'client_id' => $loadTestClientId,
         'secret' => env('SSO_LOAD_TEST_CLIENT_SECRET_HASH'),
+        'secret_expires_at' => env('SSO_LOAD_TEST_CLIENT_SECRET_EXPIRES_AT'),
         'redirect_uri' => env('SSO_LOAD_TEST_REDIRECT_URI', 'https://load-test.timeh.my.id/oauth/callback'),
         'post_logout_redirect_uri' => env('SSO_LOAD_TEST_POST_LOGOUT_REDIRECT_URI', 'https://load-test.timeh.my.id/signed-out'),
         'backchannel_logout_uri' => env('SSO_LOAD_TEST_BACKCHANNEL_LOGOUT_URI'),

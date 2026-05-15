@@ -12,7 +12,7 @@ final class VerifyStoredClientSecretPolicy extends Command
 {
     protected $signature = 'oidc:verify-client-secret-policy';
 
-    protected $description = 'Verify that stored confidential client secrets comply with the Argon2id policy.';
+    protected $description = 'Verify that stored confidential client secrets comply with Argon2id and FR-009 lifecycle policy.';
 
     public function handle(DownstreamClientRegistry $clients): int
     {

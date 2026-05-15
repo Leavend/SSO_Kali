@@ -137,7 +137,7 @@ it('accepts non-expired client secret at validation layer', function (): void {
     expect($valid)->toBeTrue();
 });
 
-it('accepts secret when no expiry is configured', function (): void {
+it('accepts non-production dynamic secret when no expiry is configured', function (): void {
     $this->confidentialClient->update([
         'secret_expires_at' => null,
     ]);
@@ -150,6 +150,33 @@ it('accepts secret when no expiry is configured', function (): void {
 
     $valid = $registry->validSecret($client, 'old-secret-value-64chars-padding-xxxxxxxxxxxxxxxxxxxxxxxxxx');
     expect($valid)->toBeTrue();
+});
+
+it('rejects old secret after rotation expiry while accepting the rotated secret before expiry', function (): void {
+    $oldSecret = 'old-secret-value-64chars-padding-xxxxxxxxxxxxxxxxxxxxxxxxxx';
+
+    $response = $this->withToken(fr009AdminToken($this->admin))
+        ->postJson('/admin/api/clients/fr009-confidential-test/rotate-secret')
+        ->assertOk();
+
+    $rotatedSecret = (string) $response->json('rotation.plaintext_once');
+
+    $registry = app(DownstreamClientRegistry::class);
+    $registry->flush();
+
+    $client = $registry->find('fr009-confidential-test');
+    expect($client)->not->toBeNull()
+        ->and($registry->validSecret($client, $rotatedSecret))->toBeTrue()
+        ->and($registry->validSecret($client, $oldSecret))->toBeFalse();
+
+    $this->confidentialClient->refresh()->update([
+        'secret_expires_at' => Carbon::now()->subMinute(),
+    ]);
+    $registry->flush();
+
+    $expiredClient = $registry->find('fr009-confidential-test');
+    expect($expiredClient)->not->toBeNull()
+        ->and($registry->validSecret($expiredClient, $rotatedSecret))->toBeFalse();
 });
 
 function fr009AdminToken(User $user): string

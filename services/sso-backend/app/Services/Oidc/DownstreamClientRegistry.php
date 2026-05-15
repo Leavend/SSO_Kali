@@ -7,6 +7,7 @@ namespace App\Services\Oidc;
 use App\Models\OidcClientRegistration;
 use App\Support\Oidc\DownstreamClient;
 use App\Support\Security\ClientSecretHashPolicy;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Schema;
 use RuntimeException;
 use Throwable;
@@ -135,6 +136,7 @@ final class DownstreamClientRegistry
         $clients[$clientId] = $this->makeClient($clientId, [
             'type' => 'confidential',
             'secret' => $config['secret'] ?? null,
+            'secret_expires_at' => $config['secret_expires_at'] ?? null,
             'redirect_uris' => [$config['redirect_uri'] ?? null],
             'post_logout_redirect_uris' => [$config['post_logout_redirect_uri'] ?? null],
             'backchannel_logout_uri' => $config['backchannel_logout_uri'] ?? null,
@@ -191,6 +193,8 @@ final class DownstreamClientRegistry
                 ? $config['backchannel_logout_uri']
                 : null,
             secret: is_string($config['secret'] ?? null) ? $config['secret'] : null,
+            secretExpiresAt: $this->optionalCarbon($config['secret_expires_at'] ?? null),
+            secretRotatedAt: $this->optionalCarbon($config['secret_rotated_at'] ?? null),
             skipConsent: (bool) ($config['skip_consent'] ?? true),
         );
     }
@@ -235,10 +239,36 @@ final class DownstreamClientRegistry
         return $defaults;
     }
 
+    private function optionalCarbon(mixed $value): ?Carbon
+    {
+        if ($value instanceof Carbon) {
+            return $value;
+        }
+
+        if (! is_string($value) || trim($value) === '') {
+            return null;
+        }
+
+        return Carbon::parse($value);
+    }
+
+    private function requiresSecretLifecycleMetadata(DownstreamClient $client): bool
+    {
+        if (config('app.env') !== 'production') {
+            return false;
+        }
+
+        return $client->secret !== null && $client->secret !== '';
+    }
+
     private function assertStoredSecret(string $clientId, DownstreamClient $client): void
     {
         if ($client->secret === null || $client->secret === '') {
             throw new RuntimeException("Confidential client [{$clientId}] is missing a verifier secret hash.");
+        }
+
+        if ($this->requiresSecretLifecycleMetadata($client) && $client->secretExpiresAt === null) {
+            throw new RuntimeException("Production confidential client [{$clientId}] is missing secret_expires_at lifecycle metadata.");
         }
 
         try {
