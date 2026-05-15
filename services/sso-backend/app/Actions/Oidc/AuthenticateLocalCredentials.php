@@ -8,13 +8,13 @@ use App\Actions\Audit\RecordAuthenticationAuditEventAction;
 use App\Actions\Auth\VerifyLocalPasswordLoginAction;
 use App\Models\MfaCredential;
 use App\Models\User;
-use App\Support\Auth\LocalPasswordLoginOutcome;
 use App\Services\Mfa\MfaChallengeStore;
 use App\Services\Oidc\AuthorizationCodeStore;
 use App\Services\Oidc\ConsentService;
 use App\Services\Oidc\DownstreamClientRegistry;
 use App\Services\Oidc\ScopePolicy;
 use App\Support\Audit\AuthenticationAuditRecord;
+use App\Support\Auth\LocalPasswordLoginOutcome;
 use App\Support\Oidc\DownstreamClient;
 use App\Support\Oidc\ScopeSet;
 use App\Support\Responses\OidcErrorResponse;
@@ -230,5 +230,4 @@ final class AuthenticateLocalCredentials
             ],
         ));
     }
-
 }
