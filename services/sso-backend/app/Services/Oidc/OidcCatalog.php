@@ -50,7 +50,7 @@ final class OidcCatalog
         return [
             'issuer' => $issuer,
             'authorization_endpoint' => $baseUrl.'/authorize',
-            'token_endpoint' => $baseUrl.'/oauth/token',
+            'token_endpoint' => $baseUrl.'/token',
             'userinfo_endpoint' => $baseUrl.'/userinfo',
             'revocation_endpoint' => $baseUrl.'/oauth/revoke',
             'jwks_uri' => $baseUrl.'/.well-known/jwks.json',

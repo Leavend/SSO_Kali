@@ -40,7 +40,7 @@ it('serves OIDC discovery metadata with production-safe shape', function (): voi
         ])
         ->assertJsonPath('issuer', config('sso.issuer'))
         ->assertJsonPath('authorization_endpoint', $baseUrl.'/authorize')
-        ->assertJsonPath('token_endpoint', $baseUrl.'/oauth/token')
+        ->assertJsonPath('token_endpoint', $baseUrl.'/token')
         ->assertJsonPath('revocation_endpoint', $baseUrl.'/oauth/revoke');
 });
 
