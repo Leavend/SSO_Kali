@@ -72,6 +72,7 @@ function enableOidcLoadTestClient(array $overrides = []): void
         'enabled' => true,
         'client_id' => 'sso-load-test-client',
         'secret' => $secret,
+        'secret_expires_at' => now()->addDays(90)->toIso8601String(),
         'redirect_uri' => $overrides['redirect_uri'] ?? 'https://load-test.timeh.my.id/oauth/callback',
         'post_logout_redirect_uri' => 'https://load-test.timeh.my.id/signed-out',
         'backchannel_logout_uri' => null,
@@ -99,6 +100,7 @@ function issue30SafeProductionClients(): array
         'app-b' => [
             'type' => 'confidential',
             'secret' => app(ClientSecretHashPolicy::class)->make('app-b-secret'),
+            'secret_expires_at' => now()->addDays(90)->toIso8601String(),
             'redirect_uris' => ['https://sso.timeh.my.id/app-b/auth/callback'],
             'post_logout_redirect_uris' => ['https://sso.timeh.my.id/app-b'],
             'backchannel_logout_uri' => null,

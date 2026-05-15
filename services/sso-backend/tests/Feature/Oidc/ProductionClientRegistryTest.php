@@ -37,6 +37,7 @@ beforeEach(function (): void {
         'app-b' => [
             'type' => 'confidential',
             'secret' => $secretHash,
+            'secret_expires_at' => now()->addDays(90)->toIso8601String(),
             'redirect_uris' => ['https://sso.timeh.my.id/app-b/auth/callback'],
             'post_logout_redirect_uris' => ['https://sso.timeh.my.id/app-b'],
         ],
