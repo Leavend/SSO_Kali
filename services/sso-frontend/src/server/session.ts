@@ -2,6 +2,7 @@ import type { IncomingMessage } from 'node:http'
 import type { PortalSessionView, SsoPrincipal } from '../shared/user.js'
 import { getConfig } from './config.js'
 import {
+  SSO_PORTAL_LEGACY_SESSION_COOKIE,
   SSO_PORTAL_SESSION_COOKIE,
   SSO_PORTAL_TX_COOKIE,
   expiredHostCookieOptions,
@@ -10,6 +11,12 @@ import {
   serializeCookie,
 } from './cookies.js'
 import { decryptSession, encryptSession } from './session-crypto.js'
+import {
+  createSessionRecord,
+  deleteSessionRecord,
+  readSessionRecord,
+  replaceSessionRecord,
+} from './session-store.js'
 
 export type PortalSession = PortalSessionView & {
   readonly accessToken: string
@@ -29,37 +36,44 @@ export type AuthTransaction = {
   readonly returnTo?: string
 }
 
-export function getSession(request: IncomingMessage): PortalSession | null {
-  const session = readSession(request)
+export async function getSession(request: IncomingMessage): Promise<PortalSession | null> {
+  const session = await readSession(request)
   if (!session || isSessionExpired(session.expiresAt)) return null
 
   return session
 }
 
-export function readSession(request: IncomingMessage): PortalSession | null {
-  const raw = readCookie(request, SSO_PORTAL_SESSION_COOKIE)
-  if (!raw) return null
+export async function readSession(request: IncomingMessage): Promise<PortalSession | null> {
+  const sessionId = readSessionId(request)
+  if (sessionId) return readSessionRecord(sessionId)
 
-  try {
-    const decrypted = decryptSession(raw)
-    if (!decrypted) return null
-
-    return normalizeSession(JSON.parse(decrypted) as Partial<PortalSession>)
-  } catch {
-    return null
-  }
+  return readLegacySession(request)
 }
 
-export function sessionCookie(session: PortalSession): string {
+export async function sessionCookie(session: PortalSession): Promise<string> {
+  return sessionCookieForId(await createSessionRecord(session), session)
+}
+
+export function sessionCookieForId(sessionId: string, session: PortalSession): string {
   return serializeCookie(
     SSO_PORTAL_SESSION_COOKIE,
-    encryptSession(JSON.stringify(session)),
+    sessionId,
     hostCookieOptions(sessionCookieMaxAge(session)),
   )
 }
 
-export function clearSessionCookie(): string {
-  return serializeCookie(SSO_PORTAL_SESSION_COOKIE, '', expiredHostCookieOptions())
+export async function replaceSession(sessionId: string, session: PortalSession): Promise<void> {
+  await replaceSessionRecord(sessionId, session)
+}
+
+export async function clearSessionCookie(request?: IncomingMessage): Promise<readonly string[]> {
+  const sessionId = request ? readSessionId(request) : null
+  if (sessionId) await deleteSessionRecord(sessionId)
+
+  return [
+    serializeCookie(SSO_PORTAL_SESSION_COOKIE, '', expiredHostCookieOptions()),
+    serializeCookie(SSO_PORTAL_LEGACY_SESSION_COOKIE, '', expiredHostCookieOptions()),
+  ]
 }
 
 export function transactionCookie(tx: AuthTransaction): string {
@@ -143,6 +157,29 @@ export function isSessionAbsoluteExpired(session: PortalSession): boolean {
 
 export function unixTime(): number {
   return Math.floor(Date.now() / 1000)
+}
+
+function readSessionId(request: IncomingMessage): string | null {
+  const value = readCookie(request, SSO_PORTAL_SESSION_COOKIE)
+  return isOpaqueSessionId(value) ? value : null
+}
+
+function isOpaqueSessionId(value: string | null): value is string {
+  return Boolean(value && /^[A-Za-z0-9_-]{43,}$/u.test(value))
+}
+
+function readLegacySession(request: IncomingMessage): PortalSession | null {
+  const raw = readCookie(request, SSO_PORTAL_LEGACY_SESSION_COOKIE)
+  if (!raw) return null
+
+  try {
+    const decrypted = decryptSession(raw)
+    if (!decrypted) return null
+
+    return normalizeSession(JSON.parse(decrypted) as Partial<PortalSession>)
+  } catch {
+    return null
+  }
 }
 
 function normalizeSession(session: Partial<PortalSession>): PortalSession | null {

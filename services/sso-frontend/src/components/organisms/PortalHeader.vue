@@ -38,8 +38,8 @@ function closeMenu(): void {
   <header
     class="bg-background/85 supports-[backdrop-filter]:bg-background/70 sticky top-0 z-30 border-b backdrop-blur"
   >
-    <div class="mx-auto flex h-16 max-w-6xl items-center gap-4 px-4 sm:px-6">
-      <RouterLink to="/home" class="flex items-center gap-2 font-semibold">
+    <div data-testid="portal-header-row" class="mx-auto flex h-16 max-w-6xl min-w-0 items-center gap-2 px-4 sm:gap-3 sm:px-6 lg:gap-4">
+      <RouterLink data-testid="portal-header-brand" to="/home" class="flex min-w-0 items-center gap-2 font-semibold">
         <AppBrandMark />
         <span class="flex flex-col leading-none">
           <strong class="text-sm font-bold tracking-tight">Dev-SSO</strong>
@@ -49,7 +49,8 @@ function closeMenu(): void {
 
       <!-- Desktop nav -->
       <nav
-        class="hidden flex-1 items-center justify-center gap-1 md:flex"
+        data-testid="portal-desktop-nav"
+        class="hidden min-w-0 flex-1 items-center justify-center gap-0.5 overflow-hidden md:flex"
         aria-label="Navigasi portal"
       >
         <PortalNavLink
@@ -61,13 +62,13 @@ function closeMenu(): void {
         />
       </nav>
 
-      <div class="ml-auto flex items-center gap-2">
+      <div data-testid="portal-header-actions" class="ml-auto flex shrink-0 items-center gap-1.5">
         <ThemeToggleButton />
         <PortalUserMenu />
         <!-- Mobile hamburger -->
         <button
           type="button"
-          class="text-muted-foreground hover:text-foreground inline-flex size-9 items-center justify-center rounded-md transition-colors md:hidden"
+          class="text-muted-foreground hover:text-foreground inline-flex size-11 items-center justify-center rounded-md transition-colors md:hidden"
           :aria-label="mobileMenuOpen ? 'Tutup menu' : 'Buka menu'"
           :aria-expanded="mobileMenuOpen"
           @click="toggleMenu"

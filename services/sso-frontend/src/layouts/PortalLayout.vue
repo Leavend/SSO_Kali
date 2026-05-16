@@ -47,11 +47,11 @@ const activePath = computed(() => route.path);
 </script>
 
 <template>
-  <div class="bg-background text-foreground min-h-screen">
+  <div data-testid="portal-shell" class="bg-background text-foreground min-h-screen overflow-x-clip">
     <header
       class="bg-background/85 sticky top-0 z-30 border-b backdrop-blur supports-[backdrop-filter]:bg-background/70"
     >
-      <div class="mx-auto flex h-16 max-w-6xl flex-wrap items-center gap-4 px-4 sm:px-6">
+      <div data-testid="portal-header-inner" class="mx-auto flex h-16 max-w-6xl min-w-0 flex-nowrap items-center gap-4 px-4 sm:px-6">
         <RouterLink to="/home" class="flex items-center gap-2 font-semibold">
           <span
             class="bg-primary text-primary-foreground grid size-9 place-items-center rounded-xl shadow-sm"
@@ -64,7 +64,7 @@ const activePath = computed(() => route.path);
           </span>
         </RouterLink>
 
-        <nav class="order-3 flex w-full flex-wrap items-center gap-1 md:order-none md:w-auto md:flex-1 md:justify-center">
+        <nav data-testid="portal-primary-nav" class="order-3 hidden w-full flex-wrap items-center gap-1 lg:flex md:order-none md:w-auto md:flex-1 md:justify-center">
           <RouterLink
             v-for="item in navItems"
             :key="item.to"
@@ -97,13 +97,13 @@ const activePath = computed(() => route.path);
           >
             <RefreshCcw class="size-4" />
           </Button>
-          <div class="flex items-center gap-2 rounded-full border pr-3 pl-1 py-1">
+          <div class="flex items-center gap-2 rounded-full border py-1 pr-3 pl-1">
             <Avatar class="size-7">
               <AvatarFallback>{{ initials }}</AvatarFallback>
             </Avatar>
-            <div class="hidden text-xs leading-tight sm:flex sm:flex-col">
-              <strong class="font-semibold">{{ session.user?.display_name ?? 'Pengguna' }}</strong>
-              <span class="text-muted-foreground">{{ session.user?.email ?? '' }}</span>
+            <div data-testid="portal-account-summary" class="hidden min-w-0 max-w-[8rem] text-xs leading-tight sm:flex sm:flex-col">
+              <strong data-testid="portal-account-name" class="truncate font-semibold">{{ session.user?.display_name ?? 'Pengguna' }}</strong>
+              <span data-testid="portal-account-email" class="text-muted-foreground truncate">{{ session.user?.email ?? '' }}</span>
             </div>
             <Badge variant="secondary" class="hidden md:inline-flex">
               {{ session.user?.roles?.[0] ?? 'user' }}
@@ -116,7 +116,7 @@ const activePath = computed(() => route.path);
       </div>
     </header>
 
-    <main id="main" class="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+    <main id="main" data-testid="portal-main" class="mx-auto w-full min-w-0 max-w-6xl px-4 py-8 sm:px-6">
       <RouterView v-slot="{ Component }">
         <Transition name="page" mode="out-in">
           <component :is="Component" />

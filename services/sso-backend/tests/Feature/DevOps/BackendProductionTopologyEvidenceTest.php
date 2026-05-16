@@ -8,8 +8,10 @@ it('keeps main production compose on baseline SSO services without legacy apps',
     expect($compose)->toBeString()
         ->and($compose)->toContain('sso-backend:')
         ->and($compose)->toContain('sso-backend-worker:')
+        ->and($compose)->toContain('sso-backend-scheduler:')
         ->and($compose)->toContain('sso-frontend:')
         ->and($compose)->toContain('queue:work')
+        ->and($compose)->toContain('schedule:work')
         ->and($compose)->toContain('postgres:')
         ->and($compose)->toContain('redis:')
         ->and($compose)->not->toContain('sso-admin-vue:')
@@ -22,8 +24,9 @@ it('deploys baseline production services and removes admin-vue orphans', functio
     expect($deploy)->toBeString()
         ->and($deploy)->toContain('compose pull sso-backend')
         ->and($deploy)->toContain('sso-backend-worker')
+        ->and($deploy)->toContain('sso-backend-scheduler')
         ->and($deploy)->toContain('sso-frontend')
-        ->and($deploy)->toContain('compose up -d --remove-orphans sso-backend sso-backend-worker sso-frontend')
+        ->and($deploy)->toContain('compose up -d --remove-orphans sso-backend sso-backend-worker sso-backend-scheduler sso-frontend')
         ->and($deploy)->not->toContain('sso-admin-vue');
 });
 

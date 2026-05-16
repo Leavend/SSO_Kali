@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Repositories;
 
 use App\Models\SsoSession;
+use App\Models\User;
 use App\Services\Directory\DirectoryUser;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
@@ -13,18 +14,12 @@ final class SsoSessionRepository
 {
     public function createForDirectoryUser(DirectoryUser $user, ?string $ipAddress, ?string $userAgent): SsoSession
     {
-        $now = now();
+        return $this->create($user->id, $user->subjectId, $ipAddress, $userAgent);
+    }
 
-        return SsoSession::query()->create([
-            'session_id' => (string) Str::uuid(),
-            'user_id' => $user->id,
-            'subject_id' => $user->subjectId,
-            'ip_address' => $ipAddress,
-            'user_agent' => $userAgent,
-            'authenticated_at' => $now,
-            'last_seen_at' => $now,
-            'expires_at' => $now->copy()->addMinutes((int) config('sso.session.ttl_minutes', 480)),
-        ]);
+    public function createForUser(User $user, ?string $ipAddress, ?string $userAgent): SsoSession
+    {
+        return $this->create((int) $user->getKey(), $user->subject_id, $ipAddress, $userAgent);
     }
 
     public function findActiveBySessionId(string $sessionId): ?SsoSession
@@ -59,6 +54,22 @@ final class SsoSessionRepository
             ->first();
 
         return $session instanceof SsoSession ? $session : null;
+    }
+
+    private function create(int $userId, string $subjectId, ?string $ipAddress, ?string $userAgent): SsoSession
+    {
+        $now = now();
+
+        return SsoSession::query()->create([
+            'session_id' => (string) Str::uuid(),
+            'user_id' => $userId,
+            'subject_id' => $subjectId,
+            'ip_address' => $ipAddress,
+            'user_agent' => $userAgent,
+            'authenticated_at' => $now,
+            'last_seen_at' => $now,
+            'expires_at' => $now->copy()->addMinutes((int) config('sso.session.ttl_minutes', 480)),
+        ]);
     }
 
     public function touchLastSeen(SsoSession $session): void

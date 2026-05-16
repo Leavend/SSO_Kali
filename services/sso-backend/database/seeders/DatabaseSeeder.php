@@ -36,6 +36,29 @@ class DatabaseSeeder extends Seeder
             ],
         );
 
+        $this->seedDsrAutomationUser();
+
         $this->call(PassportClientSeeder::class);
+    }
+
+    private function seedDsrAutomationUser(): void
+    {
+        $subjectId = (string) config('sso.seed.dsr_automation_subject_id', 'system-dsr-automation');
+        $email = (string) config('sso.seed.dsr_automation_email', 'system-dsr-automation@example.invalid');
+
+        User::query()->updateOrCreate(
+            ['subject_id' => $subjectId],
+            [
+                'email' => $email,
+                'password' => null,
+                'given_name' => 'System',
+                'family_name' => 'DSR Automation',
+                'display_name' => 'System DSR Automation',
+                'role' => 'admin',
+                'status' => 'active',
+                'local_account_enabled' => false,
+                'email_verified_at' => now(),
+            ],
+        );
     }
 }

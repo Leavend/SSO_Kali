@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { apiClient } from '@/lib/api/api-client'
 import { completeOidcCallback } from '../oidc-callback.api'
 
 describe('completeOidcCallback', () => {
@@ -6,24 +7,17 @@ describe('completeOidcCallback', () => {
     vi.restoreAllMocks()
   })
 
-  it('submits code/state to the same-origin BFF only', async () => {
-    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response(JSON.stringify({ authenticated: true, post_login_redirect: '/home' }), {
-        status: 200,
-        headers: { 'content-type': 'application/json' },
-      }),
-    )
+  it('submits code/state through the central same-origin apiClient', async () => {
+    const postSpy = vi.spyOn(apiClient, 'post').mockResolvedValue({
+      authenticated: true,
+      post_login_redirect: '/home',
+    })
 
     const result = await completeOidcCallback({ code: 'code-123', state: 'state-123' })
 
-    expect(fetchMock).toHaveBeenCalledWith('/auth/callback', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify({ code: 'code-123', state: 'state-123' }),
+    expect(postSpy).toHaveBeenCalledWith('/auth/callback', {
+      code: 'code-123',
+      state: 'state-123',
     })
     expect(result).toEqual({ authenticated: true, post_login_redirect: '/home' })
     expect(JSON.stringify(result)).not.toContain('access_token')

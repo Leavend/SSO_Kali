@@ -13,6 +13,8 @@ Artisan::command('inspire', function () {
 Schedule::command('telescope:prune --hours='.(int) config('telescope.prune_hours', 48))->daily();
 Schedule::command('sso:prune-tokens')->daily();
 Schedule::command('sso:prune-authentication-audit-events')->daily();
+Schedule::command('sso:prune-admin-audit-events')->daily()->withoutOverlapping();
+Schedule::command('sso:queue-dsr-fulfillments')->everyTenMinutes()->withoutOverlapping();
 Schedule::command('sso:prune-authorization-codes')->hourly();
 Schedule::command('sso:check-secret-expiry')->daily();
 Schedule::command('sso:external-idp:probe-health')->everyFiveMinutes()->withoutOverlapping();

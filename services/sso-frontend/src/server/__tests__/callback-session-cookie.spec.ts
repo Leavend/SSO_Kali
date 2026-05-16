@@ -25,8 +25,8 @@ function session(): PortalSession {
 }
 
 describe('OIDC BFF callback session cookie', () => {
-  it('stores the bootstrap session only in a secure HttpOnly host cookie', () => {
-    const cookie = sessionCookie(session())
+  it('stores only an opaque handle in a secure HttpOnly host cookie', async () => {
+    const cookie = await sessionCookie(session())
 
     expect(cookie).toContain('__Host-sso-portal-session=')
     expect(cookie).toContain('HttpOnly')
@@ -34,5 +34,8 @@ describe('OIDC BFF callback session cookie', () => {
     expect(cookie).toContain('SameSite=Strict')
     expect(cookie).toContain('Path=/')
     expect(cookie).not.toContain('Domain=')
+    expect(cookie).not.toContain('server-only-access-token')
+    expect(cookie).not.toContain('server-only-refresh-token')
+    expect(cookie).not.toContain('server-only-id-token')
   })
 })

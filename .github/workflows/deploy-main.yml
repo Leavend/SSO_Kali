@@ -42,7 +42,7 @@ jobs:
             context: ./
             dockerfile: ./services/sso-frontend/Dockerfile
             build_args: |
-              VITE_SSO_API_URL=${{ vars.SSO_PUBLIC_BASE_URL || 'https://api-sso.timeh.my.id' }}
+              VITE_SSO_API_URL=
               VITE_SSO_BASE_URL=${{ vars.SSO_PUBLIC_BASE_URL || 'https://api-sso.timeh.my.id' }}
               VITE_SSO_FRONTEND_BASE_URL=${{ vars.SSO_FRONTEND_BASE_URL || 'https://sso.timeh.my.id' }}
               VITE_CLIENT_ID=sso-frontend-portal

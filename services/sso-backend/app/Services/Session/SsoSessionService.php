@@ -24,6 +24,11 @@ final class SsoSessionService
         return $this->sessions->createForDirectoryUser($user, $ipAddress, $userAgent);
     }
 
+    public function createForUser(User $user, ?string $ipAddress, ?string $userAgent): SsoSession
+    {
+        return $this->sessions->createForUser($user, $ipAddress, $userAgent);
+    }
+
     public function current(?string $sessionId): ?SsoSession
     {
         if (! is_string($sessionId) || $sessionId === '') {

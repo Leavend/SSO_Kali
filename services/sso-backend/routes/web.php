@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\DataSubject\DataSubjectRequestController;
+use App\Http\Controllers\ExternalIdp\ExternalIdpCallbackController;
 use App\Http\Controllers\ExternalIdp\StartExternalIdpAuthenticationController;
 use App\Http\Controllers\Oidc\AuthorizeController;
 use App\Http\Controllers\Oidc\ConsentController;
@@ -62,4 +63,6 @@ Route::post('/api/profile/data-subject-requests', [DataSubjectRequestController:
 // to keep error states user-safe.
 Route::get('/external-idp/start/{providerKey}', StartExternalIdpAuthenticationController::class)
     ->where('providerKey', '[a-z0-9_-]+')
+    ->middleware('throttle:oidc-authorize');
+Route::get('/external-idp/callback', ExternalIdpCallbackController::class)
     ->middleware('throttle:oidc-authorize');

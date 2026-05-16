@@ -1,6 +1,7 @@
 import type { IncomingMessage } from 'node:http'
 
 export const SSO_PORTAL_SESSION_COOKIE = '__Host-sso-portal-session'
+export const SSO_PORTAL_LEGACY_SESSION_COOKIE = '__Host-sso-portal-session-legacy'
 export const SSO_PORTAL_TX_COOKIE = '__Host-sso-portal-tx'
 
 export type CookieOptions = {

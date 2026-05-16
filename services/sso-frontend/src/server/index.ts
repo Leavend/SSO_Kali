@@ -14,6 +14,7 @@ import {
 import { getConfig } from './config.js'
 import type { AppResponse, HeaderValue } from './response.js'
 import { html, methodNotAllowed, send, text } from './response.js'
+import { shouldProxyPortalPath } from './proxy-routes.js'
 import { handleSession, handleUserApi, redirectForLegacyError } from './user-handlers.js'
 
 const clientDir = fileURLToPath(new URL('../../client/', import.meta.url))
@@ -70,25 +71,7 @@ async function route(request: IncomingMessage, requestUrl: URL): Promise<AppResp
   if (pathname.startsWith('/api/me/')) return handleUserApi({ request, requestUrl })
   if (shouldProxyPortalPath(pathname)) return proxyToSsoBackend(request, requestUrl)
 
-  return redirectForLegacyError(requestUrl)
-}
-
-function shouldProxyPortalPath(pathname: string): boolean {
-  return (
-    pathname.startsWith('/api/auth/') ||
-    pathname.startsWith('/api/mfa/') ||
-    pathname === '/api/profile' ||
-    pathname.startsWith('/api/profile/') ||
-    pathname === '/connect/consent' ||
-    pathname.startsWith('/oauth/') ||
-    pathname.startsWith('/oauth2/') ||
-    pathname.startsWith('/.well-known/') ||
-    pathname === '/authorize' ||
-    pathname === '/token' ||
-    pathname === '/revocation' ||
-    pathname === '/userinfo' ||
-    pathname === '/jwks'
-  )
+  return await redirectForLegacyError(requestUrl)
 }
 
 async function proxyToSsoBackend(request: IncomingMessage, requestUrl: URL): Promise<AppResponse> {

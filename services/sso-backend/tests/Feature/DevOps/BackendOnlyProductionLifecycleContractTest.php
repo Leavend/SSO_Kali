@@ -11,7 +11,7 @@ it('keeps the main production deployment focused on baseline SSO services', func
         ->and($workflow)->not->toContain('sso-kali-deploy')
         ->and($script)->toContain('COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-sso-backend-prod}"')
         ->and($script)->toContain('compose up -d postgres redis')
-        ->and($script)->toContain('compose up -d --remove-orphans sso-backend sso-backend-worker sso-frontend')
+        ->and($script)->toContain('compose up -d --remove-orphans sso-backend sso-backend-worker sso-backend-scheduler sso-frontend')
         ->and($script)->not->toContain('app-a-next')
         ->and($script)->not->toContain('app-b-laravel');
 });

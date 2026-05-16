@@ -5,6 +5,7 @@ set -Eeuo pipefail
 PROJECT_DIR="${PROJECT_DIR:-/opt/sso-backend-prod}"
 COMPOSE_FILE="${COMPOSE_FILE:-$PROJECT_DIR/docker-compose.main.yml}"
 ENV_FILE="${ENV_FILE:-$PROJECT_DIR/.env.prod}"
+RUNTIME_SECRETS_FILE="${RUNTIME_SECRETS_FILE:-$PROJECT_DIR/.runtime-secrets.env}"
 IMAGE_PREFIX="${IMAGE_PREFIX:-ghcr.io/leavend/sso-kali}"
 DEPLOY_TAG="${DEPLOY_TAG:-main}"
 COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-sso-backend-prod}"
@@ -44,6 +45,39 @@ require_runtime() {
     ENV_FILE="$PROJECT_DIR/.env.dev"
   fi
   [[ -f "$ENV_FILE" ]] || die "Missing env file: $ENV_FILE"
+}
+
+ensure_session_encryption_secret() {
+  if [[ -n "${SESSION_ENCRYPTION_SECRET:-}" ]] || env_file_has_value "$ENV_FILE" SESSION_ENCRYPTION_SECRET; then
+    return 0
+  fi
+
+  mkdir -p "$(dirname "$RUNTIME_SECRETS_FILE")"
+  touch "$RUNTIME_SECRETS_FILE"
+  chmod 0600 "$RUNTIME_SECRETS_FILE" || true
+
+  if env_file_has_value "$RUNTIME_SECRETS_FILE" SESSION_ENCRYPTION_SECRET; then
+    export SESSION_ENCRYPTION_SECRET
+    SESSION_ENCRYPTION_SECRET="$(env_file_value "$RUNTIME_SECRETS_FILE" SESSION_ENCRYPTION_SECRET)"
+    return 0
+  fi
+
+  require_command openssl
+  export SESSION_ENCRYPTION_SECRET
+  SESSION_ENCRYPTION_SECRET="$(openssl rand -base64 48 | tr -d '\n')"
+  printf 'SESSION_ENCRYPTION_SECRET=%s\n' "$SESSION_ENCRYPTION_SECRET" >> "$RUNTIME_SECRETS_FILE"
+  chmod 0600 "$RUNTIME_SECRETS_FILE" || true
+  log "Generated persistent SESSION_ENCRYPTION_SECRET in $RUNTIME_SECRETS_FILE"
+}
+
+env_file_has_value() {
+  local file="$1" key="$2"
+  [[ -f "$file" ]] && grep -Eq "^[[:space:]]*${key}=.+" "$file"
+}
+
+env_file_value() {
+  local file="$1" key="$2"
+  sed -n "s/^[[:space:]]*${key}=//p" "$file" | tail -n 1
 }
 
 write_release_env() {
@@ -221,6 +255,7 @@ reattach_frontend_to_backend_network() {
 
 main() {
   require_runtime
+  ensure_session_encryption_secret
   backup_release_metadata
   write_release_env
 
@@ -230,7 +265,7 @@ main() {
   export SSO_DEPLOY_TAG="$DEPLOY_TAG"
 
   compose config >/dev/null
-  compose pull sso-backend sso-backend-worker sso-frontend || compose pull
+  compose pull sso-backend sso-backend-worker sso-backend-scheduler sso-frontend || compose pull
 
   compose up -d postgres redis
   wait_for_service postgres 180
@@ -239,10 +274,10 @@ main() {
   run_migrations
 
   adopt_legacy_frontend_container
-  compose up -d --remove-orphans sso-backend sso-backend-worker sso-frontend
+  compose up -d --remove-orphans sso-backend sso-backend-worker sso-backend-scheduler sso-frontend
   wait_for_service sso-backend 240
   wait_for_service sso-frontend 180
-  log 'sso-backend-worker started; worker health is supervised by restart policy and queue logs'
+  log 'sso-backend-worker and sso-backend-scheduler started; health is supervised by restart policy and logs'
 
   reattach_frontend_to_backend_network
   verify_frontend_release

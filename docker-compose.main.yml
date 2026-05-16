@@ -43,6 +43,8 @@ x-sso-backend-env: &sso-backend-env
   ADMIN_PANEL_SESSION_MANAGEMENT_ROLES: ${ADMIN_PANEL_SESSION_MANAGEMENT_ROLES:-admin}
   ADMIN_PANEL_REQUIRE_MFA: ${ADMIN_PANEL_REQUIRE_MFA:-false}
   ADMIN_PANEL_MFA_ACCEPTED_AMR: ${ADMIN_PANEL_MFA_ACCEPTED_AMR:-pwd}
+  SSO_DSR_AUTOMATION_SUBJECT_ID: ${SSO_DSR_AUTOMATION_SUBJECT_ID:-system-dsr-automation}
+  SSO_DSR_AUTOMATION_EMAIL: ${SSO_DSR_AUTOMATION_EMAIL:-system-dsr-automation@example.invalid}
   OCTANE_SERVER: frankenphp
   OCTANE_HTTPS: ${OCTANE_HTTPS:-true}
   OCTANE_GARBAGE_THRESHOLD_MB: ${OCTANE_GARBAGE_THRESHOLD_MB:-50}
@@ -67,7 +69,8 @@ x-sso-frontend-env: &sso-frontend-env
   SSO_INTERNAL_BASE_URL: ${SSO_INTERNAL_BASE_URL:-http://sso-backend:8000}
   SSO_INTERNAL_TOKEN_URL: ${SSO_INTERNAL_TOKEN_URL:-http://sso-backend:8000/token}
   SSO_INTERNAL_JWKS_URL: ${SSO_INTERNAL_JWKS_URL:-http://sso-backend:8000/jwks}
-  SESSION_ENCRYPTION_SECRET: ${SESSION_ENCRYPTION_SECRET:-}
+  SSO_FRONTEND_SESSION_REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/4
+  SESSION_ENCRYPTION_SECRET: ${SESSION_ENCRYPTION_SECRET:?SESSION_ENCRYPTION_SECRET is required}
   SSO_BACKEND_UPSTREAM: sso-backend:8000
   SSO_FRONTEND_SERVER_NAME: ${SSO_FRONTEND_SERVER_NAME:-_}
   SSO_CSP_CONNECT_SRC: ${SSO_CSP_CONNECT_SRC:-https://api-sso.timeh.my.id}
@@ -171,6 +174,27 @@ services:
       - sso-main
     mem_limit: 384m
     cpus: "0.25"
+
+  sso-backend-scheduler:
+    image: ${SSO_IMAGE_PREFIX:-ghcr.io/leavend/sso-kali}/sso-backend:${SSO_DEPLOY_TAG:-main}
+    restart: unless-stopped
+    init: true
+    environment: *sso-backend-env
+    command: ["php", "artisan", "schedule:work"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      sso-backend:
+        condition: service_healthy
+    volumes:
+      - sso-backend-storage:/app/storage
+      - ./.secrets/oidc:/app/storage/app/oidc:ro
+    networks:
+      - sso-main
+    mem_limit: 256m
+    cpus: "0.10"
 
   sso-frontend:
     image: ${SSO_IMAGE_PREFIX:-ghcr.io/leavend/sso-kali}/sso-frontend:${SSO_DEPLOY_TAG:-main}

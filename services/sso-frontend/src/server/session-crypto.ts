@@ -34,12 +34,18 @@ export function decryptSession(ciphertext: string): string | null {
 
 function sessionSecret(): Buffer {
   const raw = process.env.SESSION_ENCRYPTION_SECRET ?? ''
+  if (raw.length >= 32) return createHmac('sha256', 'sso-portal-session-key').update(raw).digest()
+  if (process.env.NODE_ENV === 'production') throw new Error('SESSION_ENCRYPTION_SECRET must be configured.')
 
-  if (raw.length >= 32) {
-    return createHmac('sha256', 'sso-portal-session-key').update(raw).digest()
-  }
+  return createHmac('sha256', 'sso-portal-session-key').update(fallbackSeed()).digest()
+}
 
-  const fallbackSeed = [
+function fallbackSeed(): string {
+  console.warn(
+    'SESSION_ENCRYPTION_SECRET is not configured; using origin-scoped fallback. Configure a 32+ character secret for stable sessions.',
+  )
+
+  return [
     process.env.VITE_SSO_FRONTEND_BASE_URL,
     process.env.NEXT_PUBLIC_APP_BASE_URL,
     process.env.VITE_CLIENT_ID,
@@ -48,10 +54,4 @@ function sessionSecret(): Buffer {
   ]
     .filter(Boolean)
     .join('|')
-
-  console.warn(
-    'SESSION_ENCRYPTION_SECRET is not configured; using origin-scoped fallback. Configure a 32+ character secret for stable sessions.',
-  )
-
-  return createHmac('sha256', 'sso-portal-session-key').update(fallbackSeed).digest()
 }
