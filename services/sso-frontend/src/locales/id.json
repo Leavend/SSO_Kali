@@ -81,5 +81,29 @@
     "confirm": "Konfirmasi",
     "loading": "Memuat…",
     "retry": "Coba lagi"
+  },
+  "oauth": {
+    "errors": {
+      "_generic": "Login tidak dapat diselesaikan. Mulai ulang dari halaman login atau kembali ke aplikasi awal.",
+      "invalid_request": "Permintaan otorisasi tidak valid. Mulai ulang dari halaman login.",
+      "unauthorized_client": "Aplikasi ini tidak diizinkan menggunakan SSO. Hubungi administrator.",
+      "access_denied": "Permintaan akses ditolak. Coba lagi atau kembali ke aplikasi awal.",
+      "unsupported_response_type": "Mode otorisasi tidak didukung. Mulai ulang dari halaman login.",
+      "invalid_scope": "Cakupan izin yang diminta tidak valid. Hubungi administrator aplikasi.",
+      "server_error": "Terjadi kesalahan di server SSO. Coba lagi beberapa saat.",
+      "temporarily_unavailable": "Layanan SSO sedang sibuk. Coba lagi beberapa saat.",
+      "interaction_required": "Tindakan tambahan diperlukan untuk melanjutkan login. Coba lagi tanpa prompt=none.",
+      "login_required": "Sesi SSO sudah berakhir. Silakan masuk lagi untuk melanjutkan.",
+      "account_selection_required": "Silakan pilih akun yang akan digunakan, lalu coba lagi.",
+      "consent_required": "Persetujuan akses dibutuhkan. Lanjutkan ke halaman persetujuan untuk melanjutkan.",
+      "invalid_request_uri": "Permintaan otorisasi tidak valid. Mulai ulang dari halaman login.",
+      "invalid_request_object": "Permintaan otorisasi tidak valid. Mulai ulang dari halaman login.",
+      "request_not_supported": "Mode permintaan ini tidak didukung. Mulai ulang dari halaman login.",
+      "request_uri_not_supported": "Mode permintaan ini tidak didukung. Mulai ulang dari halaman login.",
+      "registration_not_supported": "Pendaftaran client tidak didukung. Hubungi administrator.",
+      "mfa_enrollment_required": "Aplikasi ini membutuhkan autentikasi multi-faktor. Aktifkan MFA pada akunmu lalu coba lagi.",
+      "mfa_reenrollment_required": "Akun kamu telah direset oleh admin. Aktifkan kembali autentikasi multi-faktor (MFA) sebelum melanjutkan."
+    },
+    "support_ref": "Kode dukungan: {ref}"
   }
 }

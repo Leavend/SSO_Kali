@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
+  extractSupportReference,
+  formatSupportReference,
   resolveOAuthErrorMessage,
   resolveOAuthErrorMessageForDev,
 } from '../oauth-error-message'
@@ -106,5 +108,62 @@ describe('resolveOAuthErrorMessageForDev', () => {
     const includesTrace = message.includes('TECHNICAL TRACE')
     const includesDevTag = message.includes('[DEV:')
     expect(includesTrace ? includesDevTag : true).toBe(true)
+  })
+})
+
+describe('extractSupportReference (FE-FR063-001 / FR-063)', () => {
+  it('prefers X-Error-Ref header over body fields', () => {
+    const ref = extractSupportReference(
+      { error: 'invalid_request', error_ref: 'BODY-123', request_id: 'REQ-456' },
+      { 'X-Error-Ref': 'HDR-999' },
+    )
+    expect(ref).toBe('HDR-999')
+  })
+
+  it('falls back to error_ref body field when no header is provided', () => {
+    const ref = extractSupportReference({
+      error: 'server_error',
+      error_ref: 'SSOERR-ABCDEFGH',
+    })
+    expect(ref).toBe('SSOERR-ABCDEFGH')
+  })
+
+  it('falls back to request_id when error_ref is missing', () => {
+    const ref = extractSupportReference({
+      error: 'invalid_request',
+      request_id: 'req-uuid-123',
+    })
+    expect(ref).toBe('req-uuid-123')
+  })
+
+  it('returns null when no reference fields are present', () => {
+    expect(extractSupportReference({ error: 'invalid_request' })).toBeNull()
+    expect(extractSupportReference(null)).toBeNull()
+    expect(extractSupportReference('access_denied')).toBeNull()
+  })
+
+  it('drops references that are too long or empty', () => {
+    expect(
+      extractSupportReference({
+        error: 'invalid_request',
+        error_ref: 'a'.repeat(200),
+      }),
+    ).toBeNull()
+    expect(
+      extractSupportReference({
+        error: 'invalid_request',
+        error_ref: '   ',
+      }),
+    ).toBeNull()
+  })
+})
+
+describe('formatSupportReference (FE-FR063-001 / FR-063)', () => {
+  it('renders the localized template only when a reference is supplied', () => {
+    const formatted = formatSupportReference('SSOERR-ABCDEFGH')
+    expect(formatted).toBeTypeOf('string')
+    expect(formatted).toContain('SSOERR-ABCDEFGH')
+    expect(formatSupportReference(null)).toBeNull()
+    expect(formatSupportReference('')).toBeNull()
   })
 })

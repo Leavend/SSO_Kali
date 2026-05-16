@@ -20,6 +20,10 @@ import {
 } from '@/components/ui/card'
 import SsoAlertBanner from '@/components/molecules/SsoAlertBanner.vue'
 import { useOidcCallback } from '@/composables/useOidcCallback'
+import {
+  extractSupportReference,
+  formatSupportReference,
+} from '@/lib/oidc/oauth-error-message'
 
 const route = useRoute()
 const router = useRouter()
@@ -33,6 +37,17 @@ const title = computed<string>(() =>
 )
 
 const safeErrorCopy = computed<string>(() => callback.errorMessage.value ?? FALLBACK_ERROR_COPY)
+
+const supportReference = computed<string | null>(() => {
+  if (!callback.error.value) return null
+  const ref = extractSupportReference({
+    error: readString('error'),
+    error_description: readString('error_description'),
+    error_ref: readString('error_ref'),
+    request_id: readString('request_id'),
+  })
+  return formatSupportReference(ref)
+})
 
 onMounted(async (): Promise<void> => {
   const result = await callback.handle({
@@ -77,6 +92,14 @@ function readString(key: string): string | undefined {
         tone="error"
         :message="safeErrorCopy"
       />
+
+      <p
+        v-if="supportReference"
+        data-testid="oidc-callback-support-ref"
+        class="text-muted-foreground select-all text-center text-xs font-mono"
+      >
+        {{ supportReference }}
+      </p>
 
       <p v-if="callback.pending.value" class="text-muted-foreground text-center text-sm" aria-live="polite">
         Mohon tunggu sebentar.
