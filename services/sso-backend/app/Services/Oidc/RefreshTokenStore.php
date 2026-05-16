@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Oidc;
 
+use App\Exceptions\RefreshTokenRotationConflict;
 use App\Support\Crypto\UpstreamTokenEncryptor;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
@@ -32,8 +33,9 @@ final class RefreshTokenStore
         ?string $acr = null,
         ?string $familyId = null,
         ?int $familyCreatedAt = null,
+        ?string $tokenId = null,
     ): array {
-        $tokenId = (string) Str::uuid();
+        $resolvedTokenId = $tokenId ?? (string) Str::uuid();
         $secret = bin2hex(random_bytes(32));
         $tokenFamilyId = $familyId ?? (string) Str::uuid();
 
@@ -46,13 +48,88 @@ final class RefreshTokenStore
             $authTime,
             $amr,
             $acr,
-            $tokenId,
+            $resolvedTokenId,
             $tokenFamilyId,
             $secret,
             $familyCreatedAt,
         ));
 
-        return ['id' => $tokenId, 'token' => $this->plainToken($tokenId, $secret)];
+        return ['id' => $resolvedTokenId, 'token' => $this->plainToken($resolvedTokenId, $secret)];
+    }
+
+    /**
+     * BE-FR032-001 — Atomic rotation under contention.
+     *
+     * Wraps `atomicClaim` + replacement issue in a single transaction
+     * with row-level pessimistic lock. The first request wins the
+     * UPDATE; concurrent duplicates see `revoked_at !== null` and the
+     * compare-and-swap returns 0 affected rows, raising
+     * {@see RefreshTokenRotationConflict} so callers can map it to a
+     * deterministic `invalid_grant` response.
+     *
+     * @param  array<string, mixed>  $record
+     * @param  array<string, mixed>  $context
+     * @return array{id: string, token: string}
+     *
+     * @throws RefreshTokenRotationConflict
+     */
+    public function rotateAtomic(array $record, array $context): array
+    {
+        return DB::transaction(function () use ($record, $context): array {
+            $tokenId = (string) $record['refresh_token_id'];
+
+            $current = DB::table('refresh_token_rotations')
+                ->where('refresh_token_id', $tokenId)
+                ->lockForUpdate()
+                ->first();
+
+            if ($current === null || $current->revoked_at !== null) {
+                throw new RefreshTokenRotationConflict($tokenId);
+            }
+
+            $replacementId = (string) Str::uuid();
+
+            if (! $this->atomicClaim($tokenId, $replacementId)) {
+                throw new RefreshTokenRotationConflict($tokenId);
+            }
+
+            return $this->issue(
+                subjectId: (string) $record['subject_id'],
+                clientId: (string) $record['client_id'],
+                scope: (string) ($context['scope'] ?? $record['scope']),
+                sessionId: (string) $record['session_id'],
+                upstreamRefreshToken: is_string($context['upstream_refresh_token'] ?? null)
+                    ? $context['upstream_refresh_token']
+                    : (is_string($record['upstream_refresh_token'] ?? null) ? $record['upstream_refresh_token'] : null),
+                authTime: is_int($context['auth_time'] ?? null)
+                    ? $context['auth_time']
+                    : (is_int($record['auth_time'] ?? null) ? $record['auth_time'] : now()->timestamp),
+                amr: $this->normalizeAmr($context['amr'] ?? $record['amr'] ?? []),
+                acr: is_string($context['acr'] ?? null)
+                    ? $context['acr']
+                    : (is_string($record['acr'] ?? null) ? $record['acr'] : null),
+                familyId: (string) $record['token_family_id'],
+                familyCreatedAt: is_int($record['family_created_at'] ?? null)
+                    ? $record['family_created_at']
+                    : null,
+                tokenId: $replacementId,
+            );
+        });
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function normalizeAmr(mixed $value): array
+    {
+        if (! is_array($value)) {
+            return [];
+        }
+
+        return array_values(array_filter(
+            $value,
+            static fn (mixed $entry): bool => is_string($entry) && $entry !== '',
+        ));
     }
 
     /**
@@ -427,6 +504,22 @@ final class RefreshTokenStore
         Log::info('Refresh token family expired — family revoked', [
             'token_family_id' => $familyId,
         ]);
+    }
+
+    /**
+     * BE-FR033-001 — Resolve the subject id behind a refresh token
+     * family so callers can emit a user-facing security notification
+     * after a reuse-detected revocation. Returns null when the family
+     * has no surviving rows or the rows lack a subject_id.
+     */
+    public function subjectIdForFamily(string $familyId): ?string
+    {
+        $subjectId = DB::table('refresh_token_rotations')
+            ->where('token_family_id', $familyId)
+            ->orderByDesc('created_at')
+            ->value('subject_id');
+
+        return is_string($subjectId) && $subjectId !== '' ? $subjectId : null;
     }
 
     private function activeRecords(): Builder

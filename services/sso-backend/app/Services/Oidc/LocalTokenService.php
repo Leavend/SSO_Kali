@@ -62,29 +62,15 @@ final class LocalTokenService
      */
     public function rotate(array $record, array $context): array
     {
+        // BE-FR032-001 — atomic CAS-backed rotation. Concurrent calls
+        // race on the row UPDATE inside the transaction; the loser
+        // raises RefreshTokenRotationConflict and the caller MUST map
+        // that to an `invalid_grant` token endpoint response.
+        $refresh = $this->refreshTokens->rotateAtomic($record, $context);
+
         $user = $this->user((string) $record['subject_id']);
         $tokens = $this->signedTokens($user, $context);
-        $refresh = $this->refreshTokens->issue(
-            subjectId: $user->subject_id,
-            clientId: (string) $record['client_id'],
-            scope: (string) $record['scope'],
-            sessionId: (string) $record['session_id'],
-            upstreamRefreshToken: is_string($context['upstream_refresh_token'] ?? null)
-                ? $context['upstream_refresh_token']
-                : null,
-            authTime: $this->authTime(
-                $context,
-                is_int($record['auth_time'] ?? null) ? $record['auth_time'] : null,
-            ),
-            amr: $this->amr($context, is_array($record['amr'] ?? null) ? $record['amr'] : []),
-            acr: $this->acr($context, is_string($record['acr'] ?? null) ? $record['acr'] : null),
-            familyId: (string) $record['token_family_id'],
-            familyCreatedAt: is_int($record['family_created_at'] ?? null)
-                ? $record['family_created_at']
-                : null,
-        );
 
-        $this->refreshTokens->revoke((string) $record['refresh_token_id'], $refresh['id']);
         $this->registerBackChannelSession((string) $record['client_id'], (string) $record['session_id'], $record);
 
         return [

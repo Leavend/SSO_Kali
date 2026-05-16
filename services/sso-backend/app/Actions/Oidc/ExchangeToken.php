@@ -7,6 +7,9 @@ namespace App\Actions\Oidc;
 use App\Actions\Audit\RecordAuthenticationAuditEventAction;
 use App\Actions\SsoErrors\RecordSsoErrorAction;
 use App\Enums\SsoErrorCode;
+use App\Exceptions\RefreshTokenRotationConflict;
+use App\Models\User;
+use App\Notifications\RefreshTokenReuseDetectedNotification;
 use App\Services\Oidc\AuthorizationCodeStore;
 use App\Services\Oidc\DownstreamClientRegistry;
 use App\Services\Oidc\LocalTokenService;
@@ -170,18 +173,40 @@ final class ExchangeToken
     {
         $context = $this->refreshContext($record);
 
-        if (! is_string($record['upstream_refresh_token'] ?? null)) {
-            $response = $this->tokens->rotate($record, $context);
-            $this->recordTokenLifecycle($request, 'token_refreshed', 'succeeded', null, $record, [
-                'grant_type' => 'refresh_token',
-                'refresh_token_rotated' => true,
-                'scope' => $response['scope'] ?? $record['scope'] ?? null,
-            ]);
+        try {
+            if (! is_string($record['upstream_refresh_token'] ?? null)) {
+                $response = $this->tokens->rotate($record, $context);
+                $this->recordTokenLifecycle($request, 'token_refreshed', 'succeeded', null, $record, [
+                    'grant_type' => 'refresh_token',
+                    'refresh_token_rotated' => true,
+                    'scope' => $response['scope'] ?? $record['scope'] ?? null,
+                ]);
 
-            return response()->json($response);
+                return response()->json($response);
+            }
+        } catch (RefreshTokenRotationConflict $conflict) {
+            return $this->tokenError(
+                $request,
+                'refresh_token_rotation_conflict',
+                'invalid_grant',
+                'The refresh token is invalid.',
+                400,
+                ['client_id' => (string) $record['client_id']],
+            );
         }
 
-        $upstream = $this->upstreamRefreshContext($request, $record, $context);
+        try {
+            $upstream = $this->upstreamRefreshContext($request, $record, $context);
+        } catch (RefreshTokenRotationConflict $conflict) {
+            return $this->tokenError(
+                $request,
+                'refresh_token_rotation_conflict',
+                'invalid_grant',
+                'The refresh token is invalid.',
+                400,
+                ['client_id' => (string) $record['client_id']],
+            );
+        }
 
         return $upstream ?? $this->tokenError($request, 'upstream_refresh_failed', 'invalid_grant', 'The upstream refresh token is no longer valid.', 400, [
             'client_id' => (string) $record['client_id'],
@@ -368,6 +393,35 @@ final class ExchangeToken
             'client_id' => $clientId,
             ...$context,
         ]);
+
+        // BE-FR033-001 — user-facing security notification (queued).
+        // Best-effort: the original refresh row is gone (revoked), but we
+        // can still resolve the subject_id from the family bucket so the
+        // affected user gets an alert. If we cannot resolve, the policy is
+        // explicit no-notify and the structured audit row remains the
+        // single source of truth.
+        $this->notifyRefreshReuseSubject($resolution['family_id'], $clientId);
+    }
+
+    private function notifyRefreshReuseSubject(?string $familyId, string $clientId): void
+    {
+        if ($familyId === null || ! (bool) config('security-notifications.enabled', true)) {
+            return;
+        }
+
+        $subjectId = $this->refreshTokens->subjectIdForFamily($familyId);
+
+        if ($subjectId === null) {
+            return;
+        }
+
+        $user = User::query()->where('subject_id', $subjectId)->first();
+
+        if ($user === null) {
+            return;
+        }
+
+        $user->notify(new RefreshTokenReuseDetectedNotification($clientId));
     }
 
     private function optionalString(mixed $value): ?string
