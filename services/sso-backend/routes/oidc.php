@@ -14,6 +14,7 @@ declare(strict_types=1);
 use App\Http\Controllers\OAuth\TokenRevocationController;
 use App\Http\Controllers\Oidc\AdminPanelBackChannelLogoutController;
 use App\Http\Controllers\Oidc\DiscoveryController;
+use App\Http\Controllers\Oidc\IntrospectionController;
 use App\Http\Controllers\Oidc\JwksController;
 use App\Http\Controllers\Oidc\RevocationController;
 use App\Http\Controllers\Oidc\SessionLogoutController;
@@ -60,6 +61,8 @@ Route::post('/token', TokenController::class)->middleware(['throttle:oidc-token'
 Route::match(['get', 'post'], '/userinfo', UserInfoController::class)->middleware('throttle:oidc-resource');
 Route::post('/revocation', RevocationController::class)->middleware('throttle:oidc-token');
 Route::post('/oauth/revoke', TokenRevocationController::class)->middleware('throttle:oidc-token');
+Route::post('/introspect', IntrospectionController::class)->middleware('throttle:oidc-token');
+Route::post('/oauth2/introspect', IntrospectionController::class)->middleware('throttle:oidc-token');
 
 // --- OIDC Session Management (server-to-server) ---
 Route::post('/connect/register-session', SessionRegistrationController::class)->middleware('throttle:oidc-callback');

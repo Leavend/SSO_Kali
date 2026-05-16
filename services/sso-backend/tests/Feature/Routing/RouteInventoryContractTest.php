@@ -8,8 +8,8 @@ use Illuminate\Support\Facades\Route as RouteFacade;
 it('keeps the production route inventory intentional', function (): void {
     $routes = collect(RouteFacade::getRoutes()->getRoutes());
 
-    expect($routes)->toHaveCount(101);
-    expect(applicationRoutes($routes))->toHaveCount(89);
+    expect($routes)->toHaveCount(103);
+    expect(applicationRoutes($routes))->toHaveCount(91);
     expect(vendorRoutes($routes))->toHaveCount(12);
 });
 
@@ -60,7 +60,7 @@ function routeCategory(Route $route): string
         return 'admin';
     }
 
-    if (str_starts_with($uri, '.well-known') || in_array($uri, ['jwks', 'authorize', 'oauth2/authorize', 'token', 'oauth2/token', 'userinfo', 'revocation', 'oauth2/revocation'], true)) {
+    if (str_starts_with($uri, '.well-known') || in_array($uri, ['jwks', 'authorize', 'oauth2/authorize', 'token', 'oauth2/token', 'userinfo', 'revocation', 'oauth2/revocation', 'introspect', 'oauth2/introspect'], true)) {
         return 'oidc';
     }
 
@@ -168,11 +168,13 @@ function expectedApplicationRouteSignatures(): array
         'POST connect/local-login',
         'GET|POST|HEAD connect/logout',
         'POST connect/register-session',
+        'POST introspect',
         'GET|HEAD health',
         'GET|HEAD jwks',
         'GET|HEAD login',
         'POST oauth/revoke',
         'GET|HEAD oauth2/authorize',
+        'POST oauth2/introspect',
         'POST oauth2/revocation',
         'POST oauth2/token',
         'GET|HEAD ready',

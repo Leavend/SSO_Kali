@@ -53,6 +53,8 @@ final class OidcCatalog
             'token_endpoint' => $baseUrl.'/token',
             'userinfo_endpoint' => $baseUrl.'/userinfo',
             'revocation_endpoint' => $baseUrl.'/oauth/revoke',
+            'introspection_endpoint' => $baseUrl.'/introspect',
+            'introspection_endpoint_auth_methods_supported' => ['client_secret_basic', 'client_secret_post'],
             'jwks_uri' => $baseUrl.'/.well-known/jwks.json',
             'response_types_supported' => ['code'],
             'grant_types_supported' => ['authorization_code', 'refresh_token'],
