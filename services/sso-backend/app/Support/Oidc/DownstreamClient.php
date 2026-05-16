@@ -24,6 +24,8 @@ final readonly class DownstreamClient
         public ?Carbon $secretExpiresAt = null,
         public ?Carbon $secretRotatedAt = null,
         public bool $skipConsent = true,
+        public ?string $frontchannelLogoutUri = null,
+        public bool $frontchannelLogoutSessionRequired = true,
     ) {}
 
     /**
@@ -118,5 +120,29 @@ final readonly class DownstreamClient
         }
 
         return self::isWellFormedRedirectUri($this->backchannelLogoutUri);
+    }
+
+    /**
+     * BE-FR043-001: Whether the front-channel logout URI is well-formed.
+     * Returns true if no URI is configured (RPs without FCL fallback).
+     */
+    public function hasValidFrontchannelLogoutUri(): bool
+    {
+        if ($this->frontchannelLogoutUri === null || $this->frontchannelLogoutUri === '') {
+            return true;
+        }
+
+        return self::isWellFormedRedirectUri($this->frontchannelLogoutUri);
+    }
+
+    /**
+     * BE-FR043-001: Whether this client has at least one logout channel.
+     * Used during global logout to decide if RP must be reachable via
+     * back-channel POST or front-channel iframe rendering.
+     */
+    public function supportsLogoutNotification(): bool
+    {
+        return ($this->backchannelLogoutUri !== null && $this->backchannelLogoutUri !== '')
+            || ($this->frontchannelLogoutUri !== null && $this->frontchannelLogoutUri !== '');
     }
 }

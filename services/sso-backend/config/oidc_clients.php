@@ -27,6 +27,7 @@ $clients = [
             env('APP_A_POST_LOGOUT_REDIRECT_URI', $frontendUrl.'/app-a'),
         ],
         'backchannel_logout_uri' => env('APP_A_BACKCHANNEL_LOGOUT_URI'),
+        'frontchannel_logout_uri' => env('APP_A_FRONTCHANNEL_LOGOUT_URI'),
         'allowed_scopes' => ['openid', 'profile', 'email', 'offline_access'],
     ],
 
@@ -41,6 +42,7 @@ $clients = [
             env('APP_B_POST_LOGOUT_REDIRECT_URI', $frontendUrl.'/app-b'),
         ],
         'backchannel_logout_uri' => env('APP_B_BACKCHANNEL_LOGOUT_URI'),
+        'frontchannel_logout_uri' => env('APP_B_FRONTCHANNEL_LOGOUT_URI'),
         'allowed_scopes' => ['openid', 'profile', 'email', 'offline_access'],
     ],
 
@@ -57,6 +59,7 @@ $clients = [
             'ADMIN_PANEL_BACKCHANNEL_LOGOUT_URI',
             $appUrl.'/connect/backchannel/admin-panel/logout',
         ),
+        'frontchannel_logout_uri' => env('ADMIN_PANEL_FRONTCHANNEL_LOGOUT_URI'),
         'allowed_scopes' => ['openid', 'profile', 'email', 'offline_access', 'roles', 'permissions'],
     ],
 
@@ -69,6 +72,7 @@ $clients = [
             env('SSO_PORTAL_POST_LOGOUT_REDIRECT_URI', $frontendUrl),
         ],
         'backchannel_logout_uri' => env('SSO_PORTAL_BACKCHANNEL_LOGOUT_URI'),
+        'frontchannel_logout_uri' => env('SSO_PORTAL_FRONTCHANNEL_LOGOUT_URI'),
         'allowed_scopes' => ['openid', 'profile', 'email', 'offline_access', 'roles', 'permissions'],
     ],
 ];

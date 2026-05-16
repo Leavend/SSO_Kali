@@ -17,6 +17,8 @@ use Illuminate\Support\Carbon;
  * @property array<int, string>|null $post_logout_redirect_uris
  * @property array<int, string>|null $allowed_scopes
  * @property string|null $backchannel_logout_uri
+ * @property string|null $frontchannel_logout_uri
+ * @property bool $frontchannel_logout_session_required
  * @property string|null $secret_hash
  * @property Carbon|null $secret_rotated_at
  * @property Carbon|null $secret_expires_at
@@ -44,6 +46,8 @@ final class OidcClientRegistration extends Model
         'post_logout_redirect_uris',
         'allowed_scopes',
         'backchannel_logout_uri',
+        'frontchannel_logout_uri',
+        'frontchannel_logout_session_required',
         'secret_hash',
         'secret_rotated_at',
         'secret_expires_at',
@@ -71,6 +75,7 @@ final class OidcClientRegistration extends Model
             'post_logout_redirect_uris' => 'array',
             'allowed_scopes' => 'array',
             'contract' => 'array',
+            'frontchannel_logout_session_required' => 'boolean',
             'activated_at' => 'datetime',
             'disabled_at' => 'datetime',
             'decommissioned_at' => 'datetime',

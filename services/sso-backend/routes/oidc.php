@@ -14,6 +14,7 @@ declare(strict_types=1);
 use App\Http\Controllers\OAuth\TokenRevocationController;
 use App\Http\Controllers\Oidc\AdminPanelBackChannelLogoutController;
 use App\Http\Controllers\Oidc\DiscoveryController;
+use App\Http\Controllers\Oidc\FrontChannelLogoutFallbackController;
 use App\Http\Controllers\Oidc\IntrospectionController;
 use App\Http\Controllers\Oidc\JwksController;
 use App\Http\Controllers\Oidc\RevocationController;
@@ -67,6 +68,7 @@ Route::post('/oauth2/introspect', IntrospectionController::class)->middleware('t
 // --- OIDC Session Management (server-to-server) ---
 Route::post('/connect/register-session', SessionRegistrationController::class)->middleware('throttle:oidc-callback');
 Route::match(['get', 'post'], '/connect/logout', SessionLogoutController::class)->middleware('throttle:oidc-callback');
+Route::get('/connect/logout/frontchannel', FrontChannelLogoutFallbackController::class)->middleware('throttle:oidc-callback');
 Route::post('/connect/backchannel/admin-panel/logout', AdminPanelBackChannelLogoutController::class)->middleware('throttle:oidc-callback');
 
 // --- OAuth2 aliases ---

@@ -196,6 +196,10 @@ final class DownstreamClientRegistry
             secretExpiresAt: $this->optionalCarbon($config['secret_expires_at'] ?? null),
             secretRotatedAt: $this->optionalCarbon($config['secret_rotated_at'] ?? null),
             skipConsent: (bool) ($config['skip_consent'] ?? true),
+            frontchannelLogoutUri: is_string($config['frontchannel_logout_uri'] ?? null)
+                ? $config['frontchannel_logout_uri']
+                : null,
+            frontchannelLogoutSessionRequired: (bool) ($config['frontchannel_logout_session_required'] ?? true),
         );
     }
 
@@ -211,6 +215,10 @@ final class DownstreamClientRegistry
             secret: is_string($registration->secret_hash) ? $registration->secret_hash : null,
             secretExpiresAt: $registration->secret_expires_at,
             secretRotatedAt: $registration->secret_rotated_at,
+            frontchannelLogoutUri: is_string($registration->frontchannel_logout_uri ?? null)
+                ? $registration->frontchannel_logout_uri
+                : null,
+            frontchannelLogoutSessionRequired: (bool) ($registration->frontchannel_logout_session_required ?? true),
         );
     }
 

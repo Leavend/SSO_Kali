@@ -24,10 +24,79 @@ final class BackChannelLogoutDispatcher
         $results = [];
 
         foreach ($registrations as $registration) {
-            $results[] = $this->notify($registration, $subjectId, $sessionId);
+            if ($this->hasBackchannel($registration)) {
+                $results[] = $this->notify($registration, $subjectId, $sessionId);
+
+                continue;
+            }
+
+            if ($this->hasFrontchannel($registration)) {
+                $results[] = $this->frontchannelPending($registration, $subjectId, $sessionId);
+
+                continue;
+            }
+
+            // No usable channel: treat as a hard dispatch failure so callers
+            // can report it the same as queue dispatch errors. This preserves
+            // the prior FR-040 invariant that registrations without any URI
+            // surface as `failed` instead of being silently swallowed.
+            $results[] = $this->failedRegistration($registration, $subjectId, $sessionId);
         }
 
         return $results;
+    }
+
+    /**
+     * @param  array<string, mixed>  $registration
+     */
+    private function hasBackchannel(array $registration): bool
+    {
+        $uri = $registration['backchannel_logout_uri'] ?? null;
+
+        return is_string($uri) && $uri !== '';
+    }
+
+    /**
+     * @param  array<string, mixed>  $registration
+     */
+    private function hasFrontchannel(array $registration): bool
+    {
+        $uri = $registration['frontchannel_logout_uri'] ?? null;
+
+        return is_string($uri) && $uri !== '';
+    }
+
+    /**
+     * BE-FR043-001: RPs registered with `frontchannel_logout_uri` only
+     * cannot be notified by the back-channel dispatcher. They are still
+     * surfaced in the dispatch result so the global logout response can
+     * render an iframe fallback page (see {@see RenderFrontChannelLogoutFallback}).
+     *
+     * @param  array<string, mixed>  $registration
+     * @return array<string, int|string>
+     */
+    private function frontchannelPending(array $registration, string $subjectId, string $sessionId): array
+    {
+        $clientId = (string) ($registration['client_id'] ?? 'unknown');
+        $frontchannelUri = is_string($registration['frontchannel_logout_uri'] ?? null)
+            ? $registration['frontchannel_logout_uri']
+            : null;
+
+        $this->audit->execute('frontchannel_logout_pending', [
+            'client_id' => $clientId,
+            'logout_channel' => 'frontchannel',
+            'result' => 'pending',
+            'session_id' => $sessionId,
+            'subject_id' => $subjectId,
+            'frontchannel_logout_uri' => $frontchannelUri,
+        ]);
+
+        return [
+            'client_id' => $clientId,
+            'status' => 'frontchannel_pending',
+            'http_status' => 0,
+            'frontchannel_logout_uri' => (string) ($frontchannelUri ?? ''),
+        ];
     }
 
     /**
@@ -48,6 +117,39 @@ final class BackChannelLogoutDispatcher
         $this->auditQueued($registration, $subjectId, $sessionId);
 
         return $this->queuedResult($registration);
+    }
+
+    /**
+     * Treat a registration without any usable logout channel as a hard
+     * dispatch failure. The audit row mirrors a queue-dispatch error so
+     * downstream alerting (FR-044) sees a single failure semantic.
+     *
+     * @param  array<string, mixed>  $registration
+     * @return array<string, int|string>
+     */
+    private function failedRegistration(array $registration, string $subjectId, string $sessionId): array
+    {
+        $clientId = (string) ($registration['client_id'] ?? 'unknown');
+        $reason = 'No backchannel_logout_uri or frontchannel_logout_uri registered.';
+
+        $this->audit->execute('backchannel_logout_failed', [
+            'client_id' => $clientId,
+            'failure_class' => 'queue_dispatch_failed',
+            'failure_reason' => $reason,
+            'http_status' => 0,
+            'logout_channel' => 'backchannel',
+            'result' => 'failed',
+            'session_id' => $sessionId,
+            'subject_id' => $subjectId,
+        ]);
+
+        return [
+            'client_id' => $clientId,
+            'status' => 'failed',
+            'http_status' => 0,
+            'failure_class' => 'queue_dispatch_failed',
+            'failure_reason' => $reason,
+        ];
     }
 
     /** @param array<string, string> $registration */

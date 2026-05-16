@@ -78,9 +78,11 @@ final class PerformSingleSignOut
         $notifications = $this->dispatchLogout($subjectId, $sessionIds);
         $this->clearLocalSessions($subjectId, $sessionIds);
         $this->metrics->recordSuccess();
+        $frontchannelUrl = $this->frontchannelFallbackUrl($notifications);
         $this->audit->execute('sso_logout_completed', [
             'logout_channel' => 'centralized',
             'notification_count' => count($notifications),
+            'frontchannel_pending_count' => $this->countByStatus($notifications, 'frontchannel_pending'),
             'result' => 'succeeded',
             'session_count' => count($sessionIds),
             'session_id' => $sessionId,
@@ -89,7 +91,7 @@ final class PerformSingleSignOut
             'subject_id' => $subjectId,
         ]);
 
-        return $this->successResponse($sessionId, $sessionIds, $notifications);
+        return $this->successResponse($sessionId, $sessionIds, $notifications, $frontchannelUrl);
     }
 
     /**
@@ -193,14 +195,41 @@ final class PerformSingleSignOut
      * @param  list<string>  $sessionIds
      * @param  list<array<string, mixed>>  $notifications
      */
-    private function successResponse(string $sessionId, array $sessionIds, array $notifications): JsonResponse
+    private function successResponse(string $sessionId, array $sessionIds, array $notifications, ?string $frontchannelUrl): JsonResponse
     {
-        return response()->json([
+        return response()->json(array_filter([
             'signed_out' => true,
             'sid' => $sessionId,
             'sids' => $sessionIds,
             'notifications' => $notifications,
-        ]);
+            'frontchannel_logout_url' => $frontchannelUrl,
+        ], static fn (mixed $value): bool => $value !== null));
+    }
+
+    /**
+     * BE-FR043-001: when at least one RP is `frontchannel_pending`,
+     * surface the fallback page URL to the SPA so it can redirect to
+     * the iframe page on the way out. Bearer-token auth on the
+     * fallback endpoint enforces tenant isolation.
+     *
+     * @param  list<array<string, mixed>>  $notifications
+     */
+    private function frontchannelFallbackUrl(array $notifications): ?string
+    {
+        return $this->countByStatus($notifications, 'frontchannel_pending') > 0
+            ? rtrim((string) config('sso.issuer', ''), '/').'/connect/logout/frontchannel'
+            : null;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $notifications
+     */
+    private function countByStatus(array $notifications, string $status): int
+    {
+        return count(array_filter(
+            $notifications,
+            static fn (array $entry): bool => ($entry['status'] ?? null) === $status,
+        ));
     }
 
     /**

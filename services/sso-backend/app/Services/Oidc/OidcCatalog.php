@@ -71,6 +71,8 @@ final class OidcCatalog
             'end_session_endpoint' => $baseUrl.'/connect/logout',
             'backchannel_logout_supported' => true,
             'backchannel_logout_session_supported' => true,
+            'frontchannel_logout_supported' => true,
+            'frontchannel_logout_session_supported' => true,
         ];
     }
 

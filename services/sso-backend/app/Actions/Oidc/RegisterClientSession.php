@@ -44,7 +44,7 @@ final class RegisterClientSession
      */
     private function registerClient(string $sessionId, string $clientId, array $claims): bool
     {
-        $client = $this->clientWithBackChannel($clientId);
+        $client = $this->clientWithLogoutChannel($clientId);
 
         if ($client === null) {
             return false;
@@ -53,18 +53,28 @@ final class RegisterClientSession
         $this->registry->register(
             $sessionId,
             $clientId,
-            $client->backchannelLogoutUri,
-            $this->metadata($claims),
+            (string) ($client->backchannelLogoutUri ?? ''),
+            $this->metadata($claims, $client),
         );
 
         return true;
     }
 
-    private function clientWithBackChannel(string $clientId): ?DownstreamClient
+    /**
+     * BE-FR043-001: registration succeeds when the client supports either
+     * back-channel logout (POST) OR front-channel logout (iframe). RPs with
+     * neither channel cannot be notified during global logout, so they are
+     * still rejected — preserving the existing FR-040 invariant.
+     */
+    private function clientWithLogoutChannel(string $clientId): ?DownstreamClient
     {
         $client = $this->clients->find($clientId);
 
-        return $client?->backchannelLogoutUri === null ? null : $client;
+        if ($client === null || ! $client->supportsLogoutNotification()) {
+            return null;
+        }
+
+        return $client;
     }
 
     /**
@@ -83,14 +93,32 @@ final class RegisterClientSession
      * @param  array<string, mixed>  $claims
      * @return array<string, mixed>
      */
-    private function metadata(array $claims): array
+    private function metadata(array $claims, DownstreamClient $client): array
     {
         return [
             'subject_id' => $this->stringClaim($claims, 'sub'),
             'scope' => $this->stringClaim($claims, 'scope'),
             'created_at' => $this->timeClaim($claims, 'iat'),
             'expires_at' => $this->timeClaim($claims, 'exp'),
+            'frontchannel_logout_uri' => $client->frontchannelLogoutUri,
+            'channels' => $this->channels($client),
         ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function channels(DownstreamClient $client): array
+    {
+        $channels = [];
+        if ($client->backchannelLogoutUri !== null && $client->backchannelLogoutUri !== '') {
+            $channels[] = 'backchannel';
+        }
+        if ($client->frontchannelLogoutUri !== null && $client->frontchannelLogoutUri !== '') {
+            $channels[] = 'frontchannel';
+        }
+
+        return $channels;
     }
 
     /**
