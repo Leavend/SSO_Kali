@@ -792,3 +792,151 @@ Setiap issue yang diimplementasikan harus memenuhi:
 | FR-061 | Partial | Locale catalog/support refs |
 | FR-062 | Partial | Backend raw exception descriptions |
 | FR-063 | Partial | Error ref propagation/UX |
+
+## 9. Deep-Dive Hardening Addendum — Real Code Evidence Pass
+
+Pass tambahan ini memvalidasi ulang audit terhadap kondisi aktual repo, bukan asumsi scout. Tujuan: mengunci temuan menjadi backlog implementasi yang lebih presisi, testable, dan sesuai standar TDD/kualitas frontend-backend.
+
+### 9.1 Evidence Corrections / Refinements
+
+| Area | Evidence Aktual | Dampak ke Audit |
+| --- | --- | --- |
+| FR-036 Introspection | `routes/oidc.php` tidak punya `/introspect`; `OidcCatalog` tidak mengiklankan `introspection_endpoint`; grep hanya menemukan komentar test. | BE-FR036-001 tetap **Critical** dan harus jadi prioritas Batch 1. |
+| FR-034 Revocation | `RevokeToken::clientSecret()` hanya baca body `client_secret`; tidak memakai `TokenClientAuthenticationResolver`. | Finding diperkeras: endpoint revocation tidak konsisten dengan token endpoint yang sudah support Basic. |
+| FR-032 Refresh rotation | `RefreshTokenStore::findActive()` tidak memakai `DB::transaction()` / `lockForUpdate`; `LocalTokenService::rotate()` issue token baru lalu revoke lama. | Gap race-condition valid; fix harus atomic row-lock/CAS. |
+| FR-035 UserInfo | `BuildUserInfo::passportUserInfo()` memberi fallback `openid profile email` bila Passport token scopes kosong. | Over-disclosure risk valid; harus ditutup. |
+| FR-037 Portal logout | `/api/auth/logout` memanggil `LogoutSsoSessionAction`; tidak route ke `PerformSingleSignOut`. | Portal logout hanya revoke SSO browser session; RP fan-out perlu implementasi. |
+| FR-040 RP registry | `BackChannelSessionRegistry` menyimpan ke `ResilientCacheStore` key `oidc:backchannel-session:*`; tidak ada table/model RP session. | Persistent registry gap valid. |
+| FR-041 RP logout | `PerformFrontChannelLogout` decode `id_token_hint` hanya untuk `aud/client_id`; tidak validasi hint `sid/sub` vs cookie session. | Binding gap valid. |
+| FR-042 Logout token replay | `LocalLogoutTokenVerifier` validasi iss/aud/time/events/no nonce/sub-or-sid; tidak ada store `jti`. | Replay gap valid. |
+| FR-043 Front-channel logout fallback | `OidcCatalog` hanya advertise BCL; `DownstreamClient` hanya punya `backchannelLogoutUri`, tidak `frontchannel_logout_uri`. | FCL fallback gap valid. |
+| FR-052 Audit export/retention | `routes/admin.php` punya audit list/show/integrity; tidak export route; `routes/console.php` hanya prune authentication audit, bukan admin audit. | Export + admin audit retention tetap Critical. |
+| FR-055 Security policy | Tidak ada `SecurityPolicy` model/service/controller; policy tersebar di env/config. | Gap valid. |
+| FR-056 Internal metrics | `PerformanceMetricsController` dibatasi env local/testing/staging via Gate; `QueueMetricsController` via config boolean; tidak ada header token middleware walau config punya `internal_metrics_token_header`. | Severity turun dari raw-open menjadi **High**: prod guarded by env/config, tetapi missing in-app token guard. |
+| FR-057 Federation | External IdP services ada, admin CRUD ada, tetapi `routes/*` tidak punya public external IdP start/callback; config `sso.external_idp.*` dipakai service namun tidak dideklarasikan di `config/sso.php`. | Gap valid. |
+| FR-060/061 Error taxonomy | Backend punya `SsoErrorTemplateController` admin route; FE punya hardcoded `oauth-error-message.ts`; taxonomy belum satu sumber. | Finding harus menyebut template admin ada, tetapi OAuth code registry end-to-end belum canonical. |
+| FR-047 Password self-service | Backend `ChangePasswordController` + FE `SecurityPage.vue` inline change-password ada; reset password self-service tidak ada; backend admin password reset token ada. | Finding direvisi: change password partial implemented; reset/forgot + session revoke/notification evidence gap. |
+| FR-054 Client UI | Backend activate/disable/stage APIs ada; FE `ClientManagementPage.vue` ada tetapi harus diuji ulang untuk suspend/activate/scope coverage. | FE finding tetap Medium, perlu UI contract evidence sebelum implementasi. |
+
+### 9.2 Hardening-Specific Acceptance Criteria Updates
+
+#### H-BE-FR032 — Atomic Refresh Rotation
+
+- **Target files:** `RefreshTokenStore`, `LocalTokenService`, `ExchangeToken`.
+- **Hard requirement:** `findActive + issue replacement + revoke old token` harus satu transactional critical section.
+- **Implementation principle:** jangan simpan lock/state di singleton service; Octane-safe; no static mutable cache.
+- **Tests wajib:**
+  - dua request refresh token sama → hanya satu sukses;
+  - request kedua revoke family;
+  - family expired → semua active family revoked;
+  - replay audit emitted with hashed family id.
+
+#### H-BE-FR034 — Revocation Auth Parity
+
+- **Target files:** `RevokeToken`, `TokenClientAuthenticationResolver`.
+- **Hard requirement:** `/revocation` dan `/oauth/revoke` harus support `client_secret_basic`, `client_secret_post`, public PKCE policy sesuai metadata.
+- **Tests wajib:** Basic auth success, post auth success, conflicting Basic/body uses Basic precedence or rejects deterministically, invalid client still RFC7009 `200 {}` but audited.
+
+#### H-BE-FR036 — RFC 7662 Introspection
+
+- **Target files:** new action/controller/request, `routes/oidc.php`, `OidcCatalog`.
+- **Hard requirement:** add `POST /introspect` and `/oauth2/introspect`; discovery advertises `introspection_endpoint` and auth methods.
+- **Response policy:**
+  - unknown/expired/revoked → `200 {"active": false}`;
+  - active access token → include only RFC-safe fields (`active`, `iss`, `sub`, `aud`, `client_id`, `scope`, `exp`, `iat`, `sid`, `token_type`, `jti`) as policy allows;
+  - never return raw decode exception.
+- **Tests wajib:** active JWT, revoked JWT, expired JWT, unknown token, inactive client, invalid auth.
+
+#### H-BE-FR037/040 — Persistent RP Session Registry + Portal Logout Fan-Out
+
+- **Target files:** `BackChannelSessionRegistry`, new `OidcRpSession` model/migration, `LogoutSsoSessionAction` or new `PerformPortalSingleSignOutAction`.
+- **Hard requirement:** cache cannot be source of truth for logout target list.
+- **Portal logout:** `/api/auth/logout` must revoke SSO browser session + access JTIs + refresh tokens + RP session registry + dispatch BCL/FCL where available.
+- **Tests wajib:** cache cleared but DB registry remains → logout still notifies RP; portal logout invalidates userinfo token; public client without refresh token visible/revoked.
+
+#### H-BE-FR041/042/043/044 — Logout Protocol Completeness
+
+- **RP-Initiated Logout:** validate `id_token_hint.sid/sub` against active cookie session when both exist.
+- **Back-channel inbound:** persist `jti` until `exp`; duplicate token must be idempotent and audited as replay/duplicate.
+- **Front-channel fallback:** add `frontchannel_logout_uri`, advertise `frontchannel_logout_supported`, render iframe logout page for non-BCL clients.
+- **Correlation:** parent request id must be passed into logout jobs/audit events.
+
+#### H-BE-FR052 — Admin Audit Export + Retention
+
+- **Target files:** `AuditTrailController`, new export action, new prune command.
+- **Hard requirement:** export must be permission-gated (`AUDIT_READ` or export-specific permission), bounded, filtered, redacted, audited.
+- **Retention:** add `sso:prune-admin-audit-events --dry-run --limit=...`; schedule daily; never break HMAC integrity of retained chain without checkpoint/compaction design.
+- **Tests wajib:** export CSV/JSONL whitelist, permission denial, export audit event, retention dry-run.
+
+#### H-BE-FR055 — Security Policy Versioning
+
+- **Hard requirement:** password/MFA/session/token/risk policy must be versioned and auditable before runtime mutable admin UI is enabled.
+- **Safe rollout:** draft → validate → activate at `effective_at` → rollback. Runtime cache must include version id and short TTL/explicit invalidation.
+- **Tests wajib:** active policy read, invalid draft rejection, activation audit, rollback audit, Octane no stale mutable static state.
+
+#### H-BE-FR056 — Internal Metrics Guard
+
+- **Refined risk:** route is not fully open in prod (`Gate::allowIf` / config boolean), but header-token config exists unused.
+- **Hard requirement:** add middleware requiring configured token header for any `_internal/*` route when enabled; return 404/403 safely; audit invalid attempt.
+
+#### H-BE-FR057/058/059 — Federation Public Flow
+
+- **Existing:** admin External IdP CRUD + discovery/auth redirect/claims/health services.
+- **Missing:** public start/callback routes, callback CSRF/state binding, scheduled health probe, declared config keys.
+- **Hard requirement:** callback state must be server-side, single-use, expiring; external claims mapping must fail closed and never auto-link ambiguous accounts.
+
+#### H-BE-FR060/061/062/063 — Safe Error System
+
+- **Backend:** `SsoErrorTemplateController` exists; use it as evidence of template management, but OAuth/OIDC protocol `error_description` still needs central safe catalog.
+- **Frontend:** `oauth-error-message.ts` safely maps OIDC callback, but copy is hardcoded TS not locale-backed.
+- **Hard requirement:** raw exception message (`$exception->getMessage()`) must never be used as protocol `error_description` unless passed through safe catalog/scrubber.
+- **Support ref:** include `X-Request-Id` and optional `error_ref` in safe response body/header; FE renders copyable support reference only, never trace.
+
+### 9.3 Code Quality Constraints for Implementation Batches
+
+These constraints are mandatory for all FR-029–FR-063 fixes:
+
+- Backend controllers stay orchestration-only and **<100 lines**.
+- New backend business logic goes to Actions/Services/Value Objects; no DB queries in controllers.
+- No file >500 lines; existing large files touched by fixes (`CreateAuthorizationRedirect`, `RefreshTokenStore`, `ExchangeToken`) should be reduced opportunistically or not enlarged materially.
+- Use FormRequest for new admin/write endpoints.
+- All token/session mutations must be transaction-safe and Octane-safe.
+- All audit context must hash token/code/secret values; never log plaintext token, client secret, recovery code, password, or upstream token.
+- FE shipped auth/admin/profile paths must use `apiClient`, typed service modules, composables, and design-system components.
+- FE must not render `ApiError.message` or URL `error_description` directly.
+- Tests must be added before/with code per TDD standard; failing coverage evidence is acceptable only as audit backlog, not as “done”.
+
+### 9.4 Revised Priority Queue
+
+1. **P0:** BE-FR036, BE-FR062, BE-FR032, BE-FR033, BE-FR034.
+2. **P1:** BE-FR040, BE-FR037, BE-FR042, BE-FR043, BE-FR052.
+3. **P1:** BE-FR049, BE-FR055, BE-FR056, BE-FR057.
+4. **P2:** BE-FR035, BE-FR038, BE-FR039, BE-FR041, BE-FR044, BE-FR047.
+5. **P2/P3:** FE-FR049, FE-FR050, FE-FR051, FE-FR052, FE-FR054, FE-FR055, FE-FR061, FE-FR063.
+
+### 9.5 Validation Plan for Hardened Fix Batches
+
+Backend minimal per batch:
+
+```bash
+cd services/sso-backend
+./vendor/bin/pint
+php -d memory_limit=512M ./vendor/bin/pest --filter '<batch-specific-tests>'
+composer analyse
+```
+
+Frontend minimal per FE batch:
+
+```bash
+cd services/sso-frontend
+npm run lint:eslint
+npm run typecheck:web
+npx vitest run
+npm run build
+```
+
+CI/deploy:
+
+- Push to `main` only after local validation passes.
+- Existing GHA must pass: `CI`, relevant service CI/CD, `Deploy Main to VPS`.
+- For code batches that change runtime behavior, smoke auth/logout/token endpoints after deploy.
