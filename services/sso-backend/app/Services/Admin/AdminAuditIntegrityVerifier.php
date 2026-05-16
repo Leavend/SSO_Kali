@@ -28,7 +28,7 @@ final class AdminAuditIntegrityVerifier
             $lastEventId = $event->event_id;
             $lastEventHash = $event->event_hash;
 
-            if ($event->previous_hash !== $previousHash || $this->store->hash($this->record($event)) !== $event->event_hash) {
+            if ($event->previous_hash !== $previousHash || $this->store->hash($this->record($event), $event->signing_key_id) !== $event->event_hash) {
                 return $this->result(false, $events->count(), $firstEventId, $lastEventId, $lastEventHash, $event->event_id);
             }
 
@@ -58,6 +58,7 @@ final class AdminAuditIntegrityVerifier
             'context' => $event->context,
             'occurred_at' => $event->occurred_at,
             'previous_hash' => $event->previous_hash,
+            'signing_key_id' => $event->signing_key_id,
         ];
     }
 

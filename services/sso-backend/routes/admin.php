@@ -3,15 +3,19 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Admin\AuditTrailController;
+use App\Http\Controllers\Admin\AuditTrailExportController;
 use App\Http\Controllers\Admin\AuthenticationAuditController;
 use App\Http\Controllers\Admin\ClientController;
 use App\Http\Controllers\Admin\ClientIntegrationController;
+use App\Http\Controllers\Admin\DashboardSummaryController;
+use App\Http\Controllers\Admin\DataSubjectRequestAdminController;
 use App\Http\Controllers\Admin\ExternalIdentityProviderController;
 use App\Http\Controllers\Admin\PrincipalController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SessionController;
 use App\Http\Controllers\Admin\SsoErrorTemplateController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\UserLifecycleLockController;
 use App\Http\Controllers\Admin\UserMfaResetController;
 use App\Http\Middleware\AdminGuard;
 use App\Http\Middleware\EnsureAdminMfaAssurance;
@@ -93,6 +97,57 @@ Route::middleware([AdminGuard::class, EnsureAdminMfaEnrolled::class])->prefix('a
         Route::get('/audit/events/{eventId}', [AuditTrailController::class, 'show'])
             ->where('eventId', '[A-Z0-9]+');
         Route::get('/audit/integrity', [AuditTrailController::class, 'integrity']);
+    });
+
+    Route::middleware([
+        'throttle:admin-read',
+        RequireAdminPermission::class.':'.AdminPermission::DASHBOARD_VIEW,
+        EnsureFreshAdminAuth::class.':read',
+        EnsureAdminMfaAssurance::class,
+    ])->group(function (): void {
+        Route::get('/dashboard/summary', DashboardSummaryController::class);
+    });
+
+    Route::middleware([
+        'throttle:admin-read',
+        RequireAdminPermission::class.':'.AdminPermission::DATA_SUBJECT_REQUESTS_READ,
+        EnsureFreshAdminAuth::class.':read',
+        EnsureAdminMfaAssurance::class,
+    ])->group(function (): void {
+        Route::get('/data-subject-requests', [DataSubjectRequestAdminController::class, 'index']);
+    });
+
+    Route::middleware([
+        'throttle:admin-write',
+        RequireAdminPermission::class.':'.AdminPermission::AUDIT_EXPORT,
+        EnsureFreshAdminAuth::class.':step_up',
+        EnsureAdminMfaAssurance::class,
+    ])->group(function (): void {
+        Route::get('/audit/export', AuditTrailExportController::class);
+    });
+
+    Route::middleware([
+        'throttle:admin-write',
+        RequireAdminPermission::class.':'.AdminPermission::DATA_SUBJECT_REQUESTS_REVIEW,
+        EnsureFreshAdminAuth::class.':step_up',
+        EnsureAdminMfaAssurance::class,
+    ])->group(function (): void {
+        Route::post('/data-subject-requests/{requestId}/review', [DataSubjectRequestAdminController::class, 'review'])
+            ->where('requestId', '[0-9A-HJKMNP-TV-Z]+');
+        Route::post('/data-subject-requests/{requestId}/fulfill', [DataSubjectRequestAdminController::class, 'fulfill'])
+            ->where('requestId', '[0-9A-HJKMNP-TV-Z]+');
+    });
+
+    Route::middleware([
+        'throttle:admin-write',
+        RequireAdminPermission::class.':'.AdminPermission::USER_LIFECYCLE_LOCK,
+        EnsureFreshAdminAuth::class.':step_up',
+        EnsureAdminMfaAssurance::class,
+    ])->group(function (): void {
+        Route::post('/users/{subjectId}/lock', [UserLifecycleLockController::class, 'lock'])
+            ->where('subjectId', '[a-zA-Z0-9_-]+');
+        Route::post('/users/{subjectId}/unlock', [UserLifecycleLockController::class, 'unlock'])
+            ->where('subjectId', '[a-zA-Z0-9_-]+');
     });
 
     Route::middleware([

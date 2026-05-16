@@ -8,8 +8,8 @@ use Illuminate\Support\Facades\Route as RouteFacade;
 it('keeps the production route inventory intentional', function (): void {
     $routes = collect(RouteFacade::getRoutes()->getRoutes());
 
-    expect($routes)->toHaveCount(104);
-    expect(applicationRoutes($routes))->toHaveCount(92);
+    expect($routes)->toHaveCount(113);
+    expect(applicationRoutes($routes))->toHaveCount(101);
     expect(vendorRoutes($routes))->toHaveCount(12);
 });
 
@@ -100,7 +100,12 @@ function expectedApplicationRouteSignatures(): array
         'GET|HEAD admin/api/audit/authentication-events/{eventId}',
         'GET|HEAD admin/api/audit/events',
         'GET|HEAD admin/api/audit/events/{eventId}',
+        'GET|HEAD admin/api/audit/export',
         'GET|HEAD admin/api/audit/integrity',
+        'GET|HEAD admin/api/dashboard/summary',
+        'GET|HEAD admin/api/data-subject-requests',
+        'POST admin/api/data-subject-requests/{requestId}/fulfill',
+        'POST admin/api/data-subject-requests/{requestId}/review',
         'POST admin/api/client-integrations/contract',
         'GET|HEAD admin/api/client-integrations/registrations',
         'POST admin/api/client-integrations/stage',
@@ -137,10 +142,12 @@ function expectedApplicationRouteSignatures(): array
         'GET|HEAD admin/api/users/{subjectId}',
         'PUT admin/api/users/{subjectId}/roles',
         'POST admin/api/users/{subjectId}/deactivate',
+        'POST admin/api/users/{subjectId}/lock',
         'POST admin/api/users/{subjectId}/password-reset',
         'POST admin/api/users/{subjectId}/reactivate',
         'POST admin/api/users/{subjectId}/reset-mfa',
         'POST admin/api/users/{subjectId}/sync-profile',
+        'POST admin/api/users/{subjectId}/unlock',
         'DELETE admin/api/users/{subjectId}/sessions',
         'POST api/auth/login',
         'POST api/auth/logout',
@@ -157,6 +164,8 @@ function expectedApplicationRouteSignatures(): array
         'POST api/profile/change-password',
         'GET|HEAD api/profile/connected-apps',
         'DELETE api/profile/connected-apps/{clientId}',
+        'GET|HEAD api/profile/data-subject-requests',
+        'POST api/profile/data-subject-requests',
         'GET|HEAD api/profile/sessions',
         'DELETE api/profile/sessions',
         'DELETE api/profile/sessions/{sessionId}',

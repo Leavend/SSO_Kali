@@ -53,12 +53,7 @@ it('protects system roles from destructive metadata changes and deletion', funct
 
 it('syncs normalized roles to users by slug', function (): void {
     $user = User::factory()->create(['role' => 'user']);
-    $role = Role::query()->create([
-        'slug' => 'auditor',
-        'name' => 'Auditor',
-        'description' => null,
-        'is_system' => false,
-    ]);
+    $role = Role::query()->where('slug', 'auditor')->firstOrFail();
 
     $updated = app(SyncUserRolesAction::class)->execute($user, [$role->slug]);
 

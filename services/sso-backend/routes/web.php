@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\DataSubject\DataSubjectRequestController;
 use App\Http\Controllers\Oidc\AuthorizeController;
 use App\Http\Controllers\Oidc\ConsentController;
 use App\Http\Controllers\Oidc\LocalLoginController;
@@ -49,3 +50,7 @@ Route::delete('/api/profile/connected-apps/{clientId}', [ProfileController::clas
 Route::get('/api/profile/sessions', [ProfileController::class, 'sessions'])->middleware('throttle:profile-api');
 Route::delete('/api/profile/sessions', [ProfileController::class, 'revokeAllSessions'])->middleware('throttle:profile-api');
 Route::delete('/api/profile/sessions/{sessionId}', [ProfileController::class, 'revokeSession'])->middleware('throttle:profile-api');
+
+// --- Data Subject Rights (FR-049) ---
+Route::get('/api/profile/data-subject-requests', [DataSubjectRequestController::class, 'index'])->middleware('throttle:profile-api');
+Route::post('/api/profile/data-subject-requests', [DataSubjectRequestController::class, 'store'])->middleware('throttle:profile-api');

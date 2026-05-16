@@ -27,6 +27,11 @@ use Laravel\Passport\HasApiTokens;
  * @property string $status
  * @property Carbon|null $disabled_at
  * @property string|null $disabled_reason
+ * @property Carbon|null $locked_at
+ * @property Carbon|null $locked_until
+ * @property string|null $locked_reason
+ * @property string|null $locked_by_subject_id
+ * @property int $lock_count
  * @property bool $local_account_enabled
  * @property Carbon|null $profile_synced_at
  * @property Carbon|null $password_changed_at
@@ -68,6 +73,11 @@ class User extends Authenticatable implements OAuthenticatable
         'status',
         'disabled_at',
         'disabled_reason',
+        'locked_at',
+        'locked_until',
+        'locked_reason',
+        'locked_by_subject_id',
+        'lock_count',
         'local_account_enabled',
         'profile_synced_at',
         'password_reset_token_hash',
@@ -108,6 +118,9 @@ class User extends Authenticatable implements OAuthenticatable
             'email_verified_at' => 'datetime',
             'last_login_at' => 'datetime',
             'disabled_at' => 'datetime',
+            'locked_at' => 'datetime',
+            'locked_until' => 'datetime',
+            'lock_count' => 'integer',
             'local_account_enabled' => 'boolean',
             'profile_synced_at' => 'datetime',
             'password_changed_at' => 'datetime',

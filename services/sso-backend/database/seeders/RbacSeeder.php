@@ -33,6 +33,23 @@ final class RbacSeeder extends Seeder
         $user->permissions()->sync(
             Permission::query()->whereIn('slug', AdminPermission::userDefaults())->pluck('id')->all(),
         );
+
+        $catalog = [
+            ['slug' => 'auditor', 'name' => 'Auditor', 'description' => 'Read-only auditor with audit export rights.'],
+            ['slug' => 'support', 'name' => 'Support', 'description' => 'Support staff with read-only user/session/audit visibility.'],
+            ['slug' => 'client-manager', 'name' => 'Client Manager', 'description' => 'Manages OIDC clients and external IdPs.'],
+            ['slug' => 'security-officer', 'name' => 'Security Officer', 'description' => 'Incident responder with session termination, user lock, and DSR review.'],
+        ];
+
+        foreach ($catalog as $entry) {
+            $role = $this->role($entry['slug'], $entry['name'], $entry['description']);
+            $role->permissions()->sync(
+                Permission::query()
+                    ->whereIn('slug', AdminPermission::leastPrivilegeRoleCatalog()[$entry['slug']])
+                    ->pluck('id')
+                    ->all(),
+            );
+        }
     }
 
     /**

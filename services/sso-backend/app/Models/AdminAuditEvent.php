@@ -30,6 +30,7 @@ final class AdminAuditEvent extends Model
         'occurred_at',
         'previous_hash',
         'event_hash',
+        'signing_key_id',
     ];
 
     /**
@@ -43,9 +44,26 @@ final class AdminAuditEvent extends Model
         ];
     }
 
+    private static bool $allowPrune = false;
+
+    public static function withPruneAllowed(callable $callback): mixed
+    {
+        $previous = self::$allowPrune;
+        self::$allowPrune = true;
+        try {
+            return $callback();
+        } finally {
+            self::$allowPrune = $previous;
+        }
+    }
+
     protected static function booted(): void
     {
         self::updating(fn (): never => throw new RuntimeException('Admin audit events are immutable.'));
-        self::deleting(fn (): never => throw new RuntimeException('Admin audit events are immutable.'));
+        self::deleting(function (): void {
+            if (! self::$allowPrune) {
+                throw new RuntimeException('Admin audit events are immutable.');
+            }
+        });
     }
 }

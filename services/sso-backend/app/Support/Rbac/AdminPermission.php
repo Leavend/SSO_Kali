@@ -36,6 +36,16 @@ final class AdminPermission
 
     public const SSO_ERROR_TEMPLATES_WRITE = 'admin.sso-error-templates.write';
 
+    public const AUDIT_EXPORT = 'admin.audit.export';
+
+    public const DATA_SUBJECT_REQUESTS_READ = 'admin.dsr.read';
+
+    public const DATA_SUBJECT_REQUESTS_REVIEW = 'admin.dsr.review';
+
+    public const DASHBOARD_VIEW = 'admin.dashboard.view';
+
+    public const USER_LIFECYCLE_LOCK = 'admin.users.lock';
+
     public const PROFILE_READ = 'profile.read';
 
     public const PROFILE_WRITE = 'profile.write';
@@ -61,6 +71,11 @@ final class AdminPermission
             self::AUTHENTICATION_AUDIT_READ,
             self::SSO_ERROR_TEMPLATES_READ,
             self::SSO_ERROR_TEMPLATES_WRITE,
+            self::AUDIT_EXPORT,
+            self::DATA_SUBJECT_REQUESTS_READ,
+            self::DATA_SUBJECT_REQUESTS_REVIEW,
+            self::DASHBOARD_VIEW,
+            self::USER_LIFECYCLE_LOCK,
             self::PROFILE_READ,
             self::PROFILE_WRITE,
         ];
@@ -72,6 +87,82 @@ final class AdminPermission
     public static function adminDefaults(): array
     {
         return self::all();
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function auditorDefaults(): array
+    {
+        return [
+            self::PANEL_VIEW,
+            self::DASHBOARD_VIEW,
+            self::AUDIT_READ,
+            self::AUDIT_EXPORT,
+            self::AUTHENTICATION_AUDIT_READ,
+        ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function supportDefaults(): array
+    {
+        return [
+            self::PANEL_VIEW,
+            self::DASHBOARD_VIEW,
+            self::USERS_READ,
+            self::SESSIONS_READ,
+            self::AUTHENTICATION_AUDIT_READ,
+        ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function clientManagerDefaults(): array
+    {
+        return [
+            self::PANEL_VIEW,
+            self::DASHBOARD_VIEW,
+            self::CLIENTS_READ,
+            self::CLIENTS_WRITE,
+            self::EXTERNAL_IDPS_READ,
+            self::EXTERNAL_IDPS_WRITE,
+        ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function securityOfficerDefaults(): array
+    {
+        return [
+            self::PANEL_VIEW,
+            self::DASHBOARD_VIEW,
+            self::AUDIT_READ,
+            self::AUDIT_EXPORT,
+            self::AUTHENTICATION_AUDIT_READ,
+            self::SESSIONS_READ,
+            self::SESSIONS_TERMINATE,
+            self::USER_LIFECYCLE_LOCK,
+            self::DATA_SUBJECT_REQUESTS_READ,
+            self::DATA_SUBJECT_REQUESTS_REVIEW,
+            self::SSO_ERROR_TEMPLATES_READ,
+        ];
+    }
+
+    /**
+     * @return array<string, list<string>>
+     */
+    public static function leastPrivilegeRoleCatalog(): array
+    {
+        return [
+            'auditor' => self::auditorDefaults(),
+            'support' => self::supportDefaults(),
+            'client-manager' => self::clientManagerDefaults(),
+            'security-officer' => self::securityOfficerDefaults(),
+        ];
     }
 
     /**
