@@ -76,6 +76,20 @@ final class CreateAuthorizationRedirect
         if ($browserContext !== null && $this->canUseBrowserSession($request, $client, $browserContext)) {
             // FR-011: check consent before issuing tokens
             if ($this->requiresConsent($client, $browserContext, $context, $request)) {
+                // BE-FR027-001 / OIDC Core §3.1.2.1: prompt=none MUST NOT cause
+                // any UI to be displayed. If consent is required and absent,
+                // redirect back to the client with error=consent_required.
+                if ($this->prompt($request) === 'none') {
+                    $this->recordRejected($request, $client, 'consent_required', $context);
+
+                    return OidcErrorResponse::redirect(
+                        (string) $context['redirect_uri'],
+                        'consent_required',
+                        'Consent is required to continue.',
+                        is_string($context['original_state'] ?? null) ? $context['original_state'] : null,
+                    );
+                }
+
                 $consentState = $this->authRequests->put([...$context, ...$browserContext, 'scope' => $context['scope']]);
 
                 return redirect()->away($this->consentRedirectUri($client, $context, $consentState));
