@@ -1,7 +1,7 @@
 import type { IncomingMessage } from 'node:http'
 
-export const ADMIN_SESSION_COOKIE = '__Host-admin-session'
-export const ADMIN_TX_COOKIE = '__Host-admin-tx'
+export const SSO_PORTAL_SESSION_COOKIE = '__Host-sso-portal-session'
+export const SSO_PORTAL_TX_COOKIE = '__Host-sso-portal-tx'
 
 export type CookieOptions = {
   readonly httpOnly?: boolean

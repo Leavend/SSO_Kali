@@ -8,7 +8,11 @@ export type AppResponse = {
   readonly body?: string | Buffer
 }
 
-export function json(status: number, payload: unknown, headers: Record<string, HeaderValue> = {}): AppResponse {
+export function json(
+  status: number,
+  payload: unknown,
+  headers: Record<string, HeaderValue> = {},
+): AppResponse {
   return {
     status,
     headers: {
@@ -20,7 +24,11 @@ export function json(status: number, payload: unknown, headers: Record<string, H
   }
 }
 
-export function text(status: number, body: string, headers: Record<string, HeaderValue> = {}): AppResponse {
+export function text(
+  status: number,
+  body: string,
+  headers: Record<string, HeaderValue> = {},
+): AppResponse {
   return {
     status,
     headers: {
@@ -31,7 +39,11 @@ export function text(status: number, body: string, headers: Record<string, Heade
   }
 }
 
-export function html(status: number, body: string, headers: Record<string, HeaderValue> = {}): AppResponse {
+export function html(
+  status: number,
+  body: string,
+  headers: Record<string, HeaderValue> = {},
+): AppResponse {
   return {
     status,
     headers: {
@@ -63,7 +75,7 @@ export function methodNotAllowed(): AppResponse {
 }
 
 export function unauthorized(): AppResponse {
-  return json(401, { error: 'no_session', message: 'No active admin session.' })
+  return json(401, { error: 'no_session', message: 'No active SSO session.' })
 }
 
 export function send(res: ServerResponse, appResponse: AppResponse): void {

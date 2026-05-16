@@ -14,6 +14,18 @@ export type SsoPrincipal = {
   readonly lastLoginAt: string | null
 }
 
+export type PortalSessionView = {
+  readonly subject: string
+  readonly email: string
+  readonly displayName: string
+  readonly role: string
+  readonly expiresAt: number
+  readonly authTime: number | null
+  readonly amr: readonly string[]
+  readonly acr: string | null
+  readonly lastLoginAt: string | null
+}
+
 export type UserProfile = {
   readonly profile: {
     readonly subject_id: string

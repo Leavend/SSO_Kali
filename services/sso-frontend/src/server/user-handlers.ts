@@ -14,7 +14,7 @@ import { resolveSsoSession, sessionHeaders } from './sso-session-resolver.js'
 import type { ResolvedSsoSession } from './sso-session-resolver.js'
 import { getConfig } from './config.js'
 import { clearSessionCookie, publicSession } from './session.js'
-import type { AdminSession } from './session.js'
+import type { PortalSession } from './session.js'
 import type { AppResponse } from './response.js'
 import type { HeaderValue } from './response.js'
 import { json, redirect } from './response.js'
@@ -82,11 +82,12 @@ export function redirectForLegacyError(requestUrl: URL): AppResponse | null {
 
 async function updateProfileEndpoint(
   request: IncomingMessage,
-  session: AdminSession,
+  session: PortalSession,
   headers: Record<string, HeaderValue>,
 ): Promise<AppResponse> {
   const body = await readJsonBody(request)
-  if (!body) return json(400, { error: 'invalid_json', message: 'Invalid profile payload.' }, headers)
+  if (!body)
+    return json(400, { error: 'invalid_json', message: 'Invalid profile payload.' }, headers)
 
   const payload: ProfileUpdatePayload = {
     ...(typeof body.display_name === 'string' ? { display_name: body.display_name } : {}),
@@ -98,24 +99,26 @@ async function updateProfileEndpoint(
 }
 
 async function revokeConnectedAppEndpoint(
-  session: AdminSession,
+  session: PortalSession,
   pathname: string,
   headers: Record<string, HeaderValue>,
 ): Promise<AppResponse> {
   const clientId = decodeURIComponent(pathname.slice('/api/me/connected-apps/'.length))
-  if (!clientId) return json(400, { error: 'invalid_request', message: 'Client id is required.' }, headers)
+  if (!clientId)
+    return json(400, { error: 'invalid_request', message: 'Client id is required.' }, headers)
 
   await revokeConnectedApp(session, clientId)
   return json(200, { status: 'revoked', client_id: clientId }, headers)
 }
 
 async function revokeMySessionEndpoint(
-  session: AdminSession,
+  session: PortalSession,
   pathname: string,
   headers: Record<string, HeaderValue>,
 ): Promise<AppResponse> {
   const sessionId = decodeURIComponent(pathname.slice('/api/me/sessions/'.length))
-  if (!sessionId) return json(400, { error: 'invalid_request', message: 'Session id is required.' }, headers)
+  if (!sessionId)
+    return json(400, { error: 'invalid_request', message: 'Session id is required.' }, headers)
 
   await revokeMySession(session, sessionId)
   return json(200, { status: 'revoked', session_id: sessionId }, headers)
@@ -133,7 +136,7 @@ async function resolveSessionOrNull(request: IncomingMessage): Promise<ResolvedS
 async function readJsonBody(request: IncomingMessage): Promise<Record<string, unknown> | null> {
   try {
     const body = await readLimitedBody(request)
-    const payload = body === '' ? {} : JSON.parse(body) as unknown
+    const payload = body === '' ? {} : (JSON.parse(body) as unknown)
     return isRecord(payload) ? payload : null
   } catch {
     return null
@@ -161,7 +164,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function userErrorResponse(error: unknown): AppResponse {
   if (isUserApiError(error)) {
     if (error.status === 401) {
-      return json(error.status, userErrorPayload(error, REAUTH_REQUIRED_ROUTE), { 'set-cookie': [clearSessionCookie()] })
+      return json(error.status, userErrorPayload(error, REAUTH_REQUIRED_ROUTE), {
+        'set-cookie': [clearSessionCookie()],
+      })
     }
 
     return json(error.status, userErrorPayload(error))
@@ -172,7 +177,11 @@ function userErrorResponse(error: unknown): AppResponse {
 }
 
 function userErrorPayload(
-  error: { readonly code: string | null; readonly message: string; readonly violations: readonly string[] },
+  error: {
+    readonly code: string | null
+    readonly message: string
+    readonly violations: readonly string[]
+  },
   redirectTo?: string,
 ): {
   readonly error: string
@@ -186,7 +195,9 @@ function userErrorPayload(
   }
   const withRedirect = redirectTo ? { ...base, redirectTo } : base
 
-  return error.violations.length > 0 ? { ...withRedirect, violations: error.violations } : withRedirect
+  return error.violations.length > 0
+    ? { ...withRedirect, violations: error.violations }
+    : withRedirect
 }
 
 function unauthenticatedResponse(): AppResponse {

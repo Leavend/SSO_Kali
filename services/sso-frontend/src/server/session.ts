@@ -1,9 +1,9 @@
 import type { IncomingMessage } from 'node:http'
-import type { AdminPermissions, AdminPrincipal, AdminSessionView } from '../shared/admin.js'
+import type { PortalSessionView, SsoPrincipal } from '../shared/user.js'
 import { getConfig } from './config.js'
 import {
-  ADMIN_SESSION_COOKIE,
-  ADMIN_TX_COOKIE,
+  SSO_PORTAL_SESSION_COOKIE,
+  SSO_PORTAL_TX_COOKIE,
   expiredHostCookieOptions,
   hostCookieOptions,
   readCookie,
@@ -11,7 +11,7 @@ import {
 } from './cookies.js'
 import { decryptSession, encryptSession } from './session-crypto.js'
 
-export type AdminSession = AdminSessionView & {
+export type PortalSession = PortalSessionView & {
   readonly accessToken: string
   readonly idToken: string
   readonly refreshToken: string
@@ -29,49 +29,53 @@ export type AuthTransaction = {
   readonly returnTo?: string
 }
 
-export function getSession(request: IncomingMessage): AdminSession | null {
+export function getSession(request: IncomingMessage): PortalSession | null {
   const session = readSession(request)
   if (!session || isSessionExpired(session.expiresAt)) return null
 
   return session
 }
 
-export function readSession(request: IncomingMessage): AdminSession | null {
-  const raw = readCookie(request, ADMIN_SESSION_COOKIE)
+export function readSession(request: IncomingMessage): PortalSession | null {
+  const raw = readCookie(request, SSO_PORTAL_SESSION_COOKIE)
   if (!raw) return null
 
   try {
     const decrypted = decryptSession(raw)
     if (!decrypted) return null
 
-    return normalizeSession(JSON.parse(decrypted) as Partial<AdminSession>)
+    return normalizeSession(JSON.parse(decrypted) as Partial<PortalSession>)
   } catch {
     return null
   }
 }
 
-export function sessionCookie(session: AdminSession): string {
+export function sessionCookie(session: PortalSession): string {
   return serializeCookie(
-    ADMIN_SESSION_COOKIE,
+    SSO_PORTAL_SESSION_COOKIE,
     encryptSession(JSON.stringify(session)),
     hostCookieOptions(sessionCookieMaxAge(session)),
   )
 }
 
 export function clearSessionCookie(): string {
-  return serializeCookie(ADMIN_SESSION_COOKIE, '', expiredHostCookieOptions())
+  return serializeCookie(SSO_PORTAL_SESSION_COOKIE, '', expiredHostCookieOptions())
 }
 
 export function transactionCookie(tx: AuthTransaction): string {
-  return serializeCookie(ADMIN_TX_COOKIE, encryptSession(JSON.stringify(tx)), hostCookieOptions(300))
+  return serializeCookie(
+    SSO_PORTAL_TX_COOKIE,
+    encryptSession(JSON.stringify(tx)),
+    hostCookieOptions(300),
+  )
 }
 
 export function clearTransactionCookie(): string {
-  return serializeCookie(ADMIN_TX_COOKIE, '', expiredHostCookieOptions())
+  return serializeCookie(SSO_PORTAL_TX_COOKIE, '', expiredHostCookieOptions())
 }
 
 export function pullTransaction(request: IncomingMessage): AuthTransaction | null {
-  const raw = readCookie(request, ADMIN_TX_COOKIE)
+  const raw = readCookie(request, SSO_PORTAL_TX_COOKIE)
   if (!raw) return null
 
   try {
@@ -91,32 +95,31 @@ export function sessionFromBootstrap(
     readonly refreshToken: string
     readonly expiresAt: number
   },
-  principal: AdminPrincipal,
-): AdminSession {
+  principal: SsoPrincipal,
+): PortalSession {
   const issuedAt = unixTime()
 
   return {
     accessToken: tokens.accessToken,
     idToken: tokens.idToken,
     refreshToken: tokens.refreshToken,
-    sub: principal.subject_id,
-    subject: principal.subject_id,
+    sub: principal.subjectId,
+    subject: principal.subjectId,
     email: principal.email,
-    displayName: principal.display_name,
+    displayName: principal.displayName,
     role: principal.role,
     expiresAt: tokens.expiresAt,
-    authTime: principal.auth_context.auth_time,
-    amr: [...principal.auth_context.amr],
-    acr: principal.auth_context.acr,
-    lastLoginAt: principal.last_login_at,
-    permissions: principal.permissions,
+    authTime: principal.authContext.auth_time,
+    amr: [...principal.authContext.amr],
+    acr: principal.authContext.acr,
+    lastLoginAt: principal.lastLoginAt,
     issuedAt,
     absoluteExpiresAt: issuedAt + getConfig().sessionAbsoluteTtlSeconds,
     lastRefreshedAt: issuedAt,
   }
 }
 
-export function publicSession(session: AdminSession): AdminSessionView {
+export function publicSession(session: PortalSession): PortalSessionView {
   return {
     subject: session.sub,
     email: session.email,
@@ -127,14 +130,6 @@ export function publicSession(session: AdminSession): AdminSessionView {
     amr: session.amr,
     acr: session.acr,
     lastLoginAt: session.lastLoginAt,
-    permissions: normalizedPermissions(session.permissions),
-  }
-}
-
-function normalizedPermissions(permissions: AdminPermissions): AdminPermissions {
-  return {
-    view_admin_panel: Boolean(permissions.view_admin_panel),
-    manage_sessions: Boolean(permissions.manage_sessions),
   }
 }
 
@@ -142,7 +137,7 @@ export function isSessionExpired(expiresAt: number, bufferSeconds = 30): boolean
   return expiresAt < unixTime() + bufferSeconds
 }
 
-export function isSessionAbsoluteExpired(session: AdminSession): boolean {
+export function isSessionAbsoluteExpired(session: PortalSession): boolean {
   return session.absoluteExpiresAt <= unixTime()
 }
 
@@ -150,11 +145,14 @@ export function unixTime(): number {
   return Math.floor(Date.now() / 1000)
 }
 
-function normalizeSession(session: Partial<AdminSession>): AdminSession | null {
+function normalizeSession(session: Partial<PortalSession>): PortalSession | null {
   if (!isValidSessionShape(session)) return null
 
   const issuedAt = numericOr(session.issuedAt, session.authTime ?? unixTime())
-  const absoluteExpiresAt = numericOr(session.absoluteExpiresAt, issuedAt + getConfig().sessionAbsoluteTtlSeconds)
+  const absoluteExpiresAt = numericOr(
+    session.absoluteExpiresAt,
+    issuedAt + getConfig().sessionAbsoluteTtlSeconds,
+  )
 
   if (absoluteExpiresAt <= unixTime()) return null
 
@@ -163,18 +161,23 @@ function normalizeSession(session: Partial<AdminSession>): AdminSession | null {
     issuedAt,
     absoluteExpiresAt,
     lastRefreshedAt: numericOr(session.lastRefreshedAt, unixTime()),
-    permissions: normalizedPermissions(session.permissions),
   }
 }
 
-function isValidSessionShape(session: Partial<AdminSession>): session is AdminSession {
+function isValidSessionShape(session: Partial<PortalSession>): session is PortalSession {
   return Boolean(
-    session.accessToken && session.idToken && session.refreshToken && session.sub && session.email && session.displayName
-      && session.role && typeof session.expiresAt === 'number' && session.permissions,
+    session.accessToken &&
+    session.idToken &&
+    session.refreshToken &&
+    session.sub &&
+    session.email &&
+    session.displayName &&
+    session.role &&
+    typeof session.expiresAt === 'number',
   )
 }
 
-function sessionCookieMaxAge(session: AdminSession): number {
+function sessionCookieMaxAge(session: PortalSession): number {
   const absoluteRemaining = Math.max(0, session.absoluteExpiresAt - unixTime())
   return Math.min(getConfig().sessionIdleTtlSeconds, absoluteRemaining)
 }

@@ -127,7 +127,7 @@ jobs:
             -p "$BIND" \
             --env-file "$ENV_FILE" \
             -e PORT=3000 \
-            -e VITE_ADMIN_BASE_URL=https://sso.timeh.my.id \
+            -e VITE_SSO_FRONTEND_BASE_URL=https://sso.timeh.my.id \
             -e NEXT_PUBLIC_APP_BASE_URL=https://sso.timeh.my.id \
             -e VITE_SSO_BASE_URL=https://api-sso.timeh.my.id \
             -e NEXT_PUBLIC_SSO_BASE_URL=https://api-sso.timeh.my.id \
@@ -135,7 +135,6 @@ jobs:
             -e SSO_INTERNAL_BASE_URL=http://sso-backend:8000 \
             -e SSO_INTERNAL_TOKEN_URL=http://sso-backend:8000/token \
             -e SSO_INTERNAL_JWKS_URL=http://sso-backend:8000/jwks \
-            -e SSO_INTERNAL_ADMIN_API_URL=http://sso-backend:8000/admin/api \
             -e SSO_BACKEND_UPSTREAM=sso-backend:8000 \
             -e SSO_FRONTEND_SERVER_NAME=_ \
             -e SSO_CSP_CONNECT_SRC=https://api-sso.timeh.my.id \

@@ -80,6 +80,7 @@ jobs:
         env:
           VITE_SSO_API_URL: ''
           VITE_APP_NAME: 'Dev-SSO Portal'
+          VITE_SSO_FRONTEND_BASE_URL: 'https://sso.timeh.my.id'
           VITE_OIDC_ISSUER: ''
           VITE_OIDC_CLIENT_ID: 'sso-frontend-portal'
 
@@ -129,6 +130,7 @@ jobs:
           build-args: |
             VITE_SSO_API_URL=
             VITE_APP_NAME=Dev-SSO Portal
+            VITE_SSO_FRONTEND_BASE_URL=https://sso.timeh.my.id
             VITE_OIDC_ISSUER=
             VITE_OIDC_CLIENT_ID=sso-frontend-portal
 

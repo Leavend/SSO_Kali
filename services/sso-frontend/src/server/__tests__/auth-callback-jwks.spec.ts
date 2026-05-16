@@ -7,14 +7,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { handleCallbackSession } from '../auth-handlers.js'
 import { transactionCookie } from '../session.js'
 import { __clearDiscoveryCacheForTests } from '../../lib/oidc/discovery.js'
-import type { AdminPrincipal } from '../../shared/admin.js'
 
 const issuer = 'https://sso.example.test'
 const jwksUrl = `${issuer}/jwks`
 const configuredTokenUrl = `${issuer}/token`
 const metadataTokenUrl = `${issuer}/oauth/token`
-const appBaseUrl = 'https://admin.example.test'
-const clientId = 'sso-admin-panel'
+const appBaseUrl = 'https://sso.example.test'
+const clientId = 'sso-frontend-portal'
 
 let originalFetch: typeof fetch
 
@@ -23,10 +22,9 @@ beforeEach(() => {
   process.env.VITE_SSO_BASE_URL = issuer
   process.env.SSO_INTERNAL_TOKEN_URL = configuredTokenUrl
   process.env.SSO_INTERNAL_JWKS_URL = jwksUrl
-  process.env.VITE_ADMIN_BASE_URL = appBaseUrl
+  process.env.VITE_SSO_FRONTEND_BASE_URL = appBaseUrl
   process.env.VITE_CLIENT_ID = clientId
   process.env.SESSION_ENCRYPTION_SECRET = 'test-secret-with-at-least-32-characters'
-  process.env.SSO_INTERNAL_ADMIN_API_URL = `${issuer}/admin/api`
   __clearDiscoveryCacheForTests()
 })
 
@@ -44,14 +42,22 @@ describe('BFF OIDC callback ID token validation', () => {
     const response = await handleCallbackSession(request({ code: 'code', state: 'state' }))
 
     expect(response.status).toBe(200)
-    expect(fetchMock).toHaveBeenCalledWith(`${issuer}/.well-known/openid-configuration`, expect.objectContaining({ method: 'GET' }))
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${issuer}/.well-known/openid-configuration`,
+      expect.objectContaining({ method: 'GET' }),
+    )
     expect(fetchMock).toHaveBeenCalledWith(jwksUrl, expect.objectContaining({ method: 'GET' }))
-    expect(fetchMock).toHaveBeenCalledWith(metadataTokenUrl, expect.objectContaining({ method: 'POST' }))
+    expect(fetchMock).toHaveBeenCalledWith(
+      metadataTokenUrl,
+      expect.objectContaining({ method: 'POST' }),
+    )
     expect(fetchMock).not.toHaveBeenCalledWith(configuredTokenUrl, expect.anything())
-    expect(response.body).toBe(JSON.stringify({ authenticated: true, post_login_redirect: '/dashboard' }))
+    expect(response.body).toBe(
+      JSON.stringify({ authenticated: true, post_login_redirect: '/home' }),
+    )
     expect(response.headers?.['set-cookie']).toEqual(
       expect.arrayContaining([
-        expect.stringContaining('__Host-admin-session='),
+        expect.stringContaining('__Host-sso-portal-session='),
         expect.stringContaining('HttpOnly'),
         expect.stringContaining('Secure'),
       ]),
@@ -64,7 +70,9 @@ describe('BFF OIDC callback ID token validation', () => {
     const response = await handleCallbackSession(request({ code: 'code', state: 'state' }))
 
     expect(response.status).toBe(401)
-    expect(response.body).toBe(JSON.stringify({ error: 'callback_failed', message: 'Gagal menyiapkan sesi aman.' }))
+    expect(response.body).toBe(
+      JSON.stringify({ error: 'callback_failed', message: 'Gagal menyiapkan sesi aman.' }),
+    )
   })
 
   it('rejects an invalid ID token signature', async () => {
@@ -123,7 +131,7 @@ function request(body: { readonly code: string; readonly state: string }): Incom
     state: 'state',
     nonce: 'nonce',
     codeVerifier: 'verifier',
-    returnTo: '/dashboard',
+    returnTo: '/home',
   })
   req.push(JSON.stringify(body))
   req.push(null)
@@ -150,7 +158,10 @@ async function tokenFixture(options: {
     exp: now + 300,
   })
   const signingInput = `${header}.${payload}`
-  const signature = createSign('SHA256').update(signingInput).end().sign({ key: privateKey, dsaEncoding: 'ieee-p1363' })
+  const signature = createSign('SHA256')
+    .update(signingInput)
+    .end()
+    .sign({ key: privateKey, dsaEncoding: 'ieee-p1363' })
 
   return {
     token: `${signingInput}.${signature.toString('base64url')}`,
@@ -160,7 +171,10 @@ async function tokenFixture(options: {
 
 function mockOidcFetch(
   fixture: { readonly token: string; readonly jwk: Record<string, unknown> },
-  metadataOverrides: { readonly issuerOverride?: string; readonly tokenEndpointOverride?: string } = {},
+  metadataOverrides: {
+    readonly issuerOverride?: string
+    readonly tokenEndpointOverride?: string
+  } = {},
 ) {
   const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
     const url = String(input)
@@ -169,7 +183,8 @@ function mockOidcFetch(
       return jsonResponse({
         issuer: metadataOverrides.issuerOverride ?? issuer,
         authorization_endpoint: `${issuer}/authorize`,
-        ...(metadataOverrides.tokenEndpointOverride === undefined && 'tokenEndpointOverride' in metadataOverrides
+        ...(metadataOverrides.tokenEndpointOverride === undefined &&
+        'tokenEndpointOverride' in metadataOverrides
           ? {}
           : { token_endpoint: metadataOverrides.tokenEndpointOverride ?? metadataTokenUrl }),
         jwks_uri: jwksUrl,
@@ -181,11 +196,16 @@ function mockOidcFetch(
 
     if (url === metadataTokenUrl) {
       expect(init?.method).toBe('POST')
-      return jsonResponse({ access_token: 'access-token', refresh_token: 'refresh-token', id_token: fixture.token, expires_in: 300 })
+      return jsonResponse({
+        access_token: 'access-token',
+        refresh_token: 'refresh-token',
+        id_token: fixture.token,
+        expires_in: 300,
+      })
     }
 
     if (url === jwksUrl) return jsonResponse({ keys: [fixture.jwk] })
-    if (url === `${issuer}/admin/api/me`) return jsonResponse({ principal: principal() })
+    if (url === `${issuer}/userinfo`) return jsonResponse(userinfo())
 
     return new Response('not found', { status: 404 })
   })
@@ -198,22 +218,16 @@ function base64UrlJson(payload: Record<string, unknown>): string {
   return Buffer.from(JSON.stringify(payload)).toString('base64url')
 }
 
-function principal(): AdminPrincipal {
+function userinfo(): Record<string, unknown> {
   return {
-    subject_id: 'user-1',
+    sub: 'user-1',
     email: 'user@example.test',
-    display_name: 'User Example',
-    role: 'admin',
+    name: 'User Example',
+    roles: ['user'],
+    auth_time: Math.floor(Date.now() / 1000),
+    amr: ['pwd'],
+    acr: 'urn:sso:loa:pwd',
     last_login_at: new Date().toISOString(),
-    auth_context: {
-      auth_time: Math.floor(Date.now() / 1000),
-      amr: ['pwd'],
-      acr: 'urn:sso:loa:pwd',
-    },
-    permissions: {
-      view_admin_panel: true,
-      manage_sessions: true,
-    },
   }
 }
 

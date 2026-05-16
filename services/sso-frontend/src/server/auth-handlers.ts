@@ -8,14 +8,14 @@ import {
   REAUTH_REQUIRED_ROUTE,
   TOO_MANY_ATTEMPTS_ROUTE,
 } from '../shared/auth-status.js'
-import { fetchPrincipalWithAccessToken } from './admin-api.js'
+import { fetchPrincipalWithAccessToken } from './user-api.js'
 import {
-  isAdminApiError,
   isMfaRequiredApiError,
   isReauthRequiredApiError,
   isTooManyAttemptsApiError,
-} from './admin-api-error.js'
-import type { AdminConfig } from './config.js'
+  isUserApiError,
+} from './user-api-error.js'
+import type { PortalConfig } from './config.js'
 import { getConfig } from './config.js'
 import { fetchDiscovery, type DiscoveryMetadata } from '../lib/oidc/discovery.js'
 import {
@@ -27,8 +27,8 @@ import {
   sessionFromBootstrap,
   transactionCookie,
 } from './session.js'
-import type { AdminSession } from './session.js'
-import { refreshAdminSession, sessionNeedsRefresh } from './session-refresh.js'
+import type { PortalSession } from './session.js'
+import { refreshPortalSession, sessionNeedsRefresh } from './session-refresh.js'
 import type { AppResponse } from './response.js'
 import { json, redirect } from './response.js'
 import {
@@ -68,7 +68,10 @@ export async function handleLogin(requestUrl: URL): Promise<AppResponse> {
   ])
 }
 
-export async function handleCallback(request: IncomingMessage, requestUrl: URL): Promise<AppResponse> {
+export async function handleCallback(
+  request: IncomingMessage,
+  requestUrl: URL,
+): Promise<AppResponse> {
   const config = getConfig()
   const params = readCallbackParams(requestUrl)
   const earlyRoute = validateCallback(params)
@@ -95,16 +98,24 @@ export async function handleCallbackSession(request: IncomingMessage): Promise<A
   const state = typeof body.state === 'string' ? body.state : null
 
   if (!code || !state) {
-    return json(422, { error: 'missing_params', message: 'Parameter code atau state tidak ditemukan.' }, {
-      'set-cookie': [clearTransactionCookie()],
-    })
+    return json(
+      422,
+      { error: 'missing_params', message: 'Parameter code atau state tidak ditemukan.' },
+      {
+        'set-cookie': [clearTransactionCookie()],
+      },
+    )
   }
 
   const result = await completeCallbackSession(request, code, state)
   if (!result.ok) {
-    return json(401, { error: 'callback_failed', message: 'Gagal menyiapkan sesi aman.' }, {
-      'set-cookie': [clearTransactionCookie()],
-    })
+    return json(
+      401,
+      { error: 'callback_failed', message: 'Gagal menyiapkan sesi aman.' },
+      {
+        'set-cookie': [clearTransactionCookie()],
+      },
+    )
   }
 
   return json(
@@ -128,7 +139,10 @@ export async function handleLogout(request: IncomingMessage): Promise<AppRespons
   if (refreshToken) revocations.push(revokeRefreshToken(config, refreshToken))
   if (revocations.length > 0) await Promise.allSettled(revocations)
 
-  return redirect(new URL('/', config.appBaseUrl).toString(), [clearSessionCookie(), clearTransactionCookie()])
+  return redirect(new URL('/', config.appBaseUrl).toString(), [
+    clearSessionCookie(),
+    clearTransactionCookie(),
+  ])
 }
 
 export async function handleRefresh(request: IncomingMessage): Promise<AppResponse> {
@@ -145,16 +159,20 @@ export async function handleRefresh(request: IncomingMessage): Promise<AppRespon
   try {
     if (!sessionNeedsRefresh(session)) return refreshResponse(session)
 
-    const refreshedSession = await refreshAdminSession(session)
+    const refreshedSession = await refreshPortalSession(session)
 
     return refreshResponse(refreshedSession)
   } catch (error) {
     console.error('Token refresh failed:', error instanceof Error ? error.message : error)
-    return json(401, { error: 'refresh_failed', message: 'Token refresh failed.' }, { 'set-cookie': [clearSessionCookie()] })
+    return json(
+      401,
+      { error: 'refresh_failed', message: 'Token refresh failed.' },
+      { 'set-cookie': [clearSessionCookie()] },
+    )
   }
 }
 
-function refreshResponse(session: AdminSession): AppResponse {
+function refreshResponse(session: PortalSession): AppResponse {
   return json(
     200,
     {
@@ -165,13 +183,16 @@ function refreshResponse(session: AdminSession): AppResponse {
   )
 }
 
-async function refreshSessionForLogout(session: AdminSession): Promise<AdminSession | null> {
+async function refreshSessionForLogout(session: PortalSession): Promise<PortalSession | null> {
   if (!sessionNeedsRefresh(session, 30)) return session
 
   try {
-    return await refreshAdminSession(session)
+    return await refreshPortalSession(session)
   } catch (error) {
-    console.error('Token refresh before logout failed:', error instanceof Error ? error.message : error)
+    console.error(
+      'Token refresh before logout failed:',
+      error instanceof Error ? error.message : error,
+    )
     return sessionNeedsRefresh(session, 0) ? null : session
   }
 }
@@ -190,7 +211,8 @@ function readCallbackParams(requestUrl: URL): {
 
 function validateCallback(params: ReturnType<typeof readCallbackParams>): string | null {
   if (params.error) return providerErrorRoute(params.error)
-  if (typeof params.state !== 'string' || typeof params.code !== 'string') return HANDSHAKE_FAILED_ROUTE
+  if (typeof params.state !== 'string' || typeof params.code !== 'string')
+    return HANDSHAKE_FAILED_ROUTE
   return null
 }
 
@@ -213,16 +235,16 @@ function callbackErrorRoute(error: unknown): string {
   if (isMfaRequiredApiError(error)) return MFA_REQUIRED_ROUTE
   if (isReauthRequiredApiError(error)) return REAUTH_REQUIRED_ROUTE
   if (isTooManyAttemptsApiError(error)) return TOO_MANY_ATTEMPTS_ROUTE
-  if (isAdminApiError(error) && error.status === 403) return ACCESS_DENIED_ROUTE
+  if (isUserApiError(error) && error.status === 403) return ACCESS_DENIED_ROUTE
   return HANDSHAKE_FAILED_ROUTE
 }
 
-function redirectWithClearedTx(config: AdminConfig, route: string): AppResponse {
+function redirectWithClearedTx(config: PortalConfig, route: string): AppResponse {
   return redirect(new URL(route, config.appBaseUrl).toString(), [clearTransactionCookie()])
 }
 
 type CallbackSessionResult =
-  | { readonly ok: true; readonly session: AdminSession; readonly returnTo: string }
+  | { readonly ok: true; readonly session: PortalSession; readonly returnTo: string }
   | { readonly ok: false; readonly error: unknown }
 
 type TokenSet = {
@@ -238,7 +260,8 @@ async function completeCallbackSession(
   state: string,
 ): Promise<CallbackSessionResult> {
   const tx = pullTransaction(request)
-  if (!tx || tx.state !== state) return { ok: false, error: new Error('OIDC callback transaction mismatch.') }
+  if (!tx || tx.state !== state)
+    return { ok: false, error: new Error('OIDC callback transaction mismatch.') }
 
   let verifiedSubjectId: string | null = null
 
@@ -249,8 +272,8 @@ async function completeCallbackSession(
     verifiedSubjectId = claims.sub
     const principal = await fetchPrincipalWithAccessToken(tokens.access_token)
 
-    if (principal.subject_id !== claims.sub) {
-      throw new Error('Admin principal subject does not match the verified ID token subject.')
+    if (principal.subjectId !== claims.sub) {
+      throw new Error('Portal principal subject does not match the verified ID token subject.')
     }
 
     return {
@@ -272,7 +295,11 @@ async function completeCallbackSession(
   }
 }
 
-async function exchangeCode(discovery: DiscoveryMetadata, code: string, codeVerifier: string): Promise<TokenSet> {
+async function exchangeCode(
+  discovery: DiscoveryMetadata,
+  code: string,
+  codeVerifier: string,
+): Promise<TokenSet> {
   const config = getConfig()
   const res = await fetch(discovery.token_endpoint, {
     method: 'POST',
@@ -296,7 +323,9 @@ async function exchangeCode(discovery: DiscoveryMetadata, code: string, codeVeri
 
 async function fetchValidatedDiscoveryMetadata(): Promise<DiscoveryMetadata> {
   const config = getConfig()
-  const metadata = await fetchDiscovery(`${config.issuer.replace(/\/$/, '')}/.well-known/openid-configuration`)
+  const metadata = await fetchDiscovery(
+    `${config.issuer.replace(/\/$/, '')}/.well-known/openid-configuration`,
+  )
 
   if (metadata.issuer !== config.issuer) {
     throw new Error('Discovery issuer mismatch.')
@@ -340,7 +369,8 @@ async function verifyIdToken(
   const exp = payload.exp
   const nonce = Reflect.get(payload, 'nonce')
 
-  if (typeof sub !== 'string' || sub === '') throw new Error("ID token is missing a valid 'sub' claim.")
+  if (typeof sub !== 'string' || sub === '')
+    throw new Error("ID token is missing a valid 'sub' claim.")
   if (typeof exp !== 'number') throw new Error("ID token is missing a valid 'exp' claim.")
   if (nonce !== expectedNonce) throw new Error('ID token nonce validation failed.')
 
@@ -355,7 +385,7 @@ async function revokeSession(logoutUrl: string, accessToken: string): Promise<vo
   })
 }
 
-async function revokeRefreshToken(config: AdminConfig, refreshToken: string): Promise<void> {
+async function revokeRefreshToken(config: PortalConfig, refreshToken: string): Promise<void> {
   await fetch(config.internalRevocationUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -379,7 +409,9 @@ async function readJsonBody(request: IncomingMessage): Promise<Record<string, un
 
   try {
     const value = JSON.parse(Buffer.concat(chunks).toString('utf8'))
-    return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
+    return value && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {}
   } catch {
     return {}
   }
@@ -393,7 +425,7 @@ function normalizeReturnTo(returnTo: string | null | undefined): string | null {
 
 function logCallbackFailure(error: unknown, subjectId: string | null): void {
   const payload = {
-    event: 'admin_auth_callback_failed',
+    event: 'sso_portal_callback_failed',
     subjectId,
     ...serializeCallbackError(error),
   }
@@ -402,9 +434,9 @@ function logCallbackFailure(error: unknown, subjectId: string | null): void {
 }
 
 function serializeCallbackError(error: unknown): Record<string, unknown> {
-  if (isAdminApiError(error)) {
+  if (isUserApiError(error)) {
     return {
-      kind: 'admin_api_error',
+      kind: 'sso_api_error',
       status: error.status,
       code: error.code ?? null,
       message: error.message,

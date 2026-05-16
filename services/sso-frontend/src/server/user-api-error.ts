@@ -3,7 +3,12 @@ export class UserApiError extends Error {
   readonly code: string | null
   readonly violations: readonly string[]
 
-  constructor(status: number, message: string, code: string | null = null, violations: readonly string[] = []) {
+  constructor(
+    status: number,
+    message: string,
+    code: string | null = null,
+    violations: readonly string[] = [],
+  ) {
     super(message)
     this.name = 'UserApiError'
     this.status = status
@@ -15,7 +20,12 @@ export class UserApiError extends Error {
 export async function buildUserApiError(response: Response): Promise<UserApiError> {
   const payload = await responsePayload(response)
   const message = payload?.message ?? fallbackMessage(response.status)
-  return new UserApiError(response.status, message, payload?.code ?? null, payload?.violations ?? [])
+  return new UserApiError(
+    response.status,
+    message,
+    payload?.code ?? null,
+    payload?.violations ?? [],
+  )
 }
 
 export function isUserApiError(error: unknown): error is UserApiError {
@@ -72,17 +82,19 @@ function hasString<T extends string>(payload: object, key: T): payload is Record
 
 function stringList<T extends string>(payload: object, key: T): readonly string[] {
   const value: unknown = Reflect.get(payload, key)
-  return Array.isArray(value) ? value.filter((item: unknown): item is string => typeof item === 'string') : []
+  return Array.isArray(value)
+    ? value.filter((item: unknown): item is string => typeof item === 'string')
+    : []
 }
 
 function hasUserApiShape(error: unknown): error is UserApiError {
   if (!error || typeof error !== 'object') return false
 
   return (
-    'status' in error
-    && typeof Reflect.get(error, 'status') === 'number'
-    && 'message' in error
-    && typeof Reflect.get(error, 'message') === 'string'
+    'status' in error &&
+    typeof Reflect.get(error, 'status') === 'number' &&
+    'message' in error &&
+    typeof Reflect.get(error, 'message') === 'string'
   )
 }
 

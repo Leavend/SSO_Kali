@@ -125,8 +125,8 @@ jobs:
         run: npm run build
         env:
           VITE_SSO_BASE_URL: https://placeholder.local
-          VITE_ADMIN_BASE_URL: https://placeholder.local
-          VITE_CLIENT_ID: sso-admin-panel
+          VITE_SSO_FRONTEND_BASE_URL: https://placeholder.local
+          VITE_CLIENT_ID: sso-frontend-portal
           NEXT_PUBLIC_SSO_BASE_URL: https://placeholder.local
           NEXT_PUBLIC_SSO_ISSUER: https://placeholder.local
           NEXT_PUBLIC_AUTHORIZE_URL: https://placeholder.local/authorize

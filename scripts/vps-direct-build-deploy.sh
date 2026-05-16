@@ -258,8 +258,8 @@ build_service_image() {
         -t "$image" \
         -f "$PROJECT_DIR/services/sso-frontend/Dockerfile" \
         --build-arg "VITE_SSO_BASE_URL=$(env_value SSO_BASE_URL)" \
-        --build-arg "VITE_ADMIN_BASE_URL=$(env_value ADMIN_PANEL_BASE_URL)" \
-        --build-arg "VITE_CLIENT_ID=$(env_value ADMIN_PANEL_CLIENT_ID sso-admin-panel)" \
+        --build-arg "VITE_SSO_FRONTEND_BASE_URL=$(env_value SSO_FRONTEND_URL)" \
+        --build-arg "VITE_CLIENT_ID=$(env_value SSO_FRONTEND_CLIENT_ID sso-frontend-portal)" \
         "$PROJECT_DIR" 2>&1 | tee -a "$DEPLOY_LOG"
       ;;
     sso-admin-vue)

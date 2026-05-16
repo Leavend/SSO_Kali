@@ -1,5 +1,5 @@
 import { getConfig } from './config.js'
-import type { AdminSession } from './session.js'
+import type { PortalSession } from './session.js'
 import { isSessionExpired, unixTime } from './session.js'
 
 type RefreshTokenSet = {
@@ -8,11 +8,11 @@ type RefreshTokenSet = {
   readonly expires_in: number
 }
 
-export function sessionNeedsRefresh(session: AdminSession, bufferSeconds = 180): boolean {
+export function sessionNeedsRefresh(session: PortalSession, bufferSeconds = 180): boolean {
   return isSessionExpired(session.expiresAt, bufferSeconds)
 }
 
-export async function refreshAdminSession(session: AdminSession): Promise<AdminSession> {
+export async function refreshPortalSession(session: PortalSession): Promise<PortalSession> {
   const tokens = await requestRefreshTokens(session.refreshToken)
   const refreshedAt = unixTime()
 

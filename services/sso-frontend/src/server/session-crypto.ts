@@ -36,20 +36,22 @@ function sessionSecret(): Buffer {
   const raw = process.env.SESSION_ENCRYPTION_SECRET ?? ''
 
   if (raw.length >= 32) {
-    return createHmac('sha256', 'sso-admin-session-key').update(raw).digest()
+    return createHmac('sha256', 'sso-portal-session-key').update(raw).digest()
   }
 
   const fallbackSeed = [
-    process.env.VITE_ADMIN_BASE_URL,
+    process.env.VITE_SSO_FRONTEND_BASE_URL,
     process.env.NEXT_PUBLIC_APP_BASE_URL,
     process.env.VITE_CLIENT_ID,
     process.env.NEXT_PUBLIC_CLIENT_ID,
     'sso-frontend-runtime-fallback',
-  ].filter(Boolean).join('|')
+  ]
+    .filter(Boolean)
+    .join('|')
 
   console.warn(
     'SESSION_ENCRYPTION_SECRET is not configured; using origin-scoped fallback. Configure a 32+ character secret for stable sessions.',
   )
 
-  return createHmac('sha256', 'sso-admin-session-key').update(fallbackSeed).digest()
+  return createHmac('sha256', 'sso-portal-session-key').update(fallbackSeed).digest()
 }

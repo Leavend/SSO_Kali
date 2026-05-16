@@ -5,15 +5,13 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { useSessionStore } from '@/stores/session.store'
 
-export type RouteLayout = 'auth' | 'portal' | 'admin'
+export type RouteLayout = 'auth' | 'portal'
 
 declare module 'vue-router' {
   interface RouteMeta {
     layout?: RouteLayout
     requiresAuth?: boolean
     requiresGuest?: boolean
-    /** Roles required to access this route (principle of least privilege). */
-    requiredRoles?: readonly string[]
     title?: string
   }
 }
@@ -108,17 +106,6 @@ const routes: RouteRecordRaw[] = [
     meta: { layout: 'portal', requiresAuth: true, title: 'Pengaturan MFA' },
   },
   {
-    path: '/admin/clients',
-    name: 'admin.clients',
-    component: () => import('@/pages/admin/ClientManagementPage.vue'),
-    meta: {
-      layout: 'admin',
-      requiresAuth: true,
-      requiredRoles: ['admin'],
-      title: 'Admin Client Management',
-    },
-  },
-  {
     path: '/:pathMatch(.*)*',
     name: 'error.not-found',
     component: () => import('@/pages/errors/NotFoundPage.vue'),
@@ -144,15 +131,6 @@ router.beforeEach(async (to) => {
     const ok = session.isAuthenticated || (await session.ensureSession())
     if (!ok) {
       return { name: 'auth.login', query: { redirect: to.fullPath } }
-    }
-  }
-
-  // Role-based access control (FR-003 — principle of least privilege).
-  if (to.meta.requiredRoles && to.meta.requiredRoles.length > 0) {
-    const userRoles = session.roles
-    const hasRole = to.meta.requiredRoles.some((role) => userRoles.includes(role))
-    if (!hasRole) {
-      return { name: 'portal.home' }
     }
   }
 

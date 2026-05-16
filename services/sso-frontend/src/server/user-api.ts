@@ -6,7 +6,7 @@ import type {
   UserProfile,
   UserSessionSummary,
 } from '../shared/user.js'
-import type { AdminSession } from './session.js'
+import type { PortalSession } from './session.js'
 import { getConfig } from './config.js'
 import { buildUserApiError } from './user-api-error.js'
 
@@ -32,11 +32,14 @@ export async function fetchPrincipalWithAccessToken(accessToken: string): Promis
   return principalFromUserInfo(userinfo)
 }
 
-export async function fetchProfile(session: AdminSession): Promise<UserProfile> {
+export async function fetchProfile(session: PortalSession): Promise<UserProfile> {
   return profileFetch<UserProfile>('/', session.accessToken)
 }
 
-export async function updateProfile(session: AdminSession, payload: ProfileUpdatePayload): Promise<UserProfile> {
+export async function updateProfile(
+  session: PortalSession,
+  payload: ProfileUpdatePayload,
+): Promise<UserProfile> {
   return profileFetch<UserProfile>('/', session.accessToken, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
@@ -44,27 +47,43 @@ export async function updateProfile(session: AdminSession, payload: ProfileUpdat
   })
 }
 
-export async function fetchConnectedApps(session: AdminSession): Promise<readonly ConnectedApp[]> {
-  const data = await profileFetch<{ connected_apps: ConnectedApp[] }>('/connected-apps', session.accessToken)
+export async function fetchConnectedApps(session: PortalSession): Promise<readonly ConnectedApp[]> {
+  const data = await profileFetch<{ connected_apps: ConnectedApp[] }>(
+    '/connected-apps',
+    session.accessToken,
+  )
   return data.connected_apps
 }
 
-export async function revokeConnectedApp(session: AdminSession, clientId: string): Promise<void> {
-  await profileFetch(`/connected-apps/${encodeURIComponent(clientId)}`, session.accessToken, { method: 'DELETE' })
+export async function revokeConnectedApp(session: PortalSession, clientId: string): Promise<void> {
+  await profileFetch(`/connected-apps/${encodeURIComponent(clientId)}`, session.accessToken, {
+    method: 'DELETE',
+  })
 }
 
-export async function fetchMySessions(session: AdminSession): Promise<readonly UserSessionSummary[]> {
-  const data = await profileFetch<{ sessions: UserSessionSummary[] }>('/sessions', session.accessToken)
+export async function fetchMySessions(
+  session: PortalSession,
+): Promise<readonly UserSessionSummary[]> {
+  const data = await profileFetch<{ sessions: UserSessionSummary[] }>(
+    '/sessions',
+    session.accessToken,
+  )
   return data.sessions
 }
 
-export async function revokeMySession(session: AdminSession, sessionId: string): Promise<void> {
-  await profileFetch(`/sessions/${encodeURIComponent(sessionId)}`, session.accessToken, { method: 'DELETE' })
+export async function revokeMySession(session: PortalSession, sessionId: string): Promise<void> {
+  await profileFetch(`/sessions/${encodeURIComponent(sessionId)}`, session.accessToken, {
+    method: 'DELETE',
+  })
 }
 
-async function profileFetch<T>(path: string, accessToken: AccessToken, init?: RequestInit): Promise<T> {
+async function profileFetch<T>(
+  path: string,
+  accessToken: AccessToken,
+  init?: RequestInit,
+): Promise<T> {
   const config = getConfig()
-  const url = `${trimTrailingSlash(config.adminApiUrl)}/profile${path === '/' ? '' : path}`
+  const url = `${trimTrailingSlash(config.internalBaseUrl)}/api/profile${path === '/' ? '' : path}`
   const res = await fetch(url, {
     ...init,
     headers: {
@@ -100,7 +119,7 @@ function principalFromUserInfo(info: UserInfoResponse): SsoPrincipal {
     acr: info.acr ?? null,
   }
 
-  const role = info.role ?? (info.roles?.[0] ?? 'user')
+  const role = info.role ?? info.roles?.[0] ?? 'user'
 
   return {
     subjectId: info.sub,

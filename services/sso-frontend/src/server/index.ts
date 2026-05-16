@@ -1,12 +1,9 @@
-import { createServer } from 'node:http'
-import type { IncomingMessage, ServerResponse } from 'node:http'
-import { access } from 'node:fs/promises'
 import { createReadStream } from 'node:fs'
+import { access } from 'node:fs/promises'
+import { createServer } from 'node:http'
+import type { IncomingHttpHeaders, IncomingMessage, ServerResponse } from 'node:http'
 import { extname, join, normalize, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { getConfig } from './config.js'
-import { handleAdminApi, redirectForLegacyError } from './admin-handlers.js'
-import { handleSession, handleUserApi } from './user-handlers.js'
 import {
   handleCallback,
   handleCallbackSession,
@@ -14,8 +11,10 @@ import {
   handleLogout,
   handleRefresh,
 } from './auth-handlers.js'
-import type { AppResponse } from './response.js'
+import { getConfig } from './config.js'
+import type { AppResponse, HeaderValue } from './response.js'
 import { html, methodNotAllowed, send, text } from './response.js'
+import { handleSession, handleUserApi, redirectForLegacyError } from './user-handlers.js'
 
 const clientDir = fileURLToPath(new URL('../../client/', import.meta.url))
 const assetCache = new Map<string, { readonly path: string; readonly immutable: boolean } | null>()
@@ -33,12 +32,19 @@ const server = createServer(async (request, response) => {
     await serveStatic(requestUrl, response)
   } catch (error) {
     console.error(error)
-    send(response, errorPage(500, 'Panel admin sedang bermasalah', 'Silakan muat ulang halaman atau kembali ke halaman utama.'))
+    send(
+      response,
+      errorPage(
+        500,
+        'Portal SSO sedang bermasalah',
+        'Silakan muat ulang halaman atau kembali ke halaman utama.',
+      ),
+    )
   }
 })
 
 server.listen(getConfig().port, '0.0.0.0', () => {
-  console.log(`sso-frontend Vue BFF listening on :${getConfig().port}`)
+  console.log(`sso-frontend portal BFF listening on :${getConfig().port}`)
 })
 
 async function route(request: IncomingMessage, requestUrl: URL): Promise<AppResponse | null> {
@@ -47,27 +53,102 @@ async function route(request: IncomingMessage, requestUrl: URL): Promise<AppResp
 
   if (pathname === '/healthz') return text(200, 'ok\n', { 'cache-control': 'no-store' })
 
-  if (pathname === '/auth/login') return method === 'GET' ? handleLogin(requestUrl) : methodNotAllowed()
+  if (pathname === '/auth/login')
+    return method === 'GET' ? handleLogin(requestUrl) : methodNotAllowed()
   if (pathname === '/auth/callback') {
     if (method === 'GET') return handleCallback(request, requestUrl)
     if (method === 'POST') return handleCallbackSession(request)
     return methodNotAllowed()
   }
-  if (pathname === '/auth/logout') return method === 'GET' ? handleLogout(request) : methodNotAllowed()
-  if (pathname === '/auth/refresh') return method === 'POST' ? handleRefresh(request) : methodNotAllowed()
+  if (pathname === '/auth/logout')
+    return method === 'GET' ? handleLogout(request) : methodNotAllowed()
+  if (pathname === '/auth/refresh')
+    return method === 'POST' ? handleRefresh(request) : methodNotAllowed()
 
-  if (pathname === '/api/session') return method === 'GET' ? handleSession(request) : methodNotAllowed()
+  if (pathname === '/api/session')
+    return method === 'GET' ? handleSession(request) : methodNotAllowed()
   if (pathname.startsWith('/api/me/')) return handleUserApi({ request, requestUrl })
-  if (pathname.startsWith('/api/admin/')) return handleAdminApi({ request, requestUrl })
+  if (shouldProxyPortalPath(pathname)) return proxyToSsoBackend(request, requestUrl)
 
   return redirectForLegacyError(requestUrl)
+}
+
+function shouldProxyPortalPath(pathname: string): boolean {
+  return (
+    pathname.startsWith('/api/auth/') ||
+    pathname.startsWith('/api/mfa/') ||
+    pathname === '/api/profile' ||
+    pathname.startsWith('/api/profile/') ||
+    pathname === '/connect/consent' ||
+    pathname.startsWith('/oauth/') ||
+    pathname.startsWith('/oauth2/') ||
+    pathname.startsWith('/.well-known/') ||
+    pathname === '/authorize' ||
+    pathname === '/token' ||
+    pathname === '/revocation' ||
+    pathname === '/userinfo' ||
+    pathname === '/jwks'
+  )
+}
+
+async function proxyToSsoBackend(request: IncomingMessage, requestUrl: URL): Promise<AppResponse> {
+  const target = `${trimTrailingSlash(getConfig().internalBaseUrl)}${requestUrl.pathname}${requestUrl.search}`
+  const response = await fetch(target, {
+    method: request.method,
+    headers: proxyHeaders(request.headers),
+    body: request.method === 'GET' || request.method === 'HEAD' ? undefined : request,
+    duplex: 'half',
+  } as RequestInit & { duplex: 'half' })
+
+  return {
+    status: response.status,
+    headers: responseHeaders(response.headers),
+    body: Buffer.from(await response.arrayBuffer()),
+  }
+}
+
+function proxyHeaders(headers: IncomingHttpHeaders): Headers {
+  const forwarded = new Headers()
+
+  for (const [name, value] of Object.entries(headers)) {
+    if (name === 'host' || name === 'connection' || name === 'content-length') continue
+    if (Array.isArray(value)) {
+      for (const item of value) forwarded.append(name, item)
+    } else if (typeof value === 'string') {
+      forwarded.set(name, value)
+    }
+  }
+
+  return forwarded
+}
+
+function responseHeaders(headers: Headers): Record<string, HeaderValue> {
+  const forwarded: Record<string, HeaderValue> = {}
+
+  headers.forEach((value, name) => {
+    if (name === 'transfer-encoding' || name === 'content-length' || name === 'connection') return
+    forwarded[name] = name === 'set-cookie' ? splitSetCookie(value) : value
+  })
+
+  return forwarded
+}
+
+function splitSetCookie(value: string): readonly string[] {
+  return value.split(/,(?=\s*[^;=]+=[^;]*)/u).map((cookie) => cookie.trim())
+}
+
+function trimTrailingSlash(value: string): string {
+  return value.endsWith('/') ? value.slice(0, -1) : value
 }
 
 async function serveStatic(requestUrl: URL, response: ServerResponse): Promise<void> {
   const asset = await resolveAsset(requestUrl.pathname)
 
   if (!asset) {
-    send(response, errorPage(404, 'Halaman tidak ditemukan', 'URL ini tidak tersedia di panel admin.'))
+    send(
+      response,
+      errorPage(404, 'Halaman tidak ditemukan', 'URL ini tidak tersedia di portal SSO.'),
+    )
     return
   }
 
@@ -110,7 +191,10 @@ async function exists(path: string): Promise<boolean> {
   }
 }
 
-function staticHeaders(asset: { readonly path: string; readonly immutable: boolean }): Record<string, string> {
+function staticHeaders(asset: {
+  readonly path: string
+  readonly immutable: boolean
+}): Record<string, string> {
   return {
     'cache-control': asset.immutable ? 'public, max-age=31536000, immutable' : 'no-cache',
     'content-type': contentType(asset.path),
@@ -123,13 +207,18 @@ function staticHeaders(asset: { readonly path: string; readonly immutable: boole
 function errorPage(status: number, title: string, message: string): AppResponse {
   return html(
     status,
-    `<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)} · Dev-SSO</title><style>:root{color-scheme:light dark;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f8fafc;color:#0f172a}body{min-height:100vh;margin:0;display:grid;place-items:center;padding:24px;background:linear-gradient(180deg,#eef4ff,transparent 58%),#f8fafc}.card{width:min(100%,480px);border:1px solid #dbe3ef;border-radius:24px;padding:32px;text-align:center;background:rgba(255,255,255,.9);box-shadow:0 24px 70px rgba(15,23,42,.14)}.badge{display:inline-flex;margin-bottom:14px;border-radius:999px;padding:6px 12px;background:#dbeafe;color:#1d4ed8;font-weight:800;font-size:12px;letter-spacing:.06em}h1{margin:0;color:#0f172a;font-size:28px;line-height:1.15}p{margin:12px 0 24px;color:#475569;line-height:1.65}a{display:inline-flex;align-items:center;justify-content:center;min-height:44px;border-radius:12px;padding:0 18px;text-decoration:none;font-weight:800;background:#2563eb;color:white}@media (prefers-color-scheme:dark){:root{background:#020617;color:#e2e8f0}body{background:linear-gradient(180deg,rgba(37,99,235,.18),transparent 58%),#020617}.card{background:rgba(15,23,42,.9);border-color:#334155;box-shadow:0 24px 70px rgba(0,0,0,.34)}h1{color:#f8fafc}p{color:#94a3b8}}</style></head><body><main class="card"><span class="badge">${status}</span><h1>${escapeHtml(title)}</h1><p>${escapeHtml(message)}</p><a href="/dashboard">Buka Dashboard</a></main></body></html>`,
+    `<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)} · Dev-SSO</title><style>:root{color-scheme:light dark;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f8fafc;color:#0f172a}body{min-height:100vh;margin:0;display:grid;place-items:center;padding:24px;background:linear-gradient(180deg,#eef4ff,transparent 58%),#f8fafc}.card{width:min(100%,480px);border:1px solid #dbe3ef;border-radius:24px;padding:32px;text-align:center;background:rgba(255,255,255,.9);box-shadow:0 24px 70px rgba(15,23,42,.14)}.badge{display:inline-flex;margin-bottom:14px;border-radius:999px;padding:6px 12px;background:#dbeafe;color:#1d4ed8;font-weight:800;font-size:12px;letter-spacing:.06em}h1{margin:0;color:#0f172a;font-size:28px;line-height:1.15}p{margin:12px 0 24px;color:#475569;line-height:1.65}a{display:inline-flex;align-items:center;justify-content:center;min-height:44px;border-radius:12px;padding:0 18px;text-decoration:none;font-weight:800;background:#2563eb;color:white}@media (prefers-color-scheme:dark){:root{background:#020617;color:#e2e8f0}body{background:linear-gradient(180deg,rgba(37,99,235,.18),transparent 58%),#020617}.card{background:rgba(15,23,42,.9);border-color:#334155;box-shadow:0 24px 70px rgba(0,0,0,.34)}h1{color:#f8fafc}p{color:#94a3b8}}</style></head><body><main class="card"><span class="badge">${status}</span><h1>${escapeHtml(title)}</h1><p>${escapeHtml(message)}</p><a href="/home">Buka Portal</a></main></body></html>`,
     { 'cache-control': 'no-store, no-cache, private, max-age=0' },
   )
 }
 
 function escapeHtml(value: string): string {
-  return value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;')
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;')
 }
 
 function urlFromRequest(request: IncomingMessage): URL {
