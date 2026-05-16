@@ -11,6 +11,7 @@ use App\Models\AdminAuditEvent;
 use App\Models\User;
 use App\Services\Admin\AdminAuditLogger;
 use App\Services\Admin\AdminAuditTaxonomy;
+use App\Services\Admin\AdminUserPresenter;
 use Illuminate\Support\Facades\Hash;
 
 it('creates local fallback users without leaking plaintext passwords to audit context', function (): void {
@@ -66,6 +67,7 @@ it('syncs selected profile fields and timestamps the sync', function (): void {
     $target = User::factory()->create([
         'email' => 'old@example.com',
         'display_name' => 'Old Name',
+        'email_verified_at' => now(),
     ]);
 
     $synced = app(SyncManagedUserProfileAction::class)->execute($target, [
@@ -80,7 +82,31 @@ it('syncs selected profile fields and timestamps the sync', function (): void {
         ->and($synced->display_name)->toBe('New Name')
         ->and($synced->given_name)->toBe('New')
         ->and($synced->role)->not->toBe('admin')
+        ->and($synced->email_verified_at)->toBeNull()
         ->and($synced->profile_synced_at)->not->toBeNull();
+});
+
+it('preserves email verification when admin sync does not change email', function (): void {
+    $verifiedAt = now()->subDay();
+    $target = User::factory()->create([
+        'email' => 'same@example.com',
+        'display_name' => 'Old Name',
+        'email_verified_at' => $verifiedAt,
+    ]);
+
+    $synced = app(SyncManagedUserProfileAction::class)->execute($target, [
+        'display_name' => 'New Name',
+    ]);
+
+    expect($synced->email)->toBe('same@example.com')
+        ->and($synced->email_verified_at?->timestamp)->toBe($verifiedAt->timestamp);
+});
+
+it('includes email verification status in admin user presentation', function (): void {
+    $target = User::factory()->create(['email_verified_at' => now()]);
+
+    expect(app(AdminUserPresenter::class)->user($target))
+        ->toHaveKey('email_verified_at');
 });
 
 it('persists redacted admin audit context for user management actions', function (): void {

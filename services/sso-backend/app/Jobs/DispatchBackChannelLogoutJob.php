@@ -34,6 +34,7 @@ final class DispatchBackChannelLogoutJob implements ShouldQueue
         public readonly string $subjectId,
         public readonly string $sessionId,
         public readonly string $logoutUri,
+        public readonly ?string $requestId = null,
     ) {
         $this->onQueue('backchannel-logout');
     }
@@ -58,6 +59,16 @@ final class DispatchBackChannelLogoutJob implements ShouldQueue
             static fn (string|int $seconds): int => max(1, (int) $seconds),
             (array) config('sso.logout.backchannel_backoff_seconds', [10, 30, 90]),
         );
+    }
+
+    public function failed(?\Throwable $exception): void
+    {
+        app(RecordLogoutAuditEventAction::class)->execute('backchannel_logout_dead_lettered', $this->auditContext([
+            'failure_class' => 'retry_exhausted',
+            'failure_reason' => $exception?->getMessage(),
+            'result' => 'failed',
+            'terminal' => true,
+        ]));
     }
 
     public function tags(): array
@@ -164,6 +175,7 @@ final class DispatchBackChannelLogoutJob implements ShouldQueue
             'result' => 'failed',
             'session_id' => $this->sessionId,
             'subject_id' => $this->subjectId,
+            'request_id' => $this->requestId,
         ], $overrides);
     }
 }

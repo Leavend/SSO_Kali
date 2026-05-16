@@ -21,7 +21,14 @@ final class UserSessionsService
             ->where('expires_at', '>', now())
             ->get();
 
-        $aggregated = $this->aggregateBySession($oauthSessions);
+        $rpSessions = DB::table('oidc_rp_sessions')
+            ->select(['sid as session_id', 'client_id', 'created_at', 'last_seen_at as updated_at', 'expires_at'])
+            ->where('subject_id', $subjectId)
+            ->whereNull('revoked_at')
+            ->where('expires_at', '>', now())
+            ->get();
+
+        $aggregated = $this->aggregateBySession($oauthSessions->merge($rpSessions));
 
         $portalSessions = DB::table('sso_sessions')
             ->where('subject_id', $subjectId)
@@ -40,6 +47,7 @@ final class UserSessionsService
                 'client_ids' => ['sso-portal'],
                 'client_display_names' => ['SSO Portal'],
                 'type' => 'portal',
+                'revoke_reason' => null,
             ])
             ->all();
 
@@ -111,9 +119,13 @@ final class UserSessionsService
 
         return [
             'session_id' => $sessionId,
-            'opened_at' => (string) $group->min('created_at'),
-            'last_used_at' => (string) $group->max('updated_at'),
-            'expires_at' => (string) $group->max('expires_at'),
+            'opened_at' => $this->iso($group->min('created_at')),
+            'last_used_at' => $this->iso($group->max('updated_at')),
+            'expires_at' => $this->iso($group->max('expires_at')),
+            'ip_address' => null,
+            'user_agent' => null,
+            'type' => 'rp',
+            'revoke_reason' => null,
             'client_count' => count($clientIds),
             'client_ids' => $clientIds,
             'client_display_names' => array_map(
@@ -121,6 +133,11 @@ final class UserSessionsService
                 $clientIds,
             ),
         ];
+    }
+
+    private function iso(mixed $value): string
+    {
+        return str_replace(' ', 'T', (string) $value).'Z';
     }
 
     private function displayName(string $clientId): string

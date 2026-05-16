@@ -20,12 +20,16 @@ final class AccessTokenRevocationStore
         $this->cache->put($this->key($jti), true, max(1, $ttl));
     }
 
-    public function track(string $sessionId, string $jti, int $expiresAt, ?string $clientId = null): void
+    public function track(string $sessionId, string $jti, int $expiresAt, ?string $clientId = null, ?string $subjectId = null): void
     {
         $this->trackSession($sessionId, $jti, $expiresAt);
 
         if (is_string($clientId) && $clientId !== '') {
             $this->trackClient($clientId, $jti, $expiresAt);
+
+            if (is_string($subjectId) && $subjectId !== '') {
+                $this->trackSubjectClient($subjectId, $clientId, $jti, $expiresAt);
+            }
         }
     }
 
@@ -40,6 +44,19 @@ final class AccessTokenRevocationStore
         $entries = $this->clientEntries($clientId);
 
         $this->cache->forget($this->clientKey($clientId));
+
+        foreach (array_chunk($entries, self::REVOCATION_CHUNK_SIZE, preserve_keys: true) as $chunk) {
+            foreach ($chunk as $jti => $expiresAt) {
+                $this->revokeTrackedToken($jti, $expiresAt);
+            }
+        }
+    }
+
+    public function revokeSubjectClient(string $subjectId, string $clientId): void
+    {
+        $entries = $this->subjectClientEntries($subjectId, $clientId);
+
+        $this->cache->forget($this->subjectClientKey($subjectId, $clientId));
 
         foreach (array_chunk($entries, self::REVOCATION_CHUNK_SIZE, preserve_keys: true) as $chunk) {
             foreach ($chunk as $jti => $expiresAt) {
@@ -100,6 +117,24 @@ final class AccessTokenRevocationStore
         $this->cache->put($this->clientKey($clientId), $entries, max(1, $expiresAt - time()));
     }
 
+    private function trackSubjectClient(string $subjectId, string $clientId, string $jti, int $expiresAt): void
+    {
+        $entries = $this->subjectClientEntries($subjectId, $clientId);
+        $entries[$jti] = $expiresAt;
+
+        $this->cache->put($this->subjectClientKey($subjectId, $clientId), $entries, max(1, $expiresAt - time()));
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    private function subjectClientEntries(string $subjectId, string $clientId): array
+    {
+        $entries = $this->cache->get($this->subjectClientKey($subjectId, $clientId), []);
+
+        return is_array($entries) ? $entries : [];
+    }
+
     private function revokeTrackedToken(string $jti, mixed $expiresAt): void
     {
         if (! is_int($expiresAt) || $expiresAt <= time()) {
@@ -122,5 +157,10 @@ final class AccessTokenRevocationStore
     private function clientKey(string $clientId): string
     {
         return 'oidc:client-access-tokens:'.$clientId;
+    }
+
+    private function subjectClientKey(string $subjectId, string $clientId): string
+    {
+        return 'oidc:subject-client-access-tokens:'.hash('sha256', $subjectId.'|'.$clientId);
     }
 }

@@ -16,6 +16,7 @@ use App\Services\Oidc\Upstream\UpstreamOidcClient;
 use App\Support\Responses\OidcErrorResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
 use Throwable;
@@ -51,6 +52,14 @@ final class PerformSingleSignOut
         }
 
         [$sessionId, $subjectId] = $context;
+        $requestId = (string) $request->headers->get('X-Request-Id', 'n/a');
+        $idempotencyKey = $this->idempotencyKey($sessionId, $subjectId, $requestId);
+        $cached = Cache::get($idempotencyKey);
+
+        if (is_array($cached)) {
+            return response()->json($cached + ['idempotent_replay' => true]);
+        }
+
         $this->audit->execute('sso_logout_started', [
             'logout_channel' => 'centralized',
             'result' => 'started',
@@ -58,24 +67,29 @@ final class PerformSingleSignOut
             'sid' => $sessionId,
             'sub' => $subjectId,
             'subject_id' => $subjectId,
+            'request_id' => $requestId,
         ]);
 
         $records = $this->refreshTokens->revokeSubject($subjectId);
 
-        return $this->completeLogout($sessionId, $subjectId, $records);
+        $response = $this->completeLogout($sessionId, $subjectId, $records, $requestId);
+        $payload = $response->getData(true);
+        Cache::put($idempotencyKey, $payload, now()->addMinutes(15));
+
+        return $response;
     }
 
     /**
      * @param  list<array<string, mixed>>  $records
      */
-    private function completeLogout(string $sessionId, string $subjectId, array $records): JsonResponse
+    private function completeLogout(string $sessionId, string $subjectId, array $records, string $requestId): JsonResponse
     {
         $sessionIds = $this->sessionIds($sessionId, $subjectId, $records);
 
         $this->revokeAccessTokens($sessionIds);
         $this->revokeUpstream($records);
 
-        $notifications = $this->dispatchLogout($subjectId, $sessionIds);
+        $notifications = $this->dispatchLogout($subjectId, $sessionIds, $requestId);
         $this->clearLocalSessions($subjectId, $sessionIds);
         $this->metrics->recordSuccess();
         $frontchannelUrl = $this->frontchannelFallbackUrl($notifications);
@@ -89,6 +103,7 @@ final class PerformSingleSignOut
             'sid' => $sessionId,
             'sub' => $subjectId,
             'subject_id' => $subjectId,
+            'request_id' => $requestId,
         ]);
 
         return $this->successResponse($sessionId, $sessionIds, $notifications, $frontchannelUrl);
@@ -164,18 +179,23 @@ final class PerformSingleSignOut
      * @param  list<string>  $sessionIds
      * @return list<array<string, mixed>>
      */
-    private function dispatchLogout(string $subjectId, array $sessionIds): array
+    private function dispatchLogout(string $subjectId, array $sessionIds, string $requestId): array
     {
         $notifications = [];
 
         foreach ($sessionIds as $sessionId) {
             $notifications = [
                 ...$notifications,
-                ...$this->dispatcher->dispatch($subjectId, $sessionId, $this->registry->forSession($sessionId)),
+                ...$this->dispatcher->dispatch($subjectId, $sessionId, $this->registry->forSession($sessionId), $requestId),
             ];
         }
 
         return $notifications;
+    }
+
+    private function idempotencyKey(string $sessionId, string $subjectId, string $requestId): string
+    {
+        return 'sso:logout:idempotency:'.hash('sha256', $subjectId.'|'.$sessionId.'|'.$requestId);
     }
 
     /**

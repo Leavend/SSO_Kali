@@ -74,7 +74,9 @@ final class UpdateProfilePortalAction
     private function update(User $user, array $input): array
     {
         $before = $user->only($this->editableFields());
-        $user->forceFill(array_intersect_key($input, array_flip($this->editableFields())))->save();
+        $changes = array_intersect_key($input, array_flip($this->editableFields()));
+        $changes['profile_synced_at'] = now();
+        $user->forceFill($changes)->save();
 
         return array_keys(array_diff_assoc($user->refresh()->only($this->editableFields()), $before));
     }

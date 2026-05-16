@@ -19,19 +19,19 @@ final class BackChannelLogoutDispatcher
      * @param  list<array<string, string>>  $registrations
      * @return list<array<string, int|string>>
      */
-    public function dispatch(string $subjectId, string $sessionId, array $registrations): array
+    public function dispatch(string $subjectId, string $sessionId, array $registrations, ?string $requestId = null): array
     {
         $results = [];
 
         foreach ($registrations as $registration) {
             if ($this->hasBackchannel($registration)) {
-                $results[] = $this->notify($registration, $subjectId, $sessionId);
+                $results[] = $this->notify($registration, $subjectId, $sessionId, $requestId);
 
                 continue;
             }
 
             if ($this->hasFrontchannel($registration)) {
-                $results[] = $this->frontchannelPending($registration, $subjectId, $sessionId);
+                $results[] = $this->frontchannelPending($registration, $subjectId, $sessionId, $requestId);
 
                 continue;
             }
@@ -40,7 +40,7 @@ final class BackChannelLogoutDispatcher
             // can report it the same as queue dispatch errors. This preserves
             // the prior FR-040 invariant that registrations without any URI
             // surface as `failed` instead of being silently swallowed.
-            $results[] = $this->failedRegistration($registration, $subjectId, $sessionId);
+            $results[] = $this->failedRegistration($registration, $subjectId, $sessionId, $requestId);
         }
 
         return $results;
@@ -75,7 +75,7 @@ final class BackChannelLogoutDispatcher
      * @param  array<string, mixed>  $registration
      * @return array<string, int|string>
      */
-    private function frontchannelPending(array $registration, string $subjectId, string $sessionId): array
+    private function frontchannelPending(array $registration, string $subjectId, string $sessionId, ?string $requestId): array
     {
         $clientId = (string) ($registration['client_id'] ?? 'unknown');
         $frontchannelUri = is_string($registration['frontchannel_logout_uri'] ?? null)
@@ -89,6 +89,7 @@ final class BackChannelLogoutDispatcher
             'session_id' => $sessionId,
             'subject_id' => $subjectId,
             'frontchannel_logout_uri' => $frontchannelUri,
+            'request_id' => $requestId,
         ]);
 
         return [
@@ -103,18 +104,18 @@ final class BackChannelLogoutDispatcher
      * @param  array<string, string>  $registration
      * @return array<string, int|string>
      */
-    private function notify(array $registration, string $subjectId, string $sessionId): array
+    private function notify(array $registration, string $subjectId, string $sessionId, ?string $requestId): array
     {
         try {
-            $this->dispatchJob($registration, $subjectId, $sessionId);
+            $this->dispatchJob($registration, $subjectId, $sessionId, $requestId);
         } catch (Throwable $exception) {
             $this->logDispatchFailure($registration, $exception);
-            $this->auditDispatchFailure($registration, $subjectId, $sessionId, $exception);
+            $this->auditDispatchFailure($registration, $subjectId, $sessionId, $exception, $requestId);
 
             return $this->failedResult($registration, $exception);
         }
 
-        $this->auditQueued($registration, $subjectId, $sessionId);
+        $this->auditQueued($registration, $subjectId, $sessionId, $requestId);
 
         return $this->queuedResult($registration);
     }
@@ -127,7 +128,7 @@ final class BackChannelLogoutDispatcher
      * @param  array<string, mixed>  $registration
      * @return array<string, int|string>
      */
-    private function failedRegistration(array $registration, string $subjectId, string $sessionId): array
+    private function failedRegistration(array $registration, string $subjectId, string $sessionId, ?string $requestId): array
     {
         $clientId = (string) ($registration['client_id'] ?? 'unknown');
         $reason = 'No backchannel_logout_uri or frontchannel_logout_uri registered.';
@@ -141,6 +142,7 @@ final class BackChannelLogoutDispatcher
             'result' => 'failed',
             'session_id' => $sessionId,
             'subject_id' => $subjectId,
+            'request_id' => $requestId,
         ]);
 
         return [
@@ -153,13 +155,14 @@ final class BackChannelLogoutDispatcher
     }
 
     /** @param array<string, string> $registration */
-    private function dispatchJob(array $registration, string $subjectId, string $sessionId): void
+    private function dispatchJob(array $registration, string $subjectId, string $sessionId, ?string $requestId): void
     {
         DispatchBackChannelLogoutJob::dispatch(
             (string) $registration['client_id'],
             $subjectId,
             $sessionId,
             (string) $registration['backchannel_logout_uri'],
+            $requestId,
         );
     }
 
@@ -178,6 +181,7 @@ final class BackChannelLogoutDispatcher
         string $subjectId,
         string $sessionId,
         Throwable $exception,
+        ?string $requestId,
     ): void {
         $this->audit->execute('backchannel_logout_failed', [
             'client_id' => (string) ($registration['client_id'] ?? 'unknown'),
@@ -188,11 +192,12 @@ final class BackChannelLogoutDispatcher
             'result' => 'failed',
             'session_id' => $sessionId,
             'subject_id' => $subjectId,
+            'request_id' => $requestId,
         ]);
     }
 
     /** @param array<string, string> $registration */
-    private function auditQueued(array $registration, string $subjectId, string $sessionId): void
+    private function auditQueued(array $registration, string $subjectId, string $sessionId, ?string $requestId): void
     {
         $this->audit->execute('backchannel_logout_queued', [
             'client_id' => (string) $registration['client_id'],
@@ -201,6 +206,7 @@ final class BackChannelLogoutDispatcher
             'result' => 'queued',
             'session_id' => $sessionId,
             'subject_id' => $subjectId,
+            'request_id' => $requestId,
         ]);
     }
 

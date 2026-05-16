@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\AdminAuditEvent;
 use App\Models\User;
 use App\Services\Oidc\AccessTokenGuard;
+use App\Services\Oidc\BackChannelSessionRegistry;
 use App\Services\Oidc\LocalTokenService;
 use App\Services\Oidc\RefreshTokenStore;
 use Illuminate\Support\Facades\Cache;
@@ -80,6 +81,25 @@ it('allows users to revoke one connected app without revoking other clients', fu
         ->and($context['request_id'])->toBe('req-issue56-revoke')
         ->and(json_encode($context, JSON_THROW_ON_ERROR))->not->toContain('rt_')
         ->and(json_encode($context, JSON_THROW_ON_ERROR))->not->toContain('Bearer');
+});
+
+it('lists public RP sessions even when no offline refresh token exists', function (): void {
+    $user = issue56User();
+    issue56Tokens($user, 'app-a', 'issue56-session-a');
+
+    app(BackChannelSessionRegistry::class)->register('issue56-public-session', 'app-b', '', [
+        'subject_id' => $user->subject_id,
+        'frontchannel_logout_uri' => 'https://app-b.example/logout',
+        'channels' => ['frontchannel'],
+    ]);
+
+    $response = $this->getJson('/api/profile/connected-apps', issue56AuthHeaders($user, 'app-a', 'issue56-session-a'));
+
+    $response->assertOk();
+    $clientIds = collect($response->json('connected_apps'))->pluck('client_id')->all();
+
+    expect($clientIds)->toContain('app-b')
+        ->and(collect($response->json('connected_apps'))->firstWhere('client_id', 'app-b')['active_rp_sessions'])->toBe(1);
 });
 
 it('rejects missing or invalid connected app bearer tokens', function (): void {

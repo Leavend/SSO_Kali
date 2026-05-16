@@ -10,6 +10,7 @@ use App\Services\Oidc\LogoutTokenService;
 use App\Services\Oidc\SigningKeyService;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 it('rejects centralized logout without bearer token', function (): void {
     $this->postJson('/connect/logout')
@@ -46,6 +47,39 @@ it('queues back-channel logout for every registered client session', function ()
     expect(app(BackChannelSessionRegistry::class)->forSession($sessionId))->toBe([]);
 });
 
+it('dedupes duplicate global logout requests by sid sub and request id', function (): void {
+    Bus::fake();
+
+    $subjectId = 'user-logout-dedupe';
+    $sessionId = 'sid-logout-dedupe';
+    registerBackChannelClient($sessionId, 'app-a', 'https://app-a.example.test/backchannel/logout');
+
+    $headers = bearerHeaders($subjectId, $sessionId) + ['X-Request-Id' => 'req-logout-dedupe'];
+
+    $first = $this->postJson('/connect/logout', [], $headers)->assertOk()->json();
+    $second = $this->postJson('/connect/logout', [], $headers)->assertOk()->json();
+
+    expect($first['idempotent_replay'] ?? false)->toBeFalse()
+        ->and($second['idempotent_replay'])->toBeTrue()
+        ->and($second['sid'])->toBe($sessionId);
+
+    Bus::assertDispatched(DispatchBackChannelLogoutJob::class, 1);
+});
+
+it('propagates parent request id into queued back-channel logout jobs', function (): void {
+    Bus::fake();
+
+    $subjectId = 'user-logout-request-id';
+    $sessionId = 'sid-logout-request-id';
+    registerBackChannelClient($sessionId, 'app-a', 'https://app-a.example.test/backchannel/logout');
+
+    $this->postJson('/connect/logout', [], bearerHeaders($subjectId, $sessionId) + [
+        'X-Request-Id' => 'req-parent-bcl-123',
+    ])->assertOk();
+
+    Bus::assertDispatched(DispatchBackChannelLogoutJob::class, fn (DispatchBackChannelLogoutJob $job): bool => $job->requestId === 'req-parent-bcl-123');
+});
+
 it('posts a standards-compliant logout token to the client back-channel endpoint', function (): void {
     Http::fake([
         'https://app-a.example.test/backchannel/logout' => Http::response([], 200),
@@ -79,6 +113,28 @@ it('posts a standards-compliant logout token to the client back-channel endpoint
             && isset($claims['events']['http://schemas.openid.net/event/backchannel-logout'])
             && ! array_key_exists('nonce', $claims);
     });
+});
+
+it('emits a terminal dead-letter audit event when back-channel retries are exhausted', function (): void {
+    Log::spy();
+
+    $job = new DispatchBackChannelLogoutJob(
+        'app-a',
+        'user-logoutFlow',
+        'sid-logoutFlow',
+        'https://app-a.example.test/backchannel/logout',
+        'req-dead-letter-123',
+    );
+
+    $job->failed(new RuntimeException('RP unavailable after retries'));
+
+    Log::shouldHaveReceived('info')
+        ->with('[SSO_LOGOUT_AUDIT]', Mockery::on(function (array $payload): bool {
+            return ($payload['event'] ?? null) === 'backchannel_logout_dead_lettered'
+                && ($payload['request_id'] ?? null) === 'req-dead-letter-123'
+                && data_get($payload, 'context.terminal') === true
+                && data_get($payload, 'context.failure_class') === 'retry_exhausted';
+        }));
 });
 
 it('fails safely when a back-channel client returns a non-success response', function (): void {

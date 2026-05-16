@@ -27,6 +27,7 @@ final class AdminUserPresenter
             'disabled_reason',
             'local_account_enabled',
             'profile_synced_at',
+            'email_verified_at',
             'last_login_at',
             'created_at',
         ];

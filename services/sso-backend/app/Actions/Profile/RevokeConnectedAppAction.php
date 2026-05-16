@@ -34,7 +34,7 @@ final class RevokeConnectedAppAction
         $claims = $principal['claims'];
 
         $revoked = $this->refreshTokens->revokeClientSessionsForSubject((string) $claims['sub'], $clientId);
-        $this->accessTokens->revokeClient($clientId);
+        $this->accessTokens->revokeSubjectClient((string) $claims['sub'], $clientId);
         $this->consents->revoke((string) $claims['sub'], $clientId);
         $this->audit($request, $claims, $clientId, count($revoked));
 
