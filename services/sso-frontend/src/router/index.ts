@@ -108,32 +108,6 @@ const routes: RouteRecordRaw[] = [
     meta: { layout: 'portal', requiresAuth: true, title: 'Pengaturan MFA' },
   },
   {
-    path: '/admin',
-    redirect: { name: 'admin.dashboard' },
-  },
-  {
-    path: '/admin/dashboard',
-    name: 'admin.dashboard',
-    component: () => import('@/pages/admin/AdminDashboardPage.vue'),
-    meta: {
-      layout: 'admin',
-      requiresAuth: true,
-      requiredRoles: ['admin'],
-      title: 'Admin Dashboard',
-    },
-  },
-  {
-    path: '/admin/users',
-    name: 'admin.users',
-    component: () => import('@/pages/admin/UserManagementPage.vue'),
-    meta: {
-      layout: 'admin',
-      requiresAuth: true,
-      requiredRoles: ['admin'],
-      title: 'Admin User Management',
-    },
-  },
-  {
     path: '/admin/clients',
     name: 'admin.clients',
     component: () => import('@/pages/admin/ClientManagementPage.vue'),
@@ -142,17 +116,6 @@ const routes: RouteRecordRaw[] = [
       requiresAuth: true,
       requiredRoles: ['admin'],
       title: 'Admin Client Management',
-    },
-  },
-  {
-    path: '/admin/audit',
-    name: 'admin.audit',
-    component: () => import('@/pages/admin/AuditTrailPage.vue'),
-    meta: {
-      layout: 'admin',
-      requiresAuth: true,
-      requiredRoles: ['admin'],
-      title: 'Admin Audit Trail',
     },
   },
   {

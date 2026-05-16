@@ -4,7 +4,6 @@ import { useRoute } from 'vue-router'
 import { WifiOff } from 'lucide-vue-next'
 import AuthLayout from '@/components/layouts/AuthLayout.vue'
 import PortalLayout from '@/components/layouts/PortalLayout.vue'
-import AdminLayout from '@/components/layouts/AdminLayout.vue'
 import { useThemeStore } from '@/stores/theme.store'
 import { useNetworkStatus } from '@/composables/useNetworkStatus'
 
@@ -12,11 +11,7 @@ const route = useRoute()
 const theme = useThemeStore()
 const { isOnline, cleanup } = useNetworkStatus()
 
-const Layout = computed(() => {
-  if (route.meta.layout === 'portal') return PortalLayout
-  if (route.meta.layout === 'admin') return AdminLayout
-  return AuthLayout
-})
+const Layout = computed(() => (route.meta.layout === 'portal' ? PortalLayout : AuthLayout))
 
 onMounted((): void => {
   theme.initialize()

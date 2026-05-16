@@ -1,8 +1,5 @@
 import type { ApiClient, ApiSession, ApiUser, AdminPrincipal } from '../shared/admin.js'
-import type {
-  ClientIntegrationContract,
-  ClientIntegrationRegistration,
-} from '../shared/client-integration.js'
+import type { ClientIntegrationContract, ClientIntegrationRegistration } from '../shared/client-integration.js'
 import { getConfig } from './config.js'
 import { buildAdminApiError } from './admin-api-error.js'
 import type { AdminSession } from './session.js'
@@ -12,10 +9,6 @@ type AccessToken = string
 export async function fetchUsers(session: AdminSession): Promise<ApiUser[]> {
   const data = await adminFetch<{ users: ApiUser[] }>('/users', session)
   return data.users
-}
-
-export async function fetchDashboardSummary(session: AdminSession): Promise<unknown> {
-  return adminFetch('/dashboard/summary', session)
 }
 
 export async function fetchPrincipal(session: AdminSession): Promise<AdminPrincipal> {
@@ -51,15 +44,11 @@ export async function buildClientIntegrationContract(
   session: AdminSession,
   draft: Record<string, unknown>,
 ): Promise<ClientIntegrationContract> {
-  const data = await adminFetch<{ contract: ClientIntegrationContract }>(
-    '/client-integrations/contract',
-    session,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(draft),
-    },
-  )
+  const data = await adminFetch<{ contract: ClientIntegrationContract }>('/client-integrations/contract', session, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(draft),
+  })
 
   return data.contract
 }
@@ -87,22 +76,14 @@ export async function activateClientIntegration(
   clientId: string,
   secretHash: string | null,
 ): Promise<ClientIntegrationRegistration> {
-  return clientIntegrationAction(
-    session,
-    `/client-integrations/${encodeURIComponent(clientId)}/activate`,
-    { secretHash },
-  )
+  return clientIntegrationAction(session, `/client-integrations/${encodeURIComponent(clientId)}/activate`, { secretHash })
 }
 
 export async function disableClientIntegration(
   session: AdminSession,
   clientId: string,
 ): Promise<ClientIntegrationRegistration> {
-  return clientIntegrationAction(
-    session,
-    `/client-integrations/${encodeURIComponent(clientId)}/disable`,
-    {},
-  )
+  return clientIntegrationAction(session, `/client-integrations/${encodeURIComponent(clientId)}/disable`, {})
 }
 
 export async function revokeSession(session: AdminSession, sessionId: string): Promise<void> {
@@ -110,33 +91,11 @@ export async function revokeSession(session: AdminSession, sessionId: string): P
 }
 
 export async function revokeUserSessions(session: AdminSession, subjectId: string): Promise<void> {
-  await adminFetch(`/users/${encodeURIComponent(subjectId)}/sessions`, session, {
-    method: 'DELETE',
-  })
+  await adminFetch(`/users/${encodeURIComponent(subjectId)}/sessions`, session, { method: 'DELETE' })
 }
 
-export async function adminFetch<T>(
-  path: string,
-  session: AdminSession,
-  init?: RequestInit,
-): Promise<T> {
+async function adminFetch<T>(path: string, session: AdminSession, init?: RequestInit): Promise<T> {
   return adminFetchWithToken(path, session.accessToken, init)
-}
-
-export async function adminFetchRaw(
-  path: string,
-  session: AdminSession,
-  init?: RequestInit,
-): Promise<Response> {
-  const config = getConfig()
-  return fetch(`${config.adminApiUrl}${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${session.accessToken}`,
-      Accept: 'application/json',
-      ...init?.headers,
-    },
-  })
 }
 
 async function clientIntegrationAction(
@@ -144,16 +103,12 @@ async function clientIntegrationAction(
   path: string,
   body: Record<string, unknown>,
 ): Promise<ClientIntegrationRegistration> {
-  const data = await adminFetch<{ registration: ClientIntegrationRegistration }>(
-    path,
-    session,
-    jsonRequest(body),
-  )
+  const data = await adminFetch<{ registration: ClientIntegrationRegistration }>(path, session, jsonRequest(body))
 
   return data.registration
 }
 
-export function jsonRequest(body: Record<string, unknown>): RequestInit {
+function jsonRequest(body: Record<string, unknown>): RequestInit {
   return {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
