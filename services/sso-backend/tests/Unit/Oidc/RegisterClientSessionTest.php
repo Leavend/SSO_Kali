@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__.'/../../Support/UnitOidcDatabase.php';
+
 use App\Actions\Oidc\RegisterClientSession;
 use App\Services\Oidc\AccessTokenGuard;
 use App\Services\Oidc\BackChannelSessionRegistry;
@@ -10,12 +12,17 @@ use App\Services\Oidc\SigningKeyService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
+use function Tests\Support\ensureOidcUnitTables;
+use function Tests\Support\resetOidcUnitTables;
+
 beforeEach(function (): void {
     config()->set('sso.issuer', 'http://localhost');
     config()->set('sso.resource_audience', 'sso-resource-api');
     config()->set('sso.signing.private_key_path', storage_path('app/testing/oidc/private.pem'));
     config()->set('sso.signing.public_key_path', storage_path('app/testing/oidc/public.pem'));
 
+    ensureOidcUnitTables();
+    resetOidcUnitTables();
     Cache::flush();
 });
 

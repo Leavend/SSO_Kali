@@ -5,7 +5,23 @@ declare(strict_types=1);
 namespace App\Services\Oidc;
 
 use App\Support\Cache\ResilientCacheStore;
+use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\DB;
 
+/**
+ * BE-FR040-001 — Persistent RP Session Registry.
+ *
+ * Source of truth is the `oidc_rp_sessions` table (created by the
+ * 2026_05_16 migration). The {@see ResilientCacheStore} layer remains
+ * for fan-out hot-path acceleration but is now strictly an alongside
+ * cache: it can be evicted without losing RP back-channel logout
+ * targets, public clients without refresh tokens still surface in
+ * profile/admin session lists, and front-channel logout fallback
+ * (FR-043) has a stable place to read `frontchannel_logout_uri` from.
+ *
+ * Public surface stays compatible with previous callers:
+ * `register()`, `forSession()`, `clear()`, `sessionIdsForSubject()`.
+ */
 final class BackChannelSessionRegistry
 {
     public function __construct(
@@ -17,11 +33,41 @@ final class BackChannelSessionRegistry
      */
     public function register(string $sessionId, string $clientId, string $logoutUri, array $metadata = []): void
     {
-        $registrations = $this->keyedRegistrations($sessionId);
-        $registrations[$clientId] = $this->registrationPayload($clientId, $logoutUri, $metadata);
+        $now = CarbonImmutable::now();
+        $expiresAt = $this->expiresAt($metadata, $now);
 
-        $this->cache->put($this->key($sessionId), array_values($registrations), now()->addDays($this->ttlDays()));
-        $this->rememberSubjectSession($sessionId, $metadata);
+        $payload = [
+            'sid' => $sessionId,
+            'client_id' => $clientId,
+            'subject_id' => $this->stringValue($metadata, 'subject_id'),
+            'backchannel_logout_uri' => $logoutUri !== '' ? $logoutUri : null,
+            'frontchannel_logout_uri' => $this->stringValue($metadata, 'frontchannel_logout_uri'),
+            'channels' => $this->channels($metadata),
+            'scope' => $this->stringValue($metadata, 'scope'),
+            'created_at' => $now,
+            'last_seen_at' => $now,
+            'expires_at' => $expiresAt,
+            'revoked_at' => null,
+        ];
+
+        $existing = DB::table('oidc_rp_sessions')
+            ->where('sid', $sessionId)
+            ->where('client_id', $clientId)
+            ->first();
+
+        if ($existing === null) {
+            DB::table('oidc_rp_sessions')->insert($payload);
+        } else {
+            DB::table('oidc_rp_sessions')
+                ->where('id', $existing->id)
+                ->update([
+                    ...array_diff_key($payload, ['created_at' => null]),
+                    'created_at' => $existing->created_at ?? $now,
+                ]);
+        }
+
+        $this->refreshSessionCache($sessionId);
+        $this->refreshSubjectCache($payload['subject_id']);
     }
 
     /**
@@ -29,17 +75,32 @@ final class BackChannelSessionRegistry
      */
     public function forSession(string $sessionId): array
     {
-        $registrations = $this->cache->get($this->key($sessionId), []);
+        $cached = $this->cache->get($this->key($sessionId));
 
-        return is_array($registrations) ? array_values(array_filter($registrations, 'is_array')) : [];
+        if (is_array($cached)) {
+            return array_values(array_filter($cached, 'is_array'));
+        }
+
+        $rows = $this->activeRowsForSession($sessionId);
+        $this->cache->put($this->key($sessionId), $rows, now()->addDays($this->ttlDays()));
+
+        return $rows;
     }
 
     public function clear(string $sessionId): void
     {
-        $registrations = $this->forSession($sessionId);
+        $rows = $this->activeRowsForSession($sessionId);
+
+        DB::table('oidc_rp_sessions')
+            ->where('sid', $sessionId)
+            ->whereNull('revoked_at')
+            ->update(['revoked_at' => CarbonImmutable::now()]);
 
         $this->cache->forget($this->key($sessionId));
-        $this->removeSubjectSessions($sessionId, $registrations);
+
+        foreach ($this->subjectIds($rows) as $subjectId) {
+            $this->refreshSubjectCache($subjectId);
+        }
     }
 
     /**
@@ -47,93 +108,136 @@ final class BackChannelSessionRegistry
      */
     public function sessionIdsForSubject(string $subjectId): array
     {
-        $sessions = $this->cache->get($this->subjectKey($subjectId), []);
+        $cached = $this->cache->get($this->subjectKey($subjectId));
 
-        return array_values(array_filter(is_array($sessions) ? $sessions : [], 'is_string'));
-    }
-
-    /**
-     * @return array<string, array<string, mixed>>
-     */
-    private function keyedRegistrations(string $sessionId): array
-    {
-        $registrations = [];
-
-        foreach ($this->forSession($sessionId) as $registration) {
-            $clientId = $this->clientId($registration);
-
-            if ($clientId !== null) {
-                $registrations[$clientId] = $registration;
-            }
+        if (is_array($cached)) {
+            return array_values(array_filter($cached, 'is_string'));
         }
 
-        return $registrations;
+        $sessions = $this->activeSessionIdsForSubject($subjectId);
+        $this->cache->put($this->subjectKey($subjectId), $sessions, now()->addDays($this->ttlDays()));
+
+        return $sessions;
     }
 
     /**
-     * @param  array<string, mixed>  $registration
+     * @return list<array<string, mixed>>
      */
-    private function clientId(array $registration): ?string
+    private function activeRowsForSession(string $sessionId): array
     {
-        return is_string($registration['client_id'] ?? null) && $registration['client_id'] !== ''
-            ? $registration['client_id']
-            : null;
+        return DB::table('oidc_rp_sessions')
+            ->where('sid', $sessionId)
+            ->whereNull('revoked_at')
+            ->orderBy('client_id')
+            ->get()
+            ->map(fn (object $row): array => $this->rowPayload($row))
+            ->all();
     }
 
     /**
-     * @param  array<string, mixed>  $metadata
+     * @return list<string>
+     */
+    private function activeSessionIdsForSubject(string $subjectId): array
+    {
+        return DB::table('oidc_rp_sessions')
+            ->where('subject_id', $subjectId)
+            ->whereNull('revoked_at')
+            ->orderByDesc('last_seen_at')
+            ->pluck('sid')
+            ->map(fn (mixed $value): string => (string) $value)
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    private function refreshSessionCache(string $sessionId): void
+    {
+        $rows = $this->activeRowsForSession($sessionId);
+        $this->cache->put($this->key($sessionId), $rows, now()->addDays($this->ttlDays()));
+    }
+
+    private function refreshSubjectCache(?string $subjectId): void
+    {
+        if ($subjectId === null) {
+            return;
+        }
+
+        $sessions = $this->activeSessionIdsForSubject($subjectId);
+
+        $sessions === []
+            ? $this->cache->forget($this->subjectKey($subjectId))
+            : $this->cache->put($this->subjectKey($subjectId), $sessions, now()->addDays($this->ttlDays()));
+    }
+
+    /**
      * @return array<string, mixed>
      */
-    private function registrationPayload(string $clientId, string $logoutUri, array $metadata): array
+    private function rowPayload(object $row): array
     {
         return array_filter([
-            'client_id' => $clientId,
-            'backchannel_logout_uri' => $logoutUri,
-            'subject_id' => $metadata['subject_id'] ?? null,
-            'scope' => $metadata['scope'] ?? null,
-            'created_at' => $metadata['created_at'] ?? null,
-            'expires_at' => $metadata['expires_at'] ?? null,
+            'client_id' => is_string($row->client_id ?? null) ? $row->client_id : null,
+            'backchannel_logout_uri' => is_string($row->backchannel_logout_uri ?? null) && $row->backchannel_logout_uri !== ''
+                ? $row->backchannel_logout_uri
+                : null,
+            'frontchannel_logout_uri' => is_string($row->frontchannel_logout_uri ?? null) && $row->frontchannel_logout_uri !== ''
+                ? $row->frontchannel_logout_uri
+                : null,
+            'channels' => is_string($row->channels ?? null) && $row->channels !== '' ? $row->channels : 'backchannel',
+            'subject_id' => is_string($row->subject_id ?? null) && $row->subject_id !== '' ? $row->subject_id : null,
+            'scope' => is_string($row->scope ?? null) && $row->scope !== '' ? $row->scope : null,
+            'created_at' => is_string($row->created_at ?? null) ? $row->created_at : null,
+            'expires_at' => is_string($row->expires_at ?? null) ? $row->expires_at : null,
         ], static fn (mixed $value): bool => $value !== null);
     }
 
     /**
      * @param  array<string, mixed>  $metadata
      */
-    private function rememberSubjectSession(string $sessionId, array $metadata): void
+    private function expiresAt(array $metadata, CarbonImmutable $now): CarbonImmutable
     {
-        $subjectId = $this->stringValue($metadata, 'subject_id');
-        if ($subjectId === null) {
-            return;
+        $value = $metadata['expires_at'] ?? null;
+
+        if (is_string($value) && $value !== '') {
+            try {
+                return CarbonImmutable::parse($value);
+            } catch (\Throwable) {
+                // fall through to default below
+            }
         }
 
-        $sessions = $this->sessionIdsForSubject($subjectId);
-        in_array($sessionId, $sessions, true) || $sessions[] = $sessionId;
-
-        $this->cache->put($this->subjectKey($subjectId), $sessions, now()->addDays($this->ttlDays()));
+        return $now->addDays($this->ttlDays());
     }
 
     /**
-     * @param  list<array<string, mixed>>  $registrations
+     * @param  array<string, mixed>  $metadata
      */
-    private function removeSubjectSessions(string $sessionId, array $registrations): void
+    private function channels(array $metadata): string
     {
-        foreach ($this->subjectIds($registrations) as $subjectId) {
-            $sessions = array_values(array_diff($this->sessionIdsForSubject($subjectId), [$sessionId]));
-            $sessions === []
-                ? $this->cache->forget($this->subjectKey($subjectId))
-                : $this->cache->put($this->subjectKey($subjectId), $sessions, now()->addDays($this->ttlDays()));
+        $value = $metadata['channels'] ?? null;
+
+        if (is_string($value) && $value !== '') {
+            return $value;
         }
+
+        if (is_array($value)) {
+            $filtered = array_values(array_filter($value, static fn (mixed $entry): bool => is_string($entry) && $entry !== ''));
+            if ($filtered !== []) {
+                return implode(',', $filtered);
+            }
+        }
+
+        return 'backchannel';
     }
 
     /**
-     * @param  list<array<string, mixed>>  $registrations
+     * @param  list<array<string, mixed>>  $rows
      * @return list<string>
      */
-    private function subjectIds(array $registrations): array
+    private function subjectIds(array $rows): array
     {
         return array_values(array_unique(array_filter(array_map(
-            fn (array $registration): ?string => $this->stringValue($registration, 'subject_id'),
-            $registrations,
+            fn (array $row): ?string => $this->stringValue($row, 'subject_id'),
+            $rows,
         ))));
     }
 

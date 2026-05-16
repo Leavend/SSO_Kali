@@ -14,6 +14,7 @@ function resetOidcUnitTables(): void
 
     DB::table('login_contexts')->delete();
     DB::table('refresh_token_rotations')->delete();
+    DB::table('oidc_rp_sessions')->delete();
     DB::table('users')->delete();
 }
 
@@ -40,6 +41,34 @@ function ensureOidcUnitTables(): void
     ensureLoginContextsTable();
     ensureRefreshTokensTable();
     ensureAuthorizationCodesTable();
+    ensureRpSessionsTable();
+}
+
+function ensureRpSessionsTable(): void
+{
+    if (Schema::hasTable('oidc_rp_sessions')) {
+        return;
+    }
+
+    Schema::create('oidc_rp_sessions', function (Blueprint $table): void {
+        $table->bigIncrements('id');
+        $table->string('sid', 191);
+        $table->string('client_id', 191);
+        $table->string('subject_id', 191)->nullable();
+        $table->text('backchannel_logout_uri')->nullable();
+        $table->text('frontchannel_logout_uri')->nullable();
+        $table->string('channels', 32)->default('backchannel');
+        $table->string('scope', 1024)->nullable();
+        $table->timestamp('created_at')->useCurrent();
+        $table->timestamp('last_seen_at')->useCurrent();
+        $table->timestamp('expires_at')->nullable();
+        $table->timestamp('revoked_at')->nullable();
+
+        $table->unique(['sid', 'client_id'], 'oidc_rp_sessions_sid_client_unique');
+        $table->index('subject_id', 'oidc_rp_sessions_subject_idx');
+        $table->index('client_id', 'oidc_rp_sessions_client_idx');
+        $table->index(['sid', 'revoked_at'], 'oidc_rp_sessions_sid_active_idx');
+    });
 }
 
 function ensureAuthorizationCodesTable(): void
