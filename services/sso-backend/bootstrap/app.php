@@ -92,6 +92,8 @@ return Application::configure(basePath: dirname(__DIR__))
             // handshake via apiClient, not the default form CSRF field.
             'api/auth/login',
             'api/auth/logout',
+            'api/auth/password-reset',
+            'api/auth/password-reset/confirm',
             'api/auth/register',
             'api/profile/sessions',
             'api/profile/sessions/*',

@@ -6,7 +6,11 @@
 
 import { apiClient } from '@/lib/api/api-client'
 import type {
+  ChangePasswordPayload,
+  ChangePasswordResponse,
   ConnectedApp,
+  CreateDataSubjectRequestPayload,
+  DataSubjectRequestSummary,
   ProfilePortal,
   ProfileUpdatePayload,
   RevokeAllSessionsResponse,
@@ -55,15 +59,19 @@ export const profileApi = {
   changePassword(payload: ChangePasswordPayload): Promise<ChangePasswordResponse> {
     return apiClient.post<ChangePasswordResponse>('/api/profile/change-password', payload)
   },
-}
-
-export type ChangePasswordPayload = {
-  readonly current_password: string
-  readonly new_password: string
-  readonly new_password_confirmation: string
-}
-
-export type ChangePasswordResponse = {
-  readonly message: string
-  readonly changed_at: string
+  async getDataSubjectRequests(): Promise<readonly DataSubjectRequestSummary[]> {
+    const data = await apiClient.get<{ requests: DataSubjectRequestSummary[] }>(
+      '/api/profile/data-subject-requests',
+    )
+    return data.requests
+  },
+  async createDataSubjectRequest(
+    payload: CreateDataSubjectRequestPayload,
+  ): Promise<DataSubjectRequestSummary> {
+    const data = await apiClient.post<{ request: DataSubjectRequestSummary }>(
+      '/api/profile/data-subject-requests',
+      payload,
+    )
+    return data.request
+  },
 }

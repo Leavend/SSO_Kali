@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\LogoutController;
+use App\Http\Controllers\Auth\PasswordResetConfirmController;
+use App\Http\Controllers\Auth\PasswordResetRequestController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\SessionController;
 use App\Http\Controllers\Mfa\MfaChallengeController;
@@ -41,6 +43,8 @@ Route::prefix('api/auth')->group(function (): void {
     Route::get('/session', SessionController::class)->middleware('throttle:oidc-resource');
     Route::post('/login', LoginController::class)->middleware('throttle:oidc-callback');
     Route::post('/logout', LogoutController::class)->middleware('throttle:oidc-callback');
+    Route::post('/password-reset', PasswordResetRequestController::class)->middleware('throttle:oidc-callback');
+    Route::post('/password-reset/confirm', PasswordResetConfirmController::class)->middleware('throttle:oidc-callback');
     Route::post('/register', RegisterController::class)->middleware('throttle:oidc-callback');
 });
 

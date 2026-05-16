@@ -78,3 +78,34 @@ export type RevokeConnectedAppResponse = {
   readonly revoked: true
   readonly revoked_refresh_tokens: number
 }
+
+export type ChangePasswordPayload = {
+  readonly current_password: string
+  readonly new_password: string
+  readonly new_password_confirmation: string
+}
+
+export type ChangePasswordResponse = {
+  readonly message: string
+  readonly changed_at: string
+  readonly other_sessions_revoked: boolean
+}
+
+export type DataSubjectRequestType = 'export' | 'delete' | 'anonymize'
+export type DataSubjectRequestStatus = 'submitted' | 'approved' | 'rejected' | 'fulfilled'
+
+export type DataSubjectRequestSummary = {
+  readonly request_id: string
+  readonly type: DataSubjectRequestType
+  readonly status: DataSubjectRequestStatus
+  readonly reason: string | null
+  readonly submitted_at: string
+  readonly reviewed_at: string | null
+  readonly fulfilled_at: string | null
+  readonly sla_due_at: string
+}
+
+export type CreateDataSubjectRequestPayload = {
+  readonly type: DataSubjectRequestType
+  readonly reason?: string | null
+}

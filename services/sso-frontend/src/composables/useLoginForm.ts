@@ -31,7 +31,7 @@ const RATE_LIMIT_MESSAGE = 'Terlalu banyak percobaan login. Coba lagi dalam {sec
 const PASSWORD_EXPIRED_MESSAGE =
   'Password kamu telah kedaluwarsa. Ubah password sebelum melanjutkan login.'
 const PASSWORD_EXPIRED_CTA_LABEL = 'Ubah Password'
-const PASSWORD_EXPIRED_CTA_HREF = '/profile/security'
+const PASSWORD_EXPIRED_CTA_HREF = '/security'
 const MFA_REENROLL_MESSAGE =
   'Akun kamu telah direset oleh admin. Aktifkan kembali autentikasi multi-faktor (MFA) sebelum melanjutkan.'
 

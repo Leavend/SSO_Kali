@@ -14,10 +14,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
+import SsoAlertBanner from '@/components/molecules/SsoAlertBanner.vue'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useProfileStore } from '@/stores/profile.store'
-import { isValidationError } from '@/lib/api/api-error'
-import type { ApiError } from '@/lib/api/api-error'
+import { presentSafeError, validationErrors } from '@/lib/api/safe-error-presenter'
 
 const profile = useProfileStore()
 
@@ -29,22 +29,18 @@ const form = reactive({
 
 const load = useAsyncAction(() => profile.loadProfile())
 const save = useAsyncAction(() => profile.updateProfile({ ...form }))
+const fieldErrors = computed<Record<string, string>>(() => validationErrors(save.error.value))
+const safeLoadError = computed<string | null>(() => load.error.value ? presentSafeError(load.error.value).message : null)
+const safeSaveError = computed<string | null>(() => save.error.value ? presentSafeError(save.error.value).message : null)
+const accountSummary = computed(() => profile.profile?.profile)
 
-/** Field-level validation errors from ApiError violations (UC-25). */
-const fieldErrors = computed<Record<string, string>>(() => {
-  const err = save.error.value
-  if (!err || !isValidationError(err)) return {}
-  return (err as ApiError).violationsByField()
-})
-
-/** Dirty tracking — disable submit if nothing changed. */
 const isDirty = computed<boolean>(() => {
-  const p = profile.profile?.profile
-  if (!p) return false
+  const current = accountSummary.value
+  if (!current) return false
   return (
-    form.display_name !== (p.display_name ?? '') ||
-    form.given_name !== (p.given_name ?? '') ||
-    form.family_name !== (p.family_name ?? '')
+    form.display_name !== (current.display_name ?? '') ||
+    form.given_name !== (current.given_name ?? '') ||
+    form.family_name !== (current.family_name ?? '')
   )
 })
 
@@ -62,6 +58,10 @@ watch(
   },
   { immediate: true },
 )
+
+function formatOptionalDate(value: string | null | undefined): string {
+  return value ? new Date(value).toLocaleString('id-ID') : 'Belum tersedia'
+}
 </script>
 
 <template>
@@ -69,15 +69,17 @@ watch(
     <header class="flex flex-col gap-1">
       <h1 class="text-2xl font-bold tracking-tight">Profil</h1>
       <p class="text-muted-foreground text-sm">
-        Kelola informasi akun SSO-mu. Data ini dipakai seluruh aplikasi yang terhubung.
+        Kelola informasi akun minimum yang boleh ditampilkan di portal SSO.
       </p>
     </header>
+
+    <SsoAlertBanner v-if="safeLoadError" tone="error" :message="safeLoadError" />
 
     <div class="grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
       <Card>
         <CardHeader>
           <CardTitle>Ringkasan Akun</CardTitle>
-          <CardDescription>Informasi dasar dari identity provider.</CardDescription>
+          <CardDescription>Hanya field minimum yang disetujui untuk portal pengguna.</CardDescription>
         </CardHeader>
         <CardContent>
           <div v-if="load.pending.value" class="grid gap-3">
@@ -85,35 +87,25 @@ watch(
             <Skeleton class="h-4 w-full" />
             <Skeleton class="h-4 w-1/2" />
           </div>
-          <dl v-else class="grid gap-3 text-sm">
+          <dl v-else class="grid gap-3 text-sm" data-testid="profile-approved-fields">
             <div class="grid gap-1">
-              <dt class="text-muted-foreground text-xs uppercase tracking-wide">Subject ID</dt>
-              <dd class="font-mono text-xs">{{ profile.profile?.profile.subject_id ?? '—' }}</dd>
+              <dt class="text-muted-foreground text-xs uppercase tracking-wide">Nama Tampilan</dt>
+              <dd>{{ accountSummary?.display_name ?? 'Belum tersedia' }}</dd>
             </div>
             <Separator />
             <div class="grid gap-1">
               <dt class="text-muted-foreground text-xs uppercase tracking-wide">Email</dt>
-              <dd>{{ profile.profile?.profile.email ?? '—' }}</dd>
+              <dd>{{ accountSummary?.email ?? 'Belum tersedia' }}</dd>
             </div>
             <Separator />
             <div class="grid gap-1">
               <dt class="text-muted-foreground text-xs uppercase tracking-wide">Status</dt>
-              <dd>
-                <Badge variant="secondary">
-                  {{ profile.profile?.profile.status ?? 'unknown' }}
-                </Badge>
-              </dd>
+              <dd><Badge variant="secondary">{{ accountSummary?.status ?? 'unknown' }}</Badge></dd>
             </div>
             <Separator />
             <div class="grid gap-1">
               <dt class="text-muted-foreground text-xs uppercase tracking-wide">Login Terakhir</dt>
-              <dd>
-                {{
-                  profile.profile?.profile.last_login_at
-                    ? new Date(profile.profile.profile.last_login_at).toLocaleString('id-ID')
-                    : '—'
-                }}
-              </dd>
+              <dd>{{ formatOptionalDate(accountSummary?.last_login_at) }}</dd>
             </div>
           </dl>
         </CardContent>
@@ -122,7 +114,7 @@ watch(
       <Card>
         <CardHeader>
           <CardTitle>Perbarui Profil</CardTitle>
-          <CardDescription>Perubahan tersinkron ke seluruh aplikasi terhubung.</CardDescription>
+          <CardDescription>Perubahan terbatas pada nama; email dan identifier tidak dapat diubah dari portal.</CardDescription>
         </CardHeader>
         <CardContent>
           <form class="grid gap-4" novalidate @submit.prevent="save.run()">
@@ -136,55 +128,23 @@ watch(
                 :disabled="load.pending.value || save.pending.value"
                 :class="fieldErrors['display_name'] ? 'border-destructive' : ''"
               />
-              <span v-if="fieldErrors['display_name']" class="text-destructive text-xs">
-                {{ fieldErrors['display_name'] }}
-              </span>
+              <span v-if="fieldErrors['display_name']" class="text-destructive text-xs">{{ fieldErrors['display_name'] }}</span>
             </div>
             <div class="grid gap-4 sm:grid-cols-2">
               <div class="grid gap-2">
                 <Label for="profile-given-name">Nama depan</Label>
-                <Input
-                  id="profile-given-name"
-                  v-model="form.given_name"
-                  type="text"
-                  autocomplete="given-name"
-                  :disabled="load.pending.value || save.pending.value"
-                  :class="fieldErrors['given_name'] ? 'border-destructive' : ''"
-                />
-                <span v-if="fieldErrors['given_name']" class="text-destructive text-xs">
-                  {{ fieldErrors['given_name'] }}
-                </span>
+                <Input id="profile-given-name" v-model="form.given_name" type="text" autocomplete="given-name" :disabled="load.pending.value || save.pending.value" />
+                <span v-if="fieldErrors['given_name']" class="text-destructive text-xs">{{ fieldErrors['given_name'] }}</span>
               </div>
               <div class="grid gap-2">
                 <Label for="profile-family-name">Nama belakang</Label>
-                <Input
-                  id="profile-family-name"
-                  v-model="form.family_name"
-                  type="text"
-                  autocomplete="family-name"
-                  :disabled="load.pending.value || save.pending.value"
-                  :class="fieldErrors['family_name'] ? 'border-destructive' : ''"
-                />
-                <span v-if="fieldErrors['family_name']" class="text-destructive text-xs">
-                  {{ fieldErrors['family_name'] }}
-                </span>
+                <Input id="profile-family-name" v-model="form.family_name" type="text" autocomplete="family-name" :disabled="load.pending.value || save.pending.value" />
+                <span v-if="fieldErrors['family_name']" class="text-destructive text-xs">{{ fieldErrors['family_name'] }}</span>
               </div>
             </div>
 
-            <p
-              v-if="save.error.value"
-              role="alert"
-              class="border-destructive/40 bg-destructive/10 text-destructive rounded-md border px-3 py-2 text-sm"
-            >
-              {{ save.error.value.message }}
-            </p>
-            <p
-              v-else-if="save.lastResult.value && !isDirty"
-              class="border-primary/40 bg-primary/10 text-primary rounded-md border px-3 py-2 text-sm"
-              role="status"
-            >
-              Profil berhasil diperbarui.
-            </p>
+            <SsoAlertBanner v-if="safeSaveError" tone="error" :message="safeSaveError" />
+            <SsoAlertBanner v-else-if="save.lastResult.value && !isDirty" tone="success" message="Profil berhasil diperbarui." />
 
             <div class="flex justify-end">
               <Button type="submit" :disabled="save.pending.value || !isDirty">

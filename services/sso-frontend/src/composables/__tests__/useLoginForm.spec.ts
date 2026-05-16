@@ -290,7 +290,7 @@ describe('useLoginForm', () => {
     expect(login.bannerError.value).not.toContain('backend trace')
     expect(login.advisoryAction.value).toEqual({
       label: 'Ubah Password',
-      href: '/profile/security',
+      href: '/security',
     })
   })
 })

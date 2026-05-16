@@ -65,6 +65,12 @@ return [
     'audit' => [
         'authentication_retention_days' => (int) env('SSO_AUTHENTICATION_AUDIT_RETENTION_DAYS', 400),
     ],
+    'auth' => [
+        'max_login_attempts' => (int) env('SSO_AUTH_MAX_LOGIN_ATTEMPTS', 5),
+        'login_lockout_seconds' => (int) env('SSO_AUTH_LOGIN_LOCKOUT_SECONDS', 900),
+        'password_max_age_days' => (int) env('SSO_AUTH_PASSWORD_MAX_AGE_DAYS', 90),
+        'password_reset_ttl_minutes' => (int) env('SSO_AUTH_PASSWORD_RESET_TTL_MINUTES', 30),
+    ],
     'seed' => [
         'admin_email' => env('SSO_ADMIN_EMAIL', 'admin@example.test'),
         'admin_password' => env('SSO_ADMIN_PASSWORD', 'change-me-admin-password'),

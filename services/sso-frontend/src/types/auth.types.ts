@@ -78,3 +78,24 @@ export type SsoLoginPayload = {
   readonly password: string
   readonly auth_request_id?: string | null
 }
+
+export type PasswordResetRequestPayload = {
+  readonly email: string
+}
+
+export type PasswordResetRequestResponse = {
+  readonly message: string
+  readonly sent: true
+}
+
+export type PasswordResetConfirmPayload = {
+  readonly email: string
+  readonly token: string
+  readonly password: string
+  readonly password_confirmation: string
+}
+
+export type PasswordResetConfirmResponse = {
+  readonly message: string
+  readonly sessions_revoked: boolean
+}

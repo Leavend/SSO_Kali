@@ -7,7 +7,7 @@
  */
 
 import { ref } from 'vue'
-import { Activity, AppWindow, Home, Menu, ShieldCheck, UserRound, X } from 'lucide-vue-next'
+import { Activity, AppWindow, Home, Menu, ScrollText, ShieldCheck, UserRound, X } from 'lucide-vue-next'
 import { RouterLink } from 'vue-router'
 import AppBrandMark from '@/components/atoms/AppBrandMark.vue'
 import ThemeToggleButton from '@/components/atoms/ThemeToggleButton.vue'
@@ -20,6 +20,7 @@ const navItems = [
   { to: '/apps', label: 'Aplikasi', icon: AppWindow },
   { to: '/sessions', label: 'Sesi Aktif', icon: Activity },
   { to: '/security', label: 'Keamanan', icon: ShieldCheck },
+  { to: '/privacy', label: 'Privasi', icon: ScrollText },
 ]
 
 const mobileMenuOpen = ref<boolean>(false)

@@ -6,6 +6,10 @@
 
 import { apiClient } from '@/lib/api/api-client'
 import type {
+  PasswordResetConfirmPayload,
+  PasswordResetConfirmResponse,
+  PasswordResetRequestPayload,
+  PasswordResetRequestResponse,
   SsoLoginPayload,
   SsoLoginResponse,
   SsoLogoutResponse,
@@ -21,5 +25,11 @@ export const authApi = {
   },
   logout(): Promise<SsoLogoutResponse> {
     return apiClient.post<SsoLogoutResponse>('/api/auth/logout')
+  },
+  requestPasswordReset(payload: PasswordResetRequestPayload): Promise<PasswordResetRequestResponse> {
+    return apiClient.post<PasswordResetRequestResponse>('/api/auth/password-reset', payload)
+  },
+  confirmPasswordReset(payload: PasswordResetConfirmPayload): Promise<PasswordResetConfirmResponse> {
+    return apiClient.post<PasswordResetConfirmResponse>('/api/auth/password-reset/confirm', payload)
   },
 }

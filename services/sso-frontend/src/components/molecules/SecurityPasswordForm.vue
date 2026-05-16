@@ -7,11 +7,12 @@ import { KeyRound } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import type { ChangePasswordPayload } from '@/services/profile.api'
+import type { ChangePasswordPayload } from '@/types/profile.types'
 
 interface Props {
   form: ChangePasswordPayload
-  errors: Record<string, string[]>
+  errors: Record<string, string>
+  strengthItems: readonly string[]
   isPending: boolean
 }
 
@@ -51,7 +52,7 @@ function handleCancel(): void {
         @update:model-value="updateField('current_password', $event)"
       />
       <p v-if="props.errors.current_password" class="text-destructive text-xs">
-        {{ props.errors.current_password[0] }}
+        {{ props.errors.current_password }}
       </p>
     </div>
 
@@ -64,11 +65,14 @@ function handleCancel(): void {
         autocomplete="new-password"
         class="h-10 py-2"
         required
-        minlength="8"
+        minlength="12"
         @update:model-value="updateField('new_password', $event)"
       />
       <p v-if="props.errors.new_password" class="text-destructive text-xs">
-        {{ props.errors.new_password[0] }}
+        {{ props.errors.new_password }}
+      </p>
+      <p class="text-muted-foreground text-xs leading-relaxed" aria-live="polite">
+        Kebutuhan tersisa: {{ props.strengthItems.length > 0 ? props.strengthItems.join(', ') : 'terpenuhi' }}.
       </p>
     </div>
 
@@ -83,13 +87,17 @@ function handleCancel(): void {
         autocomplete="new-password"
         class="h-10 py-2"
         required
-        minlength="8"
+        minlength="12"
         @update:model-value="updateField('new_password_confirmation', $event)"
       />
     </div>
 
+    <p v-if="props.errors.password_confirmation" class="text-destructive text-xs">
+      {{ props.errors.password_confirmation }}
+    </p>
+
     <p v-if="props.errors._general" class="text-destructive text-xs">
-      {{ props.errors._general[0] }}
+      {{ props.errors._general }}
     </p>
 
     <div data-testid="password-form-actions" class="flex flex-col gap-2 pt-1 sm:flex-row">

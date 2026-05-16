@@ -50,6 +50,18 @@ const routes: RouteRecordRaw[] = [
     meta: { layout: 'auth', title: 'Verifikasi MFA' },
   },
   {
+    path: '/auth/forgot-password',
+    name: 'auth.forgot-password',
+    component: () => import('@/pages/auth/ForgotPasswordPage.vue'),
+    meta: { layout: 'auth', requiresGuest: true, title: 'Reset Password' },
+  },
+  {
+    path: '/auth/reset-password',
+    name: 'auth.reset-password',
+    component: () => import('@/pages/auth/ResetPasswordPage.vue'),
+    meta: { layout: 'auth', requiresGuest: true, title: 'Password Baru' },
+  },
+  {
     path: '/home',
     name: 'portal.home',
     component: () => import('@/pages/portal/HomePage.vue'),
@@ -78,6 +90,16 @@ const routes: RouteRecordRaw[] = [
     name: 'portal.security',
     component: () => import('@/pages/portal/SecurityPage.vue'),
     meta: { layout: 'portal', requiresAuth: true, title: 'Keamanan' },
+  },
+  {
+    path: '/profile/security',
+    redirect: { name: 'portal.security' },
+  },
+  {
+    path: '/privacy',
+    name: 'portal.privacy',
+    component: () => import('@/pages/portal/PrivacyPage.vue'),
+    meta: { layout: 'portal', requiresAuth: true, title: 'Privasi & Data' },
   },
   {
     path: '/security/mfa',
