@@ -24,8 +24,13 @@ RUN npm run build
 FROM nginxinc/nginx-unprivileged:1.29-alpine AS runner
 WORKDIR /usr/share/nginx/html
 
+# Strip curl/libcurl from the static-asset runner: the image only serves the
+# pre-built dist/ over nginx and never makes outbound HTTP calls, so the
+# bundled curl is dead weight that keeps surfacing alpine high-severity CVEs
+# (CVE-2025-14017, CVE-2026-3805, ...) before alpine ships fixes upstream.
 USER root
-RUN apk upgrade --no-cache
+RUN apk upgrade --no-cache \
+    && apk del --no-cache curl libcurl 2>/dev/null || true
 USER 101
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
