@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
-import { AlertTriangle, KeyRound, Plus, RefreshCw, Save, Trash2 } from 'lucide-vue-next'
+import { AlertTriangle, KeyRound, Pause, Play, Plus, RefreshCw, Save, Tags, Trash2 } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -28,13 +28,25 @@ const draft = reactive({
   redirectUris: '',
 })
 
+const lifecycleDraft = reactive<Record<string, { reason: string; scopes: string }>>({})
+
 onMounted(loadClients)
+
+function ensureLifecycleDraft(clientId: string, scopes: readonly string[] | undefined): { reason: string; scopes: string } {
+  if (!lifecycleDraft[clientId]) {
+    lifecycleDraft[clientId] = { reason: '', scopes: (scopes ?? []).join(' ') }
+  }
+  return lifecycleDraft[clientId]
+}
 
 async function loadClients(): Promise<void> {
   loading.value = true
   errorMessage.value = ''
   try {
     clients.value = await adminClientsApi.list()
+    for (const client of clients.value) {
+      ensureLifecycleDraft(client.client_id, client.scopes)
+    }
   } catch {
     errorMessage.value = 'Daftar client tidak dapat dimuat. Silakan coba lagi.'
   } finally {
@@ -78,9 +90,46 @@ async function rotateSecret(client: AdminClient): Promise<void> {
 }
 
 async function decommissionClient(client: AdminClient): Promise<void> {
+  if (!window.confirm('Konfirmasi: dekomisioning akan mencabut semua token aktif client ini. Lanjutkan?')) return
   await clientAction(client.client_id, async () => {
     await adminClientsApi.decommission(client.client_id)
     successMessage.value = 'Client didekomisioning dan token terkait dicabut.'
+    await loadClients()
+  })
+}
+
+async function suspendClient(client: AdminClient): Promise<void> {
+  const draftEntry = ensureLifecycleDraft(client.client_id, client.scopes)
+  if (draftEntry.reason.trim().length < 5) {
+    errorMessage.value = 'Tulis alasan suspend minimal 5 karakter sebelum melanjutkan.'
+    return
+  }
+  if (!window.confirm('Konfirmasi: suspend akan mencabut token aktif dan menutup sesi RP.')) return
+  await clientAction(client.client_id, async () => {
+    const response = await adminClientsApi.suspend(client.client_id, draftEntry.reason.trim())
+    successMessage.value = formatLifecycleSummary('Client di-suspend.', response)
+    draftEntry.reason = ''
+    await loadClients()
+  })
+}
+
+async function activateClient(client: AdminClient): Promise<void> {
+  await clientAction(client.client_id, async () => {
+    await adminClientsApi.activate(client.client_id)
+    successMessage.value = 'Client diaktifkan kembali.'
+    await loadClients()
+  })
+}
+
+async function syncScopes(client: AdminClient): Promise<void> {
+  const draftEntry = ensureLifecycleDraft(client.client_id, client.scopes)
+  const scopes = draftEntry.scopes
+    .split(/\s+/u)
+    .map((scope) => scope.trim())
+    .filter((scope) => scope.length > 0)
+  await clientAction(client.client_id, async () => {
+    await adminClientsApi.syncScopes(client.client_id, scopes)
+    successMessage.value = 'Scope client diperbarui.'
     await loadClients()
   })
 }
@@ -109,6 +158,27 @@ function toDraft(): ClientDraft {
 function splitLines(value: string): readonly string[] {
   return value.split(/\n/u).map((item) => item.trim()).filter((item) => item.length > 0)
 }
+
+function formatLifecycleSummary(message: string, response: { tokens_revoked?: number; sessions_terminated?: number }): string {
+  const parts: string[] = [message]
+  if (typeof response.tokens_revoked === 'number') parts.push(`Token dicabut: ${response.tokens_revoked}.`)
+  if (typeof response.sessions_terminated === 'number') parts.push(`Sesi RP ditutup: ${response.sessions_terminated}.`)
+  return parts.join(' ')
+}
+
+function statusBadgeClass(client: AdminClient): string {
+  switch (client.status) {
+    case 'active':
+      return 'border-emerald-300 bg-emerald-50 text-emerald-700'
+    case 'disabled':
+    case 'suspended':
+      return 'border-amber-300 bg-amber-50 text-amber-700'
+    case 'decommissioned':
+      return 'border-rose-300 bg-rose-50 text-rose-700'
+    default:
+      return ''
+  }
+}
 </script>
 
 <template>
@@ -117,8 +187,8 @@ function splitLines(value: string): readonly string[] {
       <p class="text-muted-foreground text-xs font-semibold uppercase tracking-wide">Admin · Client Management</p>
       <h1 id="admin-clients-title" class="text-2xl font-bold tracking-tight">Manajemen Client OIDC</h1>
       <p class="text-muted-foreground max-w-2xl text-sm">
-        Lokasi UI admin client lifecycle untuk FR-006–FR-012: list, create, update,
-        rotate secret, suspend/decommission. Route ini dilindungi role admin.
+        UI admin client lifecycle untuk FR-006–FR-012 dan FR-054: list, create, update,
+        rotate secret, suspend, activate, edit scope, decommission. Route ini dilindungi role admin.
       </p>
     </header>
 
@@ -189,9 +259,17 @@ function splitLines(value: string): readonly string[] {
               <CardTitle>{{ client.client_id }}</CardTitle>
               <CardDescription>{{ client.type }}</CardDescription>
             </div>
-            <span class="rounded-full border px-2 py-1 text-xs">
-              {{ client.backchannel_logout_internal ? 'Internal logout' : 'External logout' }}
-            </span>
+            <div class="flex flex-wrap items-center gap-2">
+              <span
+                v-if="client.status"
+                :class="['rounded-full border px-2 py-1 text-xs font-medium capitalize', statusBadgeClass(client)]"
+              >
+                {{ client.status }}
+              </span>
+              <span class="rounded-full border px-2 py-1 text-xs">
+                {{ client.backchannel_logout_internal ? 'Internal logout' : 'External logout' }}
+              </span>
+            </div>
           </div>
         </CardHeader>
         <CardContent class="grid gap-4">
@@ -203,14 +281,69 @@ function splitLines(value: string): readonly string[] {
               </li>
             </ul>
           </div>
+          <div class="grid gap-2">
+            <label class="grid gap-1 text-sm">
+              Scope OIDC (pisahkan dengan spasi)
+              <input
+                v-model="ensureLifecycleDraft(client.client_id, client.scopes).scopes"
+                class="rounded-md border px-3 py-2 font-mono text-xs"
+                aria-describedby="scopes-help"
+                placeholder="openid profile email"
+              />
+            </label>
+            <p id="scopes-help" class="text-muted-foreground text-xs">
+              Perubahan scope berlaku ke client_credentials, refresh_token rotation berikutnya, dan UserInfo claims.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              class="w-fit"
+              :disabled="busyClient === client.client_id"
+              @click="syncScopes(client)"
+            >
+              <Tags class="size-4" aria-hidden="true" />
+              Update Scope
+            </Button>
+          </div>
+          <div class="grid gap-2">
+            <label class="grid gap-1 text-sm">
+              Alasan Suspend
+              <input
+                v-model="ensureLifecycleDraft(client.client_id, client.scopes).reason"
+                class="rounded-md border px-3 py-2"
+                placeholder="Investigasi insiden #123"
+              />
+            </label>
+            <p class="text-muted-foreground text-xs">
+              Suspend memutus token aktif dan sesi RP yang sudah login. Aktivasi kembali dapat dilakukan setelah validasi.
+            </p>
+          </div>
           <div class="flex flex-wrap gap-2">
             <Button variant="outline" :disabled="busyClient === client.client_id" @click="updateClient(client)">
               <Save class="size-4" aria-hidden="true" />
-              Update
+              Update Redirect
             </Button>
             <Button variant="outline" :disabled="busyClient === client.client_id" @click="rotateSecret(client)">
               <KeyRound class="size-4" aria-hidden="true" />
               Rotate Secret
+            </Button>
+            <Button
+              v-if="client.status !== 'disabled' && client.status !== 'suspended'"
+              variant="outline"
+              :disabled="busyClient === client.client_id"
+              @click="suspendClient(client)"
+            >
+              <Pause class="size-4" aria-hidden="true" />
+              Suspend
+            </Button>
+            <Button
+              v-else
+              variant="outline"
+              :disabled="busyClient === client.client_id"
+              @click="activateClient(client)"
+            >
+              <Play class="size-4" aria-hidden="true" />
+              Aktifkan Kembali
             </Button>
             <Button variant="destructive" :disabled="busyClient === client.client_id" @click="decommissionClient(client)">
               <Trash2 class="size-4" aria-hidden="true" />

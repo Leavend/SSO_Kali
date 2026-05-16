@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\DataSubject\DataSubjectRequestController;
+use App\Http\Controllers\ExternalIdp\StartExternalIdpAuthenticationController;
 use App\Http\Controllers\Oidc\AuthorizeController;
 use App\Http\Controllers\Oidc\ConsentController;
 use App\Http\Controllers\Oidc\LocalLoginController;
@@ -54,3 +55,11 @@ Route::delete('/api/profile/sessions/{sessionId}', [ProfileController::class, 'r
 // --- Data Subject Rights (FR-049) ---
 Route::get('/api/profile/data-subject-requests', [DataSubjectRequestController::class, 'index'])->middleware('throttle:profile-api');
 Route::post('/api/profile/data-subject-requests', [DataSubjectRequestController::class, 'store'])->middleware('throttle:profile-api');
+
+// FR-057 / BE-FR057-001 — public federation start route. Disabled by default;
+// flip via `SSO_EXTERNAL_IDP_PUBLIC_START_ENABLED=true` once an external IdP
+// is configured. The controller falls back to the SSO login page on misconfig
+// to keep error states user-safe.
+Route::get('/external-idp/start/{providerKey}', StartExternalIdpAuthenticationController::class)
+    ->where('providerKey', '[a-z0-9_-]+')
+    ->middleware('throttle:oidc-authorize');

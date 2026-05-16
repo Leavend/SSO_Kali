@@ -10,8 +10,10 @@ use App\Http\Controllers\Admin\ClientIntegrationController;
 use App\Http\Controllers\Admin\DashboardSummaryController;
 use App\Http\Controllers\Admin\DataSubjectRequestAdminController;
 use App\Http\Controllers\Admin\ExternalIdentityProviderController;
+use App\Http\Controllers\Admin\ExternalIdentityProviderMappingPreviewController;
 use App\Http\Controllers\Admin\PrincipalController;
 use App\Http\Controllers\Admin\RoleController;
+use App\Http\Controllers\Admin\SecurityPolicyController;
 use App\Http\Controllers\Admin\SessionController;
 use App\Http\Controllers\Admin\SsoErrorTemplateController;
 use App\Http\Controllers\Admin\UserController;
@@ -152,6 +154,40 @@ Route::middleware([AdminGuard::class, EnsureAdminMfaEnrolled::class])->prefix('a
 
     Route::middleware([
         'throttle:admin-read',
+        RequireAdminPermission::class.':'.AdminPermission::SECURITY_POLICY_READ,
+        EnsureFreshAdminAuth::class.':read',
+        EnsureAdminMfaAssurance::class,
+    ])->group(function (): void {
+        Route::get('/security-policies/{category}', [SecurityPolicyController::class, 'index'])
+            ->where('category', '[a-z_]+');
+    });
+
+    Route::middleware([
+        'throttle:admin-write',
+        RequireAdminPermission::class.':'.AdminPermission::SECURITY_POLICY_WRITE,
+        EnsureFreshAdminAuth::class.':step_up',
+        EnsureAdminMfaAssurance::class,
+    ])->group(function (): void {
+        Route::post('/security-policies/{category}', [SecurityPolicyController::class, 'store'])
+            ->where('category', '[a-z_]+');
+    });
+
+    Route::middleware([
+        'throttle:admin-write',
+        RequireAdminPermission::class.':'.AdminPermission::SECURITY_POLICY_ACTIVATE,
+        EnsureFreshAdminAuth::class.':step_up',
+        EnsureAdminMfaAssurance::class,
+    ])->group(function (): void {
+        Route::post('/security-policies/{category}/{version}/activate', [SecurityPolicyController::class, 'activate'])
+            ->where('category', '[a-z_]+')
+            ->where('version', '[0-9]+');
+        Route::post('/security-policies/{category}/{version}/rollback', [SecurityPolicyController::class, 'rollback'])
+            ->where('category', '[a-z_]+')
+            ->where('version', '[0-9]+');
+    });
+
+    Route::middleware([
+        'throttle:admin-read',
         RequireAdminPermission::class.':'.AdminPermission::ROLES_READ,
         EnsureFreshAdminAuth::class.':read',
         EnsureAdminMfaAssurance::class,
@@ -218,6 +254,8 @@ Route::middleware([AdminGuard::class, EnsureAdminMfaEnrolled::class])->prefix('a
     ])->group(function (): void {
         Route::post('/external-idps', [ExternalIdentityProviderController::class, 'store']);
         Route::patch('/external-idps/{providerKey}', [ExternalIdentityProviderController::class, 'update'])
+            ->where('providerKey', '[a-z0-9_-]+');
+        Route::post('/external-idps/{providerKey}/mapping-preview', ExternalIdentityProviderMappingPreviewController::class)
             ->where('providerKey', '[a-z0-9_-]+');
     });
 

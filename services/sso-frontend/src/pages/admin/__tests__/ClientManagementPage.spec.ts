@@ -1,5 +1,5 @@
 import { mount } from '@vue/test-utils'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import ClientManagementPage from '../ClientManagementPage.vue'
 
 const client = {
@@ -8,7 +8,13 @@ const client = {
   redirect_uris: ['https://customer.example.com/callback'],
   backchannel_logout_uri: 'https://customer.example.com/logout',
   backchannel_logout_internal: false,
+  status: 'active',
+  scopes: ['openid', 'profile', 'email'],
 }
+
+beforeEach(() => {
+  vi.spyOn(window, 'confirm').mockReturnValue(true)
+})
 
 afterEach(() => {
   vi.restoreAllMocks()
@@ -54,7 +60,7 @@ describe('ClientManagementPage', () => {
     const wrapper = mount(ClientManagementPage)
     await flushPromises()
 
-    await wrapper.findAll('button').find((button) => button.text().includes('Update'))?.trigger('click')
+    await wrapper.findAll('button').find((button) => button.text().includes('Update Redirect'))?.trigger('click')
     await flushPromises()
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/admin/clients/customer-portal',
@@ -77,6 +83,62 @@ describe('ClientManagementPage', () => {
     )
   })
 
+  it('suspends an active client and reports revocation impact', async () => {
+    const fetchMock = mockFetch()
+    const wrapper = mount(ClientManagementPage)
+    await flushPromises()
+
+    const reasonInput = wrapper.find('input[placeholder="Investigasi insiden #123"]')
+    await reasonInput.setValue('Investigasi insiden 4242')
+
+    await wrapper.findAll('button').find((button) => button.text().includes('Suspend'))?.trigger('click')
+    await flushPromises()
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/admin/client-integrations/customer-portal/disable',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ reason: 'Investigasi insiden 4242' }),
+      }),
+    )
+    expect(wrapper.text()).toContain('Token dicabut: 12.')
+    expect(wrapper.text()).toContain('Sesi RP ditutup: 4.')
+  })
+
+  it('reactivates a suspended client', async () => {
+    const fetchMock = mockFetch({ clientOverride: { ...client, status: 'disabled' } })
+    const wrapper = mount(ClientManagementPage)
+    await flushPromises()
+
+    await wrapper.findAll('button').find((button) => button.text().includes('Aktifkan Kembali'))?.trigger('click')
+    await flushPromises()
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/admin/client-integrations/customer-portal/activate',
+      expect.objectContaining({ method: 'POST' }),
+    )
+  })
+
+  it('synchronizes scope policy through the admin scope endpoint', async () => {
+    const fetchMock = mockFetch()
+    const wrapper = mount(ClientManagementPage)
+    await flushPromises()
+
+    const scopeInput = wrapper.find('input[placeholder="openid profile email"]')
+    await scopeInput.setValue('openid profile email offline_access')
+
+    await wrapper.findAll('button').find((button) => button.text().includes('Update Scope'))?.trigger('click')
+    await flushPromises()
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/admin/clients/customer-portal/scopes',
+      expect.objectContaining({
+        method: 'PUT',
+        body: JSON.stringify({ scopes: ['openid', 'profile', 'email', 'offline_access'] }),
+      }),
+    )
+  })
+
   it('shows localized safe copy when admin API fails', async () => {
     mockFetch({ listStatus: 500 })
     const wrapper = mount(ClientManagementPage)
@@ -87,13 +149,14 @@ describe('ClientManagementPage', () => {
   })
 })
 
-function mockFetch(options: { readonly listStatus?: number } = {}) {
+function mockFetch(options: { readonly listStatus?: number; readonly clientOverride?: typeof client } = {}) {
+  const responseClient = options.clientOverride ?? client
   const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
     const url = String(input)
     const method = init?.method ?? 'GET'
 
     if (url === '/api/admin/clients' && method === 'GET') {
-      return jsonResponse({ clients: [client] }, options.listStatus ?? 200)
+      return jsonResponse({ clients: [responseClient] }, options.listStatus ?? 200)
     }
 
     if (url === '/api/admin/client-integrations/stage' && method === 'POST') {
@@ -101,7 +164,7 @@ function mockFetch(options: { readonly listStatus?: number } = {}) {
     }
 
     if (url === '/api/admin/clients/customer-portal' && method === 'PATCH') {
-      return jsonResponse(client)
+      return jsonResponse(responseClient)
     }
 
     if (url === '/api/admin/clients/customer-portal/rotate-secret' && method === 'POST') {
@@ -110,6 +173,22 @@ function mockFetch(options: { readonly listStatus?: number } = {}) {
 
     if (url === '/api/admin/clients/customer-portal' && method === 'DELETE') {
       return jsonResponse({}, 204)
+    }
+
+    if (url === '/api/admin/client-integrations/customer-portal/disable' && method === 'POST') {
+      return jsonResponse({
+        registration: { client_id: 'customer-portal', status: 'disabled' },
+        tokens_revoked: 12,
+        sessions_terminated: 4,
+      })
+    }
+
+    if (url === '/api/admin/client-integrations/customer-portal/activate' && method === 'POST') {
+      return jsonResponse({ registration: { client_id: 'customer-portal', status: 'active' } })
+    }
+
+    if (url === '/api/admin/clients/customer-portal/scopes' && method === 'PUT') {
+      return jsonResponse({ client_id: 'customer-portal', scopes: ['openid', 'profile', 'email', 'offline_access'] })
     }
 
     return jsonResponse({ message: 'stack trace' }, 500)

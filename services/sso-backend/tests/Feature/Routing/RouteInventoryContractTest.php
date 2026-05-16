@@ -8,8 +8,8 @@ use Illuminate\Support\Facades\Route as RouteFacade;
 it('keeps the production route inventory intentional', function (): void {
     $routes = collect(RouteFacade::getRoutes()->getRoutes());
 
-    expect($routes)->toHaveCount(113);
-    expect(applicationRoutes($routes))->toHaveCount(101);
+    expect($routes)->toHaveCount(119);
+    expect(applicationRoutes($routes))->toHaveCount(107);
     expect(vendorRoutes($routes))->toHaveCount(12);
 });
 
@@ -68,6 +68,10 @@ function routeCategory(Route $route): string
         return 'logout';
     }
 
+    if (str_starts_with($uri, 'external-idp/')) {
+        return 'federation';
+    }
+
     if (str_starts_with($uri, 'api/auth') || str_starts_with($uri, 'api/profile') || str_starts_with($uri, 'api/mfa') || $uri === 'login') {
         return 'auth';
     }
@@ -121,6 +125,7 @@ function expectedApplicationRouteSignatures(): array
         'POST admin/api/external-idps',
         'GET|HEAD admin/api/external-idps/{providerKey}',
         'PATCH admin/api/external-idps/{providerKey}',
+        'POST admin/api/external-idps/{providerKey}/mapping-preview',
         'DELETE admin/api/external-idps/{providerKey}',
         'GET|HEAD admin/api/me',
         'GET|HEAD admin/api/permissions',
@@ -130,6 +135,10 @@ function expectedApplicationRouteSignatures(): array
         'DELETE admin/api/roles/{role}',
         'PUT admin/api/roles/{role}/permissions',
         'GET|HEAD admin/api/scopes',
+        'GET|HEAD admin/api/security-policies/{category}',
+        'POST admin/api/security-policies/{category}',
+        'POST admin/api/security-policies/{category}/{version}/activate',
+        'POST admin/api/security-policies/{category}/{version}/rollback',
         'GET|HEAD admin/api/sessions',
         'GET|HEAD admin/api/sessions/{sessionId}',
         'DELETE admin/api/sessions/{sessionId}',
@@ -178,6 +187,7 @@ function expectedApplicationRouteSignatures(): array
         'GET|POST|HEAD connect/logout',
         'GET|HEAD connect/logout/frontchannel',
         'POST connect/register-session',
+        'GET|HEAD external-idp/start/{providerKey}',
         'POST introspect',
         'GET|HEAD health',
         'GET|HEAD jwks',

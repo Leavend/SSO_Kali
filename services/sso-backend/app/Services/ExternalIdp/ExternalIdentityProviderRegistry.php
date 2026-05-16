@@ -22,6 +22,21 @@ final class ExternalIdentityProviderRegistry
     }
 
     /**
+     * Determines whether a provider can currently begin a federated
+     * authentication. Mirrors the gate enforced by
+     * {@see ExternalIdpAuthenticationRedirectService::assertProviderUsable()}
+     * but without raising — useful for routing fallbacks.
+     */
+    public function isUsable(ExternalIdentityProvider $provider): bool
+    {
+        if (! $provider->enabled) {
+            return false;
+        }
+
+        return $provider->health_status !== 'unhealthy';
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function publicView(ExternalIdentityProvider $provider): array

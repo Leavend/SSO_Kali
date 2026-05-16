@@ -46,6 +46,12 @@ final class AdminPermission
 
     public const USER_LIFECYCLE_LOCK = 'admin.users.lock';
 
+    public const SECURITY_POLICY_READ = 'admin.security-policy.read';
+
+    public const SECURITY_POLICY_WRITE = 'admin.security-policy.write';
+
+    public const SECURITY_POLICY_ACTIVATE = 'admin.security-policy.activate';
+
     public const PROFILE_READ = 'profile.read';
 
     public const PROFILE_WRITE = 'profile.write';
@@ -76,6 +82,9 @@ final class AdminPermission
             self::DATA_SUBJECT_REQUESTS_REVIEW,
             self::DASHBOARD_VIEW,
             self::USER_LIFECYCLE_LOCK,
+            self::SECURITY_POLICY_READ,
+            self::SECURITY_POLICY_WRITE,
+            self::SECURITY_POLICY_ACTIVATE,
             self::PROFILE_READ,
             self::PROFILE_WRITE,
         ];
@@ -146,6 +155,9 @@ final class AdminPermission
             self::SESSIONS_READ,
             self::SESSIONS_TERMINATE,
             self::USER_LIFECYCLE_LOCK,
+            self::SECURITY_POLICY_READ,
+            self::SECURITY_POLICY_WRITE,
+            self::SECURITY_POLICY_ACTIVATE,
             self::DATA_SUBJECT_REQUESTS_READ,
             self::DATA_SUBJECT_REQUESTS_REVIEW,
             self::SSO_ERROR_TEMPLATES_READ,

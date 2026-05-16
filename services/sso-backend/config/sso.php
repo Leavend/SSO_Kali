@@ -30,6 +30,34 @@ return [
         'internal_metrics_token_header' => env('SSO_INTERNAL_METRICS_TOKEN_HEADER', 'X-SSO-Internal-Metrics-Token'),
         'internal_metrics_token' => env('SSO_INTERNAL_METRICS_TOKEN'),
     ],
+    // FR-057 / BE-FR057-001 — external IdP federation runtime tunables.
+    //
+    // These keys back ExternalIdpDiscoveryService, ExternalIdpJwksService,
+    // ExternalIdpTokenExchangeService, ExternalIdpHealthProbeService and the
+    // ExternalIdpAuthenticationRedirectService. They were previously read
+    // from `sso.external_idp.*` without being declared here, leaving ops
+    // without env knobs and breaking config:cache audits.
+    'external_idp' => [
+        'discovery_timeout_seconds' => (int) env('SSO_EXTERNAL_IDP_DISCOVERY_TIMEOUT_SECONDS', 5),
+        'discovery_retry_attempts' => (int) env('SSO_EXTERNAL_IDP_DISCOVERY_RETRY_ATTEMPTS', 1),
+        'discovery_cache_ttl_seconds' => (int) env('SSO_EXTERNAL_IDP_DISCOVERY_CACHE_TTL_SECONDS', 600),
+        'discovery_stale_ttl_seconds' => (int) env('SSO_EXTERNAL_IDP_DISCOVERY_STALE_TTL_SECONDS', 86400),
+        'jwks_timeout_seconds' => (int) env('SSO_EXTERNAL_IDP_JWKS_TIMEOUT_SECONDS', 5),
+        'jwks_retry_attempts' => (int) env('SSO_EXTERNAL_IDP_JWKS_RETRY_ATTEMPTS', 1),
+        'token_timeout_seconds' => (int) env('SSO_EXTERNAL_IDP_TOKEN_TIMEOUT_SECONDS', 5),
+        'health_timeout_seconds' => (int) env('SSO_EXTERNAL_IDP_HEALTH_TIMEOUT_SECONDS', 3),
+        'callback_url' => env('SSO_EXTERNAL_IDP_CALLBACK_URL'),
+        'auth_state_ttl_seconds' => (int) env('SSO_EXTERNAL_IDP_AUTH_STATE_TTL_SECONDS', 300),
+        // Federation start route public exposure. When false, the public
+        // `/external-idp/start/{providerKey}` route will return 404 even if
+        // providers exist. Matches deploy posture; flip on per env after
+        // routing/SSL is verified.
+        'public_start_route_enabled' => (bool) env('SSO_EXTERNAL_IDP_PUBLIC_START_ENABLED', false),
+        // Missing-email policy for federated subjects. `reject` aborts the
+        // login when the upstream IdP omits a verified email. `subject_only`
+        // proceeds without an email and uses provider+sub as the local key.
+        'missing_email_strategy' => env('SSO_EXTERNAL_IDP_MISSING_EMAIL_STRATEGY', 'reject'),
+    ],
     'audit' => [
         'authentication_retention_days' => (int) env('SSO_AUTHENTICATION_AUDIT_RETENTION_DAYS', 400),
     ],

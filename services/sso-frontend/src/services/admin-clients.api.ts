@@ -6,6 +6,8 @@ export type AdminClient = {
   readonly redirect_uris: readonly string[]
   readonly backchannel_logout_uri: string | null
   readonly backchannel_logout_internal: boolean
+  readonly status?: string
+  readonly scopes?: readonly string[]
 }
 
 export type ClientDraft = {
@@ -22,6 +24,17 @@ export type ClientUpdate = {
 
 export type RotateSecretResponse = {
   readonly client_secret: string
+}
+
+export type ClientLifecycleResponse = {
+  readonly registration: { readonly client_id: string; readonly status: string }
+  readonly tokens_revoked?: number
+  readonly sessions_terminated?: number
+}
+
+export type ClientScopeResponse = {
+  readonly client_id: string
+  readonly scopes: readonly string[]
 }
 
 export const adminClientsApi = {
@@ -44,5 +57,25 @@ export const adminClientsApi = {
 
   async decommission(clientId: string): Promise<void> {
     await apiClient.delete(`/api/admin/clients/${encodeURIComponent(clientId)}`)
+  },
+
+  suspend(clientId: string, reason: string): Promise<ClientLifecycleResponse> {
+    return apiClient.post<ClientLifecycleResponse>(
+      `/api/admin/client-integrations/${encodeURIComponent(clientId)}/disable`,
+      { reason },
+    )
+  },
+
+  activate(clientId: string): Promise<ClientLifecycleResponse> {
+    return apiClient.post<ClientLifecycleResponse>(
+      `/api/admin/client-integrations/${encodeURIComponent(clientId)}/activate`,
+    )
+  },
+
+  syncScopes(clientId: string, scopes: readonly string[]): Promise<ClientScopeResponse> {
+    return apiClient.put<ClientScopeResponse>(
+      `/api/admin/clients/${encodeURIComponent(clientId)}/scopes`,
+      { scopes },
+    )
   },
 }
