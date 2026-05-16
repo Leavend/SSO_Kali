@@ -8,6 +8,15 @@ return [
     'engine' => env('SSO_ENGINE', 'native'),
     'base_url' => env('SSO_BASE_URL', env('APP_URL', 'http://localhost:8200')),
     'issuer' => env('SSO_ISSUER', env('APP_URL', 'http://localhost:8200')),
+    // FR-031 / BE-FR031-001 — Access token audience policy.
+    //
+    // The MVP issues a single global resource audience for every access
+    // token (carried in `aud`). Resource servers behind this SSO MUST
+    // validate `aud === sso.resource_audience`. Multi-resource audience
+    // routing (per-API audiences derived from client policy) is not yet
+    // supported and intentionally documented here so future work has a
+    // single anchor; until that ships, anything calling `aud` policy a
+    // "per-API" gate is wrong.
     'resource_audience' => env('SSO_RESOURCE_AUDIENCE', 'sso-resource-api'),
     'frontend_url' => env('SSO_FRONTEND_URL', env('APP_URL', 'http://localhost:3000')),
     'login_url' => env('SSO_LOGIN_URL', env('SSO_FRONTEND_URL', 'http://localhost:3000').'/login'),
