@@ -8,6 +8,7 @@ use App\Actions\Oidc\ProcessConsentDecision;
 use App\Services\Oidc\DownstreamClientRegistry;
 use App\Services\Oidc\ScopePolicy;
 use App\Support\Oidc\ScopeSet;
+use App\Support\Responses\OidcErrorResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -37,7 +38,7 @@ final class ConsentController
         $client = $this->clients->find($clientId);
 
         if ($client === null) {
-            return response()->json(['error' => 'invalid_client', 'message' => 'Unknown client.'], 400);
+            return OidcErrorResponse::json('invalid_client', 'Unknown client.', 400);
         }
 
         $requestedScopes = ScopeSet::fromString($scope);
@@ -56,6 +57,9 @@ final class ConsentController
             ],
             'scopes' => $scopeDetails,
             'state' => $state,
+        ])->withHeaders([
+            'Cache-Control' => 'no-store',
+            'Pragma' => 'no-cache',
         ]);
     }
 

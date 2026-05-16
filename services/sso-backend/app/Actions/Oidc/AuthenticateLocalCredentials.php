@@ -89,9 +89,14 @@ final class AuthenticateLocalCredentials
 
             return response()->json([
                 'error' => 'too_many_attempts',
+                'error_description' => 'Too many login attempts. Please try again later.',
                 'message' => 'Terlalu banyak percobaan login. Silakan coba lagi nanti.',
                 'retry_after' => $verification->retryAfter,
-            ], 429, ['Retry-After' => (string) $verification->retryAfter]);
+            ], 429, [
+                'Retry-After' => (string) $verification->retryAfter,
+                'Cache-Control' => 'no-store',
+                'Pragma' => 'no-cache',
+            ]);
         }
 
         if ($verification->outcome === LocalPasswordLoginOutcome::PasswordExpired) {
@@ -99,9 +104,13 @@ final class AuthenticateLocalCredentials
 
             return response()->json([
                 'error' => 'password_expired',
+                'error_description' => 'The user password has expired and must be changed.',
                 'message' => 'Password Anda telah kedaluwarsa. Silakan ubah password.',
                 'change_password_url' => '/profile/security',
-            ], 403);
+            ], 403, [
+                'Cache-Control' => 'no-store',
+                'Pragma' => 'no-cache',
+            ]);
         }
 
         if (! $verification->authenticated() || $verification->user === null) {
@@ -110,11 +119,17 @@ final class AuthenticateLocalCredentials
 
             return response()->json([
                 'error' => $errorCode,
+                'error_description' => $errorCode === 'account_locked'
+                    ? 'The user account is locked.'
+                    : 'Invalid email or password.',
                 'message' => $errorCode === 'account_locked'
                     ? 'Akun Anda telah dikunci. Hubungi administrator.'
                     : 'Email atau password salah.',
                 'remaining_attempts' => $verification->remainingAttempts,
-            ], 401);
+            ], 401, [
+                'Cache-Control' => 'no-store',
+                'Pragma' => 'no-cache',
+            ]);
         }
 
         $user = $verification->user;
@@ -128,9 +143,13 @@ final class AuthenticateLocalCredentials
 
             return response()->json([
                 'error' => 'mfa_reenrollment_required',
+                'error_description' => 'Multi-factor authentication must be re-enrolled before continuing.',
                 'message' => 'Akun Anda telah direset oleh admin. Aktifkan kembali autentikasi multi-faktor (MFA) sebelum melanjutkan.',
                 'mfa_reset_at' => $user->mfa_reset_at?->toIso8601String(),
-            ], 403);
+            ], 403, [
+                'Cache-Control' => 'no-store',
+                'Pragma' => 'no-cache',
+            ]);
         }
 
         // BE-FR023-001: Validate scope BEFORE MFA branch so an invalid or
@@ -157,9 +176,13 @@ final class AuthenticateLocalCredentials
 
             return response()->json([
                 'error' => 'mfa_enrollment_required',
+                'error_description' => 'The relying party requires MFA but the user is not enrolled.',
                 'message' => 'Aplikasi ini memerlukan autentikasi multi-faktor. Silakan aktifkan MFA pada akun Anda terlebih dahulu.',
                 'enroll_mfa_url' => '/security/mfa',
-            ], 403);
+            ], 403, [
+                'Cache-Control' => 'no-store',
+                'Pragma' => 'no-cache',
+            ]);
         }
 
         // FR-019 / UC-67 / BE-FR019-001: Check if user has MFA enrolled.
