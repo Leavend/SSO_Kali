@@ -70,6 +70,9 @@ async function submitLocalLogin(): Promise<void> {
         state: getState(),
         nonce: getNonce(),
         scope: getScope(),
+        // BE-FR021-001: forward step-up acr_values so the backend can
+        // reject password-only auth when MFA-level assurance is required.
+        acr_values: getAcrValues(),
       }),
     })
 
@@ -84,6 +87,11 @@ async function submitLocalLogin(): Promise<void> {
       error.value = data.message ?? 'Terlalu banyak percobaan. Coba lagi nanti.'
     } else if (data.error === 'account_locked') {
       error.value = data.message ?? 'Akun Anda telah dikunci.'
+    } else if (data.error === 'mfa_enrollment_required') {
+      // BE-FR021-001: RP requested MFA-level assurance but the user has
+      // no MFA. Surface a localized prompt; do NOT leak raw provider text.
+      error.value =
+        data.message ?? 'Aplikasi ini memerlukan autentikasi multi-faktor. Aktifkan MFA terlebih dahulu.'
     } else {
       error.value = data.message ?? 'Email atau password salah.'
       remainingAttempts.value = data.remaining_attempts ?? null
@@ -117,6 +125,12 @@ function getNonce(): string {
 
 function getScope(): string {
   return new URLSearchParams(window.location.search).get('scope') ?? 'openid profile email'
+}
+
+function getAcrValues(): string {
+  // OIDC step-up: pass-through if RP forwarded acr_values into the login
+  // page URL via /authorize. Empty string when absent.
+  return new URLSearchParams(window.location.search).get('acr_values') ?? ''
 }
 
 function resetLoading(): void {

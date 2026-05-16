@@ -9,6 +9,7 @@ use App\Actions\Auth\VerifyLocalPasswordLoginAction;
 use App\Models\MfaCredential;
 use App\Models\User;
 use App\Services\Mfa\MfaChallengeStore;
+use App\Services\Oidc\AcrEvaluator;
 use App\Services\Oidc\AuthorizationCodeStore;
 use App\Services\Oidc\AuthRequestStore;
 use App\Services\Oidc\ConsentService;
@@ -41,6 +42,7 @@ final class AuthenticateLocalCredentials
         private readonly ConsentService $consents,
         private readonly RecordAuthenticationAuditEventAction $audits,
         private readonly MfaChallengeStore $challenges,
+        private readonly AcrEvaluator $acrEvaluator,
     ) {}
 
     public function handle(Request $request): JsonResponse
@@ -54,6 +56,7 @@ final class AuthenticateLocalCredentials
         $state = (string) $request->input('state', '');
         $nonce = (string) $request->input('nonce', '');
         $scope = (string) $request->input('scope', 'openid');
+        $requestedAcr = $this->optionalString($request->input('acr_values'));
 
         // Validate required fields
         if ($email === '' || $password === '') {
@@ -141,11 +144,29 @@ final class AuthenticateLocalCredentials
             return OidcErrorResponse::json('invalid_scope', $exception->getMessage(), 400);
         }
 
+        // FR-021 / BE-FR021-001: enforce requested acr_values BEFORE branching
+        // on enrolment. If the RP asked for MFA-level assurance and the user
+        // has no verified MFA credential, reject the login outright instead
+        // of silently downgrading to a password-only code.
+        $userHasMfa = $this->requiresMfaChallenge($user);
+        $requiresMfaForAcr = $requestedAcr !== null
+            && $this->acrEvaluator->level($requestedAcr) >= $this->acrEvaluator->level('urn:sso:loa:mfa');
+
+        if ($requiresMfaForAcr && ! $userHasMfa) {
+            $this->recordFailed($request, $email, $client, 'mfa_enrollment_required');
+
+            return response()->json([
+                'error' => 'mfa_enrollment_required',
+                'message' => 'Aplikasi ini memerlukan autentikasi multi-faktor. Silakan aktifkan MFA pada akun Anda terlebih dahulu.',
+                'enroll_mfa_url' => '/security/mfa',
+            ], 403);
+        }
+
         // FR-019 / UC-67 / BE-FR019-001: Check if user has MFA enrolled.
         // The pending OIDC authorization request is bound to the challenge
         // server-side. The client only receives an opaque challenge id and
         // can never alter the redemption parameters.
-        if ($this->requiresMfaChallenge($user)) {
+        if ($userHasMfa) {
             $challenge = $this->challenges->create($user->getKey(), [
                 'flow' => 'local_login',
                 'client_id' => $client->clientId,
@@ -158,6 +179,7 @@ final class AuthenticateLocalCredentials
                 'subject_id' => $user->subject_id,
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent(),
+                'requested_acr' => $requestedAcr,
             ]);
 
             return response()->json([
@@ -249,6 +271,11 @@ final class AuthenticateLocalCredentials
             ->totp()
             ->verified()
             ->exists();
+    }
+
+    private function optionalString(mixed $value): ?string
+    {
+        return is_string($value) && $value !== '' ? $value : null;
     }
 
     private function recordFailed(Request $request, string $email, DownstreamClient $client, string $errorCode): void
