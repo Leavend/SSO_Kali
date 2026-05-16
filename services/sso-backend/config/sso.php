@@ -57,6 +57,10 @@ return [
         // login when the upstream IdP omits a verified email. `subject_only`
         // proceeds without an email and uses provider+sub as the local key.
         'missing_email_strategy' => env('SSO_EXTERNAL_IDP_MISSING_EMAIL_STRATEGY', 'reject'),
+        // Circuit breaker — number of consecutive probe failures required
+        // before the provider is automatically pulled from the failover
+        // pool. The breaker resets to closed on the next successful probe.
+        'failure_threshold' => (int) env('SSO_EXTERNAL_IDP_FAILURE_THRESHOLD', 3),
     ],
     'audit' => [
         'authentication_retention_days' => (int) env('SSO_AUTHENTICATION_AUDIT_RETENTION_DAYS', 400),

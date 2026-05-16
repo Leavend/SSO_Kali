@@ -218,3 +218,58 @@ describe('isRetryable heuristic', () => {
     expect(ApiError.fromAbort().isRetryable()).toBe(false)
   })
 })
+
+describe('FR-061 / FR-063 — locale-driven copy and support reference', () => {
+  it('replaces backend technical SQLSTATE messages with the localized fallback', async () => {
+    const response = new Response(
+      JSON.stringify({ message: "SQLSTATE[HY000]: column 'foo' not found" }),
+      { status: 500, headers: { 'content-type': 'application/json' } },
+    )
+
+    const error = await ApiError.fromResponse(response)
+
+    expect(error.message).toBe('Layanan SSO sedang tidak tersedia. Coba lagi nanti.')
+    expect(error.message).not.toContain('SQLSTATE')
+  })
+
+  it('captures error_ref and request_id from response body so UI can show a support reference', async () => {
+    const response = new Response(
+      JSON.stringify({
+        error: 'server_error',
+        error_description: 'An unexpected error occurred. Please retry.',
+        error_ref: 'SSOERR-ABCD123456',
+        request_id: 'req-correlated-9999',
+      }),
+      { status: 500, headers: { 'content-type': 'application/json' } },
+    )
+
+    const error = await ApiError.fromResponse(response)
+
+    expect(error.errorRef).toBe('SSOERR-ABCD123456')
+    expect(error.requestId).toBe('req-correlated-9999')
+    expect(error.supportReference()).toBe('SSOERR-ABCD123456')
+  })
+
+  it('falls back to header-based correlation IDs when body omits them', async () => {
+    const response = new Response(JSON.stringify({ error: 'server_error' }), {
+      status: 500,
+      headers: {
+        'content-type': 'application/json',
+        'x-error-ref': 'SSOERR-FROMHEADER',
+        'x-request-id': 'req-from-header',
+      },
+    })
+
+    const error = await ApiError.fromResponse(response)
+
+    expect(error.errorRef).toBe('SSOERR-FROMHEADER')
+    expect(error.requestId).toBe('req-from-header')
+    expect(error.supportReference()).toBe('SSOERR-FROMHEADER')
+  })
+
+  it('returns null support reference when no correlation IDs are present', () => {
+    const error = new ApiError(500, 'Layanan SSO sedang tidak tersedia. Coba lagi nanti.')
+
+    expect(error.supportReference()).toBeNull()
+  })
+})

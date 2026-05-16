@@ -17,7 +17,7 @@ final class ProbeExternalIdpHealthAction
     ) {}
 
     /**
-     * @return array{provider_key: string, enabled: bool, healthy: bool, status: string, latency_ms: float|null, checked_at: string, error: string|null}
+     * @return array{provider_key: string, enabled: bool, healthy: bool, status: string, latency_ms: float|null, checked_at: string, error: string|null, consecutive_failures: int, breaker_tripped: bool}
      */
     public function execute(ExternalIdentityProvider $provider, string $requestId = 'system'): array
     {

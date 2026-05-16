@@ -14,4 +14,8 @@ export type ApiValidationPayload = {
   readonly violations?: Record<string, string[] | string>
   readonly error?: string
   readonly error_description?: string
+  readonly error_ref?: string
+  readonly request_id?: string
+  readonly retryable?: boolean
+  readonly support_action?: string
 }

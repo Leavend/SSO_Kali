@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Support\Oidc\OidcErrorCatalog;
 use Illuminate\Support\Facades\Log;
 
 beforeEach(function (): void {
@@ -35,7 +36,7 @@ it('keeps token endpoint oauth error format while recording fr007 error referenc
     $response->assertStatus(400)
         ->assertJson([
             'error' => 'invalid_grant',
-            'error_description' => 'The authorization code is invalid.',
+            'error_description' => OidcErrorCatalog::safeDescription('invalid_grant'),
         ])
         ->assertHeader('Pragma', 'no-cache');
 

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Support\Oidc\OidcErrorCatalog;
 use App\Support\Responses\OidcErrorResponse;
 
 it('returns a JSON error response with RFC 6749 §5.2 shape', function (): void {
@@ -11,10 +12,11 @@ it('returns a JSON error response with RFC 6749 §5.2 shape', function (): void 
 
     $body = json_decode((string) $response->getContent(), true, 512, JSON_THROW_ON_ERROR);
 
-    expect($body)->toMatchArray([
-        'error' => 'invalid_grant',
-        'error_description' => 'The authorization code is invalid.',
-    ]);
+    expect($body['error'])->toBe('invalid_grant')
+        ->and($body['error_description'])->toBe(OidcErrorCatalog::safeDescription('invalid_grant'))
+        ->and($body)->toHaveKey('error_ref')
+        ->and($body)->toHaveKey('retryable')
+        ->and($body)->toHaveKey('support_action');
 });
 
 it('returns the correct HTTP status code for client authentication failure', function (): void {
@@ -39,7 +41,7 @@ it('creates a redirect response with error query parameters', function (): void 
 
     expect($query)
         ->toHaveKey('error', 'access_denied')
-        ->toHaveKey('error_description', 'The user denied the request.')
+        ->toHaveKey('error_description', OidcErrorCatalog::safeDescription('access_denied'))
         ->toHaveKey('state', 'abc123');
 });
 

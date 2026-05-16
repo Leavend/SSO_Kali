@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Support\Oidc\OidcErrorCatalog;
 use App\Support\Security\ClientSecretHashPolicy;
 use Tests\TestCase;
 
@@ -37,7 +38,7 @@ it('rejects token requests when the presented origin is not allowed for the clie
         'Origin' => 'https://evil.example',
     ])->assertStatus(403)
         ->assertJsonPath('error', 'invalid_request')
-        ->assertJsonPath('error_description', 'Origin is not allowed for this client.');
+        ->assertJsonPath('error_description', OidcErrorCatalog::safeDescription('invalid_request'));
 });
 
 it('allows server-to-server token requests without origin headers', function (): void {
@@ -61,7 +62,7 @@ it('applies origin checks to confidential clients authenticated with HTTP Basic'
         'Origin' => 'https://evil.example',
     ])->assertStatus(403)
         ->assertJsonPath('error', 'invalid_request')
-        ->assertJsonPath('error_description', 'Origin is not allowed for this client.');
+        ->assertJsonPath('error_description', OidcErrorCatalog::safeDescription('invalid_request'));
 });
 
 /**

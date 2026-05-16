@@ -68,12 +68,30 @@
     "status_404": "Sumber daya tidak ditemukan.",
     "status_408": "Server terlalu lama merespons. Coba lagi.",
     "status_409": "Terjadi konflik data. Muat ulang lalu coba lagi.",
+    "status_419": "Sesi keamanan kedaluwarsa. Muat ulang halaman lalu coba lagi.",
     "status_422": "Data yang dikirim tidak valid.",
     "status_429": "Terlalu banyak percobaan. Tunggu sebentar sebelum mencoba lagi.",
     "status_5xx": "Layanan SSO sedang tidak tersedia. Coba lagi nanti.",
+    "status_generic": "Permintaan gagal dengan status {status}.",
     "network_error": "Tidak dapat menghubungi server SSO.",
     "timeout": "Permintaan ke server terlalu lama. Coba lagi.",
-    "aborted": "Permintaan dibatalkan."
+    "aborted": "Permintaan dibatalkan.",
+    "messages": {
+      "Unauthenticated.": "Sesi SSO kedaluwarsa. Silakan masuk lagi.",
+      "The bearer token is invalid.": "Token akses tidak valid. Silakan masuk lagi.",
+      "Server Error": "Layanan SSO sedang tidak tersedia. Coba lagi nanti.",
+      "Too Many Attempts.": "Terlalu banyak percobaan. Tunggu sebentar sebelum mencoba lagi.",
+      "This action is unauthorized.": "Akses ke sumber daya ini tidak diizinkan.",
+      "CSRF token mismatch.": "Sesi keamanan kedaluwarsa. Muat ulang halaman lalu coba lagi.",
+      "Page Expired": "Sesi keamanan kedaluwarsa. Muat ulang halaman lalu coba lagi.",
+      "Not Found": "Sumber daya tidak ditemukan.",
+      "You must enroll a multi-factor authentication method before accessing the admin panel.": "Aktifkan autentikasi multi-faktor (MFA) sebelum mengakses panel admin.",
+      "Akun Anda telah direset oleh admin. Aktifkan kembali autentikasi multi-faktor (MFA) sebelum melanjutkan.": "Akun Anda telah direset oleh admin. Aktifkan kembali autentikasi multi-faktor (MFA) sebelum melanjutkan.",
+      "Your administrator has reset your multi-factor authentication. Enroll a new second factor before continuing.": "Akun Anda telah direset oleh admin. Aktifkan kembali autentikasi multi-faktor (MFA) sebelum melanjutkan."
+    },
+    "patterns": {
+      "could not be found": "Sumber daya tidak ditemukan."
+    }
   },
   "common": {
     "continue": "Lanjutkan",
@@ -86,7 +104,10 @@
     "errors": {
       "_generic": "Login tidak dapat diselesaikan. Mulai ulang dari halaman login atau kembali ke aplikasi awal.",
       "invalid_request": "Permintaan otorisasi tidak valid. Mulai ulang dari halaman login.",
+      "invalid_client": "Aplikasi gagal otentikasi ke SSO. Hubungi administrator aplikasi.",
+      "invalid_grant": "Sesi otorisasi sudah tidak valid. Silakan masuk lagi untuk melanjutkan.",
       "unauthorized_client": "Aplikasi ini tidak diizinkan menggunakan SSO. Hubungi administrator.",
+      "unsupported_grant_type": "Tipe permintaan token tidak didukung. Hubungi administrator aplikasi.",
       "access_denied": "Permintaan akses ditolak. Coba lagi atau kembali ke aplikasi awal.",
       "unsupported_response_type": "Mode otorisasi tidak didukung. Mulai ulang dari halaman login.",
       "invalid_scope": "Cakupan izin yang diminta tidak valid. Hubungi administrator aplikasi.",
@@ -96,11 +117,15 @@
       "login_required": "Sesi SSO sudah berakhir. Silakan masuk lagi untuk melanjutkan.",
       "account_selection_required": "Silakan pilih akun yang akan digunakan, lalu coba lagi.",
       "consent_required": "Persetujuan akses dibutuhkan. Lanjutkan ke halaman persetujuan untuk melanjutkan.",
+      "invalid_token": "Token akses tidak valid atau sudah kedaluwarsa. Silakan masuk lagi.",
+      "insufficient_scope": "Akses ditolak karena cakupan izin tidak mencukupi. Hubungi administrator.",
       "invalid_request_uri": "Permintaan otorisasi tidak valid. Mulai ulang dari halaman login.",
       "invalid_request_object": "Permintaan otorisasi tidak valid. Mulai ulang dari halaman login.",
       "request_not_supported": "Mode permintaan ini tidak didukung. Mulai ulang dari halaman login.",
       "request_uri_not_supported": "Mode permintaan ini tidak didukung. Mulai ulang dari halaman login.",
       "registration_not_supported": "Pendaftaran client tidak didukung. Hubungi administrator.",
+      "session_expired": "Sesi SSO kedaluwarsa. Silakan masuk lagi untuk melanjutkan.",
+      "too_many_attempts": "Terlalu banyak percobaan. Tunggu sebentar sebelum mencoba lagi.",
       "mfa_enrollment_required": "Aplikasi ini membutuhkan autentikasi multi-faktor. Aktifkan MFA pada akunmu lalu coba lagi.",
       "mfa_reenrollment_required": "Akun kamu telah direset oleh admin. Aktifkan kembali autentikasi multi-faktor (MFA) sebelum melanjutkan."
     },

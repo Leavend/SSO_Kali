@@ -9,11 +9,16 @@
  *   - Predicate helpers (`isUnauthorized`, `isForbidden`, `isValidation`,
  *     `isRateLimited`, `isConflict`, `isNotFound`, `isServerError`,
  *     `isRetryable`, `isNetworkFailure`, `isTimeout`) agar call site bersih.
+ *   - FR-061: copy untuk status/network/timeout/aborted dan pemetaan
+ *     pesan known-English ke id-ID hidup di locale resources, bukan di TS.
+ *   - FR-063: membawa `errorRef` dan `requestId` agar UI bisa menampilkan
+ *     kode dukungan yang dapat disalin pengguna.
  *
  * Tidak menyimpan referensi Response/body asli untuk mencegah memory leak
  * dan meminimalkan bocor data sensitif ke log.
  */
 
+import idLocale from '@/locales/id.json'
 import type { ApiValidationPayload, ApiViolation } from '@/types/api.types'
 
 export type ApiErrorKind =
@@ -29,6 +34,8 @@ export class ApiError extends Error {
   readonly violations: readonly ApiViolation[]
   readonly kind: ApiErrorKind
   readonly retryAfterSeconds: number | null
+  readonly errorRef: string | null
+  readonly requestId: string | null
 
   constructor(
     status: number,
@@ -37,6 +44,8 @@ export class ApiError extends Error {
     violations: readonly ApiViolation[] = [],
     kind: ApiErrorKind = 'http',
     retryAfterSeconds: number | null = null,
+    errorRef: string | null = null,
+    requestId: string | null = null,
   ) {
     super(message)
     this.name = 'ApiError'
@@ -45,17 +54,22 @@ export class ApiError extends Error {
     this.violations = violations
     this.kind = kind
     this.retryAfterSeconds = retryAfterSeconds
+    this.errorRef = errorRef
+    this.requestId = requestId
   }
 
   static async fromResponse(response: Response): Promise<ApiError> {
     const payload = await readErrorPayload(response)
+    const headers = response.headers
     return new ApiError(
       response.status,
       payload.message ?? fallbackMessage(response.status),
       payload.code,
       payload.violations,
       'http',
-      readRetryAfterSeconds(response.headers.get('retry-after')),
+      readRetryAfterSeconds(headers.get('retry-after')),
+      readReference(payload.errorRef ?? headers.get('x-error-ref')),
+      readReference(payload.requestId ?? headers.get('x-request-id')),
     )
   }
 
@@ -63,7 +77,7 @@ export class ApiError extends Error {
     const reason = error instanceof Error ? error.message : String(error)
     return new ApiError(
       0,
-      'Tidak dapat menghubungi server SSO.',
+      localized('api.network_error', 'Tidak dapat menghubungi server SSO.'),
       'network_error',
       [],
       'network',
@@ -73,7 +87,7 @@ export class ApiError extends Error {
   static fromTimeout(): ApiError {
     return new ApiError(
       0,
-      'Permintaan ke server terlalu lama. Coba lagi.',
+      localized('api.timeout', 'Permintaan ke server terlalu lama. Coba lagi.'),
       'timeout',
       [],
       'timeout',
@@ -81,7 +95,13 @@ export class ApiError extends Error {
   }
 
   static fromAbort(): ApiError {
-    return new ApiError(0, 'Permintaan dibatalkan.', 'aborted', [], 'aborted')
+    return new ApiError(
+      0,
+      localized('api.aborted', 'Permintaan dibatalkan.'),
+      'aborted',
+      [],
+      'aborted',
+    )
   }
 
   /**
@@ -93,6 +113,14 @@ export class ApiError extends Error {
       acc[item.field] = item.message
       return acc
     }, {})
+  }
+
+  /**
+   * Reference identifier yang dapat disalin user untuk dukungan.
+   * Mengembalikan `errorRef` jika tersedia, lalu `requestId`.
+   */
+  supportReference(): string | null {
+    return this.errorRef ?? this.requestId
   }
 
   /**
@@ -165,62 +193,73 @@ type ParsedPayload = {
   readonly code: string | null
   readonly message: string | null
   readonly violations: readonly ApiViolation[]
+  readonly errorRef: string | null
+  readonly requestId: string | null
 }
 
 async function readErrorPayload(response: Response): Promise<ParsedPayload> {
   const contentType = response.headers.get('content-type') ?? ''
   if (!contentType.includes('application/json')) {
-    // Non-JSON response (e.g. raw HTML from nginx 503/502) — never expose to UI.
-    return { code: null, message: null, violations: [] }
+    return { code: null, message: null, violations: [], errorRef: null, requestId: null }
   }
 
   const raw = (await response
     .json()
     .catch((): ApiValidationPayload | null => null)) as ApiValidationPayload | null
-  if (!raw) return { code: null, message: null, violations: [] }
+  if (!raw) return { code: null, message: null, violations: [], errorRef: null, requestId: null }
 
   return {
     code: readString(raw.error) ?? readString(raw.code),
-    message: localizeMessage(readString(raw.message) ?? readString(raw.error_description)),
+    message: localizeMessage(
+      readString(raw.message) ?? readString(raw.error_description),
+      response.status,
+    ),
     violations: readViolations(raw.errors) ?? readViolations(raw.violations) ?? [],
+    errorRef: readReference(raw.error_ref),
+    requestId: readReference(raw.request_id),
   }
 }
 
-/**
- * Map known English backend messages to Indonesian (FR-061).
- * Returns original message if no mapping found.
- */
-const MESSAGE_ID_MAP: Record<string, string> = {
-  'Unauthenticated.': 'Sesi SSO kedaluwarsa. Silakan masuk lagi.',
-  'The bearer token is invalid.': 'Token akses tidak valid. Silakan masuk lagi.',
-  'Server Error': 'Layanan SSO sedang tidak tersedia. Coba lagi nanti.',
-  'Too Many Attempts.': 'Terlalu banyak percobaan. Tunggu sebentar sebelum mencoba lagi.',
-  'This action is unauthorized.': 'Akses ke sumber daya ini tidak diizinkan.',
-  'CSRF token mismatch.': 'Sesi keamanan kedaluwarsa. Muat ulang halaman lalu coba lagi.',
-  'Page Expired': 'Sesi keamanan kedaluwarsa. Muat ulang halaman lalu coba lagi.',
-  'Not Found': 'Sumber daya tidak ditemukan.',
-  'You must enroll a multi-factor authentication method before accessing the admin panel.':
-    'Aktifkan autentikasi multi-faktor (MFA) sebelum mengakses panel admin.',
-  // BE-FR020-001 — lost-factor recovery: backend sends Indonesian copy by
-  // default, but legacy or proxy-translated builds may surface the English
-  // form. Map both to keep UI copy consistent.
-  'Akun Anda telah direset oleh admin. Aktifkan kembali autentikasi multi-faktor (MFA) sebelum melanjutkan.':
-    'Akun Anda telah direset oleh admin. Aktifkan kembali autentikasi multi-faktor (MFA) sebelum melanjutkan.',
-  'Your administrator has reset your multi-factor authentication. Enroll a new second factor before continuing.':
-    'Akun Anda telah direset oleh admin. Aktifkan kembali autentikasi multi-faktor (MFA) sebelum melanjutkan.',
+function localizeMessage(message: string | null, status: number): string | null {
+  if (!message) return null
+  const direct = readNestedString(idLocale, ['api', 'messages', message])
+  if (direct !== null) return direct
+
+  const patterns = readNested(idLocale, ['api', 'patterns']) as Record<string, unknown> | null
+  if (patterns && typeof patterns === 'object') {
+    for (const [needle, replacement] of Object.entries(patterns)) {
+      if (typeof needle === 'string' && needle.length > 0 && message.includes(needle)) {
+        if (typeof replacement === 'string' && replacement.length > 0) return replacement
+      }
+    }
+  }
+
+  if (looksTechnical(message)) {
+    return fallbackMessage(status)
+  }
+
+  return message
 }
 
-function localizeMessage(message: string | null): string | null {
-  if (!message) return null
-  // Check exact match first
-  if (MESSAGE_ID_MAP[message]) return MESSAGE_ID_MAP[message]
-  // Check pattern: "The route X could not be found."
-  if (message.includes('could not be found')) return 'Sumber daya tidak ditemukan.'
-  return message
+function looksTechnical(message: string): boolean {
+  return (
+    /SQLSTATE\[/i.test(message) ||
+    /Stack trace:/i.test(message) ||
+    /\\[A-Z][A-Za-z0-9_]+::/.test(message) ||
+    /^#\d+\s/m.test(message) ||
+    /PDOException/i.test(message)
+  )
 }
 
 function readString(value: unknown): string | null {
   return typeof value === 'string' && value.length > 0 ? value : null
+}
+
+function readReference(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim()
+  if (trimmed.length === 0 || trimmed.length > 128) return null
+  return trimmed
 }
 
 function readRetryAfterSeconds(value: string | null): number | null {
@@ -254,15 +293,35 @@ function readViolations(
 }
 
 function fallbackMessage(status: number): string {
-  if (status === 400) return 'Permintaan tidak valid. Periksa data lalu coba lagi.'
-  if (status === 401) return 'Sesi SSO kedaluwarsa. Silakan masuk lagi.'
-  if (status === 403) return 'Akses ke sumber daya ini tidak diizinkan.'
-  if (status === 404) return 'Sumber daya tidak ditemukan.'
-  if (status === 408) return 'Server terlalu lama merespons. Coba lagi.'
-  if (status === 409) return 'Terjadi konflik data. Muat ulang lalu coba lagi.'
-  if (status === 419) return 'Sesi keamanan kedaluwarsa. Muat ulang halaman lalu coba lagi.'
-  if (status === 422) return 'Data yang dikirim tidak valid.'
-  if (status === 429) return 'Terlalu banyak percobaan. Tunggu sebentar sebelum mencoba lagi.'
-  if (status >= 500) return 'Layanan SSO sedang tidak tersedia. Coba lagi nanti.'
-  return `Permintaan gagal dengan status ${status}.`
+  if (status === 400) return localized('api.status_400', 'Permintaan tidak valid.')
+  if (status === 401) return localized('api.status_401', 'Sesi SSO kedaluwarsa.')
+  if (status === 403) return localized('api.status_403', 'Akses ditolak.')
+  if (status === 404) return localized('api.status_404', 'Sumber daya tidak ditemukan.')
+  if (status === 408) return localized('api.status_408', 'Server terlalu lama merespons.')
+  if (status === 409) return localized('api.status_409', 'Terjadi konflik data.')
+  if (status === 419) return localized('api.status_419', 'Sesi keamanan kedaluwarsa.')
+  if (status === 422) return localized('api.status_422', 'Data tidak valid.')
+  if (status === 429) return localized('api.status_429', 'Terlalu banyak percobaan.')
+  if (status >= 500) return localized('api.status_5xx', 'Layanan SSO sedang tidak tersedia.')
+  const generic = localized('api.status_generic', 'Permintaan gagal dengan status {status}.')
+  return generic.replaceAll('{status}', String(status))
+}
+
+function localized(path: string, fallback: string): string {
+  const resolved = readNestedString(idLocale, path.split('.'))
+  return resolved ?? fallback
+}
+
+function readNested(node: unknown, segments: readonly string[]): unknown {
+  let current: unknown = node
+  for (const segment of segments) {
+    if (current === null || current === undefined || typeof current !== 'object') return null
+    current = (current as Record<string, unknown>)[segment]
+  }
+  return current
+}
+
+function readNestedString(node: unknown, segments: readonly string[]): string | null {
+  const value = readNested(node, segments)
+  return typeof value === 'string' && value.length > 0 ? value : null
 }

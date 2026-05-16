@@ -63,6 +63,7 @@ final class ExternalIdpFailoverPolicy
         return ExternalIdentityProvider::query()
             ->where('enabled', true)
             ->whereIn('health_status', ['healthy', 'unknown'])
+            ->whereNull('breaker_tripped_at')
             ->orderBy('is_backup')
             ->orderBy('priority')
             ->orderBy('provider_key')

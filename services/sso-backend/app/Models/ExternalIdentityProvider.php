@@ -31,6 +31,10 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $last_discovered_at
  * @property Carbon|null $last_health_checked_at
  * @property string $health_status
+ * @property int $consecutive_failures
+ * @property int $consecutive_successes
+ * @property Carbon|null $breaker_tripped_at
+ * @property string|null $breaker_reason
  */
 final class ExternalIdentityProvider extends Model
 {
@@ -60,6 +64,10 @@ final class ExternalIdentityProvider extends Model
         'last_discovered_at',
         'last_health_checked_at',
         'health_status',
+        'consecutive_failures',
+        'consecutive_successes',
+        'breaker_tripped_at',
+        'breaker_reason',
     ];
 
     /**
@@ -77,6 +85,9 @@ final class ExternalIdentityProvider extends Model
             'signature_validation_enabled' => 'boolean',
             'last_discovered_at' => 'datetime',
             'last_health_checked_at' => 'datetime',
+            'consecutive_failures' => 'integer',
+            'consecutive_successes' => 'integer',
+            'breaker_tripped_at' => 'datetime',
         ];
     }
 

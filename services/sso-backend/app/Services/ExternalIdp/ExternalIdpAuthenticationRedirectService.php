@@ -76,6 +76,10 @@ final class ExternalIdpAuthenticationRedirectService
         if ($provider->health_status === 'unhealthy') {
             throw new RuntimeException('External IdP is unhealthy.');
         }
+
+        if ($provider->breaker_tripped_at !== null) {
+            throw new RuntimeException('External IdP circuit breaker is tripped.');
+        }
     }
 
     /**

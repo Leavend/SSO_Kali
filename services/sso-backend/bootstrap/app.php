@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Exceptions\SafeOidcExceptionRenderer;
 use App\Http\Middleware\ApplyNoStoreToSensitiveResponses;
 use App\Http\Middleware\AssertSsoSessionCookiePolicy;
 use App\Http\Middleware\EnsureRequestId;
@@ -98,5 +99,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->renderable(static function (\Throwable $exception, \Illuminate\Http\Request $request) {
+            return (new SafeOidcExceptionRenderer)($exception, $request);
+        });
     })->create();

@@ -11,7 +11,7 @@ use Throwable;
 final class ExternalIdpHealthProbeService
 {
     /**
-     * @return array{provider_key: string, enabled: bool, healthy: bool, status: string, latency_ms: float|null, checked_at: string, error: string|null}
+     * @return array{provider_key: string, enabled: bool, healthy: bool, status: string, latency_ms: float|null, checked_at: string, error: string|null, consecutive_failures: int, breaker_tripped: bool}
      */
     public function probe(ExternalIdentityProvider $provider): array
     {
@@ -81,7 +81,7 @@ final class ExternalIdpHealthProbeService
     }
 
     /**
-     * @return array{provider_key: string, enabled: bool, healthy: bool, status: string, latency_ms: float|null, checked_at: string, error: string|null}
+     * @return array{provider_key: string, enabled: bool, healthy: bool, status: string, latency_ms: float|null, checked_at: string, error: string|null, consecutive_failures: int, breaker_tripped: bool}
      */
     private function mark(
         ExternalIdentityProvider $provider,
@@ -90,10 +90,27 @@ final class ExternalIdpHealthProbeService
         ?float $latencyMs,
         ?string $error,
     ): array {
-        $provider->forceFill([
+        $threshold = $this->failureThreshold();
+        $failures = $healthy ? 0 : $provider->consecutive_failures + 1;
+        $successes = $healthy ? $provider->consecutive_successes + 1 : 0;
+        $breakerTripped = ! $healthy && $failures >= $threshold;
+
+        $update = [
             'health_status' => $status,
             'last_health_checked_at' => now(),
-        ])->save();
+            'consecutive_failures' => $failures,
+            'consecutive_successes' => $successes,
+        ];
+
+        if ($healthy) {
+            $update['breaker_tripped_at'] = null;
+            $update['breaker_reason'] = null;
+        } elseif ($breakerTripped) {
+            $update['breaker_tripped_at'] = $provider->breaker_tripped_at ?? now();
+            $update['breaker_reason'] = $error ?? 'consecutive_failure_threshold_reached';
+        }
+
+        $provider->forceFill($update)->save();
 
         return [
             'provider_key' => $provider->provider_key,
@@ -103,7 +120,14 @@ final class ExternalIdpHealthProbeService
             'latency_ms' => $latencyMs,
             'checked_at' => now()->toISOString(),
             'error' => $error,
+            'consecutive_failures' => $failures,
+            'breaker_tripped' => $breakerTripped,
         ];
+    }
+
+    private function failureThreshold(): int
+    {
+        return max(1, (int) config('sso.external_idp.failure_threshold', 3));
     }
 
     private function timeoutSeconds(): int
