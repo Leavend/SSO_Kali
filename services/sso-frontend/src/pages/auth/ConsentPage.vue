@@ -26,6 +26,28 @@ import {
   type ConsentDecision,
   type ConsentDetails,
 } from '@/services/consent.api'
+import { isApiError } from '@/lib/api/api-error'
+
+const LOAD_FAILURE_COPY =
+  'Data persetujuan tidak dapat dimuat. Coba lagi beberapa saat.'
+const CSRF_EXPIRED_COPY =
+  'Sesi keamanan kedaluwarsa. Muat ulang halaman lalu coba lagi.'
+const RATE_LIMITED_COPY =
+  'Terlalu banyak percobaan. Tunggu sebentar sebelum mencoba lagi.'
+const SUBMIT_FAILURE_COPY =
+  'Keputusan persetujuan gagal diproses. Coba lagi beberapa saat.'
+
+function safeConsentErrorCopy(error: unknown, fallback: string): string {
+  if (!isApiError(error)) return fallback
+  if (error.status === 419) return CSRF_EXPIRED_COPY
+  if (error.status === 429) return RATE_LIMITED_COPY
+  if (error.status === 401) return 'Sesi SSO kedaluwarsa. Silakan masuk lagi.'
+  if (error.status === 403)
+    return 'Akses ke halaman persetujuan tidak diizinkan untuk akun ini.'
+  if (error.status === 0 || error.status >= 500)
+    return 'Layanan SSO sedang tidak tersedia. Coba lagi nanti.'
+  return fallback
+}
 
 const route = useRoute()
 
@@ -69,8 +91,8 @@ onMounted(async () => {
       scope: rawScope.value,
       state: state.value,
     })
-  } catch {
-    errorMessage.value = 'Data persetujuan tidak dapat dimuat. Silakan coba lagi.'
+  } catch (error) {
+    errorMessage.value = safeConsentErrorCopy(error, LOAD_FAILURE_COPY)
   } finally {
     loading.value = false
   }
@@ -85,8 +107,8 @@ async function decide(decision: ConsentDecision): Promise<void> {
   try {
     const result = await submitConsentDecision({ state: consent.value.state, decision })
     window.location.assign(result.redirect_uri)
-  } catch {
-    errorMessage.value = 'Keputusan persetujuan gagal diproses. Silakan coba lagi.'
+  } catch (error) {
+    errorMessage.value = safeConsentErrorCopy(error, SUBMIT_FAILURE_COPY)
   } finally {
     submitting.value = null
   }

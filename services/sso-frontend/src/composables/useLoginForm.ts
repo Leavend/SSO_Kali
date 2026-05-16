@@ -22,6 +22,19 @@ const LOCKED_OR_DISABLED_MESSAGE =
   'Akun tidak dapat digunakan untuk masuk saat ini. Hubungi administrator jika kamu membutuhkan bantuan.'
 const RATE_LIMIT_MESSAGE = 'Terlalu banyak percobaan login. Coba lagi dalam {seconds} detik.'
 
+/**
+ * FE-FR022-001 / FR-022 — password lifecycle:
+ *   - Backend `password_expired` MUST surface localized safe copy plus a
+ *     primary CTA pointing to the credential lifecycle (change password)
+ *     flow. The technical `error_description` is dropped on the floor.
+ */
+const PASSWORD_EXPIRED_MESSAGE =
+  'Password kamu telah kedaluwarsa. Ubah password sebelum melanjutkan login.'
+const PASSWORD_EXPIRED_CTA_LABEL = 'Ubah Password'
+const PASSWORD_EXPIRED_CTA_HREF = '/profile/security'
+const MFA_REENROLL_MESSAGE =
+  'Akun kamu telah direset oleh admin. Aktifkan kembali autentikasi multi-faktor (MFA) sebelum melanjutkan.'
+
 /** Map common backend English error messages to Indonesian. */
 const ERROR_TRANSLATIONS: Record<string, string> = {
   'The supplied credentials are invalid.': 'Email atau password yang kamu masukkan salah.',
@@ -36,6 +49,11 @@ function translateError(message: string): string {
   return ERROR_TRANSLATIONS[message] ?? message
 }
 
+export type LoginAdvisoryAction = {
+  readonly label: string
+  readonly href: string
+}
+
 export type LoginFormState = {
   identifier: string
   password: string
@@ -48,6 +66,8 @@ export type UseLoginFormReturn = {
   readonly fieldErrors: Ref<Record<string, string>>
   readonly retryAfterSeconds: Ref<number>
   readonly canSubmit: ComputedRef<boolean>
+  /** Optional next-action CTA — e.g. "Ubah Password" for password_expired. */
+  readonly advisoryAction: Ref<LoginAdvisoryAction | null>
   submit: () => Promise<void>
 }
 
@@ -66,6 +86,7 @@ export function useLoginForm(): UseLoginFormReturn {
   const bannerError = ref<string | null>(null)
   const fieldErrors = ref<Record<string, string>>({})
   const retryAfterSeconds = ref<number>(0)
+  const advisoryAction = ref<LoginAdvisoryAction | null>(null)
   let retryTimer: ReturnType<typeof window.setInterval> | null = null
 
   const canSubmit = computed<boolean>(
@@ -82,6 +103,7 @@ export function useLoginForm(): UseLoginFormReturn {
     pending.value = true
     bannerError.value = null
     fieldErrors.value = {}
+    advisoryAction.value = null
 
     try {
       const response = await session.login({
@@ -156,6 +178,26 @@ export function useLoginForm(): UseLoginFormReturn {
       return
     }
 
+    // FE-FR022-001 — password_expired (BE returns 403 with code).
+    if (error.status === 403 && error.code === 'password_expired') {
+      bannerError.value = PASSWORD_EXPIRED_MESSAGE
+      advisoryAction.value = {
+        label: PASSWORD_EXPIRED_CTA_LABEL,
+        href: PASSWORD_EXPIRED_CTA_HREF,
+      }
+      return
+    }
+
+    // BE-FR020-001 — lost-factor recovery (admin reset MFA).
+    if (error.status === 403 && error.code === 'mfa_reenrollment_required') {
+      bannerError.value = MFA_REENROLL_MESSAGE
+      advisoryAction.value = {
+        label: 'Aktifkan MFA',
+        href: '/security/mfa',
+      }
+      return
+    }
+
     if (error.status === 423 || error.status === 403) {
       bannerError.value = LOCKED_OR_DISABLED_MESSAGE
       return
@@ -212,5 +254,5 @@ export function useLoginForm(): UseLoginFormReturn {
     window.location.assign(url.toString())
   }
 
-  return { form, pending, bannerError, fieldErrors, retryAfterSeconds, canSubmit, submit }
+  return { form, pending, bannerError, fieldErrors, retryAfterSeconds, canSubmit, advisoryAction, submit }
 }

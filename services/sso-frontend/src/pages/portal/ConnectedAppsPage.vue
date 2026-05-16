@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import ConfirmDialog from '@/components/molecules/ConfirmDialog.vue'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useProfileStore } from '@/stores/profile.store'
+import { isApiError } from '@/lib/api/api-error'
 
 const profile = useProfileStore()
 
@@ -48,6 +49,40 @@ function formatDate(value: string): string {
     return value
   }
 }
+
+/**
+ * FE-FR026-002 / FR-026: never render the raw ApiError message — it can
+ * include backend technical details (SQLSTATE, internal IDs, etc). Map
+ * known statuses to safe localized copy; everything else falls back to a
+ * generic message.
+ */
+const REVOKE_GENERIC_FAILURE =
+  'Gagal mencabut akses aplikasi. Coba lagi beberapa saat.'
+const REVOKE_CSRF_EXPIRED =
+  'Sesi keamanan kedaluwarsa. Muat ulang halaman lalu coba lagi.'
+const REVOKE_RATE_LIMITED =
+  'Terlalu banyak percobaan. Tunggu sebentar sebelum mencoba lagi.'
+const REVOKE_UNAUTHORIZED =
+  'Sesi SSO kedaluwarsa. Silakan masuk lagi untuk mencabut aplikasi ini.'
+const REVOKE_FORBIDDEN =
+  'Aplikasi ini tidak dapat dicabut dari akun ini.'
+const REVOKE_NOT_FOUND =
+  'Aplikasi sudah tidak terhubung dengan akunmu. Muat ulang halaman.'
+const REVOKE_SERVER_ERROR =
+  'Layanan SSO sedang tidak tersedia. Coba lagi nanti.'
+
+const revokeErrorMessage = computed<string | null>(() => {
+  const error = revoke.error.value
+  if (!error) return null
+  if (!isApiError(error)) return REVOKE_GENERIC_FAILURE
+  if (error.status === 419) return REVOKE_CSRF_EXPIRED
+  if (error.status === 429) return REVOKE_RATE_LIMITED
+  if (error.status === 401) return REVOKE_UNAUTHORIZED
+  if (error.status === 403) return REVOKE_FORBIDDEN
+  if (error.status === 404) return REVOKE_NOT_FOUND
+  if (error.status === 0 || error.status >= 500) return REVOKE_SERVER_ERROR
+  return REVOKE_GENERIC_FAILURE
+})
 </script>
 
 <template>
@@ -120,11 +155,12 @@ function formatDate(value: string): string {
     </div>
 
     <p
-      v-if="revoke.error.value"
+      v-if="revokeErrorMessage"
+      data-testid="connected-app-revoke-error"
       role="alert"
       class="border-destructive/40 bg-destructive/10 text-destructive rounded-md border px-3 py-2 text-sm"
     >
-      {{ revoke.error.value.message }}
+      {{ revokeErrorMessage }}
     </p>
 
     <ConfirmDialog

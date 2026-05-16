@@ -42,6 +42,15 @@ const login = useLoginForm()
           :message="login.bannerError.value"
         />
 
+        <a
+          v-if="login.advisoryAction.value"
+          data-testid="login-advisory-cta"
+          :href="login.advisoryAction.value.href"
+          class="text-primary text-sm font-medium hover:underline"
+        >
+          {{ login.advisoryAction.value.label }} →
+        </a>
+
         <SsoFormField
           id="login-identifier"
           v-model="login.form.identifier"

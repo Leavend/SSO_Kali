@@ -2,12 +2,8 @@
 /**
  * CallbackPage — UC-13 + UC-14 OIDC Authorization Code callback.
  *
- * Hanya aktif bila portal dikonfigurasi sebagai OIDC client (env VITE_OIDC_*).
- * Proses:
- *   1. Baca `?code`, `?state`, `?error` dari route.
- *   2. `useOidcCallback.handle()` → validasi + exchange + claims.
- *   3. Sukses: redirect ke `post_login_redirect`.
- *   4. Gagal: tampilkan error state dengan tombol kembali ke login.
+ * FE-FR028-001: We never render `error_description` from the URL. The composable
+ * resolves a localized safe copy via the OAuth error mapper.
  */
 
 import { computed, onMounted } from 'vue'
@@ -29,9 +25,14 @@ const route = useRoute()
 const router = useRouter()
 const callback = useOidcCallback()
 
+const FALLBACK_ERROR_COPY =
+  'Login tidak dapat diselesaikan. Mulai ulang dari halaman login atau kembali ke aplikasi awal.'
+
 const title = computed<string>(() =>
   callback.pending.value ? 'Memverifikasi login…' : callback.error.value ? 'Login gagal' : 'Selesai',
 )
+
+const safeErrorCopy = computed<string>(() => callback.errorMessage.value ?? FALLBACK_ERROR_COPY)
 
 onMounted(async (): Promise<void> => {
   const result = await callback.handle({
@@ -72,8 +73,9 @@ function readString(key: string): string | undefined {
     <CardContent class="grid gap-4">
       <SsoAlertBanner
         v-if="callback.error.value"
+        data-testid="oidc-callback-error"
         tone="error"
-        :message="callback.errorDescription.value ?? 'Tidak dapat memproses callback login.'"
+        :message="safeErrorCopy"
       />
 
       <p v-if="callback.pending.value" class="text-muted-foreground text-center text-sm" aria-live="polite">

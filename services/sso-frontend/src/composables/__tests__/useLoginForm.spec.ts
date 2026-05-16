@@ -269,4 +269,28 @@ describe('useLoginForm', () => {
 
     expect(spy).not.toHaveBeenCalled()
   })
+
+  it('submit() shows safe password_expired copy + advisory CTA (FE-FR022-001)', async () => {
+    const session = useSessionStore()
+    vi.spyOn(session, 'login').mockRejectedValue(
+      new ApiError(
+        403,
+        'Password berisi raw SQL: SELECT * FROM users; -- backend trace',
+        'password_expired',
+      ),
+    )
+
+    const login = useLoginForm()
+    login.form.identifier = 'x'
+    login.form.password = 'y'
+    await login.submit()
+
+    expect(login.bannerError.value).toMatch(/password kamu telah kedaluwarsa/i)
+    expect(login.bannerError.value).not.toContain('SELECT *')
+    expect(login.bannerError.value).not.toContain('backend trace')
+    expect(login.advisoryAction.value).toEqual({
+      label: 'Ubah Password',
+      href: '/profile/security',
+    })
+  })
 })

@@ -1,3 +1,16 @@
+/**
+ * Consent API \u2014 UC-13 explicit OAuth consent decision.
+ *
+ * FE-FR026-001 / FR-026: routes through the central `apiClient` so we get
+ *   - X-Request-ID + X-XSRF-TOKEN
+ *   - Accept-Language propagation
+ *   - Default 30s timeout
+ *   - Typed `ApiError` (status, code, retry-after)
+ *   - 401/419/429/5xx mapped to safe localized copy in `ApiError.fromResponse`
+ */
+
+import { apiClient } from '@/lib/api/api-client'
+
 export type ConsentDecision = 'allow' | 'deny'
 
 export type ConsentScope = {
@@ -16,6 +29,10 @@ export type ConsentDetails = {
   readonly state: string
 }
 
+export type ConsentDecisionResult = {
+  readonly redirect_uri: string
+}
+
 export async function fetchConsentDetails(params: {
   readonly clientId: string
   readonly scope: string
@@ -26,30 +43,26 @@ export async function fetchConsentDetails(params: {
     scope: params.scope,
     state: params.state,
   })
-  const response = await fetch(`/connect/consent?${query.toString()}`, {
-    headers: { Accept: 'application/json' },
-    credentials: 'include',
-  })
 
-  if (!response.ok) throw new Error('consent_load_failed')
-  return response.json() as Promise<ConsentDetails>
+  return apiClient.get<ConsentDetails>(`/connect/consent?${query.toString()}`)
 }
 
 export async function submitConsentDecision(params: {
   readonly state: string
   readonly decision: ConsentDecision
-}): Promise<{ readonly redirect_uri: string }> {
-  const response = await fetch('/connect/consent', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify(params),
-  })
+}): Promise<ConsentDecisionResult> {
+  const payload = await apiClient.post<ConsentDecisionResult | { redirect_uri?: unknown }>(
+    '/connect/consent',
+    params,
+  )
 
-  const payload = await response.json().catch(() => ({}))
-  if (!response.ok || typeof payload.redirect_uri !== 'string' || payload.redirect_uri === '') {
+  if (
+    !payload ||
+    typeof (payload as ConsentDecisionResult).redirect_uri !== 'string' ||
+    (payload as ConsentDecisionResult).redirect_uri.length === 0
+  ) {
     throw new Error('consent_decision_failed')
   }
 
-  return payload as { readonly redirect_uri: string }
+  return payload as ConsentDecisionResult
 }

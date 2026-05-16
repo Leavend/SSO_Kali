@@ -49,7 +49,7 @@ describe('ConsentPage', () => {
     await wrapper.get('button:not([disabled]) + button').trigger('click')
     await flushPromises()
 
-    expect(wrapper.text()).toContain('Keputusan persetujuan gagal diproses. Silakan coba lagi.')
+    expect(wrapper.text()).toContain('Keputusan persetujuan gagal diproses. Coba lagi beberapa saat.')
     expect(wrapper.text()).not.toContain('stack trace')
   })
 
