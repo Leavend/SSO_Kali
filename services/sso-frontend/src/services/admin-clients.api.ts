@@ -1,4 +1,4 @@
-import { apiClient } from '@/lib/api/api-client'
+import { adminBffRequest } from './admin-bff-client'
 
 export type AdminClient = {
   readonly client_id: string
@@ -26,6 +26,14 @@ export type RotateSecretResponse = {
   readonly client_secret: string
 }
 
+type BackendRotateSecretResponse =
+  | RotateSecretResponse
+  | {
+      readonly rotation: {
+        readonly plaintext_once: string
+      }
+    }
+
 export type ClientLifecycleResponse = {
   readonly registration: { readonly client_id: string; readonly status: string }
   readonly tokens_revoked?: number
@@ -39,43 +47,55 @@ export type ClientScopeResponse = {
 
 export const adminClientsApi = {
   async list(): Promise<readonly AdminClient[]> {
-    const data = await apiClient.get<{ readonly clients: readonly AdminClient[] }>('/api/admin/clients')
+    const data = await adminBffRequest<{ readonly clients: readonly AdminClient[] }>(
+      '/api/admin/clients',
+    )
     return data.clients
   },
 
   async create(draft: ClientDraft): Promise<void> {
-    await apiClient.post('/api/admin/client-integrations/stage', draft)
+    await adminBffRequest('/api/admin/client-integrations/stage', { method: 'POST', body: draft })
   },
 
   update(clientId: string, payload: ClientUpdate): Promise<AdminClient> {
-    return apiClient.patch<AdminClient>(`/api/admin/clients/${encodeURIComponent(clientId)}`, payload)
+    return adminBffRequest<AdminClient>(`/api/admin/clients/${encodeURIComponent(clientId)}`, {
+      method: 'PATCH',
+      body: payload,
+    })
   },
 
-  rotateSecret(clientId: string): Promise<RotateSecretResponse> {
-    return apiClient.post<RotateSecretResponse>(`/api/admin/clients/${encodeURIComponent(clientId)}/rotate-secret`)
+  async rotateSecret(clientId: string): Promise<RotateSecretResponse> {
+    const data = await adminBffRequest<BackendRotateSecretResponse>(
+      `/api/admin/clients/${encodeURIComponent(clientId)}/rotate-secret`,
+      { method: 'POST' },
+    )
+    return 'client_secret' in data ? data : { client_secret: data.rotation.plaintext_once }
   },
 
   async decommission(clientId: string): Promise<void> {
-    await apiClient.delete(`/api/admin/clients/${encodeURIComponent(clientId)}`)
+    await adminBffRequest(`/api/admin/clients/${encodeURIComponent(clientId)}`, {
+      method: 'DELETE',
+    })
   },
 
   suspend(clientId: string, reason: string): Promise<ClientLifecycleResponse> {
-    return apiClient.post<ClientLifecycleResponse>(
+    return adminBffRequest<ClientLifecycleResponse>(
       `/api/admin/client-integrations/${encodeURIComponent(clientId)}/disable`,
-      { reason },
+      { method: 'POST', body: { reason } },
     )
   },
 
   activate(clientId: string): Promise<ClientLifecycleResponse> {
-    return apiClient.post<ClientLifecycleResponse>(
+    return adminBffRequest<ClientLifecycleResponse>(
       `/api/admin/client-integrations/${encodeURIComponent(clientId)}/activate`,
+      { method: 'POST' },
     )
   },
 
   syncScopes(clientId: string, scopes: readonly string[]): Promise<ClientScopeResponse> {
-    return apiClient.put<ClientScopeResponse>(
+    return adminBffRequest<ClientScopeResponse>(
       `/api/admin/clients/${encodeURIComponent(clientId)}/scopes`,
-      { scopes },
+      { method: 'PUT', body: { scopes } },
     )
   },
 }

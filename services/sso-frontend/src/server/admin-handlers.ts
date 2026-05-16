@@ -7,6 +7,7 @@ import {
   disableClientIntegration,
   fetchClientIntegrationRegistrations,
   fetchClients,
+  fetchDashboardSummary,
   fetchPrincipal,
   fetchSessions,
   fetchUser,
@@ -15,6 +16,14 @@ import {
   revokeUserSessions,
   stageClientIntegration,
 } from './admin-api.js'
+import { exportAuditEvents, fetchAuditEvents, fetchAuditIntegrity } from './admin-audit-api.js'
+import {
+  decommissionClient,
+  rotateClientSecret,
+  syncClientScopes,
+  updateClient,
+} from './admin-client-api.js'
+import { createUser, userLifecycleAction } from './admin-user-api.js'
 import { isAdminApiError } from './admin-api-error.js'
 import { resolveAdminSession, sessionHeaders } from './admin-session-resolver.js'
 import type { ResolvedAdminSession } from './admin-session-resolver.js'
@@ -57,16 +66,32 @@ export async function handleAdminApi(context: RouteContext): Promise<AppResponse
     const pathname = context.requestUrl.pathname
     const method = context.request.method ?? 'GET'
 
+    if (pathname === '/api/admin/dashboard/summary' && method === 'GET') {
+      return json(200, await fetchDashboardSummary(session), headers)
+    }
+
     if (pathname === '/api/admin/dashboard' && method === 'GET') {
       return json(200, await dashboardPayload(session), headers)
+    }
+
+    if (pathname === '/api/admin/users' && method === 'POST') {
+      return adminUserCreate(context.request, session, headers)
     }
 
     if (pathname === '/api/admin/users' && method === 'GET') {
       return json(200, { users: await fetchUsers(session) }, headers)
     }
 
-    if (pathname.startsWith('/api/admin/users/') && pathname.endsWith('/sessions') && method === 'DELETE') {
+    if (
+      pathname.startsWith('/api/admin/users/') &&
+      pathname.endsWith('/sessions') &&
+      method === 'DELETE'
+    ) {
       return revokeAllUserSessions(session, pathname, headers)
+    }
+
+    if (pathname.startsWith('/api/admin/users/') && method === 'POST') {
+      return adminUserLifecycle(context.request, pathname, session, headers)
     }
 
     if (pathname.startsWith('/api/admin/users/') && method === 'GET') {
@@ -85,12 +110,36 @@ export async function handleAdminApi(context: RouteContext): Promise<AppResponse
       return json(200, { clients: await fetchClients(session) }, headers)
     }
 
+    if (
+      pathname.startsWith('/api/admin/clients/') &&
+      ['PATCH', 'POST', 'PUT', 'DELETE'].includes(method)
+    ) {
+      return adminClientMutation(context.request, pathname, method, session, headers)
+    }
+
+    if (pathname === '/api/admin/audit/events' && method === 'GET') {
+      return json(200, await fetchAuditEvents(session, context.requestUrl.search), headers)
+    }
+
+    if (pathname === '/api/admin/audit/integrity' && method === 'GET') {
+      return json(200, await fetchAuditIntegrity(session), headers)
+    }
+
+    if (pathname === '/api/admin/audit/export' && method === 'GET') {
+      const exported = await exportAuditEvents(session, context.requestUrl.search)
+      return { status: 200, headers: { ...headers, ...exported.headers }, body: exported.body }
+    }
+
     if (pathname === '/api/admin/client-integrations/contract' && method === 'POST') {
       return clientIntegrationContract(context.request, session, headers)
     }
 
     if (pathname === '/api/admin/client-integrations/registrations' && method === 'GET') {
-      return json(200, { registrations: await fetchClientIntegrationRegistrations(session) }, headers)
+      return json(
+        200,
+        { registrations: await fetchClientIntegrationRegistrations(session) },
+        headers,
+      )
     }
 
     if (pathname === '/api/admin/client-integrations/stage' && method === 'POST') {
@@ -107,13 +156,73 @@ export async function handleAdminApi(context: RouteContext): Promise<AppResponse
   }
 }
 
+async function adminUserCreate(
+  request: IncomingMessage,
+  session: AdminSession,
+  headers: Record<string, HeaderValue>,
+): Promise<AppResponse> {
+  const body = await readJsonBody(request)
+  if (!body) return json(400, { error: 'invalid_json', message: 'Invalid user payload.' }, headers)
+
+  return json(201, await createUser(session, body), headers)
+}
+
+async function adminUserLifecycle(
+  request: IncomingMessage,
+  pathname: string,
+  session: AdminSession,
+  headers: Record<string, HeaderValue>,
+): Promise<AppResponse> {
+  const parsed = userLifecyclePath(pathname)
+  if (!parsed)
+    return json(404, { error: 'not_found', message: 'Admin endpoint not found.' }, headers)
+  const body = await readJsonBody(request)
+  if (!body)
+    return json(400, { error: 'invalid_json', message: 'Invalid user action payload.' }, headers)
+
+  return json(
+    200,
+    await userLifecycleAction(session, parsed.subjectId, parsed.action, body),
+    headers,
+  )
+}
+
+async function adminClientMutation(
+  request: IncomingMessage,
+  pathname: string,
+  method: string,
+  session: AdminSession,
+  headers: Record<string, HeaderValue>,
+): Promise<AppResponse> {
+  const parsed = clientMutationPath(pathname)
+  if (!parsed)
+    return json(404, { error: 'not_found', message: 'Admin endpoint not found.' }, headers)
+  const body = await readJsonBody(request)
+
+  if (parsed.action === 'base' && method === 'PATCH')
+    return json(200, await updateClient(session, parsed.clientId, body ?? {}), headers)
+  if (parsed.action === 'rotate-secret' && method === 'POST')
+    return json(200, await rotateClientSecret(session, parsed.clientId), headers)
+  if (parsed.action === 'scopes' && method === 'PUT')
+    return json(200, await syncClientScopes(session, parsed.clientId, body ?? {}), headers)
+  if (parsed.action === 'base' && method === 'DELETE')
+    return json(200, await decommissionClient(session, parsed.clientId), headers)
+
+  return json(404, { error: 'not_found', message: 'Admin endpoint not found.' }, headers)
+}
+
 async function clientIntegrationStage(
   request: IncomingMessage,
   session: AdminSession,
   headers: Record<string, HeaderValue>,
 ): Promise<AppResponse> {
   const body = await readJsonBody(request)
-  if (!body) return json(400, { error: 'invalid_json', message: 'Invalid client integration payload.' }, headers)
+  if (!body)
+    return json(
+      400,
+      { error: 'invalid_json', message: 'Invalid client integration payload.' },
+      headers,
+    )
 
   return json(200, { registration: await stageClientIntegration(session, body) }, headers)
 }
@@ -124,13 +233,20 @@ async function clientIntegrationLifecycle(
   headers: Record<string, HeaderValue>,
 ): Promise<AppResponse> {
   const action = lifecycleAction(context.requestUrl.pathname)
-  if (action === null) return json(404, { error: 'not_found', message: 'Admin endpoint not found.' }, headers)
+  if (action === null)
+    return json(404, { error: 'not_found', message: 'Admin endpoint not found.' }, headers)
 
-  return json(200, { registration: await runLifecycleAction(context.request, session, action) }, headers)
+  return json(
+    200,
+    { registration: await runLifecycleAction(context.request, session, action) },
+    headers,
+  )
 }
 
 function lifecycleAction(pathname: string): ClientLifecycleAction | null {
-  const match = pathname.match(/^\/api\/admin\/client-integrations\/([a-z0-9-]+)\/(activate|disable)$/)
+  const match = pathname.match(
+    /^\/api\/admin\/client-integrations\/([a-z0-9-]+)\/(activate|disable)$/,
+  )
   if (!match) return null
 
   return { clientId: match[1] ?? '', action: match[2] === 'activate' ? 'activate' : 'disable' }
@@ -155,6 +271,24 @@ type ClientLifecycleAction = Readonly<{
   action: 'activate' | 'disable'
 }>
 
+function userLifecyclePath(
+  pathname: string,
+): { readonly subjectId: string; readonly action: string } | null {
+  const match = pathname.match(
+    /^\/api\/admin\/users\/([^/]+)\/(deactivate|reactivate|password-reset|sync-profile|lock|unlock|reset-mfa)$/,
+  )
+  if (!match) return null
+  return { subjectId: decodeURIComponent(match[1] ?? ''), action: match[2] ?? '' }
+}
+
+function clientMutationPath(
+  pathname: string,
+): { readonly clientId: string; readonly action: string } | null {
+  const match = pathname.match(/^\/api\/admin\/clients\/([^/]+)(?:\/(rotate-secret|scopes))?$/)
+  if (!match) return null
+  return { clientId: decodeURIComponent(match[1] ?? ''), action: match[2] ?? 'base' }
+}
+
 async function clientIntegrationContract(
   request: IncomingMessage,
   session: AdminSession,
@@ -162,7 +296,11 @@ async function clientIntegrationContract(
 ): Promise<AppResponse> {
   const body = await readJsonBody(request)
   if (!body) {
-    return json(400, { error: 'invalid_json', message: 'Invalid client integration payload.' }, headers)
+    return json(
+      400,
+      { error: 'invalid_json', message: 'Invalid client integration payload.' },
+      headers,
+    )
   }
 
   return json(200, { contract: await buildClientIntegrationContract(session, body) }, headers)
@@ -208,7 +346,11 @@ async function revokeSingleSession(
   headers: Record<string, HeaderValue>,
 ): Promise<AppResponse> {
   if (!canManageSessions(session)) {
-    return json(403, { error: 'forbidden', message: 'Session management permission is required.' }, headers)
+    return json(
+      403,
+      { error: 'forbidden', message: 'Session management permission is required.' },
+      headers,
+    )
   }
 
   await revokeSession(session, decodeTail(pathname, '/api/admin/sessions/'))
@@ -221,7 +363,11 @@ async function revokeAllUserSessions(
   headers: Record<string, HeaderValue>,
 ): Promise<AppResponse> {
   if (!canManageSessions(session)) {
-    return json(403, { error: 'forbidden', message: 'Session management permission is required.' }, headers)
+    return json(
+      403,
+      { error: 'forbidden', message: 'Session management permission is required.' },
+      headers,
+    )
   }
 
   const subjectId = decodeURIComponent(
@@ -231,7 +377,9 @@ async function revokeAllUserSessions(
   return json(200, { status: 'revoked' }, headers)
 }
 
-async function resolveSessionOrNull(request: IncomingMessage): Promise<ResolvedAdminSession | null> {
+async function resolveSessionOrNull(
+  request: IncomingMessage,
+): Promise<ResolvedAdminSession | null> {
   try {
     return await resolveAdminSession(request)
   } catch (error) {
@@ -247,7 +395,7 @@ function decodeTail(pathname: string, prefix: string): string {
 async function readJsonBody(request: IncomingMessage): Promise<Record<string, unknown> | null> {
   try {
     const body = await readLimitedBody(request)
-    const payload = body === '' ? {} : JSON.parse(body) as unknown
+    const payload = body === '' ? {} : (JSON.parse(body) as unknown)
     return isRecord(payload) ? payload : null
   } catch {
     return null
@@ -305,7 +453,11 @@ function adminErrorResponse(error: unknown): AppResponse {
   return json(500, { error: 'admin_proxy_failed', message: 'Admin API proxy failed.' })
 }
 
-function adminErrorPayload(error: { readonly code: string | null; readonly message: string; readonly violations: readonly string[] }): {
+function adminErrorPayload(error: {
+  readonly code: string | null
+  readonly message: string
+  readonly violations: readonly string[]
+}): {
   readonly error: string
   readonly message: string
   readonly violations?: readonly string[]

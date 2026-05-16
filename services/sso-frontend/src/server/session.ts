@@ -63,7 +63,11 @@ export function clearSessionCookie(): string {
 }
 
 export function transactionCookie(tx: AuthTransaction): string {
-  return serializeCookie(ADMIN_TX_COOKIE, encryptSession(JSON.stringify(tx)), hostCookieOptions(300))
+  return serializeCookie(
+    ADMIN_TX_COOKIE,
+    encryptSession(JSON.stringify(tx)),
+    hostCookieOptions(300),
+  )
 }
 
 export function clearTransactionCookie(): string {
@@ -135,6 +139,11 @@ function normalizedPermissions(permissions: AdminPermissions): AdminPermissions 
   return {
     view_admin_panel: Boolean(permissions.view_admin_panel),
     manage_sessions: Boolean(permissions.manage_sessions),
+    permissions: Array.isArray(permissions.permissions)
+      ? permissions.permissions.filter(isString)
+      : [],
+    capabilities: isBooleanRecord(permissions.capabilities) ? permissions.capabilities : {},
+    menus: Array.isArray(permissions.menus) ? permissions.menus : [],
   }
 }
 
@@ -154,7 +163,10 @@ function normalizeSession(session: Partial<AdminSession>): AdminSession | null {
   if (!isValidSessionShape(session)) return null
 
   const issuedAt = numericOr(session.issuedAt, session.authTime ?? unixTime())
-  const absoluteExpiresAt = numericOr(session.absoluteExpiresAt, issuedAt + getConfig().sessionAbsoluteTtlSeconds)
+  const absoluteExpiresAt = numericOr(
+    session.absoluteExpiresAt,
+    issuedAt + getConfig().sessionAbsoluteTtlSeconds,
+  )
 
   if (absoluteExpiresAt <= unixTime()) return null
 
@@ -169,8 +181,15 @@ function normalizeSession(session: Partial<AdminSession>): AdminSession | null {
 
 function isValidSessionShape(session: Partial<AdminSession>): session is AdminSession {
   return Boolean(
-    session.accessToken && session.idToken && session.refreshToken && session.sub && session.email && session.displayName
-      && session.role && typeof session.expiresAt === 'number' && session.permissions,
+    session.accessToken &&
+    session.idToken &&
+    session.refreshToken &&
+    session.sub &&
+    session.email &&
+    session.displayName &&
+    session.role &&
+    typeof session.expiresAt === 'number' &&
+    session.permissions,
   )
 }
 
@@ -181,4 +200,12 @@ function sessionCookieMaxAge(session: AdminSession): number {
 
 function numericOr(value: number | undefined | null, fallback: number): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : fallback
+}
+
+function isString(value: unknown): value is string {
+  return typeof value === 'string'
+}
+
+function isBooleanRecord(value: unknown): value is Readonly<Record<string, boolean>> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
 }

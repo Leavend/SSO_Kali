@@ -1,6 +1,16 @@
+export type AdminMenuItem = {
+  readonly id: string
+  readonly label: string
+  readonly required_permission: string
+  readonly visible: boolean
+}
+
 export type AdminPermissions = {
   readonly view_admin_panel: boolean
   readonly manage_sessions: boolean
+  readonly permissions?: readonly string[]
+  readonly capabilities?: Readonly<Record<string, boolean>>
+  readonly menus?: readonly AdminMenuItem[]
 }
 
 export type AdminAuthContext = {
@@ -25,6 +35,17 @@ export type ApiUser = {
   readonly email: string
   readonly display_name: string
   readonly role: string
+  readonly status?: string
+  readonly given_name?: string | null
+  readonly family_name?: string | null
+  readonly disabled_at?: string | null
+  readonly disabled_reason?: string | null
+  readonly locked_at?: string | null
+  readonly locked_until?: string | null
+  readonly locked_reason?: string | null
+  readonly lock_count?: number
+  readonly local_account_enabled?: boolean
+  readonly email_verified_at?: string | null
   readonly last_login_at: string | null
   readonly created_at: string
   readonly login_context: {
