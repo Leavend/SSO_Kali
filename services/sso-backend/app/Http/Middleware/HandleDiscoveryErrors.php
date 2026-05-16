@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Middleware;
 
 use App\Exceptions\InvalidOidcConfigurationException;
+use App\Exceptions\SafeOidcExceptionRenderer;
 use App\Support\Responses\OidcErrorResponse;
 use Closure;
 use Illuminate\Http\Exceptions\HttpResponseException;
@@ -19,7 +20,7 @@ use Throwable;
  * Wraps the discovery and JWKS controllers so any unhandled exception is
  * mapped through the central catalog. Throwables that already carry their
  * own HTTP response (e.g. throttle, signed routes) are re-thrown so the
- * global {@see \App\Exceptions\SafeOidcExceptionRenderer} can pick them up
+ * global {@see SafeOidcExceptionRenderer} can pick them up
  * and emit the correct error code with `request_id`/`error_ref`.
  */
 final class HandleDiscoveryErrors
