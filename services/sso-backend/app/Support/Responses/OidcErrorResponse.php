@@ -13,14 +13,32 @@ final class OidcErrorResponse
         string $error,
         string $description,
         int $status,
+        ?string $errorRef = null,
+        ?string $requestId = null,
     ): JsonResponse {
-        return response()->json([
+        $payload = [
             'error' => $error,
             'error_description' => $description,
-        ], $status)->withHeaders([
+        ];
+
+        if (is_string($errorRef) && $errorRef !== '') {
+            $payload['error_ref'] = $errorRef;
+        }
+
+        if (is_string($requestId) && $requestId !== '') {
+            $payload['request_id'] = $requestId;
+        }
+
+        $headers = [
             'Cache-Control' => 'no-store',
             'Pragma' => 'no-cache',
-        ]);
+        ];
+
+        if (is_string($errorRef) && $errorRef !== '') {
+            $headers['X-Error-Ref'] = $errorRef;
+        }
+
+        return response()->json($payload, $status)->withHeaders($headers);
     }
 
     public static function redirect(

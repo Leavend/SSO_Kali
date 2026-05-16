@@ -396,14 +396,23 @@ final class ExchangeToken
             ...$context,
         ]);
 
-        $this->recordSsoTokenError($request, $reason, $error, $description, $context);
+        $errorRef = $this->recordSsoTokenError($request, $reason, $error, $description, $context);
 
-        return OidcErrorResponse::json($error, $description, $status);
+        return OidcErrorResponse::json(
+            error: $error,
+            description: $description,
+            status: $status,
+            errorRef: $errorRef,
+            requestId: $request->headers->get('X-Request-Id'),
+        );
     }
 
-    private function recordSsoTokenError(Request $request, string $reason, string $error, string $description, array $context): void
+    /**
+     * @param  array<string, mixed>  $context
+     */
+    private function recordSsoTokenError(Request $request, string $reason, string $error, string $description, array $context): string
     {
-        $this->ssoErrors->execute(new SsoErrorContext(
+        return $this->ssoErrors->execute(new SsoErrorContext(
             code: $this->ssoErrorCode($error),
             safeReason: $reason,
             technicalReason: $description,
