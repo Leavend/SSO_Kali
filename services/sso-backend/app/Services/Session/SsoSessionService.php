@@ -9,6 +9,8 @@ use App\Models\User;
 use App\Repositories\SsoSessionRepository;
 use App\Repositories\UserRepository;
 use App\Services\Directory\DirectoryUser;
+use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\DB;
 
 final class SsoSessionService
 {
@@ -28,29 +30,7 @@ final class SsoSessionService
             return null;
         }
 
-        $session = $this->sessions->findActiveBySessionId($sessionId);
-
-        if (! $session instanceof SsoSession) {
-            return null;
-        }
-
-        if ($session->expires_at->isPast()) {
-            $this->revoke($session);
-
-            return null;
-        }
-
-        // FR-039 / UC-49: idle timeout — revoke if inactive beyond threshold
-        $idleMinutes = (int) config('sso.session.idle_minutes', 30);
-        if ($idleMinutes > 0 && $session->last_seen_at->addMinutes($idleMinutes)->isPast()) {
-            $this->revoke($session);
-
-            return null;
-        }
-
-        $this->sessions->touchLastSeen($session);
-
-        return $session;
+        return $this->resolveActive($sessionId);
     }
 
     public function currentUser(?string $sessionId): ?User
@@ -76,5 +56,55 @@ final class SsoSessionService
         if ($session instanceof SsoSession) {
             $this->revoke($session);
         }
+    }
+
+    /**
+     * BE-FR039-001 — race-safe lifecycle gate.
+     *
+     * Reads, validates, and updates the SSO session row inside a single
+     * transaction with `lockForUpdate()` so a concurrent revoke / heartbeat
+     * cannot extend an idle-expired session that another request just
+     * decided to revoke (and vice versa).
+     */
+    private function resolveActive(string $sessionId): ?SsoSession
+    {
+        return DB::transaction(function () use ($sessionId): ?SsoSession {
+            $session = $this->sessions->lockActiveBySessionId($sessionId);
+
+            if (! $session instanceof SsoSession) {
+                return null;
+            }
+
+            if ($session->expires_at->isPast()) {
+                $this->sessions->revoke($session);
+
+                return null;
+            }
+
+            $idleMinutes = (int) config('sso.session.idle_minutes', 30);
+
+            if ($idleMinutes > 0 && $this->isIdle($session, $idleMinutes)) {
+                $this->sessions->revoke($session);
+
+                return null;
+            }
+
+            $this->sessions->touchLastSeen($session);
+
+            return $session;
+        });
+    }
+
+    private function isIdle(SsoSession $session, int $idleMinutes): bool
+    {
+        $lastSeen = $session->last_seen_at instanceof \DateTimeInterface
+            ? CarbonImmutable::instance($session->last_seen_at)
+            : null;
+
+        if ($lastSeen === null) {
+            return false;
+        }
+
+        return $lastSeen->addMinutes($idleMinutes)->isPast();
     }
 }

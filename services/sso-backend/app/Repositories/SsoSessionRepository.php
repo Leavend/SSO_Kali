@@ -41,6 +41,26 @@ final class SsoSessionRepository
         return $session instanceof SsoSession ? $session : null;
     }
 
+    /**
+     * BE-FR039-001: row-locked variant used by the lifecycle gate so the
+     * read + downstream revoke/touch happen atomically. Callers MUST
+     * already be inside a transaction.
+     */
+    public function lockActiveBySessionId(string $sessionId): ?SsoSession
+    {
+        if ($sessionId === '') {
+            return null;
+        }
+
+        $session = SsoSession::query()
+            ->where('session_id', $sessionId)
+            ->whereNull('revoked_at')
+            ->lockForUpdate()
+            ->first();
+
+        return $session instanceof SsoSession ? $session : null;
+    }
+
     public function touchLastSeen(SsoSession $session): void
     {
         $session->forceFill(['last_seen_at' => now()])->save();
