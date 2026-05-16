@@ -19,6 +19,7 @@ return [
         'readiness_queue_snapshot_enabled' => (bool) env('SSO_READINESS_QUEUE_SNAPSHOT_ENABLED', false),
         'readiness_external_idp_snapshot_enabled' => (bool) env('SSO_READINESS_EXTERNAL_IDP_SNAPSHOT_ENABLED', false),
         'internal_metrics_token_header' => env('SSO_INTERNAL_METRICS_TOKEN_HEADER', 'X-SSO-Internal-Metrics-Token'),
+        'internal_metrics_token' => env('SSO_INTERNAL_METRICS_TOKEN'),
     ],
     'audit' => [
         'authentication_retention_days' => (int) env('SSO_AUTHENTICATION_AUDIT_RETENTION_DAYS', 400),

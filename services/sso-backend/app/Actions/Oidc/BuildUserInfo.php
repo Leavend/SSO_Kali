@@ -12,6 +12,7 @@ use App\Support\Responses\OidcErrorResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Laravel\Passport\AccessToken;
 use Laravel\Passport\Token;
 use RuntimeException;
 
@@ -75,12 +76,11 @@ final class BuildUserInfo
      */
     private function passportUserInfo(User $user): array
     {
-        $token = $user->token();
-        $scopes = $token instanceof Token && is_array($token->scopes) ? $token->scopes : [];
-        if ($scopes === []) {
-            $scopes = ['openid', 'profile', 'email'];
-        }
+        $scopes = $this->resolvePassportScopes($user);
 
+        // FR-035 / BE-FR035-001: never silently fall back to profile/email
+        // for empty Passport scopes. Resource servers must request claims
+        // explicitly. We always emit the bare-minimum subject identifier.
         $claims = [
             'sub' => $user->subject_id,
             'scope' => implode(' ', $scopes),
@@ -92,5 +92,30 @@ final class BuildUserInfo
         ];
 
         return ClaimsView::userInfo($claims);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function resolvePassportScopes(User $user): array
+    {
+        $token = $user->token();
+
+        if ($token instanceof Token && is_array($token->scopes)) {
+            return array_values(array_filter($token->scopes, 'is_string'));
+        }
+
+        if ($token instanceof AccessToken) {
+            /** @var mixed $oauthScopes */
+            $oauthScopes = $token->oauth_scopes;
+
+            if (! is_array($oauthScopes)) {
+                return [];
+            }
+
+            return array_values(array_filter($oauthScopes, 'is_string'));
+        }
+
+        return [];
     }
 }

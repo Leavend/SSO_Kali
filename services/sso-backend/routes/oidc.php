@@ -25,6 +25,7 @@ use App\Http\Controllers\System\PerformanceMetricsController;
 use App\Http\Controllers\System\QueueMetricsController;
 use App\Http\Controllers\System\ReadinessController;
 use App\Http\Middleware\ApplyPublicCacheToMetadata;
+use App\Http\Middleware\EnsureInternalMetricsToken;
 use App\Http\Middleware\HandleDiscoveryErrors;
 use App\Http\Middleware\ValidateTokenOrigin;
 use Illuminate\Http\JsonResponse;
@@ -41,8 +42,10 @@ Route::get('/', function (): JsonResponse {
 });
 Route::get('/health', HealthController::class);
 Route::get('/ready', ReadinessController::class);
-Route::get('/_internal/performance-metrics', PerformanceMetricsController::class);
-Route::get('/_internal/queue-metrics', QueueMetricsController::class);
+Route::get('/_internal/performance-metrics', PerformanceMetricsController::class)
+    ->middleware(EnsureInternalMetricsToken::class);
+Route::get('/_internal/queue-metrics', QueueMetricsController::class)
+    ->middleware(EnsureInternalMetricsToken::class);
 
 // --- OIDC Discovery & JWKS (public, cacheable) ---
 Route::get('/.well-known/openid-configuration', DiscoveryController::class)

@@ -10,6 +10,7 @@ final class LocalLogoutTokenVerifier
 {
     public function __construct(
         private readonly SigningKeyService $keys,
+        private readonly LogoutTokenReplayStore $replayStore,
     ) {}
 
     /**
@@ -25,6 +26,7 @@ final class LocalLogoutTokenVerifier
         $this->assertLogoutEvent($claims);
         $this->assertNonceAbsent($claims);
         $this->assertSubjectOrSession($claims);
+        $this->assertJtiSingleUse($claims, $audience);
 
         return $claims;
     }
@@ -96,6 +98,30 @@ final class LocalLogoutTokenVerifier
 
         if (! $hasSubject && ! $hasSession) {
             throw new RuntimeException('Logout token subject is missing.');
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $claims
+     */
+    private function assertJtiSingleUse(array $claims, string $audience): void
+    {
+        $jti = $claims['jti'] ?? null;
+
+        if (! is_string($jti) || $jti === '') {
+            throw new RuntimeException('Logout token jti is missing.');
+        }
+
+        $exp = $this->timestamp($claims['exp'] ?? null);
+
+        if ($exp === null) {
+            throw new RuntimeException('Logout token timing is invalid.');
+        }
+
+        $accepted = $this->replayStore->register($audience, $jti, $exp, time());
+
+        if (! $accepted) {
+            throw new RuntimeException('Logout token jti has already been used.');
         }
     }
 

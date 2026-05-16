@@ -10,6 +10,7 @@ use App\Services\Oidc\DownstreamClientRegistry;
 use App\Services\Oidc\OidcIncidentAuditLogger;
 use App\Services\Oidc\RefreshTokenStore;
 use App\Services\Oidc\SigningKeyService;
+use App\Services\Oidc\TokenClientAuthenticationResolver;
 use App\Services\Oidc\Upstream\UpstreamOidcClient;
 use App\Support\Audit\AuthenticationAuditRecord;
 use Illuminate\Http\JsonResponse;
@@ -27,29 +28,36 @@ final class RevokeToken
         private readonly UpstreamOidcClient $upstream,
         private readonly OidcIncidentAuditLogger $incidents,
         private readonly RecordAuthenticationAuditEventAction $audits,
+        private readonly TokenClientAuthenticationResolver $clientAuthentication,
     ) {}
 
     public function handle(Request $request): JsonResponse
     {
-        $clientId = (string) $request->input('client_id', '');
-        $client = $this->clients->find($clientId);
+        // RFC 6749 §2.3.1 + RFC 7009 §2.1: HTTP Basic precedence over body,
+        // safe idempotent 200 even when client auth fails.
+        $credentials = $this->clientAuthentication->resolve($request);
+        $clientId = $credentials->clientId;
+        $client = $clientId === '' ? null : $this->clients->find($clientId);
 
-        if ($client === null || ! $this->clients->validSecret($client, $this->clientSecret($request))) {
+        if ($client === null || ! $this->clients->validSecret($client, $credentials->clientSecret)) {
             $reason = $client === null ? 'unknown_client' : 'invalid_secret';
 
             Log::warning('[REVOCATION_INVALID_CLIENT]', [
                 'client_id' => $clientId,
                 'reason' => $reason,
+                'auth_method' => $credentials->authMethod,
                 'ip' => $request->ip(),
             ]);
 
             $this->incidents->record('oidc_revocation_invalid_client', $request, $reason, [
                 'client_id' => $clientId,
+                'auth_method' => $credentials->authMethod,
             ]);
 
-            $this->recordRevocationAudit($request, 'failed', $reason, $clientId, null, [
+            $this->recordRevocationAudit($request, 'failed', $reason, $clientId !== '' ? $clientId : null, null, [
                 'token_type_hint' => $this->tokenTypeHint($request),
                 'token_hash' => $this->tokenHash($request),
+                'auth_method' => $credentials->authMethod,
             ]);
 
             // RFC 7009 §2.1 — always return 200 regardless of client validity
@@ -57,7 +65,7 @@ final class RevokeToken
         }
 
         $token = (string) $request->input('token', '');
-        $hint = is_string($request->input('token_type_hint')) ? $request->input('token_type_hint') : null;
+        $hint = $this->tokenTypeHint($request);
 
         $refreshResult = $this->revokeRefreshToken($token, $client->clientId, $hint);
         $accessResult = $this->revokeAccessToken($token, $hint);
@@ -71,6 +79,7 @@ final class RevokeToken
             'refresh_token_family_hash' => $refreshResult['family_hash'],
             'access_token_jti_hash' => $accessResult['jti_hash'],
             'idempotent_unknown_token' => ! $refreshResult['revoked'] && ! $accessResult['revoked'],
+            'auth_method' => $credentials->authMethod,
         ]);
 
         return response()->json((object) [], 200);
@@ -136,13 +145,6 @@ final class RevokeToken
         $this->revocations->revoke($jti, $ttl);
 
         return ['revoked' => true, 'jti_hash' => hash('sha256', $jti)];
-    }
-
-    private function clientSecret(Request $request): ?string
-    {
-        $secret = $request->input('client_secret');
-
-        return is_string($secret) ? $secret : null;
     }
 
     /**
