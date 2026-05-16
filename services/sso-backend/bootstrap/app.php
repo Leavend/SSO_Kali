@@ -99,7 +99,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        $exceptions->renderable(static function (\Throwable $exception, \Illuminate\Http\Request $request) {
+        $exceptions->renderable(static function (Throwable $exception, Request $request) {
             return (new SafeOidcExceptionRenderer)($exception, $request);
         });
     })->create();
