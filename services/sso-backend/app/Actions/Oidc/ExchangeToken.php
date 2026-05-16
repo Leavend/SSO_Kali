@@ -86,7 +86,13 @@ final class ExchangeToken
             return $this->tokenError($request, 'invalid_client_authentication', 'invalid_client', 'Client authentication failed.', 401);
         }
 
-        $record = $this->refreshTokens->findActive((string) $request->input('refresh_token', ''), $client->clientId);
+        $resolution = $this->refreshTokens->resolveActive((string) $request->input('refresh_token', ''), $client->clientId);
+
+        if ($resolution['reuse']) {
+            $this->recordRefreshReuse($request, $client->clientId, $resolution);
+        }
+
+        $record = $resolution['record'];
 
         if ($record === null) {
             return $this->tokenError($request, 'invalid_refresh_token', 'invalid_grant', 'The refresh token is invalid.', 400, [
@@ -333,6 +339,35 @@ final class ExchangeToken
             'refresh_token_rotated' => $context['refresh_token_rotated'] ?? null,
             'upstream_refresh' => $context['upstream_refresh'] ?? null,
         ], static fn (mixed $value): bool => $value !== null);
+    }
+
+    /**
+     * @param  array{record: array<string, mixed>|null, reuse: bool, family_id: string|null, token_id: string|null}  $resolution
+     */
+    private function recordRefreshReuse(Request $request, string $clientId, array $resolution): void
+    {
+        $context = array_filter([
+            'token_family_hash' => $resolution['family_id'] !== null ? hash('sha256', $resolution['family_id']) : null,
+            'token_id_hash' => $resolution['token_id'] !== null ? hash('sha256', $resolution['token_id']) : null,
+        ], static fn (mixed $value): bool => $value !== null);
+
+        $this->audits->execute(AuthenticationAuditRecord::tokenLifecycle(
+            eventType: 'refresh_token_reuse_detected',
+            outcome: 'denied',
+            subjectId: null,
+            clientId: $clientId,
+            sessionId: null,
+            ipAddress: $request->ip(),
+            userAgent: $request->userAgent(),
+            errorCode: 'refresh_token_reuse',
+            requestId: $request->headers->get('X-Request-Id'),
+            context: $context,
+        ));
+
+        $this->incidents->record('oidc_refresh_token_reuse', $request, 'refresh_token_reuse', [
+            'client_id' => $clientId,
+            ...$context,
+        ]);
     }
 
     private function optionalString(mixed $value): ?string

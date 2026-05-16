@@ -6,7 +6,6 @@ use App\Services\Oidc\LocalLogoutTokenVerifier;
 use App\Services\Oidc\LogoutTokenService;
 use App\Services\Oidc\SigningKeyService;
 use Illuminate\Support\Facades\Cache;
-use RuntimeException;
 
 beforeEach(function (): void {
     config()->set('sso.issuer', 'https://sso.example');

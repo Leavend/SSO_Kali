@@ -100,10 +100,22 @@ final class RefreshTokenStore
      */
     public function findActive(string $plainToken, string $clientId): ?array
     {
+        return $this->resolveActive($plainToken, $clientId)['record'];
+    }
+
+    /**
+     * Resolve the active record alongside an explicit reuse signal so
+     * callers (e.g. ExchangeToken) can emit dedicated reuse-detected
+     * audit events when a previously rotated token is replayed.
+     *
+     * @return array{record: array<string, mixed>|null, reuse: bool, family_id: string|null, token_id: string|null}
+     */
+    public function resolveActive(string $plainToken, string $clientId): array
+    {
         [$tokenId, $secret] = $this->parse($plainToken);
 
         if ($tokenId === null || $secret === null) {
-            return null;
+            return ['record' => null, 'reuse' => false, 'family_id' => null, 'token_id' => null];
         }
 
         $record = DB::table('refresh_token_rotations')
@@ -112,22 +124,57 @@ final class RefreshTokenStore
             ->first();
 
         if ($record === null) {
-            return null;
+            return ['record' => null, 'reuse' => false, 'family_id' => null, 'token_id' => $tokenId];
         }
 
-        if ($this->isReuse($record, $secret)) {
-            $this->revokeFamily((string) $record->token_family_id);
+        $familyId = (string) $record->token_family_id;
 
-            return null;
+        if ($this->isReuse($record, $secret)) {
+            $this->revokeFamily($familyId);
+
+            return [
+                'record' => null,
+                'reuse' => true,
+                'family_id' => $familyId,
+                'token_id' => $tokenId,
+            ];
         }
 
         if ($this->familyExpired($record)) {
-            $this->revokeExpiredFamily((string) $record->token_family_id);
+            $this->revokeExpiredFamily($familyId);
 
-            return null;
+            return [
+                'record' => null,
+                'reuse' => false,
+                'family_id' => $familyId,
+                'token_id' => $tokenId,
+            ];
         }
 
-        return $this->validRecord($record, $secret) ? $this->payload($record) : null;
+        return [
+            'record' => $this->validRecord($record, $secret) ? $this->payload($record) : null,
+            'reuse' => false,
+            'family_id' => $familyId,
+            'token_id' => $tokenId,
+        ];
+    }
+
+    /**
+     * Atomically claim the active refresh token row by setting revoked_at
+     * in a single UPDATE keyed on the token id and the still-null
+     * revoked_at column. Returns true only when the claim succeeds — i.e.
+     * the caller now owns the right to issue the rotation.
+     */
+    public function atomicClaim(string $tokenId, string $replacementId): bool
+    {
+        return DB::table('refresh_token_rotations')
+            ->where('refresh_token_id', $tokenId)
+            ->whereNull('revoked_at')
+            ->update([
+                'replaced_by_token_id' => $replacementId,
+                'revoked_at' => now(),
+                'updated_at' => now(),
+            ]) === 1;
     }
 
     /**
