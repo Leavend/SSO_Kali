@@ -94,8 +94,25 @@ final class ExchangeToken
             ]);
         }
 
-        // FR-011: downscope to intersection of original scope and current allowed_scopes
-        $record['scope'] = $this->downscopeForClient($record['scope'] ?? '', $client);
+        // FR-025 / BE-FR025-001: downscope to intersection of original
+        // scope and current allowed_scopes. If the intersection is empty
+        // (admin removed every scope the token carried), reject the
+        // refresh outright instead of silently falling back to the
+        // original scope set, which would re-elevate disallowed scopes.
+        $downscoped = $this->downscopeForClient($record['scope'] ?? '', $client);
+
+        if ($downscoped === '') {
+            return $this->tokenError(
+                $request,
+                'refresh_scope_emptied',
+                'invalid_scope',
+                'No requested scope is currently allowed for this client.',
+                400,
+                ['client_id' => $client->clientId],
+            );
+        }
+
+        $record['scope'] = $downscoped;
 
         return $this->rotatedTokens($request, $record);
     }
@@ -220,10 +237,14 @@ final class ExchangeToken
     }
 
     /**
-     * FR-011: Downscope the token scope to the intersection of the original
-     * granted scope and the client's current allowed_scopes. This ensures
-     * that if an admin removes a scope from a client, existing refresh tokens
-     * no longer grant that scope.
+     * FR-011 / FR-025 / BE-FR025-001: Downscope the token scope to the
+     * intersection of the original granted scope and the client's current
+     * allowed_scopes. When an admin removes a scope from a client, existing
+     * refresh tokens MUST NOT carry that scope forward.
+     *
+     * If the intersection is empty, this returns an empty string and the
+     * caller MUST reject the refresh request rather than fall back to the
+     * original scope set.
      */
     private function downscopeForClient(string $scope, DownstreamClient $client): string
     {
@@ -232,7 +253,7 @@ final class ExchangeToken
 
         $intersection = array_values(array_intersect($original, $allowed));
 
-        return ScopeSet::toString($intersection !== [] ? $intersection : $original);
+        return ScopeSet::toString($intersection);
     }
 
     /**
