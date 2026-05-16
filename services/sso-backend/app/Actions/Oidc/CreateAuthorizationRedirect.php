@@ -9,6 +9,7 @@ use App\Actions\SsoErrors\BuildSsoErrorRedirectAction;
 use App\Actions\SsoErrors\RecordSsoErrorAction;
 use App\Enums\SsoErrorCode;
 use App\Enums\SsoSessionLifecycleOutcome;
+use App\Exceptions\OidcScopeException;
 use App\Services\Oidc\AcrEvaluator;
 use App\Services\Oidc\AuthorizationCodeStore;
 use App\Services\Oidc\AuthRequestStore;
@@ -273,8 +274,8 @@ final class CreateAuthorizationRedirect
 
         try {
             $this->scopes->validateAuthorizationRequest($this->scope($request), $this->client($request));
-        } catch (\RuntimeException $exception) {
-            return $this->error('invalid_scope', $exception->getMessage());
+        } catch (OidcScopeException $exception) {
+            return $this->error('invalid_scope', $exception->safeDescription());
         }
 
         if ($this->invalidPromptRequested($request)) {

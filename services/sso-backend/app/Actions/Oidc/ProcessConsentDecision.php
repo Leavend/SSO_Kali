@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions\Oidc;
 
 use App\Actions\Audit\RecordAuthenticationAuditEventAction;
+use App\Exceptions\OidcScopeException;
 use App\Services\Oidc\AuthorizationCodeStore;
 use App\Services\Oidc\AuthRequestStore;
 use App\Services\Oidc\ConsentService;
@@ -79,11 +80,11 @@ final class ProcessConsentDecision
 
         try {
             $scope = $this->scopes->validateAuthorizationRequest($scope, $client);
-        } catch (\RuntimeException $exception) {
+        } catch (OidcScopeException $exception) {
             $this->recordDecision($request, $payload, 'failed', 'invalid_scope');
 
             return response()->json([
-                'redirect_uri' => $this->errorRedirect($redirectUri, $payload, 'invalid_scope', $exception->getMessage()),
+                'redirect_uri' => $this->errorRedirect($redirectUri, $payload, 'invalid_scope', $exception->safeDescription()),
             ]);
         }
 

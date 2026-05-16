@@ -6,6 +6,7 @@ namespace App\Actions\Oidc;
 
 use App\Actions\Audit\RecordAuthenticationAuditEventAction;
 use App\Actions\Auth\VerifyLocalPasswordLoginAction;
+use App\Exceptions\OidcScopeException;
 use App\Models\MfaCredential;
 use App\Models\User;
 use App\Services\Mfa\MfaChallengeStore;
@@ -157,10 +158,10 @@ final class AuthenticateLocalCredentials
         // instead of a silent rewrite to "openid".
         try {
             $validatedScope = $this->scopes->validateAuthorizationRequest($scope, $client);
-        } catch (\RuntimeException $exception) {
+        } catch (OidcScopeException $exception) {
             $this->recordFailed($request, $email, $client, 'invalid_scope');
 
-            return OidcErrorResponse::json('invalid_scope', $exception->getMessage(), 400);
+            return OidcErrorResponse::json('invalid_scope', $exception->safeDescription(), 400);
         }
 
         // FR-021 / BE-FR021-001: enforce requested acr_values BEFORE branching

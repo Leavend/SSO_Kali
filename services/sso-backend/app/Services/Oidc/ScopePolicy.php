@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Services\Oidc;
 
+use App\Exceptions\OidcScopeException;
 use App\Support\Oidc\DownstreamClient;
 use App\Support\Oidc\OidcScope;
 use App\Support\Oidc\ScopeSet;
-use RuntimeException;
 
 final class ScopePolicy
 {
@@ -79,7 +79,7 @@ final class ScopePolicy
     private function assertOpenid(array $scopes): void
     {
         if (! ScopeSet::contains($scopes, OidcScope::OPENID)) {
-            throw new RuntimeException('openid scope is required.');
+            throw new OidcScopeException('openid scope is required.');
         }
     }
 
@@ -91,7 +91,10 @@ final class ScopePolicy
         $unknown = array_values(array_diff($scopes, OidcScope::names()));
 
         if ($unknown !== []) {
-            throw new RuntimeException('Unknown OIDC scope requested: '.implode(', ', $unknown));
+            throw new OidcScopeException(
+                reason: 'Unknown OIDC scope requested: '.implode(', ', $unknown),
+                offendingScopes: $unknown,
+            );
         }
     }
 
@@ -104,7 +107,10 @@ final class ScopePolicy
         $notAllowed = array_values(array_diff($requested, $allowed));
 
         if ($notAllowed !== []) {
-            throw new RuntimeException('OIDC scope is not allowed for this client: '.implode(', ', $notAllowed));
+            throw new OidcScopeException(
+                reason: 'OIDC scope is not allowed for this client: '.implode(', ', $notAllowed),
+                offendingScopes: $notAllowed,
+            );
         }
     }
 }

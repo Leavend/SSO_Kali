@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions\Oidc;
 
 use App\Actions\Audit\RecordAuthenticationAuditEventAction;
+use App\Exceptions\OidcScopeException;
 use App\Models\User;
 use App\Services\Oidc\AuthorizationCodeStore;
 use App\Services\Oidc\AuthRequestStore;
@@ -72,8 +73,8 @@ final class CompletePendingOidcAuthorization
         // pending authorization fails safe with no code.
         try {
             $validatedScope = $this->scopes->validateAuthorizationRequest($scope, $client);
-        } catch (\RuntimeException $exception) {
-            return OidcContinuationResult::invalidScope($exception->getMessage());
+        } catch (OidcScopeException $exception) {
+            return OidcContinuationResult::invalidScope($exception->safeDescription());
         }
 
         $payload = [
