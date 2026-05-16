@@ -940,3 +940,35 @@ CI/deploy:
 - Push to `main` only after local validation passes.
 - Existing GHA must pass: `CI`, relevant service CI/CD, `Deploy Main to VPS`.
 - For code batches that change runtime behavior, smoke auth/logout/token endpoints after deploy.
+
+### 9.6 Closure Ledger — Shipped Hardening Evidence
+
+FR rows below are kept for audit history but the listed AC IDs have shipped
+fixes with green contract tests. Each row maps to the production code path,
+the pest contract test that locks the behavior, and the commit that shipped
+it. New regressions for these AC IDs MUST add tests in the listed file.
+
+| AC ID | Production code | Contract test | Closure commit |
+| --- | --- | --- | --- |
+| BE-FR029-001 | `app/Actions/Oidc/ExchangeToken.php`, `app/Services/Oidc/AuthorizationCodeStore.php` | `tests/Feature/Oidc/AuthorizationCodeExchangeEdgeContractTest.php` | `d52e0a4` |
+| BE-FR030-001 | `app/Actions/Oidc/IssueIdToken.php`, `app/Services/Oidc/UserClaimsFactory.php` | `tests/Feature/Oidc/IdTokenClaimsMatrixContractTest.php` | `d52e0a4` |
+| BE-FR031-001 | `config/sso.php` (`resource_audience` policy anchor), `app/Services/Oidc/AccessTokenGuard.php` | `tests/Feature/Oidc/AccessTokenAudiencePolicyContractTest.php` | `d52e0a4` |
+| BE-FR032-001 | `app/Services/Oidc/RefreshTokenStore.php::rotateAtomic()`, `app/Services/Oidc/LocalTokenService.php::rotate()`, `app/Exceptions/RefreshTokenRotationConflict.php` | `tests/Feature/Oidc/AtomicRefreshRotationContractTest.php`, `tests/Feature/Oidc/RefreshTokenRotationReplayContractTest.php` | `fc556e9`, `17c6fc0` |
+| BE-FR033-001 | `app/Actions/Oidc/ExchangeToken.php::notifyRefreshReuseSubject()`, `app/Notifications/RefreshTokenReuseDetectedNotification.php`, `app/Services/Oidc/RefreshTokenStore.php::subjectIdForFamily()` | `tests/Feature/Oidc/RefreshTokenReuseAuditContractTest.php`, `tests/Feature/Oidc/AtomicRefreshRotationContractTest.php` | `fc556e9`, `17c6fc0` |
+| BE-FR034-001 | `app/Actions/Oidc/RevokeToken.php` (uses `TokenClientAuthenticationResolver`) | `tests/Feature/Oidc/RevocationBasicAuthContractTest.php`, `tests/Feature/Oidc/RevocationEndpointRfc7009ContractTest.php`, `tests/Feature/Oidc/PublicClientRevocationContractTest.php` | `0bb9f1a`, `17c6fc0` |
+| BE-FR035-001 | `app/Actions/Oidc/BuildUserInfo.php::resolvePassportScopes()` (no profile/email fallback) | `tests/Feature/Oidc/UserInfoPassportEmptyScopeContractTest.php` | `0bb9f1a` |
+| BE-FR036-001 | `routes/oidc.php` (`/introspect`, `/oauth2/introspect`), `app/Http/Controllers/Oidc/IntrospectionController.php`, `app/Actions/Oidc/IntrospectToken.php`, `app/Services/Oidc/OidcCatalog.php` (advertises `introspection_endpoint`) | `tests/Feature/Oidc/IntrospectionContractTest.php` | `960cf80` |
+| BE-FR037-001 | `app/Actions/Auth/LogoutSsoSessionAction.php` (revokes refresh + access JTIs + dispatches BCL fan-out + clears registry) | `tests/Feature/Auth/PortalLogoutFanOutContractTest.php` | `20bae6e` |
+| BE-FR039-001 | `app/Services/Oidc/SsoSessionLifecycleGuard.php`, `app/Enums/SsoSessionLifecycleOutcome.php` | `tests/Feature/Oidc/SsoSessionLifecycleGuardContractTest.php`, `tests/Feature/Session/SessionLifecycleAtomicContractTest.php` | `01a0d5a` |
+| BE-FR041-001 | `app/Actions/Oidc/PerformSingleSignOut.php` (binds `id_token_hint.sid`) | `tests/Feature/Oidc/IdTokenHintSidBindingContractTest.php` | `11a7e8f` |
+| BE-FR042-001 | `app/Services/Oidc/LogoutTokenReplayStore.php`, `app/Services/Oidc/LocalLogoutTokenVerifier.php` | `tests/Unit/Oidc/LocalLogoutTokenVerifierReplayTest.php` | `0bb9f1a` |
+| BE-FR056-001 | `app/Http/Middleware/EnsureInternalMetricsToken.php` | `tests/Feature/System/InternalMetricsTokenGuardTest.php` | `0bb9f1a` |
+| BE-FR062-001 | `app/Support/Oidc/SafeOidcErrorDescription.php`, `app/Support/Responses/OidcErrorResponse.php` | `tests/Feature/Oidc/SafeErrorDescriptionContractTest.php`, `tests/Feature/Oidc/OidcErrorShapeConsistencyContractTest.php` | `fd24df8` |
+| BE-FR063-001 | `app/Http/Middleware/EnsureRequestId.php`, `app/Actions/SsoErrors/RecordSsoErrorAction.php`, `app/Support/Responses/OidcErrorResponse.php` | `tests/Feature/Oidc/ErrorRefPropagationContractTest.php` | `8120852` |
+| FE-FR061/063 | `services/sso-frontend/src/lib/oidc/oauth-error-message.ts`, `services/sso-frontend/src/pages/auth/CallbackPage.vue` | `services/sso-frontend/src/lib/oidc/__tests__/oauth-error-message.spec.ts`, `services/sso-frontend/src/pages/auth/__tests__/ConsentPage.spec.ts` | `341a3fc` |
+
+Any re-audit that reopens a closed AC ID MUST cite (a) a failing test against
+the listed contract file, or (b) a new code path that bypasses the listed
+production code. Otherwise the finding is duplicate and should be closed by
+pointing back to this ledger.
+
