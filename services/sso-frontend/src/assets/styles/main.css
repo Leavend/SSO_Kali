@@ -248,9 +248,9 @@
     linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
-  transition:
-    --glass-angle-conic 500ms ease,
-    opacity var(--duration-normal) var(--ease-smooth);
+  /* Idle shimmer rotation — makes the border feel alive even at rest */
+  animation: sso-pill-shimmer-idle 14s linear infinite;
+  transition: opacity var(--duration-normal) var(--ease-smooth);
   pointer-events: none;
   z-index: 1;
 }
@@ -271,18 +271,29 @@
   mix-blend-mode: screen;
   pointer-events: none;
   z-index: 0;
+  /* Idle sheen drift — slow side-to-side highlight pass */
+  animation: sso-pill-sheen-idle 9s ease-in-out infinite;
   transition:
     background-position calc(var(--duration-normal) * 1.25) var(--ease-smooth),
     --glass-angle-sheen calc(var(--duration-normal) * 1.25) var(--ease-smooth);
 }
 
-.sso-glass-pill:hover,
-.sso-glass-pill:focus-within {
-  --glass-angle-conic: -125deg;
+/* Hover/focus accelerates the choreography — not a one-shot */
+.sso-glass-pill:hover::before,
+.sso-glass-pill:focus-within::before {
+  animation-duration: 6s;
 }
 .sso-glass-pill:hover::after,
 .sso-glass-pill:focus-within::after {
-  background-position: 25% 50%;
+  animation-duration: 4s;
+}
+.sso-glass-pill:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 0.125em 0.125em color-mix(in oklch, currentColor 10%, transparent),
+    inset 0 -0.125em 0.125em color-mix(in oklch, white 60%, transparent),
+    0 0.5em 0.5em -0.125em rgb(15 23 42 / 22%),
+    0 0 0.1em 0.25em inset color-mix(in oklch, white 28%, transparent);
 }
 
 /* 3D pill press — "Austere Precision" toned-down rotateX (8deg, not 25deg) */
@@ -292,17 +303,123 @@
 }
 .sso-glass-pill-3d:has(> button:active),
 .sso-glass-pill-3d:active {
-  transform: rotateX(8deg);
+  transform: rotateX(8deg) translateY(0);
+}
+
+@keyframes sso-pill-shimmer-idle {
+  0% {
+    --glass-angle-conic: -75deg;
+  }
+  100% {
+    --glass-angle-conic: 285deg;
+  }
+}
+
+@keyframes sso-pill-sheen-idle {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* =====================================================================
+   ENTRANCE CHOREOGRAPHY — stagger card / heading / form fields on mount.
+   Applied via .sso-stagger on a parent; children animate sequentially.
+   Skipped under prefers-reduced-motion.
+   ===================================================================== */
+
+@keyframes sso-enter-up {
+  0% {
+    opacity: 0;
+    transform: translateY(0.75rem) scale(0.985);
+    filter: blur(4px);
+  }
+  60% {
+    filter: blur(0);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes sso-enter-fade {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes sso-card-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.0035);
+  }
+}
+
+.sso-enter-up {
+  animation: sso-enter-up 720ms var(--ease-smooth) both;
+}
+
+.sso-card-alive {
+  animation:
+    sso-enter-up 720ms var(--ease-smooth) both,
+    sso-card-breathe 11s ease-in-out 720ms infinite;
+}
+
+.sso-stagger > * {
+  animation: sso-enter-fade 540ms var(--ease-smooth) both;
+}
+.sso-stagger > *:nth-child(1) {
+  animation-delay: 80ms;
+}
+.sso-stagger > *:nth-child(2) {
+  animation-delay: 160ms;
+}
+.sso-stagger > *:nth-child(3) {
+  animation-delay: 240ms;
+}
+.sso-stagger > *:nth-child(4) {
+  animation-delay: 320ms;
+}
+.sso-stagger > *:nth-child(5) {
+  animation-delay: 400ms;
+}
+.sso-stagger > *:nth-child(6) {
+  animation-delay: 480ms;
+}
+.sso-stagger > *:nth-child(n + 7) {
+  animation-delay: 560ms;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .sso-glass-pill::before,
   .sso-glass-pill::after {
+    animation: none !important;
     transition: none !important;
+  }
+  .sso-glass-pill:hover {
+    transform: none !important;
   }
   .sso-glass-pill-3d:has(> button:active),
   .sso-glass-pill-3d:active {
     transform: none !important;
+  }
+  .sso-enter-up,
+  .sso-card-alive,
+  .sso-stagger > * {
+    animation: none !important;
   }
 }
 

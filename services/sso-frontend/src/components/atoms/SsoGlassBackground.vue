@@ -2,21 +2,20 @@
 /**
  * SsoGlassBackground — atom: vibrant Liquid Glass blobs untuk auth pages.
  *
- * EVOLUSI v2 (Liquid Glass × Vibrant edition):
- *   Versi pertama 4% ambient terlalu dingin — jauh dari acuan EaseMize.
- *   Versi ini render colored blobs yang VISIBLE (opacity ≥0.45) sebagai
- *   "tempat" tempat glass card berdiri, mempertahankan:
- *     - aria-hidden="true" (decorative only — design.md §10.1)
- *     - prefers-reduced-motion: reduce → animasi berhenti (WCAG 2.3.3)
- *     - 3 layer blob (test contract: SsoGlassBackground.spec.ts L24)
- *     - blob1 = stop brand-100 / error-50 (test contract L33-43)
+ * EVOLUSI v3 (Liquid Glass × Alive edition):
+ *   v1: 4% ambient — terlalu dingin.
+ *   v2: vibrant blobs visible, idle float — lebih hidup tapi masih kaku.
+ *   v3: + pointer parallax sangat subtle (max 12px translate) supaya blob
+ *       "merespon" hadirnya pengguna. Gated penuh oleh prefers-reduced-motion
+ *       — listener tidak pernah di-attach kalau user prefer reduced.
  *
- * Glass card di atasnya WAJIB punya backdrop-filter: blur(...) yang sudah
- * disediakan oleh SsoGlassSurface — itulah yang membuat blob "diserap"
- * lewat kaca.
+ * Kontrak preserved:
+ *   - aria-hidden="true" (decorative only — design.md §10.1)
+ *   - 3 layer blob (test contract: SsoGlassBackground.spec.ts L24)
+ *   - blob1 = stop brand-100 / error-50 (test contract L33-43)
  */
 
-import { computed } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
 type Preset = 'auth' | 'consent' | 'error' | 'mfa'
 
@@ -64,10 +63,56 @@ const PRESETS: Record<Preset, BlobConfig> = {
 }
 
 const config = computed<BlobConfig>(() => PRESETS[props.preset])
+
+/** Pointer parallax — attached only when user has not opted into reduced motion. */
+const rootEl = ref<HTMLDivElement | null>(null)
+let rafId = 0
+let pointerHandler: ((e: PointerEvent) => void) | null = null
+
+function setVars(x: number, y: number): void {
+  if (!rootEl.value) return
+  // Range -1..1, scaled to small px translate per layer.
+  rootEl.value.style.setProperty('--sso-glass-pointer-x', String(x))
+  rootEl.value.style.setProperty('--sso-glass-pointer-y', String(y))
+}
+
+onMounted(() => {
+  if (typeof window === 'undefined') return
+  if (typeof window.matchMedia !== 'function') return
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+
+  pointerHandler = (event: PointerEvent): void => {
+    if (rafId !== 0) return
+    rafId = window.requestAnimationFrame(() => {
+      rafId = 0
+      const w = window.innerWidth || 1
+      const h = window.innerHeight || 1
+      const x = (event.clientX / w) * 2 - 1
+      const y = (event.clientY / h) * 2 - 1
+      setVars(x, y)
+    })
+  }
+  window.addEventListener('pointermove', pointerHandler, { passive: true })
+})
+
+onBeforeUnmount(() => {
+  if (pointerHandler) {
+    window.removeEventListener('pointermove', pointerHandler)
+    pointerHandler = null
+  }
+  if (rafId !== 0) {
+    window.cancelAnimationFrame(rafId)
+    rafId = 0
+  }
+})
 </script>
 
 <template>
-  <div aria-hidden="true" class="pointer-events-none absolute inset-0 overflow-hidden">
+  <div
+    ref="rootEl"
+    aria-hidden="true"
+    class="sso-glass-bg pointer-events-none absolute inset-0 overflow-hidden"
+  >
     <!-- blob1: brand-keyed (test contract) — diperkuat dengan stop accent vibrant -->
     <div
       class="sso-glass-blob sso-glass-blob--1 absolute -top-40 -left-32 size-[36rem] rounded-full"
@@ -93,11 +138,17 @@ const config = computed<BlobConfig>(() => PRESETS[props.preset])
 </template>
 
 <style scoped>
+.sso-glass-bg {
+  --sso-glass-pointer-x: 0;
+  --sso-glass-pointer-y: 0;
+}
+
 .sso-glass-blob {
   /* Visible coloured blob — see main.css for token defaults. */
   opacity: var(--glass-blob-opacity, 0.55);
   filter: blur(var(--glass-blob-blur, 80px));
   will-change: transform;
+  transition: transform 600ms var(--ease-smooth);
 }
 
 .sso-glass-blob--3 {
@@ -115,6 +166,16 @@ const config = computed<BlobConfig>(() => PRESETS[props.preset])
   }
   .sso-glass-blob--3 {
     animation: sso-glass-float-c 42s ease-in-out infinite;
+  }
+  /* Pointer parallax — each blob translates with a different intensity to suggest depth. */
+  .sso-glass-blob--1 {
+    translate: calc(var(--sso-glass-pointer-x) * 16px) calc(var(--sso-glass-pointer-y) * 12px);
+  }
+  .sso-glass-blob--2 {
+    translate: calc(var(--sso-glass-pointer-x) * -22px) calc(var(--sso-glass-pointer-y) * -16px);
+  }
+  .sso-glass-blob--3 {
+    translate: calc(var(--sso-glass-pointer-x) * 8px) calc(var(--sso-glass-pointer-y) * -10px);
   }
 }
 
