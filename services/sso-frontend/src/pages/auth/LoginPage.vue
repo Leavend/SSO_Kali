@@ -24,9 +24,10 @@ const login = useLoginForm()
     <template #header>
       <h2
         id="login-title"
-        class="text-heading-1 font-display font-semibold tracking-tight text-[var(--text-primary)]"
+        class="font-serif text-3xl font-light tracking-tight text-[var(--text-primary)] sm:text-4xl"
+        style="font-family: var(--font-serif)"
       >
-        Masuk ke akunmu
+        Selamat datang kembali
       </h2>
       <p class="text-body-sm leading-relaxed text-[var(--text-secondary)]">
         Gunakan kredensial SSO-mu untuk mengakses semua aplikasi kerja.
@@ -88,7 +89,7 @@ const login = useLoginForm()
 
       <SsoGlassButton
         type="submit"
-        variant="primary"
+        variant="vibrant"
         size="fullWidth"
         :loading="login.pending.value"
         :disabled="!login.canSubmit.value"

@@ -2,10 +2,12 @@
 /**
  * SsoGlassButton — atom: button dengan Liquid Glass treatment.
  *
- * Bukan pengganti shadcn `Button` di components/ui/button. SsoGlassButton
- * dipakai untuk CTA utama auth flow (Sign in, Allow, Deny) dan OAuth
- * provider tile yang berdiri di atas glass surface. Component shadcn
- * `Button` tetap dipakai untuk action standar di portal/admin area.
+ * v2 Liquid Glass × Vibrant edition adds a `vibrant` variant: pill-shape
+ * with conic-gradient shimmering border, OKLCH layered shadows, and a
+ * subtle 3D press (rotateX 8°, gated by prefers-reduced-motion).
+ *
+ * Existing variants (primary/glass/ghost/destructive) preserve their
+ * Tailwind classes so SsoGlassButton.spec.ts contracts remain green.
  *
  * A11y (design.md §10.2):
  *  - WCAG 2.4.11 focus appearance via --ring-glass-focus
@@ -64,6 +66,19 @@ const glassButtonVariants = cva(
         destructive: [
           'bg-error-700 border-error-700 text-white',
           'hover:bg-error-800 hover:border-error-800',
+        ],
+        // Vibrant Liquid Glass pill — primary CTA over a coloured blob backdrop.
+        // Uses CSS class hooks `.sso-glass-pill` + `.sso-glass-pill-3d` from
+        // main.css to layer conic shimmer + sheen + 3D press.
+        // Border/shadow comes from the pseudo-elements; we drop the default
+        // border so it does not double-up.
+        vibrant: [
+          'sso-glass-pill sso-glass-pill-3d',
+          'rounded-[var(--radius-glass-pill)]',
+          'border-transparent shadow-none',
+          'bg-transparent',
+          'text-[var(--text-primary)]',
+          'hover:shadow-[var(--shadow-glass-md)]',
         ],
       },
       size: {
@@ -125,15 +140,19 @@ function handleClick(event: MouseEvent): void {
     :class="cn(glassButtonVariants({ variant: props.variant, size: props.size }), props.class)"
     @click="handleClick"
   >
-    <SsoSpinner
-      v-if="props.loading"
-      size="sm"
-      :tone="props.variant === 'primary' || props.variant === 'destructive' ? 'inverse' : 'default'"
-    />
-    <slot v-else name="leading" />
+    <span class="relative z-[2] inline-flex items-center gap-2">
+      <SsoSpinner
+        v-if="props.loading"
+        size="sm"
+        :tone="
+          props.variant === 'primary' || props.variant === 'destructive' ? 'inverse' : 'default'
+        "
+      />
+      <slot v-else name="leading" />
 
-    <slot />
+      <slot />
 
-    <slot v-if="!props.loading" name="trailing" />
+      <slot v-if="!props.loading" name="trailing" />
+    </span>
   </button>
 </template>

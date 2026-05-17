@@ -30,7 +30,8 @@ const reset = usePasswordResetConfirm(token.value)
     <template #header>
       <h2
         id="reset-title"
-        class="text-heading-1 font-display font-semibold tracking-tight text-[var(--text-primary)]"
+        class="font-serif text-3xl font-light tracking-tight text-[var(--text-primary)] sm:text-4xl"
+        style="font-family: var(--font-serif)"
       >
         Buat password baru
       </h2>
@@ -99,7 +100,7 @@ const reset = usePasswordResetConfirm(token.value)
 
       <SsoGlassButton
         type="submit"
-        variant="primary"
+        variant="vibrant"
         size="fullWidth"
         :loading="reset.pending.value"
         :disabled="!reset.canSubmit.value"

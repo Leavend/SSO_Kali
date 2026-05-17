@@ -41,6 +41,18 @@ describe('SsoGlassButton', () => {
       const wrapper = mount(SsoGlassButton, { props: { variant } })
       expect(wrapper.classes().join(' ')).toContain(expectedClass)
     })
+
+    it('vibrant variant applies pill + 3D press hooks for Liquid Glass', () => {
+      const wrapper = mount(SsoGlassButton, { props: { variant: 'vibrant' } })
+      const cls = wrapper.classes()
+      expect(cls).toContain('sso-glass-pill')
+      expect(cls).toContain('sso-glass-pill-3d')
+      // Pill radius via CSS var token, not arbitrary class
+      expect(cls.join(' ')).toContain('rounded-[var(--radius-glass-pill)]')
+      // Border/shadow comes from ::before/::after — button itself drops them
+      expect(cls).toContain('border-transparent')
+      expect(cls).toContain('shadow-none')
+    })
   })
 
   describe('sizes — touch target compliance', () => {

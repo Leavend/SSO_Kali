@@ -129,9 +129,10 @@ async function submit(): Promise<void> {
     <template #header>
       <h2
         id="register-title"
-        class="text-heading-1 font-display font-semibold tracking-tight text-[var(--text-primary)]"
+        class="font-serif text-3xl font-light tracking-tight text-[var(--text-primary)] sm:text-4xl"
+        style="font-family: var(--font-serif)"
       >
-        Daftar Akun Baru
+        Mulai dari sini
       </h2>
       <p class="text-body-sm leading-relaxed text-[var(--text-secondary)]">
         Buat akun SSO untuk mengakses semua aplikasi organisasi.
@@ -193,7 +194,7 @@ async function submit(): Promise<void> {
 
       <SsoGlassButton
         type="submit"
-        variant="primary"
+        variant="vibrant"
         size="fullWidth"
         :loading="pending"
         :disabled="!canSubmit"

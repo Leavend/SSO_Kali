@@ -39,7 +39,8 @@ onMounted(() => {
     <template #header>
       <h2
         id="mfa-title"
-        class="text-heading-1 font-display font-semibold tracking-tight text-[var(--text-primary)]"
+        class="font-serif text-3xl font-light tracking-tight text-[var(--text-primary)] sm:text-4xl"
+        style="font-family: var(--font-serif)"
       >
         Verifikasi identitasmu
       </h2>
@@ -102,7 +103,7 @@ onMounted(() => {
 
       <SsoGlassButton
         type="submit"
-        variant="primary"
+        variant="vibrant"
         size="fullWidth"
         :loading="mfa.pending.value"
         :disabled="mfa.pending.value || mfa.code.value.trim().length === 0"

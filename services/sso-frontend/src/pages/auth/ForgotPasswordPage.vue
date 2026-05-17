@@ -24,9 +24,10 @@ const reset = usePasswordResetRequest()
     <template #header>
       <h2
         id="forgot-title"
-        class="text-heading-1 font-display font-semibold tracking-tight text-[var(--text-primary)]"
+        class="font-serif text-3xl font-light tracking-tight text-[var(--text-primary)] sm:text-4xl"
+        style="font-family: var(--font-serif)"
       >
-        Reset password
+        Lupa password kamu?
       </h2>
       <p class="text-body-sm leading-relaxed text-[var(--text-secondary)]">
         Masukkan email akun. Jika terdaftar, instruksi reset akan dikirim tanpa membuka status akun.
@@ -56,7 +57,7 @@ const reset = usePasswordResetRequest()
 
       <SsoGlassButton
         type="submit"
-        variant="primary"
+        variant="vibrant"
         size="fullWidth"
         :loading="reset.pending.value"
         :disabled="!reset.canSubmit.value"
