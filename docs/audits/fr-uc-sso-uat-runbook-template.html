@@ -1,0 +1,658 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>UAT Runbook Template — FR/UC SSO</title>
+  <style>
+:root {
+  color-scheme: light;
+  --bg: #f8fafc;
+  --panel: #ffffff;
+  --ink: #111827;
+  --muted: #4b5563;
+  --line: #d1d5db;
+  --soft-line: #e5e7eb;
+  --brand: #0f766e;
+  --brand-ink: #0f172a;
+  --accent: #2563eb;
+  --risk: #b45309;
+  --danger: #b91c1c;
+  --ok: #047857;
+  --partial: #a16207;
+  --gap: #b91c1c;
+  --blocked: #7c2d12;
+  --code-bg: #f1f5f9;
+  --shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: linear-gradient(180deg, #eef2ff 0, var(--bg) 18rem);
+  color: var(--ink);
+  line-height: 1.62;
+}
+
+a { color: var(--accent); text-underline-offset: 0.18em; }
+a:hover { color: var(--brand); }
+.skip-link {
+  position: absolute;
+  left: 1rem;
+  top: -4rem;
+  z-index: 10;
+  padding: 0.6rem 0.9rem;
+  border-radius: 0.5rem;
+  background: var(--ink);
+  color: #fff;
+}
+.skip-link:focus { top: 1rem; }
+
+.page-shell {
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 2rem 0 4rem;
+}
+
+.document-header {
+  margin-bottom: 1.4rem;
+  padding: 2rem;
+  border: 1px solid rgba(15, 118, 110, 0.18);
+  border-radius: 1.25rem;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: var(--shadow);
+}
+.eyebrow {
+  margin: 0 0 0.55rem;
+  color: var(--brand);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+h1, h2, h3, h4 {
+  color: var(--brand-ink);
+  line-height: 1.24;
+}
+h1 {
+  margin: 0;
+  font-size: clamp(1.8rem, 4vw, 3.1rem);
+  letter-spacing: -0.035em;
+}
+.subtitle {
+  margin: 0.85rem 0 0;
+  max-width: 74ch;
+  color: var(--muted);
+  font-size: 1.03rem;
+}
+.doc-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.7rem;
+  margin: 1.2rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+.doc-meta li {
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--soft-line);
+  border-radius: 0.75rem;
+  background: #f8fafc;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.doc-meta strong { display: block; color: var(--ink); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }
+.front-matter {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 0.7rem;
+  margin: 0 0 1.35rem;
+}
+.front-matter-card {
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--soft-line);
+  border-radius: 0.75rem;
+  background: #f8fafc;
+}
+.front-matter-key {
+  display: block;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.front-matter-value { display: block; margin: 0.22rem 0 0; }
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 1.25rem;
+  align-items: start;
+}
+main {
+  padding: 1.3rem min(2rem, 4vw);
+  border: 1px solid var(--soft-line);
+  border-radius: 1rem;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+.toc {
+  position: sticky;
+  top: 1rem;
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
+  padding: 1rem;
+  border: 1px solid var(--soft-line);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: var(--shadow);
+}
+.toc h2 {
+  margin: 0 0 0.7rem;
+  font-size: 0.86rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.toc ol {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+.toc li { margin: 0.35rem 0; color: var(--muted); font-size: 0.9rem; }
+.toc a { color: inherit; text-decoration: none; }
+.toc a:hover { color: var(--brand); text-decoration: underline; }
+
+main h2 {
+  margin-top: 2.1rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--soft-line);
+  font-size: 1.45rem;
+}
+main h2:first-child { margin-top: 0; border-top: 0; }
+main h3 { margin-top: 1.5rem; font-size: 1.13rem; }
+main p, main li { max-width: 86ch; }
+ul, ol { padding-left: 1.35rem; }
+li + li { margin-top: 0.25rem; }
+
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  margin: 1rem 0 1.35rem;
+  border: 1px solid var(--soft-line);
+  border-radius: 0.85rem;
+  background: #fff;
+}
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 720px;
+  font-size: 0.92rem;
+}
+th, td {
+  padding: 0.72rem 0.8rem;
+  border-bottom: 1px solid var(--soft-line);
+  vertical-align: top;
+  text-align: left;
+}
+th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #f8fafc;
+  color: #1f2937;
+  font-weight: 800;
+}
+tr:last-child td { border-bottom: 0; }
+tbody tr:nth-child(even) td { background: #fcfcfd; }
+
+code {
+  padding: 0.12rem 0.32rem;
+  border: 1px solid #dbe4ee;
+  border-radius: 0.35rem;
+  background: var(--code-bg);
+  color: #0f172a;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 0.88em;
+}
+pre {
+  overflow: auto;
+  padding: 1rem;
+  border-radius: 0.85rem;
+  background: #0f172a;
+  color: #e2e8f0;
+}
+pre code { padding: 0; border: 0; background: transparent; color: inherit; }
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.12rem 0.48rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+.badge-ready, .badge-pass, .badge-ok { background: #dcfce7; color: var(--ok); }
+.badge-partial, .badge-risk { background: #fef3c7; color: var(--partial); }
+.badge-gap, .badge-fail { background: #fee2e2; color: var(--gap); }
+.badge-blocked { background: #ffedd5; color: var(--blocked); }
+.badge-api { background: #dbeafe; color: #1d4ed8; }
+.callout {
+  margin: 1rem 0;
+  padding: 0.95rem 1rem;
+  border-left: 4px solid var(--brand);
+  border-radius: 0.5rem;
+  background: #f0fdfa;
+}
+
+footer {
+  margin-top: 1.4rem;
+  color: var(--muted);
+  font-size: 0.86rem;
+  text-align: center;
+}
+
+@media (max-width: 960px) {
+  .layout { grid-template-columns: 1fr; }
+  .toc { position: static; max-height: none; order: -1; }
+  table { min-width: 680px; }
+}
+
+@media print {
+  :root { --bg: #fff; --panel: #fff; --shadow: none; }
+  body { background: #fff; color: #000; font-size: 10.5pt; }
+  .page-shell { width: 100%; padding: 0; }
+  .document-header, main, .toc { box-shadow: none; border-color: #bbb; }
+  .layout { display: block; }
+  .toc { position: static; page-break-after: always; }
+  a { color: #000; text-decoration: none; }
+  h1, h2, h3 { break-after: avoid; }
+  table, tr, td, th { break-inside: avoid; }
+  th { position: static; }
+  .table-wrap { overflow: visible; border: 0; }
+  table { min-width: 0; font-size: 8.7pt; }
+}
+</style>
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <div class="page-shell">
+    <header class="document-header">
+      <p class="eyebrow">SSO UAT Documentation</p>
+      <h1>UAT Runbook Template — FR/UC SSO</h1>
+      <p class="subtitle">Reusable execution log, evidence checklist, defect register, and stakeholder signoff template.</p>
+      <ul class="doc-meta" aria-label="Document metadata">
+        <li><strong>Source</strong><code>docs/audits/fr-uc-sso-uat-runbook-template.md</code></li>
+        <li><strong>Generated</strong>2026-05-17 12:28 WITA</li>
+        <li><strong>Branch</strong><code>hardening/sso-bff-dsr-automation</code></li>
+        <li><strong>Source docs commit</strong><code>09e030a</code></li>
+      </ul>
+    </header>
+    <div class="layout">
+      <main id="content" tabindex="-1">
+<section class="front-matter" aria-label="Document front matter">
+<div class="front-matter-card"><span class="front-matter-key">Requirement source</span><span class="front-matter-value"><code>docs/requirements/fr_uc_sso_practical_reader.md</code></span></div>
+<div class="front-matter-card"><span class="front-matter-key">Audit source</span><span class="front-matter-value"><code>docs/audits/fr-uc-sso-uat-audit.md</code></span></div>
+<div class="front-matter-card"><span class="front-matter-key">Service scope</span><span class="front-matter-value"><code>services/sso-frontend</code>, <code>services/sso-backend</code></span></div>
+<div class="front-matter-card"><span class="front-matter-key">Run date</span><span class="front-matter-value"><code>&lt;YYYY-MM-DD&gt;</code></span></div>
+<div class="front-matter-card"><span class="front-matter-key">Environment</span><span class="front-matter-value"><code>&lt;prod|staging|local&gt;</code></span></div>
+<div class="front-matter-card"><span class="front-matter-key">Commit/SHA</span><span class="front-matter-value"><code>&lt;sha&gt;</code></span></div>
+<div class="front-matter-card"><span class="front-matter-key">Tester</span><span class="front-matter-value"><code>&lt;name&gt;</code></span></div>
+</section>
+<h2 id="1-safety-rules"><a class="anchor" href="#1-safety-rules" aria-label="Permalink to this section">#</a> 1. Safety Rules</h2>
+<ul>
+<li>Do not capture raw access tokens, refresh tokens, client secrets, password values, or full cookies.</li>
+<li>Redact <code>Authorization</code>, <code>Cookie</code>, <code>Set-Cookie</code>, <code>client_secret</code>, <code>code</code>, <code>id_token</code>, <code>access_token</code>, <code>refresh_token</code> in HAR/API artifacts.</li>
+<li>Retain <code>X-Request-ID</code>, <code>X-Error-Ref</code>, timestamps, URL path, status code, and scenario ID.</li>
+<li>Use dedicated UAT accounts and clients; never use personal production accounts unless explicitly approved.</li>
+<li>Stop on security regression: token in browser storage, raw stack trace, secret in UI/log, cross-origin credential leak, unexpected 401 loop after login.</li>
+</ul>
+<h2 id="2-execution-summary"><a class="anchor" href="#2-execution-summary" aria-label="Permalink to this section">#</a> 2. Execution Summary</h2>
+<div class="table-wrap" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead><tr>
+<th scope="col">Field</th>
+<th scope="col">Value</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>UAT batch</td>
+<td><code>&lt;batch-name&gt;</code></td>
+</tr>
+<tr>
+<td>Requirement version</td>
+<td><code>Reader-Friendly v1.0</code></td>
+</tr>
+<tr>
+<td>Code baseline</td>
+<td><code>&lt;branch&gt;@&lt;sha&gt;</code></td>
+</tr>
+<tr>
+<td>Deploy evidence</td>
+<td><code>&lt;CI/deploy link&gt;</code></td>
+</tr>
+<tr>
+<td>Test data pack</td>
+<td><code>&lt;users/clients/admin roles&gt;</code></td>
+</tr>
+<tr>
+<td>Overall result</td>
+<td>`&lt;<span class="badge badge-pass">PASS</span></td>
+</tr>
+</tbody></table></div>
+<h2 id="3-smoke-gate"><a class="anchor" href="#3-smoke-gate" aria-label="Permalink to this section">#</a> 3. Smoke Gate</h2>
+<div class="table-wrap" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead><tr>
+<th scope="col">ID</th>
+<th scope="col">Scenario</th>
+<th scope="col">Result</th>
+<th scope="col">Evidence</th>
+<th scope="col">Notes</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>UAT-001</td>
+<td>Portal login + cookie proxy regression</td>
+<td><code>&lt;PASS/FAIL&gt;</code></td>
+<td><code>&lt;HAR/log link&gt;</code></td>
+<td>Verify all auth cookies + <code>/api/auth/session</code> 200</td>
+</tr>
+<tr>
+<td>UAT-002</td>
+<td>OIDC metadata/JWKS</td>
+<td><code>&lt;PASS/FAIL&gt;</code></td>
+<td><code>&lt;curl/log&gt;</code></td>
+<td>Issuer/endpoints/cache headers consistent</td>
+</tr>
+<tr>
+<td>UAT-003</td>
+<td>Session hydration</td>
+<td><code>&lt;PASS/FAIL&gt;</code></td>
+<td><code>&lt;screenshot/HAR&gt;</code></td>
+<td><code>/home</code>, <code>/profile</code>, <code>/apps</code>, <code>/sessions</code> no 401 loop</td>
+</tr>
+<tr>
+<td>UAT-004</td>
+<td>Safe error UX</td>
+<td><code>&lt;PASS/FAIL&gt;</code></td>
+<td><code>&lt;screenshot/request-id&gt;</code></td>
+<td>no raw exception/secret</td>
+</tr>
+</tbody></table></div>
+<h2 id="4-scenario-log"><a class="anchor" href="#4-scenario-log" aria-label="Permalink to this section">#</a> 4. Scenario Log</h2>
+<p>Copy one block per executed scenario.</p>
+<h3 id="uat-id-scenario-name"><a class="anchor" href="#uat-id-scenario-name" aria-label="Permalink to this section">#</a> <code>&lt;UAT-ID&gt;</code> — <code>&lt;Scenario name&gt;</code></h3>
+<div class="table-wrap" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead><tr>
+<th scope="col">Field</th>
+<th scope="col">Value</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>UC/FR</td>
+<td><code>&lt;UC-xx / FR-xxx&gt;</code></td>
+</tr>
+<tr>
+<td>Actor</td>
+<td><code>&lt;A-01/A-02/...&gt;</code></td>
+</tr>
+<tr>
+<td>Preconditions</td>
+<td><code>&lt;state&gt;</code></td>
+</tr>
+<tr>
+<td>Steps</td>
+<td><code>1. ... 2. ... 3. ...</code></td>
+</tr>
+<tr>
+<td>Expected</td>
+<td><code>&lt;expected behavior&gt;</code></td>
+</tr>
+<tr>
+<td>Actual</td>
+<td><code>&lt;actual behavior&gt;</code></td>
+</tr>
+<tr>
+<td>Result</td>
+<td>`&lt;<span class="badge badge-pass">PASS</span></td>
+</tr>
+<tr>
+<td>Evidence</td>
+<td><code>&lt;links/files&gt;</code></td>
+</tr>
+<tr>
+<td>Request IDs</td>
+<td><code>&lt;X-Request-ID values&gt;</code></td>
+</tr>
+<tr>
+<td>Error refs</td>
+<td><code>&lt;X-Error-Ref values&gt;</code></td>
+</tr>
+<tr>
+<td>Defects</td>
+<td><code>&lt;issue links&gt;</code></td>
+</tr>
+<tr>
+<td>Retest needed</td>
+<td><code>&lt;yes/no&gt;</code></td>
+</tr>
+</tbody></table></div>
+<h2 id="5-uc-signoff-matrix"><a class="anchor" href="#5-uc-signoff-matrix" aria-label="Permalink to this section">#</a> 5. UC Signoff Matrix</h2>
+<div class="table-wrap" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead><tr>
+<th scope="col">UC</th>
+<th scope="col">Result</th>
+<th scope="col">Evidence</th>
+<th scope="col">Defect/Risk</th>
+<th scope="col">Signoff owner</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>UC-01</td>
+<td><code>&lt;status&gt;</code></td>
+<td><code>&lt;link&gt;</code></td>
+<td>`&lt;none</td>
+<td>risk&gt;`</td>
+</tr>
+<tr>
+<td>UC-02</td>
+<td><code>&lt;status&gt;</code></td>
+<td><code>&lt;link&gt;</code></td>
+<td>`&lt;none</td>
+<td>risk&gt;`</td>
+</tr>
+<tr>
+<td>UC-03</td>
+<td><code>&lt;status&gt;</code></td>
+<td><code>&lt;link&gt;</code></td>
+<td>`&lt;none</td>
+<td>risk&gt;`</td>
+</tr>
+<tr>
+<td>UC-04</td>
+<td><code>&lt;status&gt;</code></td>
+<td><code>&lt;link&gt;</code></td>
+<td>`&lt;none</td>
+<td>risk&gt;`</td>
+</tr>
+<tr>
+<td>UC-05</td>
+<td><code>&lt;status&gt;</code></td>
+<td><code>&lt;link&gt;</code></td>
+<td>`&lt;none</td>
+<td>risk&gt;`</td>
+</tr>
+<tr>
+<td>UC-06</td>
+<td><code>&lt;status&gt;</code></td>
+<td><code>&lt;link&gt;</code></td>
+<td>`&lt;none</td>
+<td>risk&gt;`</td>
+</tr>
+<tr>
+<td>UC-07</td>
+<td><code>&lt;status&gt;</code></td>
+<td><code>&lt;link&gt;</code></td>
+<td>`&lt;none</td>
+<td>risk&gt;`</td>
+</tr>
+<tr>
+<td>UC-08</td>
+<td><code>&lt;status&gt;</code></td>
+<td><code>&lt;link&gt;</code></td>
+<td>`&lt;none</td>
+<td>risk&gt;`</td>
+</tr>
+<tr>
+<td>UC-09</td>
+<td><code>&lt;status&gt;</code></td>
+<td><code>&lt;link&gt;</code></td>
+<td>`&lt;none</td>
+<td>risk&gt;`</td>
+</tr>
+<tr>
+<td>UC-10–UC-21</td>
+<td><code>&lt;status&gt;</code></td>
+<td><code>&lt;link&gt;</code></td>
+<td>`&lt;none</td>
+<td>risk&gt;`</td>
+</tr>
+<tr>
+<td>UC-22–UC-33</td>
+<td><code>&lt;status&gt;</code></td>
+<td><code>&lt;link&gt;</code></td>
+<td>`&lt;none</td>
+<td>risk&gt;`</td>
+</tr>
+<tr>
+<td>UC-34–UC-42</td>
+<td><code>&lt;status&gt;</code></td>
+<td><code>&lt;link&gt;</code></td>
+<td>`&lt;none</td>
+<td>risk&gt;`</td>
+</tr>
+<tr>
+<td>UC-43–UC-50</td>
+<td><code>&lt;status&gt;</code></td>
+<td><code>&lt;link&gt;</code></td>
+<td>`&lt;none</td>
+<td>risk&gt;`</td>
+</tr>
+<tr>
+<td>UC-51–UC-65</td>
+<td><code>&lt;API-only/PARTIAL&gt;</code></td>
+<td><code>&lt;link&gt;</code></td>
+<td><code>admin UI dedicated app pending</code></td>
+<td><code>&lt;name&gt;</code></td>
+</tr>
+<tr>
+<td>UC-66–UC-76</td>
+<td><code>&lt;status&gt;</code></td>
+<td><code>&lt;link&gt;</code></td>
+<td>`&lt;none</td>
+<td>risk&gt;`</td>
+</tr>
+<tr>
+<td>UC-77–UC-83</td>
+<td><code>&lt;status&gt;</code></td>
+<td><code>&lt;link&gt;</code></td>
+<td><code>&lt;ops drill evidence&gt;</code></td>
+<td><code>&lt;name&gt;</code></td>
+</tr>
+</tbody></table></div>
+<h2 id="6-defect-register"><a class="anchor" href="#6-defect-register" aria-label="Permalink to this section">#</a> 6. Defect Register</h2>
+<div class="table-wrap" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead><tr>
+<th scope="col">Defect ID</th>
+<th scope="col">Severity</th>
+<th scope="col">UC/FR</th>
+<th scope="col">Area</th>
+<th scope="col">Summary</th>
+<th scope="col">Evidence</th>
+<th scope="col">Owner</th>
+<th scope="col">Status</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><code>&lt;BUG-001&gt;</code></td>
+<td><code>&lt;Blocker/Major/Minor&gt;</code></td>
+<td><code>&lt;UC/FR&gt;</code></td>
+<td><code>&lt;FE/BE/Ops&gt;</code></td>
+<td><code>&lt;summary&gt;</code></td>
+<td><code>&lt;link&gt;</code></td>
+<td><code>&lt;owner&gt;</code></td>
+<td><code>&lt;open&gt;</code></td>
+</tr>
+</tbody></table></div>
+<h2 id="7-final-signoff"><a class="anchor" href="#7-final-signoff" aria-label="Permalink to this section">#</a> 7. Final Signoff</h2>
+<div class="table-wrap" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead><tr>
+<th scope="col">Role</th>
+<th scope="col">Name</th>
+<th scope="col">Decision</th>
+<th scope="col">Date</th>
+<th scope="col">Notes</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>Product/BA</td>
+<td><code>&lt;name&gt;</code></td>
+<td><code>&lt;approve/reject&gt;</code></td>
+<td><code>&lt;date&gt;</code></td>
+<td><code>&lt;notes&gt;</code></td>
+</tr>
+<tr>
+<td>QA/UAT Lead</td>
+<td><code>&lt;name&gt;</code></td>
+<td><code>&lt;approve/reject&gt;</code></td>
+<td><code>&lt;date&gt;</code></td>
+<td><code>&lt;notes&gt;</code></td>
+</tr>
+<tr>
+<td>Security</td>
+<td><code>&lt;name&gt;</code></td>
+<td><code>&lt;approve/reject&gt;</code></td>
+<td><code>&lt;date&gt;</code></td>
+<td><code>&lt;notes&gt;</code></td>
+</tr>
+<tr>
+<td>Engineering</td>
+<td><code>&lt;name&gt;</code></td>
+<td><code>&lt;approve/reject&gt;</code></td>
+<td><code>&lt;date&gt;</code></td>
+<td><code>&lt;notes&gt;</code></td>
+</tr>
+<tr>
+<td>Ops</td>
+<td><code>&lt;name&gt;</code></td>
+<td><code>&lt;approve/reject&gt;</code></td>
+<td><code>&lt;date&gt;</code></td>
+<td><code>&lt;notes&gt;</code></td>
+</tr>
+</tbody></table></div>
+      </main>
+      <aside class="toc" aria-label="Table of contents">
+        <h2>Contents</h2>
+        <ol>
+<li style="margin-left: 0.0rem"><a href="#1-safety-rules">1. Safety Rules</a></li>
+<li style="margin-left: 0.0rem"><a href="#2-execution-summary">2. Execution Summary</a></li>
+<li style="margin-left: 0.0rem"><a href="#3-smoke-gate">3. Smoke Gate</a></li>
+<li style="margin-left: 0.0rem"><a href="#4-scenario-log">4. Scenario Log</a></li>
+<li style="margin-left: 0.8rem"><a href="#uat-id-scenario-name">&amp;lt;UAT-ID&amp;gt; — &amp;lt;Scenario name&amp;gt;</a></li>
+<li style="margin-left: 0.0rem"><a href="#5-uc-signoff-matrix">5. UC Signoff Matrix</a></li>
+<li style="margin-left: 0.0rem"><a href="#6-defect-register">6. Defect Register</a></li>
+<li style="margin-left: 0.0rem"><a href="#7-final-signoff">7. Final Signoff</a></li>
+</ol>
+      </aside>
+    </div>
+    <footer>
+      Self-contained HTML. No external assets. Print-ready. Security artifacts must remain redacted.
+    </footer>
+  </div>
+</body>
+</html>

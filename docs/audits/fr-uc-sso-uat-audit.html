@@ -1,0 +1,1634 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>UAT Audit — FR/UC SSO Practical Reader vs Codebase</title>
+  <style>
+:root {
+  color-scheme: light;
+  --bg: #f8fafc;
+  --panel: #ffffff;
+  --ink: #111827;
+  --muted: #4b5563;
+  --line: #d1d5db;
+  --soft-line: #e5e7eb;
+  --brand: #0f766e;
+  --brand-ink: #0f172a;
+  --accent: #2563eb;
+  --risk: #b45309;
+  --danger: #b91c1c;
+  --ok: #047857;
+  --partial: #a16207;
+  --gap: #b91c1c;
+  --blocked: #7c2d12;
+  --code-bg: #f1f5f9;
+  --shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: linear-gradient(180deg, #eef2ff 0, var(--bg) 18rem);
+  color: var(--ink);
+  line-height: 1.62;
+}
+
+a { color: var(--accent); text-underline-offset: 0.18em; }
+a:hover { color: var(--brand); }
+.skip-link {
+  position: absolute;
+  left: 1rem;
+  top: -4rem;
+  z-index: 10;
+  padding: 0.6rem 0.9rem;
+  border-radius: 0.5rem;
+  background: var(--ink);
+  color: #fff;
+}
+.skip-link:focus { top: 1rem; }
+
+.page-shell {
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 2rem 0 4rem;
+}
+
+.document-header {
+  margin-bottom: 1.4rem;
+  padding: 2rem;
+  border: 1px solid rgba(15, 118, 110, 0.18);
+  border-radius: 1.25rem;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: var(--shadow);
+}
+.eyebrow {
+  margin: 0 0 0.55rem;
+  color: var(--brand);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+h1, h2, h3, h4 {
+  color: var(--brand-ink);
+  line-height: 1.24;
+}
+h1 {
+  margin: 0;
+  font-size: clamp(1.8rem, 4vw, 3.1rem);
+  letter-spacing: -0.035em;
+}
+.subtitle {
+  margin: 0.85rem 0 0;
+  max-width: 74ch;
+  color: var(--muted);
+  font-size: 1.03rem;
+}
+.doc-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.7rem;
+  margin: 1.2rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+.doc-meta li {
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--soft-line);
+  border-radius: 0.75rem;
+  background: #f8fafc;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.doc-meta strong { display: block; color: var(--ink); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }
+.front-matter {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 0.7rem;
+  margin: 0 0 1.35rem;
+}
+.front-matter-card {
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--soft-line);
+  border-radius: 0.75rem;
+  background: #f8fafc;
+}
+.front-matter-key {
+  display: block;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.front-matter-value { display: block; margin: 0.22rem 0 0; }
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 1.25rem;
+  align-items: start;
+}
+main {
+  padding: 1.3rem min(2rem, 4vw);
+  border: 1px solid var(--soft-line);
+  border-radius: 1rem;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+.toc {
+  position: sticky;
+  top: 1rem;
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
+  padding: 1rem;
+  border: 1px solid var(--soft-line);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: var(--shadow);
+}
+.toc h2 {
+  margin: 0 0 0.7rem;
+  font-size: 0.86rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.toc ol {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+.toc li { margin: 0.35rem 0; color: var(--muted); font-size: 0.9rem; }
+.toc a { color: inherit; text-decoration: none; }
+.toc a:hover { color: var(--brand); text-decoration: underline; }
+
+main h2 {
+  margin-top: 2.1rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--soft-line);
+  font-size: 1.45rem;
+}
+main h2:first-child { margin-top: 0; border-top: 0; }
+main h3 { margin-top: 1.5rem; font-size: 1.13rem; }
+main p, main li { max-width: 86ch; }
+ul, ol { padding-left: 1.35rem; }
+li + li { margin-top: 0.25rem; }
+
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  margin: 1rem 0 1.35rem;
+  border: 1px solid var(--soft-line);
+  border-radius: 0.85rem;
+  background: #fff;
+}
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 720px;
+  font-size: 0.92rem;
+}
+th, td {
+  padding: 0.72rem 0.8rem;
+  border-bottom: 1px solid var(--soft-line);
+  vertical-align: top;
+  text-align: left;
+}
+th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #f8fafc;
+  color: #1f2937;
+  font-weight: 800;
+}
+tr:last-child td { border-bottom: 0; }
+tbody tr:nth-child(even) td { background: #fcfcfd; }
+
+code {
+  padding: 0.12rem 0.32rem;
+  border: 1px solid #dbe4ee;
+  border-radius: 0.35rem;
+  background: var(--code-bg);
+  color: #0f172a;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 0.88em;
+}
+pre {
+  overflow: auto;
+  padding: 1rem;
+  border-radius: 0.85rem;
+  background: #0f172a;
+  color: #e2e8f0;
+}
+pre code { padding: 0; border: 0; background: transparent; color: inherit; }
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.12rem 0.48rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+.badge-ready, .badge-pass, .badge-ok { background: #dcfce7; color: var(--ok); }
+.badge-partial, .badge-risk { background: #fef3c7; color: var(--partial); }
+.badge-gap, .badge-fail { background: #fee2e2; color: var(--gap); }
+.badge-blocked { background: #ffedd5; color: var(--blocked); }
+.badge-api { background: #dbeafe; color: #1d4ed8; }
+.callout {
+  margin: 1rem 0;
+  padding: 0.95rem 1rem;
+  border-left: 4px solid var(--brand);
+  border-radius: 0.5rem;
+  background: #f0fdfa;
+}
+
+footer {
+  margin-top: 1.4rem;
+  color: var(--muted);
+  font-size: 0.86rem;
+  text-align: center;
+}
+
+@media (max-width: 960px) {
+  .layout { grid-template-columns: 1fr; }
+  .toc { position: static; max-height: none; order: -1; }
+  table { min-width: 680px; }
+}
+
+@media print {
+  :root { --bg: #fff; --panel: #fff; --shadow: none; }
+  body { background: #fff; color: #000; font-size: 10.5pt; }
+  .page-shell { width: 100%; padding: 0; }
+  .document-header, main, .toc { box-shadow: none; border-color: #bbb; }
+  .layout { display: block; }
+  .toc { position: static; page-break-after: always; }
+  a { color: #000; text-decoration: none; }
+  h1, h2, h3 { break-after: avoid; }
+  table, tr, td, th { break-inside: avoid; }
+  th { position: static; }
+  .table-wrap { overflow: visible; border: 0; }
+  table { min-width: 0; font-size: 8.7pt; }
+}
+</style>
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <div class="page-shell">
+    <header class="document-header">
+      <p class="eyebrow">SSO UAT Documentation</p>
+      <h1>UAT Audit — FR/UC SSO Practical Reader vs Codebase</h1>
+      <p class="subtitle">Traceability, readiness status, evidence map, risks, and UAT scenarios for SSO FR/UC coverage.</p>
+      <ul class="doc-meta" aria-label="Document metadata">
+        <li><strong>Source</strong><code>docs/audits/fr-uc-sso-uat-audit.md</code></li>
+        <li><strong>Generated</strong>2026-05-17 12:28 WITA</li>
+        <li><strong>Branch</strong><code>hardening/sso-bff-dsr-automation</code></li>
+        <li><strong>Source docs commit</strong><code>09e030a</code></li>
+      </ul>
+    </header>
+    <div class="layout">
+      <main id="content" tabindex="-1">
+<section class="front-matter" aria-label="Document front matter">
+<div class="front-matter-card"><span class="front-matter-key">Tanggal</span><span class="front-matter-value">2026-05-17</span></div>
+<div class="front-matter-card"><span class="front-matter-key">Branch</span><span class="front-matter-value"><code>hardening/sso-bff-dsr-automation</code></span></div>
+<div class="front-matter-card"><span class="front-matter-key">Baseline commit</span><span class="front-matter-value"><code>93db868</code></span></div>
+<div class="front-matter-card"><span class="front-matter-key">Requirement source</span><span class="front-matter-value"><code>docs/requirements/fr_uc_sso_practical_reader.md</code></span></div>
+<div class="front-matter-card"><span class="front-matter-key">Implementation scope</span><span class="front-matter-value"><code>services/sso-frontend</code>, <code>services/sso-backend</code></span></div>
+<div class="front-matter-card"><span class="front-matter-key">Companion audit</span><span class="front-matter-value"><code>docs/audits/fr-001-fr-063-gap-audit.md</code></span></div>
+<div class="front-matter-card"><span class="front-matter-key">Execution template</span><span class="front-matter-value"><code>docs/audits/fr-uc-sso-uat-runbook-template.md</code></span></div>
+</section>
+<h2 id="1-executive-summary"><a class="anchor" href="#1-executive-summary" aria-label="Permalink to this section">#</a> 1. Executive Summary</h2>
+<p>Audit ini mengubah FR/UC reader-friendly menjadi <strong>UAT-ready evidence map</strong>: apa yang bisa diuji user/stakeholder, entrypoint yang harus dipakai, expected result, evidence code/test, dan status readiness.</p>
+<p>Kesimpulan:</p>
+<ol>
+<li><strong>Portal SSO user UAT siap diuji end-to-end</strong> untuk login, callback, session, profile, password, MFA, connected apps, active sessions, consent, logout, safe error UX, dan DSR intake.</li>
+<li><strong>Backend protocol UAT/API contract kuat</strong> untuk OIDC discovery/JWKS/authorize/token/userinfo/introspection/revocation/session/logout/key rotation.</li>
+<li><strong>Admin/governance backend siap diuji via API</strong>, tetapi <strong>browser admin UI bukan scope <code>services/sso-frontend</code></strong>. UAT klik-path admin perlu dedicated admin app (<code>services/sso-admin-vue</code>/successor), bukan re-add admin route ke portal.</li>
+<li><strong>Known UAT gaps</strong>: DSR delete/anonymize full automation, opaque server-side BFF token session, full admin UI, broader device inventory, SIEM/export ops signoff, DR/failover drill evidence.</li>
+<li><strong>Recent prod risk fixed:</strong> BFF now preserves every upstream <code>Set-Cookie</code> via <code>services/sso-frontend/src/server/proxy-headers.ts</code>; UAT login must verify all auth cookies survive proxy.</li>
+</ol>
+<h2 id="2-uat-principles-used"><a class="anchor" href="#2-uat-principles-used" aria-label="Permalink to this section">#</a> 2. UAT Principles Used</h2>
+<div class="table-wrap" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead><tr>
+<th scope="col">Principle</th>
+<th scope="col">Audit rule</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>Traceability</td>
+<td>Every UAT scenario maps to UC/FR from <code>fr_uc_sso_practical_reader.md</code>.</td>
+</tr>
+<tr>
+<td>Black-box first</td>
+<td>Prefer browser/API behavior over implementation claims.</td>
+</tr>
+<tr>
+<td>Evidence-backed</td>
+<td>Code path + contract test/smoke script listed for each domain.</td>
+</tr>
+<tr>
+<td>No admin scope drift</td>
+<td><code>services/sso-frontend</code> remains portal-only; admin UI belongs elsewhere.</td>
+</tr>
+<tr>
+<td>Security-safe UAT</td>
+<td>Do not expose tokens/secrets in browser storage, logs, screenshots, or UAT artifacts.</td>
+</tr>
+<tr>
+<td>Reproducible signoff</td>
+<td>UAT steps specify preconditions, action, expected result, evidence to retain.</td>
+</tr>
+</tbody></table></div>
+<h2 id="3-uat-environment-preconditions"><a class="anchor" href="#3-uat-environment-preconditions" aria-label="Permalink to this section">#</a> 3. UAT Environment &amp; Preconditions</h2>
+<h3 id="3-1-recommended-environments"><a class="anchor" href="#3-1-recommended-environments" aria-label="Permalink to this section">#</a> 3.1 Recommended Environments</h3>
+<div class="table-wrap" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead><tr>
+<th scope="col">Env</th>
+<th scope="col">Purpose</th>
+<th scope="col">URL / entrypoint</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>Production-like portal</td>
+<td>User portal UAT</td>
+<td><code>https://sso.timeh.my.id</code></td>
+</tr>
+<tr>
+<td>Backend API</td>
+<td>Protocol/API UAT</td>
+<td>backend routes behind same origin/BFF or direct internal API per deployment</td>
+</tr>
+<tr>
+<td>CI evidence</td>
+<td>Regression evidence</td>
+<td>GitHub Actions build/test/deploy logs</td>
+</tr>
+</tbody></table></div>
+<h3 id="3-2-test-data-needed"><a class="anchor" href="#3-2-test-data-needed" aria-label="Permalink to this section">#</a> 3.2 Test Data Needed</h3>
+<div class="table-wrap" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead><tr>
+<th scope="col">Persona</th>
+<th scope="col">Required state</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>Normal user</td>
+<td>active account, verified email, password known, no MFA initially</td>
+</tr>
+<tr>
+<td>MFA user</td>
+<td>active account, TOTP enrolled, recovery codes available</td>
+</tr>
+<tr>
+<td>Locked/disabled user</td>
+<td>locked or deactivated account</td>
+</tr>
+<tr>
+<td>Password-expired user</td>
+<td><code>password_changed_at</code> old / forced reset state</td>
+</tr>
+<tr>
+<td>Admin</td>
+<td>backend admin principal with RBAC permissions + MFA enrolled</td>
+</tr>
+<tr>
+<td>Confidential client</td>
+<td>client secret active, redirect URI registered</td>
+</tr>
+<tr>
+<td>Public client</td>
+<td>PKCE required, no client secret</td>
+</tr>
+<tr>
+<td>External IdP pilot</td>
+<td>provider config + callback route enabled if testing federation</td>
+</tr>
+<tr>
+<td>DSR subject</td>
+<td>user with profile/audit/session data</td>
+</tr>
+</tbody></table></div>
+<h3 id="3-3-evidence-to-retain"><a class="anchor" href="#3-3-evidence-to-retain" aria-label="Permalink to this section">#</a> 3.3 Evidence to Retain</h3>
+<ul>
+<li>Browser HAR with cookies redacted.</li>
+<li>Screenshots of success/error states without tokens/secrets.</li>
+<li>API request/response samples with Authorization/Cookie redacted.</li>
+<li><code>X-Request-ID</code> / <code>X-Error-Ref</code> for failures.</li>
+<li>CI run link + commit SHA.</li>
+<li>Backend logs filtered by request ID.</li>
+</ul>
+<h2 id="4-scope-boundary"><a class="anchor" href="#4-scope-boundary" aria-label="Permalink to this section">#</a> 4. Scope Boundary</h2>
+<div class="table-wrap" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead><tr>
+<th scope="col">Area</th>
+<th scope="col">UAT owner</th>
+<th scope="col">Status</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>User portal browser flows</td>
+<td><code>services/sso-frontend</code> + BFF + backend</td>
+<td><span class="badge badge-ready">In scope</span></td>
+</tr>
+<tr>
+<td>OIDC/OAuth protocol</td>
+<td><code>services/sso-backend</code> + BFF proxy</td>
+<td><span class="badge badge-ready">In scope</span></td>
+</tr>
+<tr>
+<td>Profile/self-service</td>
+<td>frontend portal + backend</td>
+<td><span class="badge badge-ready">In scope</span></td>
+</tr>
+<tr>
+<td>Admin APIs</td>
+<td>backend</td>
+<td><span class="badge badge-ready">In scope</span> via API</td>
+</tr>
+<tr>
+<td>Admin browser UI</td>
+<td><strong>not</strong> <code>services/sso-frontend</code></td>
+<td><span class="badge badge-blocked">Out of scope</span> / dedicated admin app</td>
+</tr>
+<tr>
+<td>DevOps drill</td>
+<td>workflows/scripts</td>
+<td>Evidence-only unless operator UAT scheduled</td>
+</tr>
+</tbody></table></div>
+<h2 id="5-high-priority-uat-smoke-pack"><a class="anchor" href="#5-high-priority-uat-smoke-pack" aria-label="Permalink to this section">#</a> 5. High-Priority UAT Smoke Pack</h2>
+<p>Run these before broad UAT.</p>
+<div class="table-wrap" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead><tr>
+<th scope="col">Smoke</th>
+<th scope="col">UC/FR</th>
+<th scope="col">Steps</th>
+<th scope="col">Expected</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>Login cookie survival</td>
+<td>UC-11, UC-43 / FR-017, FR-039</td>
+<td>Login at portal; inspect response cookies</td>
+<td><code>__Host-sso_session</code>, <code>__Host-laravel_session</code>, <code>XSRF-TOKEN</code> present; post-login APIs return 200</td>
+</tr>
+<tr>
+<td>Session hydration</td>
+<td>UC-34, UC-40</td>
+<td>Reload <code>/home</code>, then <code>/profile</code>, <code>/sessions</code>, <code>/apps</code></td>
+<td>no 401 loop; profile/sessions/apps data visible</td>
+</tr>
+<tr>
+<td>OIDC metadata</td>
+<td>UC-01, UC-02</td>
+<td>GET discovery + JWKS</td>
+<td>200, cache headers, issuer/endpoints consistent</td>
+</tr>
+<tr>
+<td>OIDC auth code + PKCE</td>
+<td>UC-10, UC-17, UC-22</td>
+<td>start RP auth flow with PKCE</td>
+<td>code issued, token exchange succeeds, invalid PKCE rejected</td>
+</tr>
+<tr>
+<td>Safe error UX</td>
+<td>UC-16, UC-17, UC-30, UC-63</td>
+<td>invalid redirect/PKCE/client secret</td>
+<td>safe localized error, no trace/secret, request/error ref available</td>
+</tr>
+<tr>
+<td>MFA core</td>
+<td>UC-66, UC-67, UC-69</td>
+<td>enroll TOTP, login challenge, regenerate recovery codes</td>
+<td>challenge required, AMR persisted, recovery lifecycle works</td>
+</tr>
+<tr>
+<td>Connected apps revoke</td>
+<td>UC-38, UC-39</td>
+<td>open <code>/apps</code>, revoke app</td>
+<td>consent/tokens/sessions revoked; UX safe on partial failure</td>
+</tr>
+<tr>
+<td>Active sessions revoke</td>
+<td>UC-40, UC-49</td>
+<td>open <code>/sessions</code>, revoke one/all</td>
+<td>target sessions closed; current session protected/handled</td>
+</tr>
+<tr>
+<td>DSR intake</td>
+<td>UC-41, UC-42</td>
+<td>open <code>/privacy</code>, submit export/delete request</td>
+<td>request listed with status; no-store response</td>
+</tr>
+<tr>
+<td>Logout fan-out</td>
+<td>UC-45, UC-46, UC-48</td>
+<td>logout portal/RP</td>
+<td>local cookie cleared; RP/backchannel/frontchannel paths attempted/idempotent</td>
+</tr>
+</tbody></table></div>
+<h2 id="6-domain-uat-readiness"><a class="anchor" href="#6-domain-uat-readiness" aria-label="Permalink to this section">#</a> 6. Domain UAT Readiness</h2>
+<div class="table-wrap" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead><tr>
+<th scope="col">Domain</th>
+<th scope="col">UC range</th>
+<th scope="col">Readiness</th>
+<th scope="col">Notes</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>Discovery &amp; Client Config</td>
+<td>UC-01–UC-09</td>
+<td><strong><span class="badge badge-partial">Partial</span></strong></td>
+<td>Metadata/JWKS strong. Client mgmt backend ready; admin UI click-path pending.</td>
+</tr>
+<tr>
+<td>Auth &amp; Authorization</td>
+<td>UC-10–UC-21</td>
+<td><strong><span class="badge badge-ready">Ready</span></strong></td>
+<td>Portal+BFF+backend flows covered; verify prod cookie forwarding after recent fix.</td>
+</tr>
+<tr>
+<td>Token Lifecycle</td>
+<td>UC-22–UC-33</td>
+<td><strong><span class="badge badge-ready">Ready</span></strong></td>
+<td>Token/introspection/revocation/rotation implemented; UAT mostly API/protocol.</td>
+</tr>
+<tr>
+<td>Profile &amp; Self-Service</td>
+<td>UC-34–UC-42</td>
+<td><strong><span class="badge badge-partial">Partial</span>/<span class="badge badge-ready">Ready</span></strong></td>
+<td>Profile/password/apps/sessions ready. DSR intake ready; full delete/anonymize automation partial.</td>
+</tr>
+<tr>
+<td>Session &amp; Logout</td>
+<td>UC-43–UC-50</td>
+<td><strong><span class="badge badge-partial">Partial</span>/<span class="badge badge-ready">Ready</span></strong></td>
+<td>User logout/session ready. Admin terminate via backend API; admin UI pending.</td>
+</tr>
+<tr>
+<td>Admin Management</td>
+<td>UC-51–UC-65</td>
+<td><strong>Backend <span class="badge badge-ready">Ready</span> / UI <span class="badge badge-gap">Gap</span></strong></td>
+<td>API/RBAC/audit/security policy present; browser admin UI out of portal scope.</td>
+</tr>
+<tr>
+<td>Security &amp; Risk</td>
+<td>UC-66–UC-76</td>
+<td><strong><span class="badge badge-partial">Partial</span>/<span class="badge badge-ready">Ready</span></strong></td>
+<td>MFA/recovery/throttle/emergency reset ready; risk/device/IP controls partial/phase-driven.</td>
+</tr>
+<tr>
+<td>Integration &amp; Ops</td>
+<td>UC-77–UC-83</td>
+<td><strong><span class="badge badge-partial">Partial</span></strong></td>
+<td>Health/smoke/key rotation evidence exists; backup/DR/SIEM require operator drill signoff.</td>
+</tr>
+</tbody></table></div>
+<h2 id="7-detailed-uc-uat-traceability-matrix"><a class="anchor" href="#7-detailed-uc-uat-traceability-matrix" aria-label="Permalink to this section">#</a> 7. Detailed UC → UAT Traceability Matrix</h2>
+<p>Legend: <strong><span class="badge badge-ready">Ready</span></strong> = UAT executable now; <strong><span class="badge badge-partial">Partial</span></strong> = executable with limitation; <strong><span class="badge badge-gap">Gap</span></strong> = not ready; <strong><span class="badge badge-api">API-only</span></strong> = no browser UI in current scope; <strong>Phase</strong> = intentionally later phase.</p>
+<h3 id="7-1-discovery-client-configuration"><a class="anchor" href="#7-1-discovery-client-configuration" aria-label="Permalink to this section">#</a> 7.1 Discovery &amp; Client Configuration</h3>
+<div class="table-wrap" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead><tr>
+<th scope="col">UC</th>
+<th scope="col">UAT scenario</th>
+<th scope="col">Entrypoint</th>
+<th scope="col">Status</th>
+<th scope="col">Evidence</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>UC-01 Lihat OIDC Discovery</td>
+<td>RP fetches metadata</td>
+<td><code>GET /.well-known/openid-configuration</code></td>
+<td><span class="badge badge-ready">Ready</span></td>
+<td><code>services/sso-backend/routes/oidc.php</code>, <code>DiscoveryController</code>, <code>DiscoveryDocumentTest.php</code></td>
+</tr>
+<tr>
+<td>UC-02 Lihat JWKS</td>
+<td>RP fetches signing keys</td>
+<td><code>GET /.well-known/jwks.json</code>, <code>/jwks</code></td>
+<td><span class="badge badge-ready">Ready</span></td>
+<td><code>JwksController</code>, <code>SigningKeyService</code>, <code>JwtValidationClaimContractTest.php</code></td>
+</tr>
+<tr>
+<td>UC-03 Kelola Client Baru</td>
+<td>Admin creates client</td>
+<td><code>/admin/api/clients</code></td>
+<td><span class="badge badge-api">API-only</span></td>
+<td><code>ClientController</code>, <code>AdminClientIntegrationContractTest.php</code>, <code>ClientManagementCrudBackendTest.php</code></td>
+</tr>
+<tr>
+<td>UC-04 Kelola Redirect/Logout URI</td>
+<td>Admin updates URIs; invalid exact-match rejected</td>
+<td><code>/admin/api/clients/{clientId}</code></td>
+<td><span class="badge badge-api">API-only</span></td>
+<td><code>RedirectUriExactMatchTest.php</code>, <code>LogoutUriRejectionContractTest.php</code></td>
+</tr>
+<tr>
+<td>UC-05 Kelola Client Secret</td>
+<td>Rotate secret; plaintext shown once</td>
+<td><code>/admin/api/clients/{clientId}/rotate-secret</code></td>
+<td><span class="badge badge-api">API-only</span></td>
+<td><code>RotateClientSecretAction.php</code>, <code>ClientSecretLifecycleContractTest.php</code></td>
+</tr>
+<tr>
+<td>UC-06 Suspend Client</td>
+<td>Disable client and revoke tokens</td>
+<td><code>/admin/api/client-integrations/{clientId}/disable</code></td>
+<td><span class="badge badge-api">API-only</span></td>
+<td><code>ClientLifecycleTokenRevocationContractTest.php</code></td>
+</tr>
+<tr>
+<td>UC-07 Kelola Scope/Consent Client</td>
+<td>Admin sync scopes; auth enforces allowed scope</td>
+<td><code>/admin/api/clients/{clientId}/scopes</code></td>
+<td><span class="badge badge-api">API-only</span></td>
+<td><code>ScopePolicy</code>, <code>ConsentFlowContractTest.php</code>, <code>RefreshTokenDownscopeContractTest.php</code></td>
+</tr>
+<tr>
+<td>UC-08 Validasi Issuer/Metadata</td>
+<td>RP verifies issuer/endpoints</td>
+<td>discovery document + FE metadata warmer</td>
+<td><span class="badge badge-ready">Ready</span></td>
+<td><code>OidcCatalog</code>, <code>canonicalization.ts</code>, <code>warmer.ts</code></td>
+</tr>
+<tr>
+<td>UC-09 Decommission Client</td>
+<td>Admin deletes/decommissions client</td>
+<td><code>DELETE /admin/api/clients/{clientId}</code></td>
+<td><span class="badge badge-api">API-only</span></td>
+<td><code>ClientIntegrationRegistrationService</code>, <code>ClientLifecycleTokenRevocationContractTest.php</code></td>
+</tr>
+</tbody></table></div>
+<h3 id="7-2-authentication-authorization"><a class="anchor" href="#7-2-authentication-authorization" aria-label="Permalink to this section">#</a> 7.2 Authentication &amp; Authorization</h3>
+<div class="table-wrap" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead><tr>
+<th scope="col">UC</th>
+<th scope="col">UAT scenario</th>
+<th scope="col">Entrypoint</th>
+<th scope="col">Status</th>
+<th scope="col">Evidence</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>UC-10 Start Authorization Request</td>
+<td>RP starts auth code + PKCE</td>
+<td><code>/authorize</code>, <code>/oauth2/authorize</code></td>
+<td><span class="badge badge-ready">Ready</span></td>
+<td><code>AuthorizeController</code>, <code>CreateAuthorizationRedirect</code>, <code>AuthorizationCodeFlowE2EContractTest.php</code></td>
+</tr>
+<tr>
+<td>UC-11 Login via Portal SSO</td>
+<td>User logs in via portal</td>
+<td><code>/</code>, <code>/api/auth/login</code>, <code>/connect/local-login</code></td>
+<td><span class="badge badge-ready">Ready</span></td>
+<td><code>LoginPage.vue</code>, <code>useLoginForm.ts</code>, <code>LoginController.php</code>, <code>LocalLoginContractTest.php</code></td>
+</tr>
+<tr>
+<td>UC-12 Resume Authorization</td>
+<td>User login resumes pending auth</td>
+<td>callback/authorize session</td>
+<td><span class="badge badge-ready">Ready</span></td>
+<td><code>CompletePendingOidcAuthorization.php</code>, <code>AuthorizationCodeStore.php</code></td>
+</tr>
+<tr>
+<td>UC-13 Consent</td>
+<td>User allows scopes</td>
+<td><code>/auth/consent</code>, <code>/connect/consent</code></td>
+<td><span class="badge badge-ready">Ready</span></td>
+<td><code>ConsentPage.vue</code>, <code>consent.api.ts</code>, <code>ConsentFlowContractTest.php</code></td>
+</tr>
+<tr>
+<td>UC-14 Force Re-auth</td>
+<td><code>prompt=login</code> forces login</td>
+<td>router + authorize</td>
+<td><span class="badge badge-ready">Ready</span></td>
+<td><code>router/index.ts</code>, <code>MaxAgeEnforcementContractTest.php</code></td>
+</tr>
+<tr>
+<td>UC-15 Silent Auth</td>
+<td><code>prompt=none</code> returns login_required if no session</td>
+<td><code>/authorize?prompt=none</code></td>
+<td><span class="badge badge-ready">Ready</span></td>
+<td><code>PromptNoneSemanticsContractTest.php</code></td>
+</tr>
+<tr>
+<td>UC-16 Invalid Redirect URI</td>
+<td>RP invalid redirect rejected safely</td>
+<td><code>/authorize</code></td>
+<td><span class="badge badge-ready">Ready</span></td>
+<td><code>AuthorizeRedirectUriRejectionContractTest.php</code></td>
+</tr>
+<tr>
+<td>UC-17 Invalid PKCE/State/Nonce</td>
+<td>bad verifier/state/nonce rejected</td>
+<td>token/callback</td>
+<td><span class="badge badge-ready">Ready</span></td>
+<td><code>pkce.ts</code>, <code>TokenEndpointHardeningContractTest.php</code>, <code>auth-callback-jwks.spec.ts</code></td>
+</tr>
+<tr>
+<td>UC-18 Locked Account Login</td>
+<td>locked/disabled user cannot login</td>
+<td><code>/api/auth/login</code></td>
+<td><span class="badge badge-ready">Ready</span></td>
+<td><code>VerifyLocalPasswordLoginAction.php</code>, <code>SsoSessionLifecycleGuardContractTest.php</code></td>
+</tr>
+<tr>
+<td>UC-19 Step-up Auth</td>
+<td>high assurance request triggers MFA/reauth</td>
+<td><code>acr_values</code>, <code>max_age</code></td>
+<td><span class="badge badge-ready">Ready</span></td>
+<td><code>AcrEvaluator</code>, <code>StepUpAuthenticationTest.php</code>, <code>LocalLoginAcrEnforcementContractTest.php</code></td>
+</tr>
+<tr>
+<td>UC-20 Password Expired</td>
+<td>expired password forces reset/change</td>
+<td>login + reset/change pages</td>
+<td><span class="badge badge-ready">Ready</span></td>
+<td><code>passwordLifecycle.shared.ts</code>, <code>LocalLoginContractTest.php</code>, <code>use-password-lifecycle.contract.test.ts</code></td>
+</tr>
+<tr>
+<td>UC-21 Deny Consent</td>
+<td>user denies consent, RP gets safe error</td>
+<td><code>/auth/consent</code></td>
+<td><span class="badge badge-ready">Ready</span></td>
+<td><code>ConsentPage.vue</code>, <code>OidcErrorShapeConsistencyContractTest.php</code></td>
+</tr>
+</tbody></table></div>
+<h3 id="7-3-token-lifecycle"><a class="anchor" href="#7-3-token-lifecycle" aria-label="Permalink to this section">#</a> 7.3 Token Lifecycle</h3>
+<div class="table-wrap" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead><tr>
+<th scope="col">UC</th>
+<th scope="col">UAT scenario</th>
+<th scope="col">Entrypoint</th>
+<th scope="col">Status</th>
+<th scope="col">Evidence</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>UC-22 Exchange Code</td>
+<td>client exchanges code</td>
+<td><code>POST /token</code>, <code>/oauth2/token</code></td>
+<td><span class="badge badge-ready">Ready</span></td>
+<td><code>TokenController</code>, <code>ExchangeToken</code>, <code>AuthorizationCodeExchangeEdgeContractTest.php</code></td>
+</tr>
+<tr>
+<td>UC-23 Validate ID Token</td>
+<td>RP validates signed ID token</td>
+<td>JWKS + token response</td>
+<td><span class="badge badge-ready">Ready</span></td>
+<td><code>IssueIdToken</code>, <code>IdTokenClaimsMatrixContractTest.php</code></td>
+</tr>
+<tr>
+<td>UC-24 UserInfo</td>
+<td>client calls UserInfo</td>
+<td><code>/userinfo</code></td>
+<td><span class="badge badge-ready">Ready</span></td>
+<td><code>UserInfoController</code>, <code>BuildUserInfo</code>, <code>UserInfoEndpointClaimsContractTest.php</code></td>
+</tr>
+<tr>
+<td>UC-25 Refresh Rotation</td>
+<td>refresh token rotates</td>
+<td><code>grant_type=refresh_token</code></td>
+<td><span class="badge badge-ready">Ready</span></td>
+<td><code>RefreshTokenStore</code>, <code>AtomicRefreshRotationContractTest.php</code></td>
+</tr>
+<tr>
+<td>UC-26 Refresh Reuse Detection</td>
+<td>replay old refresh token</td>
+<td>token endpoint</td>
+<td><span class="badge badge-ready">Ready</span></td>
+<td><code>RefreshTokenReuseAuditContractTest.php</code>, <code>RefreshTokenReuseDetectedNotification.php</code></td>
+</tr>
+<tr>
+<td>UC-27 Revoke Token</td>
+<td>client/user revokes token</td>
+<td><code>/revocation</code>, <code>/oauth/revoke</code></td>
+<td><span class="badge badge-ready">Ready</span></td>
+<td><code>RevocationController</code>, <code>RevocationEndpointRfc7009ContractTest.php</code></td>
+</tr>
+<tr>
+<td>UC-28 Introspection</td>
+<td>resource server introspects token</td>
+<td><code>/introspect</code>, <code>/oauth2/introspect</code></td>
+<td><span class="badge badge-ready">Ready</span></td>
+<td><code>IntrospectionController</code>, <code>IntrospectionContractTest.php</code>, <code>proxy-routes.spec.ts</code></td>
+</tr>
+<tr>
+<td>UC-29 Expired/Unknown Token</td>
+<td>invalid bearer gets standard error</td>
+<td><code>/userinfo</code>, <code>/introspect</code></td>
+<td><span class="badge badge-ready">Ready</span></td>
+<td><code>AccessTokenGuard</code>, <code>SafeErrorDescriptionContractTest.php</code></td>
+</tr>
+<tr>
+<td>UC-30 Client Auth Failure</td>
+<td>bad client secret rejected safely</td>
+<td><code>/token</code></td>
+<td><span class="badge badge-ready">Ready</span></td>
+<td><code>TokenClientAuthenticationResolver</code>, <code>TokenEndpointHardeningContractTest.php</code></td>
+</tr>
+<tr>
+<td>UC-31 Key Rotation Validation</td>
+<td>rotate JWKS; old/new validation</td>
+<td><code>sso:rotate-signing-keys</code>, JWKS</td>
+<td><span class="badge badge-ready">Ready</span></td>
+<td><code>RotateSigningKeysCommand.php</code>, <code>jwks-rotation-simulation.yml</code></td>
+</tr>
+<tr>
+<td>UC-32 Wrong Audience</td>
+<td>token audience mismatch rejected</td>
+<td>resource endpoint</td>
+<td><span class="badge badge-ready">Ready</span></td>
+<td><code>AccessTokenAudiencePolicyContractTest.php</code></td>
+</tr>
+<tr>
+<td>UC-33 Token Lifetime</td>
+<td>access/refresh TTL follows policy</td>
+<td>token issuance + config check</td>
+<td><span class="badge badge-ready">Ready</span></td>
+<td><code>TokenLifetimePolicyContractTest.php</code>, <code>CheckTokenLifetimePolicyCommand.php</code></td>
+</tr>
+</tbody></table></div>
+<h3 id="7-4-profile-user-self-service"><a class="anchor" href="#7-4-profile-user-self-service" aria-label="Permalink to this section">#</a> 7.4 Profile &amp; User Self-Service</h3>
+<div class="table-wrap" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead><tr>
+<th scope="col">UC</th>
+<th scope="col">UAT scenario</th>
+<th scope="col">Entrypoint</th>
+<th scope="col">Status</th>
+<th scope="col">Evidence</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>UC-34 Lihat Profil</td>
+<td>user opens profile</td>
+<td><code>/profile</code>, <code>GET /api/profile</code></td>
+<td><span class="badge badge-ready">Ready</span></td>
+<td><code>ProfilePage.vue</code>, <code>ProfilePortalBackendContractTest.php</code></td>
+</tr>
+<tr>
+<td>UC-35 Ubah Profil</td>
+<td>user updates allowed fields</td>
+<td><code>PATCH /api/profile</code></td>
+<td><span class="badge badge-ready">Ready</span></td>
+<td><code>UpdateProfilePortalAction.php</code>, <code>ProfilePortalDataQualityContractTest.php</code></td>
+</tr>
+<tr>
+<td>UC-36 Ganti Password</td>
+<td>user changes password</td>
+<td><code>/security</code>, <code>POST /api/profile/change-password</code></td>
+<td><span class="badge badge-ready">Ready</span></td>
+<td><code>SecurityPage.vue</code>, <code>ChangePasswordContractTest.php</code></td>
+</tr>
+<tr>
+<td>UC-37 Reset Password</td>
+<td>forgot/reset password flow</td>
+<td><code>/auth/forgot-password</code>, <code>/auth/reset-password</code></td>
+<td><span class="badge badge-ready">Ready</span></td>
+<td><code>PasswordResetLifecycleContractTest.php</code></td>
+</tr>
+<tr>
+<td>UC-38 Lihat Connected Apps</td>
+<td>user opens apps</td>
+<td><code>/apps</code>, <code>GET /api/profile/connected-apps</code></td>
+<td><span class="badge badge-ready">Ready</span></td>
+<td><code>ConnectedAppsPage.vue</code>, <code>ConnectedAppsPaginationContractTest.php</code></td>
+</tr>
+<tr>
+<td>UC-39 Cabut Consent Aplikasi</td>
+<td>user revokes connected app</td>
+<td><code>DELETE /api/profile/connected-apps/{clientId}</code></td>
+<td><span class="badge badge-ready">Ready</span></td>
+<td><code>RevokeConnectedAppAction.php</code>, <code>ConnectedAppsSelfServiceRevocationContractTest.php</code></td>
+</tr>
+<tr>
+<td>UC-40 Lihat/Tutup Active Sessions</td>
+<td>user views/revokes sessions</td>
+<td><code>/sessions</code>, <code>/api/profile/sessions</code></td>
+<td><span class="badge badge-ready">Ready</span></td>
+<td><code>SessionsPage.vue</code>, <code>UserSessionsSelfServiceContractTest.php</code></td>
+</tr>
+<tr>
+<td>UC-41 Request Export Data</td>
+<td>user submits DSR export</td>
+<td><code>/privacy</code>, <code>/api/profile/data-subject-requests</code></td>
+<td><span class="badge badge-partial">Partial</span></td>
+<td><code>PrivacyPage.vue</code>, <code>DataSubjectRequestSelfServiceContractTest.php</code>; full fulfillment evidence needs admin/operator flow</td>
+</tr>
+<tr>
+<td>UC-42 Request Delete/Anonim</td>
+<td>user submits DSR delete/anonymize</td>
+<td><code>/privacy</code>, DSR API</td>
+<td><span class="badge badge-partial">Partial</span></td>
+<td>intake/list ready; queued delete/anonymize automation pending</td>
+</tr>
+</tbody></table></div>
+<h3 id="7-5-session-logout"><a class="anchor" href="#7-5-session-logout" aria-label="Permalink to this section">#</a> 7.5 Session &amp; Logout</h3>
+<div class="table-wrap" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead><tr>
+<th scope="col">UC</th>
+<th scope="col">UAT scenario</th>
+<th scope="col">Entrypoint</th>
+<th scope="col">Status</th>
+<th scope="col">Evidence</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>UC-43 Create SSO Session/SID</td>
+<td>login creates SSO session cookie/SID</td>
+<td><code>/api/auth/login</code>, <code>/api/auth/session</code></td>
+<td><span class="badge badge-ready">Ready</span></td>
+<td><code>SsoSessionService.php</code>, <code>SsoSessionCookieFactory.php</code>, <code>ProfilePortalSessionCookieContractTest.php</code></td>
+</tr>
+<tr>
+<td>UC-44 Register RP Session</td>
+<td>RP registers session</td>
+<td><code>/connect/register-session</code></td>
+<td><span class="badge badge-ready">Ready</span></td>
+<td><code>SessionRegistrationController</code>, <code>RpSessionRegistryPersistenceContractTest.php</code></td>
+</tr>
+<tr>
+<td>UC-45 RP-Initiated Logout</td>
+<td>RP starts logout</td>
+<td><code>/connect/logout</code></td>
+<td><span class="badge badge-ready">Ready</span></td>
+<td><code>SessionLogoutController</code>, <code>IdTokenHintSidBindingContractTest.php</code></td>
+</tr>
+<tr>
+<td>UC-46 Back-channel Logout</td>
+<td>backend notifies all clients</td>
+<td>backchannel dispatch/job</td>
+<td><span class="badge badge-ready">Ready</span></td>
+<td><code>BackChannelLogoutDispatcher.php</code>, <code>BackChannelLogoutAcceptanceTest.php</code></td>
+</tr>
+<tr>
+<td>UC-47 Front-channel Fallback</td>
+<td>browser iframe fallback</td>
+<td><code>/connect/logout/frontchannel</code></td>
+<td><span class="badge badge-ready">Ready</span></td>
+<td><code>FrontChannelLogoutFallbackController.php</code>, <code>FrontChannelLogoutFallbackContractTest.php</code></td>
+</tr>
+<tr>
+<td>UC-48 Idempotent/Race Logout</td>
+<td>repeat logout safe</td>
+<td>logout endpoints</td>
+<td><span class="badge badge-ready">Ready</span></td>
+<td><code>CentralizedLogoutTest.php</code>, <code>BackChannelLogoutPartialFailureContractTest.php</code></td>
+</tr>
+<tr>
+<td>UC-49 Expiry/Idle Timeout</td>
+<td>idle/expired session rejected</td>
+<td>session heartbeat/API</td>
+<td><span class="badge badge-ready">Ready</span></td>
+<td><code>useSessionHeartbeat.ts</code>, <code>SessionIdleTimeoutContractTest.php</code></td>
+</tr>
+<tr>
+<td>UC-50 Admin Terminate Session</td>
+<td>admin closes user session</td>
+<td><code>/admin/api/sessions/*</code></td>
+<td><span class="badge badge-api">API-only</span></td>
+<td><code>Admin\SessionController.php</code>, <code>AdminSessionManagementRbacTest.php</code>; admin UI pending</td>
+</tr>
+</tbody></table></div>
+<h3 id="7-6-admin-management"><a class="anchor" href="#7-6-admin-management" aria-label="Permalink to this section">#</a> 7.6 Admin Management</h3>
+<div class="table-wrap" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead><tr>
+<th scope="col">UC</th>
+<th scope="col">UAT scenario</th>
+<th scope="col">Entrypoint</th>
+<th scope="col">Status</th>
+<th scope="col">Evidence</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>UC-51 Admin Login</td>
+<td>admin session + MFA gate</td>
+<td><code>/admin/api/me</code></td>
+<td><span class="badge badge-api">API-only</span></td>
+<td><code>AdminGuard</code>, <code>EnsureAdminMfaEnrolled</code>, <code>AdminMfaEnforcementTest.php</code></td>
+</tr>
+<tr>
+<td>UC-52 Dashboard</td>
+<td>admin views summary</td>
+<td><code>/admin/api/dashboard/summary</code></td>
+<td><span class="badge badge-api">API-only</span></td>
+<td><code>DashboardSummaryController</code>, <code>AdminGovernanceContractTest.php</code></td>
+</tr>
+<tr>
+<td>UC-53 Create User</td>
+<td>admin creates user</td>
+<td><code>POST /admin/api/users</code></td>
+<td><span class="badge badge-api">API-only</span></td>
+<td><code>CreateManagedUserAction.php</code>, <code>UserManagementBackendTest.php</code></td>
+</tr>
+<tr>
+<td>UC-54 Update User</td>
+<td>admin syncs/updates user profile</td>
+<td><code>/admin/api/users/{subjectId}</code> + sync-profile</td>
+<td><span class="badge badge-api">API-only</span></td>
+<td><code>AdminUserPresenter</code>, <code>UserManagementBackendTest.php</code></td>
+</tr>
+<tr>
+<td>UC-55 Lock/Unlock User</td>
+<td>admin locks/unlocks</td>
+<td>`/admin/api/users/{subjectId}/lock</td>
+<td>unlock`</td>
+<td><span class="badge badge-api">API-only</span></td>
+</tr>
+<tr>
+<td>UC-56 Assign Role</td>
+<td>admin assigns role</td>
+<td><code>PUT /admin/api/users/{subjectId}/roles</code></td>
+<td><span class="badge badge-api">API-only</span></td>
+<td><code>RoleController</code>, <code>RolePermissionManagementBackendTest.php</code></td>
+</tr>
+<tr>
+<td>UC-57 Review RBAC Matrix</td>
+<td>security reviews permissions</td>
+<td><code>/admin/api/roles</code>, <code>/permissions</code></td>
+<td><span class="badge badge-api">API-only</span></td>
+<td><code>AdminPermissionMatrix</code>, <code>AdminPermissionMatrixMenuContractTest.php</code></td>
+</tr>
+<tr>
+<td>UC-58 View Audit Log</td>
+<td>admin views audit</td>
+<td><code>/admin/api/audit/events</code></td>
+<td><span class="badge badge-api">API-only</span></td>
+<td><code>AuditTrailController</code>, <code>AdminAuditTrailContractTest.php</code></td>
+</tr>
+<tr>
+<td>UC-59 Export Audit Log</td>
+<td>admin exports audit</td>
+<td><code>/admin/api/audit/export</code></td>
+<td><span class="badge badge-api">API-only</span></td>
+<td><code>AuditTrailExportController</code>, <code>ExportAdminAuditEventsAction.php</code></td>
+</tr>
+<tr>
+<td>UC-60 Configure Client</td>
+<td>admin views/updates clients</td>
+<td><code>/admin/api/clients</code></td>
+<td><span class="badge badge-api">API-only</span></td>
+<td><code>ClientController</code>, <code>ClientManagementCrudBackendTest.php</code></td>
+</tr>
+<tr>
+<td>UC-61 Rotate Secret</td>
+<td>admin rotates secret</td>
+<td><code>/admin/api/clients/{clientId}/rotate-secret</code></td>
+<td><span class="badge badge-api">API-only</span></td>
+<td><code>RotateClientSecretActionTest.php</code></td>
+</tr>
+<tr>
+<td>UC-62 Security Policy</td>
+<td>admin versions policies</td>
+<td><code>/admin/api/security-policies/{category}</code></td>
+<td><span class="badge badge-api">API-only</span></td>
+<td><code>SecurityPolicyController</code>, <code>SecurityPolicyAndFederationContractTest.php</code></td>
+</tr>
+<tr>
+<td>UC-63 Incident Investigation</td>
+<td>request/error ref lookup</td>
+<td>audit + error refs</td>
+<td><span class="badge badge-partial">Partial</span></td>
+<td><code>ErrorRefPropagationContractTest.php</code>, <code>RequestLifecycleObservabilityTest.php</code>; runbook signoff pending</td>
+</tr>
+<tr>
+<td>UC-64 Key Rotation</td>
+<td>operator rotates keys</td>
+<td>artisan/workflow</td>
+<td><span class="badge badge-ready">Ready</span></td>
+<td><code>RotateSigningKeysCommand.php</code>, <code>jwks-rotation-simulation.yml</code></td>
+</tr>
+<tr>
+<td>UC-65 Compliance Evidence Pack</td>
+<td>DSR/audit/export evidence</td>
+<td>admin APIs + generated artifacts</td>
+<td><span class="badge badge-partial">Partial</span></td>
+<td>DSR/audit backend ready; packaged evidence workflow requires ops definition</td>
+</tr>
+</tbody></table></div>
+<h3 id="7-7-security-risk"><a class="anchor" href="#7-7-security-risk" aria-label="Permalink to this section">#</a> 7.7 Security &amp; Risk</h3>
+<div class="table-wrap" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead><tr>
+<th scope="col">UC</th>
+<th scope="col">UAT scenario</th>
+<th scope="col">Entrypoint</th>
+<th scope="col">Status</th>
+<th scope="col">Evidence</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>UC-66 Enroll MFA</td>
+<td>user/admin enrolls TOTP</td>
+<td><code>/security/mfa</code>, <code>/api/mfa/totp/enroll</code></td>
+<td><span class="badge badge-ready">Ready</span></td>
+<td><code>MfaSettingsPage.vue</code>, <code>TotpEnrollmentContractTest.php</code></td>
+</tr>
+<tr>
+<td>UC-67 Verify MFA Login</td>
+<td>login requires challenge</td>
+<td><code>/auth/mfa-challenge</code>, <code>/api/mfa/challenge/verify</code></td>
+<td><span class="badge badge-ready">Ready</span></td>
+<td><code>MfaChallengePage.vue</code>, <code>MfaChallengeContractTest.php</code></td>
+</tr>
+<tr>
+<td>UC-68 Risk Score</td>
+<td>suspicious login evaluated</td>
+<td>login risk service</td>
+<td><span class="badge badge-partial">Partial</span>/Phase</td>
+<td><code>LoginRiskEvaluator.php</code>, <code>SuspiciousLoginPolicy.php</code>; UAT scenario needs policy fixtures</td>
+</tr>
+<tr>
+<td>UC-69 MFA Recovery</td>
+<td>recovery codes/regenerate</td>
+<td><code>/security/mfa</code></td>
+<td><span class="badge badge-ready">Ready</span></td>
+<td><code>RecoveryCodeRegenerationTest.php</code>, <code>LostFactorRecoveryWorkflowContractTest.php</code></td>
+</tr>
+<tr>
+<td>UC-70 Manage Device</td>
+<td>device/session management</td>
+<td><code>/sessions</code></td>
+<td><span class="badge badge-partial">Partial</span></td>
+<td>active sessions ready; broader device inventory/policy pending</td>
+</tr>
+<tr>
+<td>UC-71 Security Notification</td>
+<td>notification sent for security events</td>
+<td>mail/notification channels</td>
+<td><span class="badge badge-partial">Partial</span></td>
+<td>MFA/recovery/reuse notifications exist; broader event coverage needs UAT matrix</td>
+</tr>
+<tr>
+<td>UC-72 Suspicious Login Challenge</td>
+<td>high risk triggers challenge</td>
+<td>login + risk policy</td>
+<td><span class="badge badge-partial">Partial</span>/Phase</td>
+<td>risk evaluator exists; end-user challenge policy needs acceptance fixtures</td>
+</tr>
+<tr>
+<td>UC-73 Mandatory Admin MFA</td>
+<td>admin without MFA blocked</td>
+<td><code>/admin/api/*</code></td>
+<td><span class="badge badge-api">API-only</span> <span class="badge badge-ready">Ready</span></td>
+<td><code>EnsureAdminMfaEnrolled.php</code>, <code>AdminMfaEnforcementTest.php</code></td>
+</tr>
+<tr>
+<td>UC-74 Rate Limit/Throttle</td>
+<td>repeated attempts get 429/safe UX</td>
+<td>login/token/profile/admin APIs</td>
+<td><span class="badge badge-ready">Ready</span></td>
+<td><code>LoginAttemptThrottleTest.php</code>, route throttle middleware</td>
+</tr>
+<tr>
+<td>UC-75 IP Blocklist/Allowlist</td>
+<td>abuse IP policy controls</td>
+<td>security policy/ops</td>
+<td><span class="badge badge-partial">Partial</span>/Phase</td>
+<td><code>SecurityPolicyService.php</code>; explicit network enforcement drill pending</td>
+</tr>
+<tr>
+<td>UC-76 Emergency Credential Reset</td>
+<td>admin resets MFA/password/tokens</td>
+<td>admin API</td>
+<td><span class="badge badge-api">API-only</span> <span class="badge badge-ready">Ready</span></td>
+<td><code>EmergencyMfaResetAction.php</code>, <code>EmergencyMfaResetTest.php</code></td>
+</tr>
+</tbody></table></div>
+<h3 id="7-8-integration-operations"><a class="anchor" href="#7-8-integration-operations" aria-label="Permalink to this section">#</a> 7.8 Integration &amp; Operations</h3>
+<div class="table-wrap" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead><tr>
+<th scope="col">UC</th>
+<th scope="col">UAT scenario</th>
+<th scope="col">Entrypoint</th>
+<th scope="col">Status</th>
+<th scope="col">Evidence</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>UC-77 Monitor OIDC SLI</td>
+<td>health/readiness/metadata checks</td>
+<td><code>/health</code>, <code>/ready</code>, discovery/JWKS</td>
+<td><span class="badge badge-ready">Ready</span></td>
+<td><code>ReadinessController</code>, <code>ReadinessObservabilityTest.php</code>, smoke scripts</td>
+</tr>
+<tr>
+<td>UC-78 Backup &amp; Restore</td>
+<td>operator validates restore</td>
+<td>workflow/runbook</td>
+<td><span class="badge badge-partial">Partial</span></td>
+<td><code>backup-restore-drill.yml</code>; restore evidence must be attached</td>
+</tr>
+<tr>
+<td>UC-79 SIEM Export</td>
+<td>logs/audit exported</td>
+<td>audit export/log pipeline</td>
+<td><span class="badge badge-partial">Partial</span></td>
+<td><code>AuditTrailExportController</code>; SIEM sink verification out-of-repo</td>
+</tr>
+<tr>
+<td>UC-80 JWKS Rotation Drill</td>
+<td>rotate keys + validate clients</td>
+<td>workflow/artisan</td>
+<td><span class="badge badge-ready">Ready</span></td>
+<td><code>jwks-rotation-simulation.yml</code>, <code>RotateSigningKeysCommand.php</code></td>
+</tr>
+<tr>
+<td>UC-81 External IdP Pilot</td>
+<td>federation login pilot</td>
+<td><code>/external-idp/start/{providerKey}</code>, callback</td>
+<td><span class="badge badge-partial">Partial</span>/Phase</td>
+<td><code>ExternalIdpPublicCallbackRouteContractTest.php</code>; UI/provider rollout pending</td>
+</tr>
+<tr>
+<td>UC-82 Incident Runbook</td>
+<td>trace incident by request/error ref</td>
+<td>logs/audit/metrics</td>
+<td><span class="badge badge-partial">Partial</span></td>
+<td><code>ErrorRefPropagationContractTest.php</code>, <code>RequestLifecycleObservabilityTest.php</code>; formal runbook evidence pending</td>
+</tr>
+<tr>
+<td>UC-83 DR Failover</td>
+<td>service fails over/recovered</td>
+<td>workflow/infra drill</td>
+<td><span class="badge badge-partial">Partial</span>/Phase</td>
+<td>deployment/backup workflows; DR exercise evidence pending</td>
+</tr>
+</tbody></table></div>
+<h2 id="8-frontend-uat-entrypoints"><a class="anchor" href="#8-frontend-uat-entrypoints" aria-label="Permalink to this section">#</a> 8. Frontend UAT Entrypoints</h2>
+<div class="table-wrap" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead><tr>
+<th scope="col">Page/flow</th>
+<th scope="col">Route</th>
+<th scope="col">UC coverage</th>
+<th scope="col">Notes</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>Login</td>
+<td><code>/</code></td>
+<td>UC-11, UC-14, UC-18, UC-20</td>
+<td>guest route hydrates existing session; <code>prompt=login</code> bypasses guest redirect</td>
+</tr>
+<tr>
+<td>Register</td>
+<td><code>/auth/register</code></td>
+<td>supporting auth</td>
+<td>backend route exists; validate product decision for public registration</td>
+</tr>
+<tr>
+<td>Callback</td>
+<td><code>/auth/callback</code></td>
+<td>UC-12, UC-17</td>
+<td>BFF callback exchange; no tokens in browser response</td>
+</tr>
+<tr>
+<td>Consent</td>
+<td><code>/auth/consent</code></td>
+<td>UC-13, UC-21</td>
+<td>scope labels + safe deny UX</td>
+</tr>
+<tr>
+<td>MFA challenge</td>
+<td><code>/auth/mfa-challenge</code></td>
+<td>UC-67</td>
+<td>challenge token flow; recovery path</td>
+</tr>
+<tr>
+<td>Forgot/reset password</td>
+<td><code>/auth/forgot-password</code>, <code>/auth/reset-password</code></td>
+<td>UC-37</td>
+<td>no account enumeration</td>
+</tr>
+<tr>
+<td>Portal home</td>
+<td><code>/home</code></td>
+<td>session smoke</td>
+<td>loads profile-connected summaries independently</td>
+</tr>
+<tr>
+<td>Profile</td>
+<td><code>/profile</code></td>
+<td>UC-34, UC-35</td>
+<td>self-service profile</td>
+</tr>
+<tr>
+<td>Connected apps</td>
+<td><code>/apps</code></td>
+<td>UC-38, UC-39</td>
+<td>revoke app consent/tokens</td>
+</tr>
+<tr>
+<td>Sessions</td>
+<td><code>/sessions</code></td>
+<td>UC-40, UC-49</td>
+<td>revoke session/all sessions</td>
+</tr>
+<tr>
+<td>Security</td>
+<td><code>/security</code></td>
+<td>UC-36</td>
+<td>change password</td>
+</tr>
+<tr>
+<td>MFA settings</td>
+<td><code>/security/mfa</code></td>
+<td>UC-66, UC-69</td>
+<td>TOTP + recovery lifecycle</td>
+</tr>
+<tr>
+<td>Privacy/DSR</td>
+<td><code>/privacy</code></td>
+<td>UC-41, UC-42</td>
+<td>intake ready; fulfillment automation partial</td>
+</tr>
+</tbody></table></div>
+<h2 id="9-backend-uat-entrypoints"><a class="anchor" href="#9-backend-uat-entrypoints" aria-label="Permalink to this section">#</a> 9. Backend UAT Entrypoints</h2>
+<div class="table-wrap" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead><tr>
+<th scope="col">Area</th>
+<th scope="col">Routes</th>
+<th scope="col">UC coverage</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>Metadata</td>
+<td><code>/.well-known/openid-configuration</code>, <code>/.well-known/jwks.json</code>, <code>/jwks</code></td>
+<td>UC-01, UC-02, UC-08, UC-31, UC-77</td>
+</tr>
+<tr>
+<td>OAuth/OIDC</td>
+<td><code>/authorize</code>, <code>/oauth2/authorize</code>, <code>/token</code>, <code>/oauth2/token</code>, <code>/userinfo</code>, <code>/introspect</code>, <code>/oauth2/introspect</code>, <code>/revocation</code>, <code>/oauth/revoke</code></td>
+<td>UC-10–UC-33</td>
+</tr>
+<tr>
+<td>Session/logout</td>
+<td><code>/connect/register-session</code>, <code>/connect/logout</code>, <code>/connect/logout/frontchannel</code>, <code>/connect/backchannel/admin-panel/logout</code></td>
+<td>UC-43–UC-48</td>
+</tr>
+<tr>
+<td>Auth portal</td>
+<td><code>/api/auth/session</code>, <code>/api/auth/login</code>, <code>/api/auth/logout</code>, password reset/register</td>
+<td>UC-11, UC-37, UC-43</td>
+</tr>
+<tr>
+<td>MFA</td>
+<td><code>/api/mfa/status</code>, <code>/api/mfa/totp/enroll</code>, <code>/api/mfa/totp/verify</code>, <code>/api/mfa/challenge/verify</code>, recovery codes</td>
+<td>UC-66–UC-69</td>
+</tr>
+<tr>
+<td>Profile</td>
+<td><code>/api/profile</code>, <code>/api/profile/change-password</code>, <code>/api/profile/audit</code>, connected apps, sessions, DSR</td>
+<td>UC-34–UC-42</td>
+</tr>
+<tr>
+<td>Admin</td>
+<td><code>/admin/api/*</code></td>
+<td>UC-50–UC-65, UC-73, UC-76</td>
+</tr>
+<tr>
+<td>External IdP</td>
+<td><code>/external-idp/start/{providerKey}</code>, <code>/external-idp/callback</code></td>
+<td>UC-81</td>
+</tr>
+<tr>
+<td>Ops</td>
+<td><code>/health</code>, <code>/ready</code>, <code>/_internal/performance-metrics</code>, <code>/_internal/queue-metrics</code></td>
+<td>UC-77, UC-82</td>
+</tr>
+</tbody></table></div>
+<h2 id="10-uat-blockers-risks"><a class="anchor" href="#10-uat-blockers-risks" aria-label="Permalink to this section">#</a> 10. UAT Blockers &amp; Risks</h2>
+<div class="table-wrap" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead><tr>
+<th scope="col">ID</th>
+<th scope="col">Severity</th>
+<th scope="col">Area</th>
+<th scope="col">Finding</th>
+<th scope="col">UAT decision</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>UAT-B01</td>
+<td>High</td>
+<td>Admin browser UI</td>
+<td>Backend admin APIs exist, but no full admin UI in <code>services/sso-frontend</code>; portal intentionally excludes admin.</td>
+<td>Do not run admin click-path UAT in portal. Use API UAT or wait for dedicated admin app.</td>
+</tr>
+<tr>
+<td>UAT-B02</td>
+<td>Medium/High</td>
+<td>DSR</td>
+<td>User can submit/list requests; full delete/anonymize queued automation + legal-hold/retention gate still partial.</td>
+<td>Sign off intake only; mark fulfillment automation pending.</td>
+</tr>
+<tr>
+<td>UAT-B03</td>
+<td>Medium/High</td>
+<td>BFF session</td>
+<td>Portal BFF uses encrypted HttpOnly token bundle cookie, not opaque server-side session handle.</td>
+<td>Not a functional blocker; security hardening backlog before high-assurance signoff.</td>
+</tr>
+<tr>
+<td>UAT-B04</td>
+<td>Medium</td>
+<td>Ops</td>
+<td>Backup/DR/SIEM evidence depends on operator drills outside app code.</td>
+<td>Require dated drill artifacts for UC-78/79/83 signoff.</td>
+</tr>
+<tr>
+<td>UAT-B05</td>
+<td>Medium</td>
+<td>Security risk</td>
+<td>Risk-score, device inventory, IP allow/block controls are partial/phase-driven.</td>
+<td>Keep UC-68/70/72/75 as partial unless product declares reduced MVP scope.</td>
+</tr>
+<tr>
+<td>UAT-B06</td>
+<td>Medium</td>
+<td>Local validation</td>
+<td>Local frontend <code>node_modules</code> was corrupted during prior validation attempts; CI/deploy evidence is authoritative.</td>
+<td>Repair local deps before offline UAT automation.</td>
+</tr>
+</tbody></table></div>
+<h2 id="11-recommended-uat-execution-order"><a class="anchor" href="#11-recommended-uat-execution-order" aria-label="Permalink to this section">#</a> 11. Recommended UAT Execution Order</h2>
+<ol>
+<li><strong>Smoke gate:</strong> metadata/JWKS, login cookie survival, session hydration.</li>
+<li><strong>Core user journey:</strong> login → profile → password change → sessions/apps → logout.</li>
+<li><strong>OIDC RP journey:</strong> authorize → consent → callback → token → userinfo → refresh → revoke.</li>
+<li><strong>Negative security:</strong> invalid redirect, invalid PKCE, bad client secret, expired token, throttle.</li>
+<li><strong>MFA:</strong> enroll → login challenge → recovery code → regenerate/remove.</li>
+<li><strong>DSR:</strong> submit export/delete → list status → admin review/fulfill API if in scope.</li>
+<li><strong>Admin API:</strong> dashboard, users, roles, clients, audit export, sessions, security policy.</li>
+<li><strong>Ops drill:</strong> key rotation, health/readiness, backup/restore, incident request ID trace.</li>
+</ol>
+<h2 id="12-concrete-uat-test-cases"><a class="anchor" href="#12-concrete-uat-test-cases" aria-label="Permalink to this section">#</a> 12. Concrete UAT Test Cases</h2>
+<h3 id="uat-001-portal-login-cookie-proxy-regression"><a class="anchor" href="#uat-001-portal-login-cookie-proxy-regression" aria-label="Permalink to this section">#</a> UAT-001 — Portal Login + Cookie Proxy Regression</h3>
+<ul>
+<li><strong>Maps:</strong> UC-11, UC-43, FR-017, FR-039</li>
+<li><strong>Precondition:</strong> active user.</li>
+<li><strong>Steps:</strong> login at <code>https://sso.timeh.my.id</code>; open devtools network; inspect login/callback responses; then call <code>/api/auth/session</code>, <code>/api/profile/sessions</code>, <code>/api/profile/connected-apps</code>.</li>
+<li><strong>Expected:</strong> all required cookies present; APIs return 200; no post-login 401 loop.</li>
+<li><strong>Evidence:</strong> HAR redacted + request IDs.</li>
+<li><strong>Code:</strong> <code>services/sso-frontend/src/server/proxy-headers.ts</code>, <code>services/sso-frontend/src/server/__tests__/proxy-headers.spec.ts</code>.</li>
+</ul>
+<h3 id="uat-002-authorization-code-pkce-happy-path"><a class="anchor" href="#uat-002-authorization-code-pkce-happy-path" aria-label="Permalink to this section">#</a> UAT-002 — Authorization Code + PKCE Happy Path</h3>
+<ul>
+<li><strong>Maps:</strong> UC-10, UC-12, UC-17, UC-22, FR-013, FR-023, FR-029</li>
+<li><strong>Steps:</strong> RP sends authorize request with state/nonce/code_challenge; user logs in; consent if needed; RP exchanges code with verifier.</li>
+<li><strong>Expected:</strong> single-use code; token set issued; replay/invalid verifier rejected.</li>
+<li><strong>Evidence:</strong> request IDs, token response redacted.</li>
+</ul>
+<h3 id="uat-003-consent-allow-deny"><a class="anchor" href="#uat-003-consent-allow-deny" aria-label="Permalink to this section">#</a> UAT-003 — Consent Allow/Deny</h3>
+<ul>
+<li><strong>Maps:</strong> UC-13, UC-21, FR-011, FR-026, FR-028</li>
+<li><strong>Steps:</strong> request non-default scopes; verify consent page; allow; repeat; deny.</li>
+<li><strong>Expected:</strong> allow stores consent and resumes; deny returns standard safe OAuth error.</li>
+</ul>
+<h3 id="uat-004-mfa-enrollment-challenge"><a class="anchor" href="#uat-004-mfa-enrollment-challenge" aria-label="Permalink to this section">#</a> UAT-004 — MFA Enrollment + Challenge</h3>
+<ul>
+<li><strong>Maps:</strong> UC-66, UC-67, UC-69, FR-018–FR-020</li>
+<li><strong>Steps:</strong> enroll TOTP; save recovery codes; logout; login; verify TOTP; regenerate recovery codes.</li>
+<li><strong>Expected:</strong> MFA required, AMR persisted, recovery codes one-time and rotated.</li>
+</ul>
+<h3 id="uat-005-connected-app-revocation"><a class="anchor" href="#uat-005-connected-app-revocation" aria-label="Permalink to this section">#</a> UAT-005 — Connected App Revocation</h3>
+<ul>
+<li><strong>Maps:</strong> UC-38, UC-39, FR-026, FR-034, FR-048</li>
+<li><strong>Steps:</strong> authorize client; open <code>/apps</code>; revoke app; try refresh/userinfo with old token.</li>
+<li><strong>Expected:</strong> app disappears/marked revoked; tokens/consent invalidated per policy.</li>
+</ul>
+<h3 id="uat-006-active-session-revocation"><a class="anchor" href="#uat-006-active-session-revocation" aria-label="Permalink to this section">#</a> UAT-006 — Active Session Revocation</h3>
+<ul>
+<li><strong>Maps:</strong> UC-40, UC-49, FR-044, FR-048</li>
+<li><strong>Steps:</strong> login from two browsers; open <code>/sessions</code>; revoke other session; revoke all.</li>
+<li><strong>Expected:</strong> target session loses access; current UX remains safe; audit event recorded.</li>
+</ul>
+<h3 id="uat-007-safe-error-correlation"><a class="anchor" href="#uat-007-safe-error-correlation" aria-label="Permalink to this section">#</a> UAT-007 — Safe Error &amp; Correlation</h3>
+<ul>
+<li><strong>Maps:</strong> UC-16, UC-17, UC-30, UC-63, FR-060–FR-063</li>
+<li><strong>Steps:</strong> trigger invalid redirect, invalid PKCE, bad secret, expired token.</li>
+<li><strong>Expected:</strong> no stack traces/secrets; safe localized copy; request/error ref present.</li>
+</ul>
+<h3 id="uat-008-admin-api-governance"><a class="anchor" href="#uat-008-admin-api-governance" aria-label="Permalink to this section">#</a> UAT-008 — Admin API Governance</h3>
+<ul>
+<li><strong>Maps:</strong> UC-50–UC-65, UC-73, UC-76</li>
+<li><strong>Steps:</strong> authenticated admin calls <code>/admin/api/me</code>, dashboard, users, roles, clients, audit export, sessions, security policy.</li>
+<li><strong>Expected:</strong> RBAC + MFA/freshness enforced; writes require step-up; audit events recorded.</li>
+<li><strong>Limitation:</strong> <span class="badge badge-api">API-only</span> in current scope.</li>
+</ul>
+<h3 id="uat-009-dsr-intake"><a class="anchor" href="#uat-009-dsr-intake" aria-label="Permalink to this section">#</a> UAT-009 — DSR Intake</h3>
+<ul>
+<li><strong>Maps:</strong> UC-41, UC-42, FR-049</li>
+<li><strong>Steps:</strong> submit export request; submit delete/anonymize request; list requests; admin reviews if in scope.</li>
+<li><strong>Expected:</strong> subject-scoped list, no-store cache, status visible.</li>
+<li><strong>Limitation:</strong> delete/anonymize automation pending.</li>
+</ul>
+<h3 id="uat-010-ops-drill-minimum"><a class="anchor" href="#uat-010-ops-drill-minimum" aria-label="Permalink to this section">#</a> UAT-010 — Ops Drill Minimum</h3>
+<ul>
+<li><strong>Maps:</strong> UC-77–UC-83</li>
+<li><strong>Steps:</strong> run health/readiness checks; rotate JWKS in staging; run backup restore drill; trace incident request ID.</li>
+<li><strong>Expected:</strong> dated artifacts retained; no secret leakage; rollback plan verified.</li>
+</ul>
+<h2 id="13-signoff-criteria"><a class="anchor" href="#13-signoff-criteria" aria-label="Permalink to this section">#</a> 13. Signoff Criteria</h2>
+<p>A UC can be signed off only if:</p>
+<ol>
+<li>UAT scenario executed in prod-like env.</li>
+<li>Expected result matches requirement.</li>
+<li>Evidence captured with secrets/tokens redacted.</li>
+<li>Matching automated contract exists or gap accepted.</li>
+<li>Defects categorized as blocker/major/minor and linked to UC/FR.</li>
+</ol>
+<h3 id="13-1-signoff-buckets"><a class="anchor" href="#13-1-signoff-buckets" aria-label="Permalink to this section">#</a> 13.1 Signoff Buckets</h3>
+<div class="table-wrap" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead><tr>
+<th scope="col">Bucket</th>
+<th scope="col">Meaning</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>UAT-PASS</td>
+<td>user-facing or API behavior verified.</td>
+</tr>
+<tr>
+<td>UAT-PASS-WITH-RISK</td>
+<td>works, but documented hardening/ops risk remains.</td>
+</tr>
+<tr>
+<td>UAT-PARTIAL</td>
+<td>only intake/API/subflow works; full business outcome pending.</td>
+</tr>
+<tr>
+<td>UAT-BLOCKED</td>
+<td>cannot execute because UI/env/data/integration missing.</td>
+</tr>
+<tr>
+<td>UAT-NOT-IN-SCOPE</td>
+<td>belongs to another service/phase.</td>
+</tr>
+</tbody></table></div>
+<h2 id="14-next-actions"><a class="anchor" href="#14-next-actions" aria-label="Permalink to this section">#</a> 14. Next Actions</h2>
+<ol>
+<li>Run <strong>UAT-001</strong> immediately after deploy: confirms login 401 regression fixed.</li>
+<li>Create UAT evidence folder/run log per execution date using <code>docs/audits/fr-uc-sso-uat-runbook-template.md</code>.</li>
+<li>Define admin UI UAT separately for <code>services/sso-admin-vue</code>; do not put admin pages back into <code>services/sso-frontend</code>.</li>
+<li>Add DSR fulfillment automation UAT once queue/legal-hold/delete-anonymize implementation lands.</li>
+<li>Add operator drill artifacts for UC-78/79/83 before claiming full operations signoff.</li>
+<li>Repair local frontend dependencies if local Vitest/browser UAT automation is needed.</li>
+</ol>
+      </main>
+      <aside class="toc" aria-label="Table of contents">
+        <h2>Contents</h2>
+        <ol>
+<li style="margin-left: 0.0rem"><a href="#1-executive-summary">1. Executive Summary</a></li>
+<li style="margin-left: 0.0rem"><a href="#2-uat-principles-used">2. UAT Principles Used</a></li>
+<li style="margin-left: 0.0rem"><a href="#3-uat-environment-preconditions">3. UAT Environment &amp;amp; Preconditions</a></li>
+<li style="margin-left: 0.8rem"><a href="#3-1-recommended-environments">3.1 Recommended Environments</a></li>
+<li style="margin-left: 0.8rem"><a href="#3-2-test-data-needed">3.2 Test Data Needed</a></li>
+<li style="margin-left: 0.8rem"><a href="#3-3-evidence-to-retain">3.3 Evidence to Retain</a></li>
+<li style="margin-left: 0.0rem"><a href="#4-scope-boundary">4. Scope Boundary</a></li>
+<li style="margin-left: 0.0rem"><a href="#5-high-priority-uat-smoke-pack">5. High-Priority UAT Smoke Pack</a></li>
+<li style="margin-left: 0.0rem"><a href="#6-domain-uat-readiness">6. Domain UAT Readiness</a></li>
+<li style="margin-left: 0.0rem"><a href="#7-detailed-uc-uat-traceability-matrix">7. Detailed UC → UAT Traceability Matrix</a></li>
+<li style="margin-left: 0.8rem"><a href="#7-1-discovery-client-configuration">7.1 Discovery &amp;amp; Client Configuration</a></li>
+<li style="margin-left: 0.8rem"><a href="#7-2-authentication-authorization">7.2 Authentication &amp;amp; Authorization</a></li>
+<li style="margin-left: 0.8rem"><a href="#7-3-token-lifecycle">7.3 Token Lifecycle</a></li>
+<li style="margin-left: 0.8rem"><a href="#7-4-profile-user-self-service">7.4 Profile &amp;amp; User Self-Service</a></li>
+<li style="margin-left: 0.8rem"><a href="#7-5-session-logout">7.5 Session &amp;amp; Logout</a></li>
+<li style="margin-left: 0.8rem"><a href="#7-6-admin-management">7.6 Admin Management</a></li>
+<li style="margin-left: 0.8rem"><a href="#7-7-security-risk">7.7 Security &amp;amp; Risk</a></li>
+<li style="margin-left: 0.8rem"><a href="#7-8-integration-operations">7.8 Integration &amp;amp; Operations</a></li>
+<li style="margin-left: 0.0rem"><a href="#8-frontend-uat-entrypoints">8. Frontend UAT Entrypoints</a></li>
+<li style="margin-left: 0.0rem"><a href="#9-backend-uat-entrypoints">9. Backend UAT Entrypoints</a></li>
+<li style="margin-left: 0.0rem"><a href="#10-uat-blockers-risks">10. UAT Blockers &amp;amp; Risks</a></li>
+<li style="margin-left: 0.0rem"><a href="#11-recommended-uat-execution-order">11. Recommended UAT Execution Order</a></li>
+<li style="margin-left: 0.0rem"><a href="#12-concrete-uat-test-cases">12. Concrete UAT Test Cases</a></li>
+<li style="margin-left: 0.8rem"><a href="#uat-001-portal-login-cookie-proxy-regression">UAT-001 — Portal Login + Cookie Proxy Regression</a></li>
+<li style="margin-left: 0.8rem"><a href="#uat-002-authorization-code-pkce-happy-path">UAT-002 — Authorization Code + PKCE Happy Path</a></li>
+<li style="margin-left: 0.8rem"><a href="#uat-003-consent-allow-deny">UAT-003 — Consent Allow/Deny</a></li>
+<li style="margin-left: 0.8rem"><a href="#uat-004-mfa-enrollment-challenge">UAT-004 — MFA Enrollment + Challenge</a></li>
+<li style="margin-left: 0.8rem"><a href="#uat-005-connected-app-revocation">UAT-005 — Connected App Revocation</a></li>
+<li style="margin-left: 0.8rem"><a href="#uat-006-active-session-revocation">UAT-006 — Active Session Revocation</a></li>
+<li style="margin-left: 0.8rem"><a href="#uat-007-safe-error-correlation">UAT-007 — Safe Error &amp;amp; Correlation</a></li>
+<li style="margin-left: 0.8rem"><a href="#uat-008-admin-api-governance">UAT-008 — Admin API Governance</a></li>
+<li style="margin-left: 0.8rem"><a href="#uat-009-dsr-intake">UAT-009 — DSR Intake</a></li>
+<li style="margin-left: 0.8rem"><a href="#uat-010-ops-drill-minimum">UAT-010 — Ops Drill Minimum</a></li>
+<li style="margin-left: 0.0rem"><a href="#13-signoff-criteria">13. Signoff Criteria</a></li>
+<li style="margin-left: 0.8rem"><a href="#13-1-signoff-buckets">13.1 Signoff Buckets</a></li>
+<li style="margin-left: 0.0rem"><a href="#14-next-actions">14. Next Actions</a></li>
+</ol>
+      </aside>
+    </div>
+    <footer>
+      Self-contained HTML. No external assets. Print-ready. Security artifacts must remain redacted.
+    </footer>
+  </div>
+</body>
+</html>
