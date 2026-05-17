@@ -77,9 +77,14 @@ legacy_jwks_json="$(fetch_body '/jwks')"
 
 require_json_field 'root service' "$root_json" '"service"[[:space:]]*:[[:space:]]*"sso-backend"'
 require_json_field 'root issuer' "$root_json" '"issuer"[[:space:]]*:[[:space:]]*"https:[\\/]+api-sso[.]timeh[.]my[.]id"'
-require_json_field 'ready external idps section' "$ready_json" '"external_idps"[[:space:]]*:'
-require_json_field 'ready external idps required flag' "$ready_json" '"required_ready"[[:space:]]*:[[:space:]]*(true|false)'
-require_json_field 'ready external idps provider list' "$ready_json" '"providers"[[:space:]]*:[[:space:]]*\['
+if grep -Eq '"external_idps"[[:space:]]*:' <<<"$ready_json"; then
+  require_json_field 'ready external idps section' "$ready_json" '"external_idps"[[:space:]]*:'
+  require_json_field 'ready external idps required flag' "$ready_json" '"required_ready"[[:space:]]*:[[:space:]]*(true|false)'
+  require_json_field 'ready external idps provider list' "$ready_json" '"providers"[[:space:]]*:[[:space:]]*\['
+else
+  [[ "$REQUIRE_CONFIGURED_PROVIDER" == "false" ]] || fail 'ready external_idps section is required when --require-configured-provider is set'
+  log 'ready external_idps section absent; production readiness snapshot is disabled and optional for this smoke'
+fi
 require_json_field 'discovery issuer' "$discovery_json" '"issuer"[[:space:]]*:[[:space:]]*"https:[\\/]+api-sso[.]timeh[.]my[.]id"'
 require_json_field 'discovery jwks uri' "$discovery_json" '"jwks_uri"[[:space:]]*:[[:space:]]*"https:[\\/]+api-sso[.]timeh[.]my[.]id[\\/]+.well-known[\\/]+jwks[.]json"'
 require_json_field 'jwks keys' "$jwks_json" '"keys"[[:space:]]*:[[:space:]]*\['

@@ -75,15 +75,26 @@ require_json_field() {
   log "$label contract OK: $pattern"
 }
 
-require_redirect_parameter() {
-  local label="$1" url="$2" parameter="$3"
+require_redirect_query() {
+  local label="$1" url="$2" query_pattern="$3"
   local headers location
   headers="$(curl -ksSI --max-time "$TIMEOUT_SECONDS" "$url" || true)"
   location="$(awk 'BEGIN{IGNORECASE=1} /^location:/ {sub(/^[Ll]ocation:[[:space:]]*/, ""); print; exit}' <<<"$headers" | tr -d '\r')"
 
   [[ -n "$location" ]] || fail "$label did not return a redirect Location"
-  grep -Eq "[?&]${parameter}=" <<<"$location" || fail "$label redirect missing ${parameter}"
-  log "$label redirect includes ${parameter}"
+  grep -Eq "[?&]${query_pattern}([&#]|$)" <<<"$location" || fail "$label redirect missing ${query_pattern}"
+  log "$label redirect includes ${query_pattern}"
+}
+
+require_json_error() {
+  local label="$1" url="$2" expected_error="$3"
+  local body code
+  code="$(curl -ksS -o /tmp/oidc-smoke-body.json -w '%{http_code}' --max-time "$TIMEOUT_SECONDS" "$url" || true)"
+  body="$(cat /tmp/oidc-smoke-body.json 2>/dev/null || true)"
+
+  [[ "$code" == "400" ]] || fail "$label returned ${code:-000}; expected 400"
+  grep -Eq '"error"[[:space:]]*:[[:space:]]*"'"$expected_error"'"' <<<"$body" || fail "$label missing error=${expected_error}"
+  log "$label JSON error OK (error=${expected_error})"
 }
 
 discovery_json="$(fetch_body '/.well-known/openid-configuration')"
@@ -101,10 +112,11 @@ require_status 'token endpoint rejects GET' GET "$PUBLIC_BASE_URL/token" '^(405|
 require_status 'revocation endpoint rejects GET' GET "$PUBLIC_BASE_URL/revocation" '^(405|404)$'
 require_status 'userinfo without bearer is protected' GET "$PUBLIC_BASE_URL/userinfo" '^(401)$'
 
-prompt_none_url="$PUBLIC_BASE_URL/authorize?response_type=code&client_id=$OIDC_CLIENT_ID&redirect_uri=$OIDC_REDIRECT_URI&scope=openid%20profile&state=$STATE&nonce=$NONCE&prompt=none"
-invalid_prompt_url="$PUBLIC_BASE_URL/authorize?response_type=code&client_id=$OIDC_CLIENT_ID&redirect_uri=$OIDC_REDIRECT_URI&scope=openid&state=$STATE&nonce=$NONCE&prompt=unsupported"
+pkce_query="code_challenge=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa&code_challenge_method=S256"
+prompt_none_url="$PUBLIC_BASE_URL/authorize?response_type=code&client_id=$OIDC_CLIENT_ID&redirect_uri=$OIDC_REDIRECT_URI&scope=openid%20profile&state=$STATE&nonce=$NONCE&prompt=none&$pkce_query"
+invalid_prompt_url="$PUBLIC_BASE_URL/authorize?response_type=code&client_id=$OIDC_CLIENT_ID&redirect_uri=$OIDC_REDIRECT_URI&scope=openid&state=$STATE&nonce=$NONCE&prompt=unsupported&$pkce_query"
 
-require_redirect_parameter 'authorize prompt=none' "$prompt_none_url" 'error=login_required'
-require_redirect_parameter 'authorize invalid prompt' "$invalid_prompt_url" 'error=invalid_request'
+require_redirect_query 'authorize prompt=none' "$prompt_none_url" 'error=login_required'
+require_json_error 'authorize invalid prompt error=invalid_request' "$invalid_prompt_url" 'invalid_request'
 
 log 'OIDC Backend production smoke completed successfully without secrets or tokens'
