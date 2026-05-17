@@ -1,7 +1,7 @@
 import { createReadStream } from 'node:fs'
 import { access } from 'node:fs/promises'
 import { createServer } from 'node:http'
-import type { IncomingHttpHeaders, IncomingMessage, ServerResponse } from 'node:http'
+import type { IncomingMessage, ServerResponse } from 'node:http'
 import { extname, join, normalize, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
@@ -12,7 +12,8 @@ import {
   handleRefresh,
 } from './auth-handlers.js'
 import { getConfig } from './config.js'
-import type { AppResponse, HeaderValue } from './response.js'
+import { buildProxyRequestHeaders, buildProxyResponseHeaders } from './proxy-headers.js'
+import type { AppResponse } from './response.js'
 import { html, methodNotAllowed, send, text } from './response.js'
 import { shouldProxyPortalPath } from './proxy-routes.js'
 import { handleSession, handleUserApi, redirectForLegacyError } from './user-handlers.js'
@@ -78,46 +79,16 @@ async function proxyToSsoBackend(request: IncomingMessage, requestUrl: URL): Pro
   const target = `${trimTrailingSlash(getConfig().internalBaseUrl)}${requestUrl.pathname}${requestUrl.search}`
   const response = await fetch(target, {
     method: request.method,
-    headers: proxyHeaders(request.headers),
+    headers: buildProxyRequestHeaders(request.headers),
     body: request.method === 'GET' || request.method === 'HEAD' ? undefined : request,
     duplex: 'half',
   } as RequestInit & { duplex: 'half' })
 
   return {
     status: response.status,
-    headers: responseHeaders(response.headers),
+    headers: buildProxyResponseHeaders(response.headers),
     body: Buffer.from(await response.arrayBuffer()),
   }
-}
-
-function proxyHeaders(headers: IncomingHttpHeaders): Headers {
-  const forwarded = new Headers()
-
-  for (const [name, value] of Object.entries(headers)) {
-    if (name === 'host' || name === 'connection' || name === 'content-length') continue
-    if (Array.isArray(value)) {
-      for (const item of value) forwarded.append(name, item)
-    } else if (typeof value === 'string') {
-      forwarded.set(name, value)
-    }
-  }
-
-  return forwarded
-}
-
-function responseHeaders(headers: Headers): Record<string, HeaderValue> {
-  const forwarded: Record<string, HeaderValue> = {}
-
-  headers.forEach((value, name) => {
-    if (name === 'transfer-encoding' || name === 'content-length' || name === 'connection') return
-    forwarded[name] = name === 'set-cookie' ? splitSetCookie(value) : value
-  })
-
-  return forwarded
-}
-
-function splitSetCookie(value: string): readonly string[] {
-  return value.split(/,(?=\s*[^;=]+=[^;]*)/u).map((cookie) => cookie.trim())
 }
 
 function trimTrailingSlash(value: string): string {
