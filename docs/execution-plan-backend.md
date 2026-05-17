@@ -10,7 +10,7 @@
 **Audit baseline:** Hasil audit live-codebase 2026-05-17 (lihat `docs/audits/fr-001-fr-063-gap-audit.md`).
 **Catatan scope:** Dokumen ini hanya untuk service backend Laravel. Item frontend ada di `docs/execution-plan-frontend.md`.
 
-**Execution status (2026-05-17):** BE-T01, BE-T02, BE-T03, BE-T04, BE-T05, BE-T06 implemented/verified. Validation: Pint PASS, PHPStan PASS, full Pest PASS (`1128 passed`), Docker image build PASS (`sso-backend:hardening-local`). Coverage gate blocked locally because PHPUnit reports no coverage driver under `phpdbg`.
+**Execution status (2026-05-17):** BE-T01, BE-T02, BE-T03, BE-T04, BE-T05, BE-T06 implemented/verified. Validation: Pint PASS, PHPStan PASS, full Pest PASS (`1128 passed`), coverage PASS (`83.0%` with PCOV, minimum `80%`), Docker image build PASS (`sso-backend:hardening-local`).
 
 ---
 
