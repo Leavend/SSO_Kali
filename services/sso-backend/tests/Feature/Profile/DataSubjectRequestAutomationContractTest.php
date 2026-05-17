@@ -15,6 +15,7 @@ use App\Models\UserConsent;
 use App\Services\Oidc\LocalTokenService;
 use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\RbacSeeder;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\DB;
@@ -51,6 +52,7 @@ it('deletes subject PII and linked security material when delete DSR job runs', 
     $subject = seededDataSubjectAccount('delete-dsr-subject');
     $request = approvedDataSubjectRequest($subject, 'delete');
 
+    runDsrDryRun($request);
     runDsrJob($request);
 
     expect(User::query()->whereKey($subject->id)->exists())->toBeFalse()
@@ -66,6 +68,7 @@ it('anonymizes account while removing linked sessions consents MFA and external 
     $subject = seededDataSubjectAccount('anon-dsr-subject');
     $request = approvedDataSubjectRequest($subject, 'anonymize');
 
+    runDsrDryRun($request);
     runDsrJob($request);
 
     $subject->refresh();
@@ -79,6 +82,12 @@ it('anonymizes account while removing linked sessions consents MFA and external 
         ->and(UserConsent::query()->where('subject_id', $subject->subject_id)->exists())->toBeFalse()
         ->and(dsrStatus($request))->toBe('fulfilled');
 });
+
+function runDsrDryRun(DataSubjectRequest $request): void
+{
+    app(FulfillDataSubjectRequestAction::class)
+        ->execute($request->request_id, automationReviewer(), Request::create('/system/data-subject-requests/'.$request->request_id.'/fulfill', 'POST'), true);
+}
 
 function runDsrJob(DataSubjectRequest $request): void
 {
@@ -165,7 +174,21 @@ function seedPortalSession(User $user): void
 
 function automationReviewer(): User
 {
-    return User::factory()->create(['subject_id' => 'system-dsr-automation', 'role' => 'admin']);
+    return User::query()->firstOrCreate(
+        ['subject_id' => 'system-dsr-automation'],
+        [
+            'subject_uuid' => 'system-dsr-automation',
+            'email' => 'system-dsr-automation@example.test',
+            'password' => 'password',
+            'given_name' => 'System',
+            'family_name' => 'Automation',
+            'display_name' => 'System DSR Automation',
+            'role' => 'admin',
+            'status' => 'active',
+            'local_account_enabled' => true,
+            'email_verified_at' => now(),
+        ],
+    );
 }
 
 function adminDataSubjectToken(User $user): string

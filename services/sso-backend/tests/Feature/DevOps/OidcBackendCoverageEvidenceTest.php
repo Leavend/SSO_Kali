@@ -83,7 +83,8 @@ function oidcBackend_aggregate_contracts(): array
         'authorization_request_and_code' => [
             'tests/Feature/Oidc/AuthorizationCodeFlowE2EContractTest.php' => ['public client authorization code flow', 'confidential client secret', 'single use code'],
             'tests/Feature/Oidc/ConsentFlowContractTest.php' => ['prompt none', 'login_required', 'select_account'],
-            'app/Actions/Oidc/CreateAuthorizationRedirect.php' => ['invalidPromptRequested', 'prompt=none', 'consent'],
+            'app/Actions/Oidc/CreateAuthorizationRedirect.php' => ['AuthorizationRequestValidator', 'prompt=none', 'consent'],
+            'app/Services/Oidc/AuthorizationRequestValidator.php' => ['invalidPromptRequested', 'invalid_scope'],
             'app/Services/Oidc/AuthorizationCodeStore.php' => ['authorization_codes', 'consumed_at', 'lockForUpdate'],
             'app/Services/Oidc/AuthRequestStore.php' => ['oidc:auth-request'],
             'app/Services/Oidc/ScopePolicy.php' => ['validateAuthorizationRequest', 'assertAllowed'],

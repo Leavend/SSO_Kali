@@ -5,10 +5,8 @@ declare(strict_types=1);
 namespace App\Services\Oidc;
 
 use App\Exceptions\RefreshTokenRotationConflict;
-use App\Support\Crypto\UpstreamTokenEncryptor;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
-use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -16,12 +14,11 @@ use Illuminate\Support\Str;
 final class RefreshTokenStore
 {
     public function __construct(
-        private readonly UpstreamTokenEncryptor $encryptor,
+        private readonly RefreshTokenIssuePayloadFactory $issuePayloads,
+        private readonly RefreshTokenPayloadMapper $payloads,
     ) {}
 
-    /**
-     * @return array{id: string, token: string}
-     */
+    /** @return array{id: string, token: string} */
     public function issue(
         string $subjectId,
         string $clientId,
@@ -39,14 +36,14 @@ final class RefreshTokenStore
         $secret = bin2hex(random_bytes(32));
         $tokenFamilyId = $familyId ?? (string) Str::uuid();
 
-        DB::table('refresh_token_rotations')->insert($this->issuePayload(
+        DB::table('refresh_token_rotations')->insert($this->issuePayloads->make(
             $subjectId,
             $clientId,
             $scope,
             $sessionId,
             $upstreamRefreshToken,
             $authTime,
-            $amr,
+            $this->normalizeAmr($amr),
             $acr,
             $resolvedTokenId,
             $tokenFamilyId,
@@ -58,304 +55,89 @@ final class RefreshTokenStore
     }
 
     /**
-     * BE-FR032-001 — Atomic rotation under contention.
-     *
-     * Wraps `atomicClaim` + replacement issue in a single transaction
-     * with row-level pessimistic lock. The first request wins the
-     * UPDATE; concurrent duplicates see `revoked_at !== null` and the
-     * compare-and-swap returns 0 affected rows, raising
-     * {@see RefreshTokenRotationConflict} so callers can map it to a
-     * deterministic `invalid_grant` response.
-     *
      * @param  array<string, mixed>  $record
      * @param  array<string, mixed>  $context
      * @return array{id: string, token: string}
-     *
-     * @throws RefreshTokenRotationConflict
      */
     public function rotateAtomic(array $record, array $context): array
     {
         return DB::transaction(function () use ($record, $context): array {
             $tokenId = (string) $record['refresh_token_id'];
-
-            $current = DB::table('refresh_token_rotations')
-                ->where('refresh_token_id', $tokenId)
-                ->lockForUpdate()
-                ->first();
-
-            if ($current === null || $current->revoked_at !== null) {
-                throw new RefreshTokenRotationConflict($tokenId);
-            }
-
+            $this->assertRotationClaimable($tokenId);
             $replacementId = (string) Str::uuid();
-
             if (! $this->atomicClaim($tokenId, $replacementId)) {
                 throw new RefreshTokenRotationConflict($tokenId);
             }
 
-            return $this->issue(
-                subjectId: (string) $record['subject_id'],
-                clientId: (string) $record['client_id'],
-                scope: (string) ($context['scope'] ?? $record['scope']),
-                sessionId: (string) $record['session_id'],
-                upstreamRefreshToken: is_string($context['upstream_refresh_token'] ?? null)
-                    ? $context['upstream_refresh_token']
-                    : (is_string($record['upstream_refresh_token'] ?? null) ? $record['upstream_refresh_token'] : null),
-                authTime: is_int($context['auth_time'] ?? null)
-                    ? $context['auth_time']
-                    : (is_int($record['auth_time'] ?? null) ? $record['auth_time'] : now()->timestamp),
-                amr: $this->normalizeAmr($context['amr'] ?? $record['amr'] ?? []),
-                acr: is_string($context['acr'] ?? null)
-                    ? $context['acr']
-                    : (is_string($record['acr'] ?? null) ? $record['acr'] : null),
-                familyId: (string) $record['token_family_id'],
-                familyCreatedAt: is_int($record['family_created_at'] ?? null)
-                    ? $record['family_created_at']
-                    : null,
-                tokenId: $replacementId,
-            );
+            return $this->issueReplacement($record, $context, $replacementId);
         });
     }
 
-    /**
-     * @return list<string>
-     */
-    private function normalizeAmr(mixed $value): array
-    {
-        if (! is_array($value)) {
-            return [];
-        }
-
-        return array_values(array_filter(
-            $value,
-            static fn (mixed $entry): bool => is_string($entry) && $entry !== '',
-        ));
-    }
-
-    /**
-     * @param  list<string>  $amr
-     * @return array<string, mixed>
-     */
-    private function issuePayload(
-        string $subjectId,
-        string $clientId,
-        string $scope,
-        string $sessionId,
-        ?string $upstreamRefreshToken,
-        int $authTime,
-        array $amr,
-        ?string $acr,
-        string $tokenId,
-        string $tokenFamilyId,
-        string $secret,
-        ?int $familyCreatedAt,
-    ): array {
-        return [
-            'subject_id' => $subjectId,
-            'subject_uuid' => $subjectId,
-            'client_id' => $clientId,
-            'refresh_token_id' => $tokenId,
-            'token_family_id' => $tokenFamilyId,
-            'family_created_at' => $this->familyCreatedAt($familyCreatedAt),
-            'secret_hash' => hash('sha256', $secret),
-            'scope' => $scope,
-            'session_id' => $sessionId,
-            'auth_time' => CarbonImmutable::createFromTimestamp($authTime),
-            'amr' => $this->encodeAmr($amr),
-            'acr' => $acr,
-            'upstream_refresh_token' => $this->encrypt($upstreamRefreshToken),
-            'expires_at' => now()->addDays((int) config('sso.ttl.refresh_token_days', 30)),
-            'replaced_by_token_id' => null,
-            'revoked_at' => null,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>|null
-     */
+    /** @return array<string, mixed>|null */
     public function findActive(string $plainToken, string $clientId): ?array
     {
         return $this->resolveActive($plainToken, $clientId)['record'];
     }
 
-    /**
-     * Resolve the active record alongside an explicit reuse signal so
-     * callers (e.g. ExchangeToken) can emit dedicated reuse-detected
-     * audit events when a previously rotated token is replayed.
-     *
-     * @return array{record: array<string, mixed>|null, reuse: bool, family_id: string|null, token_id: string|null}
-     */
+    /** @return array{record: array<string, mixed>|null, reuse: bool, family_id: string|null, token_id: string|null} */
     public function resolveActive(string $plainToken, string $clientId): array
     {
         [$tokenId, $secret] = $this->parse($plainToken);
-
         if ($tokenId === null || $secret === null) {
-            return ['record' => null, 'reuse' => false, 'family_id' => null, 'token_id' => null];
+            return (new RefreshTokenReuseSignal(null, false, null, null))->toArray();
         }
 
-        $record = DB::table('refresh_token_rotations')
-            ->where('refresh_token_id', $tokenId)
-            ->where('client_id', $clientId)
-            ->first();
-
+        $record = $this->record($tokenId, $clientId);
         if ($record === null) {
-            return ['record' => null, 'reuse' => false, 'family_id' => null, 'token_id' => $tokenId];
+            return (new RefreshTokenReuseSignal(null, false, null, $tokenId))->toArray();
         }
 
-        $familyId = (string) $record->token_family_id;
-
-        if ($this->isReuse($record, $secret)) {
-            $this->revokeFamily($familyId);
-
-            return [
-                'record' => null,
-                'reuse' => true,
-                'family_id' => $familyId,
-                'token_id' => $tokenId,
-            ];
-        }
-
-        if ($this->familyExpired($record)) {
-            $this->revokeExpiredFamily($familyId);
-
-            return [
-                'record' => null,
-                'reuse' => false,
-                'family_id' => $familyId,
-                'token_id' => $tokenId,
-            ];
-        }
-
-        return [
-            'record' => $this->validRecord($record, $secret) ? $this->payload($record) : null,
-            'reuse' => false,
-            'family_id' => $familyId,
-            'token_id' => $tokenId,
-        ];
+        return $this->signalForRecord($record, $secret, $tokenId)->toArray();
     }
 
-    /**
-     * Atomically claim the active refresh token row by setting revoked_at
-     * in a single UPDATE keyed on the token id and the still-null
-     * revoked_at column. Returns true only when the claim succeeds — i.e.
-     * the caller now owns the right to issue the rotation.
-     */
     public function atomicClaim(string $tokenId, string $replacementId): bool
     {
         return DB::table('refresh_token_rotations')
             ->where('refresh_token_id', $tokenId)
             ->whereNull('revoked_at')
-            ->update([
-                'replaced_by_token_id' => $replacementId,
-                'revoked_at' => now(),
-                'updated_at' => now(),
-            ]) === 1;
-    }
-
-    /**
-     * OAuth 2.1 §6.1 — Reuse Detection.
-     *
-     * A token that has been revoked AND replaced is considered
-     * "legitimately rotated".  If someone presents it again the
-     * secret will still match, but revoked_at is set — this is
-     * a replay of a stolen token.  Revoke the entire family.
-     */
-    private function isReuse(object $record, string $secret): bool
-    {
-        $secretMatches = hash_equals(
-            (string) $record->secret_hash,
-            hash('sha256', $secret),
-        );
-
-        return $secretMatches
-            && $record->revoked_at !== null
-            && $record->replaced_by_token_id !== null;
-    }
-
-    private function revokeFamily(string $familyId): void
-    {
-        DB::table('refresh_token_rotations')
-            ->where('token_family_id', $familyId)
-            ->whereNull('revoked_at')
-            ->update([
-                'revoked_at' => now(),
-                'updated_at' => now(),
-            ]);
-
-        Log::warning('Refresh token reuse detected — family revoked', [
-            'token_family_id' => $familyId,
-        ]);
+            ->update(['replaced_by_token_id' => $replacementId, 'revoked_at' => now(), 'updated_at' => now()]) === 1;
     }
 
     public function revoke(string $tokenId, ?string $replacementId = null): void
     {
         DB::table('refresh_token_rotations')
             ->where('refresh_token_id', $tokenId)
-            ->update([
-                'replaced_by_token_id' => $replacementId,
-                'revoked_at' => now(),
-                'updated_at' => now(),
-            ]);
+            ->update(['replaced_by_token_id' => $replacementId, 'revoked_at' => now(), 'updated_at' => now()]);
     }
 
-    /**
-     * @return list<array<string, mixed>>
-     */
+    /** @return list<array<string, mixed>> */
     public function revokeSession(string $sessionId): array
     {
-        return $this->revokeRecords(
-            $this->activeRecords()->where('session_id', $sessionId)->get()->all(),
-        );
+        return $this->revokeRecords($this->activeRecords()->where('session_id', $sessionId)->get()->all());
     }
 
-    /**
-     * @return list<array<string, mixed>>
-     */
+    /** @return list<array<string, mixed>> */
     public function revokeSubject(string $subjectId): array
     {
-        return $this->revokeRecords(
-            $this->activeRecords()->where('subject_id', $subjectId)->get()->all(),
-        );
+        return $this->revokeRecords($this->activeRecords()->where('subject_id', $subjectId)->get()->all());
     }
 
-    /**
-     * @return list<array<string, mixed>>
-     */
+    /** @return list<array<string, mixed>> */
     public function revokeClientSessionsForSubject(string $subjectId, string $clientId): array
     {
-        return $this->revokeRecords(
-            $this->activeRecords()
-                ->where('subject_id', $subjectId)
-                ->where('client_id', $clientId)
-                ->get()
-                ->all(),
-        );
+        return $this->revokeRecords($this->activeRecords()->where('subject_id', $subjectId)->where('client_id', $clientId)->get()->all());
     }
 
-    /**
-     * @return list<array<string, mixed>>
-     */
+    /** @return list<array<string, mixed>> */
     public function revokeClientSession(string $sessionId, string $clientId): array
     {
-        return $this->revokeRecords(
-            $this->activeRecords()
-                ->where('session_id', $sessionId)
-                ->where('client_id', $clientId)
-                ->get()
-                ->all(),
-        );
+        return $this->revokeRecords($this->activeRecords()->where('session_id', $sessionId)->where('client_id', $clientId)->get()->all());
     }
 
-    /**
-     * @return list<array<string, mixed>>
-     */
+    /** @return list<array<string, mixed>> */
     public function revokeClient(string $clientId): array
     {
-        return $this->revokeRecords(
-            $this->activeRecords()->where('client_id', $clientId)->get()->all(),
-        );
+        return $this->revokeRecords($this->activeRecords()->where('client_id', $clientId)->get()->all());
     }
 
     public function pruneExpiredAndRevoked(?CarbonImmutable $now = null): int
@@ -363,47 +145,116 @@ final class RefreshTokenStore
         $cutoff = ($now ?? CarbonImmutable::now())->toDateTimeString();
 
         return DB::table('refresh_token_rotations')
-            ->where(function (Builder $query) use ($cutoff): void {
-                $query->where('expires_at', '<=', $cutoff)
-                    ->orWhereNotNull('revoked_at');
-            })
+            ->where(fn (Builder $query): Builder => $query->where('expires_at', '<=', $cutoff)->orWhereNotNull('revoked_at'))
             ->delete();
     }
 
-    private function encrypt(?string $value): ?string
+    public function subjectIdForFamily(string $familyId): ?string
     {
-        return $value === null ? null : $this->encryptor->encrypt($value);
+        $subjectId = DB::table('refresh_token_rotations')
+            ->where('token_family_id', $familyId)
+            ->orderByDesc('created_at')
+            ->value('subject_id');
+
+        return is_string($subjectId) && $subjectId !== '' ? $subjectId : null;
     }
 
-    /**
-     * Decrypt upstream refresh tokens with transparent legacy migration.
-     *
-     * Tokens encrypted before the UpstreamTokenEncryptor was introduced
-     * used Laravel's Crypt facade (APP_KEY). We detect the legacy format
-     * and fall back to Crypt::decryptString so existing sessions survive
-     * the migration. New encryptions always use the dedicated key.
-     */
-    private function decrypt(?string $value): ?string
+    private function assertRotationClaimable(string $tokenId): void
     {
-        if ($value === null) {
-            return null;
+        $current = DB::table('refresh_token_rotations')->where('refresh_token_id', $tokenId)->lockForUpdate()->first();
+        if ($current === null || $current->revoked_at !== null) {
+            throw new RefreshTokenRotationConflict($tokenId);
+        }
+    }
+
+    /** @param array<string, mixed> $record @param array<string, mixed> $context @return array{id: string, token: string} */
+    private function issueReplacement(array $record, array $context, string $replacementId): array
+    {
+        return $this->issue(
+            subjectId: (string) $record['subject_id'],
+            clientId: (string) $record['client_id'],
+            scope: (string) ($context['scope'] ?? $record['scope']),
+            sessionId: (string) $record['session_id'],
+            upstreamRefreshToken: $this->replacementUpstreamToken($record, $context),
+            authTime: $this->replacementAuthTime($record, $context),
+            amr: $this->normalizeAmr($context['amr'] ?? $record['amr'] ?? []),
+            acr: $this->replacementAcr($record, $context),
+            familyId: (string) $record['token_family_id'],
+            familyCreatedAt: is_int($record['family_created_at'] ?? null) ? $record['family_created_at'] : null,
+            tokenId: $replacementId,
+        );
+    }
+
+    /** @param array<string, mixed> $record @param array<string, mixed> $context */
+    private function replacementUpstreamToken(array $record, array $context): ?string
+    {
+        return is_string($context['upstream_refresh_token'] ?? null)
+            ? $context['upstream_refresh_token']
+            : (is_string($record['upstream_refresh_token'] ?? null) ? $record['upstream_refresh_token'] : null);
+    }
+
+    /** @param array<string, mixed> $record @param array<string, mixed> $context */
+    private function replacementAuthTime(array $record, array $context): int
+    {
+        return is_int($context['auth_time'] ?? null)
+            ? $context['auth_time']
+            : (is_int($record['auth_time'] ?? null) ? $record['auth_time'] : now()->timestamp);
+    }
+
+    /** @param array<string, mixed> $record @param array<string, mixed> $context */
+    private function replacementAcr(array $record, array $context): ?string
+    {
+        return is_string($context['acr'] ?? null)
+            ? $context['acr']
+            : (is_string($record['acr'] ?? null) ? $record['acr'] : null);
+    }
+
+    private function record(string $tokenId, string $clientId): ?object
+    {
+        return DB::table('refresh_token_rotations')->where('refresh_token_id', $tokenId)->where('client_id', $clientId)->first();
+    }
+
+    private function signalForRecord(object $record, string $secret, string $tokenId): RefreshTokenReuseSignal
+    {
+        $family = RefreshTokenFamily::fromRecord($record);
+        if ($this->isReuse($record, $secret)) {
+            $this->revokeFamily($family->id);
+
+            return new RefreshTokenReuseSignal(null, true, $family->id, $tokenId);
+        }
+        if ($family->isExpired()) {
+            $this->revokeExpiredFamily($family->id);
+
+            return new RefreshTokenReuseSignal(null, false, $family->id, $tokenId);
         }
 
-        if ($this->encryptor->isLegacyFormat($value)) {
-            return Crypt::decryptString($value);
-        }
-
-        return $this->encryptor->decrypt($value);
+        return new RefreshTokenReuseSignal($this->validRecord($record, $secret) ? $this->payloads->map($record) : null, false, $family->id, $tokenId);
     }
 
-    private function plainToken(string $tokenId, string $secret): string
+    private function isReuse(object $record, string $secret): bool
     {
-        return sprintf('rt_%s.%s', $tokenId, $secret);
+        return hash_equals((string) $record->secret_hash, hash('sha256', $secret))
+            && $record->revoked_at !== null
+            && $record->replaced_by_token_id !== null;
     }
 
-    /**
-     * @return array{0: string|null, 1: string|null}
-     */
+    private function revokeFamily(string $familyId): void
+    {
+        $this->revokeFamilyWithMessage($familyId, 'warning', 'Refresh token reuse detected — family revoked');
+    }
+
+    private function revokeExpiredFamily(string $familyId): void
+    {
+        $this->revokeFamilyWithMessage($familyId, 'info', 'Refresh token family expired — family revoked');
+    }
+
+    private function revokeFamilyWithMessage(string $familyId, string $level, string $message): void
+    {
+        DB::table('refresh_token_rotations')->where('token_family_id', $familyId)->whereNull('revoked_at')->update(['revoked_at' => now(), 'updated_at' => now()]);
+        Log::log($level, $message, ['token_family_id' => $familyId]);
+    }
+
+    /** @return array{0: string|null, 1: string|null} */
     private function parse(string $plainToken): array
     {
         if (! str_starts_with($plainToken, 'rt_')) {
@@ -423,103 +274,17 @@ final class RefreshTokenStore
             && hash_equals((string) $record->secret_hash, hash('sha256', $secret));
     }
 
-    /**
-     * @return array<string, mixed>
-     */
-    private function payload(object $record): array
+    /** @return list<string> */
+    private function normalizeAmr(mixed $value): array
     {
-        return [
-            'subject_id' => $record->subject_id,
-            'client_id' => $record->client_id,
-            'refresh_token_id' => $record->refresh_token_id,
-            'token_family_id' => $record->token_family_id,
-            'family_created_at' => $this->authTime(
-                $record->family_created_at ?? $record->created_at ?? null,
-            ),
-            'scope' => $record->scope,
-            'session_id' => $record->session_id,
-            'auth_time' => $this->authTime($record->auth_time),
-            'amr' => $this->decodeAmr($record->amr),
-            'acr' => is_string($record->acr) ? $record->acr : null,
-            'upstream_refresh_token' => $this->decrypt($record->upstream_refresh_token),
-            'expires_at' => $record->expires_at,
-        ];
+        return is_array($value)
+            ? array_values(array_filter($value, static fn (mixed $entry): bool => is_string($entry) && $entry !== ''))
+            : [];
     }
 
-    /**
-     * @param  list<string>  $amr
-     */
-    private function encodeAmr(array $amr): ?string
+    private function plainToken(string $tokenId, string $secret): string
     {
-        return $amr === [] ? null : json_encode($amr, JSON_THROW_ON_ERROR);
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function decodeAmr(mixed $amr): array
-    {
-        if (! is_string($amr) || $amr === '') {
-            return [];
-        }
-
-        $decoded = json_decode($amr, true, 512, JSON_THROW_ON_ERROR);
-
-        return array_values(array_filter(is_array($decoded) ? $decoded : [], 'is_string'));
-    }
-
-    private function authTime(mixed $value): ?int
-    {
-        return $value === null ? null : CarbonImmutable::parse((string) $value)->timestamp;
-    }
-
-    private function familyCreatedAt(?int $timestamp): CarbonImmutable
-    {
-        return CarbonImmutable::createFromTimestamp($timestamp ?? now()->timestamp);
-    }
-
-    private function familyExpired(object $record): bool
-    {
-        $createdAt = $this->authTime($record->family_created_at ?? $record->created_at ?? null);
-
-        if ($createdAt === null) {
-            return false;
-        }
-
-        return CarbonImmutable::createFromTimestamp($createdAt)
-            ->addDays((int) config('sso.ttl.refresh_token_family_days', 90))
-            ->isPast();
-    }
-
-    private function revokeExpiredFamily(string $familyId): void
-    {
-        DB::table('refresh_token_rotations')
-            ->where('token_family_id', $familyId)
-            ->whereNull('revoked_at')
-            ->update([
-                'revoked_at' => now(),
-                'updated_at' => now(),
-            ]);
-
-        Log::info('Refresh token family expired — family revoked', [
-            'token_family_id' => $familyId,
-        ]);
-    }
-
-    /**
-     * BE-FR033-001 — Resolve the subject id behind a refresh token
-     * family so callers can emit a user-facing security notification
-     * after a reuse-detected revocation. Returns null when the family
-     * has no surviving rows or the rows lack a subject_id.
-     */
-    public function subjectIdForFamily(string $familyId): ?string
-    {
-        $subjectId = DB::table('refresh_token_rotations')
-            ->where('token_family_id', $familyId)
-            ->orderByDesc('created_at')
-            ->value('subject_id');
-
-        return is_string($subjectId) && $subjectId !== '' ? $subjectId : null;
+        return sprintf('rt_%s.%s', $tokenId, $secret);
     }
 
     private function activeRecords(): Builder
@@ -527,16 +292,13 @@ final class RefreshTokenStore
         return DB::table('refresh_token_rotations')->whereNull('revoked_at');
     }
 
-    /**
-     * @param  list<object>  $records
-     * @return list<array<string, mixed>>
-     */
+    /** @param list<object> $records @return list<array<string, mixed>> */
     private function revokeRecords(array $records): array
     {
         foreach ($records as $record) {
             $this->revoke((string) $record->refresh_token_id);
         }
 
-        return array_map(fn (object $record): array => $this->payload($record), $records);
+        return array_map(fn (object $record): array => $this->payloads->map($record), $records);
     }
 }

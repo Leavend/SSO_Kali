@@ -31,6 +31,7 @@ final class SecurityPolicy extends Model
         'mfa',
         'session',
         'lockout',
+        'legal_hold',
     ];
 
     public const STATUS_DRAFT = 'draft';

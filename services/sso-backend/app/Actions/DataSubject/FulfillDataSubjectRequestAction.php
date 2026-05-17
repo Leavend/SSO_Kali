@@ -6,55 +6,58 @@ namespace App\Actions\DataSubject;
 
 use App\Models\DataSubjectRequest;
 use App\Models\User;
-use App\Repositories\DataSubjectRequestRepository;
-use App\Services\Admin\AdminAuditLogger;
-use App\Services\Admin\AdminAuditTaxonomy;
 use App\Services\DataSubject\DataSubjectFulfillmentService;
 use App\Services\DataSubject\DataSubjectRequestService;
+use App\Services\DataSubject\DsrFulfillmentArtifactService;
+use App\Services\DataSubject\DsrFulfillmentAuditRecorder;
+use App\Services\DataSubject\DsrFulfillmentRequestResolver;
+use App\Services\DataSubject\DsrFulfillmentResponseFactory;
+use App\Services\DataSubject\DsrLegalHoldGuard;
 use Illuminate\Http\Request;
-use RuntimeException;
 
 final class FulfillDataSubjectRequestAction
 {
     public function __construct(
-        private readonly DataSubjectRequestRepository $requests,
+        private readonly DsrFulfillmentRequestResolver $requests,
         private readonly DataSubjectFulfillmentService $fulfillment,
-        private readonly AdminAuditLogger $audit,
+        private readonly DsrFulfillmentArtifactService $artifacts,
+        private readonly DsrLegalHoldGuard $legalHold,
+        private readonly DsrFulfillmentAuditRecorder $audit,
+        private readonly DsrFulfillmentResponseFactory $responses,
     ) {}
 
-    /**
-     * @return array<string, mixed>
-     */
+    /** @return array<string, mixed> */
     public function execute(string $requestId, User $reviewer, Request $httpRequest, bool $dryRun = false): array
     {
-        $dataSubjectRequest = $this->request($requestId);
-        $artifact = $dryRun
-            ? $this->fulfillment->preview($dataSubjectRequest)
-            : $this->fulfillment->fulfill($dataSubjectRequest);
-
-        if (! $dryRun) {
-            $this->markFulfilled($dataSubjectRequest);
+        $request = $this->requests->approved($requestId);
+        $holdStatus = $this->legalHold->status($request, $reviewer, $httpRequest);
+        if ($holdStatus === 'active') {
+            return $this->responses->make($request, ['summary' => 'DSR fulfillment is blocked by legal hold.'], false, null, $holdStatus);
         }
-        $this->recordAudit($dataSubjectRequest, $reviewer, $httpRequest, $dryRun, $artifact);
 
-        return [
-            'request' => $dataSubjectRequest->fresh()?->toArray() ?? $dataSubjectRequest->toArray(),
-            'artifact' => $artifact,
-            'dry_run' => $dryRun,
-        ];
+        return $dryRun
+            ? $this->preview($request, $reviewer, $httpRequest, $holdStatus)
+            : $this->fulfillRequest($request, $reviewer, $httpRequest, $holdStatus);
     }
 
-    private function request(string $requestId): DataSubjectRequest
+    /** @return array<string, mixed> */
+    private function preview(DataSubjectRequest $request, User $reviewer, Request $httpRequest, string $holdStatus): array
     {
-        $request = $this->requests->findByRequestId($requestId);
-        if (! $request instanceof DataSubjectRequest) {
-            throw new RuntimeException('DSR not found.');
-        }
-        if ($request->status !== DataSubjectRequestService::STATUS_APPROVED) {
-            throw new RuntimeException('DSR must be approved before fulfilment.');
-        }
+        $stored = $this->artifacts->storeDryRun($request, $this->fulfillment->preview($request));
+        $this->audit->record($request, $reviewer, $httpRequest, true, $stored, $holdStatus);
 
-        return $request;
+        return $this->responses->make($request, $stored->payload, true, $stored, $holdStatus);
+    }
+
+    /** @return array<string, mixed> */
+    private function fulfillRequest(DataSubjectRequest $request, User $reviewer, Request $httpRequest, string $holdStatus): array
+    {
+        $dryRun = $this->artifacts->assertExecutable($request);
+        $executed = $this->artifacts->withHash($this->fulfillment->fulfill($request));
+        $this->markFulfilled($request);
+        $this->audit->record($request, $reviewer, $httpRequest, false, $dryRun, $holdStatus, $executed);
+
+        return $this->responses->make($request, $executed, false, $dryRun, $holdStatus);
     }
 
     private function markFulfilled(DataSubjectRequest $request): void
@@ -64,24 +67,5 @@ final class FulfillDataSubjectRequestAction
             'fulfilled_at' => now(),
             'expires_at' => now()->addDays(7),
         ])->save();
-    }
-
-    /**
-     * @param  array<string, mixed>  $artifact
-     */
-    private function recordAudit(
-        DataSubjectRequest $request,
-        User $reviewer,
-        Request $httpRequest,
-        bool $dryRun,
-        array $artifact,
-    ): void {
-        $this->audit->succeeded('fulfill_data_subject_request', $httpRequest, $reviewer, [
-            'request_id' => $request->request_id,
-            'type' => $request->type,
-            'dry_run' => $dryRun,
-            'summary' => $artifact['summary'] ?? null,
-            'sla_due_at' => $request->sla_due_at?->toIso8601String(),
-        ], AdminAuditTaxonomy::DESTRUCTIVE_ACTION_WITH_STEP_UP);
     }
 }

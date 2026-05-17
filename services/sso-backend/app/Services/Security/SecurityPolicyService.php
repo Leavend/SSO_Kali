@@ -190,6 +190,31 @@ final class SecurityPolicyService
         $this->forgetCache($category);
     }
 
+    public function hasLegalHold(string $subjectId): bool
+    {
+        $policy = $this->active('legal_hold', [
+            'enabled' => false,
+            'subject_ids' => [],
+        ]);
+
+        return (bool) ($policy['enabled'] ?? false)
+            && in_array($subjectId, $this->legalHoldSubjects($policy), true);
+    }
+
+    /**
+     * @param  array<string, mixed>  $policy
+     * @return list<string>
+     */
+    private function legalHoldSubjects(array $policy): array
+    {
+        $subjects = $policy['subject_ids'] ?? [];
+        if (! is_array($subjects)) {
+            return [];
+        }
+
+        return array_values(array_filter($subjects, 'is_string'));
+    }
+
     private function assertCategory(string $category): void
     {
         if (! in_array($category, SecurityPolicy::CATEGORIES, true)) {

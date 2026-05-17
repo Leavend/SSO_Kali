@@ -19,7 +19,7 @@ final class ListDataSubjectRequestsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'status' => ['nullable', 'in:submitted,approved,rejected,fulfilled,cancelled'],
+            'status' => ['nullable', 'in:submitted,approved,rejected,fulfilled,cancelled,on_hold'],
             'type' => ['nullable', 'in:export,delete,anonymize'],
             'subject_id' => ['nullable', 'string', 'max:64'],
         ];

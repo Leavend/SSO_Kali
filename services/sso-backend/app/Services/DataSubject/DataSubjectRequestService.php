@@ -25,6 +25,8 @@ final class DataSubjectRequestService
 
     public const STATUS_FULFILLED = 'fulfilled';
 
+    public const STATUS_ON_HOLD = 'on_hold';
+
     public const SLA_HOURS = 720; // 30 days regulatory baseline
 
     public function __construct(private readonly DataSubjectRequestRepository $requests) {}

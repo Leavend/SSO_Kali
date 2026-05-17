@@ -20,6 +20,8 @@ use Laravel\Passport\HasApiTokens;
  * @property string $subject_id
  * @property string|null $subject_uuid
  * @property string $email
+ * @property string|null $phone
+ * @property Carbon|null $phone_verified_at
  * @property string|null $given_name
  * @property string|null $family_name
  * @property string $display_name
@@ -60,6 +62,8 @@ class User extends Authenticatable implements OAuthenticatable
         'subject_id',
         'subject_uuid',
         'email',
+        'phone',
+        'phone_verified_at',
         'password',
         'password_changed_at',
         'mfa_reset_required',
@@ -116,6 +120,7 @@ class User extends Authenticatable implements OAuthenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'phone_verified_at' => 'datetime',
             'last_login_at' => 'datetime',
             'disabled_at' => 'datetime',
             'locked_at' => 'datetime',

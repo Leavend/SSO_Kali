@@ -6,6 +6,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
 /**
@@ -30,7 +31,7 @@ final class DataSubjectRequest extends Model
 
     public const TYPES = ['export', 'delete', 'anonymize'];
 
-    public const STATUSES = ['submitted', 'approved', 'rejected', 'fulfilled', 'cancelled'];
+    public const STATUSES = ['submitted', 'approved', 'rejected', 'fulfilled', 'cancelled', 'on_hold'];
 
     /** @var list<string> */
     protected $fillable = [
@@ -62,5 +63,13 @@ final class DataSubjectRequest extends Model
             'sla_due_at' => 'datetime',
             'expires_at' => 'datetime',
         ];
+    }
+
+    /**
+     * @return HasMany<DsrFulfillmentArtifact, $this>
+     */
+    public function fulfillmentArtifacts(): HasMany
+    {
+        return $this->hasMany(DsrFulfillmentArtifact::class);
     }
 }
