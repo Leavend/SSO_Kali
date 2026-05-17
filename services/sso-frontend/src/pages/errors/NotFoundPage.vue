@@ -24,7 +24,8 @@ import SsoGlassCard from '@/components/molecules/SsoGlassCard.vue'
         </span>
         <h2
           id="notfound-title"
-          class="text-heading-2 font-display font-semibold tracking-tight text-[var(--text-primary)]"
+          class="font-serif text-3xl font-light tracking-tight text-[var(--text-primary)] sm:text-4xl"
+          style="font-family: var(--font-serif)"
         >
           Halaman tidak ditemukan
         </h2>
@@ -36,7 +37,7 @@ import SsoGlassCard from '@/components/molecules/SsoGlassCard.vue'
     </template>
 
     <div class="grid gap-3 sm:grid-cols-2">
-      <SsoGlassButton variant="primary" size="fullWidth" @click="$router.push('/home')">
+      <SsoGlassButton variant="vibrant" size="fullWidth" @click="$router.push('/home')">
         <template #leading>
           <Home class="size-4" aria-hidden="true" />
         </template>

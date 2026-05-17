@@ -26,6 +26,20 @@ describe('SsoGlassInput', () => {
       expect(input.attributes('autocomplete')).toBe('email')
       expect(input.attributes('inputmode')).toBe('email')
     })
+
+    it('uses Liquid Glass pill shape by default', () => {
+      const wrapper = createInput()
+      const inputShell = wrapper.find('input').element.parentElement!
+      expect(Array.from(inputShell.classList)).toContain('sso-glass-pill')
+      expect(inputShell.className).toContain('rounded-[var(--radius-glass-pill)]')
+    })
+
+    it('falls back to rounded-xl glass surface when pill=false', () => {
+      const wrapper = createInput({ pill: false })
+      const inputShell = wrapper.find('input').element.parentElement!
+      expect(Array.from(inputShell.classList)).not.toContain('sso-glass-pill')
+      expect(inputShell.className).toContain('rounded-[var(--radius-glass-xl)]')
+    })
   })
 
   describe('v-model', () => {

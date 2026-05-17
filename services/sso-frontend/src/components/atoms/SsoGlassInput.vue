@@ -2,8 +2,9 @@
 /**
  * SsoGlassInput — atom: text/email/password input dengan Liquid Glass shell.
  *
- * Hanya dipakai di Portal SSO (auth flow). Untuk admin/portal-dashboard
- * tetap pakai shadcn `Input`.
+ * v2 Liquid Glass × Vibrant edition:
+ *   Adds `pill` prop (rounded-full + conic shimmer border, à la EaseMize
+ *   reference) while preserving every existing behaviour and ARIA wiring.
  *
  * A11y (design.md §10.2):
  *  - aria-invalid otomatis saat ada error
@@ -36,6 +37,11 @@ const props = withDefaults(
     error?: string | null
     /** id eksternal untuk aria-describedby (mis. hint). */
     ariaDescribedby?: string
+    /**
+     * Pill shape (rounded-full) dengan conic shimmer border.
+     * Default true di Liquid Glass × Vibrant edition.
+     */
+    pill?: boolean
     /** Tailwind utility tambahan untuk container. */
     class?: HTMLAttributes['class']
   }>(),
@@ -49,6 +55,7 @@ const props = withDefaults(
     inputmode: undefined,
     error: null,
     ariaDescribedby: undefined,
+    pill: true,
     class: undefined,
   },
 )
@@ -90,17 +97,20 @@ function toggleReveal(): void {
     <div
       :class="
         cn(
-          'relative flex items-center gap-2 px-4 h-12',
-          'rounded-[var(--radius-glass-xl)] border',
-          'backdrop-blur-[var(--glass-blur-sm)]',
-          'bg-[var(--glass-bg-primary)]',
+          // Pill shape adds vibrant Liquid Glass surface.
+          props.pill && 'sso-glass-pill',
+          'relative flex items-center gap-2 px-5 h-12 border',
+          props.pill
+            ? 'rounded-[var(--radius-glass-pill)]'
+            : 'rounded-[var(--radius-glass-xl)] backdrop-blur-[var(--glass-blur-sm)] bg-[var(--glass-bg-primary)] shadow-[var(--shadow-glass-sm)]',
           'transition-all duration-[var(--duration-normal)] ease-[var(--ease-smooth)]',
-          'shadow-[var(--shadow-glass-sm)]',
-          // Default border
-          !hasError && 'border-[var(--glass-border-subtle)]',
+          // Default border (only when not pill — pill draws via ::before)
+          !props.pill && !hasError && 'border-[var(--glass-border-subtle)]',
+          props.pill && 'border-transparent',
           // Focus-within: brand glass focus ring
           !hasError &&
-            'focus-within:border-[var(--glass-border-brand)] focus-within:shadow-[var(--ring-glass-focus)] focus-within:bg-[var(--glass-bg-elevated)]',
+            'focus-within:shadow-[var(--ring-glass-focus)] focus-within:bg-[var(--glass-bg-elevated)]',
+          !hasError && !props.pill && 'focus-within:border-[var(--glass-border-brand)]',
           // Error
           hasError &&
             'border-[var(--glass-border-error)] bg-[color-mix(in_oklch,var(--color-error-50)_40%,transparent)]',
@@ -126,7 +136,7 @@ function toggleReveal(): void {
         :aria-describedby="describedBy"
         :class="
           cn(
-            'flex-1 h-full bg-transparent text-sm font-sans',
+            'relative z-[2] flex-1 h-full bg-transparent text-sm font-sans',
             'text-[var(--text-primary)] placeholder:text-[var(--text-muted)]',
             'focus:outline-none disabled:cursor-not-allowed',
           )
@@ -140,7 +150,7 @@ function toggleReveal(): void {
         :aria-label="toggleLabel"
         :aria-pressed="revealed"
         :disabled="props.disabled"
-        class="text-[var(--text-muted)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:shadow-[var(--ring-glass-focus)] inline-flex size-8 shrink-0 items-center justify-center rounded-[var(--radius-glass-lg)] transition-colors disabled:opacity-40"
+        class="text-[var(--text-muted)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:shadow-[var(--ring-glass-focus)] relative z-[2] inline-flex size-8 shrink-0 items-center justify-center rounded-full transition-colors disabled:opacity-40"
         @click="toggleReveal"
       >
         <EyeOff v-if="revealed" class="size-4" aria-hidden="true" />

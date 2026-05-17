@@ -17,7 +17,8 @@ import { cn } from '@/lib/utils'
 const surfaceVariants = cva(
   [
     'relative',
-    'backdrop-blur-[var(--glass-blur-md)]',
+    // Heavier blur so vibrant blobs become real "liquid glass" through the surface.
+    'backdrop-blur-[var(--glass-blur-lg)]',
     'border border-[var(--glass-border-subtle)]',
     'transition-all duration-[var(--duration-normal)] ease-[var(--ease-smooth)]',
   ],
@@ -27,7 +28,7 @@ const surfaceVariants = cva(
         // Default: auth card, form container
         default: [
           'bg-[var(--glass-bg-primary)]',
-          'shadow-[var(--shadow-glass-sm)]',
+          'shadow-[var(--shadow-glass-md)]',
           'rounded-[var(--radius-glass-2xl)]',
         ],
         // Elevated: modal, dialog, top-of-stack panels

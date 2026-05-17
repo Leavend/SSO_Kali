@@ -148,7 +148,8 @@ function scopeLevelClass(level: ScopeDescriptor['level']): string {
         </span>
         <h2
           id="consent-title"
-          class="text-heading-1 font-display font-semibold tracking-tight text-[var(--text-primary)]"
+          class="font-serif text-3xl font-light tracking-tight text-[var(--text-primary)] sm:text-4xl"
+          style="font-family: var(--font-serif)"
         >
           Otorisasi Aplikasi
         </h2>
@@ -237,7 +238,7 @@ function scopeLevelClass(level: ScopeDescriptor['level']): string {
         </SsoGlassButton>
 
         <SsoGlassButton
-          variant="primary"
+          variant="vibrant"
           size="lg"
           class="w-full"
           :disabled="!canDecide"

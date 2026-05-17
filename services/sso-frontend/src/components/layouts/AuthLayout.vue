@@ -44,11 +44,16 @@ const preset = computed<GlassPreset>(() => {
 
     <ThemeToggleButton class="absolute right-4 top-4" />
 
-    <main id="auth-main" class="w-full space-y-6">
+    <main id="auth-main" class="w-full space-y-8">
       <div class="text-center">
         <AppBrandMark size="lg" class="mx-auto" />
-        <h1 class="text-display font-display mt-4 text-2xl font-bold tracking-tight">Dev-SSO</h1>
-        <p class="text-muted-foreground mt-1 text-sm leading-relaxed">
+        <h1
+          class="font-serif mt-5 text-4xl font-light tracking-tight text-[var(--text-primary)] sm:text-5xl md:text-6xl"
+          style="font-family: var(--font-serif)"
+        >
+          Dev-SSO
+        </h1>
+        <p class="text-[var(--text-secondary)] mt-2 text-sm font-medium leading-relaxed">
           Portal autentikasi tunggal untuk semua aplikasi kamu.
         </p>
       </div>

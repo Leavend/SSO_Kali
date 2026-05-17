@@ -84,7 +84,8 @@ function readString(key: string): string | undefined {
         </span>
         <h2
           id="callback-title"
-          class="text-heading-2 font-display font-semibold tracking-tight text-[var(--text-primary)]"
+          class="font-serif text-3xl font-light tracking-tight text-[var(--text-primary)] sm:text-4xl"
+          style="font-family: var(--font-serif)"
         >
           {{ title }}
         </h2>
