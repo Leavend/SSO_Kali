@@ -44,7 +44,7 @@ const preset = computed<GlassPreset>(() => {
 
     <ThemeToggleButton class="absolute right-4 top-4" />
 
-    <main id="auth-main" class="w-full space-y-8">
+    <main id="auth-main" class="sso-stagger w-full space-y-8">
       <div class="text-center">
         <AppBrandMark size="lg" class="mx-auto" />
         <h1
@@ -54,13 +54,13 @@ const preset = computed<GlassPreset>(() => {
           Dev-SSO
         </h1>
         <p class="text-[var(--text-secondary)] mt-2 text-sm font-medium leading-relaxed">
-          Portal autentikasi tunggal untuk semua aplikasi kamu.
+          Satu pintu untuk semua aplikasi kamu &mdash; tenang, aman, terverifikasi.
         </p>
       </div>
 
       <RouterView v-slot="{ Component }">
-        <Transition name="fade" mode="out-in">
-          <component :is="Component" />
+        <Transition name="glass-flow" mode="out-in">
+          <component :is="Component" class="sso-card-alive" />
         </Transition>
       </RouterView>
     </main>
@@ -68,12 +68,32 @@ const preset = computed<GlassPreset>(() => {
 </template>
 
 <style scoped>
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 200ms var(--ease-smooth);
+.glass-flow-enter-active,
+.glass-flow-leave-active {
+  transition:
+    opacity 320ms var(--ease-smooth),
+    transform 320ms var(--ease-smooth),
+    filter 320ms var(--ease-smooth);
 }
-.fade-enter-from,
-.fade-leave-to {
+.glass-flow-enter-from {
   opacity: 0;
+  transform: translateY(0.75rem) scale(0.99);
+  filter: blur(6px);
+}
+.glass-flow-leave-to {
+  opacity: 0;
+  transform: translateY(-0.5rem) scale(0.99);
+  filter: blur(4px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .glass-flow-enter-active,
+  .glass-flow-leave-active {
+    transition: opacity 200ms var(--ease-smooth);
+  }
+  .glass-flow-enter-from,
+  .glass-flow-leave-to {
+    transform: none;
+    filter: none;
+  }
 }
 </style>
