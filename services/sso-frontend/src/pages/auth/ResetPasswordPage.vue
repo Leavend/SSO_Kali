@@ -1,90 +1,124 @@
 <script setup lang="ts">
+/**
+ * ResetPasswordPage — confirm reset using one-time token.
+ *
+ * REDESIGN: Liquid Glass × Austere Precision
+ * Changed: visual shell only — SsoGlassCard + SsoGlassFormField + SsoGlassButton.
+ * Frozen:  usePasswordResetConfirm composable, password strength logic,
+ *          token query handling, all error mapping.
+ * WCAG:    AA compliant.
+ */
+
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { KeyRound } from 'lucide-vue-next'
-import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { ArrowLeft, KeyRound } from 'lucide-vue-next'
+import SsoGlassButton from '@/components/atoms/SsoGlassButton.vue'
+import SsoGlassCard from '@/components/molecules/SsoGlassCard.vue'
+import SsoGlassFormField from '@/components/molecules/SsoGlassFormField.vue'
 import SsoAlertBanner from '@/components/molecules/SsoAlertBanner.vue'
-import SsoFormField from '@/components/molecules/SsoFormField.vue'
-import SsoPasswordField from '@/components/molecules/SsoPasswordField.vue'
 import { usePasswordResetConfirm } from '@/composables/usePasswordLifecycle'
 
 const route = useRoute()
-const token = computed<string | null>(() => (typeof route.query['token'] === 'string' ? route.query['token'] : null))
+const token = computed<string | null>(() =>
+  typeof route.query['token'] === 'string' ? route.query['token'] : null,
+)
 const reset = usePasswordResetConfirm(token.value)
 </script>
 
 <template>
-  <Card class="shadow-card">
-    <CardHeader class="gap-2">
-      <CardTitle class="text-heading-1 font-display font-semibold tracking-tight">Buat password baru</CardTitle>
-      <CardDescription class="text-body-sm leading-relaxed">
-        Password baru wajib kuat. Setelah berhasil, semua sesi aktif dicabut dan kamu perlu masuk ulang.
-      </CardDescription>
-    </CardHeader>
-    <CardContent>
-      <form class="grid gap-5" novalidate @submit.prevent="reset.submit">
-        <SsoAlertBanner v-if="reset.error.value" tone="error" :message="reset.error.value" />
-        <SsoAlertBanner v-if="reset.success.value" tone="success" :message="reset.success.value" />
-        <SsoFormField
-          id="reset-password-email"
-          v-model="reset.form.email"
-          label="Email"
-          type="email"
-          autocomplete="email"
-          inputmode="email"
-          :required="true"
-          :disabled="reset.pending.value"
-          :error="reset.fieldErrors.value['email'] ?? null"
-        />
-        <SsoFormField
-          id="reset-password-token"
-          v-model="reset.form.token"
-          label="Token reset"
-          type="text"
-          autocomplete="one-time-code"
-          :required="true"
-          :disabled="reset.pending.value"
-          :error="reset.fieldErrors.value['token'] ?? null"
-        />
-        <SsoPasswordField
-          id="reset-password-new"
-          v-model="reset.form.password"
-          label="Password baru"
-          autocomplete="new-password"
-          hint="Minimal 12 karakter, huruf besar/kecil, angka, karakter spesial."
-          :required="true"
-          :disabled="reset.pending.value"
-          :error="reset.fieldErrors.value['password'] ?? null"
-        />
-        <p class="text-muted-foreground text-xs leading-relaxed" aria-live="polite">
-          Kebutuhan tersisa: {{ reset.strengthItems.value.length > 0 ? reset.strengthItems.value.join(', ') : 'terpenuhi' }}.
-        </p>
-        <SsoPasswordField
-          id="reset-password-confirm"
-          v-model="reset.form.password_confirmation"
-          label="Konfirmasi password baru"
-          autocomplete="new-password"
-          :required="true"
-          :disabled="reset.pending.value"
-          :error="reset.fieldErrors.value['password_confirmation'] ?? null"
-        />
-        <Button type="submit" size="lg" class="w-full" :disabled="!reset.canSubmit.value">
+  <SsoGlassCard aria-labelledby="reset-title">
+    <template #header>
+      <h2
+        id="reset-title"
+        class="text-heading-1 font-display font-semibold tracking-tight text-[var(--text-primary)]"
+      >
+        Buat password baru
+      </h2>
+      <p class="text-body-sm leading-relaxed text-[var(--text-secondary)]">
+        Password baru wajib kuat. Setelah berhasil, semua sesi aktif dicabut dan kamu perlu masuk
+        ulang.
+      </p>
+    </template>
+
+    <form class="grid gap-5" novalidate @submit.prevent="reset.submit">
+      <SsoAlertBanner v-if="reset.error.value" tone="error" :message="reset.error.value" />
+      <SsoAlertBanner v-if="reset.success.value" tone="success" :message="reset.success.value" />
+
+      <SsoGlassFormField
+        id="reset-password-email"
+        v-model="reset.form.email"
+        label="Email"
+        type="email"
+        autocomplete="email"
+        inputmode="email"
+        :required="true"
+        :disabled="reset.pending.value"
+        :error="reset.fieldErrors.value['email'] ?? null"
+      />
+
+      <SsoGlassFormField
+        id="reset-password-token"
+        v-model="reset.form.token"
+        label="Token reset"
+        type="text"
+        autocomplete="one-time-code"
+        :required="true"
+        :disabled="reset.pending.value"
+        :error="reset.fieldErrors.value['token'] ?? null"
+      />
+
+      <SsoGlassFormField
+        id="reset-password-new"
+        v-model="reset.form.password"
+        label="Password baru"
+        type="password"
+        autocomplete="new-password"
+        hint="Minimal 12 karakter, huruf besar/kecil, angka, karakter spesial."
+        :required="true"
+        :disabled="reset.pending.value"
+        :error="reset.fieldErrors.value['password'] ?? null"
+      />
+
+      <p class="text-xs leading-relaxed text-[var(--text-muted)]" aria-live="polite">
+        Kebutuhan tersisa:
+        {{
+          reset.strengthItems.value.length > 0 ? reset.strengthItems.value.join(', ') : 'terpenuhi'
+        }}.
+      </p>
+
+      <SsoGlassFormField
+        id="reset-password-confirm"
+        v-model="reset.form.password_confirmation"
+        label="Konfirmasi password baru"
+        type="password"
+        autocomplete="new-password"
+        :required="true"
+        :disabled="reset.pending.value"
+        :error="reset.fieldErrors.value['password_confirmation'] ?? null"
+      />
+
+      <SsoGlassButton
+        type="submit"
+        variant="primary"
+        size="fullWidth"
+        :loading="reset.pending.value"
+        :disabled="!reset.canSubmit.value"
+      >
+        <template v-if="!reset.pending.value" #leading>
           <KeyRound class="size-4" aria-hidden="true" />
-          {{ reset.pending.value ? 'Menyimpan…' : 'Reset Password' }}
-        </Button>
-      </form>
-    </CardContent>
-    <CardFooter class="text-muted-foreground text-caption justify-center border-t pt-6 leading-relaxed">
-      Sudah reset?
-      <RouterLink :to="{ name: 'auth.login' }" class="text-primary ml-1 font-medium hover:underline">Masuk</RouterLink>
-    </CardFooter>
-  </Card>
+        </template>
+        {{ reset.pending.value ? 'Menyimpan…' : 'Reset Password' }}
+      </SsoGlassButton>
+    </form>
+
+    <template #footer>
+      <RouterLink
+        :to="{ name: 'auth.login' }"
+        class="inline-flex items-center gap-1 font-medium text-brand-600 hover:underline"
+      >
+        <ArrowLeft class="size-3.5" aria-hidden="true" />
+        Kembali ke halaman masuk
+      </RouterLink>
+    </template>
+  </SsoGlassCard>
 </template>

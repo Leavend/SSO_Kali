@@ -2,21 +2,17 @@
 /**
  * LoginPage — UC-08 native login ke `/api/auth/login`.
  *
- * Logic dipindahkan ke `useLoginForm`. Page hanya orchestration + presentation.
+ * REDESIGN: Liquid Glass × Austere Precision
+ * Changed: visual shell only — SsoGlassCard + SsoGlassFormField + SsoGlassButton.
+ * Frozen:  useLoginForm composable, validation, error messages, autocomplete,
+ *          form submission handler, retry-after countdown, advisory CTA.
+ * WCAG:    AA compliant (autocomplete, aria-busy, aria-describedby via SsoGlassInput).
  */
 
-import { ArrowRight } from 'lucide-vue-next'
-import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import SsoFormField from '@/components/molecules/SsoFormField.vue'
-import SsoPasswordField from '@/components/molecules/SsoPasswordField.vue'
+import { ArrowRight, AtSign } from 'lucide-vue-next'
+import SsoGlassButton from '@/components/atoms/SsoGlassButton.vue'
+import SsoGlassCard from '@/components/molecules/SsoGlassCard.vue'
+import SsoGlassFormField from '@/components/molecules/SsoGlassFormField.vue'
 import SsoAlertBanner from '@/components/molecules/SsoAlertBanner.vue'
 import { useLoginForm } from '@/composables/useLoginForm'
 
@@ -24,82 +20,101 @@ const login = useLoginForm()
 </script>
 
 <template>
-  <Card class="shadow-card">
-    <CardHeader class="gap-2">
-      <CardTitle class="text-heading-1 font-display font-semibold tracking-tight">
+  <SsoGlassCard aria-labelledby="login-title">
+    <template #header>
+      <h2
+        id="login-title"
+        class="text-heading-1 font-display font-semibold tracking-tight text-[var(--text-primary)]"
+      >
         Masuk ke akunmu
-      </CardTitle>
-      <CardDescription class="text-body-sm leading-relaxed">
+      </h2>
+      <p class="text-body-sm leading-relaxed text-[var(--text-secondary)]">
         Gunakan kredensial SSO-mu untuk mengakses semua aplikasi kerja.
-      </CardDescription>
-    </CardHeader>
+      </p>
+    </template>
 
-    <CardContent>
-      <form class="grid gap-5" novalidate @submit.prevent="login.submit">
-        <SsoAlertBanner
-          v-if="login.bannerError.value"
-          tone="error"
-          :message="login.bannerError.value"
-        />
+    <form class="grid gap-5" novalidate @submit.prevent="login.submit">
+      <SsoAlertBanner
+        v-if="login.bannerError.value"
+        tone="error"
+        :message="login.bannerError.value"
+      />
 
-        <a
-          v-if="login.advisoryAction.value"
-          data-testid="login-advisory-cta"
-          :href="login.advisoryAction.value.href"
-          class="text-primary text-sm font-medium hover:underline"
-        >
-          {{ login.advisoryAction.value.label }} →
-        </a>
+      <a
+        v-if="login.advisoryAction.value"
+        data-testid="login-advisory-cta"
+        :href="login.advisoryAction.value.href"
+        class="text-sm font-medium text-brand-600 hover:underline"
+      >
+        {{ login.advisoryAction.value.label }} →
+      </a>
 
-        <SsoFormField
-          id="login-identifier"
-          v-model="login.form.identifier"
-          label="Email atau username"
-          type="text"
-          autocomplete="username"
-          inputmode="email"
-          placeholder="user@company.com"
-          :required="true"
-          :autofocus="true"
-          :disabled="login.pending.value"
-          :error="login.fieldErrors.value['identifier'] ?? null"
-        />
+      <SsoGlassFormField
+        id="login-identifier"
+        v-model="login.form.identifier"
+        label="Email atau username"
+        type="text"
+        autocomplete="username"
+        inputmode="email"
+        placeholder="user@company.com"
+        :required="true"
+        :autofocus="true"
+        :disabled="login.pending.value"
+        :error="login.fieldErrors.value['identifier'] ?? null"
+      >
+        <template #leading>
+          <AtSign class="size-4 shrink-0 text-[var(--text-muted)]" aria-hidden="true" />
+        </template>
+      </SsoGlassFormField>
 
-        <SsoPasswordField
-          id="login-password"
-          v-model="login.form.password"
-          label="Password"
-          autocomplete="current-password"
-          :required="true"
-          :disabled="login.pending.value"
-          :error="login.fieldErrors.value['password'] ?? null"
-        />
+      <SsoGlassFormField
+        id="login-password"
+        v-model="login.form.password"
+        label="Password"
+        type="password"
+        autocomplete="current-password"
+        :required="true"
+        :disabled="login.pending.value"
+        :error="login.fieldErrors.value['password'] ?? null"
+      />
 
-        <p v-if="login.retryAfterSeconds.value > 0" class="text-muted-foreground text-caption" aria-live="polite">
-          Tombol masuk aktif kembali dalam {{ login.retryAfterSeconds.value }} detik.
-        </p>
+      <p
+        v-if="login.retryAfterSeconds.value > 0"
+        class="text-caption text-[var(--text-muted)]"
+        aria-live="polite"
+      >
+        Tombol masuk aktif kembali dalam {{ login.retryAfterSeconds.value }} detik.
+      </p>
 
-        <Button
-          type="submit"
-          size="lg"
-          class="w-full"
-          :disabled="!login.canSubmit.value"
-          :aria-busy="login.pending.value || undefined"
-        >
-          <span v-if="login.pending.value">Memproses…</span>
-          <span v-else class="inline-flex items-center gap-2">
-            Masuk
-            <ArrowRight class="size-4" aria-hidden="true" />
-          </span>
-        </Button>
-      </form>
-    </CardContent>
+      <SsoGlassButton
+        type="submit"
+        variant="primary"
+        size="fullWidth"
+        :loading="login.pending.value"
+        :disabled="!login.canSubmit.value"
+      >
+        <template v-if="!login.pending.value" #trailing>
+          <ArrowRight class="size-4" aria-hidden="true" />
+        </template>
+        {{ login.pending.value ? 'Memproses…' : 'Masuk' }}
+      </SsoGlassButton>
 
-    <CardFooter class="text-muted-foreground text-caption justify-center border-t pt-6 leading-relaxed">
+      <RouterLink
+        :to="{ name: 'auth.forgot-password' }"
+        class="text-caption text-center text-[var(--text-muted)] hover:text-brand-600 transition-colors"
+      >
+        Lupa password?
+      </RouterLink>
+    </form>
+
+    <template #footer>
       Belum punya akun?
-      <RouterLink :to="{ name: 'auth.register' }" class="text-primary ml-1 font-medium hover:underline">
+      <RouterLink
+        :to="{ name: 'auth.register' }"
+        class="ml-1 font-medium text-brand-600 hover:underline"
+      >
         Daftar sekarang
       </RouterLink>
-    </CardFooter>
-  </Card>
+    </template>
+  </SsoGlassCard>
 </template>
