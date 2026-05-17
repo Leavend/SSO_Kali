@@ -26,14 +26,14 @@ type RouteContext = {
 
 export async function handleSession(request: IncomingMessage): Promise<AppResponse> {
   const resolved = await resolveSessionOrNull(request)
-  if (!resolved) return unauthenticatedResponse()
+  if (!resolved) return await unauthenticatedResponse()
 
   return json(200, { principal: publicSession(resolved.session) }, sessionHeaders(resolved))
 }
 
 export async function handleUserApi(context: RouteContext): Promise<AppResponse> {
   const resolved = await resolveSessionOrNull(context.request)
-  if (!resolved) return unauthenticatedResponse()
+  if (!resolved) return await unauthenticatedResponse()
 
   const session = resolved.session
   const headers = sessionHeaders(resolved)
@@ -68,16 +68,16 @@ export async function handleUserApi(context: RouteContext): Promise<AppResponse>
 
     return json(404, { error: 'not_found', message: 'Endpoint not found.' }, headers)
   } catch (error) {
-    return userErrorResponse(error)
+    return await userErrorResponse(error)
   }
 }
 
-export function redirectForLegacyError(requestUrl: URL): AppResponse | null {
+export async function redirectForLegacyError(requestUrl: URL): Promise<AppResponse | null> {
   const legacyError = requestUrl.searchParams.get('error')
   if (!legacyError) return null
 
   const route = legacyAuthErrorRoute(legacyError) ?? '/'
-  return redirect(new URL(route, getConfig().appBaseUrl).toString(), [clearSessionCookie()])
+  return redirect(new URL(route, getConfig().appBaseUrl).toString(), await clearSessionCookie())
 }
 
 async function updateProfileEndpoint(
@@ -161,11 +161,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
 }
 
-function userErrorResponse(error: unknown): AppResponse {
+async function userErrorResponse(error: unknown): Promise<AppResponse> {
   if (isUserApiError(error)) {
     if (error.status === 401) {
       return json(error.status, userErrorPayload(error, REAUTH_REQUIRED_ROUTE), {
-        'set-cookie': [clearSessionCookie()],
+        'set-cookie': await clearSessionCookie(),
       })
     }
 
@@ -200,10 +200,10 @@ function userErrorPayload(
     : withRedirect
 }
 
-function unauthenticatedResponse(): AppResponse {
+async function unauthenticatedResponse(): Promise<AppResponse> {
   return json(
     401,
     { error: 'no_session', message: 'No active SSO session.', redirectTo: '/' },
-    { 'set-cookie': [clearSessionCookie()] },
+    { 'set-cookie': await clearSessionCookie() },
   )
 }

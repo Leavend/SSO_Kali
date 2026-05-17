@@ -17,6 +17,7 @@ import SsoAlertBanner from '@/components/molecules/SsoAlertBanner.vue'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useSessionRevocation } from '@/composables/useSessionRevocation'
 import { useProfileStore } from '@/stores/profile.store'
+import { presentSafeError } from '@/lib/api/safe-error-presenter'
 
 const profile = useProfileStore()
 const load = useAsyncAction(() => profile.loadSessions())
@@ -25,6 +26,9 @@ const revocation = useSessionRevocation()
 
 const sessions = computed(() => profile.sessions)
 const isEmpty = computed<boolean>(() => !load.pending.value && sessions.value.length === 0)
+const safeLoadError = computed<string | null>(() => safeError(load.error.value))
+const safeRevokeOneError = computed<string | null>(() => safeError(revocation.revokeOne.error.value))
+const safeRevokeAllError = computed<string | null>(() => safeError(revocation.revokeAll.error.value))
 
 const confirmSingleOpen = computed({
   get: () => revocation.confirmSingleOpen.value,
@@ -43,6 +47,10 @@ const confirmGlobalOpen = computed({
 onMounted(() => {
   void load.run()
 })
+
+function safeError(error: unknown): string | null {
+  return error ? presentSafeError(error).message : null
+}
 </script>
 
 <template>
@@ -59,6 +67,7 @@ onMounted(() => {
         size="lg"
         :disabled="revocation.pendingGlobalLogout.value || sessions.length === 0"
         aria-label="Logout dari semua perangkat"
+        class="w-full sm:w-fit"
         @click="revocation.askRevokeAll()"
       >
         <LogOut class="size-4" aria-hidden="true" />
@@ -71,9 +80,9 @@ onMounted(() => {
     </div>
 
     <SsoAlertBanner
-      v-else-if="load.error.value"
+      v-else-if="safeLoadError"
       tone="error"
-      :message="load.error.value.message"
+      :message="safeLoadError"
     />
 
     <Card v-else-if="isEmpty">
@@ -91,7 +100,7 @@ onMounted(() => {
       </CardHeader>
     </Card>
 
-    <div v-else class="grid gap-3">
+    <div v-else data-testid="sessions-list" class="grid w-full min-w-0 gap-3 xl:grid-cols-2">
       <SessionCard
         v-for="item in sessions"
         :key="item.session_id"
@@ -102,14 +111,14 @@ onMounted(() => {
     </div>
 
     <SsoAlertBanner
-      v-if="revocation.revokeOne.error.value"
+      v-if="safeRevokeOneError"
       tone="error"
-      :message="revocation.revokeOne.error.value.message"
+      :message="safeRevokeOneError"
     />
     <SsoAlertBanner
-      v-if="revocation.revokeAll.error.value"
+      v-if="safeRevokeAllError"
       tone="error"
-      :message="revocation.revokeAll.error.value.message"
+      :message="safeRevokeAllError"
     />
 
     <ConfirmDialog

@@ -23,7 +23,9 @@ import {
   clearTransactionCookie,
   pullTransaction,
   readSession,
+  replaceSession,
   sessionCookie,
+  sessionCookieForId,
   sessionFromBootstrap,
   transactionCookie,
 } from './session.js'
@@ -87,7 +89,7 @@ export async function handleCallback(
   if (!result.ok) return redirectWithClearedTx(config, callbackErrorRoute(result.error))
 
   return redirect(new URL(result.returnTo, config.appBaseUrl).toString(), [
-    sessionCookie(result.session),
+    await sessionCookie(result.session),
     clearTransactionCookie(),
   ])
 }
@@ -124,13 +126,13 @@ export async function handleCallbackSession(request: IncomingMessage): Promise<A
       authenticated: true,
       post_login_redirect: result.returnTo,
     },
-    { 'set-cookie': [sessionCookie(result.session), clearTransactionCookie()] },
+    { 'set-cookie': [await sessionCookie(result.session), clearTransactionCookie()] },
   )
 }
 
 export async function handleLogout(request: IncomingMessage): Promise<AppResponse> {
   const config = getConfig()
-  const rawSession = readSession(request)
+  const rawSession = await readSession(request)
   const session = rawSession ? await refreshSessionForLogout(rawSession) : null
   const refreshToken = session?.refreshToken ?? rawSession?.refreshToken
   const revocations: Array<Promise<void>> = []
@@ -140,46 +142,54 @@ export async function handleLogout(request: IncomingMessage): Promise<AppRespons
   if (revocations.length > 0) await Promise.allSettled(revocations)
 
   return redirect(new URL('/', config.appBaseUrl).toString(), [
-    clearSessionCookie(),
+    ...(await clearSessionCookie(request)),
     clearTransactionCookie(),
   ])
 }
 
 export async function handleRefresh(request: IncomingMessage): Promise<AppResponse> {
-  const session = readSession(request)
+  const sessionId = sessionIdFromRequest(request)
+  const session = await readSession(request)
 
-  if (!session?.refreshToken) {
+  if (!sessionId || !session?.refreshToken) {
     return json(
       401,
       { error: 'no_session', message: 'No active session or refresh token.' },
-      { 'set-cookie': [clearSessionCookie()] },
+      { 'set-cookie': await clearSessionCookie(request) },
     )
   }
 
   try {
-    if (!sessionNeedsRefresh(session)) return refreshResponse(session)
+    if (!sessionNeedsRefresh(session)) return refreshResponse(sessionId, session)
 
     const refreshedSession = await refreshPortalSession(session)
+    await replaceSession(sessionId, refreshedSession)
 
-    return refreshResponse(refreshedSession)
+    return refreshResponse(sessionId, refreshedSession)
   } catch (error) {
     console.error('Token refresh failed:', error instanceof Error ? error.message : error)
     return json(
       401,
       { error: 'refresh_failed', message: 'Token refresh failed.' },
-      { 'set-cookie': [clearSessionCookie()] },
+      { 'set-cookie': await clearSessionCookie(request) },
     )
   }
 }
 
-function refreshResponse(session: PortalSession): AppResponse {
+function sessionIdFromRequest(request: IncomingMessage): string | null {
+  const raw = request.headers.cookie ?? ''
+  const match = raw.match(/(?:^|;\s*)__Host-sso-portal-session=([^;]+)/u)
+  return match?.[1] ? decodeURIComponent(match[1]) : null
+}
+
+function refreshResponse(sessionId: string, session: PortalSession): AppResponse {
   return json(
     200,
     {
       status: 'refreshed',
       expiresAt: session.expiresAt,
     },
-    { 'set-cookie': [sessionCookie(session)] },
+    { 'set-cookie': [sessionCookieForId(sessionId, session)] },
   )
 }
 

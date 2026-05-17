@@ -11,11 +11,16 @@ it('locks issue80 authorization request audit contract implementation', function
             'authorization_request_rejected',
         ],
         'app/Actions/Oidc/CreateAuthorizationRedirect.php' => [
+            'AuthorizationRequestAuditRecorder',
+            '$this->audits->accepted',
+            '$this->audits->rejected',
+        ],
+        'app/Services/Oidc/AuthorizationRequestAuditRecorder.php' => [
             'RecordAuthenticationAuditEventAction',
             'AuthenticationAuditRecord::authorizationRequestAccepted',
             'AuthenticationAuditRecord::authorizationRequestRejected',
-            'recordAccepted',
-            'recordRejected',
+            'accepted',
+            'rejected',
             'auditContext',
             'redirect_uri_hash',
             'state_hash',

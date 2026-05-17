@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 async function loadCryptoModule() {
   vi.resetModules()
@@ -6,7 +6,13 @@ async function loadCryptoModule() {
 }
 
 describe('session crypto runtime fallback', () => {
-  it('does not throw when SESSION_ENCRYPTION_SECRET is missing', async () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    vi.restoreAllMocks()
+  })
+
+  it('does not throw when SESSION_ENCRYPTION_SECRET is missing outside production', async () => {
+    vi.stubEnv('NODE_ENV', 'test')
     vi.stubEnv('SESSION_ENCRYPTION_SECRET', '')
     vi.stubEnv('VITE_SSO_FRONTEND_BASE_URL', 'https://sso.timeh.my.id')
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
@@ -16,8 +22,15 @@ describe('session crypto runtime fallback', () => {
 
     expect(decryptSession(encrypted)).toBe('{"status":"ok"}')
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('SESSION_ENCRYPTION_SECRET is not configured'))
+  })
 
-    vi.unstubAllEnvs()
-    warn.mockRestore()
+  it('fails closed in production when SESSION_ENCRYPTION_SECRET is missing', async () => {
+    vi.stubEnv('NODE_ENV', 'production')
+    vi.stubEnv('SESSION_ENCRYPTION_SECRET', '')
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    const { encryptSession } = await loadCryptoModule()
+
+    expect(() => encryptSession('{"status":"ok"}')).toThrow('SESSION_ENCRYPTION_SECRET must be configured.')
+    expect(warn).not.toHaveBeenCalled()
   })
 })

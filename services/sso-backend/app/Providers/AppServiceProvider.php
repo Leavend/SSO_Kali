@@ -72,6 +72,7 @@ class AppServiceProvider extends ServiceProvider
         $this->registerOidcTokenLimiter();
         $this->registerOidcResourceLimiter();
         $this->registerProfileApiLimiter();
+        $this->registerProfileChangeRequestLimiter();
         $this->registerOidcDiscoveryLimiter();
         $this->registerOidcJwksLimiter();
         $this->registerAdminBootstrapLimiter();
@@ -162,6 +163,24 @@ class AppServiceProvider extends ServiceProvider
             'profile-api',
             (int) config('sso.rate_limits.profile_api_per_minute', 240),
         )->response(fn (Request $request, array $headers) => app(AuthThrottleResponder::class)->callback($request, $headers)));
+    }
+
+    private function registerProfileChangeRequestLimiter(): void
+    {
+        RateLimiter::for('profile-change-request', fn (Request $request): Limit => $this->profilePrincipalLimit(
+            $request,
+            'profile-change-request',
+            (int) config('sso.rate_limits.profile_change_per_minute', 5),
+        )->response(fn (Request $request, array $headers) => app(AuthThrottleResponder::class)->callback($request, $headers)));
+    }
+
+    private function profilePrincipalLimit(Request $request, string $namespace, int $perMinute): Limit
+    {
+        $bearer = (string) $request->bearerToken();
+        $cookie = (string) $request->cookies->get((string) config('sso.session.cookie'));
+        $key = $bearer !== '' ? hash('sha256', $bearer) : ($cookie !== '' ? hash('sha256', $cookie) : $request->ip());
+
+        return Limit::perMinute($perMinute)->by($namespace.':'.$key);
     }
 
     private function registerOidcDiscoveryLimiter(): void

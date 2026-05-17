@@ -4,60 +4,65 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Admin;
 
+use App\Actions\DataSubject\FulfillDataSubjectRequestAction;
+use App\Actions\DataSubject\ReviewDataSubjectRequestAction;
+use App\Http\Requests\DataSubject\FulfillDataSubjectRequestRequest;
+use App\Http\Requests\DataSubject\ListDataSubjectRequestsRequest;
+use App\Http\Requests\DataSubject\ReviewDataSubjectRequestRequest;
 use App\Models\DataSubjectRequest;
 use App\Models\User;
+use App\Services\DataSubject\AdminDataSubjectRequestPresenter;
 use App\Services\DataSubject\DataSubjectRequestService;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 final class DataSubjectRequestAdminController
 {
-    public function __construct(private readonly DataSubjectRequestService $service) {}
+    public function __construct(
+        private readonly DataSubjectRequestService $service,
+        private readonly AdminDataSubjectRequestPresenter $presenter,
+    ) {}
 
-    public function index(Request $request): JsonResponse
+    public function index(ListDataSubjectRequestsRequest $request): JsonResponse
     {
-        $filters = $request->validate([
-            'status' => ['nullable', 'in:submitted,approved,rejected,fulfilled,cancelled'],
-            'type' => ['nullable', 'in:export,delete,anonymize'],
-            'subject_id' => ['nullable', 'string', 'max:64'],
-        ]);
+        $rows = $this->service->listing($request->validated())
+            ->limit(100)
+            ->get()
+            ->map(fn (Model $model): array => $this->presentModel($model))
+            ->all();
 
-        $rows = [];
-        foreach ($this->service->listing($filters)->limit(100)->get() as $dsr) {
-            \assert($dsr instanceof DataSubjectRequest);
-            $rows[] = $this->present($dsr);
-        }
+        return response()->json(['requests' => $rows])->header('Cache-Control', 'no-store');
+    }
 
-        return response()->json(['requests' => $rows])
+    public function review(
+        ReviewDataSubjectRequestRequest $request,
+        string $requestId,
+        ReviewDataSubjectRequestAction $review,
+    ): JsonResponse {
+        $dataSubjectRequest = $review->execute(
+            $requestId,
+            $this->reviewer($request),
+            (string) $request->validated('decision'),
+            $this->optionalString($request->validated('notes')),
+            $request,
+        );
+
+        return response()->json(['request' => $this->presenter->present($dataSubjectRequest)])
             ->header('Cache-Control', 'no-store');
     }
 
-    public function review(Request $request, string $requestId): JsonResponse
-    {
-        $payload = $request->validate([
-            'decision' => ['required', 'in:approved,rejected'],
-            'notes' => ['nullable', 'string', 'max:1000'],
-        ]);
-
-        $dsr = DataSubjectRequest::query()->where('request_id', $requestId)->firstOrFail();
-        $reviewer = $this->reviewer($request);
-
-        $dsr = $this->service->review($dsr, $reviewer, $payload['decision'], $payload['notes'] ?? null, $request);
-
-        return response()->json(['request' => $this->present($dsr)])
-            ->header('Cache-Control', 'no-store');
-    }
-
-    public function fulfill(Request $request, string $requestId): JsonResponse
-    {
-        $payload = $request->validate([
-            'dry_run' => ['nullable', 'boolean'],
-        ]);
-
-        $dsr = DataSubjectRequest::query()->where('request_id', $requestId)->firstOrFail();
-        $reviewer = $this->reviewer($request);
-
-        $result = $this->service->fulfill($dsr, $reviewer, $request, (bool) ($payload['dry_run'] ?? false));
+    public function fulfill(
+        FulfillDataSubjectRequestRequest $request,
+        string $requestId,
+        FulfillDataSubjectRequestAction $fulfill,
+    ): JsonResponse {
+        $result = $fulfill->execute(
+            $requestId,
+            $this->reviewer($request),
+            $request,
+            (bool) ($request->validated('dry_run') ?? false),
+        );
 
         return response()->json($result)->header('Cache-Control', 'no-store');
     }
@@ -65,23 +70,11 @@ final class DataSubjectRequestAdminController
     /**
      * @return array<string, mixed>
      */
-    private function present(DataSubjectRequest $dsr): array
+    private function presentModel(Model $model): array
     {
-        $submittedAt = $dsr->submitted_at;
+        \assert($model instanceof DataSubjectRequest);
 
-        return [
-            'request_id' => $dsr->request_id,
-            'subject_id' => $dsr->subject_id,
-            'type' => $dsr->type,
-            'status' => $dsr->status,
-            'reason' => $dsr->reason,
-            'reviewer_subject_id' => $dsr->reviewer_subject_id,
-            'reviewer_notes' => $dsr->reviewer_notes,
-            'submitted_at' => $submittedAt->toIso8601String(),
-            'reviewed_at' => $dsr->reviewed_at?->toIso8601String(),
-            'fulfilled_at' => $dsr->fulfilled_at?->toIso8601String(),
-            'sla_due_at' => $dsr->sla_due_at?->toIso8601String(),
-        ];
+        return $this->presenter->present($model);
     }
 
     private function reviewer(Request $request): User
@@ -90,5 +83,10 @@ final class DataSubjectRequestAdminController
         $admin = $request->attributes->get('admin_user') ?? $request->user();
 
         return $admin;
+    }
+
+    private function optionalString(mixed $value): ?string
+    {
+        return is_string($value) && $value !== '' ? $value : null;
     }
 }

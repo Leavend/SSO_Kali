@@ -29,7 +29,7 @@ final class ExternalIdentityProviderRegistry
      */
     public function isUsable(ExternalIdentityProvider $provider): bool
     {
-        if (! $provider->enabled) {
+        if (! $provider->enabled || $provider->breaker_tripped_at !== null) {
             return false;
         }
 

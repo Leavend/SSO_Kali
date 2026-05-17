@@ -75,6 +75,8 @@ return [
         'admin_email' => env('SSO_ADMIN_EMAIL', 'admin@example.test'),
         'admin_password' => env('SSO_ADMIN_PASSWORD', 'change-me-admin-password'),
         'admin_subject_id' => env('SSO_ADMIN_SUBJECT_ID', 'usr_admin'),
+        'dsr_automation_subject_id' => env('SSO_DSR_AUTOMATION_SUBJECT_ID', 'system-dsr-automation'),
+        'dsr_automation_email' => env('SSO_DSR_AUTOMATION_EMAIL', 'system-dsr-automation@example.invalid'),
     ],
     'logout' => [
         'backchannel_timeout_seconds' => (int) env('OIDC_BACKCHANNEL_LOGOUT_TIMEOUT_SECONDS', 5),

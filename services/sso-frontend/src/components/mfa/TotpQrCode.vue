@@ -11,16 +11,14 @@
 import { computed } from 'vue'
 import { Copy } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
+import { totpQrDataUrl } from '@/lib/totp-qr'
 
 const props = defineProps<{
   provisioningUri: string
   secret: string
 }>()
 
-const qrImageUrl = computed<string>(() => {
-  const encoded = encodeURIComponent(props.provisioningUri)
-  return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encoded}&format=svg`
-})
+const qrImageUrl = computed<string>(() => totpQrDataUrl(props.provisioningUri))
 
 async function copySecret(): Promise<void> {
   await navigator.clipboard.writeText(props.secret)

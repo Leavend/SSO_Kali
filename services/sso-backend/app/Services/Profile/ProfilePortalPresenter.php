@@ -40,6 +40,8 @@ final class ProfilePortalPresenter
             'family_name' => $this->whenScoped($scopes, OidcScope::PROFILE, $user->family_name),
             'email' => $this->whenScoped($scopes, OidcScope::EMAIL, $user->email),
             'email_verified' => ScopeSet::contains($scopes, OidcScope::EMAIL) ? $user->email_verified_at !== null : null,
+            'phone' => $this->whenScoped($scopes, OidcScope::PROFILE, $user->phone),
+            'phone_verified' => ScopeSet::contains($scopes, OidcScope::PROFILE) ? $user->phone_verified_at !== null : null,
             'status' => $user->status,
             'profile_synced_at' => $this->timestamp($user->profile_synced_at),
             'last_login_at' => $this->timestamp($user->last_login_at),

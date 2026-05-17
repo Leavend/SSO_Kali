@@ -23,17 +23,17 @@ Audit ini meninjau implementasi SSO terhadap **FR-029 sampai FR-063**:
 - FR-057–FR-059 — External IdP Integration
 - FR-060–FR-063 — Error Handling & UX
 
-Hasil audit: basis OIDC/token/session/admin sudah kuat dan banyak area MVP telah memiliki test contract. Gap terbesar ada pada **Token Introspection**, **front-channel logout fallback**, **persistent RP session registry**, **privacy/data subject workflow**, **admin audit export/retention**, **security policy management**, **public federation routes**, dan **backend safe-error hardening**.
+Hasil audit awal di bawah dipertahankan sebagai riwayat backlog. Re-audit live terhadap baseline `3e45cc2` menunjukkan banyak gap besar sudah ditutup oleh production code + contract tests: token introspection, refresh replay audit/notification, revocation Basic auth parity, persistent RP session registry, portal logout fan-out, front-channel logout fallback, DSR intake/export, admin audit export, security-policy aggregate, internal metrics guard, federation circuit breaker, OIDC error catalog, safe error renderer, dan support reference propagation.
 
-### Highest Priority Themes
+### Highest Priority Themes — Live Baseline `3e45cc2`
 
-1. **Token lifecycle:** `/introspect` belum ada; refresh reuse sudah revoke family tetapi belum punya audit/security notification khusus.
-2. **Logout/session:** Back-channel logout ada, tetapi RP session registry cache-only dan front-channel logout fallback belum ada.
-3. **Profile/privacy:** Connected apps/session portal ada; data export/delete/anonymize workflow belum ada.
-4. **Admin governance:** RBAC + MFA gate kuat; audit export/retention admin trail dan security policy console belum ada.
-5. **Federation:** Services External IdP cukup lengkap, tetapi public login/callback route belum wired.
-6. **Error safety:** FE aman dari raw `error_description`; BE masih punya beberapa path yang mengirim raw exception text ke `error_description`.
-7. **Correlation:** `X-Request-Id` ada; `error_ref` dibuat tetapi belum disurface ke client/support UX dan belum konsisten across async/outbound calls.
+1. **Admin UI ownership:** backend admin/governance APIs kuat, tetapi `services/sso-admin-vue` masih canary/skeleton; admin UI tidak boleh dikembalikan ke `services/sso-frontend`.
+2. **Federation:** public external IdP start+callback route sudah wired; perlu negative-route coverage tambahan untuk issuer/nonce/missing-email edge.
+3. **Portal BFF boundary:** `sso-frontend` portal-only dan production `VITE_SSO_API_URL=''` sudah terkunci; active BFF juga mem-proxy `/introspect` dan `/connect/logout/frontchannel`; lanjutkan session hardening.
+4. **BFF session hardening:** browser tidak menerima token, namun BFF masih menyimpan access/id/refresh token dalam encrypted HttpOnly cookie; opaque server-side session store lebih kuat.
+5. **Privacy/DSR:** submit/list/review/export ada; self-service FormRequest/controller cleanup selesai; delete/anonymize automation masih gap.
+6. **Admin audit retention:** prune command dan scheduler evidence sudah ada; HMAC-chain compaction policy tetap perlu docs sebelum aggressive pruning.
+7. **Frontend diagnostics parity:** callback API service sudah memakai `apiClient`; perlu lanjutkan consistency audit di page error rendering lain.
 
 ## 2. Severity Legend
 

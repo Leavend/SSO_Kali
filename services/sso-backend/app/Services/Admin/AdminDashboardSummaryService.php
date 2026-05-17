@@ -138,6 +138,7 @@ final class AdminDashboardSummaryService
             'approved' => (int) $base->clone()->where('status', 'approved')->count(),
             'rejected' => (int) $base->clone()->where('status', 'rejected')->count(),
             'fulfilled' => (int) $base->clone()->where('status', 'fulfilled')->count(),
+            'on_hold' => (int) $base->clone()->where('status', 'on_hold')->count(),
         ];
     }
 }

@@ -76,8 +76,6 @@ describe('SecurityPage', () => {
 
     await flushPromises()
     await nextTick()
-    await wrapper.find('[data-testid="password-form-toggle"]').trigger('click')
-    await nextTick()
 
     const actionRow = wrapper.find('[data-testid="password-form-actions"]')
     const buttons = actionRow.findAll('button')

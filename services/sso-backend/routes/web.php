@@ -3,12 +3,14 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\DataSubject\DataSubjectRequestController;
+use App\Http\Controllers\ExternalIdp\ExternalIdpCallbackController;
 use App\Http\Controllers\ExternalIdp\StartExternalIdpAuthenticationController;
 use App\Http\Controllers\Oidc\AuthorizeController;
 use App\Http\Controllers\Oidc\ConsentController;
 use App\Http\Controllers\Oidc\LocalLoginController;
 use App\Http\Controllers\Resource\AuditController;
 use App\Http\Controllers\Resource\ChangePasswordController;
+use App\Http\Controllers\Resource\ProfileChangeController;
 use App\Http\Controllers\Resource\ProfileController;
 use Illuminate\Support\Facades\Route;
 
@@ -45,6 +47,10 @@ Route::post('/connect/local-login', LocalLoginController::class)->middleware('th
 Route::get('/api/profile', [ProfileController::class, 'show'])->middleware('throttle:profile-api');
 Route::patch('/api/profile', [ProfileController::class, 'update'])->middleware('throttle:profile-api');
 Route::post('/api/profile/change-password', ChangePasswordController::class)->middleware('throttle:profile-api');
+Route::post('/api/profile/email-change', [ProfileChangeController::class, 'requestEmail'])->middleware('throttle:profile-change-request');
+Route::post('/api/profile/email-change/confirm', [ProfileChangeController::class, 'confirmEmail'])->middleware('throttle:profile-change-request');
+Route::post('/api/profile/phone-change', [ProfileChangeController::class, 'requestPhone'])->middleware('throttle:profile-change-request');
+Route::post('/api/profile/phone-change/confirm', [ProfileChangeController::class, 'confirmPhone'])->middleware('throttle:profile-change-request');
 Route::get('/api/profile/audit', AuditController::class)->middleware('throttle:profile-api');
 Route::get('/api/profile/connected-apps', [ProfileController::class, 'connectedApps'])->middleware('throttle:profile-api');
 Route::delete('/api/profile/connected-apps/{clientId}', [ProfileController::class, 'revokeConnectedApp'])->middleware('throttle:profile-api');
@@ -62,4 +68,6 @@ Route::post('/api/profile/data-subject-requests', [DataSubjectRequestController:
 // to keep error states user-safe.
 Route::get('/external-idp/start/{providerKey}', StartExternalIdpAuthenticationController::class)
     ->where('providerKey', '[a-z0-9_-]+')
+    ->middleware('throttle:oidc-authorize');
+Route::get('/external-idp/callback', ExternalIdpCallbackController::class)
     ->middleware('throttle:oidc-authorize');

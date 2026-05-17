@@ -13,6 +13,7 @@ export type PortalConfig = {
   readonly sessionIdleTtlSeconds: number
   readonly sessionAbsoluteTtlSeconds: number
   readonly freshAuthTtlSeconds: number
+  readonly sessionRedisUrl: string | null
   readonly port: number
 }
 
@@ -36,6 +37,7 @@ export function getConfig(): PortalConfig {
     redirectUri: `${appBase}/auth/callback`,
     appBaseUrl: appBase,
     ...sessionConfig(),
+    sessionRedisUrl: env('SSO_FRONTEND_SESSION_REDIS_URL') ?? env('REDIS_URL') ?? null,
     port: Number(env('PORT') ?? 3000),
   }
 }

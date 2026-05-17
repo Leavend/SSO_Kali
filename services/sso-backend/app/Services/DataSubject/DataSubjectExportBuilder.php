@@ -38,7 +38,7 @@ final class DataSubjectExportBuilder
             ],
             'consents' => DB::table('user_consents')
                 ->where('subject_id', $subjectId)
-                ->get(['client_id', 'scope', 'granted_at', 'revoked_at'])
+                ->get(['client_id', 'scopes', 'granted_at', 'revoked_at'])
                 ->map(fn (object $row): array => (array) $row)
                 ->all(),
             'sessions' => DB::table('sso_sessions')
