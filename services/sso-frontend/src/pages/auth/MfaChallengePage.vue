@@ -1,22 +1,21 @@
 <script setup lang="ts">
 /**
- * MfaChallengePage — FR-019 / UC-67.
+ * MfaChallengePage — FR-019 / UC-67 MFA verification at login.
  *
- * Halaman verifikasi MFA saat login. Ditampilkan setelah password berhasil
- * dan user memiliki TOTP enrolled. Logic di `useMfaChallenge`.
+ * REDESIGN: Liquid Glass × Austere Precision
+ * Changed: visual shell only — SsoGlassCard + SsoGlassButton (primary CTA + ghost back link).
+ *          Method selector remains as two visual segments. MfaTotpInput,
+ *          MfaRecoveryInput, MfaChallengeTimer kept untouched (organism-level).
+ * Frozen:  useMfaChallenge composable, autocomplete="one-time-code", auto-submit
+ *          on 6-digit completion, expiry handling, resend cooldown, redirect on cancel.
+ * WCAG:    AA compliant.
  */
 
 import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Shield, Key } from 'lucide-vue-next'
-import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { ArrowLeft, Key, Shield } from 'lucide-vue-next'
+import SsoGlassButton from '@/components/atoms/SsoGlassButton.vue'
+import SsoGlassCard from '@/components/molecules/SsoGlassCard.vue'
 import SsoAlertBanner from '@/components/molecules/SsoAlertBanner.vue'
 import MfaTotpInput from '@/components/mfa/MfaTotpInput.vue'
 import MfaRecoveryInput from '@/components/mfa/MfaRecoveryInput.vue'
@@ -36,88 +35,93 @@ onMounted(() => {
 </script>
 
 <template>
-  <Card class="shadow-card">
-    <CardHeader class="gap-2">
-      <CardTitle class="text-heading-1 font-display font-semibold tracking-tight">
+  <SsoGlassCard aria-labelledby="mfa-title">
+    <template #header>
+      <h2
+        id="mfa-title"
+        class="text-heading-1 font-display font-semibold tracking-tight text-[var(--text-primary)]"
+      >
         Verifikasi identitasmu
-      </CardTitle>
-      <CardDescription class="text-body-sm leading-relaxed">
+      </h2>
+      <p class="text-body-sm leading-relaxed text-[var(--text-secondary)]">
         Masukkan kode dari aplikasi authenticator atau gunakan recovery code.
-      </CardDescription>
-    </CardHeader>
+      </p>
+    </template>
 
-    <CardContent>
-      <form class="grid gap-5" novalidate @submit.prevent="mfa.submit">
-        <SsoAlertBanner
-          v-if="mfa.error.value"
-          tone="error"
-          :message="mfa.error.value"
-        />
+    <form class="grid gap-5" novalidate @submit.prevent="mfa.submit">
+      <SsoAlertBanner v-if="mfa.error.value" tone="error" :message="mfa.error.value" />
 
-        <MfaChallengeTimer
-          v-if="mfa.expiresAt.value"
-          :expires-at="mfa.expiresAt.value"
-          @expired="mfa.cancel"
-        />
+      <MfaChallengeTimer
+        v-if="mfa.expiresAt.value"
+        :expires-at="mfa.expiresAt.value"
+        @expired="mfa.cancel"
+      />
 
-        <!-- Method selector -->
-        <div class="flex gap-2">
-          <Button
-            type="button"
-            :variant="mfa.method.value === 'totp' ? 'default' : 'outline'"
-            size="sm"
-            class="flex-1"
-            @click="mfa.setMethod('totp')"
-          >
-            <Shield class="mr-1.5 size-4" aria-hidden="true" />
-            Authenticator
-          </Button>
-          <Button
-            type="button"
-            :variant="mfa.method.value === 'recovery_code' ? 'default' : 'outline'"
-            size="sm"
-            class="flex-1"
-            @click="mfa.setMethod('recovery_code')"
-          >
-            <Key class="mr-1.5 size-4" aria-hidden="true" />
-            Recovery Code
-          </Button>
-        </div>
-
-        <!-- TOTP input -->
-        <MfaTotpInput
-          v-if="mfa.method.value === 'totp'"
-          v-model="mfa.code.value"
-          :disabled="mfa.pending.value"
-          @complete="mfa.submit"
-        />
-
-        <!-- Recovery code input -->
-        <MfaRecoveryInput
-          v-if="mfa.method.value === 'recovery_code'"
-          v-model="mfa.code.value"
-          :disabled="mfa.pending.value"
-        />
-
-        <Button
-          type="submit"
-          size="lg"
-          class="w-full"
-          :disabled="mfa.pending.value || mfa.code.value.trim().length === 0"
-          :aria-busy="mfa.pending.value || undefined"
-        >
-          <span v-if="mfa.pending.value">Memverifikasi…</span>
-          <span v-else>Verifikasi</span>
-        </Button>
-
-        <button
+      <!-- Method selector — dua segmen yang setara secara visual -->
+      <div class="flex gap-2" role="group" aria-label="Pilih metode verifikasi">
+        <SsoGlassButton
           type="button"
-          class="text-muted-foreground text-caption hover:text-primary text-center transition-colors"
-          @click="mfa.cancel"
+          :variant="mfa.method.value === 'totp' ? 'primary' : 'glass'"
+          size="sm"
+          class="flex-1"
+          :aria-pressed="mfa.method.value === 'totp'"
+          @click="mfa.setMethod('totp')"
         >
-          Kembali ke halaman login
-        </button>
-      </form>
-    </CardContent>
-  </Card>
+          <template #leading>
+            <Shield class="size-4" aria-hidden="true" />
+          </template>
+          Authenticator
+        </SsoGlassButton>
+        <SsoGlassButton
+          type="button"
+          :variant="mfa.method.value === 'recovery_code' ? 'primary' : 'glass'"
+          size="sm"
+          class="flex-1"
+          :aria-pressed="mfa.method.value === 'recovery_code'"
+          @click="mfa.setMethod('recovery_code')"
+        >
+          <template #leading>
+            <Key class="size-4" aria-hidden="true" />
+          </template>
+          Recovery Code
+        </SsoGlassButton>
+      </div>
+
+      <MfaTotpInput
+        v-if="mfa.method.value === 'totp'"
+        v-model="mfa.code.value"
+        :disabled="mfa.pending.value"
+        @complete="mfa.submit"
+      />
+
+      <MfaRecoveryInput
+        v-if="mfa.method.value === 'recovery_code'"
+        v-model="mfa.code.value"
+        :disabled="mfa.pending.value"
+      />
+
+      <SsoGlassButton
+        type="submit"
+        variant="primary"
+        size="fullWidth"
+        :loading="mfa.pending.value"
+        :disabled="mfa.pending.value || mfa.code.value.trim().length === 0"
+      >
+        {{ mfa.pending.value ? 'Memverifikasi…' : 'Verifikasi' }}
+      </SsoGlassButton>
+
+      <SsoGlassButton
+        type="button"
+        variant="ghost"
+        size="sm"
+        class="justify-center"
+        @click="mfa.cancel"
+      >
+        <template #leading>
+          <ArrowLeft class="size-3.5" aria-hidden="true" />
+        </template>
+        Kembali ke halaman masuk
+      </SsoGlassButton>
+    </form>
+  </SsoGlassCard>
 </template>

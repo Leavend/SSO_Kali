@@ -43,10 +43,12 @@
 
   /* Design.md §3.1 — Font families */
   --font-display: 'Bricolage Grotesque', 'Inter', system-ui, sans-serif;
-  --font-sans: 'Geist', 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
-    Roboto, 'Helvetica Neue', sans-serif;
-  --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas,
-    'Liberation Mono', monospace;
+  --font-sans:
+    'Geist', 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue',
+    sans-serif;
+  --font-mono:
+    'Geist Mono', ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono',
+    monospace;
 
   /* Design.md §3.2 — Brand blue (WCAG AA-compliant at 600) */
   --color-brand-50: #eff6ff;
@@ -75,14 +77,106 @@
   --shadow-elevated: 0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.05);
   --shadow-modal: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.05);
 
+  /* Design.md §3.1 — Typography scale (rem-based, WCAG 1.4.4)
+     Tailwind v4 picks these up as utilities: text-display,
+     text-heading-1…text-heading-3, text-body-lg, text-body-sm,
+     text-caption. text-body remains the framework default (1rem). */
+  --text-display: 2.5rem; /* 40px — hero brand mark */
+  --text-heading-1: 1.875rem; /* 30px — page title */
+  --text-heading-2: 1.5rem; /* 24px — section heading */
+  --text-heading-3: 1.25rem; /* 20px — card / modal title */
+  --text-body-lg: 1.125rem; /* 18px — description */
+  --text-body-sm: 0.875rem; /* 14px — label, secondary */
+  --text-caption: 0.75rem; /* 12px — legal, timestamp */
+
   /* Design.md §6.1 — Motion */
   --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
   --duration-fast: 150ms;
   --duration-normal: 200ms;
   --duration-slow: 300ms;
+
+  /* =====================================================
+     Design.md §3.2 — Neutral palette (Slate)
+     Required by typography/text-hierarchy spec; codebase
+     uses these only as token aliases — shadcn oklch tokens
+     remain untouched for components/ui/* parity.
+     ===================================================== */
+  --color-neutral-50: #f8fafc;
+  --color-neutral-100: #f1f5f9;
+  --color-neutral-200: #e2e8f0;
+  --color-neutral-300: #cbd5e1;
+  --color-neutral-400: #94a3b8;
+  --color-neutral-500: #64748b;
+  --color-neutral-600: #475569;
+  --color-neutral-700: #334155;
+  --color-neutral-800: #1e293b;
+  --color-neutral-900: #0f172a;
+  --color-neutral-950: #020617;
+
+  /* =====================================================
+     LIQUID GLASS — Austere Precision Edition
+     Restrained, institutional. Effects must be subtle
+     and purposeful (design.md §2.1 — Trust/Clarity/Focus).
+     ===================================================== */
+
+  /* === Glass surface (translucency tier) === */
+  --glass-bg-primary: color-mix(in oklch, var(--color-neutral-50) 85%, transparent);
+  --glass-bg-elevated: color-mix(in oklch, white 92%, transparent);
+  --glass-bg-overlay: color-mix(in oklch, var(--color-neutral-900) 55%, transparent);
+
+  /* === Glass borders (hierarchy + state) === */
+  --glass-border-subtle: color-mix(in oklch, var(--color-neutral-300) 60%, transparent);
+  --glass-border-strong: color-mix(in oklch, var(--color-neutral-400) 80%, transparent);
+  --glass-border-brand: color-mix(in oklch, var(--color-brand-500) 70%, transparent);
+  --glass-border-error: color-mix(in oklch, var(--color-error-700) 60%, transparent);
+
+  /* === Glass blur intensities === */
+  --glass-blur-sm: blur(8px);
+  --glass-blur-md: blur(16px);
+  --glass-blur-lg: blur(24px);
+
+  /* === Glass shadow (layered + inset highlight = glass edge) === */
+  --shadow-glass-sm:
+    0 2px 8px -1px rgb(15 23 42 / 0.06), 0 1px 3px -1px rgb(15 23 42 / 0.04),
+    inset 0 1px 0 rgb(255 255 255 / 0.8);
+  --shadow-glass-md:
+    0 8px 24px -4px rgb(15 23 42 / 0.08), 0 2px 8px -2px rgb(15 23 42 / 0.05),
+    inset 0 1px 0 rgb(255 255 255 / 0.9);
+  --shadow-glass-lg:
+    0 24px 48px -8px rgb(15 23 42 / 0.12), 0 8px 16px -4px rgb(15 23 42 / 0.06),
+    inset 0 1px 0 rgb(255 255 255 / 0.95);
+
+  /* === Focus ring for glass (WCAG 2.4.11 ≥3:1 contrast) === */
+  --ring-glass-focus:
+    0 0 0 3px color-mix(in oklch, var(--color-brand-500) 25%, transparent),
+    0 0 0 1px var(--color-brand-500), inset 0 1px 0 rgb(255 255 255 / 0.9);
+
+  /* === Ambient background (≤4% opacity, ≥30s = non-distracting) === */
+  --glass-ambient-opacity: 0.04;
+  --glass-ambient-duration: 30s;
+
+  /* === Radius (glass-only, additive — does not override shadcn calc) === */
+  --radius-glass-lg: 0.75rem; /* 12px — input, button-sm */
+  --radius-glass-xl: 1rem; /* 16px — button, dropdown */
+  --radius-glass-2xl: 1.5rem; /* 24px — card, modal */
+}
+
+/* CSS @property for shimmer angle — animatable only on hover/focus */
+@property --glass-shimmer-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 135deg;
 }
 
 :root {
+  /* Semantic text aliases — used by Liquid Glass primitives.
+     Mapped to design.md §3.2 neutral scale; theme switch to dark mode
+     will redefine these without touching component templates. */
+  --text-primary: var(--color-neutral-900);
+  --text-secondary: var(--color-neutral-600);
+  --text-muted: var(--color-neutral-500);
+  --text-inverse: #ffffff;
+
   --radius: 0.65rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.129 0.042 264.695);

@@ -2,24 +2,19 @@
 /**
  * RegisterPage — self-service registration (Nama Lengkap + Email + Password).
  *
- * Mengirim POST /api/auth/register ke backend.
- * Setelah berhasil, redirect ke login dengan pesan sukses.
+ * REDESIGN: Liquid Glass × Austere Precision
+ * Changed: visual shell only — SsoGlassCard + SsoGlassFormField + SsoGlassButton.
+ * Frozen:  validation logic, ERROR_TRANSLATIONS map, redirect timer,
+ *          API call, autocomplete attributes, success/error mapping.
+ * WCAG:    AA compliant.
  */
 
 import { reactive, ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowRight, UserPlus } from 'lucide-vue-next'
-import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import SsoFormField from '@/components/molecules/SsoFormField.vue'
-import SsoPasswordField from '@/components/molecules/SsoPasswordField.vue'
+import SsoGlassButton from '@/components/atoms/SsoGlassButton.vue'
+import SsoGlassCard from '@/components/molecules/SsoGlassCard.vue'
+import SsoGlassFormField from '@/components/molecules/SsoGlassFormField.vue'
 import SsoAlertBanner from '@/components/molecules/SsoAlertBanner.vue'
 import { apiClient } from '@/lib/api/api-client'
 import { ApiError, isValidationError } from '@/lib/api/api-error'
@@ -57,7 +52,8 @@ const ERROR_TRANSLATIONS: Record<string, string> = {
   'The password field must be at least 8 characters.': 'Password minimal 8 karakter.',
   'The password field confirmation does not match.': 'Konfirmasi password tidak cocok.',
   'The password confirmation does not match.': 'Konfirmasi password tidak cocok.',
-  'The route api/auth/register could not be found.': 'Fitur pendaftaran belum tersedia. Hubungi administrator.',
+  'The route api/auth/register could not be found.':
+    'Fitur pendaftaran belum tersedia. Hubungi administrator.',
   'Not Found': 'Fitur pendaftaran belum tersedia. Hubungi administrator.',
 }
 
@@ -112,13 +108,10 @@ async function submit(): Promise<void> {
     }, 3000)
   } catch (error) {
     if (isValidationError(error) && error instanceof ApiError) {
-      fieldErrors.value = error.violations.reduce<Record<string, string>>(
-        (acc, v) => {
-          acc[v.field] = translateError(v.message)
-          return acc
-        },
-        {},
-      )
+      fieldErrors.value = error.violations.reduce<Record<string, string>>((acc, v) => {
+        acc[v.field] = translateError(v.message)
+        return acc
+      }, {})
       bannerError.value = translateError(error.message)
     } else if (error instanceof ApiError) {
       bannerError.value = translateError(error.message)
@@ -132,98 +125,97 @@ async function submit(): Promise<void> {
 </script>
 
 <template>
-  <Card class="shadow-card">
-    <CardHeader class="gap-2">
-      <CardTitle class="text-heading-1 font-display font-semibold tracking-tight">
+  <SsoGlassCard aria-labelledby="register-title">
+    <template #header>
+      <h2
+        id="register-title"
+        class="text-heading-1 font-display font-semibold tracking-tight text-[var(--text-primary)]"
+      >
         Daftar Akun Baru
-      </CardTitle>
-      <CardDescription class="text-body-sm leading-relaxed">
+      </h2>
+      <p class="text-body-sm leading-relaxed text-[var(--text-secondary)]">
         Buat akun SSO untuk mengakses semua aplikasi organisasi.
-      </CardDescription>
-    </CardHeader>
+      </p>
+    </template>
 
-    <CardContent>
-      <form class="grid gap-5" novalidate @submit.prevent="submit">
-        <SsoAlertBanner
-          v-if="bannerError"
-          tone="error"
-          :message="bannerError"
-        />
-        <SsoAlertBanner
-          v-if="bannerSuccess"
-          tone="success"
-          :message="bannerSuccess"
-        />
+    <form class="grid gap-5" novalidate @submit.prevent="submit">
+      <SsoAlertBanner v-if="bannerError" tone="error" :message="bannerError" />
+      <SsoAlertBanner v-if="bannerSuccess" tone="success" :message="bannerSuccess" />
 
-        <SsoFormField
-          id="register-name"
-          v-model="form.name"
-          label="Nama lengkap"
-          type="text"
-          autocomplete="name"
-          placeholder="Nama Lengkap"
-          :required="true"
-          :autofocus="true"
-          :disabled="pending"
-          :error="fieldErrors['name'] ?? null"
-        />
+      <SsoGlassFormField
+        id="register-name"
+        v-model="form.name"
+        label="Nama lengkap"
+        type="text"
+        autocomplete="name"
+        placeholder="Nama Lengkap"
+        :required="true"
+        :autofocus="true"
+        :disabled="pending"
+        :error="fieldErrors['name'] ?? null"
+      />
 
-        <SsoFormField
-          id="register-email"
-          v-model="form.email"
-          label="Email"
-          type="email"
-          autocomplete="email"
-          inputmode="email"
-          placeholder="email@company.com"
-          :required="true"
-          :disabled="pending"
-          :error="fieldErrors['email'] ?? null"
-        />
+      <SsoGlassFormField
+        id="register-email"
+        v-model="form.email"
+        label="Email"
+        type="email"
+        autocomplete="email"
+        inputmode="email"
+        placeholder="email@company.com"
+        :required="true"
+        :disabled="pending"
+        :error="fieldErrors['email'] ?? null"
+      />
 
-        <SsoPasswordField
-          id="register-password"
-          v-model="form.password"
-          label="Password"
-          autocomplete="new-password"
-          hint="Minimal 8 karakter."
-          :required="true"
-          :disabled="pending"
-          :error="fieldErrors['password'] ?? null"
-        />
+      <SsoGlassFormField
+        id="register-password"
+        v-model="form.password"
+        label="Password"
+        type="password"
+        autocomplete="new-password"
+        hint="Minimal 8 karakter."
+        :required="true"
+        :disabled="pending"
+        :error="fieldErrors['password'] ?? null"
+      />
 
-        <SsoPasswordField
-          id="register-password-confirm"
-          v-model="form.password_confirmation"
-          label="Konfirmasi password"
-          autocomplete="new-password"
-          :required="true"
-          :disabled="pending"
-          :error="fieldErrors['password_confirmation'] ?? null"
-        />
+      <SsoGlassFormField
+        id="register-password-confirm"
+        v-model="form.password_confirmation"
+        label="Konfirmasi password"
+        type="password"
+        autocomplete="new-password"
+        :required="true"
+        :disabled="pending"
+        :error="fieldErrors['password_confirmation'] ?? null"
+      />
 
-        <Button
-          type="submit"
-          size="lg"
-          class="w-full"
-          :disabled="!canSubmit"
-          :aria-busy="pending || undefined"
-        >
-          <span v-if="pending">Mendaftarkan…</span>
-          <span v-else class="inline-flex items-center gap-2">
-            <UserPlus class="size-4" aria-hidden="true" />
-            Daftar
-            <ArrowRight class="size-4" aria-hidden="true" />
-          </span>
-        </Button>
-      </form>
-    </CardContent>
+      <SsoGlassButton
+        type="submit"
+        variant="primary"
+        size="fullWidth"
+        :loading="pending"
+        :disabled="!canSubmit"
+      >
+        <template v-if="!pending" #leading>
+          <UserPlus class="size-4" aria-hidden="true" />
+        </template>
+        <template v-if="!pending" #trailing>
+          <ArrowRight class="size-4" aria-hidden="true" />
+        </template>
+        {{ pending ? 'Mendaftarkan…' : 'Daftar' }}
+      </SsoGlassButton>
+    </form>
 
-    <CardFooter class="text-muted-foreground text-caption justify-center border-t pt-6 leading-relaxed">
+    <template #footer>
       Sudah punya akun?
-      <RouterLink :to="{ name: 'auth.login' }" class="text-primary ml-1 font-medium hover:underline">
+      <RouterLink
+        :to="{ name: 'auth.login' }"
+        class="ml-1 font-medium text-brand-600 hover:underline"
+      >
         Masuk
       </RouterLink>
-    </CardFooter>
-  </Card>
+    </template>
+  </SsoGlassCard>
 </template>

@@ -2,28 +2,22 @@
 /**
  * CallbackPage — UC-13 + UC-14 OIDC Authorization Code callback.
  *
- * FE-FR028-001: We never render `error_description` from the URL. The composable
- * resolves a localized safe copy via the OAuth error mapper.
+ * REDESIGN: Liquid Glass × Austere Precision
+ * Changed: visual shell only — SsoGlassCard + SsoGlassButton.
+ * Frozen:  useOidcCallback composable, FE-FR028-001 (no error_description echo),
+ *          extractSupportReference, formatSupportReference, redirect logic.
+ * WCAG:    AA compliant; SsoSpinner aria-hidden, status text aria-live="polite".
  */
 
 import { computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, Loader2, ShieldAlert } from 'lucide-vue-next'
-import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { ArrowLeft, ShieldAlert } from 'lucide-vue-next'
+import SsoGlassButton from '@/components/atoms/SsoGlassButton.vue'
+import SsoGlassCard from '@/components/molecules/SsoGlassCard.vue'
+import SsoSpinner from '@/components/atoms/SsoSpinner.vue'
 import SsoAlertBanner from '@/components/molecules/SsoAlertBanner.vue'
 import { useOidcCallback } from '@/composables/useOidcCallback'
-import {
-  extractSupportReference,
-  formatSupportReference,
-} from '@/lib/oidc/oauth-error-message'
+import { extractSupportReference, formatSupportReference } from '@/lib/oidc/oauth-error-message'
 
 const route = useRoute()
 const router = useRouter()
@@ -33,7 +27,11 @@ const FALLBACK_ERROR_COPY =
   'Login tidak dapat diselesaikan. Mulai ulang dari halaman login atau kembali ke aplikasi awal.'
 
 const title = computed<string>(() =>
-  callback.pending.value ? 'Memverifikasi login…' : callback.error.value ? 'Login gagal' : 'Selesai',
+  callback.pending.value
+    ? 'Memverifikasi login…'
+    : callback.error.value
+      ? 'Login gagal'
+      : 'Selesai',
 )
 
 const safeErrorCopy = computed<string>(() => callback.errorMessage.value ?? FALLBACK_ERROR_COPY)
@@ -69,23 +67,34 @@ function readString(key: string): string | undefined {
 </script>
 
 <template>
-  <Card class="shadow-card">
-    <CardHeader class="items-center text-center">
-      <span
-        class="bg-brand-50 text-brand-600 grid size-12 place-items-center rounded-full"
-        aria-hidden="true"
-      >
-        <Loader2 v-if="callback.pending.value" class="size-6 animate-spin" />
-        <ShieldAlert v-else-if="callback.error.value" class="size-6 text-error-700" />
-        <ShieldAlert v-else class="size-6" />
-      </span>
-      <CardTitle class="text-heading-2 font-display">{{ title }}</CardTitle>
-      <CardDescription>
-        Memproses respons OIDC dan menyiapkan sesi aman untuk kamu.
-      </CardDescription>
-    </CardHeader>
+  <SsoGlassCard aria-labelledby="callback-title">
+    <template #header>
+      <div class="flex flex-col items-center gap-3 text-center">
+        <span
+          class="grid size-12 place-items-center rounded-[var(--radius-glass-xl)] border bg-[var(--glass-bg-elevated)]"
+          :class="
+            callback.error.value
+              ? 'border-[var(--glass-border-error)] text-error-700'
+              : 'border-[var(--glass-border-subtle)] text-brand-600'
+          "
+          aria-hidden="true"
+        >
+          <SsoSpinner v-if="callback.pending.value" size="md" />
+          <ShieldAlert v-else class="size-6" />
+        </span>
+        <h2
+          id="callback-title"
+          class="text-heading-2 font-display font-semibold tracking-tight text-[var(--text-primary)]"
+        >
+          {{ title }}
+        </h2>
+        <p class="text-body-sm leading-relaxed text-[var(--text-secondary)]">
+          Memproses respons OIDC dan menyiapkan sesi aman untuk kamu.
+        </p>
+      </div>
+    </template>
 
-    <CardContent class="grid gap-4">
+    <div class="grid gap-4">
       <SsoAlertBanner
         v-if="callback.error.value"
         data-testid="oidc-callback-error"
@@ -96,23 +105,27 @@ function readString(key: string): string | undefined {
       <p
         v-if="supportReference"
         data-testid="oidc-callback-support-ref"
-        class="text-muted-foreground select-all text-center text-xs font-mono"
+        class="text-center font-mono text-xs text-[var(--text-muted)] select-all"
       >
         {{ supportReference }}
       </p>
 
-      <p v-if="callback.pending.value" class="text-muted-foreground text-center text-sm" aria-live="polite">
+      <p
+        v-if="callback.pending.value"
+        class="text-center text-sm text-[var(--text-secondary)] leading-relaxed"
+        aria-live="polite"
+      >
         Mohon tunggu sebentar.
       </p>
-    </CardContent>
+    </div>
 
-    <CardFooter v-if="callback.error.value" class="justify-center">
-      <Button as-child variant="outline" size="sm">
-        <router-link to="/">
-          <ArrowLeft class="size-4" aria-hidden="true" />
-          Kembali ke login
-        </router-link>
-      </Button>
-    </CardFooter>
-  </Card>
+    <template v-if="callback.error.value" #footer>
+      <SsoGlassButton variant="glass" size="sm" class="mx-auto" @click="router.push('/')">
+        <template #leading>
+          <ArrowLeft class="size-3.5" aria-hidden="true" />
+        </template>
+        Kembali ke halaman masuk
+      </SsoGlassButton>
+    </template>
+  </SsoGlassCard>
 </template>
