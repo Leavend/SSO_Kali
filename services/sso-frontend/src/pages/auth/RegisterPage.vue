@@ -18,6 +18,8 @@ import SsoGlassFormField from '@/components/molecules/SsoGlassFormField.vue'
 import SsoAlertBanner from '@/components/molecules/SsoAlertBanner.vue'
 import { apiClient } from '@/lib/api/api-client'
 import { ApiError, isValidationError } from '@/lib/api/api-error'
+import { presentSafeError } from '@/lib/api/safe-error-presenter'
+import { passwordStrengthHints } from '@/lib/auth/password-policy'
 
 const router = useRouter()
 
@@ -33,23 +35,24 @@ const bannerError = ref<string | null>(null)
 const bannerSuccess = ref<string | null>(null)
 const fieldErrors = ref<Record<string, string>>({})
 
+const passwordHints = computed<readonly string[]>(() => passwordStrengthHints(form.password))
+
 const canSubmit = computed<boolean>(
   () =>
     !pending.value &&
     form.name.trim().length > 0 &&
     form.email.trim().length > 0 &&
-    form.password.length >= 8 &&
+    passwordHints.value.length === 0 &&
     form.password === form.password_confirmation,
 )
 
-/** Error translation for common backend messages. */
+/** Backend message translations limited to known-safe strings. */
 const ERROR_TRANSLATIONS: Record<string, string> = {
   'The email has already been taken.': 'Email ini sudah terdaftar.',
   'The name field is required.': 'Nama lengkap wajib diisi.',
   'The email field is required.': 'Email wajib diisi.',
   'The email field must be a valid email address.': 'Format email tidak valid.',
   'The password field is required.': 'Password wajib diisi.',
-  'The password field must be at least 8 characters.': 'Password minimal 8 karakter.',
   'The password field confirmation does not match.': 'Konfirmasi password tidak cocok.',
   'The password confirmation does not match.': 'Konfirmasi password tidak cocok.',
   'The route api/auth/register could not be found.':
@@ -57,8 +60,12 @@ const ERROR_TRANSLATIONS: Record<string, string> = {
   'Not Found': 'Fitur pendaftaran belum tersedia. Hubungi administrator.',
 }
 
-function translateError(message: string): string {
-  return ERROR_TRANSLATIONS[message] ?? message
+function translateViolation(message: string): string {
+  if (ERROR_TRANSLATIONS[message]) return ERROR_TRANSLATIONS[message]
+  if (/at least \d+ characters?/i.test(message)) {
+    return 'Password belum memenuhi kebijakan keamanan (minimal 12 karakter, huruf besar, huruf kecil, angka, dan karakter spesial).'
+  }
+  return 'Data tidak valid.'
 }
 
 /** Client-side validation sebelum submit. */
@@ -71,8 +78,9 @@ function validate(): boolean {
   if (form.email.trim().length === 0) {
     fieldErrors.value['email'] = 'Email wajib diisi.'
   }
-  if (form.password.length < 8) {
-    fieldErrors.value['password'] = 'Password minimal 8 karakter.'
+  if (passwordHints.value.length > 0) {
+    fieldErrors.value['password'] =
+      'Password belum memenuhi kebijakan keamanan: ' + passwordHints.value.join(', ') + '.'
   }
   if (form.password !== form.password_confirmation) {
     fieldErrors.value['password_confirmation'] = 'Konfirmasi password tidak cocok.'
@@ -109,12 +117,15 @@ async function submit(): Promise<void> {
   } catch (error) {
     if (isValidationError(error) && error instanceof ApiError) {
       fieldErrors.value = error.violations.reduce<Record<string, string>>((acc, v) => {
-        acc[v.field] = translateError(v.message)
+        acc[v.field] = translateViolation(v.message)
         return acc
       }, {})
-      bannerError.value = translateError(error.message)
+      bannerError.value = presentSafeError(error, 'Data tidak valid.').message
     } else if (error instanceof ApiError) {
-      bannerError.value = translateError(error.message)
+      bannerError.value = presentSafeError(
+        error,
+        'Gagal mendaftarkan akun. Coba lagi beberapa saat.',
+      ).message
     } else {
       bannerError.value = 'Gagal mendaftarkan akun. Coba lagi beberapa saat.'
     }
@@ -175,7 +186,7 @@ async function submit(): Promise<void> {
         label="Password"
         type="password"
         autocomplete="new-password"
-        hint="Minimal 8 karakter."
+        hint="Minimal 12 karakter dengan huruf besar, huruf kecil, angka, dan karakter spesial."
         :required="true"
         :disabled="pending"
         :error="fieldErrors['password'] ?? null"

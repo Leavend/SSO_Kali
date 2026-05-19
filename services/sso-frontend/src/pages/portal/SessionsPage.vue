@@ -120,6 +120,12 @@ function safeError(error: unknown): string | null {
       tone="error"
       :message="safeRevokeAllError"
     />
+    <SsoAlertBanner
+      v-if="revocation.partialFailureWarning.value"
+      data-testid="sessions-partial-failure"
+      tone="warning"
+      :message="revocation.partialFailureWarning.value"
+    />
 
     <ConfirmDialog
       v-model:open="confirmSingleOpen"
