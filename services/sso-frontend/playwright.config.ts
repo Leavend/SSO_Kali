@@ -21,7 +21,7 @@ export default defineConfig({
   timeout: 30_000,
 
   use: {
-    baseURL: 'http://localhost:4173',
+    baseURL: 'http://localhost:3000',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
@@ -34,9 +34,17 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: 'npm run preview',
-    port: 4173,
+    /*
+     * Spawn the production-built BFF (same artefact deployed to staging),
+     * not `vite preview`. Vite's dev proxy re-routes /auth/* and /api/*
+     * to the BFF on :3000, so `vite preview` cannot serve auth SPA routes
+     * without that BFF being up. The built BFF passes `npm run smoke`
+     * (SPA fallback + /healthz) and is therefore the closest production
+     * stand-in for E2E.
+     */
+    command: 'npm run build && npm start',
+    url: 'http://localhost:3000/healthz',
     reuseExistingServer: !process.env['CI'],
-    timeout: 10_000,
+    timeout: 180_000,
   },
 })

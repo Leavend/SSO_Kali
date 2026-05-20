@@ -1,17 +1,14 @@
 <script setup lang="ts">
 /**
- * ForgotPasswordPage — reset password request.
+ * ForgotPasswordPage — reset password request, Aurora redesign.
  *
- * REDESIGN: Liquid Glass × Austere Precision
- * Changed: visual shell only — SsoGlassCard + SsoGlassFormField + SsoGlassButton.
- * Frozen:  usePasswordResetRequest composable, anti-enumeration response copy,
- *          all error mapping, autocomplete, redirect logic.
- * WCAG:    AA compliant.
+ * Single-step page (no stepper) so it renders its own serif headline
+ * + tagline. Frozen behaviour: usePasswordResetRequest, anti-enumeration
+ * copy, error mapping, redirect logic.
  */
 
-import { Mail, ArrowLeft } from 'lucide-vue-next'
+import { ArrowLeft, Mail } from 'lucide-vue-next'
 import SsoGlassButton from '@/components/atoms/SsoGlassButton.vue'
-import SsoGlassCard from '@/components/molecules/SsoGlassCard.vue'
 import SsoGlassFormField from '@/components/molecules/SsoGlassFormField.vue'
 import SsoAlertBanner from '@/components/molecules/SsoAlertBanner.vue'
 import { usePasswordResetRequest } from '@/composables/usePasswordLifecycle'
@@ -20,21 +17,21 @@ const reset = usePasswordResetRequest()
 </script>
 
 <template>
-  <SsoGlassCard aria-labelledby="forgot-title">
-    <template #header>
-      <h2
+  <section aria-labelledby="forgot-title" class="flex flex-col items-center gap-8">
+    <header class="flex flex-col items-center gap-3 text-center">
+      <h1
         id="forgot-title"
-        class="font-serif text-3xl font-light tracking-tight text-[var(--text-primary)] sm:text-4xl"
+        class="text-balance text-4xl font-light leading-[1.05] tracking-tight text-foreground sm:text-5xl"
         style="font-family: var(--font-serif)"
       >
         Lupa password kamu?
-      </h2>
-      <p class="text-body-sm leading-relaxed text-[var(--text-secondary)]">
+      </h1>
+      <p class="max-w-sm text-sm font-medium leading-relaxed text-muted-foreground">
         Masukkan email akun. Jika terdaftar, instruksi reset akan dikirim tanpa membuka status akun.
       </p>
-    </template>
+    </header>
 
-    <form class="grid gap-5" novalidate @submit.prevent="reset.submit">
+    <form class="flex w-full max-w-md flex-col items-stretch gap-4" novalidate @submit.prevent="reset.submit">
       <SsoAlertBanner v-if="reset.error.value" tone="error" :message="reset.error.value" />
       <SsoAlertBanner v-if="reset.success.value" tone="success" :message="reset.success.value" />
 
@@ -49,9 +46,10 @@ const reset = usePasswordResetRequest()
         :required="true"
         :disabled="reset.pending.value"
         :error="reset.fieldErrors.value['email'] ?? null"
+        :hide-label="true"
       >
         <template #leading>
-          <Mail class="size-4 shrink-0 text-[var(--text-muted)]" aria-hidden="true" />
+          <Mail class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
         </template>
       </SsoGlassFormField>
 
@@ -65,18 +63,16 @@ const reset = usePasswordResetRequest()
         <template v-if="!reset.pending.value" #leading>
           <Mail class="size-4" aria-hidden="true" />
         </template>
-        {{ reset.pending.value ? 'Mengirim…' : 'Kirim Instruksi Reset' }}
+        {{ reset.pending.value ? 'Mengirim…' : 'Kirim instruksi reset' }}
       </SsoGlassButton>
     </form>
 
-    <template #footer>
-      <RouterLink
-        :to="{ name: 'auth.login' }"
-        class="inline-flex items-center gap-1 font-medium text-brand-600 hover:underline"
-      >
-        <ArrowLeft class="size-3.5" aria-hidden="true" />
-        Kembali ke halaman masuk
-      </RouterLink>
-    </template>
-  </SsoGlassCard>
+    <RouterLink
+      :to="{ name: 'auth.login' }"
+      class="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+    >
+      <ArrowLeft class="size-3.5" aria-hidden="true" />
+      Kembali ke halaman masuk
+    </RouterLink>
+  </section>
 </template>

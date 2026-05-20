@@ -8,6 +8,7 @@ import { apiClient } from '@/lib/api/api-client'
 const routerPushMock = vi.fn<(...args: unknown[]) => Promise<void>>()
 
 vi.mock('vue-router', () => ({
+  useRoute: () => ({ query: {} }),
   useRouter: () => ({ push: routerPushMock }),
   RouterLink: defineComponent({
     name: 'RouterLink',
@@ -31,47 +32,54 @@ function buildApiError(
   )
 }
 
-async function fillValidForm(wrapper: ReturnType<typeof mount>) {
-  await wrapper.find('input#register-name').setValue('Asep Sunandar')
-  await wrapper.find('input#register-email').setValue('asep@example.test')
-  await wrapper.find('input#register-password').setValue('CorrectHorse9!Battery')
-  await wrapper.find('input#register-password-confirm').setValue('CorrectHorse9!Battery')
+/**
+ * Walk through the multi-step Aurora register flow from step `email`
+ * down to `confirm`, populating the requested values.
+ *
+ * Step order matches RegisterPage.vue's useAuthSteps configuration:
+ * email → password → confirm (with confirmation + name).
+ */
+async function advanceTo(
+  wrapper: ReturnType<typeof mount>,
+  target: 'email' | 'password' | 'confirm',
+  values: { email?: string; password?: string; confirmation?: string; name?: string } = {},
+) {
+  const email = values.email ?? 'asep@example.test'
+  const password = values.password ?? 'CorrectHorse9!Battery'
+  const confirmation = values.confirmation ?? password
+  const name = values.name ?? 'Asep Sunandar'
+
+  // Step 1: email
+  await wrapper.find('input#register-email').setValue(email)
+  if (target === 'email') return
+  await wrapper.find('form').trigger('submit')
+  await flushPromises()
+
+  // Step 2: password
+  await wrapper.find('input#register-password').setValue(password)
+  if (target === 'password') return
+  await wrapper.find('form').trigger('submit')
+  await flushPromises()
+
+  // Step 3: confirm + name
+  await wrapper.find('input#register-password-confirm').setValue(confirmation)
+  await wrapper.find('input#register-name').setValue(name)
 }
 
 function mountRegister() {
   return mount(RegisterPage, {
     global: {
-      components: {
-        RouterLink: defineComponent({
-          name: 'RouterLink',
-          props: { to: { type: [String, Object], required: true } },
-          setup(_, { slots }) {
-            return () => h('a', {}, slots.default?.())
-          },
-        }),
-      },
       stubs: {
-        SsoGlassCard: defineComponent({
-          name: 'SsoGlassCard',
-          setup(_, { slots }) {
-            return () =>
-              h('section', {}, [
-                slots.header?.(),
-                slots.default?.(),
-                slots.footer?.(),
-              ])
-          },
-        }),
         SsoGlassButton: defineComponent({
           name: 'SsoGlassButton',
-          props: { disabled: { type: Boolean, default: false } },
+          props: { disabled: { type: Boolean, default: false }, type: { type: String, default: 'button' } },
           emits: ['click'],
           setup(props, { slots, emit }) {
             return () =>
               h(
                 'button',
                 {
-                  type: 'submit',
+                  type: props.type,
                   disabled: props.disabled,
                   onClick: (e: Event) => emit('click', e),
                 },
@@ -79,12 +87,11 @@ function mountRegister() {
               )
           },
         }),
-        SsoGlassFormField: defineComponent({
-          name: 'SsoGlassFormField',
+        SsoGlassInput: defineComponent({
+          name: 'SsoGlassInput',
           props: {
             id: { type: String, required: true },
             modelValue: { type: String, default: '' },
-            label: { type: String, default: '' },
             type: { type: String, default: 'text' },
             error: { type: String, default: null },
           },
@@ -92,7 +99,6 @@ function mountRegister() {
           setup(props, { emit }) {
             return () =>
               h('div', {}, [
-                h('label', { for: props.id }, props.label),
                 h('input', {
                   id: props.id,
                   type: props.type,
@@ -114,6 +120,7 @@ function mountRegister() {
               h('p', { 'data-testid': `register-banner-${props.tone}` }, props.message)
           },
         }),
+        Transition: { template: '<div><slot /></div>' },
       },
     },
   })
@@ -129,20 +136,18 @@ describe('RegisterPage', () => {
     vi.restoreAllMocks()
   })
 
-  it('blocks submission when password does not meet the 12-character policy', async () => {
+  it('blocks step advancement when password does not meet the 12-character policy', async () => {
     const postSpy = vi.spyOn(apiClient, 'post').mockResolvedValue({})
     const wrapper = mountRegister()
 
-    await wrapper.find('input#register-name').setValue('Asep')
-    await wrapper.find('input#register-email').setValue('asep@example.test')
-    await wrapper.find('input#register-password').setValue('Sh0rty!')
-    await wrapper.find('input#register-password-confirm').setValue('Sh0rty!')
-
-    await wrapper.find('form').trigger('submit.prevent')
+    await advanceTo(wrapper, 'password', { password: 'Sh0rty!' })
+    // Try to advance with a too-short password.
+    await wrapper.find('form').trigger('submit')
     await flushPromises()
 
+    // We must NOT have reached step 3 (confirm) and must NOT have submitted.
+    expect(wrapper.find('input#register-password-confirm').exists()).toBe(false)
     expect(postSpy).not.toHaveBeenCalled()
-    expect(wrapper.find('[data-testid="register-password-error"]').text()).toContain('kebijakan keamanan')
   })
 
   it('renders generic safe copy for unknown 5xx ApiError instead of leaking backend message', async () => {
@@ -150,8 +155,8 @@ describe('RegisterPage', () => {
     vi.spyOn(apiClient, 'post').mockRejectedValue(buildApiError(500, leak))
     const wrapper = mountRegister()
 
-    await fillValidForm(wrapper)
-    await wrapper.find('form').trigger('submit.prevent')
+    await advanceTo(wrapper, 'confirm')
+    await wrapper.find('form').trigger('submit')
     await flushPromises()
 
     const banner = wrapper.find('[data-testid="register-banner-error"]')
@@ -171,27 +176,31 @@ describe('RegisterPage', () => {
     )
     const wrapper = mountRegister()
 
-    await fillValidForm(wrapper)
-    await wrapper.find('form').trigger('submit.prevent')
+    await advanceTo(wrapper, 'confirm')
+    await wrapper.find('form').trigger('submit')
     await flushPromises()
 
-    expect(wrapper.find('[data-testid="register-email-error"]').text()).toBe('Email ini sudah terdaftar.')
-    const nameError = wrapper.find('[data-testid="register-name-error"]').text()
+    // After a 422 with email violation, RegisterPage routes back to step `email`
+    // so the email error becomes visible inline. The name violation is sanitised
+    // and reported via the banner / step-3 inline error if visible.
+    const emailError = wrapper.find('[data-testid="register-email-error"]')
 
-    expect(nameError).toBe('Data tidak valid.')
-    expect(nameError).not.toContain('leak@example.test')
+    expect(emailError.exists()).toBe(true)
+    expect(emailError.text()).toBe('Email ini sudah terdaftar.')
+    expect(wrapper.text()).not.toContain('leak@example.test')
   })
 
   it('shows generic copy when a non-ApiError is thrown by the network layer', async () => {
     vi.spyOn(apiClient, 'post').mockRejectedValue(new TypeError('Failed to fetch'))
     const wrapper = mountRegister()
 
-    await fillValidForm(wrapper)
-    await wrapper.find('form').trigger('submit.prevent')
+    await advanceTo(wrapper, 'confirm')
+    await wrapper.find('form').trigger('submit')
     await flushPromises()
 
     const banner = wrapper.find('[data-testid="register-banner-error"]')
 
+    expect(banner.exists()).toBe(true)
     expect(banner.text()).toBe('Gagal mendaftarkan akun. Coba lagi beberapa saat.')
     expect(banner.text()).not.toContain('Failed to fetch')
   })

@@ -31,6 +31,13 @@ const props = withDefaults(
     autofocus?: boolean
     autocomplete?: string
     inputmode?: 'text' | 'email' | 'numeric' | 'tel' | 'url'
+    /**
+     * Hide the visible label but keep it for assistive tech (sr-only).
+     * Use ONLY when placeholder + leading icon already convey purpose
+     * AND when hint copy is sufficient. WCAG 1.3.1 still satisfied via
+     * the rendered <label for=id>.
+     */
+    hideLabel?: boolean
     class?: HTMLAttributes['class']
   }>(),
   {
@@ -43,6 +50,7 @@ const props = withDefaults(
     autofocus: false,
     autocomplete: undefined,
     inputmode: undefined,
+    hideLabel: false,
     class: undefined,
   },
 )
@@ -66,6 +74,7 @@ const ariaDescribedby = computed<string | undefined>(() => {
       :class="
         cn(
           'font-sans font-semibold text-xs tracking-wide',
+          props.hideLabel && 'sr-only',
           hasError ? 'text-error-700' : 'text-[var(--text-secondary)]',
         )
       "

@@ -98,7 +98,7 @@ function toggleReveal(): void {
       :class="
         cn(
           // Pill shape adds vibrant Liquid Glass surface.
-          props.pill && 'sso-glass-pill',
+          props.pill && 'sso-glass-pill sso-glass-input',
           'relative flex items-center gap-2 px-5 h-12 border',
           props.pill
             ? 'rounded-[var(--radius-glass-pill)]'
@@ -109,6 +109,7 @@ function toggleReveal(): void {
           props.pill && 'border-transparent',
           // Focus-within: brand glass focus ring
           !hasError &&
+            !props.pill &&
             'focus-within:shadow-[var(--ring-glass-focus)] focus-within:bg-[var(--glass-bg-elevated)]',
           !hasError && !props.pill && 'focus-within:border-[var(--glass-border-brand)]',
           // Error
@@ -119,7 +120,9 @@ function toggleReveal(): void {
         )
       "
     >
-      <slot name="leading" />
+      <span v-if="$slots.leading" class="sso-pill-leading" data-pill-icon>
+        <slot name="leading" />
+      </span>
 
       <input
         :id="props.id"
@@ -150,14 +153,16 @@ function toggleReveal(): void {
         :aria-label="toggleLabel"
         :aria-pressed="revealed"
         :disabled="props.disabled"
-        class="text-[var(--text-muted)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:shadow-[var(--ring-glass-focus)] relative z-[2] inline-flex size-8 shrink-0 items-center justify-center rounded-full transition-colors disabled:opacity-40"
+        class="sso-pill-eye-button text-[var(--text-muted)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:shadow-[var(--ring-glass-focus)] relative z-[2] inline-flex size-8 shrink-0 items-center justify-center rounded-full transition-colors disabled:opacity-40"
         @click="toggleReveal"
       >
         <EyeOff v-if="revealed" class="size-4" aria-hidden="true" />
         <Eye v-else class="size-4" aria-hidden="true" />
       </button>
 
-      <slot name="trailing" />
+      <span v-if="$slots.trailing" class="sso-pill-trailing">
+        <slot name="trailing" />
+      </span>
     </div>
 
     <Transition
