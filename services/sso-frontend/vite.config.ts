@@ -15,6 +15,9 @@ export default defineConfig({
 			),
 		},
 	},
+	optimizeDeps: {
+		exclude: ["tailwind-merge"],
+	},
 	build: {
 		outDir: "dist/client",
 		emptyOutDir: true,

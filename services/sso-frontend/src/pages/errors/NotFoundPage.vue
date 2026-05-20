@@ -1,42 +1,31 @@
 <script setup lang="ts">
 /**
- * NotFoundPage — 404 fallback inside AuthLayout.
+ * NotFoundPage — 404 fallback inside AuthLayout, Aurora redesign.
  *
- * REDESIGN: Liquid Glass × Austere Precision
- * Changed: visual shell only.
- * Frozen:  routing destinations.
+ * Frozen behaviour: routing destinations.
  */
 
-import { AlertTriangle, ArrowLeft, Home } from 'lucide-vue-next'
+import { ArrowLeft, Home } from 'lucide-vue-next'
 import SsoGlassButton from '@/components/atoms/SsoGlassButton.vue'
-import SsoGlassCard from '@/components/molecules/SsoGlassCard.vue'
 </script>
 
 <template>
-  <SsoGlassCard aria-labelledby="notfound-title">
-    <template #header>
-      <div class="flex flex-col items-center gap-3 text-center">
-        <span
-          class="grid size-12 place-items-center rounded-[var(--radius-glass-xl)] border border-[var(--glass-border-error)] bg-[color-mix(in_oklch,var(--color-error-50)_60%,transparent)] text-error-700"
-          aria-hidden="true"
-        >
-          <AlertTriangle class="size-5" />
-        </span>
-        <h2
-          id="notfound-title"
-          class="font-serif text-3xl font-light tracking-tight text-[var(--text-primary)] sm:text-4xl"
-          style="font-family: var(--font-serif)"
-        >
-          Halaman tidak ditemukan
-        </h2>
-        <p class="text-body-sm leading-relaxed text-[var(--text-secondary)]">
-          URL yang kamu buka tidak terdaftar di portal. Kembali ke beranda atau halaman masuk untuk
-          melanjutkan.
-        </p>
-      </div>
-    </template>
+  <section aria-labelledby="notfound-title" class="flex flex-col items-center gap-8 text-center">
+    <header class="flex flex-col items-center gap-3">
+      <h1
+        id="notfound-title"
+        class="text-balance text-6xl font-light leading-none tracking-tight text-foreground sm:text-8xl"
+        style="font-family: var(--font-serif)"
+      >
+        404
+      </h1>
+      <p class="max-w-sm text-sm font-medium leading-relaxed text-muted-foreground">
+        Halaman yang kamu cari tidak terdaftar di portal. Kembali ke beranda atau halaman masuk
+        untuk melanjutkan.
+      </p>
+    </header>
 
-    <div class="grid gap-3 sm:grid-cols-2">
+    <div class="grid w-full max-w-md gap-3 sm:grid-cols-2">
       <SsoGlassButton variant="vibrant" size="fullWidth" @click="$router.push('/home')">
         <template #leading>
           <Home class="size-4" aria-hidden="true" />
@@ -47,8 +36,8 @@ import SsoGlassCard from '@/components/molecules/SsoGlassCard.vue'
         <template #leading>
           <ArrowLeft class="size-4" aria-hidden="true" />
         </template>
-        Halaman Masuk
+        Halaman masuk
       </SsoGlassButton>
     </div>
-  </SsoGlassCard>
+  </section>
 </template>

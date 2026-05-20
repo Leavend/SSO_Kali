@@ -1,21 +1,19 @@
 <script setup lang="ts">
 /**
- * MfaChallengePage — FR-019 / UC-67 MFA verification at login.
+ * MfaChallengePage — FR-019 / UC-67 MFA verification at login, Aurora redesign.
  *
- * REDESIGN: Liquid Glass × Austere Precision
- * Changed: visual shell only — SsoGlassCard + SsoGlassButton (primary CTA + ghost back link).
- *          Method selector remains as two visual segments. MfaTotpInput,
- *          MfaRecoveryInput, MfaChallengeTimer kept untouched (organism-level).
- * Frozen:  useMfaChallenge composable, autocomplete="one-time-code", auto-submit
- *          on 6-digit completion, expiry handling, resend cooldown, redirect on cancel.
- * WCAG:    AA compliant.
+ * Single-step page that renders its own headline. Method selector + organisms
+ * preserved (MfaTotpInput, MfaRecoveryInput, MfaChallengeTimer).
+ *
+ * Frozen behaviour: useMfaChallenge composable, autocomplete="one-time-code",
+ * auto-submit on 6-digit completion, expiry handling, resend cooldown,
+ * redirect on cancel.
  */
 
 import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowLeft, Key, Shield } from 'lucide-vue-next'
 import SsoGlassButton from '@/components/atoms/SsoGlassButton.vue'
-import SsoGlassCard from '@/components/molecules/SsoGlassCard.vue'
 import SsoAlertBanner from '@/components/molecules/SsoAlertBanner.vue'
 import MfaTotpInput from '@/components/mfa/MfaTotpInput.vue'
 import MfaRecoveryInput from '@/components/mfa/MfaRecoveryInput.vue'
@@ -35,21 +33,21 @@ onMounted(() => {
 </script>
 
 <template>
-  <SsoGlassCard aria-labelledby="mfa-title">
-    <template #header>
-      <h2
+  <section aria-labelledby="mfa-title" class="flex flex-col items-center gap-8">
+    <header class="flex flex-col items-center gap-3 text-center">
+      <h1
         id="mfa-title"
-        class="font-serif text-3xl font-light tracking-tight text-[var(--text-primary)] sm:text-4xl"
+        class="text-balance text-4xl font-light leading-[1.05] tracking-tight text-foreground sm:text-5xl"
         style="font-family: var(--font-serif)"
       >
-        Verifikasi identitasmu
-      </h2>
-      <p class="text-body-sm leading-relaxed text-[var(--text-secondary)]">
+        Verifikasi keamanan
+      </h1>
+      <p class="max-w-sm text-sm font-medium leading-relaxed text-muted-foreground">
         Masukkan kode dari aplikasi authenticator atau gunakan recovery code.
       </p>
-    </template>
+    </header>
 
-    <form class="grid gap-5" novalidate @submit.prevent="mfa.submit">
+    <form class="flex w-full max-w-md flex-col items-stretch gap-4" novalidate @submit.prevent="mfa.submit">
       <SsoAlertBanner v-if="mfa.error.value" tone="error" :message="mfa.error.value" />
 
       <MfaChallengeTimer
@@ -58,7 +56,6 @@ onMounted(() => {
         @expired="mfa.cancel"
       />
 
-      <!-- Method selector — dua segmen yang setara secara visual -->
       <div class="flex gap-2" role="group" aria-label="Pilih metode verifikasi">
         <SsoGlassButton
           type="button"
@@ -110,19 +107,15 @@ onMounted(() => {
       >
         {{ mfa.pending.value ? 'Memverifikasi…' : 'Verifikasi' }}
       </SsoGlassButton>
-
-      <SsoGlassButton
-        type="button"
-        variant="ghost"
-        size="sm"
-        class="justify-center"
-        @click="mfa.cancel"
-      >
-        <template #leading>
-          <ArrowLeft class="size-3.5" aria-hidden="true" />
-        </template>
-        Kembali ke halaman masuk
-      </SsoGlassButton>
     </form>
-  </SsoGlassCard>
+
+    <button
+      type="button"
+      class="inline-flex items-center justify-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+      @click="mfa.cancel"
+    >
+      <ArrowLeft class="size-3.5" aria-hidden="true" />
+      Kembali ke halaman masuk
+    </button>
+  </section>
 </template>
