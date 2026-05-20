@@ -237,6 +237,37 @@ jobs:
             "install -m 0600 /tmp/sso-backend-deploy/.env.prod '${{ env.VPS_PROJECT_DIR }}/.env.prod'"
           rm -f /tmp/sso-backend.env.prod
 
+      - name: Login VPS to GHCR
+        shell: bash
+        env:
+          GHCR_USERNAME: ${{ secrets.GHCR_USERNAME || github.actor }}
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN || secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "${GHCR_USERNAME}" || { echo "GHCR username is required" >&2; exit 1; }
+          test -n "${GHCR_TOKEN}" || { echo "GHCR token is required" >&2; exit 1; }
+
+          for attempt in 1 2 3 4 5; do
+            if printf '%s' "${GHCR_TOKEN}" | ssh -i ~/.ssh/deploy_key -p "${{ env.VPS_SSH_PORT }}" \
+              -o BatchMode=yes \
+              -o ConnectTimeout=45 \
+              -o ConnectionAttempts=3 \
+              -o StrictHostKeyChecking=accept-new \
+              -o ServerAliveInterval=10 \
+              -o ServerAliveCountMax=3 \
+              "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+              "set -euo pipefail
+               export DOCKER_CONFIG='/tmp/sso-backend-deploy/.docker'
+               mkdir -p \"\${DOCKER_CONFIG}\"
+               chmod 0700 \"\${DOCKER_CONFIG}\"
+               docker login '${{ env.REGISTRY }}' -u '${GHCR_USERNAME}' --password-stdin"; then
+              exit 0
+            fi
+            echo "ghcr login attempt ${attempt} failed; retrying in 10s..." >&2
+            sleep 10
+          done
+          exit 1
+
       - name: Execute deploy on VPS
         shell: bash
         run: |
@@ -246,7 +277,16 @@ jobs:
              DEPLOY_TAG='${{ steps.tag.outputs.tag }}' \
              PROJECT_DIR='${{ env.VPS_PROJECT_DIR }}' \
              COMPOSE_PROJECT_NAME='${{ env.COMPOSE_PROJECT_NAME }}' \
+             DOCKER_CONFIG='/tmp/sso-backend-deploy/.docker' \
              bash '${{ env.VPS_PROJECT_DIR }}/scripts/vps-deploy-main.sh'"
+
+      - name: Cleanup VPS GHCR credentials
+        if: always()
+        shell: bash
+        run: |
+          source /tmp/sso-backend-ssh-helpers.sh
+          ssh_with_retry "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+            "rm -rf /tmp/sso-backend-deploy/.docker"
 
       - name: Apply operational route optimization on VPS
         if: ${{ vars.SSO_APPLY_OPERATIONAL_ROUTE_OPTIMIZATION != 'false' }}
