@@ -57,6 +57,8 @@ onBeforeUnmount(() => {
     :class="isUrgent ? 'bg-destructive/10 text-destructive' : 'bg-muted text-muted-foreground'"
   >
     <Clock class="size-4 shrink-0" aria-hidden="true" />
-    <span>Sisa waktu verifikasi: <strong>{{ formattedTime }}</strong></span>
+    <span
+      >Sisa waktu verifikasi: <strong>{{ formattedTime }}</strong></span
+    >
   </div>
 </template>

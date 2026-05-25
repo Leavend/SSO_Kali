@@ -24,7 +24,10 @@ export async function readSessionRecord(sessionId: string): Promise<PortalSessio
   return session
 }
 
-export async function replaceSessionRecord(sessionId: string, session: PortalSession): Promise<void> {
+export async function replaceSessionRecord(
+  sessionId: string,
+  session: PortalSession,
+): Promise<void> {
   await writeSessionRecord(sessionId, session)
 }
 
@@ -41,7 +44,8 @@ export function sessionStoreKey(sessionId: string): string {
 async function writeSessionRecord(sessionId: string, session: PortalSession): Promise<void> {
   memorySessions.set(sessionId, session)
   const client = await redis()
-  if (client) await client.set(sessionStoreKey(sessionId), JSON.stringify(session), { EX: maxAge(session) })
+  if (client)
+    await client.set(sessionStoreKey(sessionId), JSON.stringify(session), { EX: maxAge(session) })
 }
 
 async function readPersistedSession(sessionId: string): Promise<PortalSession | null> {
@@ -64,11 +68,16 @@ async function redis(): Promise<RedisClientType | null> {
   if (!sessionRedisUrl) return null
 
   redisClient = createClient({ url: sessionRedisUrl })
-  redisClient.on('error', (error: Error) => console.error('Portal session Redis error:', error.message))
+  redisClient.on('error', (error: Error) =>
+    console.error('Portal session Redis error:', error.message),
+  )
   await redisClient.connect()
   return redisClient
 }
 
 function maxAge(session: PortalSession): number {
-  return Math.max(1, Math.min(getConfig().sessionIdleTtlSeconds, session.absoluteExpiresAt - unixTime()))
+  return Math.max(
+    1,
+    Math.min(getConfig().sessionIdleTtlSeconds, session.absoluteExpiresAt - unixTime()),
+  )
 }

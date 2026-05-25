@@ -13,6 +13,7 @@
 import { onBeforeUnmount, onMounted } from 'vue'
 import { useDocumentVisibility, useIntervalFn } from '@vueuse/core'
 import { useSessionStore } from '@/stores/session.store'
+import { isPortalPreviewBypassEnabled } from '@/lib/portal-preview'
 
 const DEFAULT_INTERVAL_MS = 60_000 as const
 
@@ -22,6 +23,8 @@ export type UseSessionHeartbeatOptions = {
 }
 
 export function useSessionHeartbeat(options: UseSessionHeartbeatOptions = {}): void {
+  if (isPortalPreviewBypassEnabled()) return
+
   const interval = options.intervalMs ?? DEFAULT_INTERVAL_MS
   const session = useSessionStore()
   const visibility = useDocumentVisibility()

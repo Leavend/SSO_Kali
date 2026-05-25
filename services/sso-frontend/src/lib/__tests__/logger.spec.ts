@@ -16,7 +16,9 @@ describe('logger', () => {
   it('logger.error outputs to console.error', () => {
     logger.error('Something broke', { component: 'LoginPage' })
     expect(console.error).toHaveBeenCalledTimes(1)
-    expect((console.error as ReturnType<typeof vi.fn>).mock.calls[0]![0]).toContain('Something broke')
+    expect((console.error as ReturnType<typeof vi.fn>).mock.calls[0]![0]).toContain(
+      'Something broke',
+    )
     expect((console.error as ReturnType<typeof vi.fn>).mock.calls[0]![0]).toContain('ERROR')
   })
 
@@ -43,13 +45,17 @@ describe('logger', () => {
     const error = new Error('Network timeout')
     logger.captureException(error, { endpoint: '/api/auth/session' })
     expect(console.error).toHaveBeenCalledTimes(1)
-    expect((console.error as ReturnType<typeof vi.fn>).mock.calls[0]![0]).toContain('Network timeout')
+    expect((console.error as ReturnType<typeof vi.fn>).mock.calls[0]![0]).toContain(
+      'Network timeout',
+    )
   })
 
   it('captureException handles non-Error values', () => {
     logger.captureException('raw string error')
     expect(console.error).toHaveBeenCalledTimes(1)
-    expect((console.error as ReturnType<typeof vi.fn>).mock.calls[0]![0]).toContain('raw string error')
+    expect((console.error as ReturnType<typeof vi.fn>).mock.calls[0]![0]).toContain(
+      'raw string error',
+    )
   })
 
   it('setUser does not throw when Sentry is not available', () => {

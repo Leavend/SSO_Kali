@@ -63,7 +63,10 @@ const palette = computed<AuroraPalette>(() => PRESETS[props.preset])
 </script>
 
 <template>
-  <div aria-hidden="true" class="sso-aurora-svg pointer-events-none absolute inset-0 overflow-hidden">
+  <div
+    aria-hidden="true"
+    class="sso-aurora-svg pointer-events-none absolute inset-0 overflow-hidden"
+  >
     <svg
       width="100%"
       height="100%"

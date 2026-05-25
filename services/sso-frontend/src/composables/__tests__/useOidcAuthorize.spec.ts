@@ -28,7 +28,11 @@ function stubDiscovery(
 describe('useOidcAuthorize', () => {
   beforeEach(() => {
     windowAssignMock.mockReset()
-    vi.stubGlobal('location', { ...window.location, assign: windowAssignMock, origin: 'https://sso.test' })
+    vi.stubGlobal('location', {
+      ...window.location,
+      assign: windowAssignMock,
+      origin: 'https://sso.test',
+    })
     vi.stubEnv('VITE_OIDC_ISSUER', 'https://sso.example.com')
     vi.stubEnv('VITE_OIDC_CLIENT_ID', 'portal-client')
     vi.stubEnv('VITE_OIDC_REDIRECT_URI', 'https://sso.test/auth/callback')

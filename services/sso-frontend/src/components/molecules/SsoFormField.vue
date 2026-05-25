@@ -6,7 +6,7 @@
  * Error message terhubung otomatis lewat aria-describedby.
  */
 
-import { computed } from 'vue'
+import { computed, useSlots } from 'vue'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
@@ -24,6 +24,7 @@ const props = withDefaults(
     hint?: string
     error?: string | null
     disabled?: boolean
+    readonly?: boolean
     required?: boolean
     autofocus?: boolean
     inputmode?: 'text' | 'email' | 'numeric' | 'tel' | 'url'
@@ -39,6 +40,7 @@ const props = withDefaults(
     hint: undefined,
     error: null,
     disabled: false,
+    readonly: false,
     required: false,
     autofocus: false,
     inputmode: undefined,
@@ -57,13 +59,16 @@ const describedById = computed<string | undefined>(() => {
   return undefined
 })
 
+const slots = useSlots()
+
 const hasError = computed<boolean>(() => Boolean(props.error))
+const hasLabel = computed<boolean>(() => Boolean(props.label || slots.label))
 </script>
 
 <template>
   <div :class="cn('grid gap-1.5', props.class)">
-    <Label :for="props.id" :class="hasError ? 'text-error-700' : ''">
-      {{ props.label }}
+    <Label v-if="hasLabel" :for="props.id" :class="hasError ? 'text-error-700' : ''">
+      <slot name="label">{{ props.label }}</slot>
       <span v-if="props.required" aria-hidden="true" class="text-error-700">*</span>
     </Label>
     <div class="relative">
@@ -74,13 +79,21 @@ const hasError = computed<boolean>(() => Boolean(props.error))
         :autocomplete="props.autocomplete"
         :placeholder="props.placeholder"
         :disabled="props.disabled"
+        :readonly="props.readonly"
         :required="props.required"
         :autofocus="props.autofocus"
         :inputmode="props.inputmode"
         :aria-invalid="hasError || undefined"
         :aria-required="props.required || undefined"
         :aria-describedby="describedById"
-        :class="cn(hasError ? 'border-error-700 focus-visible:border-error-700 focus-visible:ring-error-700/30' : '', props.inputClass)"
+        :class="
+          cn(
+            hasError
+              ? 'border-error-700 focus-visible:border-error-700 focus-visible:ring-error-700/30'
+              : '',
+            props.inputClass,
+          )
+        "
         @update:model-value="emit('update:modelValue', String($event))"
       />
       <slot name="suffix" />

@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { SSO_PORTAL_SESSION_COOKIE, hostCookieOptions, readCookie, serializeCookie } from '../server/cookies'
+import {
+  SSO_PORTAL_SESSION_COOKIE,
+  hostCookieOptions,
+  readCookie,
+  serializeCookie,
+} from '../server/cookies'
 import type { IncomingMessage } from 'node:http'
 
 describe('session cookies', () => {

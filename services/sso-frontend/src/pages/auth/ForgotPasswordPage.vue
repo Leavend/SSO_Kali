@@ -27,11 +27,16 @@ const reset = usePasswordResetRequest()
         Lupa password kamu?
       </h1>
       <p class="max-w-sm text-sm font-medium leading-relaxed text-muted-foreground">
-        Masukkan email akun. Jika terdaftar, instruksi reset akan dikirim tanpa membuka status akun.
+        Masukkan email akun. Jika terdaftar, kami akan mengirimkan instruksi reset tanpa membuka
+        status akun.
       </p>
     </header>
 
-    <form class="flex w-full max-w-md flex-col items-stretch gap-4" novalidate @submit.prevent="reset.submit">
+    <form
+      class="flex w-full max-w-md flex-col items-stretch gap-4"
+      novalidate
+      @submit.prevent="reset.submit"
+    >
       <SsoAlertBanner v-if="reset.error.value" tone="error" :message="reset.error.value" />
       <SsoAlertBanner v-if="reset.success.value" tone="success" :message="reset.success.value" />
 

@@ -15,9 +15,7 @@ export type UseNetworkStatusReturn = {
 }
 
 export function useNetworkStatus(): UseNetworkStatusReturn {
-  const isOnline = ref<boolean>(
-    typeof navigator !== 'undefined' ? navigator.onLine : true,
-  )
+  const isOnline = ref<boolean>(typeof navigator !== 'undefined' ? navigator.onLine : true)
 
   function handleOnline(): void {
     isOnline.value = true

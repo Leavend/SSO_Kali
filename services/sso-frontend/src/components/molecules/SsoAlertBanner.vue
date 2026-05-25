@@ -21,10 +21,16 @@ const props = withDefaults(
 )
 
 const toneClass = computed<string>(() => {
-  if (props.tone === 'success') return 'border-success-700/40 bg-success-50 text-success-700'
-  if (props.tone === 'warning') return 'border-warning-800/40 bg-warning-50 text-warning-800'
-  if (props.tone === 'info') return 'border-info-700/40 bg-info-50 text-info-700'
-  return 'border-error-700/40 bg-error-50 text-error-700'
+  if (props.tone === 'success') {
+    return 'border-success-700/40 bg-success-50 text-success-700 dark:border-success-700/50 dark:bg-success-950/30 dark:text-success-300'
+  }
+  if (props.tone === 'warning') {
+    return 'border-warning-800/40 bg-warning-50 text-warning-800 dark:border-warning-700/50 dark:bg-warning-950/30 dark:text-warning-200'
+  }
+  if (props.tone === 'info') {
+    return 'border-info-700/40 bg-info-50 text-info-700 dark:border-info-700/50 dark:bg-info-950/30 dark:text-info-200'
+  }
+  return 'border-error-700/40 bg-error-50 text-error-700 dark:border-error-700/50 dark:bg-error-950/30 dark:text-error-300'
 })
 
 const Icon = computed(() => {

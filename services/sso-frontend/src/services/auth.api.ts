@@ -26,10 +26,14 @@ export const authApi = {
   logout(): Promise<SsoLogoutResponse> {
     return apiClient.post<SsoLogoutResponse>('/api/auth/logout')
   },
-  requestPasswordReset(payload: PasswordResetRequestPayload): Promise<PasswordResetRequestResponse> {
+  requestPasswordReset(
+    payload: PasswordResetRequestPayload,
+  ): Promise<PasswordResetRequestResponse> {
     return apiClient.post<PasswordResetRequestResponse>('/api/auth/password-reset', payload)
   },
-  confirmPasswordReset(payload: PasswordResetConfirmPayload): Promise<PasswordResetConfirmResponse> {
+  confirmPasswordReset(
+    payload: PasswordResetConfirmPayload,
+  ): Promise<PasswordResetConfirmResponse> {
     return apiClient.post<PasswordResetConfirmResponse>('/api/auth/password-reset/confirm', payload)
   },
 }

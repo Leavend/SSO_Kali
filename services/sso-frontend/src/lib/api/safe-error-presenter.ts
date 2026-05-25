@@ -43,5 +43,7 @@ function fallbackStatusMessage(status: number): string {
 }
 
 function looksTechnical(message: string): boolean {
-  return /SQLSTATE\[/i.test(message) || /Stack trace:/i.test(message) || /PDOException/i.test(message)
+  return (
+    /SQLSTATE\[/i.test(message) || /Stack trace:/i.test(message) || /PDOException/i.test(message)
+  )
 }

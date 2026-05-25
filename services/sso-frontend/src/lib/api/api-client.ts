@@ -102,7 +102,10 @@ function resolveSignal(options: RequestOptions): {
   }
 
   const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(new DOMException('Request timeout', 'TimeoutError')), timeout)
+  const timer = setTimeout(
+    () => controller.abort(new DOMException('Request timeout', 'TimeoutError')),
+    timeout,
+  )
 
   if (options.signal) {
     if (options.signal.aborted) {

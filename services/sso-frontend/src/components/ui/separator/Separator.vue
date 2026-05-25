@@ -3,13 +3,10 @@ import type { HTMLAttributes } from 'vue'
 import { Separator, type SeparatorProps } from 'reka-ui'
 import { cn } from '@/lib/utils'
 
-const props = withDefaults(
-  defineProps<SeparatorProps & { class?: HTMLAttributes['class'] }>(),
-  {
-    orientation: 'horizontal',
-    decorative: true,
-  },
-)
+const props = withDefaults(defineProps<SeparatorProps & { class?: HTMLAttributes['class'] }>(), {
+  orientation: 'horizontal',
+  decorative: true,
+})
 </script>
 
 <template>

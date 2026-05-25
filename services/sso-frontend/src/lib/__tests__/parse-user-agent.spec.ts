@@ -65,7 +65,11 @@ describe('parseUserAgent', () => {
 
   it('returns unknown for null/undefined', () => {
     expect(parseUserAgent(null)).toEqual({ browser: 'Unknown', os: 'Unknown', device: 'unknown' })
-    expect(parseUserAgent(undefined)).toEqual({ browser: 'Unknown', os: 'Unknown', device: 'unknown' })
+    expect(parseUserAgent(undefined)).toEqual({
+      browser: 'Unknown',
+      os: 'Unknown',
+      device: 'unknown',
+    })
   })
 
   it('returns unknown for empty string', () => {

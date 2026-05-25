@@ -43,11 +43,15 @@ onMounted(() => {
         Verifikasi keamanan
       </h1>
       <p class="max-w-sm text-sm font-medium leading-relaxed text-muted-foreground">
-        Masukkan kode dari aplikasi authenticator atau gunakan recovery code.
+        Masukkan kode dari aplikasi autentikasi atau gunakan kode cadangan.
       </p>
     </header>
 
-    <form class="flex w-full max-w-md flex-col items-stretch gap-4" novalidate @submit.prevent="mfa.submit">
+    <form
+      class="flex w-full max-w-md flex-col items-stretch gap-4"
+      novalidate
+      @submit.prevent="mfa.submit"
+    >
       <SsoAlertBanner v-if="mfa.error.value" tone="error" :message="mfa.error.value" />
 
       <MfaChallengeTimer
@@ -68,7 +72,7 @@ onMounted(() => {
           <template #leading>
             <Shield class="size-4" aria-hidden="true" />
           </template>
-          Authenticator
+          Aplikasi Autentikasi
         </SsoGlassButton>
         <SsoGlassButton
           type="button"

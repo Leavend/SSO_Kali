@@ -7,13 +7,14 @@
  */
 
 import { computed, onMounted } from 'vue'
-import { LogOut, Monitor } from 'lucide-vue-next'
+import { Activity, Monitor } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import ConfirmDialog from '@/components/molecules/ConfirmDialog.vue'
 import SessionCard from '@/components/molecules/SessionCard.vue'
 import SsoAlertBanner from '@/components/molecules/SsoAlertBanner.vue'
+import PortalPageHeader from '@/components/molecules/PortalPageHeader.vue'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useSessionRevocation } from '@/composables/useSessionRevocation'
 import { useProfileStore } from '@/stores/profile.store'
@@ -24,11 +25,19 @@ const load = useAsyncAction(() => profile.loadSessions())
 
 const revocation = useSessionRevocation()
 
-const sessions = computed(() => profile.sessions)
+const sortedSessions = computed(() => [...profile.sessions].sort(compareSessions))
+const sessions = computed(() => sortedSessions.value)
+const currentSession = computed(() => sessions.value.find((session) => session.is_current) ?? null)
+const otherSessions = computed(() => sessions.value.filter((session) => !session.is_current))
+const currentIp = computed<string | null>(() => currentSession.value?.ip_address ?? null)
 const isEmpty = computed<boolean>(() => !load.pending.value && sessions.value.length === 0)
 const safeLoadError = computed<string | null>(() => safeError(load.error.value))
-const safeRevokeOneError = computed<string | null>(() => safeError(revocation.revokeOne.error.value))
-const safeRevokeAllError = computed<string | null>(() => safeError(revocation.revokeAll.error.value))
+const safeRevokeOneError = computed<string | null>(() =>
+  safeError(revocation.revokeOne.error.value),
+)
+const safeRevokeAllError = computed<string | null>(() =>
+  safeError(revocation.revokeAll.error.value),
+)
 
 const confirmSingleOpen = computed({
   get: () => revocation.confirmSingleOpen.value,
@@ -51,75 +60,87 @@ onMounted(() => {
 function safeError(error: unknown): string | null {
   return error ? presentSafeError(error).message : null
 }
+
+function compareSessions(
+  left: { is_current?: boolean; last_used_at: string },
+  right: { is_current?: boolean; last_used_at: string },
+): number {
+  if (left.is_current && !right.is_current) return -1
+  if (!left.is_current && right.is_current) return 1
+  return new Date(right.last_used_at).getTime() - new Date(left.last_used_at).getTime()
+}
 </script>
 
 <template>
-  <section class="grid gap-6">
-    <header class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        <h1 class="text-heading-1 font-display font-semibold tracking-tight">Sesi Aktif</h1>
-        <p class="text-muted-foreground text-sm leading-relaxed">
-          Daftar sesi login aktif pada perangkat dan aplikasi terhubung. Kamu dapat mencabut sesi satu per satu atau keluar dari semuanya sekaligus.
-        </p>
-      </div>
-      <Button
-        variant="destructive"
-        size="lg"
-        :disabled="revocation.pendingGlobalLogout.value || sessions.length === 0"
-        aria-label="Logout dari semua perangkat"
-        class="w-full sm:w-fit"
-        @click="revocation.askRevokeAll()"
-      >
-        <LogOut class="size-4" aria-hidden="true" />
-        {{ revocation.pendingGlobalLogout.value ? 'Memproses…' : 'Logout Semua Perangkat' }}
-      </Button>
-    </header>
+  <section class="grid gap-6 sm:gap-8">
+    <PortalPageHeader
+      eyebrow="Keamanan Perangkat"
+      title="Sesi Aktif"
+      description="Pantau semua perangkat yang sedang login ke akun kamu. Akhiri sesi dari perangkat yang tidak kamu kenal untuk menjaga keamanan akun."
+      :icon="Activity"
+    />
 
     <div v-if="load.pending.value" class="grid gap-3" aria-live="polite" aria-busy="true">
       <Skeleton v-for="i in 3" :key="i" class="h-24 w-full" />
     </div>
 
-    <SsoAlertBanner
-      v-else-if="safeLoadError"
-      tone="error"
-      :message="safeLoadError"
-    />
+    <SsoAlertBanner v-else-if="safeLoadError" tone="error" :message="safeLoadError" />
 
     <Card v-else-if="isEmpty">
       <CardHeader class="items-center text-center">
-        <span
-          class="bg-muted text-muted-foreground grid size-10 place-items-center rounded-full"
-          aria-hidden="true"
-        >
+        <span class="sso-glass-pill grid size-10 place-items-center text-white" aria-hidden="true">
           <Monitor class="size-5" />
         </span>
-        <CardTitle class="text-base">Tidak ada sesi lain</CardTitle>
-        <CardDescription>
-          Kamu hanya aktif di perangkat ini. Sesi lain akan tampil di sini.
-        </CardDescription>
+        <CardTitle class="text-base">Belum ada sesi aktif</CardTitle>
+        <CardDescription>Sesi aktif akan tampil di sini setelah kamu login.</CardDescription>
       </CardHeader>
     </Card>
 
-    <div v-else data-testid="sessions-list" class="grid w-full min-w-0 gap-3 xl:grid-cols-2">
-      <SessionCard
-        v-for="item in sessions"
-        :key="item.session_id"
-        :session="item"
-        :pending="revocation.pendingSingleRevocation.value"
-        @revoke="revocation.askRevokeSession"
-      />
+    <div v-else class="grid gap-4">
+      <div data-testid="sessions-list" class="grid w-full min-w-0 gap-3">
+        <SessionCard
+          v-for="item in sessions"
+          :key="item.session_id"
+          :session="item"
+          :pending="revocation.pendingSingleRevocation.value"
+          :current-ip="currentIp"
+          @revoke="revocation.askRevokeSession"
+        />
+      </div>
+
+      <Card
+        v-if="otherSessions.length === 0"
+        data-testid="sessions-other-empty"
+        class="border-dashed"
+      >
+        <CardHeader class="items-center text-center">
+          <span
+            class="sso-glass-pill grid size-10 place-items-center text-white"
+            aria-hidden="true"
+          >
+            <Monitor class="size-5" />
+          </span>
+          <CardTitle class="text-base">Tidak ada sesi aktif lainnya</CardTitle>
+          <CardDescription> Akun kamu hanya diakses dari perangkat ini. </CardDescription>
+        </CardHeader>
+      </Card>
+
+      <div class="flex justify-end">
+        <Button
+          variant="outline"
+          size="sm"
+          :disabled="revocation.pendingGlobalLogout.value || sessions.length === 0"
+          aria-label="Akhiri semua sesi"
+          class="w-full sm:w-fit"
+          @click="revocation.askRevokeAll()"
+        >
+          {{ revocation.pendingGlobalLogout.value ? 'Memproses…' : 'Akhiri Semua Sesi' }}
+        </Button>
+      </div>
     </div>
 
-    <SsoAlertBanner
-      v-if="safeRevokeOneError"
-      tone="error"
-      :message="safeRevokeOneError"
-    />
-    <SsoAlertBanner
-      v-if="safeRevokeAllError"
-      tone="error"
-      :message="safeRevokeAllError"
-    />
+    <SsoAlertBanner v-if="safeRevokeOneError" tone="error" :message="safeRevokeOneError" />
+    <SsoAlertBanner v-if="safeRevokeAllError" tone="error" :message="safeRevokeAllError" />
     <SsoAlertBanner
       v-if="revocation.partialFailureWarning.value"
       data-testid="sessions-partial-failure"
@@ -131,16 +152,16 @@ function safeError(error: unknown): string | null {
       v-model:open="confirmSingleOpen"
       title="Akhiri sesi ini?"
       description="Perangkat yang memakai sesi ini akan dipaksa logout dan harus autentikasi ulang."
-      confirm-label="Cabut Sesi"
+      confirm-label="Akhiri Sesi"
       destructive
       @confirm="revocation.confirmRevokeSession"
     />
 
     <ConfirmDialog
       v-model:open="confirmGlobalOpen"
-      title="Logout dari semua perangkat?"
-      description="Semua sesi aktif akan direvoke dan kamu akan diarahkan ke halaman login."
-      confirm-label="Logout Semua"
+      title="Akhiri semua sesi?"
+      description="Semua perangkat akan dikeluarkan, termasuk perangkat ini. Kamu harus login ulang. Lanjutkan?"
+      confirm-label="Akhiri Semua Sesi"
       destructive
       @confirm="revocation.confirmRevokeAll"
     />

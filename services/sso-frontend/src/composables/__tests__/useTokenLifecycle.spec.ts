@@ -69,11 +69,13 @@ describe('useTokenLifecycle — token exchange logic', () => {
   })
 
   it('parses successful refresh response into RefreshedTokens shape', async () => {
-    fetchMock.mockResolvedValue(okRefreshResponse({
-      access_token: 'at-fresh',
-      refresh_token: 'rt-fresh',
-      expires_in: 7200,
-    }))
+    fetchMock.mockResolvedValue(
+      okRefreshResponse({
+        access_token: 'at-fresh',
+        refresh_token: 'rt-fresh',
+        expires_in: 7200,
+      }),
+    )
 
     const response = await fetch('https://sso.test/oauth2/token', {
       method: 'POST',
@@ -128,7 +130,7 @@ describe('useTokenLifecycle — schedule logic', () => {
   it('calculates refresh delay as expires_at minus 180s margin', () => {
     const REFRESH_MARGIN_SECONDS = 180
     const expiresAt = Date.now() + 300_000 // 5 min
-    const expectedDelay = (expiresAt - REFRESH_MARGIN_SECONDS * 1000) - Date.now()
+    const expectedDelay = expiresAt - REFRESH_MARGIN_SECONDS * 1000 - Date.now()
 
     // Should be ~120_000ms (2 min)
     expect(expectedDelay).toBeGreaterThanOrEqual(119_000)
@@ -140,7 +142,7 @@ describe('useTokenLifecycle — schedule logic', () => {
     const REFRESH_MARGIN_SECONDS = 180
     const expiresAt = Date.now() + 100_000 // already within margin
 
-    const rawDelay = (expiresAt - REFRESH_MARGIN_SECONDS * 1000) - Date.now()
+    const rawDelay = expiresAt - REFRESH_MARGIN_SECONDS * 1000 - Date.now()
     const actualDelay = Math.max(rawDelay, MIN_REFRESH_INTERVAL_MS)
 
     expect(actualDelay).toBe(MIN_REFRESH_INTERVAL_MS)

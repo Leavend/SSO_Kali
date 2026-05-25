@@ -8,10 +8,7 @@ const props = defineProps<AlertDialogActionProps & { class?: HTMLAttributes['cla
 </script>
 
 <template>
-  <AlertDialogAction
-    v-bind="props"
-    :class="cn(buttonVariants(), props.class)"
-  >
+  <AlertDialogAction v-bind="props" :class="cn(buttonVariants(), props.class)">
     <slot />
   </AlertDialogAction>
 </template>

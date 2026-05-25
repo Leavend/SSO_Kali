@@ -1,7 +1,7 @@
 /**
  * useMfaEnrollment — FR-018 / FR-020 portal MFA lifecycle.
  *
- * Handles status, TOTP enrollment, verification, one-time recovery codes,
+ * Handles status, TOTP enrollment, verification, one-time kode cadangan,
  * regeneration, and removal with safe localized errors.
  */
 
@@ -28,9 +28,7 @@ export function useMfaEnrollment() {
   const step = ref<'idle' | 'scanning' | 'verifying' | 'recovery' | 'complete'>('idle')
 
   const isEnrolled = computed<boolean>(() => status.value?.enrolled ?? false)
-  const recoveryCodesRemaining = computed<number>(
-    () => status.value?.recovery_codes_remaining ?? 0,
-  )
+  const recoveryCodesRemaining = computed<number>(() => status.value?.recovery_codes_remaining ?? 0)
 
   async function fetchStatus(): Promise<void> {
     await run(async () => {

@@ -1,9 +1,6 @@
 /* eslint-disable vitest/no-conditional-expect */
 import { describe, expect, it } from 'vitest'
-import {
-  assertCanonicalMetadata,
-  CanonicalizationError,
-} from '../canonicalization'
+import { assertCanonicalMetadata, CanonicalizationError } from '../canonicalization'
 import type { DiscoveryMetadata } from '../discovery'
 
 const VALID_METADATA: DiscoveryMetadata = {
@@ -21,15 +18,11 @@ const VALID_METADATA: DiscoveryMetadata = {
 
 describe('assertCanonicalMetadata', () => {
   it('passes for fully canonical metadata', () => {
-    expect(() =>
-      assertCanonicalMetadata(VALID_METADATA, 'https://sso.example.com'),
-    ).not.toThrow()
+    expect(() => assertCanonicalMetadata(VALID_METADATA, 'https://sso.example.com')).not.toThrow()
   })
 
   it('tolerates expected issuer with trailing slash', () => {
-    expect(() =>
-      assertCanonicalMetadata(VALID_METADATA, 'https://sso.example.com/'),
-    ).not.toThrow()
+    expect(() => assertCanonicalMetadata(VALID_METADATA, 'https://sso.example.com/')).not.toThrow()
   })
 
   it('throws when Discovery issuer has trailing slash', () => {
@@ -102,11 +95,8 @@ describe('assertCanonicalMetadata', () => {
       jwks_uri: VALID_METADATA.jwks_uri,
       response_types_supported: VALID_METADATA.response_types_supported,
       subject_types_supported: VALID_METADATA.subject_types_supported,
-      id_token_signing_alg_values_supported:
-        VALID_METADATA.id_token_signing_alg_values_supported,
+      id_token_signing_alg_values_supported: VALID_METADATA.id_token_signing_alg_values_supported,
     }
-    expect(() =>
-      assertCanonicalMetadata(partial, 'https://sso.example.com'),
-    ).not.toThrow()
+    expect(() => assertCanonicalMetadata(partial, 'https://sso.example.com')).not.toThrow()
   })
 })

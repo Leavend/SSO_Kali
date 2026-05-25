@@ -15,8 +15,7 @@ import { useSessionStore } from '@/stores/session.store'
 import { useMfaChallengeStore } from '@/stores/mfa-challenge.store'
 import type { SsoLoginResponse } from '@/types/auth.types'
 
-const GENERIC_FAILURE_MESSAGE =
-  'Email atau password yang kamu masukkan salah. Silakan coba lagi.'
+const GENERIC_FAILURE_MESSAGE = 'Email atau password yang kamu masukkan salah. Silakan coba lagi.'
 const UNEXPECTED_FAILURE_MESSAGE = 'Gagal memproses login. Coba lagi beberapa saat.'
 const LOCKED_OR_DISABLED_MESSAGE =
   'Akun tidak dapat digunakan untuk masuk saat ini. Hubungi administrator jika kamu membutuhkan bantuan.'
@@ -39,7 +38,8 @@ const MFA_REENROLL_MESSAGE =
 const ERROR_TRANSLATIONS: Record<string, string> = {
   'The supplied credentials are invalid.': 'Email atau password yang kamu masukkan salah.',
   'These credentials do not match our records.': 'Email atau password yang kamu masukkan salah.',
-  'Too many login attempts. Please try again later.': 'Terlalu banyak percobaan login. Coba lagi nanti.',
+  'Too many login attempts. Please try again later.':
+    'Terlalu banyak percobaan login. Coba lagi nanti.',
   'The provided credentials are incorrect.': 'Email atau password yang kamu masukkan salah.',
   'Your account has been disabled.': 'Akun kamu telah dinonaktifkan. Hubungi administrator.',
   'Invalid credentials.': 'Email atau password yang kamu masukkan salah.',
@@ -153,13 +153,10 @@ export function useLoginForm(): UseLoginFormReturn {
 
   function applyError(error: unknown): void {
     if (isValidationError(error) && error instanceof ApiError) {
-      fieldErrors.value = error.violations.reduce<Record<string, string>>(
-        (acc, violation) => {
-          acc[violation.field] = violation.message
-          return acc
-        },
-        {},
-      )
+      fieldErrors.value = error.violations.reduce<Record<string, string>>((acc, violation) => {
+        acc[violation.field] = violation.message
+        return acc
+      }, {})
       bannerError.value = translateError(error.message)
       return
     }
@@ -226,9 +223,10 @@ export function useLoginForm(): UseLoginFormReturn {
   }
 
   function updateRateLimitMessage(): void {
-    bannerError.value = retryAfterSeconds.value > 0
-      ? RATE_LIMIT_MESSAGE.replace('{seconds}', retryAfterSeconds.value.toString())
-      : null
+    bannerError.value =
+      retryAfterSeconds.value > 0
+        ? RATE_LIMIT_MESSAGE.replace('{seconds}', retryAfterSeconds.value.toString())
+        : null
   }
 
   function safeLoginErrorMessage(error: ApiError): string {
@@ -254,5 +252,14 @@ export function useLoginForm(): UseLoginFormReturn {
     window.location.assign(url.toString())
   }
 
-  return { form, pending, bannerError, fieldErrors, retryAfterSeconds, canSubmit, advisoryAction, submit }
+  return {
+    form,
+    pending,
+    bannerError,
+    fieldErrors,
+    retryAfterSeconds,
+    canSubmit,
+    advisoryAction,
+    submit,
+  }
 }

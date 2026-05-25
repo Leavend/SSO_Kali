@@ -71,12 +71,12 @@ describe('password lifecycle composables', () => {
 
     await password.submit()
 
-    expect(password.success.value).toContain('Semua sesi lain telah dicabut')
+    expect(password.success.value).toContain('Semua sesi lain otomatis keluar')
   })
 
   it('requests reset instructions with anti-enumeration success copy', async () => {
     vi.mocked(authApi.requestPasswordReset).mockResolvedValue({
-      message: 'Jika email terdaftar, instruksi reset password akan dikirim.',
+      message: 'Jika email terdaftar, kami akan mengirimkan instruksi reset password.',
       sent: true,
     })
     const reset = usePasswordResetRequest()

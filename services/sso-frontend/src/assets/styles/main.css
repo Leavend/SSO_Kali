@@ -65,14 +65,28 @@
 
   /* Design.md §3.2 — Semantic colors (text tokens ≥ AA contrast vs white) */
   --color-error-50: #fef2f2;
+  --color-error-200: #fecaca;
+  --color-error-300: #fca5a5;
+  --color-error-400: #f87171;
   --color-error-700: #b91c1c;
   --color-error-800: #991b1b;
+  --color-error-950: #450a0a;
   --color-success-50: #f0fdf4;
+  --color-success-200: #bbf7d0;
+  --color-success-300: #86efac;
+  --color-success-400: #4ade80;
   --color-success-700: #15803d;
+  --color-success-950: #052e16;
   --color-warning-50: #fffbeb;
+  --color-warning-200: #fde68a;
+  --color-warning-300: #fcd34d;
+  --color-warning-700: #a16207;
   --color-warning-800: #92400e;
+  --color-warning-950: #451a03;
   --color-info-50: #f0f9ff;
+  --color-info-200: #bae6fd;
   --color-info-700: #0369a1;
+  --color-info-950: #082f49;
 
   /* Design.md §3.5 — Shadow tokens */
   --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.07), 0 1px 2px -1px rgb(0 0 0 / 0.07);
@@ -202,6 +216,534 @@
 }
 
 /* =====================================================================
+   PORTAL NAV — standalone 3D Liquid Glass pills.
+   Each nav item owns its pill; the nav rail stays layout-only so the
+   header does not become a "pill inside pill" composition.
+   ===================================================================== */
+.portal-nav-pill {
+  --portal-nav-pill-body-top: rgb(255 255 255 / 0.2);
+  --portal-nav-pill-body-mid: rgb(255 255 255 / 0.12);
+  --portal-nav-pill-body-bottom: rgb(255 255 255 / 0.06);
+  --portal-nav-pill-border: rgb(255 255 255 / 0.22);
+  --portal-nav-pill-rim: rgb(255 255 255 / 0.52);
+  --portal-nav-pill-ink: var(--text-secondary);
+  --portal-nav-pill-shadow: rgb(15 23 42 / 0.08);
+  --portal-nav-pill-shadow-strong: rgb(15 23 42 / 0.14);
+  --portal-nav-pill-glow: color-mix(in oklch, var(--color-brand-500) 18%, transparent);
+
+  min-height: 2.35rem;
+  color: var(--portal-nav-pill-ink);
+  border: 1px solid var(--portal-nav-pill-border);
+  background:
+    radial-gradient(ellipse 82% 130% at 50% -42%, rgb(255 255 255 / 0.36), transparent 48%),
+    linear-gradient(
+      180deg,
+      var(--portal-nav-pill-body-top) 0%,
+      var(--portal-nav-pill-body-mid) 54%,
+      var(--portal-nav-pill-body-bottom) 100%
+    );
+  box-shadow:
+    inset 0 1.5px 0 var(--portal-nav-pill-rim),
+    inset 0 -1px 0 rgb(255 255 255 / 0.22),
+    0 1px 0 rgb(255 255 255 / 0.26),
+    0 12px 24px -16px var(--portal-nav-pill-shadow);
+  -webkit-backdrop-filter: blur(18px) saturate(1.35) contrast(1.05);
+  backdrop-filter: blur(18px) saturate(1.35) contrast(1.05);
+  filter: saturate(1.02);
+  transform: translateZ(0);
+  transform-style: preserve-3d;
+  transition:
+    color 240ms var(--ease-smooth),
+    border-color 260ms var(--ease-smooth),
+    background 320ms var(--ease-smooth),
+    box-shadow 320ms var(--ease-smooth),
+    filter 320ms var(--ease-smooth),
+    transform 320ms var(--ease-smooth),
+    --glass-angle-conic 520ms ease,
+    --glass-angle-sheen 520ms ease;
+}
+
+.portal-nav-pill > svg,
+.portal-nav-pill > span:not(.portal-nav-pill__hover-area) {
+  position: relative;
+  z-index: 2;
+  color: currentColor;
+  filter: drop-shadow(0 1px 0 rgb(255 255 255 / 0.22));
+}
+
+.portal-nav-pill::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  padding: 1.5px;
+  background:
+    conic-gradient(
+      from var(--glass-angle-conic) at 50% 50%,
+      rgb(255 255 255 / 0.44) 0%,
+      transparent 7% 36%,
+      color-mix(in oklch, var(--color-brand-400) 44%, transparent) 48%,
+      transparent 60% 92%,
+      rgb(255 255 255 / 0.38) 100%
+    ),
+    linear-gradient(180deg, rgb(255 255 255 / 0.22), rgb(255 255 255 / 0.06));
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0.72;
+  animation: sso-pill-shimmer-idle 14s linear infinite;
+  animation-play-state: paused;
+  transition:
+    opacity 320ms var(--ease-smooth),
+    --glass-angle-conic 520ms ease;
+  pointer-events: none;
+}
+
+.portal-nav-pill--mobile .portal-nav-pill__hover-area {
+  position: absolute;
+  inset: -0.375rem -0.25rem;
+  z-index: 1;
+  border-radius: inherit;
+  pointer-events: auto;
+}
+
+.portal-nav-pill::after {
+  content: '';
+  position: absolute;
+  inset: 1.5px;
+  z-index: 0;
+  border-radius: inherit;
+  background:
+    radial-gradient(ellipse 70% 120% at 28% -28%, rgb(255 255 255 / 0.34), transparent 46%),
+    radial-gradient(circle at 78% 118%, var(--portal-nav-pill-glow), transparent 44%),
+    linear-gradient(
+      var(--glass-angle-sheen),
+      transparent 0% 35%,
+      rgb(255 255 255 / 0.18) 44% 50%,
+      transparent 58% 100%
+    );
+  background-size:
+    120% 120%,
+    120% 120%,
+    220% 220%;
+  background-position:
+    50% 50%,
+    50% 50%,
+    0% 50%;
+  mix-blend-mode: screen;
+  opacity: 0.5;
+  animation: sso-pill-sheen-idle 9s ease-in-out infinite;
+  animation-play-state: paused;
+  transition:
+    opacity 320ms var(--ease-smooth),
+    background-position 520ms var(--ease-smooth),
+    --glass-angle-sheen 520ms var(--ease-smooth);
+  pointer-events: none;
+}
+
+.portal-nav-pill:hover,
+.portal-nav-pill:focus-visible {
+  --glass-angle-conic: -125deg;
+  --glass-angle-sheen: -24deg;
+  --portal-nav-pill-body-top: rgb(255 255 255 / 0.28);
+  --portal-nav-pill-body-mid: rgb(255 255 255 / 0.18);
+  --portal-nav-pill-body-bottom: rgb(255 255 255 / 0.1);
+  --portal-nav-pill-border: rgb(255 255 255 / 0.34);
+  --portal-nav-pill-rim: rgb(255 255 255 / 0.62);
+  --portal-nav-pill-ink: var(--text-primary);
+  --portal-nav-pill-glow: color-mix(in oklch, var(--color-brand-400) 28%, transparent);
+
+  box-shadow:
+    inset 0 1.5px 0 var(--portal-nav-pill-rim),
+    inset 0 -1px 0 rgb(255 255 255 / 0.26),
+    0 1px 0 rgb(255 255 255 / 0.32),
+    0 16px 30px -18px var(--portal-nav-pill-shadow-strong);
+  filter: saturate(1.12);
+  transform: translateY(-1px) translateZ(0);
+}
+
+.portal-nav-pill:focus-visible {
+  box-shadow:
+    var(--ring-glass-focus),
+    inset 0 1.5px 0 var(--portal-nav-pill-rim),
+    inset 0 -1px 0 rgb(255 255 255 / 0.26),
+    0 16px 30px -18px var(--portal-nav-pill-shadow-strong);
+}
+
+.portal-nav-pill:hover::before,
+.portal-nav-pill:focus-visible::before,
+.portal-nav-pill--active::before,
+.portal-nav-pill:hover::after,
+.portal-nav-pill:focus-visible::after,
+.portal-nav-pill--active::after {
+  animation-play-state: running;
+}
+
+.portal-nav-pill:hover::before,
+.portal-nav-pill:focus-visible::before,
+.portal-nav-pill--active::before {
+  opacity: 1;
+  animation-duration: 6s;
+}
+
+.portal-nav-pill:hover::after,
+.portal-nav-pill:focus-visible::after,
+.portal-nav-pill--active::after {
+  background-position:
+    50% 50%,
+    50% 50%,
+    100% 50%;
+  opacity: 0.82;
+}
+
+.portal-nav-pill--active {
+  --portal-nav-pill-body-top: color-mix(
+    in oklch,
+    var(--color-brand-400) 18%,
+    rgb(255 255 255 / 0.3)
+  );
+  --portal-nav-pill-body-mid: color-mix(
+    in oklch,
+    var(--color-brand-500) 16%,
+    rgb(255 255 255 / 0.18)
+  );
+  --portal-nav-pill-body-bottom: color-mix(
+    in oklch,
+    var(--color-brand-600) 14%,
+    rgb(255 255 255 / 0.1)
+  );
+  --portal-nav-pill-border: color-mix(
+    in oklch,
+    var(--color-brand-400) 42%,
+    rgb(255 255 255 / 0.26)
+  );
+  --portal-nav-pill-rim: rgb(255 255 255 / 0.66);
+  --portal-nav-pill-ink: var(--text-primary);
+  --portal-nav-pill-glow: color-mix(in oklch, var(--color-brand-400) 42%, transparent);
+
+  box-shadow:
+    inset 0 1.5px 0 var(--portal-nav-pill-rim),
+    inset 0 -1px 0 rgb(255 255 255 / 0.28),
+    0 1px 0 rgb(255 255 255 / 0.36),
+    0 18px 36px -22px color-mix(in oklch, var(--color-brand-700) 36%, transparent),
+    0 0 0 1px color-mix(in oklch, var(--color-brand-400) 20%, transparent);
+}
+
+.portal-nav-pill:active {
+  transform: rotateX(7deg) translateY(0) scale(0.985);
+  box-shadow:
+    inset 0 1px 3px rgb(15 23 42 / 0.16),
+    inset 0 -1px 0 rgb(255 255 255 / 0.18),
+    0 8px 18px -14px rgb(15 23 42 / 0.18);
+}
+
+.dark .portal-nav-pill {
+  --portal-nav-pill-body-top: rgb(255 255 255 / 0.14);
+  --portal-nav-pill-body-mid: rgb(255 255 255 / 0.08);
+  --portal-nav-pill-body-bottom: rgb(255 255 255 / 0.04);
+  --portal-nav-pill-border: rgb(255 255 255 / 0.16);
+  --portal-nav-pill-rim: rgb(255 255 255 / 0.24);
+  --portal-nav-pill-shadow: rgb(0 0 0 / 0.16);
+  --portal-nav-pill-shadow-strong: rgb(0 0 0 / 0.24);
+  --portal-nav-pill-glow: color-mix(in oklch, var(--color-brand-400) 18%, transparent);
+}
+
+.dark .portal-nav-pill:hover,
+.dark .portal-nav-pill:focus-visible {
+  --portal-nav-pill-body-top: rgb(255 255 255 / 0.2);
+  --portal-nav-pill-body-mid: rgb(255 255 255 / 0.12);
+  --portal-nav-pill-body-bottom: rgb(255 255 255 / 0.06);
+  --portal-nav-pill-border: rgb(255 255 255 / 0.26);
+  --portal-nav-pill-rim: rgb(255 255 255 / 0.34);
+  --portal-nav-pill-glow: color-mix(in oklch, var(--color-brand-400) 28%, transparent);
+}
+
+.dark .portal-nav-pill--active {
+  --portal-nav-pill-body-top: color-mix(
+    in oklch,
+    var(--color-brand-400) 22%,
+    rgb(255 255 255 / 0.18)
+  );
+  --portal-nav-pill-body-mid: color-mix(
+    in oklch,
+    var(--color-brand-500) 20%,
+    rgb(255 255 255 / 0.1)
+  );
+  --portal-nav-pill-body-bottom: color-mix(
+    in oklch,
+    var(--color-brand-600) 18%,
+    rgb(255 255 255 / 0.06)
+  );
+  --portal-nav-pill-border: color-mix(
+    in oklch,
+    var(--color-brand-400) 42%,
+    rgb(255 255 255 / 0.18)
+  );
+  --portal-nav-pill-rim: rgb(255 255 255 / 0.36);
+  --portal-nav-pill-glow: color-mix(in oklch, var(--color-brand-400) 40%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .portal-nav-pill,
+  .portal-nav-pill::before,
+  .portal-nav-pill::after {
+    animation: none;
+    animation-play-state: paused;
+    transition-duration: 1ms;
+  }
+}
+
+/* =====================================================================
+   PORTAL ACCOUNT — responsive identity disclosure.
+   Compact mode keeps the full account identity available on desktop hover /
+   focus instead of permanently clipping the avatar pill.
+   ===================================================================== */
+.portal-account-pill {
+  --portal-account-pill-body-top: var(--portal-nav-pill-body-top);
+  --portal-account-pill-body-mid: var(--portal-nav-pill-body-mid);
+  --portal-account-pill-body-bottom: var(--portal-nav-pill-body-bottom);
+  --portal-account-pill-border: var(--portal-nav-pill-border);
+  --portal-account-pill-rim: var(--portal-nav-pill-rim);
+  --portal-account-pill-shadow: var(--portal-nav-pill-shadow);
+  --portal-account-pill-shadow-strong: var(--portal-nav-pill-shadow-strong);
+
+  max-width: min(18rem, calc(100vw - 2rem));
+  border-color: var(--portal-account-pill-border);
+  background:
+    radial-gradient(ellipse 82% 130% at 50% -42%, rgb(255 255 255 / 0.36), transparent 48%),
+    linear-gradient(
+      180deg,
+      var(--portal-account-pill-body-top) 0%,
+      var(--portal-account-pill-body-mid) 54%,
+      var(--portal-account-pill-body-bottom) 100%
+    );
+  box-shadow:
+    inset 0 1.5px 0 var(--portal-account-pill-rim),
+    inset 0 -1px 0 rgb(255 255 255 / 0.22),
+    0 1px 0 rgb(255 255 255 / 0.26),
+    0 12px 24px -16px var(--portal-account-pill-shadow);
+  transition:
+    max-width 280ms var(--ease-smooth),
+    padding-right 280ms var(--ease-smooth),
+    border-color 260ms var(--ease-smooth),
+    background 320ms var(--ease-smooth),
+    box-shadow 320ms var(--ease-smooth),
+    filter 320ms var(--ease-smooth),
+    transform 320ms var(--ease-smooth);
+}
+
+.portal-account-pill [data-slot='avatar'] {
+  border: 1px solid var(--portal-account-pill-border);
+  background:
+    radial-gradient(ellipse 82% 130% at 50% -42%, rgb(255 255 255 / 0.34), transparent 48%),
+    linear-gradient(
+      180deg,
+      var(--portal-account-pill-body-top) 0%,
+      var(--portal-account-pill-body-mid) 54%,
+      var(--portal-account-pill-body-bottom) 100%
+    );
+  box-shadow:
+    inset 0 1px 0 var(--portal-account-pill-rim),
+    inset 0 -1px 0 rgb(255 255 255 / 0.18);
+  transition:
+    border-color 260ms var(--ease-smooth),
+    background 320ms var(--ease-smooth),
+    box-shadow 320ms var(--ease-smooth);
+}
+
+.portal-account-pill [data-slot='avatar-fallback'] {
+  background: transparent;
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.portal-account-identity {
+  width: clamp(7.5rem, 14vw, 11rem);
+}
+
+.portal-account-pill--compact {
+  max-width: 2.25rem;
+  padding-right: 0.25rem;
+}
+
+.portal-account-pill--compact .portal-account-identity {
+  width: 0;
+  max-width: 0;
+  height: 1.75rem;
+  opacity: 0;
+  transform: translateX(-0.25rem);
+  overflow: hidden;
+  pointer-events: none;
+  transition:
+    width 280ms var(--ease-smooth),
+    max-width 280ms var(--ease-smooth),
+    opacity 180ms var(--ease-smooth),
+    transform 240ms var(--ease-smooth);
+}
+
+.portal-account-pill--compact [data-slot='badge'] {
+  display: none;
+}
+
+.portal-account-pill:hover,
+.portal-account-pill:focus-within {
+  --portal-account-pill-body-top: rgb(255 255 255 / 0.28);
+  --portal-account-pill-body-mid: rgb(255 255 255 / 0.18);
+  --portal-account-pill-body-bottom: rgb(255 255 255 / 0.1);
+  --portal-account-pill-border: rgb(255 255 255 / 0.34);
+  --portal-account-pill-rim: rgb(255 255 255 / 0.62);
+
+  box-shadow:
+    inset 0 1.5px 0 var(--portal-account-pill-rim),
+    inset 0 -1px 0 rgb(255 255 255 / 0.26),
+    0 1px 0 rgb(255 255 255 / 0.32),
+    0 16px 30px -18px var(--portal-account-pill-shadow-strong);
+  filter: saturate(1.12);
+}
+
+.portal-account-pill--compact:hover,
+.portal-account-pill--compact:focus-within {
+  max-width: min(18rem, calc(100vw - 2rem));
+  padding-right: 0.75rem;
+}
+
+.portal-account-pill--compact:hover .portal-account-identity,
+.portal-account-pill--compact:focus-within .portal-account-identity {
+  width: clamp(7.5rem, 14vw, 11rem);
+  max-width: clamp(7.5rem, 14vw, 11rem);
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+@media (min-width: 1536px) {
+  .portal-account-identity,
+  .portal-account-pill--compact:hover .portal-account-identity,
+  .portal-account-pill--compact:focus-within .portal-account-identity {
+    width: 11rem;
+    max-width: 11rem;
+  }
+}
+
+.dark .portal-account-pill:hover,
+.dark .portal-account-pill:focus-within {
+  --portal-account-pill-body-top: rgb(255 255 255 / 0.2);
+  --portal-account-pill-body-mid: rgb(255 255 255 / 0.12);
+  --portal-account-pill-body-bottom: rgb(255 255 255 / 0.06);
+  --portal-account-pill-border: rgb(255 255 255 / 0.26);
+  --portal-account-pill-rim: rgb(255 255 255 / 0.34);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .portal-account-pill,
+  .portal-account-pill [data-slot='avatar'],
+  .portal-account-pill--compact .portal-account-identity {
+    transition-duration: 1ms;
+  }
+}
+
+/* =====================================================================
+   THEME SWITCH — Liquid Glass mode transition.
+   Class is toggled by useThemeStore.toggleWithTransition().
+   ===================================================================== */
+html,
+body,
+#app,
+.portal-shell,
+[data-slot='card'],
+[data-slot='button'],
+.portal-glass-hero,
+.portal-header-glass,
+.portal-footer-glass {
+  transition:
+    background-color 520ms var(--ease-smooth),
+    border-color 520ms var(--ease-smooth),
+    color 360ms var(--ease-smooth),
+    box-shadow 520ms var(--ease-smooth),
+    opacity 360ms var(--ease-smooth),
+    filter 520ms var(--ease-smooth);
+}
+
+html.theme-switching::before {
+  content: '';
+  position: fixed;
+  inset: -18vmax;
+  z-index: 2147483646;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 82% 14%, oklch(0.88 0.11 250 / 0.28), transparent 18rem),
+    radial-gradient(circle at 18% 78%, oklch(0.76 0.14 295 / 0.18), transparent 22rem);
+  mix-blend-mode: screen;
+  animation: theme-switch-glow 720ms var(--ease-smooth) both;
+}
+
+.theme-icon-enter-active,
+.theme-icon-leave-active {
+  transition:
+    opacity 180ms var(--ease-smooth),
+    transform 220ms var(--ease-smooth),
+    filter 220ms var(--ease-smooth);
+}
+.theme-icon-enter-from,
+.theme-icon-leave-to {
+  opacity: 0;
+  transform: rotate(-18deg) scale(0.82);
+  filter: blur(2px);
+}
+.theme-icon-enter-to,
+.theme-icon-leave-from {
+  opacity: 1;
+  transform: rotate(0deg) scale(1);
+  filter: blur(0);
+}
+
+@keyframes theme-switch-glow {
+  0% {
+    opacity: 0;
+    transform: scale(0.94) rotate(-2deg);
+    filter: blur(22px) saturate(1.2);
+  }
+  45% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.04) rotate(2deg);
+    filter: blur(34px) saturate(1.45);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html,
+  body,
+  #app,
+  .portal-shell,
+  [data-slot='card'],
+  [data-slot='button'],
+  .portal-glass-hero,
+  .portal-header-glass,
+  .portal-footer-glass {
+    transition-duration: 1ms;
+  }
+
+  html.theme-switching::before {
+    animation: none;
+    opacity: 0;
+  }
+
+  .theme-icon-enter-active,
+  .theme-icon-leave-active {
+    transition-duration: 1ms;
+  }
+}
+
+/* =====================================================================
    LIQUID GLASS — Vibrant primitives (additive utility surface).
    Used by SsoGlassButton/SsoGlassInput when variant="vibrant" or when
    the component opts in via .sso-glass-pill / .sso-glass-shimmer.
@@ -223,13 +765,12 @@
    *   tones (handled below) since the auth shell is always over a dark
    *   canvas (photo backdrop or aurora SVG, both bias dark).
    */
-  background:
-    linear-gradient(
-      180deg,
-      oklch(0.22 0.012 270) 0%,
-      oklch(0.16 0.012 270) 55%,
-      oklch(0.12 0.012 270) 100%
-    );
+  background: linear-gradient(
+    180deg,
+    oklch(0.22 0.012 270) 0%,
+    oklch(0.16 0.012 270) 55%,
+    oklch(0.12 0.012 270) 100%
+  );
   /*
    * Light foreground propagates to anything inside the pill that uses
    * currentColor (button text in the vibrant variant, slot icons, the
@@ -261,7 +802,7 @@
   box-shadow:
     inset 0 1.5px 0 rgb(255 255 255 / 0.18),
     inset 0 6px 12px -6px rgb(0 0 0 / 0.85),
-    inset 0 -1.25px 0 rgb(255 255 255 / 0.10),
+    inset 0 -1.25px 0 rgb(255 255 255 / 0.1),
     inset 0 -8px 14px -8px rgb(255 255 255 / 0.08),
     0 1px 0 rgb(255 255 255 / 0.06),
     0 18px 32px -10px rgb(0 0 0 / 0.55),
@@ -791,6 +1332,45 @@
   --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.551 0.027 264.364);
+
+  --text-primary: oklch(0.96 0.005 270);
+  --text-secondary: oklch(0.78 0.012 270);
+  --text-muted: oklch(0.64 0.018 270);
+  --glass-bg-primary: color-mix(in oklch, var(--color-neutral-900) 68%, transparent);
+  --glass-bg-elevated: color-mix(in oklch, var(--color-neutral-800) 76%, transparent);
+  --glass-border-subtle: oklch(1 0 0 / 14%);
+  --glass-border-strong: oklch(1 0 0 / 24%);
+  --glass-border-brand: color-mix(in oklch, var(--color-brand-400) 62%, transparent);
+  --shadow-glass-sm:
+    0 2px 8px -1px rgb(0 0 0 / 0.36), 0 1px 3px -1px rgb(0 0 0 / 0.32),
+    inset 0 1px 0 rgb(255 255 255 / 0.12);
+  --shadow-glass-md:
+    0 12px 32px -10px rgb(0 0 0 / 0.48), 0 4px 12px -6px rgb(0 0 0 / 0.4),
+    inset 0 1px 0 rgb(255 255 255 / 0.14);
+  --shadow-glass-lg:
+    0 28px 64px -16px rgb(0 0 0 / 0.58), 0 10px 22px -12px rgb(0 0 0 / 0.45),
+    inset 0 1px 0 rgb(255 255 255 / 0.16);
+}
+
+.portal-shell__wash {
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklch, var(--color-neutral-50) 78%, transparent) 0%,
+    color-mix(in oklch, var(--color-brand-50) 54%, transparent) 48%,
+    color-mix(in oklch, var(--color-neutral-100) 78%, transparent) 100%
+  );
+}
+
+.dark .portal-shell__wash {
+  background:
+    radial-gradient(circle at 20% 10%, oklch(0.26 0.08 250 / 0.28), transparent 34%),
+    radial-gradient(circle at 82% 18%, oklch(0.22 0.07 300 / 0.18), transparent 36%),
+    linear-gradient(
+      180deg,
+      oklch(0.1 0.018 270 / 0.92) 0%,
+      oklch(0.14 0.025 260 / 0.9) 55%,
+      oklch(0.09 0.015 270 / 0.95) 100%
+    );
 }
 
 /* =====================================================================

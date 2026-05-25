@@ -12,7 +12,9 @@ test.describe('OIDC Callback', () => {
     await page.goto('/auth/callback')
 
     // Should show error state (missing_params)
-    await expect(page.locator('[role="alert"], .alert-banner, [data-testid="callback-error"]')).toBeVisible({
+    await expect(
+      page.locator('[role="alert"], .alert-banner, [data-testid="callback-error"]'),
+    ).toBeVisible({
       timeout: 5000,
     })
   })

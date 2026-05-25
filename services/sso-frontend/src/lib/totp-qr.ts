@@ -13,6 +13,8 @@ function svgDataUrl(svg: string): string {
 }
 
 function base64(value: string): string {
-  const binary = Array.from(new TextEncoder().encode(value), (byte) => String.fromCharCode(byte)).join('')
+  const binary = Array.from(new TextEncoder().encode(value), (byte) =>
+    String.fromCharCode(byte),
+  ).join('')
   return btoa(binary)
 }

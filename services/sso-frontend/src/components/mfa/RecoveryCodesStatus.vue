@@ -2,7 +2,7 @@
 /**
  * RecoveryCodesStatus — FR-020 / UC-69.
  *
- * Menampilkan jumlah recovery codes tersisa dengan visual indicator
+ * Menampilkan jumlah kode cadangan tersisa dengan visual indicator
  * dan tombol regenerasi. Warning ditampilkan jika sisa ≤ 2.
  *
  * Level: Molecule (menggunakan atoms: Badge, Button, Card, Alert).
@@ -12,13 +12,7 @@ import { computed } from 'vue'
 import { KeyRound, RefreshCw, AlertTriangle } from 'lucide-vue-next'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 const props = defineProps<{
   remaining: number
@@ -50,14 +44,11 @@ const indicatorClass = computed<string>(() => {
 <template>
   <Card class="relative overflow-hidden">
     <CardHeader class="flex flex-row items-start gap-3 space-y-0">
-      <span
-        class="grid size-10 shrink-0 place-items-center rounded-lg"
-        :class="indicatorClass"
-      >
+      <span class="grid size-10 shrink-0 place-items-center rounded-lg" :class="indicatorClass">
         <KeyRound class="size-5" />
       </span>
       <div class="grid gap-1">
-        <CardTitle class="text-sm font-semibold">Recovery Codes</CardTitle>
+        <CardTitle class="text-sm font-semibold">Kode Cadangan</CardTitle>
         <CardDescription class="flex items-center gap-2">
           <Badge :variant="statusVariant" class="text-[10px]">
             {{ statusLabel }}
@@ -76,16 +67,16 @@ const indicatorClass = computed<string>(() => {
         <AlertTriangle class="mt-0.5 size-4 shrink-0 text-red-600 dark:text-red-400" />
         <p class="text-xs text-red-800 dark:text-red-200">
           <template v-if="remaining === 0">
-            Semua recovery codes sudah digunakan. Regenerasi segera untuk menjaga akses akun.
+            Semua kode cadangan sudah digunakan. Regenerasi segera untuk menjaga akses akun.
           </template>
           <template v-else>
-            Sisa recovery codes sangat sedikit. Regenerasi kode baru untuk keamanan akun.
+            Sisa kode cadangan sangat sedikit. Regenerasi kode baru untuk keamanan akun.
           </template>
         </p>
       </div>
 
       <p class="text-muted-foreground text-xs">
-        Recovery codes digunakan sebagai cadangan jika kamu kehilangan akses ke authenticator app.
+        Kode cadangan digunakan jika kamu kehilangan akses ke aplikasi autentikasi.
       </p>
 
       <Button
@@ -96,7 +87,7 @@ const indicatorClass = computed<string>(() => {
         @click="emit('regenerate')"
       >
         <RefreshCw class="size-4" :class="{ 'animate-spin': pending }" />
-        Regenerasi Recovery Codes
+        Regenerasi Kode Cadangan
       </Button>
     </CardContent>
   </Card>

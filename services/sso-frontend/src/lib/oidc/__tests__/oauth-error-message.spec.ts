@@ -30,7 +30,10 @@ describe('resolveOAuthErrorMessage (FE-FR028-001 / FR-028)', () => {
     ] as const
 
     for (const code of codes) {
-      const message = resolveOAuthErrorMessage({ error: code, error_description: 'should not leak' })
+      const message = resolveOAuthErrorMessage({
+        error: code,
+        error_description: 'should not leak',
+      })
       expect(message).toBeTypeOf('string')
       expect(message.length).toBeGreaterThan(0)
       expect(message).not.toContain('should not leak')
@@ -41,7 +44,8 @@ describe('resolveOAuthErrorMessage (FE-FR028-001 / FR-028)', () => {
   it('NEVER renders the raw error_description even when error code is unknown', () => {
     const message = resolveOAuthErrorMessage({
       error: 'invalid_request',
-      error_description: "SQLSTATE[23505]: duplicate key value violates unique constraint 'users_email_unique'",
+      error_description:
+        "SQLSTATE[23505]: duplicate key value violates unique constraint 'users_email_unique'",
     })
 
     expect(message).not.toContain('SQLSTATE')

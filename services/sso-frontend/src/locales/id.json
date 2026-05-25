@@ -31,19 +31,19 @@
   "portal": {
     "sessions": {
       "title": "Sesi Aktif",
-      "subtitle": "Daftar sesi login aktif pada perangkat dan aplikasi terhubung. Kamu dapat mencabut sesi satu per satu atau keluar dari semuanya sekaligus.",
+      "subtitle": "Daftar sesi login aktif pada perangkat dan aplikasi terhubung. Kamu dapat mengakhiri sesi satu per satu atau keluar dari semuanya sekaligus.",
       "logout_all": "Logout Semua Perangkat",
       "logout_all_processing": "Memproses…",
       "empty_title": "Tidak ada sesi lain",
       "empty_description": "Kamu hanya aktif di perangkat ini. Sesi lain akan tampil di sini.",
-      "revoke_button": "Cabut Sesi",
+      "revoke_button": "Akhiri Sesi",
       "apps_count": "{count} aplikasi",
       "opened_at": "Dibuka {date}",
       "last_active": "Terakhir aktif {date}",
       "confirm_revoke_title": "Akhiri sesi ini?",
       "confirm_revoke_description": "Perangkat yang memakai sesi ini akan dipaksa logout dan harus autentikasi ulang.",
       "confirm_logout_all_title": "Logout dari semua perangkat?",
-      "confirm_logout_all_description": "Semua sesi aktif akan direvoke dan kamu akan diarahkan ke halaman login.",
+      "confirm_logout_all_description": "Semua sesi aktif akan otomatis keluar dan kamu akan diarahkan ke halaman login.",
       "confirm_logout_all_button": "Logout Semua"
     },
     "nav": {

@@ -5,6 +5,7 @@
  */
 
 import { apiClient } from '@/lib/api/api-client'
+import { isPortalPreviewBypassEnabled, previewMfaStatus } from '@/lib/portal-preview'
 import type {
   MfaEnrollmentStatus,
   MfaChallengeVerifyPayload,
@@ -36,14 +37,30 @@ export type MfaRegenerateCodesResponse = {
 
 export const mfaApi = {
   getStatus(): Promise<MfaEnrollmentStatus> {
+    if (isPortalPreviewBypassEnabled()) return Promise.resolve(previewMfaStatus)
     return apiClient.get<MfaEnrollmentStatus>('/api/mfa/status')
   },
 
   startEnrollment(): Promise<MfaTotpEnrollResponse> {
+    if (isPortalPreviewBypassEnabled()) {
+      return Promise.resolve({
+        secret: 'PREVIEWTOTPSECRET',
+        qr_uri:
+          'otpauth://totp/Dev-SSO:preview.user@dev-sso.local?secret=PREVIEWTOTPSECRET&issuer=Dev-SSO',
+        provisioning_uri:
+          'otpauth://totp/Dev-SSO:preview.user@dev-sso.local?secret=PREVIEWTOTPSECRET&issuer=Dev-SSO',
+      })
+    }
     return apiClient.post<MfaTotpEnrollResponse>('/api/mfa/totp/enroll')
   },
 
   verifyTotp(payload: MfaTotpVerifyPayload): Promise<MfaTotpVerifyResponse> {
+    if (isPortalPreviewBypassEnabled()) {
+      return Promise.resolve({
+        verified: payload.code.length >= 6,
+        recovery_codes: ['ABCD-EFGH', 'IJKL-MNOP', 'QRST-UVWX'],
+      })
+    }
     return apiClient.post<MfaTotpVerifyResponse>('/api/mfa/totp/verify', payload)
   },
 
@@ -52,10 +69,22 @@ export const mfaApi = {
   },
 
   remove(payload: MfaRemovePayload): Promise<MfaRemoveResponse> {
+    if (isPortalPreviewBypassEnabled()) {
+      return Promise.resolve({
+        removed: payload.password.length > 0,
+        message: 'MFA preview dinonaktifkan.',
+      })
+    }
     return apiClient.delete<MfaRemoveResponse>('/api/mfa/totp', { body: payload })
   },
 
   regenerateRecoveryCodes(payload: MfaRegenerateCodesPayload): Promise<MfaRegenerateCodesResponse> {
+    if (isPortalPreviewBypassEnabled()) {
+      return Promise.resolve({
+        regenerated: payload.password.length > 0,
+        recovery_codes: ['NEW1-CODE', 'NEW2-CODE', 'NEW3-CODE'],
+      })
+    }
     return apiClient.post<MfaRegenerateCodesResponse>('/api/mfa/recovery-codes/regenerate', payload)
   },
 }

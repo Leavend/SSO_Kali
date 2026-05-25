@@ -6,6 +6,8 @@ describe('production compose session secret', () => {
   it('requires SESSION_ENCRYPTION_SECRET instead of silently defaulting empty', () => {
     const compose = readFileSync(resolve(process.cwd(), '../../docker-compose.main.yml'), 'utf8')
 
-    expect(compose).toContain('SESSION_ENCRYPTION_SECRET: ${SESSION_ENCRYPTION_SECRET:?SESSION_ENCRYPTION_SECRET is required}')
+    expect(compose).toContain(
+      'SESSION_ENCRYPTION_SECRET: ${SESSION_ENCRYPTION_SECRET:?SESSION_ENCRYPTION_SECRET is required}',
+    )
   })
 })

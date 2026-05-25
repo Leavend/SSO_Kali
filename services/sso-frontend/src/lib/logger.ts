@@ -51,9 +51,7 @@ function getSentry(): SentryLike | null {
 }
 
 function formatEntry(entry: LogEntry): string {
-  const ctx = Object.keys(entry.context).length > 0
-    ? ` ${JSON.stringify(entry.context)}`
-    : ''
+  const ctx = Object.keys(entry.context).length > 0 ? ` ${JSON.stringify(entry.context)}` : ''
   return `[${entry.timestamp}] [${entry.level.toUpperCase()}] ${entry.message}${ctx}`
 }
 
@@ -102,7 +100,10 @@ export const logger = {
       sentry.captureException(error, context ? { extra: context } : undefined)
     }
     const message = error instanceof Error ? error.message : String(error)
-    emit('error', `Exception: ${message}`, { ...context, stack: error instanceof Error ? error.stack : undefined })
+    emit('error', `Exception: ${message}`, {
+      ...context,
+      stack: error instanceof Error ? error.stack : undefined,
+    })
   },
 
   /**
@@ -111,7 +112,9 @@ export const logger = {
   setUser: (user: { id: number; email: string; subject_id: string } | null): void => {
     const sentry = getSentry()
     if (sentry) {
-      sentry.setUser(user ? { id: String(user.id), email: user.email, username: user.subject_id } : null)
+      sentry.setUser(
+        user ? { id: String(user.id), email: user.email, username: user.subject_id } : null,
+      )
     }
   },
 }

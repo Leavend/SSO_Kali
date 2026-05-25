@@ -25,9 +25,7 @@ function onInput(event: Event): void {
 
 <template>
   <div class="grid gap-2">
-    <Label for="mfa-recovery-code" class="text-body-sm font-medium">
-      Recovery code
-    </Label>
+    <Label for="mfa-recovery-code" class="text-body-sm font-medium"> Kode cadangan </Label>
     <Input
       id="mfa-recovery-code"
       type="text"
@@ -40,7 +38,7 @@ function onInput(event: Event): void {
       @input="onInput"
     />
     <p class="text-muted-foreground text-caption">
-      Masukkan salah satu recovery code yang kamu simpan saat mendaftar MFA.
+      Masukkan salah satu kode cadangan yang kamu simpan saat mendaftar MFA.
     </p>
   </div>
 </template>

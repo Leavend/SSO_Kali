@@ -23,7 +23,11 @@ describe('useLoginForm', () => {
     routeQuery.redirect = undefined
     routeQuery.auth_request_id = undefined
 
-    vi.stubGlobal('location', { ...window.location, assign: windowAssignMock, origin: 'https://sso.test' })
+    vi.stubGlobal('location', {
+      ...window.location,
+      assign: windowAssignMock,
+      origin: 'https://sso.test',
+    })
   })
 
   afterEach(() => {
@@ -211,23 +215,26 @@ describe('useLoginForm', () => {
     vi.useRealTimers()
   })
 
-  it.each([423, 403])('submit() shows safe non-enumerating locked copy for HTTP %i', async (status) => {
-    const session = useSessionStore()
-    vi.spyOn(session, 'login').mockRejectedValue(
-      new ApiError(status, 'User disabled stack trace: user@example.com'),
-    )
+  it.each([423, 403])(
+    'submit() shows safe non-enumerating locked copy for HTTP %i',
+    async (status) => {
+      const session = useSessionStore()
+      vi.spyOn(session, 'login').mockRejectedValue(
+        new ApiError(status, 'User disabled stack trace: user@example.com'),
+      )
 
-    const login = useLoginForm()
-    login.form.identifier = 'x'
-    login.form.password = 'y'
-    await login.submit()
+      const login = useLoginForm()
+      login.form.identifier = 'x'
+      login.form.password = 'y'
+      await login.submit()
 
-    expect(login.bannerError.value).toBe(
-      'Akun tidak dapat digunakan untuk masuk saat ini. Hubungi administrator jika kamu membutuhkan bantuan.',
-    )
-    expect(login.bannerError.value).not.toContain('user@example.com')
-    expect(login.bannerError.value).not.toContain('stack trace')
-  })
+      expect(login.bannerError.value).toBe(
+        'Akun tidak dapat digunakan untuk masuk saat ini. Hubungi administrator jika kamu membutuhkan bantuan.',
+      )
+      expect(login.bannerError.value).not.toContain('user@example.com')
+      expect(login.bannerError.value).not.toContain('stack trace')
+    },
+  )
 
   it('submit() shows generic copy for 401 without raw backend message', async () => {
     const session = useSessionStore()
@@ -240,7 +247,9 @@ describe('useLoginForm', () => {
     login.form.password = 'y'
     await login.submit()
 
-    expect(login.bannerError.value).toBe('Email atau password yang kamu masukkan salah. Silakan coba lagi.')
+    expect(login.bannerError.value).toBe(
+      'Email atau password yang kamu masukkan salah. Silakan coba lagi.',
+    )
     expect(login.bannerError.value).not.toContain('alice@example.com')
   })
 

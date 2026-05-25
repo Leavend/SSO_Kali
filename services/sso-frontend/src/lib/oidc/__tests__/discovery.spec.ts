@@ -1,9 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import {
-  __clearDiscoveryCacheForTests,
-  DiscoveryFetchError,
-  fetchDiscovery,
-} from '../discovery'
+import { __clearDiscoveryCacheForTests, DiscoveryFetchError, fetchDiscovery } from '../discovery'
 
 const DISCOVERY_URL = 'https://sso.example.com/.well-known/openid-configuration'
 
@@ -55,9 +51,7 @@ describe('fetchDiscovery', () => {
   })
 
   it('sends If-None-Match after the first fetch is cached past TTL via 304 revalidation path', async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(makeResponse(VALID_METADATA))
+    const fetchMock = vi.fn().mockResolvedValueOnce(makeResponse(VALID_METADATA))
     vi.stubGlobal('fetch', fetchMock)
 
     await fetchDiscovery(DISCOVERY_URL)
@@ -66,10 +60,7 @@ describe('fetchDiscovery', () => {
   })
 
   it('throws DiscoveryFetchError on non-OK HTTP status', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue(new Response('oops', { status: 503 })),
-    )
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('oops', { status: 503 })))
 
     await expect(fetchDiscovery(DISCOVERY_URL)).rejects.toThrow(DiscoveryFetchError)
   })

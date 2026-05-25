@@ -43,10 +43,7 @@ export class CanonicalizationError extends Error {
  * Assert Discovery metadata is canonically consistent and matches the
  * expected issuer. Throws {@link CanonicalizationError} on violation.
  */
-export function assertCanonicalMetadata(
-  metadata: DiscoveryMetadata,
-  expectedIssuer: string,
-): void {
+export function assertCanonicalMetadata(metadata: DiscoveryMetadata, expectedIssuer: string): void {
   const normalizedExpected = expectedIssuer.replace(/\/$/, '')
   const iss = metadata.issuer
 

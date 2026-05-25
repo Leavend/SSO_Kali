@@ -4,8 +4,14 @@ import { buildProxyRequestHeaders, buildProxyResponseHeaders } from '../proxy-he
 describe('buildProxyResponseHeaders', () => {
   it('preserves every Set-Cookie value returned by the upstream', () => {
     const headers = new Headers()
-    headers.append('Set-Cookie', '__Host-laravel_session=lsess; Path=/; Secure; HttpOnly; SameSite=Lax')
-    headers.append('Set-Cookie', '__Host-sso_session=ssoses; Path=/; Secure; HttpOnly; SameSite=Lax')
+    headers.append(
+      'Set-Cookie',
+      '__Host-laravel_session=lsess; Path=/; Secure; HttpOnly; SameSite=Lax',
+    )
+    headers.append(
+      'Set-Cookie',
+      '__Host-sso_session=ssoses; Path=/; Secure; HttpOnly; SameSite=Lax',
+    )
     headers.append('Set-Cookie', 'XSRF-TOKEN=tokenA; Path=/; Secure; SameSite=Lax')
     headers.set('Content-Type', 'application/json; charset=utf-8')
 

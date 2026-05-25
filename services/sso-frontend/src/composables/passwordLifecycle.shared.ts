@@ -1,4 +1,5 @@
 import { ref, type Ref } from 'vue'
+import { passwordStrengthHints, validatePasswordFields } from '@/lib/auth/password-policy'
 import { presentSafeError, validationErrors } from '@/lib/api/safe-error-presenter'
 
 export type PasswordFieldErrors = Record<string, string>
@@ -26,7 +27,11 @@ export type PasswordActionState = {
   }
   readonly pending: Ref<boolean>
   readonly success: Ref<string | null>
-  run: (fn: () => Promise<void>, fields: Ref<PasswordFieldErrors>, fallback: string) => Promise<void>
+  run: (
+    fn: () => Promise<void>,
+    fields: Ref<PasswordFieldErrors>,
+    fallback: string,
+  ) => Promise<void>
   reset: () => void
 }
 
@@ -64,7 +69,11 @@ export function usePasswordActionState(): PasswordActionState {
 }
 
 export function requiredChangeFieldsFilled(form: MutableChangePasswordPayload): boolean {
-  return form.current_password.length > 0 && form.new_password.length > 0 && form.new_password_confirmation.length > 0
+  return (
+    form.current_password.length > 0 &&
+    form.new_password.length > 0 &&
+    form.new_password_confirmation.length > 0
+  )
 }
 
 export function clearChangeForm(form: MutableChangePasswordPayload): void {
@@ -78,5 +87,30 @@ export function resetConfirmReady(
   pending: boolean,
   strengthItems: readonly string[],
 ): boolean {
-  return !pending && form.email.trim().length > 0 && form.token.length > 0 && strengthItems.length === 0
+  return (
+    !pending && form.email.trim().length > 0 && form.token.length > 0 && strengthItems.length === 0
+  )
+}
+
+export function validateChangeForm(form: MutableChangePasswordPayload): PasswordFieldErrors {
+  const errors = validatePasswordFields(
+    form.new_password,
+    form.new_password_confirmation,
+    'new_password',
+  )
+  if (form.current_password.length === 0) errors.current_password = 'Password saat ini wajib diisi.'
+  return errors
+}
+
+export function validateResetForm(form: MutablePasswordResetConfirmPayload): PasswordFieldErrors {
+  const errors = validatePasswordFields(form.password, form.password_confirmation, 'password')
+  if (form.email.trim().length === 0) errors.email = 'Email wajib diisi.'
+  if (form.token.length === 0) errors.token = 'Token reset wajib diisi.'
+  return errors
+}
+
+export function passwordResetStrengthItems(
+  form: MutablePasswordResetConfirmPayload,
+): readonly string[] {
+  return passwordStrengthHints(form.password)
 }

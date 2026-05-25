@@ -1,11 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { apiClient } from '@/lib/api/api-client'
 import { ApiError } from '@/lib/api/api-error'
-import {
-  fetchConsentDetails,
-  submitConsentDecision,
-  type ConsentDetails,
-} from '../consent.api'
+import { fetchConsentDetails, submitConsentDecision, type ConsentDetails } from '../consent.api'
 
 describe('consent.api (FE-FR026-001 / FR-026)', () => {
   let getSpy: ReturnType<typeof vi.spyOn>
@@ -49,7 +45,10 @@ describe('consent.api (FE-FR026-001 / FR-026)', () => {
     const result = await submitConsentDecision({ state: 'state-1', decision: 'allow' })
 
     expect(result).toEqual({ redirect_uri: 'https://app/callback?code=abc' })
-    expect(postSpy).toHaveBeenCalledWith('/connect/consent', { state: 'state-1', decision: 'allow' })
+    expect(postSpy).toHaveBeenCalledWith('/connect/consent', {
+      state: 'state-1',
+      decision: 'allow',
+    })
   })
 
   it('rejects when backend returns an empty/invalid redirect_uri', async () => {
@@ -64,15 +63,13 @@ describe('consent.api (FE-FR026-001 / FR-026)', () => {
     const csrfError = new ApiError(419, 'Sesi keamanan kedaluwarsa.', 'csrf', [], 'http')
     postSpy.mockRejectedValueOnce(csrfError)
 
-    await expect(
-      submitConsentDecision({ state: 'state-1', decision: 'allow' }),
-    ).rejects.toBe(csrfError)
+    await expect(submitConsentDecision({ state: 'state-1', decision: 'allow' })).rejects.toBe(
+      csrfError,
+    )
 
     const rate = new ApiError(429, 'Terlalu banyak.', 'rate_limited', [], 'http', 30)
     postSpy.mockRejectedValueOnce(rate)
 
-    await expect(
-      submitConsentDecision({ state: 'state-1', decision: 'allow' }),
-    ).rejects.toBe(rate)
+    await expect(submitConsentDecision({ state: 'state-1', decision: 'allow' })).rejects.toBe(rate)
   })
 })

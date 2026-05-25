@@ -63,7 +63,6 @@ export type SsoLoginResponse =
   | SsoLoginMfaRequired
   | SsoLoginMfaReenrollmentRequired
 
-
 export type SsoSessionResponse =
   | { readonly authenticated: true; readonly user: SsoUser }
   | { readonly authenticated: false }

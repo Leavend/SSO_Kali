@@ -31,7 +31,8 @@ export function useAsyncAction<TArgs extends unknown[], TResult>(
       lastResult.value = result
       return result
     } catch (caught) {
-      error.value = isApiError(caught) || caught instanceof Error ? caught : new Error(String(caught))
+      error.value =
+        isApiError(caught) || caught instanceof Error ? caught : new Error(String(caught))
       return null
     } finally {
       pending.value = false

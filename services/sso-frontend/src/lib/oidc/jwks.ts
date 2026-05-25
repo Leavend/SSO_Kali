@@ -102,7 +102,9 @@ async function performFetch(jwksUrl: string, previous: CacheEntry | null): Promi
       signal: AbortSignal.timeout(5_000),
     })
   } catch (err) {
-    throw new JwksFetchError(`JWKS request failed: ${err instanceof Error ? err.message : 'network error'}`)
+    throw new JwksFetchError(
+      `JWKS request failed: ${err instanceof Error ? err.message : 'network error'}`,
+    )
   }
 
   // 304 Not Modified — keys unchanged, refresh timestamp only.
@@ -160,7 +162,9 @@ export async function verifyJwtSignature(token: string, keys: readonly JwkEc[]):
 
   const candidateKey = selectKey(keys, header.kid)
   if (!candidateKey) {
-    throw new SignatureVerificationError(`No matching JWKS key found for kid="${String(header.kid)}".`)
+    throw new SignatureVerificationError(
+      `No matching JWKS key found for kid="${String(header.kid)}".`,
+    )
   }
 
   const cryptoKey = await importEcPublicKey(candidateKey)

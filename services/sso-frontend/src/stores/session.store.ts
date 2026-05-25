@@ -7,6 +7,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { authApi } from '@/services/auth.api'
+import { isPortalPreviewBypassEnabled, previewUser } from '@/lib/portal-preview'
 import type { SsoLoginPayload, SsoLoginResponse, SsoUser } from '@/types/auth.types'
 
 export type SessionStatus = 'idle' | 'loading' | 'ready' | 'error'
@@ -24,6 +25,12 @@ export const useSessionStore = defineStore('sso-session', () => {
   }
 
   async function ensureSession(): Promise<boolean> {
+    if (isPortalPreviewBypassEnabled()) {
+      user.value = previewUser
+      status.value = 'ready'
+      return true
+    }
+
     status.value = 'loading'
     try {
       const response = await authApi.getSession()

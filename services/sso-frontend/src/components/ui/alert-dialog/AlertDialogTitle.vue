@@ -7,10 +7,7 @@ const props = defineProps<AlertDialogTitleProps & { class?: HTMLAttributes['clas
 </script>
 
 <template>
-  <AlertDialogTitle
-    v-bind="props"
-    :class="cn('text-lg font-semibold', props.class)"
-  >
+  <AlertDialogTitle v-bind="props" :class="cn('text-lg font-semibold', props.class)">
     <slot />
   </AlertDialogTitle>
 </template>

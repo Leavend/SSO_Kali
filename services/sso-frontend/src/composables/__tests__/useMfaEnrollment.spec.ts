@@ -43,7 +43,7 @@ describe('useMfaEnrollment', () => {
     expect(mfa.enrollData.value?.secret).toBe('SECRET')
   })
 
-  it('verifies TOTP and displays recovery codes once', async () => {
+  it('verifies TOTP and displays backup codes once', async () => {
     vi.mocked(mfaApi.verifyTotp).mockResolvedValueOnce({
       verified: true,
       recovery_codes: ['AAAA-BBBB', 'CCCC-DDDD'],
@@ -79,7 +79,7 @@ describe('useMfaEnrollment', () => {
     expect(mfa.error.value).not.toContain('user@example.com')
   })
 
-  it('regenerates recovery codes with password confirmation', async () => {
+  it('regenerates backup codes with password confirmation', async () => {
     vi.mocked(mfaApi.regenerateRecoveryCodes).mockResolvedValueOnce({
       regenerated: true,
       recovery_codes: ['NEW-CODE'],
