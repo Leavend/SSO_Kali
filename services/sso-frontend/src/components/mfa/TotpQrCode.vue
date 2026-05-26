@@ -2,7 +2,7 @@
 /**
  * TotpQrCode — FR-019 / UC-49.
  *
- * Renders QR code dari provisioning URI untuk authenticator apps.
+ * Renders QR code dari provisioning URI untuk aplikasi autentikasi.
  * Menampilkan juga manual entry key sebagai fallback.
  *
  * Level: Atom (props-driven, no side effects).
@@ -41,7 +41,7 @@ async function copySecret(): Promise<void> {
 
     <div class="grid gap-2">
       <p class="text-muted-foreground text-center text-xs">
-        Scan QR code di atas menggunakan authenticator app (Google Authenticator, Authy, dll).
+        Scan QR code di atas menggunakan aplikasi autentikasi (Google Authenticator, Authy, dll).
       </p>
 
       <div class="grid gap-1.5">
@@ -49,7 +49,9 @@ async function copySecret(): Promise<void> {
           Atau masukkan kode manual:
         </span>
         <div class="flex items-center gap-2">
-          <code class="bg-muted flex-1 rounded-md px-3 py-2 font-mono text-xs tracking-widest break-all">
+          <code
+            class="bg-muted flex-1 rounded-md px-3 py-2 font-mono text-xs tracking-widest break-all"
+          >
             {{ secret }}
           </code>
           <Button

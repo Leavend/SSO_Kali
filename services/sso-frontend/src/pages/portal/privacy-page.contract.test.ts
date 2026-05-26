@@ -27,7 +27,9 @@ describe('PrivacyPage data subject request contract', () => {
       },
     ])
 
-    const wrapper = mount(PrivacyPage, { global: { stubs: { Skeleton: true } } })
+    const wrapper = mount(PrivacyPage, {
+      global: { stubs: { ConfirmDialog: true, Skeleton: true } },
+    })
     await flush()
 
     expect(wrapper.text()).toContain('Privasi & Data')
@@ -36,7 +38,7 @@ describe('PrivacyPage data subject request contract', () => {
     expect(wrapper.text()).toContain('SLA')
   })
 
-  it('creates a request and shows clear acceptance copy', async () => {
+  it('creates a request after destructive confirmation and shows clear acceptance copy', async () => {
     vi.mocked(profileApi.getDataSubjectRequests).mockResolvedValue([])
     vi.mocked(profileApi.createDataSubjectRequest).mockResolvedValue({
       request_id: 'dsr-2',
@@ -48,12 +50,29 @@ describe('PrivacyPage data subject request contract', () => {
       fulfilled_at: null,
       sla_due_at: '2026-06-16T12:00:00Z',
     })
-    const wrapper = mount(PrivacyPage, { global: { stubs: { Skeleton: true } } })
+    const wrapper = mount(PrivacyPage, {
+      global: {
+        stubs: {
+          ConfirmDialog: {
+            props: ['open'],
+            emits: ['confirm'],
+            template:
+              '<button v-if="open" data-testid="confirm-delete-request" @click="$emit(\'confirm\')">Konfirmasi</button>',
+          },
+          Skeleton: true,
+        },
+      },
+    })
     await flush()
 
     await wrapper.findAll('button[type="button"]')[1]?.trigger('click')
     await wrapper.find('#privacy-reason').setValue('Close account')
     await wrapper.find('form').trigger('submit.prevent')
+    await flush()
+
+    expect(profileApi.createDataSubjectRequest).not.toHaveBeenCalled()
+
+    await wrapper.find('[data-testid="confirm-delete-request"]').trigger('click')
     await flush()
 
     expect(profileApi.createDataSubjectRequest).toHaveBeenCalledWith({
@@ -66,10 +85,20 @@ describe('PrivacyPage data subject request contract', () => {
 
   it('renders safe failure copy and support reference without raw legal or technical text', async () => {
     vi.mocked(profileApi.getDataSubjectRequests).mockRejectedValue(
-      new ApiError(500, 'Layanan SSO sedang tidak tersedia. Coba lagi nanti.', 'server_error', [], 'http', null, 'SSOERR-PRIVACY1'),
+      new ApiError(
+        500,
+        'Layanan SSO sedang tidak tersedia. Coba lagi nanti.',
+        'server_error',
+        [],
+        'http',
+        null,
+        'SSOERR-PRIVACY1',
+      ),
     )
 
-    const wrapper = mount(PrivacyPage, { global: { stubs: { Skeleton: true } } })
+    const wrapper = mount(PrivacyPage, {
+      global: { stubs: { ConfirmDialog: true, Skeleton: true } },
+    })
     await flush()
 
     expect(wrapper.text()).toContain('Layanan SSO sedang tidak tersedia. Coba lagi nanti.')

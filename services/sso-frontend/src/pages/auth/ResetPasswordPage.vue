@@ -32,11 +32,15 @@ const reset = usePasswordResetConfirm(token.value)
         Atur password baru
       </h1>
       <p class="max-w-sm text-sm font-medium leading-relaxed text-muted-foreground">
-        Setelah berhasil, semua sesi aktif dicabut dan kamu perlu masuk ulang.
+        Setelah berhasil, semua sesi aktif akan otomatis keluar dan kamu perlu masuk ulang.
       </p>
     </header>
 
-    <form class="flex w-full max-w-md flex-col items-stretch gap-4" novalidate @submit.prevent="reset.submit">
+    <form
+      class="flex w-full max-w-md flex-col items-stretch gap-4"
+      novalidate
+      @submit.prevent="reset.submit"
+    >
       <SsoAlertBanner v-if="reset.error.value" tone="error" :message="reset.error.value" />
       <SsoAlertBanner v-if="reset.success.value" tone="success" :message="reset.success.value" />
 

@@ -26,11 +26,7 @@ const FALLBACK_ERROR_COPY =
   'Login tidak dapat diselesaikan. Mulai ulang dari halaman login atau kembali ke aplikasi awal.'
 
 const headline = computed<string>(() =>
-  callback.pending.value
-    ? 'Memverifikasi sesi'
-    : callback.error.value
-      ? 'Login gagal'
-      : 'Selesai',
+  callback.pending.value ? 'Memverifikasi sesi' : callback.error.value ? 'Login gagal' : 'Selesai',
 )
 
 const safeErrorCopy = computed<string>(() => callback.errorMessage.value ?? FALLBACK_ERROR_COPY)
@@ -112,12 +108,7 @@ function readString(key: string): string | undefined {
       Mohon tunggu sebentar.
     </p>
 
-    <SsoGlassButton
-      v-if="callback.error.value"
-      variant="glass"
-      size="sm"
-      @click="router.push('/')"
-    >
+    <SsoGlassButton v-if="callback.error.value" variant="glass" size="sm" @click="router.push('/')">
       <template #leading>
         <ArrowLeft class="size-3.5" aria-hidden="true" />
       </template>

@@ -283,7 +283,7 @@ stop_noncritical_services() {
   fi
 
   if [[ "$STOP_DEMO_SERVICES" == "true" ]]; then
-    stop_service_if_running "sso-admin-vue" "preview admin UI is not on the primary SSO path"
+    stop_service_if_running "sso-admin-frontend" "preview admin UI is not on the primary SSO path"
     stop_service_if_running "app-a-next" "demo client is not required for primary SSO login"
     stop_service_if_running "app-b-laravel" "demo client is not required for primary SSO login"
   fi
@@ -297,7 +297,7 @@ budget_for_service() {
     zitadel-api) echo "1.00 2048 1024m" ;;
     zitadel-login|zitadel-login-vue) echo "0.40 1536 384m" ;;
     sso-backend|sso-backend-worker) echo "0.45 512 512m" ;;
-    sso-frontend|sso-admin-vue) echo "0.25 256 256m" ;;
+    sso-frontend|sso-admin-frontend) echo "0.25 256 256m" ;;
     app-a-next) echo "0.10 128 192m" ;;
     app-b-laravel) echo "0.15 128 384m" ;;
     *) return 1 ;;
@@ -308,7 +308,7 @@ release_image_for_service() {
   case "$1" in
     sso-backend|sso-backend-worker) echo "sso-dev-sso-backend:${APP_IMAGE_TAG:-local}" ;;
     sso-frontend) echo "sso-dev-sso-frontend:${APP_IMAGE_TAG:-local}" ;;
-    sso-admin-vue) echo "sso-dev-sso-admin-vue:${APP_IMAGE_TAG:-local}" ;;
+    sso-admin-frontend) echo "sso-dev-sso-admin-frontend:${APP_IMAGE_TAG:-local}" ;;
     zitadel-login) echo "sso-dev-zitadel-login:${APP_IMAGE_TAG:-local}" ;;
     zitadel-login-vue) echo "sso-dev-zitadel-login-vue:${APP_IMAGE_TAG:-local}" ;;
     app-a-next) echo "sso-dev-app-a-next:${APP_IMAGE_TAG:-local}" ;;
@@ -349,7 +349,7 @@ apply_runtime_budget() {
 apply_runtime_budgets() {
   local service
   log "Apply CPU scheduling profile"
-  for service in proxy postgres redis zitadel-api zitadel-login zitadel-login-vue sso-backend sso-backend-worker sso-frontend sso-admin-vue app-a-next app-b-laravel; do
+  for service in proxy postgres redis zitadel-api zitadel-login zitadel-login-vue sso-backend sso-backend-worker sso-frontend sso-admin-frontend app-a-next app-b-laravel; do
     apply_runtime_budget "$service"
   done
 }
@@ -416,7 +416,7 @@ smoke_primary_paths() {
 print_top_stats() {
   log "Post-profile container stats"
   docker stats --no-stream --format 'table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.NetIO}}\t{{.BlockIO}}' \
-    | grep -E 'NAME|sso-prototype-dev-(postgres|proxy|redis|zitadel|sso-backend|sso-frontend|sso-admin-vue|app-a-next|app-b-laravel)' || true
+    | grep -E 'NAME|sso-prototype-dev-(postgres|proxy|redis|zitadel|sso-backend|sso-frontend|sso-admin-frontend|app-a-next|app-b-laravel)' || true
 }
 
 require_runtime

@@ -2,7 +2,7 @@
 /**
  * RecoveryCodesDisplay — FR-019 / UC-51.
  *
- * Menampilkan recovery codes dalam grid monospace
+ * Menampilkan kode cadangan dalam grid monospace
  * dengan opsi salin dan unduh.
  *
  * Level: Molecule (menggunakan atoms: Button).
@@ -26,7 +26,7 @@ async function copyAll(): Promise<void> {
 
 function downloadCodes(): void {
   const text = [
-    '# SSO Recovery Codes',
+    '# SSO Kode Cadangan',
     '# Simpan file ini di tempat yang aman.',
     '# Setiap kode hanya bisa digunakan satu kali.',
     '',
@@ -37,7 +37,7 @@ function downloadCodes(): void {
   const url = URL.createObjectURL(blob)
   const anchor = document.createElement('a')
   anchor.href = url
-  anchor.download = 'sso-recovery-codes.txt'
+  anchor.download = 'sso-kode-cadangan.txt'
   anchor.click()
   URL.revokeObjectURL(url)
 }
@@ -46,9 +46,10 @@ function downloadCodes(): void {
 <template>
   <div class="grid gap-4">
     <div class="grid gap-2 text-center">
-      <h3 class="text-sm font-semibold">Recovery Codes</h3>
+      <h3 class="text-sm font-semibold">Kode Cadangan</h3>
       <p class="text-muted-foreground text-xs">
-        Simpan kode-kode ini di tempat yang aman. Kamu bisa menggunakannya untuk login jika kehilangan akses ke authenticator app.
+        Simpan kode-kode ini di tempat yang aman. Kamu bisa menggunakannya untuk login jika
+        kehilangan akses ke aplikasi autentikasi.
       </p>
     </div>
 
@@ -59,7 +60,8 @@ function downloadCodes(): void {
     >
       <AlertTriangle class="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
       <p class="text-xs text-amber-800 dark:text-amber-200">
-        Kode ini <strong>tidak akan ditampilkan lagi</strong>. Pastikan kamu sudah menyimpannya sebelum melanjutkan.
+        Kode ini <strong>tidak akan ditampilkan lagi</strong>. Pastikan kamu sudah menyimpannya
+        sebelum melanjutkan.
       </p>
     </div>
 

@@ -26,7 +26,10 @@ describe('useAsyncAction', () => {
 
   it('flips pending flag during execution', async () => {
     const gate = ref<((value: 'done') => void) | null>(null)
-    const action = () => new Promise<'done'>((resolve) => { gate.value = resolve })
+    const action = () =>
+      new Promise<'done'>((resolve) => {
+        gate.value = resolve
+      })
 
     const { pending, run } = useAsyncAction(action)
     const pendingDuring = run()

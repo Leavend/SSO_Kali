@@ -11,6 +11,14 @@ import AppAvatar from '@/components/molecules/AppAvatar.vue'
 import ConfirmDialog from '@/components/molecules/ConfirmDialog.vue'
 import { useSessionStore } from '@/stores/session.store'
 import { useAuthRedirect } from '@/composables/useAuthRedirect'
+import { cn } from '@/lib/utils'
+
+const props = withDefaults(
+  defineProps<{
+    compact?: boolean
+  }>(),
+  { compact: false },
+)
 
 const session = useSessionStore()
 const redirect = useAuthRedirect()
@@ -31,17 +39,45 @@ async function confirmLogout(): Promise<void> {
 
 <template>
   <div class="flex items-center gap-2">
-    <div class="flex items-center gap-2 rounded-full border py-0.5 pr-3 pl-0.5">
-      <AppAvatar :name="session.user?.display_name" :email="session.user?.email" size="sm" class="ring-2 ring-background" />
-      <div class="hidden text-xs leading-tight sm:flex sm:flex-col">
-        <strong class="font-semibold">{{ session.user?.display_name ?? 'Pengguna' }}</strong>
-        <span class="text-muted-foreground">{{ session.user?.email ?? '' }}</span>
+    <div
+      :class="[
+        'portal-account-pill flex items-center gap-2 rounded-full py-0.5 pl-0.5',
+        props.compact ? 'portal-account-pill--compact' : 'pr-3',
+      ]"
+    >
+      <AppAvatar
+        :name="session.user?.display_name"
+        :email="session.user?.email"
+        size="sm"
+        class="ring-2 ring-white/50 dark:ring-white/15"
+      />
+      <div class="portal-account-identity hidden text-xs leading-tight sm:flex sm:flex-col">
+        <strong class="font-semibold text-[var(--text-primary)]">{{
+          session.user?.display_name ?? 'Pengguna'
+        }}</strong>
+        <span class="text-[var(--text-secondary)]">{{ session.user?.email ?? '' }}</span>
       </div>
-      <Badge v-if="session.user?.roles?.length" variant="secondary" class="hidden md:inline-flex">
+      <Badge
+        v-if="session.user?.roles?.length"
+        variant="secondary"
+        :class="
+          cn(
+            'border border-[var(--glass-border-subtle)] bg-white/30 dark:bg-white/10',
+            props.compact ? 'hidden' : 'hidden md:inline-flex',
+          )
+        "
+      >
         {{ session.user.roles[0] }}
       </Badge>
     </div>
-    <Button variant="outline" size="icon" aria-label="Keluar" :disabled="isLoggingOut" @click="askLogout">
+    <Button
+      variant="outline"
+      size="icon"
+      aria-label="Keluar"
+      class="portal-nav-pill relative isolate overflow-hidden rounded-full"
+      :disabled="isLoggingOut"
+      @click="askLogout"
+    >
       <LogOut class="size-4" />
     </Button>
 

@@ -1,0 +1,23 @@
+# Dependencies
+node_modules
+
+# Build artifacts
+dist
+dist.broken
+build
+coverage
+
+# Test/runtime artifacts
+test-results
+.vitest-localstorage.json
+.vitest-localstorage.json-shm
+.vitest-localstorage.json-wal
+*.tsbuildinfo
+
+# Environment and secrets
+.env*
+!.env.example
+
+# Logs and OS files
+*.log
+.DS_Store

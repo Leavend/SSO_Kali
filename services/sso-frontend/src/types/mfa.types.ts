@@ -4,9 +4,9 @@
  * Status: ON-HOLD. Tipe ini didefinisikan sekarang supaya arsitektur
  * siap menerima MFA tanpa breaking change saat diimplementasi nanti.
  *
- * UC-49: Enroll TOTP authenticator.
+ * UC-49: Enroll TOTP aplikasi autentikasi.
  * UC-50: Verify TOTP challenge saat login.
- * UC-51: Recovery codes generation & usage.
+ * UC-51: Kode cadangan generation & usage.
  */
 
 /** Supported MFA methods. */

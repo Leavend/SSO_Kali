@@ -9,10 +9,7 @@ function makeToken(payload: Record<string, unknown>): string {
 }
 
 function base64url(payload: Record<string, unknown>): string {
-  return btoa(JSON.stringify(payload))
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/u, '')
+  return btoa(JSON.stringify(payload)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/u, '')
 }
 
 const ISSUER = 'https://sso.example.com'

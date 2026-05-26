@@ -16,9 +16,10 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { AlertTriangle, Check, ShieldAlert, X } from 'lucide-vue-next'
+import { Badge } from '@/components/ui/badge'
 import SsoGlassButton from '@/components/atoms/SsoGlassButton.vue'
 import {
-  hasUnknownScopes,
+  hasUntrustedScopes,
   mergeBackendScopes,
   resolveScopeList,
   type ScopeDescriptor,
@@ -74,7 +75,7 @@ const scopes = computed<readonly ScopeDescriptor[]>(() => {
   return mergeBackendScopes(requestedNames, backendDescriptions)
 })
 
-const containsUnknown = computed<boolean>(() => hasUnknownScopes(scopes.value))
+const hasUntrustedAccess = computed<boolean>(() => hasUntrustedScopes(scopes.value))
 const canDecide = computed<boolean>(
   () => Boolean(consent.value?.state) && !loading.value && !submitting.value,
 )
@@ -122,12 +123,17 @@ async function decide(decision: ConsentDecision): Promise<void> {
 function scopeLevelClass(level: ScopeDescriptor['level']): string {
   switch (level) {
     case 'unknown':
+    case 'unverified':
       return 'border-destructive/50 text-destructive-foreground'
     case 'sensitive':
       return 'border-yellow-400/50 text-foreground'
     default:
       return 'border-border text-foreground'
   }
+}
+
+function shouldShowScopeStatus(scope: ScopeDescriptor): boolean {
+  return Boolean(scope.statusLabel)
 }
 </script>
 
@@ -158,14 +164,14 @@ function scopeLevelClass(level: ScopeDescriptor['level']): string {
     </p>
 
     <p
-      v-if="containsUnknown"
+      v-if="hasUntrustedAccess"
       role="alert"
       class="flex w-full items-start gap-2 rounded-2xl border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm leading-relaxed text-destructive-foreground backdrop-blur-md"
     >
       <ShieldAlert class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
       <span>
-        Permintaan ini berisi scope yang tidak dikenal. Jangan menyetujui jika kamu tidak yakin
-        aplikasi ini tepercaya.
+        Permintaan ini berisi cakupan akses yang belum dikenal. Jangan menyetujui jika kamu tidak
+        yakin aplikasi ini tepercaya.
       </span>
     </p>
 
@@ -187,7 +193,16 @@ function scopeLevelClass(level: ScopeDescriptor['level']): string {
           >
             <span class="mt-1.5 size-2.5 shrink-0 rounded-full bg-current" aria-hidden="true" />
             <div class="grid min-w-0 gap-0.5">
-              <p class="text-sm font-medium text-foreground">{{ scope.label }}</p>
+              <div class="flex flex-wrap items-center gap-2">
+                <p class="text-sm font-medium text-foreground">{{ scope.label }}</p>
+                <Badge
+                  v-if="shouldShowScopeStatus(scope)"
+                  variant="destructive"
+                  class="text-[10px]"
+                >
+                  {{ scope.statusLabel }}
+                </Badge>
+              </div>
               <p class="text-xs leading-relaxed text-muted-foreground">
                 {{ scope.description }}
               </p>
@@ -201,7 +216,7 @@ function scopeLevelClass(level: ScopeDescriptor['level']): string {
     <p
       class="w-full rounded-2xl border border-border bg-card/40 px-4 py-3 text-center text-xs leading-relaxed text-muted-foreground backdrop-blur-md"
     >
-      Pilih Izinkan hanya jika kamu mempercayai aplikasi ini. Kamu dapat mencabut akses dari
+      Pilih Izinkan hanya jika kamu mempercayai aplikasi ini. Kamu dapat menghapus akses dari
       halaman Aplikasi Terhubung.
     </p>
 

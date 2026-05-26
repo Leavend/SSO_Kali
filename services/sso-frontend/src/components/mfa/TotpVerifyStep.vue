@@ -41,31 +41,18 @@ function handleSubmit(): void {
     <div class="grid gap-2 text-center">
       <h3 class="text-sm font-semibold">Verifikasi Kode</h3>
       <p class="text-muted-foreground text-xs">
-        Masukkan kode 6 digit dari authenticator app untuk mengkonfirmasi pendaftaran.
+        Masukkan kode 6 digit dari aplikasi autentikasi untuk mengonfirmasi pendaftaran.
       </p>
     </div>
 
     <form class="grid gap-3" @submit.prevent="handleSubmit">
-      <MfaTotpInput
-        v-model="code"
-        :disabled="pending"
-        @complete="handleComplete"
-      />
+      <MfaTotpInput v-model="code" :disabled="pending" @complete="handleComplete" />
 
-      <p
-        v-if="error"
-        class="text-destructive text-center text-xs"
-        role="alert"
-      >
+      <p v-if="error" class="text-destructive text-center text-xs" role="alert">
         {{ error }}
       </p>
 
-      <Button
-        type="submit"
-        size="sm"
-        class="w-full"
-        :disabled="pending || code.length < 6"
-      >
+      <Button type="submit" size="sm" class="w-full" :disabled="pending || code.length < 6">
         {{ pending ? 'Memverifikasi...' : 'Verifikasi' }}
       </Button>
     </form>

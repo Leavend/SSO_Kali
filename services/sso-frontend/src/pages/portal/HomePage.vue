@@ -1,15 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
-import { Activity, AppWindow, KeyRound, ShieldCheck, UserRound } from 'lucide-vue-next'
-import { Badge } from '@/components/ui/badge'
+import { Activity, AppWindow, ArrowRight, ShieldCheck, UserRound } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import PortalPageHeader from '@/components/molecules/PortalPageHeader.vue'
 import { useSessionStore } from '@/stores/session.store'
 import { useProfileStore } from '@/stores/profile.store'
 
@@ -19,10 +13,30 @@ const profile = useProfileStore()
 const welcome = computed<string>(() => session.displayName || 'Pengguna')
 
 const shortcuts = [
-  { to: '/profile', label: 'Profil', icon: UserRound, description: 'Kelola data akun dan identitas.' },
-  { to: '/apps', label: 'Aplikasi Terhubung', icon: AppWindow, description: 'Cabut akses aplikasi yang kamu otorisasi.' },
-  { to: '/sessions', label: 'Sesi Aktif', icon: Activity, description: 'Lihat dan akhiri sesi di perangkat lain.' },
-  { to: '/security', label: 'Keamanan', icon: ShieldCheck, description: 'MFA, password, dan pengaturan login.' },
+  {
+    to: '/profile',
+    label: 'Profil',
+    icon: UserRound,
+    description: 'Kelola data akun dan identitas yang tampil di portal.',
+  },
+  {
+    to: '/apps',
+    label: 'Aplikasi Terhubung',
+    icon: AppWindow,
+    description: 'Audit aplikasi yang pernah kamu otorisasi lewat SSO.',
+  },
+  {
+    to: '/sessions',
+    label: 'Sesi Aktif',
+    icon: Activity,
+    description: 'Pantau perangkat aktif dan akhiri sesi mencurigakan.',
+  },
+  {
+    to: '/security',
+    label: 'Keamanan',
+    icon: ShieldCheck,
+    description: 'Kelola MFA, password, dan kontrol login akun.',
+  },
 ]
 
 onMounted(async (): Promise<void> => {
@@ -32,42 +46,43 @@ onMounted(async (): Promise<void> => {
 </script>
 
 <template>
-  <section class="grid gap-8">
-    <header class="flex flex-col gap-2">
-      <Badge variant="secondary" class="w-fit">Portal SSO</Badge>
-      <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">Halo, {{ welcome }} 👋</h1>
-      <p class="text-muted-foreground max-w-xl text-sm">
-        Ringkasan singkat akun SSO-mu. Gunakan pintasan di bawah untuk mengelola profil, aplikasi, dan keamanan.
-      </p>
-    </header>
+  <section class="grid gap-6 sm:gap-8">
+    <PortalPageHeader
+      eyebrow="Dashboard Portal"
+      :title="`Halo, ${welcome} 👋`"
+      description="Ringkasan akun SSO-mu dalam satu kanvas liquid glass. Pantau profil, sesi, aplikasi, dan keamanan tanpa keluar dari portal."
+      :icon="UserRound"
+    />
 
     <div class="grid gap-4 md:grid-cols-3">
-      <Card>
+      <Card data-testid="home-metric-card" class="overflow-hidden">
         <CardHeader>
           <CardDescription>Sesi Aktif</CardDescription>
-          <CardTitle class="text-3xl">{{ profile.sessions.length }}</CardTitle>
+          <CardTitle class="font-display text-3xl">{{ profile.sessions.length }}</CardTitle>
         </CardHeader>
-        <CardContent class="text-muted-foreground text-xs">
+        <CardContent class="text-xs text-[var(--text-secondary)]">
           Sesi yang sedang aktif di perangkat dan aplikasi lain.
         </CardContent>
       </Card>
-      <Card>
+      <Card data-testid="home-metric-card" class="overflow-hidden">
         <CardHeader>
           <CardDescription>Aplikasi Terhubung</CardDescription>
-          <CardTitle class="text-3xl">{{ profile.connectedApps.length }}</CardTitle>
+          <CardTitle class="font-display text-3xl">{{ profile.connectedApps.length }}</CardTitle>
         </CardHeader>
-        <CardContent class="text-muted-foreground text-xs">
+        <CardContent class="text-xs text-[var(--text-secondary)]">
           Aplikasi yang pernah kamu otorisasi lewat SSO.
         </CardContent>
       </Card>
-      <Card>
+      <Card data-testid="home-metric-card" class="overflow-hidden">
         <CardHeader>
           <CardDescription>Peran</CardDescription>
           <CardTitle class="text-lg">
             {{ session.roles.length ? session.roles.join(', ') : '—' }}
           </CardTitle>
         </CardHeader>
-        <CardContent class="text-muted-foreground text-xs">Diambil dari direktori SSO.</CardContent>
+        <CardContent class="text-xs text-[var(--text-secondary)]"
+          >Diambil dari direktori SSO.</CardContent
+        >
       </Card>
     </div>
 
@@ -75,12 +90,15 @@ onMounted(async (): Promise<void> => {
       <Card
         v-for="shortcut in shortcuts"
         :key="shortcut.to"
-        class="group transition-colors hover:border-primary"
+        data-testid="home-shortcut-card"
+        class="group relative overflow-hidden transition-all hover:-translate-y-0.5 hover:border-[var(--glass-border-brand)] hover:bg-[var(--glass-bg-elevated)] hover:shadow-[var(--shadow-glass-lg)]"
       >
         <CardHeader>
           <div class="flex items-center gap-3">
-            <span class="bg-primary/15 text-primary grid size-10 place-items-center rounded-lg">
-              <component :is="shortcut.icon" class="size-5" />
+            <span
+              class="sso-glass-pill grid size-11 place-items-center text-white shadow-[var(--shadow-glass-sm)]"
+            >
+              <component :is="shortcut.icon" class="relative z-[2] size-5" />
             </span>
             <div>
               <CardTitle>{{ shortcut.label }}</CardTitle>
@@ -92,7 +110,7 @@ onMounted(async (): Promise<void> => {
           <Button as-child variant="outline" size="sm">
             <router-link :to="shortcut.to">
               Buka
-              <KeyRound class="ml-2 size-4" />
+              <ArrowRight class="ml-2 size-4" />
             </router-link>
           </Button>
         </CardContent>

@@ -35,7 +35,9 @@ const emit = defineEmits<{
 
 const revealed = ref<boolean>(false)
 const inputType = computed<'password' | 'text'>(() => (revealed.value ? 'text' : 'password'))
-const toggleLabel = computed<string>(() => (revealed.value ? 'Sembunyikan password' : 'Tampilkan password'))
+const toggleLabel = computed<string>(() =>
+  revealed.value ? 'Sembunyikan password' : 'Tampilkan password',
+)
 
 function toggle(): void {
   revealed.value = !revealed.value

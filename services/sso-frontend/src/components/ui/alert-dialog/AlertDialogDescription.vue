@@ -7,10 +7,7 @@ const props = defineProps<AlertDialogDescriptionProps & { class?: HTMLAttributes
 </script>
 
 <template>
-  <AlertDialogDescription
-    v-bind="props"
-    :class="cn('text-muted-foreground text-sm', props.class)"
-  >
+  <AlertDialogDescription v-bind="props" :class="cn('text-muted-foreground text-sm', props.class)">
     <slot />
   </AlertDialogDescription>
 </template>

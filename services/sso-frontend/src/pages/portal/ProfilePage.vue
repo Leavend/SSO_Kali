@@ -1,160 +1,203 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, watch } from 'vue'
-import { Save } from 'lucide-vue-next'
+import { Save, Upload, UserRound, X } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Separator } from '@/components/ui/separator'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import SsoAlertBanner from '@/components/molecules/SsoAlertBanner.vue'
-import { useAsyncAction } from '@/composables/useAsyncAction'
-import { useProfileStore } from '@/stores/profile.store'
-import { presentSafeError, validationErrors } from '@/lib/api/safe-error-presenter'
+import SsoFormField from '@/components/molecules/SsoFormField.vue'
+import PortalPageHeader from '@/components/molecules/PortalPageHeader.vue'
+import { useProfileForm } from '@/composables/useProfileForm'
 
-const profile = useProfileStore()
-
-const form = reactive({
-  display_name: '',
-  given_name: '',
-  family_name: '',
-})
-
-const load = useAsyncAction(() => profile.loadProfile())
-const save = useAsyncAction(() => profile.updateProfile({ ...form }))
-const fieldErrors = computed<Record<string, string>>(() => validationErrors(save.error.value))
-const safeLoadError = computed<string | null>(() => load.error.value ? presentSafeError(load.error.value).message : null)
-const safeSaveError = computed<string | null>(() => save.error.value ? presentSafeError(save.error.value).message : null)
-const accountSummary = computed(() => profile.profile?.profile)
-
-const isDirty = computed<boolean>(() => {
-  const current = accountSummary.value
-  if (!current) return false
-  return (
-    form.display_name !== (current.display_name ?? '') ||
-    form.given_name !== (current.given_name ?? '') ||
-    form.family_name !== (current.family_name ?? '')
-  )
-})
-
-onMounted(() => {
-  void load.run()
-})
-
-watch(
-  () => profile.profile,
-  (value) => {
-    if (!value) return
-    form.display_name = value.profile.display_name ?? ''
-    form.given_name = value.profile.given_name ?? ''
-    form.family_name = value.profile.family_name ?? ''
-  },
-  { immediate: true },
-)
-
-function formatOptionalDate(value: string | null | undefined): string {
-  return value ? new Date(value).toLocaleString('id-ID') : 'Belum tersedia'
-}
+const {
+  form,
+  avatarInput,
+  load,
+  save,
+  safeLoadError,
+  safeSaveError,
+  isDirty,
+  avatarInitials,
+  displayNameText,
+  emailText,
+  givenNameError,
+  familyNameError,
+  displayNameError,
+  statusLabel,
+  isStatusActive,
+  showSaveSuccess,
+  handleSave,
+  handleCancel,
+  openAvatarPicker,
+} = useProfileForm()
 </script>
 
 <template>
-  <section class="grid gap-6">
-    <header class="flex flex-col gap-1">
-      <h1 class="text-2xl font-bold tracking-tight">Profil</h1>
-      <p class="text-muted-foreground text-sm">
-        Kelola informasi akun minimum yang boleh ditampilkan di portal SSO.
-      </p>
-    </header>
+  <section class="grid gap-6 sm:gap-8">
+    <PortalPageHeader
+      eyebrow="Identitas Akun"
+      title="Profil"
+      description="Kelola nama dan tampilan akunmu di portal SSO. Email dan nama pengguna tidak bisa diubah untuk menjaga keamanan akun."
+      :icon="UserRound"
+    />
 
     <SsoAlertBanner v-if="safeLoadError" tone="error" :message="safeLoadError" />
 
-    <div class="grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
-      <Card>
-        <CardHeader>
-          <CardTitle>Ringkasan Akun</CardTitle>
-          <CardDescription>Hanya field minimum yang disetujui untuk portal pengguna.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div v-if="load.pending.value" class="grid gap-3">
-            <Skeleton class="h-4 w-2/3" />
-            <Skeleton class="h-4 w-full" />
-            <Skeleton class="h-4 w-1/2" />
+    <Card data-testid="profile-update-card" class="overflow-hidden">
+      <CardHeader>
+        <CardTitle>Profil Akun</CardTitle>
+        <CardDescription>
+          Informasi dasar yang ditampilkan di portal SSO. Kamu hanya bisa mengubah nama. Email dan
+          nama pengguna dikunci oleh sistem.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div v-if="load.pending.value" class="grid gap-4">
+          <Skeleton class="h-16 w-full" />
+          <Skeleton class="h-10 w-full" />
+          <Skeleton class="h-10 w-full" />
+        </div>
+
+        <form
+          v-else
+          data-testid="profile-update-form"
+          class="grid gap-5"
+          novalidate
+          @submit.prevent="handleSave"
+        >
+          <div class="flex flex-col gap-4 sm:flex-row sm:items-center">
+            <button
+              type="button"
+              data-testid="profile-avatar-upload"
+              class="group relative grid size-20 shrink-0 place-items-center rounded-full bg-gradient-to-br from-sky-500 to-blue-700 text-lg font-bold text-white shadow-[var(--shadow-glass-sm)] focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:outline-none"
+              aria-label="Ubah foto profil"
+              @click="openAvatarPicker"
+            >
+              {{ avatarInitials }}
+              <span
+                class="absolute -right-1 -bottom-1 grid size-7 place-items-center rounded-full bg-background text-foreground shadow"
+              >
+                <Upload class="size-4" aria-hidden="true" />
+              </span>
+            </button>
+            <input
+              ref="avatarInput"
+              class="sr-only"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              aria-label="Pilih foto profil"
+            />
+            <div class="grid gap-1">
+              <h2 class="text-lg font-semibold">{{ displayNameText }}</h2>
+              <p class="text-muted-foreground text-sm">{{ emailText }}</p>
+              <p class="text-muted-foreground text-xs">
+                Klik avatar untuk mengubah foto profil. Format: JPG, PNG, WebP · Maks 2MB · Rasio
+                1:1 disarankan.
+              </p>
+            </div>
           </div>
-          <dl v-else class="grid gap-3 text-sm" data-testid="profile-approved-fields">
-            <div class="grid gap-1">
-              <dt class="text-muted-foreground text-xs uppercase tracking-wide">Nama Tampilan</dt>
-              <dd>{{ accountSummary?.display_name ?? 'Belum tersedia' }}</dd>
-            </div>
-            <Separator />
-            <div class="grid gap-1">
-              <dt class="text-muted-foreground text-xs uppercase tracking-wide">Email</dt>
-              <dd>{{ accountSummary?.email ?? 'Belum tersedia' }}</dd>
-            </div>
-            <Separator />
-            <div class="grid gap-1">
-              <dt class="text-muted-foreground text-xs uppercase tracking-wide">Status</dt>
-              <dd><Badge variant="secondary">{{ accountSummary?.status ?? 'unknown' }}</Badge></dd>
-            </div>
-            <Separator />
-            <div class="grid gap-1">
-              <dt class="text-muted-foreground text-xs uppercase tracking-wide">Login Terakhir</dt>
-              <dd>{{ formatOptionalDate(accountSummary?.last_login_at) }}</dd>
-            </div>
-          </dl>
-        </CardContent>
-      </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Perbarui Profil</CardTitle>
-          <CardDescription>Perubahan terbatas pada nama; email dan identifier tidak dapat diubah dari portal.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form class="grid gap-4" novalidate @submit.prevent="save.run()">
-            <div class="grid gap-2">
-              <Label for="profile-display-name">Nama tampilan</Label>
-              <Input
-                id="profile-display-name"
-                v-model="form.display_name"
-                type="text"
-                autocomplete="name"
-                :disabled="load.pending.value || save.pending.value"
-                :class="fieldErrors['display_name'] ? 'border-destructive' : ''"
+          <div class="grid gap-2">
+            <div data-testid="profile-name-fields" class="grid gap-4 sm:grid-cols-2 sm:items-start">
+              <SsoFormField
+                id="profile-given-name"
+                v-model="form.given_name"
+                data-testid="profile-given-name-field"
+                label="Nama depan"
+                autocomplete="given-name"
+                :disabled="save.pending.value"
+                :error="givenNameError"
+                class="content-start"
               />
-              <span v-if="fieldErrors['display_name']" class="text-destructive text-xs">{{ fieldErrors['display_name'] }}</span>
+              <SsoFormField
+                id="profile-family-name"
+                v-model="form.family_name"
+                data-testid="profile-family-name-field"
+                label="Nama belakang"
+                autocomplete="family-name"
+                :disabled="save.pending.value"
+                :error="familyNameError"
+                class="content-start"
+              />
             </div>
-            <div class="grid gap-4 sm:grid-cols-2">
-              <div class="grid gap-2">
-                <Label for="profile-given-name">Nama depan</Label>
-                <Input id="profile-given-name" v-model="form.given_name" type="text" autocomplete="given-name" :disabled="load.pending.value || save.pending.value" />
-                <span v-if="fieldErrors['given_name']" class="text-destructive text-xs">{{ fieldErrors['given_name'] }}</span>
-              </div>
-              <div class="grid gap-2">
-                <Label for="profile-family-name">Nama belakang</Label>
-                <Input id="profile-family-name" v-model="form.family_name" type="text" autocomplete="family-name" :disabled="load.pending.value || save.pending.value" />
-                <span v-if="fieldErrors['family_name']" class="text-destructive text-xs">{{ fieldErrors['family_name'] }}</span>
-              </div>
-            </div>
+            <p data-testid="profile-name-helper" class="text-muted-foreground text-xs">
+              Nama depan dan nama belakang digabungkan otomatis sebagai nama tampilan.
+            </p>
+          </div>
 
+          <SsoFormField
+            id="profile-display-name"
+            v-model="form.display_name"
+            label="Nama tampilan"
+            autocomplete="name"
+            :disabled="save.pending.value"
+            :error="displayNameError"
+            input-class="data-[invalid=true]:border-destructive"
+          >
+            <template #label>
+              Nama tampilan
+              <span class="text-muted-foreground">(dihasilkan otomatis — bisa diubah manual)</span>
+            </template>
+          </SsoFormField>
+
+          <div class="grid gap-4 sm:grid-cols-2">
+            <SsoFormField
+              id="profile-email"
+              :model-value="emailText"
+              type="email"
+              label="Email"
+              hint="Email tidak dapat diubah dari portal. Hubungi administrator."
+              readonly
+              class="content-start"
+              input-class="pr-9"
+            />
+            <div class="grid content-start gap-2">
+              <span class="text-sm font-medium">Status akun</span>
+              <Badge
+                :variant="isStatusActive ? 'default' : 'secondary'"
+                class="w-fit bg-success-700 text-white"
+              >
+                {{ statusLabel }}
+              </Badge>
+            </div>
+          </div>
+
+          <div class="min-h-10">
             <SsoAlertBanner v-if="safeSaveError" tone="error" :message="safeSaveError" />
-            <SsoAlertBanner v-else-if="save.lastResult.value && !isDirty" tone="success" message="Profil berhasil diperbarui." />
+            <SsoAlertBanner
+              v-else-if="showSaveSuccess"
+              tone="success"
+              message="Profil berhasil diperbarui."
+            />
+          </div>
 
-            <div class="flex justify-end">
-              <Button type="submit" :disabled="save.pending.value || !isDirty">
-                <Save class="size-4" />
-                {{ save.pending.value ? 'Menyimpan…' : 'Simpan Perubahan' }}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+          <div
+            data-testid="profile-update-actions"
+            class="flex flex-col gap-2 sm:flex-row sm:justify-end"
+          >
+            <Button
+              v-if="isDirty"
+              data-testid="profile-cancel-button"
+              type="button"
+              variant="ghost"
+              class="w-full sm:w-fit"
+              @click="handleCancel"
+            >
+              <X class="size-4" aria-hidden="true" />
+              Batal
+            </Button>
+            <Button
+              data-testid="profile-save-button"
+              type="submit"
+              class="w-full sm:w-fit"
+              :disabled="save.pending.value || !isDirty"
+            >
+              <Save class="size-4" aria-hidden="true" />
+              {{ save.pending.value ? 'Menyimpan…' : 'Simpan Perubahan' }}
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
   </section>
 </template>

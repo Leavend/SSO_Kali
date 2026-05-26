@@ -28,7 +28,10 @@ describe('useAuthRedirect', () => {
   it('toLogin(path) navigates to auth.login with redirect query', () => {
     const { toLogin } = useAuthRedirect()
     toLogin('/profile')
-    expect(routerPushMock).toHaveBeenCalledWith({ name: 'auth.login', query: { redirect: '/profile' } })
+    expect(routerPushMock).toHaveBeenCalledWith({
+      name: 'auth.login',
+      query: { redirect: '/profile' },
+    })
   })
 
   it('toHome() navigates to home route', () => {

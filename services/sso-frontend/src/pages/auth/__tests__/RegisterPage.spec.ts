@@ -24,12 +24,7 @@ function buildApiError(
   message: string,
   violations: readonly ApiViolation[] = [],
 ): ApiError {
-  return new ApiError(
-    status,
-    message,
-    status === 422 ? 'validation_failed' : null,
-    violations,
-  )
+  return new ApiError(status, message, status === 422 ? 'validation_failed' : null, violations)
 }
 
 /**
@@ -72,7 +67,10 @@ function mountRegister() {
       stubs: {
         SsoGlassButton: defineComponent({
           name: 'SsoGlassButton',
-          props: { disabled: { type: Boolean, default: false }, type: { type: String, default: 'button' } },
+          props: {
+            disabled: { type: Boolean, default: false },
+            type: { type: String, default: 'button' },
+          },
           emits: ['click'],
           setup(props, { slots, emit }) {
             return () =>
@@ -106,18 +104,18 @@ function mountRegister() {
                   onInput: (event: Event) =>
                     emit('update:modelValue', (event.target as HTMLInputElement).value),
                 }),
-                props.error
-                  ? h('p', { 'data-testid': `${props.id}-error` }, props.error)
-                  : null,
+                props.error ? h('p', { 'data-testid': `${props.id}-error` }, props.error) : null,
               ])
           },
         }),
         SsoAlertBanner: defineComponent({
           name: 'SsoAlertBanner',
-          props: { tone: { type: String, default: 'error' }, message: { type: String, required: true } },
+          props: {
+            tone: { type: String, default: 'error' },
+            message: { type: String, required: true },
+          },
           setup(props) {
-            return () =>
-              h('p', { 'data-testid': `register-banner-${props.tone}` }, props.message)
+            return () => h('p', { 'data-testid': `register-banner-${props.tone}` }, props.message)
           },
         }),
         Transition: { template: '<div><slot /></div>' },

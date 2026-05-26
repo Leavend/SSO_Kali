@@ -11,7 +11,7 @@ on:
       - "charts/**"
       - "docs/runbooks/**"
       - "docs/generated/**"
-      - "services/sso-admin-vue/**"
+      - "services/sso-admin-frontend/**"
   push:
     branches: [main]
     paths:
@@ -22,7 +22,7 @@ on:
       - "charts/**"
       - "docs/runbooks/**"
       - "docs/generated/**"
-      - "services/sso-admin-vue/**"
+      - "services/sso-admin-frontend/**"
   workflow_dispatch:
 
 env:

@@ -11,13 +11,7 @@
 import { ShieldCheck, ShieldOff } from 'lucide-vue-next'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 defineProps<{
   enrolled: boolean
@@ -34,20 +28,14 @@ const emit = defineEmits<{
 <template>
   <Card class="relative overflow-hidden">
     <CardHeader class="flex flex-row items-start gap-3 space-y-0">
-      <span
-        class="grid size-10 shrink-0 place-items-center rounded-lg"
-        :class="enrolled ? 'bg-green-500/10 text-green-600 dark:text-green-400' : 'bg-muted text-muted-foreground'"
-      >
+      <span class="sso-glass-pill grid size-10 shrink-0 place-items-center text-white">
         <ShieldCheck v-if="enrolled" class="size-5" />
         <ShieldOff v-else class="size-5" />
       </span>
       <div class="grid gap-1">
         <CardTitle class="text-sm font-semibold">Multi-Factor Authentication</CardTitle>
         <CardDescription class="flex items-center gap-2">
-          <Badge
-            :variant="enrolled ? 'default' : 'secondary'"
-            class="text-[10px]"
-          >
+          <Badge :variant="enrolled ? 'default' : 'secondary'" class="text-[10px]">
             {{ enrolled ? 'Aktif' : 'Belum diaktifkan' }}
           </Badge>
           <span v-if="enrolled && lastVerifiedAt" class="text-muted-foreground text-[10px]">
@@ -58,18 +46,13 @@ const emit = defineEmits<{
     </CardHeader>
     <CardContent class="grid gap-3">
       <p class="text-muted-foreground text-xs">
-        {{ enrolled
-          ? 'Akun kamu dilindungi dengan verifikasi dua langkah menggunakan authenticator app.'
-          : 'Aktifkan MFA untuk menambahkan lapisan keamanan ekstra pada akun kamu.'
+        {{
+          enrolled
+            ? 'Akun kamu dilindungi dengan verifikasi dua langkah menggunakan aplikasi autentikasi.'
+            : 'Aktifkan MFA untuk menambahkan lapisan keamanan ekstra pada akun kamu.'
         }}
       </p>
-      <Button
-        v-if="!enrolled"
-        size="sm"
-        class="w-fit"
-        :disabled="pending"
-        @click="emit('enable')"
-      >
+      <Button v-if="!enrolled" size="sm" class="w-fit" :disabled="pending" @click="emit('enable')">
         <ShieldCheck class="size-4" />
         Aktifkan MFA
       </Button>

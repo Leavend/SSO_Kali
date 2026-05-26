@@ -10,7 +10,7 @@ Images in scope:
 - `sso-backend`
 - `sso-backend-worker`
 - `sso-frontend`
-- `sso-admin-vue`
+- `sso-admin-frontend`
 - `zitadel-login`
 - `app-a-next`
 - `app-b-laravel`

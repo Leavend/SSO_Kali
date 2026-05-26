@@ -117,7 +117,7 @@ const mainWidthClass = computed<string>(() => {
 }
 
 .dark .auth-top-scrim {
-  background: linear-gradient(180deg, rgb(2 6 23 / 0.30), rgb(2 6 23 / 0));
+  background: linear-gradient(180deg, rgb(2 6 23 / 0.3), rgb(2 6 23 / 0));
 }
 
 .auth-main::before {
@@ -134,7 +134,7 @@ const mainWidthClass = computed<string>(() => {
   background: radial-gradient(
     ellipse at 50% 48%,
     rgb(2 6 23 / 0.42) 0%,
-    rgb(2 6 23 / 0.30) 42%,
+    rgb(2 6 23 / 0.3) 42%,
     rgb(2 6 23 / 0.12) 72%,
     transparent 100%
   );
@@ -172,7 +172,7 @@ const mainWidthClass = computed<string>(() => {
 .dark .auth-main :deep(section > div:last-child a) {
   text-shadow:
     0 2px 14px rgb(0 0 0 / 0.34),
-    0 1px 2px rgb(0 0 0 / 0.30);
+    0 1px 2px rgb(0 0 0 / 0.3);
 }
 
 @media (prefers-reduced-motion: reduce) {

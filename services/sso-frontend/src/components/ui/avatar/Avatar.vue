@@ -10,12 +10,7 @@ const props = defineProps<AvatarRootProps & { class?: HTMLAttributes['class'] }>
   <AvatarRoot
     v-bind="props"
     data-slot="avatar"
-    :class="
-      cn(
-        'relative flex size-8 shrink-0 overflow-hidden rounded-full',
-        props.class,
-      )
-    "
+    :class="cn('relative flex size-8 shrink-0 overflow-hidden rounded-full', props.class)"
   >
     <slot />
   </AvatarRoot>

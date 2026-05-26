@@ -23,11 +23,16 @@ describe('useLoginForm', () => {
     routeQuery.redirect = undefined
     routeQuery.auth_request_id = undefined
 
-    vi.stubGlobal('location', { ...window.location, assign: windowAssignMock, origin: 'https://sso.test' })
+    vi.stubGlobal('location', {
+      ...window.location,
+      assign: windowAssignMock,
+      origin: 'https://sso.test',
+    })
   })
 
   afterEach(() => {
     vi.unstubAllGlobals()
+    vi.unstubAllEnvs()
     vi.restoreAllMocks()
   })
 
@@ -90,6 +95,85 @@ describe('useLoginForm', () => {
     await login.submit()
 
     expect(routerPushMock).toHaveBeenCalledWith('/apps')
+  })
+
+  it('submit() returns to the configured admin frontend path with full-page navigation', async () => {
+    vi.stubEnv('VITE_ADMIN_FRONTEND_BASE_PATH', '/admin-preview')
+    routeQuery.redirect = '/admin-preview/oidc-foundation'
+    const session = useSessionStore()
+    vi.spyOn(session, 'login').mockResolvedValue({
+      authenticated: true,
+      user: { id: 1, subject_id: 's', email: 'x', display_name: 'x', roles: ['admin'] },
+      session: { expires_at: '2099-12-31T00:00:00Z' },
+      next: { type: 'session', auth_request_id: null },
+    })
+
+    const login = useLoginForm()
+    login.form.identifier = 'admin'
+    login.form.password = 'p'
+    await login.submit()
+
+    expect(windowAssignMock).toHaveBeenCalledWith('https://sso.test/admin-preview/oidc-foundation')
+    expect(routerPushMock).not.toHaveBeenCalled()
+  })
+
+  it('submit() returns to the configured admin frontend origin with full-page navigation', async () => {
+    vi.stubEnv('VITE_ADMIN_FRONTEND_ORIGIN', 'https://admin-sso.timeh.my.id')
+    routeQuery.redirect = '/oidc-foundation'
+    const session = useSessionStore()
+    vi.spyOn(session, 'login').mockResolvedValue({
+      authenticated: true,
+      user: { id: 1, subject_id: 's', email: 'x', display_name: 'x', roles: ['admin'] },
+      session: { expires_at: '2099-12-31T00:00:00Z' },
+      next: { type: 'session', auth_request_id: null },
+    })
+
+    const login = useLoginForm()
+    login.form.identifier = 'admin'
+    login.form.password = 'p'
+    await login.submit()
+
+    expect(windowAssignMock).toHaveBeenCalledWith('https://admin-sso.timeh.my.id/oidc-foundation')
+    expect(routerPushMock).not.toHaveBeenCalled()
+  })
+
+  it('submit() keeps portal redirects inside the portal when admin origin is configured', async () => {
+    vi.stubEnv('VITE_ADMIN_FRONTEND_ORIGIN', 'https://admin-sso.timeh.my.id')
+    routeQuery.redirect = '/home'
+    const session = useSessionStore()
+    vi.spyOn(session, 'login').mockResolvedValue({
+      authenticated: true,
+      user: { id: 1, subject_id: 's', email: 'x', display_name: 'x', roles: ['admin'] },
+      session: { expires_at: '2099-12-31T00:00:00Z' },
+      next: { type: 'session', auth_request_id: null },
+    })
+
+    const login = useLoginForm()
+    login.form.identifier = 'admin'
+    login.form.password = 'p'
+    await login.submit()
+
+    expect(routerPushMock).toHaveBeenCalledWith('/home')
+    expect(windowAssignMock).not.toHaveBeenCalled()
+  })
+
+  it('submit() keeps the default admin preview path as a full-page navigation target', async () => {
+    routeQuery.redirect = '/__vue-preview/'
+    const session = useSessionStore()
+    vi.spyOn(session, 'login').mockResolvedValue({
+      authenticated: true,
+      user: { id: 1, subject_id: 's', email: 'x', display_name: 'x', roles: ['admin'] },
+      session: { expires_at: '2099-12-31T00:00:00Z' },
+      next: { type: 'session', auth_request_id: null },
+    })
+
+    const login = useLoginForm()
+    login.form.identifier = 'admin'
+    login.form.password = 'p'
+    await login.submit()
+
+    expect(windowAssignMock).toHaveBeenCalledWith('https://sso.test/__vue-preview/')
+    expect(routerPushMock).not.toHaveBeenCalled()
   })
 
   it('submit() ignores external redirect to prevent open redirect attack', async () => {
@@ -211,23 +295,26 @@ describe('useLoginForm', () => {
     vi.useRealTimers()
   })
 
-  it.each([423, 403])('submit() shows safe non-enumerating locked copy for HTTP %i', async (status) => {
-    const session = useSessionStore()
-    vi.spyOn(session, 'login').mockRejectedValue(
-      new ApiError(status, 'User disabled stack trace: user@example.com'),
-    )
+  it.each([423, 403])(
+    'submit() shows safe non-enumerating locked copy for HTTP %i',
+    async (status) => {
+      const session = useSessionStore()
+      vi.spyOn(session, 'login').mockRejectedValue(
+        new ApiError(status, 'User disabled stack trace: user@example.com'),
+      )
 
-    const login = useLoginForm()
-    login.form.identifier = 'x'
-    login.form.password = 'y'
-    await login.submit()
+      const login = useLoginForm()
+      login.form.identifier = 'x'
+      login.form.password = 'y'
+      await login.submit()
 
-    expect(login.bannerError.value).toBe(
-      'Akun tidak dapat digunakan untuk masuk saat ini. Hubungi administrator jika kamu membutuhkan bantuan.',
-    )
-    expect(login.bannerError.value).not.toContain('user@example.com')
-    expect(login.bannerError.value).not.toContain('stack trace')
-  })
+      expect(login.bannerError.value).toBe(
+        'Akun tidak dapat digunakan untuk masuk saat ini. Hubungi administrator jika kamu membutuhkan bantuan.',
+      )
+      expect(login.bannerError.value).not.toContain('user@example.com')
+      expect(login.bannerError.value).not.toContain('stack trace')
+    },
+  )
 
   it('submit() shows generic copy for 401 without raw backend message', async () => {
     const session = useSessionStore()
@@ -240,7 +327,9 @@ describe('useLoginForm', () => {
     login.form.password = 'y'
     await login.submit()
 
-    expect(login.bannerError.value).toBe('Email atau password yang kamu masukkan salah. Silakan coba lagi.')
+    expect(login.bannerError.value).toBe(
+      'Email atau password yang kamu masukkan salah. Silakan coba lagi.',
+    )
     expect(login.bannerError.value).not.toContain('alice@example.com')
   })
 

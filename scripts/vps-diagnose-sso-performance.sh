@@ -57,7 +57,7 @@ print_focused_container_samples() {
   for sample in $(seq 1 "$SAMPLES"); do
     echo "-- sample ${sample}/${SAMPLES}"
     docker stats --no-stream --format 'table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.NetIO}}\t{{.BlockIO}}' \
-      | grep -E 'NAME|sso-prototype-dev-(postgres|proxy|redis|zitadel|sso-backend|sso-frontend|sso-admin-vue|app-a-next|app-b-laravel)' || true
+      | grep -E 'NAME|sso-prototype-dev-(postgres|proxy|redis|zitadel|sso-backend|sso-frontend|sso-admin-frontend|app-a-next|app-b-laravel)' || true
     sleep 2
   done
 }
@@ -65,7 +65,7 @@ print_focused_container_samples() {
 audit_resource_policy() {
   log "Runtime resource policy"
   local service container_id
-  for service in proxy postgres redis zitadel-api zitadel-login zitadel-login-vue sso-backend sso-backend-worker sso-frontend sso-admin-vue app-a-next app-b-laravel; do
+  for service in proxy postgres redis zitadel-api zitadel-login zitadel-login-vue sso-backend sso-backend-worker sso-frontend sso-admin-frontend app-a-next app-b-laravel; do
     container_id="$(compose ps -q "$service" || true)"
     if [[ -z "$container_id" ]]; then
       echo "service=${service} status=missing"

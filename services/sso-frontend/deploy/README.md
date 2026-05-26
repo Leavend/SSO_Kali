@@ -57,27 +57,27 @@ docker compose logs -f sso-frontend
 
 ### Build-time (baked into SPA bundle)
 
-| Variable | Required | Default | Description |
-|---|---|---|---|
-| `VITE_SSO_API_URL` | No | `""` (relative) | Backend API base URL |
-| `VITE_APP_NAME` | No | `Dev-SSO Portal` | App title in browser tab |
-| `VITE_OIDC_ISSUER` | Yes | — | OIDC issuer URL |
-| `VITE_OIDC_CLIENT_ID` | Yes | — | OIDC client ID |
-| `VITE_OIDC_SCOPE` | No | `openid profile email offline_access` | OAuth scopes |
-| `VITE_OIDC_REDIRECT_URI` | No | `{origin}/auth/callback` | Callback URL |
-| `VITE_OIDC_AUTHORIZE_ENDPOINT` | No | `{issuer}/oauth2/authorize` | Authorize URL |
-| `VITE_OIDC_TOKEN_ENDPOINT` | No | `{issuer}/oauth2/token` | Token URL |
-| `VITE_OIDC_END_SESSION_ENDPOINT` | No | `{issuer}/oauth2/logout` | End session URL |
-| `VITE_OIDC_POST_LOGOUT_REDIRECT_URI` | No | `{origin}/` | Post-logout redirect |
-| `VITE_CHANGE_PASSWORD_URL` | No | — | External IdP change password URL |
+| Variable                             | Required | Default                               | Description                      |
+| ------------------------------------ | -------- | ------------------------------------- | -------------------------------- |
+| `VITE_SSO_API_URL`                   | No       | `""` (relative)                       | Backend API base URL             |
+| `VITE_APP_NAME`                      | No       | `Dev-SSO Portal`                      | App title in browser tab         |
+| `VITE_OIDC_ISSUER`                   | Yes      | —                                     | OIDC issuer URL                  |
+| `VITE_OIDC_CLIENT_ID`                | Yes      | —                                     | OIDC client ID                   |
+| `VITE_OIDC_SCOPE`                    | No       | `openid profile email offline_access` | OAuth scopes                     |
+| `VITE_OIDC_REDIRECT_URI`             | No       | `{origin}/auth/callback`              | Callback URL                     |
+| `VITE_OIDC_AUTHORIZE_ENDPOINT`       | No       | `{issuer}/oauth2/authorize`           | Authorize URL                    |
+| `VITE_OIDC_TOKEN_ENDPOINT`           | No       | `{issuer}/oauth2/token`               | Token URL                        |
+| `VITE_OIDC_END_SESSION_ENDPOINT`     | No       | `{issuer}/oauth2/logout`              | End session URL                  |
+| `VITE_OIDC_POST_LOGOUT_REDIRECT_URI` | No       | `{origin}/`                           | Post-logout redirect             |
+| `VITE_CHANGE_PASSWORD_URL`           | No       | —                                     | External IdP change password URL |
 
 ### Runtime (Docker container start)
 
-| Variable | Required | Default | Description |
-|---|---|---|---|
-| `SSO_BACKEND_UPSTREAM` | Yes | — | Backend host:port (e.g. `sso-backend:8200`) |
-| `SSO_FRONTEND_SERVER_NAME` | No | `_` | Nginx server_name |
-| `SSO_CSP_CONNECT_SRC` | No | `""` | Extra CSP connect-src origins (e.g. Sentry) |
+| Variable                   | Required | Default | Description                                 |
+| -------------------------- | -------- | ------- | ------------------------------------------- |
+| `SSO_BACKEND_UPSTREAM`     | Yes      | —       | Backend host:port (e.g. `sso-backend:8200`) |
+| `SSO_FRONTEND_SERVER_NAME` | No       | `_`     | Nginx server_name                           |
+| `SSO_CSP_CONNECT_SRC`      | No       | `""`    | Extra CSP connect-src origins (e.g. Sentry) |
 
 ## CI/CD Pipeline
 
@@ -120,22 +120,22 @@ make clean           # Remove dist + caches
 
 ## Security Headers (Nginx)
 
-| Header | Value |
-|---|---|
-| `Content-Security-Policy` | `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' {CSP_CONNECT_SRC}; frame-ancestors 'none'` |
-| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains; preload` |
-| `X-Content-Type-Options` | `nosniff` |
-| `X-Frame-Options` | `DENY` |
-| `X-XSS-Protection` | `0` (CSP replaces this) |
-| `Referrer-Policy` | `strict-origin-when-cross-origin` |
-| `Permissions-Policy` | `camera=(), microphone=(), geolocation=()` |
+| Header                      | Value                                                                                                                                   |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `Content-Security-Policy`   | `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' {CSP_CONNECT_SRC}; frame-ancestors 'none'` |
+| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains; preload`                                                                                          |
+| `X-Content-Type-Options`    | `nosniff`                                                                                                                               |
+| `X-Frame-Options`           | `DENY`                                                                                                                                  |
+| `X-XSS-Protection`          | `0` (CSP replaces this)                                                                                                                 |
+| `Referrer-Policy`           | `strict-origin-when-cross-origin`                                                                                                       |
+| `Permissions-Policy`        | `camera=(), microphone=(), geolocation=()`                                                                                              |
 
 ## Rate Limiting (Nginx)
 
-| Zone | Rate | Burst |
-|---|---|---|
-| Login (`/api/auth/login`) | 10 req/min per IP | 5 |
-| API (`/api/*`) | 120 req/min per IP | 30 |
+| Zone                      | Rate               | Burst |
+| ------------------------- | ------------------ | ----- |
+| Login (`/api/auth/login`) | 10 req/min per IP  | 5     |
+| API (`/api/*`)            | 120 req/min per IP | 30    |
 
 ## Health Check
 

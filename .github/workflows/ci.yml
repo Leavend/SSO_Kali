@@ -22,7 +22,7 @@ env:
   REGISTRY: ghcr.io
   IMAGE_PREFIX: ghcr.io/leavend/sso-prototype
   SSO_BASE_URL: https://dev-sso.timeh.my.id
-  SSO_ADMIN_VUE_BASE_PATH: /__vue-preview
+  SSO_ADMIN_FRONTEND_BASE_PATH: /
   ZITADEL_ISSUER: https://id.dev-sso.timeh.my.id
 
 # Cancel in-progress runs for the same branch/PR
@@ -93,7 +93,7 @@ jobs:
       fail-fast: true
       matrix:
         component:
-          - { name: sso-admin-vue, path: services/sso-admin-vue }
+          - { name: sso-admin-frontend, path: services/sso-admin-frontend }
 
     defaults:
       run:
@@ -126,6 +126,7 @@ jobs:
         env:
           VITE_SSO_BASE_URL: https://placeholder.local
           VITE_SSO_FRONTEND_BASE_URL: https://placeholder.local
+          VITE_ADMIN_FRONTEND_ORIGIN: https://admin-sso.timeh.my.id
           VITE_CLIENT_ID: sso-frontend-portal
           NEXT_PUBLIC_SSO_BASE_URL: https://placeholder.local
           NEXT_PUBLIC_SSO_ISSUER: https://placeholder.local
@@ -157,13 +158,13 @@ jobs:
           - name: sso-backend
             context: ./services/sso-backend
             dockerfile: ./services/sso-backend/Dockerfile
-          - name: sso-admin-vue
-            context: ./services/sso-admin-vue
-            dockerfile: ./services/sso-admin-vue/Dockerfile
+          - name: sso-admin-frontend
+            context: ./services/sso-admin-frontend
+            dockerfile: ./services/sso-admin-frontend/Dockerfile
             build-args: |
-              VITE_ADMIN_BASE_URL=https://dev-sso.timeh.my.id
-              VITE_PUBLIC_BASE_PATH=/__vue-preview
-              VITE_SSO_BASE_URL=https://dev-sso.timeh.my.id
+              VITE_ADMIN_BASE_URL=https://admin-sso.timeh.my.id
+              VITE_PUBLIC_BASE_PATH=/
+              VITE_SSO_BASE_URL=https://sso.timeh.my.id
               VITE_ZITADEL_ISSUER_URL=https://id.dev-sso.timeh.my.id
 
     steps:

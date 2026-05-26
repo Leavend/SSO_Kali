@@ -39,9 +39,7 @@ describe('Aurora pill autofill — text colour parity', () => {
 
   it('asserts -webkit-text-fill-color invariant against the pill text token', () => {
     const block =
-      css.match(
-        /\.aurora-shell \.sso-glass-pill input:-webkit-autofill[\s\S]*?\}/,
-      )?.[0] ?? ''
+      css.match(/\.aurora-shell \.sso-glass-pill input:-webkit-autofill[\s\S]*?\}/)?.[0] ?? ''
 
     expect(block).toContain('-webkit-text-fill-color: var(--text-primary) !important')
     expect(block).toContain('caret-color: var(--text-primary) !important')

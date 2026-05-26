@@ -2,7 +2,7 @@
 /**
  * RecoveryCodesRegenerateDialog — FR-020 / UC-69.
  *
- * Dialog konfirmasi password sebelum regenerasi recovery codes.
+ * Dialog konfirmasi password sebelum regenerasi kode cadangan.
  * Menggunakan pattern yang sama dengan MfaRemoveDialog.
  *
  * Level: Molecule (menggunakan atoms: Dialog, Input, Button).
@@ -35,9 +35,12 @@ const emit = defineEmits<{
 
 const password = ref('')
 
-watch(() => props.open, (isOpen) => {
-  if (!isOpen) password.value = ''
-})
+watch(
+  () => props.open,
+  (isOpen) => {
+    if (!isOpen) password.value = ''
+  },
+)
 
 function handleSubmit(): void {
   if (password.value.length === 0) return
@@ -51,10 +54,10 @@ function handleSubmit(): void {
       <DialogHeader>
         <DialogTitle class="flex items-center gap-2 text-base">
           <KeyRound class="size-5 text-amber-600 dark:text-amber-400" />
-          Regenerasi Recovery Codes
+          Regenerasi Kode Cadangan
         </DialogTitle>
         <DialogDescription>
-          Kode lama akan dinonaktifkan. Masukkan password untuk konfirmasi.
+          Kami akan menonaktifkan kode lama. Masukkan password untuk konfirmasi.
         </DialogDescription>
       </DialogHeader>
 
@@ -69,11 +72,7 @@ function handleSubmit(): void {
             autocomplete="current-password"
             :disabled="pending"
           />
-          <p
-            v-if="error"
-            class="text-xs text-red-600 dark:text-red-400"
-            role="alert"
-          >
+          <p v-if="error" class="text-xs text-red-600 dark:text-red-400" role="alert">
             {{ error }}
           </p>
         </div>
@@ -88,11 +87,7 @@ function handleSubmit(): void {
           >
             Batal
           </Button>
-          <Button
-            type="submit"
-            size="sm"
-            :disabled="pending || password.length === 0"
-          >
+          <Button type="submit" size="sm" :disabled="pending || password.length === 0">
             <KeyRound class="size-4" />
             Regenerasi
           </Button>

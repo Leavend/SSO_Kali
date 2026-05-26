@@ -82,7 +82,15 @@ export function useOidcAuthorize(): UseOidcAuthorizeReturn {
     })
 
     window.location.assign(
-      buildAuthorizeUrl(authorizeEndpoint, config, pkce.code_challenge, state, nonce, scope, options),
+      buildAuthorizeUrl(
+        authorizeEndpoint,
+        config,
+        pkce.code_challenge,
+        state,
+        nonce,
+        scope,
+        options,
+      ),
     )
   }
 
@@ -104,9 +112,7 @@ async function resolveAuthorizationEndpoint(config: OidcConfig): Promise<string>
     const metadata = await fetchDiscovery(discoveryUrl)
 
     if (metadata.issuer.replace(/\/$/u, '') !== config.issuer.replace(/\/$/u, '')) {
-      throw new OidcDiscoveryDriftError(
-        'Discovery issuer does not match configured issuer.',
-      )
+      throw new OidcDiscoveryDriftError('Discovery issuer does not match configured issuer.')
     }
 
     return metadata.authorization_endpoint

@@ -40,6 +40,11 @@ export type ConnectedApp = {
   readonly last_used_at: string
   readonly expires_at: string
   readonly active_refresh_tokens: number
+  readonly scopes?: readonly string[]
+  readonly description?: string | null
+  readonly category?: string | null
+  readonly logo_url?: string | null
+  readonly logo_initials?: string | null
 }
 
 export type UserSessionSummary = {
@@ -52,6 +57,10 @@ export type UserSessionSummary = {
   readonly client_display_names: readonly string[]
   /** Raw user-agent string from session creation (optional, backend may omit). */
   readonly user_agent?: string | null
+  /** IP address observed when the session was opened. */
+  readonly ip_address?: string | null
+  /** Coarse geo label resolved server-side from IP. */
+  readonly location?: string | null
   /** Whether this is the current browser session. */
   readonly is_current?: boolean
 }

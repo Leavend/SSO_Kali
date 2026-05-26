@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  hasUnknownScopes,
+  hasUntrustedScopes,
   mergeBackendScopes,
   resolveScopeLabel,
   resolveScopeList,
@@ -34,8 +34,21 @@ describe('resolveScopeLabel', () => {
     expect(descriptor.level).toBe('unknown')
     expect(descriptor.name).toBe('admin:accounting')
     expect(descriptor.label).not.toContain('admin:accounting')
-    expect(descriptor.label).toMatch(/belum terverifikasi/i)
-    expect(descriptor.description).toMatch(/belum terdaftar/i)
+    expect(descriptor.label).toBe('Cakupan Akses Baru')
+    expect(descriptor.statusLabel).toBe('Belum Diverifikasi')
+    expect(descriptor.description).toMatch(/Hubungi administrator/i)
+  })
+
+  it('separates the sso.portal scope label from its verification status', () => {
+    const descriptor = resolveScopeLabel('sso.portal')
+
+    expect(descriptor.name).toBe('sso.portal')
+    expect(descriptor.label).toBe('SSO Portal')
+    expect(descriptor.level).toBe('unverified')
+    expect(descriptor.statusLabel).toBe('Belum Diverifikasi')
+    expect(descriptor.description).toBe(
+      'Akses ke fitur portal SSO. Hubungi administrator untuk verifikasi sebelum mengaktifkan.',
+    )
   })
 
   it('trims whitespace around scope names', () => {
@@ -85,42 +98,56 @@ describe('mergeBackendScopes', () => {
       new Map([['openid', 'Backend authoritative description.']]),
     )
 
-    expect(merged).toHaveLength(1)
-    expect(merged[0].name).toBe('openid')
-    expect(merged[0].label).toBe('Identitas Dasar')
-    expect(merged[0].description).toBe('Backend authoritative description.')
-    expect(merged[0].level).toBe('standard')
+    const descriptor = merged[0]
+
+    expect(descriptor).toBeDefined()
+    expect(descriptor?.name).toBe('openid')
+    expect(descriptor?.label).toBe('Identitas Dasar')
+    expect(descriptor?.description).toBe('Backend authoritative description.')
+    expect(descriptor?.level).toBe('standard')
   })
 
   it('keeps the localized description when the backend omits it', () => {
     const merged = mergeBackendScopes(['email'], new Map())
 
-    expect(merged[0].description).toMatch(/email/i)
-    expect(merged[0].label).toBe('Alamat Email')
+    const descriptor = merged[0]
+
+    expect(descriptor?.description).toMatch(/email/i)
+    expect(descriptor?.label).toBe('Alamat Email')
   })
 
   it('still surfaces unknown scopes with the safe fallback even when backend skips them', () => {
     const merged = mergeBackendScopes(['openid', 'evil:scope'], new Map([['openid', 'desc']]))
 
+    const unknownScope = merged[1]
+
     expect(merged.map((scope) => scope.name)).toEqual(['openid', 'evil:scope'])
-    expect(merged[1].level).toBe('unknown')
-    expect(merged[1].label).toMatch(/belum terverifikasi/i)
-    expect(merged[1].label).not.toContain('evil:scope')
+    expect(unknownScope).toBeDefined()
+    expect(unknownScope?.level).toBe('unknown')
+    expect(unknownScope?.label).toBe('Cakupan Akses Baru')
+    expect(unknownScope?.statusLabel).toBe('Belum Diverifikasi')
+    expect(unknownScope?.label).not.toContain('evil:scope')
   })
 })
 
-describe('hasUnknownScopes', () => {
+describe('hasUntrustedScopes', () => {
   it('returns false when all scopes are recognized', () => {
     const list = resolveScopeList('openid profile email')
-    expect(hasUnknownScopes(list)).toBe(false)
+    expect(hasUntrustedScopes(list)).toBe(false)
   })
 
   it('returns true when any scope is unknown', () => {
     const list = resolveScopeList('openid evil:scope')
-    expect(hasUnknownScopes(list)).toBe(true)
+    expect(hasUntrustedScopes(list)).toBe(true)
+  })
+
+  it('returns true when any scope is unverified', () => {
+    const list = resolveScopeList('openid sso.portal')
+
+    expect(hasUntrustedScopes(list)).toBe(true)
   })
 
   it('returns false for empty list', () => {
-    expect(hasUnknownScopes([])).toBe(false)
+    expect(hasUntrustedScopes([])).toBe(false)
   })
 })

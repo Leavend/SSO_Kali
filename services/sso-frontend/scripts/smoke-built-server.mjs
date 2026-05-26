@@ -7,7 +7,8 @@ const child = spawn('node', ['dist/server/server/index.js'], {
     ...process.env,
     NODE_ENV: 'production',
     PORT: port,
-    SESSION_ENCRYPTION_SECRET: process.env.SESSION_ENCRYPTION_SECRET ?? 'smoke-secret-with-more-than-32-characters',
+    SESSION_ENCRYPTION_SECRET:
+      process.env.SESSION_ENCRYPTION_SECRET ?? 'smoke-secret-with-more-than-32-characters',
   },
   stdio: ['ignore', 'pipe', 'pipe'],
 })

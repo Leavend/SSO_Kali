@@ -87,13 +87,13 @@ const props = withDefaults(
  */
 .sso-photo-bg {
   --photo-tint-top: oklch(0.62 0.03 235 / 0.04);
-  --photo-tint-mid: oklch(0.40 0.03 250 / 0.16);
+  --photo-tint-mid: oklch(0.4 0.03 250 / 0.16);
   --photo-tint-bottom: oklch(0.18 0.04 265 / 0.46);
-  --photo-spot-mid: oklch(0.10 0.03 265 / 0.04);
-  --photo-spot-edge: oklch(0.10 0.03 265 / 0.30);
-  --photo-vignette-strength: oklch(0.10 0.03 265 / 0.32);
+  --photo-spot-mid: oklch(0.1 0.03 265 / 0.04);
+  --photo-spot-edge: oklch(0.1 0.03 265 / 0.3);
+  --photo-vignette-strength: oklch(0.1 0.03 265 / 0.32);
   --photo-img-brightness: 1.12;
-  --photo-img-saturation: 1.20;
+  --photo-img-saturation: 1.2;
   --photo-img-contrast: 1.06;
   --photo-img-blur: 0.4px;
   --photo-img-hue: 0deg;
@@ -104,14 +104,14 @@ const props = withDefaults(
 /* Preset \u2014 cool: lift the hue toward azure (light-mode base). */
 .sso-photo-bg[data-preset='cool'] {
   --photo-tint-top: oklch(0.62 0.04 240 / 0.06);
-  --photo-tint-mid: oklch(0.40 0.05 245 / 0.20);
+  --photo-tint-mid: oklch(0.4 0.05 245 / 0.2);
   --photo-tint-bottom: oklch(0.18 0.06 250 / 0.52);
 }
 
 /* Preset \u2014 error: warm crimson lift, used by 404 / breakage pages. */
 .sso-photo-bg[data-preset='error'] {
-  --photo-tint-top: oklch(0.60 0.05 24 / 0.10);
-  --photo-tint-mid: oklch(0.40 0.06 24 / 0.22);
+  --photo-tint-top: oklch(0.6 0.05 24 / 0.1);
+  --photo-tint-mid: oklch(0.4 0.06 24 / 0.22);
   --photo-tint-bottom: oklch(0.18 0.06 22 / 0.55);
 }
 
@@ -127,8 +127,7 @@ const props = withDefaults(
     brightness(var(--photo-img-brightness)) contrast(var(--photo-img-contrast, 1))
     hue-rotate(var(--photo-img-hue, 0deg));
   transform-origin: center center;
-  transition:
-    filter 520ms var(--ease-smooth);
+  transition: filter 520ms var(--ease-smooth);
 }
 
 .sso-photo-bg__tint {
@@ -143,11 +142,7 @@ const props = withDefaults(
 
 .sso-photo-bg__spotlight {
   background:
-    radial-gradient(
-      ellipse 28% 65% at 50% 52%,
-      var(--photo-vignette-strength) 0%,
-      transparent 80%
-    ),
+    radial-gradient(ellipse 28% 65% at 50% 52%, var(--photo-vignette-strength) 0%, transparent 80%),
     radial-gradient(
       ellipse 80% 60% at 50% 55%,
       transparent 0%,
@@ -211,9 +206,9 @@ const props = withDefaults(
 }
 
 .dark .sso-photo-bg[data-preset='cool'] {
-  --photo-tint-top: oklch(0.20 0.05 250 / 0.38);
+  --photo-tint-top: oklch(0.2 0.05 250 / 0.38);
   --photo-tint-mid: oklch(0.16 0.06 250 / 0.44);
-  --photo-tint-bottom: oklch(0.08 0.05 250 / 0.70);
+  --photo-tint-bottom: oklch(0.08 0.05 250 / 0.7);
 }
 
 .dark .sso-photo-bg[data-preset='error'] {

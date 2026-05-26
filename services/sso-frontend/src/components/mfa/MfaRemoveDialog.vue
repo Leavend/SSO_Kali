@@ -60,15 +60,14 @@ function handleCancel(): void {
           Nonaktifkan MFA?
         </AlertDialogTitle>
         <AlertDialogDescription class="text-center text-sm text-muted-foreground">
-          Akun kamu akan kehilangan perlindungan verifikasi dua langkah. Masukkan password untuk mengkonfirmasi.
+          Akun kamu akan kehilangan perlindungan verifikasi dua langkah. Masukkan password untuk
+          mengkonfirmasi.
         </AlertDialogDescription>
       </AlertDialogHeader>
 
       <form class="grid gap-3" @submit.prevent="handleConfirm">
         <div class="grid gap-1.5">
-          <Label for="mfa-remove-password" class="text-xs font-medium">
-            Password
-          </Label>
+          <Label for="mfa-remove-password" class="text-xs font-medium"> Password </Label>
           <Input
             id="mfa-remove-password"
             v-model="password"
@@ -80,11 +79,7 @@ function handleCancel(): void {
           />
         </div>
 
-        <p
-          v-if="error"
-          class="text-destructive text-center text-xs"
-          role="alert"
-        >
+        <p v-if="error" class="text-destructive text-center text-xs" role="alert">
           {{ error }}
         </p>
 

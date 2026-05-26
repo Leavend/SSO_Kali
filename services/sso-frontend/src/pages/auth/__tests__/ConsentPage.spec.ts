@@ -19,51 +19,72 @@ afterEach(() => {
 
 describe('ConsentPage', () => {
   it('approves consent and redirects to OAuth continuation', async () => {
-    const fetchMock = mockFetch({ decisionRedirect: 'https://rp.example/callback?code=abc&state=client-state' })
+    const fetchMock = mockFetch({
+      decisionRedirect: 'https://rp.example/callback?code=abc&state=client-state',
+    })
     const wrapper = await mountConsentPage()
 
     await wrapper.get('button:not([disabled]) + button').trigger('click')
     await flushPromises()
 
-    expect(fetchMock).toHaveBeenCalledWith('/connect/consent', expect.objectContaining({
-      method: 'POST',
-      body: JSON.stringify({ state: 'tx-state', decision: 'allow' }),
-    }))
-    expect(assignMock).toHaveBeenCalledWith('https://rp.example/callback?code=abc&state=client-state')
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/connect/consent',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ state: 'tx-state', decision: 'allow' }),
+      }),
+    )
+    expect(assignMock).toHaveBeenCalledWith(
+      'https://rp.example/callback?code=abc&state=client-state',
+    )
   })
 
   it('denies consent and redirects to safe OAuth error', async () => {
-    mockFetch({ decisionRedirect: 'https://rp.example/callback?error=access_denied&state=client-state' })
+    mockFetch({
+      decisionRedirect: 'https://rp.example/callback?error=access_denied&state=client-state',
+    })
     const wrapper = await mountConsentPage()
 
     await wrapper.get('button').trigger('click')
     await flushPromises()
 
-    expect(assignMock).toHaveBeenCalledWith('https://rp.example/callback?error=access_denied&state=client-state')
+    expect(assignMock).toHaveBeenCalledWith(
+      'https://rp.example/callback?error=access_denied&state=client-state',
+    )
   })
 
   it('shows localized non-technical copy when the backend rejects a decision', async () => {
-    mockFetch({ decisionStatus: 400, decisionPayload: { error: 'invalid_request', message: 'stack trace' } })
+    mockFetch({
+      decisionStatus: 400,
+      decisionPayload: { error: 'invalid_request', message: 'stack trace' },
+    })
     const wrapper = await mountConsentPage()
 
     await wrapper.get('button:not([disabled]) + button').trigger('click')
     await flushPromises()
 
-    expect(wrapper.text()).toContain('Keputusan persetujuan gagal diproses. Coba lagi beberapa saat.')
+    expect(wrapper.text()).toContain(
+      'Keputusan persetujuan gagal diproses. Coba lagi beberapa saat.',
+    )
     expect(wrapper.text()).not.toContain('stack trace')
   })
 
   it('renders unknown scopes from the request with a safe generic fallback', async () => {
     mockFetch({ decisionRedirect: 'https://rp.example/callback?code=abc' })
-    const wrapper = await mountConsentPage('/auth/consent?client_id=rp-client&scope=openid+admin%3Acustom&state=tx-state')
+    const wrapper = await mountConsentPage(
+      '/auth/consent?client_id=rp-client&scope=openid+admin%3Acustom&state=tx-state',
+    )
 
-    expect(wrapper.text()).toContain('Akses tambahan (belum terverifikasi)')
+    expect(wrapper.text()).toContain('Cakupan Akses Baru')
+    expect(wrapper.text()).toContain('Belum Diverifikasi')
     expect(wrapper.text()).toContain('admin:custom')
-    expect(wrapper.text()).toContain('Permintaan ini berisi scope yang tidak dikenal')
+    expect(wrapper.text()).toContain('Permintaan ini berisi cakupan akses yang belum dikenal')
   })
 })
 
-async function mountConsentPage(initialPath = '/auth/consent?client_id=rp-client&scope=openid+email&state=tx-state') {
+async function mountConsentPage(
+  initialPath = '/auth/consent?client_id=rp-client&scope=openid+email&state=tx-state',
+) {
   const router = createRouter({
     history: createWebHistory(),
     routes: [{ path: '/auth/consent', component: ConsentPage }],

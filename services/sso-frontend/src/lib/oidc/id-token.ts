@@ -84,7 +84,10 @@ export async function validateIdToken(input: IdTokenValidationInput): Promise<Id
       if (err instanceof SignatureVerificationError) {
         throw new IdTokenValidationError(err.message, 'signature_invalid')
       }
-      throw new IdTokenValidationError('ID Token signature verification failed.', 'signature_invalid')
+      throw new IdTokenValidationError(
+        'ID Token signature verification failed.',
+        'signature_invalid',
+      )
     }
   }
 
@@ -110,17 +113,16 @@ export async function validateIdToken(input: IdTokenValidationInput): Promise<Id
   return claims
 }
 
-function audienceMatches(
-  aud: string | readonly string[] | undefined,
-  expected: string,
-): boolean {
+function audienceMatches(aud: string | readonly string[] | undefined, expected: string): boolean {
   if (typeof aud === 'string') return aud === expected
   if (Array.isArray(aud)) return aud.includes(expected)
   return false
 }
 
 function base64UrlDecode(input: string): string {
-  const padded = input.replace(/-/g, '+').replace(/_/g, '/').padEnd(input.length + ((4 - (input.length % 4)) % 4), '=')
+  const padded = input
+    .replace(/-/g, '+')
+    .replace(/_/g, '/')
+    .padEnd(input.length + ((4 - (input.length % 4)) % 4), '=')
   return atob(padded)
 }
-

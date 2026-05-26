@@ -12,6 +12,7 @@ const props = defineProps<{
   to: string
   label: string
   icon: Component
+  shortLabel?: string
 }>()
 
 const route = useRoute()
@@ -22,14 +23,23 @@ const isActive = computed<boolean>(() => route.path.startsWith(props.to))
 <template>
   <RouterLink
     :to="props.to"
+    :aria-label="props.label"
     :class="
       cn(
-        'text-muted-foreground hover:text-foreground hover:bg-accent inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
-        isActive && 'text-foreground bg-accent',
+        'portal-nav-pill relative isolate inline-flex min-h-10 shrink-0 items-center gap-2 overflow-hidden rounded-full px-3.5 py-2 text-sm font-medium',
+        isActive && 'portal-nav-pill--active',
       )
     "
   >
     <component :is="props.icon" class="size-4" aria-hidden="true" />
-    {{ props.label }}
+    <span v-if="props.shortLabel" data-testid="portal-nav-label-short" class="xl:hidden">
+      {{ props.shortLabel }}
+    </span>
+    <span
+      data-testid="portal-nav-label-full"
+      :class="props.shortLabel ? 'hidden xl:inline' : undefined"
+    >
+      {{ props.label }}
+    </span>
   </RouterLink>
 </template>

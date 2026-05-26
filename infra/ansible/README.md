@@ -20,7 +20,7 @@ ansible-playbook playbooks/devops-preflight.yml
 ```
 
 The live preflight expects the Compose control plane on the VPS to include
-`sso-admin-vue`. If it fails there, the VPS is not yet aligned with the current
+`sso-admin-frontend`. If it fails there, the VPS is not yet aligned with the current
 workspace release bundle.
 
 ## Expansion path

@@ -3,6 +3,27 @@ import { mount } from '@vue/test-utils'
 import PortalHeader from '../PortalHeader.vue'
 
 describe('PortalHeader', () => {
+  it('uses fixed positioning so navigation stays visible while scrolling', () => {
+    const wrapper = mount(PortalHeader, {
+      global: {
+        stubs: {
+          AppBrandMark: true,
+          PortalNavLink: true,
+          PortalUserMenu: true,
+          RouterLink: true,
+          ThemeToggleButton: true,
+        },
+      },
+    })
+
+    const header = wrapper.find('[data-testid="portal-header"]')
+
+    expect(header.classes()).toContain('fixed')
+    expect(header.classes()).toContain('inset-x-0')
+    expect(header.classes()).toContain('top-0')
+    expect(header.classes()).not.toContain('sticky')
+  })
+
   it('keeps the mobile menu trigger at an accessible touch target size', () => {
     const wrapper = mount(PortalHeader, {
       global: {

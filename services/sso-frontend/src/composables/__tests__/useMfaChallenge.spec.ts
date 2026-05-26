@@ -146,7 +146,14 @@ describe('useMfaChallenge — FE-FR019-001', () => {
   it('maps 429 safely without raw backend text', async () => {
     primeChallenge()
     vi.mocked(mfaApi.verifyChallenge).mockRejectedValueOnce(
-      new ApiError(429, 'Too Many Attempts: throttle bucket sso:mfa', 'too_many_attempts', [], 'http', 60),
+      new ApiError(
+        429,
+        'Too Many Attempts: throttle bucket sso:mfa',
+        'too_many_attempts',
+        [],
+        'http',
+        60,
+      ),
     )
 
     const mfa = useMfaChallenge()

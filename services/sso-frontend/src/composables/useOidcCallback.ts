@@ -13,16 +13,10 @@
  */
 
 import { ref, type Ref } from 'vue'
-import {
-  completeOidcCallback,
-  type OidcCallbackSessionResult,
-} from '@/services/oidc-callback.api'
+import { completeOidcCallback, type OidcCallbackSessionResult } from '@/services/oidc-callback.api'
 import { resolveOAuthErrorMessage } from '@/lib/oidc/oauth-error-message'
 
-export type OidcCallbackError =
-  | 'missing_params'
-  | 'authorize_error'
-  | 'session_exchange_failed'
+export type OidcCallbackError = 'missing_params' | 'authorize_error' | 'session_exchange_failed'
 
 export type OidcCallbackResult = OidcCallbackSessionResult
 
@@ -49,10 +43,8 @@ export type UseOidcCallbackReturn = {
   handle: (query: OidcCallbackQuery) => Promise<OidcCallbackResult | null>
 }
 
-const MISSING_PARAMS_COPY =
-  'Tautan callback login tidak lengkap. Mulai ulang dari halaman login.'
-const SESSION_EXCHANGE_FAILED_COPY =
-  'Gagal menyiapkan sesi aman. Coba lagi beberapa saat.'
+const MISSING_PARAMS_COPY = 'Tautan callback login tidak lengkap. Mulai ulang dari halaman login.'
+const SESSION_EXCHANGE_FAILED_COPY = 'Gagal menyiapkan sesi aman. Coba lagi beberapa saat.'
 
 export function useOidcCallback(): UseOidcCallbackReturn {
   const pending = ref<boolean>(false)

@@ -21,7 +21,9 @@ describe('session crypto runtime fallback', () => {
     const encrypted = encryptSession('{"status":"ok"}')
 
     expect(decryptSession(encrypted)).toBe('{"status":"ok"}')
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('SESSION_ENCRYPTION_SECRET is not configured'))
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('SESSION_ENCRYPTION_SECRET is not configured'),
+    )
   })
 
   it('fails closed in production when SESSION_ENCRYPTION_SECRET is missing', async () => {
@@ -30,7 +32,9 @@ describe('session crypto runtime fallback', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
     const { encryptSession } = await loadCryptoModule()
 
-    expect(() => encryptSession('{"status":"ok"}')).toThrow('SESSION_ENCRYPTION_SECRET must be configured.')
+    expect(() => encryptSession('{"status":"ok"}')).toThrow(
+      'SESSION_ENCRYPTION_SECRET must be configured.',
+    )
     expect(warn).not.toHaveBeenCalled()
   })
 })

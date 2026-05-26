@@ -24,6 +24,7 @@ export type UseDataSubjectRequestsReturn = {
   readonly canSubmit: ComputedRef<boolean>
   load: () => Promise<void>
   submit: () => Promise<void>
+  submitConfirmed: () => Promise<void>
   setType: (type: DataSubjectRequestType) => void
 }
 
@@ -37,7 +38,9 @@ export function useDataSubjectRequests(): UseDataSubjectRequestsReturn {
   const form = reactive<MutableDataSubjectRequestPayload>({ type: 'export', reason: '' })
 
   const canSubmit = computed<boolean>(() => !submitting.value && form.type.length > 0)
-  const supportReferenceText = computed<string | null>(() => supportReferenceCopy(supportReference.value))
+  const supportReferenceText = computed<string | null>(() =>
+    supportReferenceCopy(supportReference.value),
+  )
 
   onMounted(() => {
     void load()
@@ -60,6 +63,10 @@ export function useDataSubjectRequests(): UseDataSubjectRequestsReturn {
   }
 
   async function submit(): Promise<void> {
+    await submitConfirmed()
+  }
+
+  async function submitConfirmed(): Promise<void> {
     if (!canSubmit.value) return
     submitting.value = true
     error.value = null
@@ -67,12 +74,9 @@ export function useDataSubjectRequests(): UseDataSubjectRequestsReturn {
     success.value = null
 
     try {
-      const created = await profileApi.createDataSubjectRequest({
-        type: form.type,
-        reason: normalizeReason(form.reason),
-      })
+      const created = await profileApi.createDataSubjectRequest(createPayload())
       requests.value = [created, ...requests.value]
-      success.value = 'Permintaan privasi diterima. Tim kami akan meninjau sesuai SLA.'
+      success.value = 'Permintaan privasi diterima. Tim kami akan meninjau dalam 30 hari.'
       form.reason = ''
     } catch (caught) {
       const presented = presentSafeError(caught, 'Gagal mengirim permintaan privasi.')
@@ -80,6 +84,13 @@ export function useDataSubjectRequests(): UseDataSubjectRequestsReturn {
       supportReference.value = presented.supportReference
     } finally {
       submitting.value = false
+    }
+  }
+
+  function createPayload(): CreateDataSubjectRequestPayload {
+    return {
+      type: form.type,
+      reason: normalizeReason(form.reason),
     }
   }
 
@@ -99,6 +110,7 @@ export function useDataSubjectRequests(): UseDataSubjectRequestsReturn {
     canSubmit,
     load,
     submit,
+    submitConfirmed,
     setType,
   }
 }

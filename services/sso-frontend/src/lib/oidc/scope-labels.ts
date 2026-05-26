@@ -17,13 +17,14 @@
  *     and consistent across portals.
  */
 
-export type ScopeLevel = 'standard' | 'sensitive' | 'unknown'
+export type ScopeLevel = 'standard' | 'sensitive' | 'unverified' | 'unknown'
 
 export type ScopeDescriptor = {
   readonly name: string
   readonly label: string
   readonly description: string
   readonly level: ScopeLevel
+  readonly statusLabel?: string
 }
 
 const REGISTRY: Readonly<Record<string, Omit<ScopeDescriptor, 'name'>>> = {
@@ -58,11 +59,19 @@ const REGISTRY: Readonly<Record<string, Omit<ScopeDescriptor, 'name'>>> = {
     description: 'Akses ke daftar izin terperinci yang diberikan ke akun kamu.',
     level: 'sensitive',
   },
+  'sso.portal': {
+    label: 'SSO Portal',
+    description:
+      'Akses ke fitur portal SSO. Hubungi administrator untuk verifikasi sebelum mengaktifkan.',
+    level: 'unverified',
+    statusLabel: 'Belum Diverifikasi',
+  },
 }
 
-const UNKNOWN_LABEL = 'Akses tambahan (belum terverifikasi)'
+const UNKNOWN_LABEL = 'Cakupan Akses Baru'
+const UNKNOWN_STATUS_LABEL = 'Belum Diverifikasi'
 const UNKNOWN_DESCRIPTION =
-  'Scope ini belum terdaftar pada portal SSO. Verifikasi kebutuhannya bersama administrator sebelum kamu menyetujui.'
+  'Cakupan akses ini belum terdaftar di portal SSO. Hubungi administrator sebelum mengaktifkan.'
 
 /**
  * Resolve a scope string to a human-readable descriptor.
@@ -81,6 +90,7 @@ export function resolveScopeLabel(scope: string): ScopeDescriptor {
     label: UNKNOWN_LABEL,
     description: UNKNOWN_DESCRIPTION,
     level: 'unknown',
+    statusLabel: UNKNOWN_STATUS_LABEL,
   }
 }
 
@@ -88,10 +98,10 @@ export function resolveScopeLabel(scope: string): ScopeDescriptor {
  * Resolve a space-separated scope string to descriptor array.
  * Preserves order, de-duplicates, ignores empty tokens.
  */
-export function resolveScopeList(scopeString: string | readonly string[]): readonly ScopeDescriptor[] {
-  const tokens = Array.isArray(scopeString)
-    ? scopeString
-    : String(scopeString).split(/\s+/u)
+export function resolveScopeList(
+  scopeString: string | readonly string[],
+): readonly ScopeDescriptor[] {
+  const tokens = Array.isArray(scopeString) ? scopeString : String(scopeString).split(/\s+/u)
 
   const seen = new Set<string>()
   const out: ScopeDescriptor[] = []
@@ -136,6 +146,8 @@ export function mergeBackendScopes(
  * Returns true if any scope in the list is unknown — useful for
  * displaying a top-level warning on the consent page.
  */
-export function hasUnknownScopes(scopes: readonly ScopeDescriptor[]): boolean {
-  return scopes.some((s) => s.level === 'unknown')
+export function hasUntrustedScopes(scopes: readonly ScopeDescriptor[]): boolean {
+  return scopes.some((s) => s.level === 'unknown' || s.level === 'unverified')
 }
+
+export const hasUnknownScopes = hasUntrustedScopes

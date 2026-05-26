@@ -35,7 +35,8 @@ export function decryptSession(ciphertext: string): string | null {
 function sessionSecret(): Buffer {
   const raw = process.env.SESSION_ENCRYPTION_SECRET ?? ''
   if (raw.length >= 32) return createHmac('sha256', 'sso-portal-session-key').update(raw).digest()
-  if (process.env.NODE_ENV === 'production') throw new Error('SESSION_ENCRYPTION_SECRET must be configured.')
+  if (process.env.NODE_ENV === 'production')
+    throw new Error('SESSION_ENCRYPTION_SECRET must be configured.')
 
   return createHmac('sha256', 'sso-portal-session-key').update(fallbackSeed()).digest()
 }

@@ -58,10 +58,7 @@ describe('fetchJwks', () => {
   })
 
   it('throws JwksFetchError on non-OK response', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue(new Response('boom', { status: 503 })),
-    )
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('boom', { status: 503 })))
 
     await expect(fetchJwks(JWKS_URL)).rejects.toThrow(JwksFetchError)
   })

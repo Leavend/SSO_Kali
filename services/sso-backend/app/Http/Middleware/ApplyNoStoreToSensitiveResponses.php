@@ -46,7 +46,10 @@ final class ApplyNoStoreToSensitiveResponses
     {
         $headers = $response->headers;
 
-        $headers->set('Cache-Control', 'no-store, no-cache, private, max-age=0, must-revalidate');
+        if ($headers->get('Cache-Control') !== 'no-store') {
+            $headers->set('Cache-Control', 'no-store, no-cache, private, max-age=0, must-revalidate');
+        }
+
         $headers->set('Pragma', 'no-cache');
         $headers->set('Expires', '0');
         $headers->set('Surrogate-Control', 'no-store');

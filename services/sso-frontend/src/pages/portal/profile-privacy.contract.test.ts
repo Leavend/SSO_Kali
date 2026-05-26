@@ -22,11 +22,18 @@ vi.mock('@/services/profile.api', () => ({
         phone_number: '+6200000000',
       },
       authorization: { scope: '', roles: [], permissions: [] },
-      security: { session_id: 'session-secret', risk_score: 0, mfa_required: false, last_seen_at: null },
+      security: {
+        session_id: 'session-secret',
+        risk_score: 0,
+        mfa_required: false,
+        last_seen_at: null,
+      },
     }),
-    updateProfile: vi.fn().mockRejectedValue(
-      new ApiError(500, 'Layanan SSO sedang tidak tersedia. Coba lagi nanti.', 'server_error'),
-    ),
+    updateProfile: vi
+      .fn()
+      .mockRejectedValue(
+        new ApiError(500, 'Layanan SSO sedang tidak tersedia. Coba lagi nanti.', 'server_error'),
+      ),
   },
 }))
 
@@ -36,11 +43,11 @@ describe('ProfilePage minimization contract', () => {
     const wrapper = mount(ProfilePage, { global: { stubs: { Skeleton: true } } })
     await flush()
 
-    const approved = wrapper.find('[data-testid="profile-approved-fields"]')
+    const approved = wrapper.find('[data-testid="profile-update-card"]')
 
-    expect(approved.text()).toContain('Nama Tampilan')
+    expect(approved.text()).toContain('Nama tampilan')
     expect(approved.text()).toContain('Email')
-    expect(approved.text()).toContain('Status')
+    expect(approved.text()).toContain('Status akun')
     expect(wrapper.text()).not.toContain('sub-sensitive-123')
     expect(wrapper.text()).not.toContain('uuid-secret')
     expect(wrapper.text()).not.toContain('NeverRender123!')
@@ -52,7 +59,7 @@ describe('ProfilePage minimization contract', () => {
     const wrapper = mount(ProfilePage, { global: { stubs: { Skeleton: true } } })
     await flush()
 
-    expect(wrapper.text()).toContain('Belum tersedia')
+    expect(wrapper.text()).toContain('Email belum tersedia')
     expect(wrapper.text()).not.toContain('null')
     expect(wrapper.text()).not.toContain('undefined')
   })
@@ -66,6 +73,7 @@ describe('ProfilePage minimization contract', () => {
       security: { session_id: 's', risk_score: 0, mfa_required: false, last_seen_at: null },
     }
     const wrapper = mount(ProfilePage, { global: { stubs: { Skeleton: true } } })
+    await flush()
     await wrapper.find('#profile-display-name').setValue('Updated User')
     await wrapper.find('form').trigger('submit.prevent')
     await flush()
