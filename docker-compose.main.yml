@@ -74,6 +74,7 @@ x-sso-frontend-env: &sso-frontend-env
   SSO_BACKEND_UPSTREAM: sso-backend:8000
   SSO_FRONTEND_SERVER_NAME: ${SSO_FRONTEND_SERVER_NAME:-_}
   SSO_CSP_CONNECT_SRC: ${SSO_CSP_CONNECT_SRC:-https://api-sso.timeh.my.id}
+  VITE_ADMIN_FRONTEND_ORIGIN: ${SSO_ADMIN_FRONTEND_URL:-https://admin.timeh.my.id}
 
 services:
   postgres:
@@ -217,6 +218,27 @@ services:
       - sso-main
     mem_limit: 256m
     cpus: "0.25"
+
+  sso-admin-frontend:
+    image: ${SSO_IMAGE_PREFIX:-ghcr.io/leavend/sso-kali}/sso-admin-frontend:${SSO_DEPLOY_TAG:-main}
+    container_name: ${SSO_ADMIN_FRONTEND_CONTAINER:-sso-admin-frontend-prod}
+    restart: unless-stopped
+    init: true
+    depends_on:
+      sso-backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:8080/healthz >/dev/null"]
+      interval: 30s
+      timeout: 10s
+      retries: 8
+      start_period: 30s
+    ports:
+      - ${SSO_ADMIN_FRONTEND_BIND:-127.0.0.1:3090}:8080
+    networks:
+      - sso-main
+    mem_limit: 128m
+    cpus: "0.10"
 
 networks:
   sso-main:
