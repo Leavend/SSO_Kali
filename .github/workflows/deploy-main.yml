@@ -308,7 +308,7 @@ jobs:
           ssh_with_retry "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
             "set -euo pipefail
              sudo -n SSO_ADMIN_DOMAIN='${{ vars.SSO_ADMIN_DOMAIN || 'admin.timeh.my.id' }}' \
-               SSO_ADMIN_FRONTEND_INTERNAL_URL='${{ vars.SSO_ADMIN_FRONTEND_INTERNAL_URL || 'http://127.0.0.1:3090' }}' \
+               SSO_ADMIN_FRONTEND_INTERNAL_URL='${{ vars.SSO_ADMIN_FRONTEND_INTERNAL_URL || 'http://127.0.0.1:3091' }}' \
                CERTBOT_EMAIL='${{ vars.CERTBOT_EMAIL }}' \
                bash '${{ env.VPS_PROJECT_DIR }}/scripts/vps-apply-sso-admin-frontend-route.sh' --mode apply"
 

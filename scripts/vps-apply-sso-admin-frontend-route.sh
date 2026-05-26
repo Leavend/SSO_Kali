@@ -4,7 +4,7 @@ set -Eeuo pipefail
 
 MODE="audit"
 ADMIN_DOMAIN="${SSO_ADMIN_DOMAIN:-admin.timeh.my.id}"
-ADMIN_UPSTREAM="${SSO_ADMIN_FRONTEND_INTERNAL_URL:-http://127.0.0.1:3090}"
+ADMIN_UPSTREAM="${SSO_ADMIN_FRONTEND_INTERNAL_URL:-http://127.0.0.1:3091}"
 SITE_AVAILABLE="${ADMIN_SITE_AVAILABLE:-/etc/nginx/sites-available/admin.timeh.my.id.conf}"
 SITE_ENABLED="${ADMIN_SITE_ENABLED:-/etc/nginx/sites-enabled/admin.timeh.my.id.conf}"
 BACKUP_DIR="${BACKUP_DIR:-/etc/nginx/backups}"
@@ -19,7 +19,7 @@ Configures the VPS Nginx route for the dedicated SSO admin frontend host.
 
 Environment:
   SSO_ADMIN_DOMAIN                 Admin frontend host. Default: admin.timeh.my.id
-  SSO_ADMIN_FRONTEND_INTERNAL_URL  Internal admin frontend URL. Default: http://127.0.0.1:3090
+  SSO_ADMIN_FRONTEND_INTERNAL_URL  Internal admin frontend URL. Default: http://127.0.0.1:3091
   CERTBOT_EMAIL                    Optional Let's Encrypt account email for first-time certbot setup.
   SKIP_CERTBOT=true                Install HTTP-only config without requesting a certificate.
 USAGE
