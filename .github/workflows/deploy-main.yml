@@ -45,6 +45,7 @@ jobs:
               VITE_SSO_API_URL=
               VITE_SSO_BASE_URL=${{ vars.SSO_PUBLIC_BASE_URL || 'https://api-sso.timeh.my.id' }}
               VITE_SSO_FRONTEND_BASE_URL=${{ vars.SSO_FRONTEND_BASE_URL || 'https://sso.timeh.my.id' }}
+              VITE_ADMIN_FRONTEND_ORIGIN=${{ vars.SSO_ADMIN_FRONTEND_URL || 'https://admin.timeh.my.id' }}
               VITE_CLIENT_ID=sso-frontend-portal
               VITE_APP_NAME=Dev-SSO Portal
               VITE_OIDC_ISSUER=${{ vars.SSO_PUBLIC_BASE_URL || 'https://api-sso.timeh.my.id' }}
@@ -54,9 +55,9 @@ jobs:
             context: ./services/sso-admin-frontend
             dockerfile: ./services/sso-admin-frontend/Dockerfile
             build_args: |
-              VITE_ADMIN_BASE_URL=${{ vars.SSO_BASE_URL || 'https://dev-sso.timeh.my.id' }}
-              VITE_PUBLIC_BASE_PATH=${{ vars.SSO_ADMIN_VUE_BASE_PATH || '/__vue-preview' }}
-              VITE_SSO_BASE_URL=${{ vars.SSO_BASE_URL || 'https://dev-sso.timeh.my.id' }}
+              VITE_ADMIN_BASE_URL=${{ vars.SSO_ADMIN_FRONTEND_URL || 'https://admin.timeh.my.id' }}
+              VITE_PUBLIC_BASE_PATH=${{ vars.SSO_ADMIN_FRONTEND_BASE_PATH || '/' }}
+              VITE_SSO_BASE_URL=${{ vars.SSO_FRONTEND_BASE_URL || 'https://sso.timeh.my.id' }}
 
     steps:
       - name: Checkout

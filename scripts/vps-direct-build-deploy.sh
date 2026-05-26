@@ -259,6 +259,7 @@ build_service_image() {
         -f "$PROJECT_DIR/services/sso-frontend/Dockerfile" \
         --build-arg "VITE_SSO_BASE_URL=$(env_value SSO_BASE_URL)" \
         --build-arg "VITE_SSO_FRONTEND_BASE_URL=$(env_value SSO_FRONTEND_URL)" \
+        --build-arg "VITE_ADMIN_FRONTEND_ORIGIN=https://$(env_value SSO_ADMIN_DOMAIN admin.timeh.my.id)" \
         --build-arg "VITE_CLIENT_ID=$(env_value SSO_FRONTEND_CLIENT_ID sso-frontend-portal)" \
         "$PROJECT_DIR" 2>&1 | tee -a "$DEPLOY_LOG"
       ;;
@@ -267,7 +268,7 @@ build_service_image() {
       docker build --pull \
         -t "$image" \
         --build-arg "VITE_ADMIN_BASE_URL=$(env_value ADMIN_PANEL_BASE_URL)" \
-        --build-arg "VITE_PUBLIC_BASE_PATH=$(env_value SSO_ADMIN_VUE_BASE_PATH /__vue-preview)" \
+        --build-arg "VITE_PUBLIC_BASE_PATH=$(env_value SSO_ADMIN_FRONTEND_BASE_PATH /)" \
         --build-arg "VITE_SSO_BASE_URL=$(env_value SSO_BASE_URL)" \
         --build-arg "VITE_ZITADEL_ISSUER_URL=$(env_value ZITADEL_ISSUER)" \
         "$PROJECT_DIR/services/sso-admin-frontend" 2>&1 | tee -a "$DEPLOY_LOG"
@@ -375,13 +376,13 @@ done
 
 SSO_DOMAIN=$(env_value SSO_DOMAIN)
 ZITADEL_DOMAIN=$(env_value ZITADEL_DOMAIN)
-SSO_ADMIN_VUE_BASE_PATH=$(env_value SSO_ADMIN_VUE_BASE_PATH /__vue-preview)
+SSO_ADMIN_DOMAIN=$(env_value SSO_ADMIN_DOMAIN admin.timeh.my.id)
 
 log "Running smoke checks"
 smoke_check "SSO Discovery" "https://${SSO_DOMAIN}/.well-known/openid-configuration" "^200$" "$SSO_DOMAIN" || rollback_once "Smoke check failed: SSO Discovery"
 smoke_check "Admin Panel" "https://${SSO_DOMAIN}/" "^200$" "$SSO_DOMAIN" || rollback_once "Smoke check failed: Admin Panel"
 if printf '%s\n' "${SERVICES[@]}" | grep -Fxq "sso-admin-frontend"; then
-  smoke_check "Vue Admin Canary" "https://${SSO_DOMAIN}${SSO_ADMIN_VUE_BASE_PATH}/healthz" "^200$" "$SSO_DOMAIN" || rollback_once "Smoke check failed: Vue Admin Canary"
+  smoke_check "Admin Frontend" "https://${SSO_ADMIN_DOMAIN}/healthz" "^200$" "$SSO_ADMIN_DOMAIN" || rollback_once "Smoke check failed: Admin Frontend"
 fi
 if printf '%s\n' "${SERVICES[@]}" | grep -Fxq "zitadel-login"; then
   smoke_check "Zitadel Login Health" "https://${ZITADEL_DOMAIN}/ui/v2/login/healthy" "^200$" "$ZITADEL_DOMAIN" || rollback_once "Smoke check failed: Zitadel Login Health"

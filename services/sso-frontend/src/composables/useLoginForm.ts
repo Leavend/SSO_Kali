@@ -11,7 +11,7 @@
 import { computed, reactive, ref, type ComputedRef, type Reactive, type Ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ApiError, isValidationError } from '@/lib/api/api-error'
-import { isAdminFrontendTarget } from '@/lib/admin-frontend-target'
+import { adminFrontendUrlForTarget, isAdminFrontendTarget } from '@/lib/admin-frontend-target'
 import { useSessionStore } from '@/stores/session.store'
 import { useMfaChallengeStore } from '@/stores/mfa-challenge.store'
 import type { SsoLoginResponse } from '@/types/auth.types'
@@ -249,7 +249,7 @@ export function useLoginForm(): UseLoginFormReturn {
 
   async function navigateAfterLogin(target: string): Promise<void> {
     if (isAdminFrontendTarget(target)) {
-      window.location.assign(new URL(target, window.location.origin).toString())
+      window.location.assign(adminFrontendUrlForTarget(target, window.location.origin))
       return
     }
 

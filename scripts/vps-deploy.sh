@@ -441,13 +441,13 @@ SSO_DOMAIN=$(awk -F= '/^SSO_DOMAIN=/ {print $2}' "$ENV_FILE")
 ZITADEL_DOMAIN=$(awk -F= '/^ZITADEL_DOMAIN=/ {print $2}' "$ENV_FILE")
 APP_A_DOMAIN=$(awk -F= '/^APP_A_DOMAIN=/ {print $2}' "$ENV_FILE")
 APP_B_DOMAIN=$(awk -F= '/^APP_B_DOMAIN=/ {print $2}' "$ENV_FILE")
-SSO_ADMIN_VUE_BASE_PATH=$(awk -F= '/^SSO_ADMIN_VUE_BASE_PATH=/ {print $2}' "$ENV_FILE")
-SSO_ADMIN_VUE_BASE_PATH="${SSO_ADMIN_VUE_BASE_PATH:-/__vue-preview}"
+SSO_ADMIN_DOMAIN=$(awk -F= '/^SSO_ADMIN_DOMAIN=/ {print $2}' "$ENV_FILE")
+SSO_ADMIN_DOMAIN="${SSO_ADMIN_DOMAIN:-admin.timeh.my.id}"
 
 smoke_required "SSO Discovery"       "https://${SSO_DOMAIN}/.well-known/openid-configuration" "^200$" "$SSO_DOMAIN"
 smoke_required "ZITADEL Hosted Login" "https://${ZITADEL_DOMAIN}/ui/v2/login/healthy"          "^200$" "$ZITADEL_DOMAIN"
 smoke_required "Admin Panel"         "https://${SSO_DOMAIN}/"                                  "^200$" "$SSO_DOMAIN"
-smoke_required "Vue Admin Canary"    "https://${SSO_DOMAIN}${SSO_ADMIN_VUE_BASE_PATH}/healthz" "^200$" "$SSO_DOMAIN"
+smoke_required "Admin Frontend"      "https://${SSO_ADMIN_DOMAIN}/healthz"                     "^200$" "$SSO_ADMIN_DOMAIN"
 
 ZITADEL_LOGIN_VUE_BASE_PATH=$(awk -F= '/^ZITADEL_LOGIN_VUE_BASE_PATH=/ {print $2}' "$ENV_FILE")
 ZITADEL_LOGIN_VUE_BASE_PATH="${ZITADEL_LOGIN_VUE_BASE_PATH:-/ui/v2/auth}"

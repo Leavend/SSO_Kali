@@ -603,6 +603,7 @@ services:
       args:
         VITE_SSO_BASE_URL: ${SSO_BASE_URL}
         VITE_SSO_FRONTEND_BASE_URL: ${SSO_FRONTEND_URL:-http://localhost:3000}
+        VITE_ADMIN_FRONTEND_ORIGIN: https://${SSO_ADMIN_DOMAIN:-admin.timeh.my.id}
         VITE_CLIENT_ID: ${SSO_FRONTEND_CLIENT_ID:-sso-frontend-portal}
     restart: unless-stopped
     init: true
@@ -610,6 +611,7 @@ services:
       NODE_ENV: production
       VITE_SSO_BASE_URL: ${SSO_BASE_URL}
       VITE_SSO_FRONTEND_BASE_URL: ${SSO_FRONTEND_URL:-http://localhost:3000}
+      VITE_ADMIN_FRONTEND_ORIGIN: https://${SSO_ADMIN_DOMAIN:-admin.timeh.my.id}
       VITE_CLIENT_ID: ${SSO_FRONTEND_CLIENT_ID:-sso-frontend-portal}
       SSO_IDENTITY_UI_BASE_URL: ${ZITADEL_ISSUER}${ZITADEL_LOGIN_ACTIVE_BASE_PATH:-/ui/v2/login}
       SSO_INTERNAL_TOKEN_URL: ${SSO_INTERNAL_BASE_URL}/token
@@ -650,7 +652,7 @@ services:
       context: ./services/sso-admin-frontend
       args:
         VITE_ADMIN_BASE_URL: ${ADMIN_PANEL_BASE_URL}
-        VITE_PUBLIC_BASE_PATH: ${SSO_ADMIN_VUE_BASE_PATH:-/__vue-preview}
+        VITE_PUBLIC_BASE_PATH: ${SSO_ADMIN_FRONTEND_BASE_PATH:-${SSO_ADMIN_VUE_BASE_PATH:-/__vue-preview}}
         VITE_SSO_BASE_URL: ${SSO_BASE_URL}
         VITE_ZITADEL_ISSUER_URL: ${ZITADEL_ISSUER}
     restart: unless-stopped
@@ -672,10 +674,8 @@ services:
       - traefik.enable=true
       - traefik.docker.network=sso-dev
       - traefik.http.services.sso-admin-frontend.loadbalancer.server.port=8080
-      - traefik.http.middlewares.sso-admin-frontend-strip.stripprefix.prefixes=${SSO_ADMIN_VUE_BASE_PATH:-/__vue-preview}
-      - traefik.http.routers.sso-admin-frontend.rule=Host(`${SSO_DOMAIN}`) && PathPrefix(`${SSO_ADMIN_VUE_BASE_PATH:-/__vue-preview}`)
+      - traefik.http.routers.sso-admin-frontend.rule=Host(`${SSO_ADMIN_DOMAIN:-admin.timeh.my.id}`)
       - traefik.http.routers.sso-admin-frontend.entrypoints=web
-      - traefik.http.routers.sso-admin-frontend.middlewares=sso-admin-frontend-strip
       - traefik.http.routers.sso-admin-frontend.service=sso-admin-frontend
       - traefik.http.routers.sso-admin-frontend.priority=175
     <<: *small-web-limits

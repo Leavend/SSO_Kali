@@ -117,6 +117,46 @@ describe('useLoginForm', () => {
     expect(routerPushMock).not.toHaveBeenCalled()
   })
 
+  it('submit() returns to the configured admin frontend origin with full-page navigation', async () => {
+    vi.stubEnv('VITE_ADMIN_FRONTEND_ORIGIN', 'https://admin.timeh.my.id')
+    routeQuery.redirect = '/oidc-foundation'
+    const session = useSessionStore()
+    vi.spyOn(session, 'login').mockResolvedValue({
+      authenticated: true,
+      user: { id: 1, subject_id: 's', email: 'x', display_name: 'x', roles: ['admin'] },
+      session: { expires_at: '2099-12-31T00:00:00Z' },
+      next: { type: 'session', auth_request_id: null },
+    })
+
+    const login = useLoginForm()
+    login.form.identifier = 'admin'
+    login.form.password = 'p'
+    await login.submit()
+
+    expect(windowAssignMock).toHaveBeenCalledWith('https://admin.timeh.my.id/oidc-foundation')
+    expect(routerPushMock).not.toHaveBeenCalled()
+  })
+
+  it('submit() keeps portal redirects inside the portal when admin origin is configured', async () => {
+    vi.stubEnv('VITE_ADMIN_FRONTEND_ORIGIN', 'https://admin.timeh.my.id')
+    routeQuery.redirect = '/home'
+    const session = useSessionStore()
+    vi.spyOn(session, 'login').mockResolvedValue({
+      authenticated: true,
+      user: { id: 1, subject_id: 's', email: 'x', display_name: 'x', roles: ['admin'] },
+      session: { expires_at: '2099-12-31T00:00:00Z' },
+      next: { type: 'session', auth_request_id: null },
+    })
+
+    const login = useLoginForm()
+    login.form.identifier = 'admin'
+    login.form.password = 'p'
+    await login.submit()
+
+    expect(routerPushMock).toHaveBeenCalledWith('/home')
+    expect(windowAssignMock).not.toHaveBeenCalled()
+  })
+
   it('submit() keeps the default admin preview path as a full-page navigation target', async () => {
     routeQuery.redirect = '/__vue-preview/'
     const session = useSessionStore()
