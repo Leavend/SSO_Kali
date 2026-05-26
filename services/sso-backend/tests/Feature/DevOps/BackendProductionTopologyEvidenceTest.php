@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-it('keeps main production compose on baseline SSO services without legacy apps', function (): void {
+it('keeps main production compose on dedicated SSO services without legacy apps', function (): void {
     $compose = file_get_contents(backend_topology_repository_path('docker-compose.main.yml'));
 
     expect($compose)->toBeString()
@@ -10,15 +10,18 @@ it('keeps main production compose on baseline SSO services without legacy apps',
         ->and($compose)->toContain('sso-backend-worker:')
         ->and($compose)->toContain('sso-backend-scheduler:')
         ->and($compose)->toContain('sso-frontend:')
+        ->and($compose)->toContain('sso-admin-frontend:')
+        ->and($compose)->toContain('SSO_ADMIN_FRONTEND_BIND')
+        ->and($compose)->toContain('127.0.0.1:3091')
         ->and($compose)->toContain('queue:work')
         ->and($compose)->toContain('schedule:work')
         ->and($compose)->toContain('postgres:')
         ->and($compose)->toContain('redis:')
-        ->and($compose)->not->toContain('sso-admin-frontend:')
+        ->and($compose)->not->toContain('sso-admin-vue:')
         ->and($compose)->not->toContain('SSO_ADMIN_BIND');
 });
 
-it('deploys baseline production services and removes admin frontend orphans', function (): void {
+it('deploys dedicated production services and removes legacy admin frontend orphans', function (): void {
     $deploy = file_get_contents(backend_topology_repository_path('scripts/vps-deploy-main.sh'));
 
     expect($deploy)->toBeString()
@@ -26,8 +29,9 @@ it('deploys baseline production services and removes admin frontend orphans', fu
         ->and($deploy)->toContain('sso-backend-worker')
         ->and($deploy)->toContain('sso-backend-scheduler')
         ->and($deploy)->toContain('sso-frontend')
-        ->and($deploy)->toContain('compose up -d --remove-orphans sso-backend sso-backend-worker sso-backend-scheduler sso-frontend')
-        ->and($deploy)->not->toContain('sso-admin-frontend');
+        ->and($deploy)->toContain('sso-admin-frontend')
+        ->and($deploy)->toContain('compose up -d --remove-orphans sso-backend sso-backend-worker sso-backend-scheduler sso-frontend sso-admin-frontend')
+        ->and($deploy)->not->toContain('sso-admin-vue');
 });
 
 function backend_topology_repository_path(string $path): string
