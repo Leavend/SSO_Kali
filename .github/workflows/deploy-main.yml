@@ -304,7 +304,9 @@ jobs:
         if: ${{ vars.SSO_APPLY_ADMIN_FRONTEND_ROUTE != 'false' }}
         shell: bash
         run: |
-          ssh -i ~/.ssh/deploy_key -p "${{ env.VPS_SSH_PORT }}" \
+          set -euo pipefail
+          route_log="$(mktemp)"
+          if ! ssh -i ~/.ssh/deploy_key -p "${{ env.VPS_SSH_PORT }}" \
             -o BatchMode=yes \
             -o ConnectTimeout=45 \
             -o ConnectionAttempts=3 \
@@ -318,7 +320,12 @@ jobs:
                SSO_ADMIN_FRONTEND_INTERNAL_URL='${{ vars.SSO_ADMIN_FRONTEND_INTERNAL_URL || 'http://127.0.0.1:3091' }}' \
                CERTBOT_EMAIL='${{ vars.CERTBOT_EMAIL || '' }}' \
                SKIP_CERTBOT='${{ vars.CERTBOT_EMAIL == '' && 'true' || 'false' }}' \
-               bash '${{ env.VPS_PROJECT_DIR }}/scripts/vps-apply-sso-admin-frontend-route.sh' --mode apply"
+               bash '${{ env.VPS_PROJECT_DIR }}/scripts/vps-apply-sso-admin-frontend-route.sh' --mode apply" >"$route_log" 2>&1; then
+            echo 'admin frontend route apply failed; raw output follows:' >&2
+            perl -pe 's/${{ secrets.VPS_HOST }}/[host]/g; s/${{ secrets.VPS_USER }}/[user]/g' "$route_log" >&2
+            exit 1
+          fi
+          cat "$route_log"
 
       - name: Run admin frontend production smoke
         shell: bash
