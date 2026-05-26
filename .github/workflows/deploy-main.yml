@@ -312,7 +312,7 @@ jobs:
                SSO_ADMIN_FRONTEND_INTERNAL_URL='${{ vars.SSO_ADMIN_FRONTEND_INTERNAL_URL || 'http://127.0.0.1:3091' }}' \
                CERTBOT_EMAIL='${{ vars.CERTBOT_EMAIL || '' }}' \
                SKIP_CERTBOT='${{ vars.CERTBOT_EMAIL == '' && 'true' || 'false' }}' \
-               bash '${{ env.VPS_PROJECT_DIR }}/scripts/vps-apply-sso-admin-frontend-route.sh' --mode apply"
+               bash '${{ env.VPS_PROJECT_DIR }}/scripts/vps-apply-sso-admin-frontend-route.sh' --mode apply || { code=\$?; echo 'admin frontend route apply failed with exit code' \$code >&2; sudo -n nginx -t >&2 || true; exit \$code; }"
 
       - name: Run admin frontend production smoke
         shell: bash
