@@ -3,10 +3,10 @@
 set -Eeuo pipefail
 
 MODE="audit"
-ADMIN_DOMAIN="${SSO_ADMIN_DOMAIN:-admin.timeh.my.id}"
+ADMIN_DOMAIN="${SSO_ADMIN_DOMAIN:-admin-sso.timeh.my.id}"
 ADMIN_UPSTREAM="${SSO_ADMIN_FRONTEND_INTERNAL_URL:-http://127.0.0.1:3091}"
-SITE_AVAILABLE="${ADMIN_SITE_AVAILABLE:-/etc/nginx/sites-available/admin.timeh.my.id.conf}"
-SITE_ENABLED="${ADMIN_SITE_ENABLED:-/etc/nginx/sites-enabled/admin.timeh.my.id.conf}"
+SITE_AVAILABLE="${ADMIN_SITE_AVAILABLE:-/etc/nginx/sites-available/admin-sso.timeh.my.id.conf}"
+SITE_ENABLED="${ADMIN_SITE_ENABLED:-/etc/nginx/sites-enabled/admin-sso.timeh.my.id.conf}"
 BACKUP_DIR="${BACKUP_DIR:-/etc/nginx/backups}"
 CERTBOT_EMAIL="${CERTBOT_EMAIL:-}"
 SKIP_CERTBOT="${SKIP_CERTBOT:-false}"
@@ -18,7 +18,7 @@ Usage: scripts/vps-apply-sso-admin-frontend-route.sh [--mode audit|apply]
 Configures the VPS Nginx route for the dedicated SSO admin frontend host.
 
 Environment:
-  SSO_ADMIN_DOMAIN                 Admin frontend host. Default: admin.timeh.my.id
+  SSO_ADMIN_DOMAIN                 Admin frontend host. Default: admin-sso.timeh.my.id
   SSO_ADMIN_FRONTEND_INTERNAL_URL  Internal admin frontend URL. Default: http://127.0.0.1:3091
   CERTBOT_EMAIL                    Optional Let's Encrypt account email for first-time certbot setup.
   SKIP_CERTBOT=true                Install HTTP-only config without requesting a certificate.
@@ -81,7 +81,7 @@ require_command nginx
 
 mkdir -p "$BACKUP_DIR" "$(dirname "$SITE_AVAILABLE")" "$(dirname "$SITE_ENABLED")"
 if [[ -f "$SITE_AVAILABLE" ]]; then
-  cp -a "$SITE_AVAILABLE" "$BACKUP_DIR/admin.timeh.my.id.conf.$(date +%Y%m%d%H%M%S)"
+  cp -a "$SITE_AVAILABLE" "$BACKUP_DIR/admin-sso.timeh.my.id.conf.$(date +%Y%m%d%H%M%S)"
 fi
 
 if [[ ! -f "$cert_path" || ! -f "$key_path" ]]; then

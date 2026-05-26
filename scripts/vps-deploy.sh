@@ -442,7 +442,7 @@ ZITADEL_DOMAIN=$(awk -F= '/^ZITADEL_DOMAIN=/ {print $2}' "$ENV_FILE")
 APP_A_DOMAIN=$(awk -F= '/^APP_A_DOMAIN=/ {print $2}' "$ENV_FILE")
 APP_B_DOMAIN=$(awk -F= '/^APP_B_DOMAIN=/ {print $2}' "$ENV_FILE")
 SSO_ADMIN_DOMAIN=$(awk -F= '/^SSO_ADMIN_DOMAIN=/ {print $2}' "$ENV_FILE")
-SSO_ADMIN_DOMAIN="${SSO_ADMIN_DOMAIN:-admin.timeh.my.id}"
+SSO_ADMIN_DOMAIN="${SSO_ADMIN_DOMAIN:-admin-sso.timeh.my.id}"
 
 smoke_required "SSO Discovery"       "https://${SSO_DOMAIN}/.well-known/openid-configuration" "^200$" "$SSO_DOMAIN"
 smoke_required "ZITADEL Hosted Login" "https://${ZITADEL_DOMAIN}/ui/v2/login/healthy"          "^200$" "$ZITADEL_DOMAIN"

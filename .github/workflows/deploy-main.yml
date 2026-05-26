@@ -45,7 +45,7 @@ jobs:
               VITE_SSO_API_URL=
               VITE_SSO_BASE_URL=${{ vars.SSO_PUBLIC_BASE_URL || 'https://api-sso.timeh.my.id' }}
               VITE_SSO_FRONTEND_BASE_URL=${{ vars.SSO_FRONTEND_BASE_URL || 'https://sso.timeh.my.id' }}
-              VITE_ADMIN_FRONTEND_ORIGIN=${{ vars.SSO_ADMIN_FRONTEND_URL || 'https://admin.timeh.my.id' }}
+              VITE_ADMIN_FRONTEND_ORIGIN=${{ vars.SSO_ADMIN_FRONTEND_URL || 'https://admin-sso.timeh.my.id' }}
               VITE_CLIENT_ID=sso-frontend-portal
               VITE_APP_NAME=Dev-SSO Portal
               VITE_OIDC_ISSUER=${{ vars.SSO_PUBLIC_BASE_URL || 'https://api-sso.timeh.my.id' }}
@@ -55,7 +55,7 @@ jobs:
             context: ./services/sso-admin-frontend
             dockerfile: ./services/sso-admin-frontend/Dockerfile
             build_args: |
-              VITE_ADMIN_BASE_URL=${{ vars.SSO_ADMIN_FRONTEND_URL || 'https://admin.timeh.my.id' }}
+              VITE_ADMIN_BASE_URL=${{ vars.SSO_ADMIN_FRONTEND_URL || 'https://admin-sso.timeh.my.id' }}
               VITE_PUBLIC_BASE_PATH=${{ vars.SSO_ADMIN_FRONTEND_BASE_PATH || '/' }}
               VITE_SSO_BASE_URL=${{ vars.SSO_FRONTEND_BASE_URL || 'https://sso.timeh.my.id' }}
 
@@ -308,7 +308,7 @@ jobs:
           ssh_with_retry "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
             "set -euo pipefail
              sudo -n env \
-               SSO_ADMIN_DOMAIN='${{ vars.SSO_ADMIN_DOMAIN || 'admin.timeh.my.id' }}' \
+               SSO_ADMIN_DOMAIN='${{ vars.SSO_ADMIN_DOMAIN || 'admin-sso.timeh.my.id' }}' \
                SSO_ADMIN_FRONTEND_INTERNAL_URL='${{ vars.SSO_ADMIN_FRONTEND_INTERNAL_URL || 'http://127.0.0.1:3091' }}' \
                CERTBOT_EMAIL='${{ vars.CERTBOT_EMAIL }}' \
                bash '${{ env.VPS_PROJECT_DIR }}/scripts/vps-apply-sso-admin-frontend-route.sh' --mode apply"
@@ -317,7 +317,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          admin_url="${{ vars.SSO_ADMIN_FRONTEND_URL || 'https://admin.timeh.my.id' }}"
+          admin_url="${{ vars.SSO_ADMIN_FRONTEND_URL || 'https://admin-sso.timeh.my.id' }}"
           curl -fsS --max-time 20 "${admin_url%/}/healthz" >/dev/null
           curl -fsS --max-time 20 "${admin_url%/}/oidc-foundation" >/dev/null
 

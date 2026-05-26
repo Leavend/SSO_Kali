@@ -259,7 +259,7 @@ build_service_image() {
         -f "$PROJECT_DIR/services/sso-frontend/Dockerfile" \
         --build-arg "VITE_SSO_BASE_URL=$(env_value SSO_BASE_URL)" \
         --build-arg "VITE_SSO_FRONTEND_BASE_URL=$(env_value SSO_FRONTEND_URL)" \
-        --build-arg "VITE_ADMIN_FRONTEND_ORIGIN=https://$(env_value SSO_ADMIN_DOMAIN admin.timeh.my.id)" \
+        --build-arg "VITE_ADMIN_FRONTEND_ORIGIN=https://$(env_value SSO_ADMIN_DOMAIN admin-sso.timeh.my.id)" \
         --build-arg "VITE_CLIENT_ID=$(env_value SSO_FRONTEND_CLIENT_ID sso-frontend-portal)" \
         "$PROJECT_DIR" 2>&1 | tee -a "$DEPLOY_LOG"
       ;;
@@ -376,7 +376,7 @@ done
 
 SSO_DOMAIN=$(env_value SSO_DOMAIN)
 ZITADEL_DOMAIN=$(env_value ZITADEL_DOMAIN)
-SSO_ADMIN_DOMAIN=$(env_value SSO_ADMIN_DOMAIN admin.timeh.my.id)
+SSO_ADMIN_DOMAIN=$(env_value SSO_ADMIN_DOMAIN admin-sso.timeh.my.id)
 
 log "Running smoke checks"
 smoke_check "SSO Discovery" "https://${SSO_DOMAIN}/.well-known/openid-configuration" "^200$" "$SSO_DOMAIN" || rollback_once "Smoke check failed: SSO Discovery"

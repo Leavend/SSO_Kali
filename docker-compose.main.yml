@@ -74,7 +74,7 @@ x-sso-frontend-env: &sso-frontend-env
   SSO_BACKEND_UPSTREAM: sso-backend:8000
   SSO_FRONTEND_SERVER_NAME: ${SSO_FRONTEND_SERVER_NAME:-_}
   SSO_CSP_CONNECT_SRC: ${SSO_CSP_CONNECT_SRC:-https://api-sso.timeh.my.id}
-  VITE_ADMIN_FRONTEND_ORIGIN: ${SSO_ADMIN_FRONTEND_URL:-https://admin.timeh.my.id}
+  VITE_ADMIN_FRONTEND_ORIGIN: ${SSO_ADMIN_FRONTEND_URL:-https://admin-sso.timeh.my.id}
 
 services:
   postgres:

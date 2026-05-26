@@ -172,7 +172,7 @@ has_npm_script "services/sso-admin-frontend/package.json" "build"
 has_npm_script "services/sso-admin-frontend/package.json" "lint"
 
 has_text "docker-compose.dev.yml" 'image: sso-dev-sso-admin-frontend:${APP_IMAGE_TAG:-local}' "Admin frontend image is tag-addressable by APP_IMAGE_TAG"
-has_text "docker-compose.dev.yml" 'traefik.http.routers.sso-admin-frontend.rule=Host(`${SSO_ADMIN_DOMAIN:-admin.timeh.my.id}`)' "Admin frontend uses dedicated host route"
+has_text "docker-compose.dev.yml" 'traefik.http.routers.sso-admin-frontend.rule=Host(`${SSO_ADMIN_DOMAIN:-admin-sso.timeh.my.id}`)' "Admin frontend uses dedicated host route"
 has_text "docker-compose.dev.yml" 'traefik.http.routers.sso-admin-frontend.priority=175' "Admin frontend priority stays below backend API routes"
 has_text "docker-compose.dev.yml" 'traefik.http.routers.sso-backend.priority=200' "Backend API/OIDC router remains highest priority"
 has_text "docker-compose.dev.yml" 'traefik.http.routers.sso-frontend.priority=50' "Primary SSO frontend remains root catch-all during canary"

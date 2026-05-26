@@ -118,7 +118,7 @@ describe('useLoginForm', () => {
   })
 
   it('submit() returns to the configured admin frontend origin with full-page navigation', async () => {
-    vi.stubEnv('VITE_ADMIN_FRONTEND_ORIGIN', 'https://admin.timeh.my.id')
+    vi.stubEnv('VITE_ADMIN_FRONTEND_ORIGIN', 'https://admin-sso.timeh.my.id')
     routeQuery.redirect = '/oidc-foundation'
     const session = useSessionStore()
     vi.spyOn(session, 'login').mockResolvedValue({
@@ -133,12 +133,12 @@ describe('useLoginForm', () => {
     login.form.password = 'p'
     await login.submit()
 
-    expect(windowAssignMock).toHaveBeenCalledWith('https://admin.timeh.my.id/oidc-foundation')
+    expect(windowAssignMock).toHaveBeenCalledWith('https://admin-sso.timeh.my.id/oidc-foundation')
     expect(routerPushMock).not.toHaveBeenCalled()
   })
 
   it('submit() keeps portal redirects inside the portal when admin origin is configured', async () => {
-    vi.stubEnv('VITE_ADMIN_FRONTEND_ORIGIN', 'https://admin.timeh.my.id')
+    vi.stubEnv('VITE_ADMIN_FRONTEND_ORIGIN', 'https://admin-sso.timeh.my.id')
     routeQuery.redirect = '/home'
     const session = useSessionStore()
     vi.spyOn(session, 'login').mockResolvedValue({
