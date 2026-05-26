@@ -304,15 +304,21 @@ jobs:
         if: ${{ vars.SSO_APPLY_ADMIN_FRONTEND_ROUTE != 'false' }}
         shell: bash
         run: |
-          source /tmp/sso-backend-ssh-helpers.sh
-          ssh_with_retry "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
-            "set -euo pipefail
+          ssh -i ~/.ssh/deploy_key -p "${{ env.VPS_SSH_PORT }}" \
+            -o BatchMode=yes \
+            -o ConnectTimeout=45 \
+            -o ConnectionAttempts=3 \
+            -o StrictHostKeyChecking=accept-new \
+            -o ServerAliveInterval=10 \
+            -o ServerAliveCountMax=3 \
+            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+            "set -euxo pipefail
              sudo -n env \
                SSO_ADMIN_DOMAIN='${{ vars.SSO_ADMIN_DOMAIN || 'admin-sso.timeh.my.id' }}' \
                SSO_ADMIN_FRONTEND_INTERNAL_URL='${{ vars.SSO_ADMIN_FRONTEND_INTERNAL_URL || 'http://127.0.0.1:3091' }}' \
                CERTBOT_EMAIL='${{ vars.CERTBOT_EMAIL || '' }}' \
                SKIP_CERTBOT='${{ vars.CERTBOT_EMAIL == '' && 'true' || 'false' }}' \
-               bash '${{ env.VPS_PROJECT_DIR }}/scripts/vps-apply-sso-admin-frontend-route.sh' --mode apply || { code=\$?; echo 'admin frontend route apply failed with exit code' \$code >&2; sudo -n nginx -t >&2 || true; exit \$code; }"
+               bash '${{ env.VPS_PROJECT_DIR }}/scripts/vps-apply-sso-admin-frontend-route.sh' --mode apply"
 
       - name: Run admin frontend production smoke
         shell: bash
