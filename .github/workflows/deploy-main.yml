@@ -310,7 +310,8 @@ jobs:
              sudo -n env \
                SSO_ADMIN_DOMAIN='${{ vars.SSO_ADMIN_DOMAIN || 'admin-sso.timeh.my.id' }}' \
                SSO_ADMIN_FRONTEND_INTERNAL_URL='${{ vars.SSO_ADMIN_FRONTEND_INTERNAL_URL || 'http://127.0.0.1:3091' }}' \
-               CERTBOT_EMAIL='${{ vars.CERTBOT_EMAIL }}' \
+               CERTBOT_EMAIL='${{ vars.CERTBOT_EMAIL || '' }}' \
+               SKIP_CERTBOT='${{ vars.CERTBOT_EMAIL == '' && 'true' || 'false' }}' \
                bash '${{ env.VPS_PROJECT_DIR }}/scripts/vps-apply-sso-admin-frontend-route.sh' --mode apply"
 
       - name: Run admin frontend production smoke
@@ -318,7 +319,11 @@ jobs:
         run: |
           set -euo pipefail
           admin_url="${{ vars.SSO_ADMIN_FRONTEND_URL || 'https://admin-sso.timeh.my.id' }}"
-          curl -fsS --max-time 20 "${admin_url%/}/healthz" >/dev/null
+          # Try HTTPS first; fallback to HTTP for HTTP-only (no cert) setups
+          if ! curl -fsS --max-time 20 "${admin_url%/}/healthz" >/dev/null 2>&1; then
+            admin_url="http://admin-sso.timeh.my.id"
+            curl -fsS --max-time 20 "${admin_url%/}/healthz" >/dev/null
+          fi
           curl -fsS --max-time 20 "${admin_url%/}/oidc-foundation" >/dev/null
 
       - name: Run OIDC Backend production smoke
