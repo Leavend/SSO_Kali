@@ -644,10 +644,10 @@ services:
       - traefik.http.routers.sso-frontend.priority=50
     <<: *small-web-limits
 
-  sso-admin-vue:
-    image: sso-dev-sso-admin-vue:${APP_IMAGE_TAG:-local}
+  sso-admin-frontend:
+    image: sso-dev-sso-admin-frontend:${APP_IMAGE_TAG:-local}
     build:
-      context: ./services/sso-admin-vue
+      context: ./services/sso-admin-frontend
       args:
         VITE_ADMIN_BASE_URL: ${ADMIN_PANEL_BASE_URL}
         VITE_PUBLIC_BASE_PATH: ${SSO_ADMIN_VUE_BASE_PATH:-/__vue-preview}
@@ -671,13 +671,13 @@ services:
     labels:
       - traefik.enable=true
       - traefik.docker.network=sso-dev
-      - traefik.http.services.sso-admin-vue.loadbalancer.server.port=8080
-      - traefik.http.middlewares.sso-admin-vue-strip.stripprefix.prefixes=${SSO_ADMIN_VUE_BASE_PATH:-/__vue-preview}
-      - traefik.http.routers.sso-admin-vue.rule=Host(`${SSO_DOMAIN}`) && PathPrefix(`${SSO_ADMIN_VUE_BASE_PATH:-/__vue-preview}`)
-      - traefik.http.routers.sso-admin-vue.entrypoints=web
-      - traefik.http.routers.sso-admin-vue.middlewares=sso-admin-vue-strip
-      - traefik.http.routers.sso-admin-vue.service=sso-admin-vue
-      - traefik.http.routers.sso-admin-vue.priority=175
+      - traefik.http.services.sso-admin-frontend.loadbalancer.server.port=8080
+      - traefik.http.middlewares.sso-admin-frontend-strip.stripprefix.prefixes=${SSO_ADMIN_VUE_BASE_PATH:-/__vue-preview}
+      - traefik.http.routers.sso-admin-frontend.rule=Host(`${SSO_DOMAIN}`) && PathPrefix(`${SSO_ADMIN_VUE_BASE_PATH:-/__vue-preview}`)
+      - traefik.http.routers.sso-admin-frontend.entrypoints=web
+      - traefik.http.routers.sso-admin-frontend.middlewares=sso-admin-frontend-strip
+      - traefik.http.routers.sso-admin-frontend.service=sso-admin-frontend
+      - traefik.http.routers.sso-admin-frontend.priority=175
     <<: *small-web-limits
 
   app-a-next:

@@ -9,7 +9,7 @@ it('vps smoke verifies backend-only production topology after deployment', funct
         ->and($script)->toContain('EXPECTED_SERVICES')
         ->and($script)->toContain('sso-backend-worker')
         ->and($script)->toContain('FORBIDDEN_SERVICES')
-        ->and($script)->toContain('sso-admin-vue')
+        ->and($script)->toContain('sso-admin-frontend')
         ->and($script)->toContain('verify_topology')
         ->and($script)->toContain('verify_worker_logs');
 });

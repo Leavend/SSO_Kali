@@ -25,7 +25,7 @@ TAG="${TAG#v}"
 IMAGES=(
   sso-backend
   sso-frontend
-  sso-admin-vue
+  sso-admin-frontend
   zitadel-login
   zitadel-login-vue
   app-a-next

@@ -14,7 +14,7 @@ TAIL_LINES="160"
 PUBLIC_BASE_URL=""
 SSH_IDENTITY_FILE=""
 EXPECTED_SERVICES="postgres redis sso-backend sso-backend-worker"
-FORBIDDEN_SERVICES="sso-admin-vue"
+FORBIDDEN_SERVICES="sso-admin-frontend"
 
 log() {
   printf '[sso-backend-vps-smoke] %s\n' "$*"
@@ -46,7 +46,7 @@ Options:
   --ssh-identity-file FILE Optional SSH private key file for remote smoke.
   --tail-lines N          Log lines printed on failure. Default: 160.
   --expected-services CSV Expected compose services. Default: postgres,redis,sso-backend,sso-backend-worker.
-  --forbidden-services CSV Forbidden compose services. Default: sso-admin-vue.
+  --forbidden-services CSV Forbidden compose services. Default: sso-admin-frontend.
   -h, --help              Show this help.
 USAGE
 }

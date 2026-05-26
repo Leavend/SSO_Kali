@@ -7,7 +7,7 @@ it('locks runtime verification and production devops hardening evidence', functi
         'issue_32_runtime_verification' => [
             'tests/Feature/DevOps/RuntimeAfterTopologyChangeEvidenceTest.php' => [
                 'sso-backend-worker',
-                'sso-admin-vue',
+                'sso-admin-frontend',
                 'sso-backend-vps-smoke.sh',
             ],
             '../../scripts/sso-backend-vps-smoke.sh' => [

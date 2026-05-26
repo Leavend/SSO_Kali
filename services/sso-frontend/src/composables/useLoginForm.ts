@@ -11,6 +11,7 @@
 import { computed, reactive, ref, type ComputedRef, type Reactive, type Ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ApiError, isValidationError } from '@/lib/api/api-error'
+import { isAdminFrontendTarget } from '@/lib/admin-frontend-target'
 import { useSessionStore } from '@/stores/session.store'
 import { useMfaChallengeStore } from '@/stores/mfa-challenge.store'
 import type { SsoLoginResponse } from '@/types/auth.types'
@@ -148,7 +149,7 @@ export function useLoginForm(): UseLoginFormReturn {
       return
     }
 
-    await router.push(readRedirectTarget())
+    await navigateAfterLogin(readRedirectTarget())
   }
 
   function applyError(error: unknown): void {
@@ -244,6 +245,15 @@ export function useLoginForm(): UseLoginFormReturn {
   function readAuthRequestId(): string | null {
     const value = route.query['auth_request_id']
     return typeof value === 'string' && value.length > 0 ? value : null
+  }
+
+  async function navigateAfterLogin(target: string): Promise<void> {
+    if (isAdminFrontendTarget(target)) {
+      window.location.assign(new URL(target, window.location.origin).toString())
+      return
+    }
+
+    await router.push(target)
   }
 
   function continueAuthorize(authRequestId: string): void {

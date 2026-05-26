@@ -14,11 +14,11 @@ it('keeps main production compose on baseline SSO services without legacy apps',
         ->and($compose)->toContain('schedule:work')
         ->and($compose)->toContain('postgres:')
         ->and($compose)->toContain('redis:')
-        ->and($compose)->not->toContain('sso-admin-vue:')
+        ->and($compose)->not->toContain('sso-admin-frontend:')
         ->and($compose)->not->toContain('SSO_ADMIN_BIND');
 });
 
-it('deploys baseline production services and removes admin-vue orphans', function (): void {
+it('deploys baseline production services and removes admin frontend orphans', function (): void {
     $deploy = file_get_contents(backend_topology_repository_path('scripts/vps-deploy-main.sh'));
 
     expect($deploy)->toBeString()
@@ -27,7 +27,7 @@ it('deploys baseline production services and removes admin-vue orphans', functio
         ->and($deploy)->toContain('sso-backend-scheduler')
         ->and($deploy)->toContain('sso-frontend')
         ->and($deploy)->toContain('compose up -d --remove-orphans sso-backend sso-backend-worker sso-backend-scheduler sso-frontend')
-        ->and($deploy)->not->toContain('sso-admin-vue');
+        ->and($deploy)->not->toContain('sso-admin-frontend');
 });
 
 function backend_topology_repository_path(string $path): string

@@ -251,7 +251,7 @@ jobs:
         run: |
           SERVICE_NAME="${{ inputs.service_name }}"
           case "$SERVICE_NAME" in
-            all|proxy|postgres|redis|zitadel-api|zitadel-login|zitadel-login-vue|sso-backend|sso-backend-worker|sso-frontend|sso-admin-vue|app-a-next|app-b-laravel) ;;
+            all|proxy|postgres|redis|zitadel-api|zitadel-login|zitadel-login-vue|sso-backend|sso-backend-worker|sso-frontend|sso-admin-frontend|app-a-next|app-b-laravel) ;;
             *)
               echo "Refusing unsupported service_name: $SERVICE_NAME" >&2
               exit 3

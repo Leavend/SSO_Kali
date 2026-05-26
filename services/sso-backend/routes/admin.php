@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\DashboardSummaryController;
 use App\Http\Controllers\Admin\DataSubjectRequestAdminController;
 use App\Http\Controllers\Admin\ExternalIdentityProviderController;
 use App\Http\Controllers\Admin\ExternalIdentityProviderMappingPreviewController;
+use App\Http\Controllers\Admin\OidcFoundationController;
 use App\Http\Controllers\Admin\PrincipalController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SecurityPolicyController;
@@ -108,6 +109,7 @@ Route::middleware([AdminGuard::class, EnsureAdminMfaEnrolled::class])->prefix('a
         EnsureAdminMfaAssurance::class,
     ])->group(function (): void {
         Route::get('/dashboard/summary', DashboardSummaryController::class);
+        Route::get('/oidc-foundation', OidcFoundationController::class);
     });
 
     Route::middleware([

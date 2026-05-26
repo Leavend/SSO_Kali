@@ -126,7 +126,7 @@ check_laravel_target() {
 }
 
 check_vue_target() {
-  local lock="services/sso-admin-vue/package-lock.json"
+  local lock="services/sso-admin-frontend/package-lock.json"
   local vue router pinia
 
   vue="$(lock_package_version "$lock" "vue")"
@@ -154,8 +154,8 @@ check_vue_target() {
 
 require_file "services/sso-backend/composer.json"
 require_file "apps/app-b-laravel/composer.json"
-require_file "services/sso-admin-vue/package.json"
-require_file "services/sso-admin-vue/package-lock.json"
+require_file "services/sso-admin-frontend/package.json"
+require_file "services/sso-admin-frontend/package-lock.json"
 require_file "docker-compose.dev.yml"
 require_file "scripts/deploy.sh"
 require_file "deploy-remote.sh"
@@ -166,14 +166,14 @@ check_laravel_target "services/sso-backend/composer.json"
 check_laravel_target "apps/app-b-laravel/composer.json"
 check_vue_target
 
-has_npm_script "services/sso-admin-vue/package.json" "typecheck"
-has_npm_script "services/sso-admin-vue/package.json" "test"
-has_npm_script "services/sso-admin-vue/package.json" "build"
-has_npm_script "services/sso-admin-vue/package.json" "lint"
+has_npm_script "services/sso-admin-frontend/package.json" "typecheck"
+has_npm_script "services/sso-admin-frontend/package.json" "test"
+has_npm_script "services/sso-admin-frontend/package.json" "build"
+has_npm_script "services/sso-admin-frontend/package.json" "lint"
 
-has_text "docker-compose.dev.yml" 'image: sso-dev-sso-admin-vue:${APP_IMAGE_TAG:-local}' "Vue canary image is tag-addressable by APP_IMAGE_TAG"
-has_text "docker-compose.dev.yml" 'traefik.http.middlewares.sso-admin-vue-strip.stripprefix.prefixes=${SSO_ADMIN_VUE_BASE_PATH:-/__vue-preview}' "Vue canary strips preview prefix before static serving"
-has_text "docker-compose.dev.yml" 'traefik.http.routers.sso-admin-vue.priority=175' "Vue canary priority stays below backend API routes"
+has_text "docker-compose.dev.yml" 'image: sso-dev-sso-admin-frontend:${APP_IMAGE_TAG:-local}' "Vue canary image is tag-addressable by APP_IMAGE_TAG"
+has_text "docker-compose.dev.yml" 'traefik.http.middlewares.sso-admin-frontend-strip.stripprefix.prefixes=${SSO_ADMIN_VUE_BASE_PATH:-/__vue-preview}' "Vue canary strips preview prefix before static serving"
+has_text "docker-compose.dev.yml" 'traefik.http.routers.sso-admin-frontend.priority=175' "Vue canary priority stays below backend API routes"
 has_text "docker-compose.dev.yml" 'traefik.http.routers.sso-backend.priority=200' "Backend API/OIDC router remains highest priority"
 has_text "docker-compose.dev.yml" 'traefik.http.routers.sso-frontend.priority=50' "Primary SSO frontend remains root catch-all during canary"
 

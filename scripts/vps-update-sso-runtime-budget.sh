@@ -29,7 +29,7 @@ SERVICES=(
   sso-backend
   sso-backend-worker
   sso-frontend
-  sso-admin-vue
+  sso-admin-frontend
   app-a-next
   app-b-laravel
 )
@@ -70,7 +70,7 @@ budget_for_service() {
     zitadel-api) echo "1.00 2048 1024m 1073741824" ;;
     zitadel-login|zitadel-login-vue) echo "0.40 1536 384m 402653184" ;;
     sso-backend|sso-backend-worker) echo "0.45 512 512m 536870912" ;;
-    sso-frontend|sso-admin-vue) echo "0.25 256 256m 268435456" ;;
+    sso-frontend|sso-admin-frontend) echo "0.25 256 256m 268435456" ;;
     app-a-next) echo "0.10 128 192m 201326592" ;;
     app-b-laravel) echo "0.15 128 384m 402653184" ;;
     *) return 1 ;;

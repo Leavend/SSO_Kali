@@ -53,7 +53,7 @@ variable "required_runtime_services" {
     "sso-backend",
     "sso-backend-worker",
     "sso-frontend",
-    "sso-admin-vue",
+    "sso-admin-frontend",
     "app-a-next",
     "app-b-laravel",
   ]

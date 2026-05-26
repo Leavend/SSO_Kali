@@ -8,4 +8,9 @@ describe('portal BFF proxy route inventory', () => {
     expect(shouldProxyPortalPath('/connect/logout')).toBe(true)
     expect(shouldProxyPortalPath('/connect/logout/frontchannel')).toBe(true)
   })
+
+  it('keeps bearer-only admin APIs out of the raw browser proxy route list', () => {
+    expect(shouldProxyPortalPath('/admin/api/me')).toBe(false)
+    expect(shouldProxyPortalPath('/admin/api/oidc-foundation')).toBe(false)
+  })
 })

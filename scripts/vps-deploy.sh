@@ -128,14 +128,14 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/lib/app-b-secret-guard.sh"
 
 # Services that use custom-built images (order matters: deps first)
-APP_SERVICES=(sso-backend sso-backend-worker sso-frontend sso-admin-vue zitadel-login zitadel-login-vue app-a-next app-b-laravel)
+APP_SERVICES=(sso-backend sso-backend-worker sso-frontend sso-admin-frontend zitadel-login zitadel-login-vue app-a-next app-b-laravel)
 
 # Services without release images but with runtime config that must be reconciled
 # when the Compose control plane changes.
 CONTROL_PLANE_SERVICES=(zitadel-api)
 
 # Core services that trigger hard rollback if unhealthy
-CORE_SERVICES=(sso-backend sso-backend-worker sso-frontend sso-admin-vue)
+CORE_SERVICES=(sso-backend sso-backend-worker sso-frontend sso-admin-frontend)
 
 is_core_service() {
   local svc="$1"
@@ -172,7 +172,7 @@ declare -A IMAGE_MAP=(
   [sso-backend]="sso-backend"
   [sso-backend-worker]="sso-backend"
   [sso-frontend]="sso-frontend"
-  [sso-admin-vue]="sso-admin-vue"
+  [sso-admin-frontend]="sso-admin-frontend"
   [zitadel-login]="zitadel-login"
   [zitadel-login-vue]="zitadel-login-vue"
   [app-a-next]="app-a-next"
@@ -183,7 +183,7 @@ declare -A LOCAL_IMAGE_MAP=(
   [sso-backend]="sso-dev-sso-backend"
   [sso-backend-worker]="sso-dev-sso-backend"
   [sso-frontend]="sso-dev-sso-frontend"
-  [sso-admin-vue]="sso-dev-sso-admin-vue"
+  [sso-admin-frontend]="sso-dev-sso-admin-frontend"
   [zitadel-login]="sso-dev-zitadel-login"
   [zitadel-login-vue]="sso-dev-zitadel-login-vue"
   [app-a-next]="sso-dev-app-a-next"

@@ -17,7 +17,7 @@ it('keeps the production security hardening checklist penetration-style and audi
         ->and($checklist)->toContain('Backups and restore rehearsal evidence captured')
         ->and($checklist)->toContain('sso-backend-prod-sso-backend-worker-1')
         ->and($checklist)->toContain('Pass/Fail Evidence')
-        ->and($checklist)->not->toContain('sso-admin-vue');
+        ->and($checklist)->not->toContain('sso-admin-frontend');
 });
 
 function security_checklist_repository_path(string $path): string

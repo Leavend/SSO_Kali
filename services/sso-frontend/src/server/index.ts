@@ -4,6 +4,7 @@ import { createServer } from 'node:http'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { extname, join, normalize, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { handleAdminApiProxy } from './admin-proxy.js'
 import {
   handleCallback,
   handleCallbackSession,
@@ -70,6 +71,7 @@ async function route(request: IncomingMessage, requestUrl: URL): Promise<AppResp
   if (pathname === '/api/session')
     return method === 'GET' ? handleSession(request) : methodNotAllowed()
   if (pathname.startsWith('/api/me/')) return handleUserApi({ request, requestUrl })
+  if (pathname.startsWith('/api/admin/')) return handleAdminApiProxy({ request, requestUrl })
   if (shouldProxyPortalPath(pathname)) return proxyToSsoBackend(request, requestUrl)
 
   return await redirectForLegacyError(requestUrl)

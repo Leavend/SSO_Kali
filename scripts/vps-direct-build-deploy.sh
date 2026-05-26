@@ -11,7 +11,7 @@ set -Eeuo pipefail
 
 TAG=""
 PROJECT_DIR="/opt/sso-prototype-dev"
-SERVICES=(sso-frontend sso-admin-vue zitadel-login-vue)
+SERVICES=(sso-frontend sso-admin-frontend zitadel-login-vue)
 PRUNE_BUILD_CACHE=0
 MIN_REPLICAS="${MIN_REPLICAS:-2}"
 GREEN_DRAIN_SECONDS="${GREEN_DRAIN_SECONDS:-30}"
@@ -56,7 +56,7 @@ declare -A LOCAL_IMAGE_MAP=(
   [sso-backend]="sso-dev-sso-backend"
   [sso-backend-worker]="sso-dev-sso-backend"
   [sso-frontend]="sso-dev-sso-frontend"
-  [sso-admin-vue]="sso-dev-sso-admin-vue"
+  [sso-admin-frontend]="sso-dev-sso-admin-frontend"
   [zitadel-login]="sso-dev-zitadel-login"
   [zitadel-login-vue]="sso-dev-zitadel-login-vue"
   [app-a-next]="sso-dev-app-a-next"
@@ -103,7 +103,7 @@ rollback_compose() {
 
 desired_scale() {
   case "$1" in
-    sso-frontend|sso-admin-vue|zitadel-login|zitadel-login-vue) printf '%s' "$MIN_REPLICAS" ;;
+    sso-frontend|sso-admin-frontend|zitadel-login|zitadel-login-vue) printf '%s' "$MIN_REPLICAS" ;;
     *) printf '1' ;;
   esac
 }
@@ -193,7 +193,7 @@ rollback() {
       warn "  rolling back $svc to ${ROLLBACK_TAG}"
       rollback_compose up -d --no-deps --scale "$svc=$(desired_scale "$svc")" "$svc" 2>&1 | tee -a "$DEPLOY_LOG" || true
       wait_healthy "$svc" 120 || true
-    elif [ "$svc" = "sso-admin-vue" ]; then
+    elif [ "$svc" = "sso-admin-frontend" ]; then
       warn "  stopping canary $svc because no previous image exists"
       compose stop "$svc" 2>&1 | tee -a "$DEPLOY_LOG" || true
     fi
@@ -262,7 +262,7 @@ build_service_image() {
         --build-arg "VITE_CLIENT_ID=$(env_value SSO_FRONTEND_CLIENT_ID sso-frontend-portal)" \
         "$PROJECT_DIR" 2>&1 | tee -a "$DEPLOY_LOG"
       ;;
-    sso-admin-vue)
+    sso-admin-frontend)
       log "  building $svc as $image"
       docker build --pull \
         -t "$image" \
@@ -270,7 +270,7 @@ build_service_image() {
         --build-arg "VITE_PUBLIC_BASE_PATH=$(env_value SSO_ADMIN_VUE_BASE_PATH /__vue-preview)" \
         --build-arg "VITE_SSO_BASE_URL=$(env_value SSO_BASE_URL)" \
         --build-arg "VITE_ZITADEL_ISSUER_URL=$(env_value ZITADEL_ISSUER)" \
-        "$PROJECT_DIR/services/sso-admin-vue" 2>&1 | tee -a "$DEPLOY_LOG"
+        "$PROJECT_DIR/services/sso-admin-frontend" 2>&1 | tee -a "$DEPLOY_LOG"
       ;;
     zitadel-login)
       log "  building $svc as $image"
@@ -380,7 +380,7 @@ SSO_ADMIN_VUE_BASE_PATH=$(env_value SSO_ADMIN_VUE_BASE_PATH /__vue-preview)
 log "Running smoke checks"
 smoke_check "SSO Discovery" "https://${SSO_DOMAIN}/.well-known/openid-configuration" "^200$" "$SSO_DOMAIN" || rollback_once "Smoke check failed: SSO Discovery"
 smoke_check "Admin Panel" "https://${SSO_DOMAIN}/" "^200$" "$SSO_DOMAIN" || rollback_once "Smoke check failed: Admin Panel"
-if printf '%s\n' "${SERVICES[@]}" | grep -Fxq "sso-admin-vue"; then
+if printf '%s\n' "${SERVICES[@]}" | grep -Fxq "sso-admin-frontend"; then
   smoke_check "Vue Admin Canary" "https://${SSO_DOMAIN}${SSO_ADMIN_VUE_BASE_PATH}/healthz" "^200$" "$SSO_DOMAIN" || rollback_once "Smoke check failed: Vue Admin Canary"
 fi
 if printf '%s\n' "${SERVICES[@]}" | grep -Fxq "zitadel-login"; then

@@ -93,7 +93,7 @@ jobs:
       fail-fast: true
       matrix:
         component:
-          - { name: sso-admin-vue, path: services/sso-admin-vue }
+          - { name: sso-admin-frontend, path: services/sso-admin-frontend }
 
     defaults:
       run:
@@ -157,9 +157,9 @@ jobs:
           - name: sso-backend
             context: ./services/sso-backend
             dockerfile: ./services/sso-backend/Dockerfile
-          - name: sso-admin-vue
-            context: ./services/sso-admin-vue
-            dockerfile: ./services/sso-admin-vue/Dockerfile
+          - name: sso-admin-frontend
+            context: ./services/sso-admin-frontend
+            dockerfile: ./services/sso-admin-frontend/Dockerfile
             build-args: |
               VITE_ADMIN_BASE_URL=https://dev-sso.timeh.my.id
               VITE_PUBLIC_BASE_PATH=/__vue-preview
