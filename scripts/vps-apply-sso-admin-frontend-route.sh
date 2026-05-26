@@ -85,10 +85,10 @@ if [[ -f "$SITE_AVAILABLE" ]]; then
 fi
 
 if [[ ! -f "$cert_path" || ! -f "$key_path" ]]; then
-  require_command certbot
   if [[ "$SKIP_CERTBOT" == "true" ]]; then
     warn "Certificate for $ADMIN_DOMAIN is missing and SKIP_CERTBOT=true; installing HTTP-only route"
   else
+    require_command certbot
     certbot_args=(certonly --nginx --non-interactive --keep-until-expiring --cert-name "$ADMIN_DOMAIN" -d "$ADMIN_DOMAIN")
     if [[ -n "$CERTBOT_EMAIL" ]]; then
       certbot_args+=(--agree-tos -m "$CERTBOT_EMAIL")
