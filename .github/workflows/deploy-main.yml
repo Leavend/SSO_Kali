@@ -306,6 +306,10 @@ jobs:
         run: |
           set -euo pipefail
           route_log="$(mktemp)"
+          admin_domain="${{ vars.SSO_ADMIN_DOMAIN || 'admin-sso.timeh.my.id' }}"
+          admin_upstream="${{ vars.SSO_ADMIN_FRONTEND_INTERNAL_URL || 'http://127.0.0.1:3091' }}"
+          certbot_email="${{ vars.CERTBOT_EMAIL || '' }}"
+          skip_certbot="${{ vars.CERTBOT_EMAIL == '' && 'true' || 'false' }}"
           if ! ssh -i ~/.ssh/deploy_key -p "${{ env.VPS_SSH_PORT }}" \
             -o BatchMode=yes \
             -o ConnectTimeout=45 \
@@ -314,13 +318,20 @@ jobs:
             -o ServerAliveInterval=10 \
             -o ServerAliveCountMax=3 \
             "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
-            "set -euxo pipefail
-             sudo -n env \
-               SSO_ADMIN_DOMAIN='${{ vars.SSO_ADMIN_DOMAIN || 'admin-sso.timeh.my.id' }}' \
-               SSO_ADMIN_FRONTEND_INTERNAL_URL='${{ vars.SSO_ADMIN_FRONTEND_INTERNAL_URL || 'http://127.0.0.1:3091' }}' \
-               CERTBOT_EMAIL='${{ vars.CERTBOT_EMAIL || '' }}' \
-               SKIP_CERTBOT='${{ vars.CERTBOT_EMAIL == '' && 'true' || 'false' }}' \
-               bash '${{ env.VPS_PROJECT_DIR }}/scripts/vps-apply-sso-admin-frontend-route.sh' --mode apply" >"$route_log" 2>&1; then
+            "sudo -n bash -s -- '$admin_domain' '$admin_upstream' '$certbot_email' '$skip_certbot' '${{ env.VPS_PROJECT_DIR }}'" >"$route_log" 2>&1 <<'REMOTE'
+          set -euxo pipefail
+          admin_domain="$1"
+          admin_upstream="$2"
+          certbot_email="$3"
+          skip_certbot="$4"
+          project_dir="$5"
+          SSO_ADMIN_DOMAIN="$admin_domain" \
+          SSO_ADMIN_FRONTEND_INTERNAL_URL="$admin_upstream" \
+          CERTBOT_EMAIL="$certbot_email" \
+          SKIP_CERTBOT="$skip_certbot" \
+          bash "$project_dir/scripts/vps-apply-sso-admin-frontend-route.sh" --mode apply
+          REMOTE
+          then
             echo 'admin frontend route apply failed; raw output follows:' >&2
             perl -pe 's/${{ secrets.VPS_HOST }}/[host]/g; s/${{ secrets.VPS_USER }}/[user]/g' "$route_log" >&2
             exit 1
