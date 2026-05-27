@@ -525,7 +525,9 @@ select {
 .users-page,
 .users-layout,
 .audit-page,
-.audit-layout {
+.audit-layout,
+.policy-page,
+.policy-layout {
   display: grid;
   gap: 18px;
 }
@@ -673,7 +675,9 @@ select {
 }
 
 .client-form input,
-.reason-field input {
+.reason-field input,
+.reason-field select,
+.reason-field textarea {
   min-width: 0;
   padding: 11px 12px;
   color: #f8fafc;
@@ -734,12 +738,18 @@ select {
   background: rgb(127 29 29 / 28%);
 }
 
-.secret-reveal code {
+.secret-reveal code,
+.policy-json {
   padding: 10px;
   color: #fecaca;
   overflow-wrap: anywhere;
   border-radius: 10px;
   background: rgb(15 23 42 / 82%);
+}
+
+.policy-json {
+  color: #dbeafe;
+  white-space: pre-wrap;
 }
 
 .state-card--danger {

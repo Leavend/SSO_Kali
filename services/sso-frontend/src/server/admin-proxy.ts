@@ -20,12 +20,18 @@ const ALLOWED_ADMIN_ROUTES = new Set([
   'GET /api/admin/audit/integrity',
   'GET /api/admin/audit/export',
   'GET /api/admin/data-subject-requests',
+  'GET /api/admin/roles',
+  'GET /api/admin/permissions',
+  'POST /api/admin/roles',
 ])
 const ALLOWED_REQUEST_HEADERS = new Set(['accept', 'content-type', 'x-request-id'])
 const CLIENT_ID_PATTERN = '[a-z0-9-]+'
 const SUBJECT_ID_PATTERN = '[a-zA-Z0-9_-]+'
 const AUDIT_EVENT_ID_PATTERN = '[A-Z0-9]+'
 const DSR_REQUEST_ID_PATTERN = '[0-9A-HJKMNP-TV-Z]+'
+const POLICY_CATEGORY_PATTERN = '[a-z_]+'
+const POLICY_VERSION_PATTERN = '[0-9]+'
+const ROLE_SLUG_PATTERN = '[a-z0-9_-]+'
 const ALLOWED_ADMIN_ROUTE_PATTERNS: readonly RegExp[] = [
   new RegExp(`^GET /api/admin/clients/${CLIENT_ID_PATTERN}$`, 'u'),
   new RegExp(`^PATCH /api/admin/clients/${CLIENT_ID_PATTERN}$`, 'u'),
@@ -40,6 +46,18 @@ const ALLOWED_ADMIN_ROUTE_PATTERNS: readonly RegExp[] = [
   new RegExp(`^GET /api/admin/audit/events/${AUDIT_EVENT_ID_PATTERN}$`, 'u'),
   new RegExp(`^POST /api/admin/data-subject-requests/${DSR_REQUEST_ID_PATTERN}/review$`, 'u'),
   new RegExp(`^POST /api/admin/data-subject-requests/${DSR_REQUEST_ID_PATTERN}/fulfill$`, 'u'),
+  new RegExp(`^GET /api/admin/security-policies/${POLICY_CATEGORY_PATTERN}$`, 'u'),
+  new RegExp(`^POST /api/admin/security-policies/${POLICY_CATEGORY_PATTERN}$`, 'u'),
+  new RegExp(
+    `^POST /api/admin/security-policies/${POLICY_CATEGORY_PATTERN}/${POLICY_VERSION_PATTERN}/activate$`,
+    'u',
+  ),
+  new RegExp(
+    `^POST /api/admin/security-policies/${POLICY_CATEGORY_PATTERN}/${POLICY_VERSION_PATTERN}/rollback$`,
+    'u',
+  ),
+  new RegExp(`^PATCH /api/admin/roles/${ROLE_SLUG_PATTERN}$`, 'u'),
+  new RegExp(`^PUT /api/admin/roles/${ROLE_SLUG_PATTERN}/permissions$`, 'u'),
 ]
 
 export type AdminApiRequestOptions = {
@@ -163,7 +181,8 @@ function isAllowedAdminRoute(routeKey: string): boolean {
 function isAllowedAdminPath(pathname: string): boolean {
   return isAllowedAdminRoute(`GET ${pathname}`) ||
     isAllowedAdminRoute(`PATCH ${pathname}`) ||
-    isAllowedAdminRoute(`POST ${pathname}`)
+    isAllowedAdminRoute(`POST ${pathname}`) ||
+    isAllowedAdminRoute(`PUT ${pathname}`)
 }
 
 function trimTrailingSlash(value: string): string {

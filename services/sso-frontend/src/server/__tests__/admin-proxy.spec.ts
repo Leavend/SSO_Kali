@@ -100,7 +100,7 @@ describe('buildAdminApiRequest', () => {
     expect(() =>
       buildAdminApiRequest({
         internalBaseUrl: 'https://backend.internal',
-        pathname: '/api/admin/security-policies/password',
+        pathname: '/api/admin/security-policies/password/raw-token',
         search: '',
         method: 'GET',
         headers: {},
@@ -273,6 +273,58 @@ describe('buildAdminApiRequest', () => {
       buildAdminApiRequest({
         internalBaseUrl: 'https://backend.internal/',
         pathname: '/api/admin/audit/raw-token',
+        search: '',
+        method: 'GET',
+        headers: {},
+        session: portalSession(),
+      }),
+    ).toThrow('Admin API proxy path is not allowed.')
+  })
+
+  it('allows explicit policy and RBAC routes without opening admin API', () => {
+    const policyRequest = buildAdminApiRequest({
+      internalBaseUrl: 'https://backend.internal/',
+      pathname: '/api/admin/security-policies/password',
+      search: '',
+      method: 'GET',
+      headers: { 'x-request-id': 'req-policy-1' },
+      session: portalSession(),
+    })
+    const draftRequest = buildAdminApiRequest({
+      internalBaseUrl: 'https://backend.internal/',
+      pathname: '/api/admin/security-policies/password',
+      search: '',
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      session: portalSession(),
+    })
+    const activateRequest = buildAdminApiRequest({
+      internalBaseUrl: 'https://backend.internal/',
+      pathname: '/api/admin/security-policies/password/2/activate',
+      search: '',
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      session: portalSession(),
+    })
+    const rolesRequest = buildAdminApiRequest({
+      internalBaseUrl: 'https://backend.internal/',
+      pathname: '/api/admin/roles/auditor-lite/permissions',
+      search: '',
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      session: portalSession(),
+    })
+
+    expect(policyRequest.url).toBe('https://backend.internal/admin/api/security-policies/password')
+    expect(draftRequest.url).toBe('https://backend.internal/admin/api/security-policies/password')
+    expect(activateRequest.url).toBe(
+      'https://backend.internal/admin/api/security-policies/password/2/activate',
+    )
+    expect(rolesRequest.url).toBe('https://backend.internal/admin/api/roles/auditor-lite/permissions')
+    expect(() =>
+      buildAdminApiRequest({
+        internalBaseUrl: 'https://backend.internal/',
+        pathname: '/api/admin/security-policies/password/raw-token',
         search: '',
         method: 'GET',
         headers: {},
