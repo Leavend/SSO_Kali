@@ -1,15 +1,22 @@
 export type HttpMethod = 'GET' | 'POST'
 
+let lastRequestId: string | null = null
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
     message: string,
     readonly code: string | null = null,
     readonly payload: unknown = null,
+    readonly requestId: string | null = null,
   ) {
     super(message)
     this.name = 'ApiError'
   }
+}
+
+export function getLastRequestId(): string | null {
+  return lastRequestId
 }
 
 export type RequestOptions = {
@@ -33,6 +40,8 @@ function buildHeaders(custom: Readonly<Record<string, string>> | undefined): Hea
     for (const [key, value] of Object.entries(custom)) headers.set(key, value)
   }
 
+  if (!headers.has('X-Request-Id')) headers.set('X-Request-Id', generateRequestId())
+
   return headers
 }
 
@@ -53,6 +62,8 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     credentials: 'include',
   })
 
+  lastRequestId = response.headers.get('X-Request-Id') ?? headers.get('X-Request-Id')
+
   if (!response.ok) throw await apiErrorFromResponse(response)
   if (response.status === 204) return undefined as T
 
@@ -63,8 +74,9 @@ async function apiErrorFromResponse(response: Response): Promise<ApiError> {
   const payload = await responsePayload(response)
   const message = safeErrorMessage(payload) ?? `Request failed with status ${response.status}`
   const code = safeErrorCode(payload)
+  const requestId = response.headers.get('X-Request-Id') ?? lastRequestId
 
-  return new ApiError(response.status, message, code, payload)
+  return new ApiError(response.status, message, code, payload, requestId)
 }
 
 async function responsePayload(response: Response): Promise<unknown> {
@@ -85,6 +97,14 @@ function safeErrorCode(payload: unknown): string | null {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
+}
+
+function generateRequestId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return `admin-${crypto.randomUUID()}`
+  }
+
+  return `admin-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
 }
 
 export const apiClient: ApiClient = {

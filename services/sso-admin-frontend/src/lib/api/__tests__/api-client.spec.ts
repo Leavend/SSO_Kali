@@ -1,0 +1,77 @@
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { ApiError, apiClient, getLastRequestId } from '../api-client'
+
+function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
+  return new Response(JSON.stringify(body), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json', ...init.headers },
+    ...init,
+  })
+}
+
+describe('apiClient request evidence', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
+
+  it('sends a generated X-Request-Id when caller does not provide one', async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse({ ok: true }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await apiClient.get('/api/admin/me')
+
+    const init = fetchMock.mock.calls[0]?.[1]
+    expect(init).toBeDefined()
+    const headers = init?.headers as Headers
+    expect(headers).toBeInstanceOf(Headers)
+    expect(headers.get('X-Request-Id')).toMatch(/^admin-[\w-]+$/)
+  })
+
+  it('preserves a caller supplied X-Request-Id', async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse({ ok: true }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await apiClient.get('/api/admin/me', { headers: { 'X-Request-Id': 'req-custom-1' } })
+
+    const init = fetchMock.mock.calls[0]?.[1]
+    expect(init).toBeDefined()
+    const headers = init?.headers as Headers
+    expect(headers.get('X-Request-Id')).toBe('req-custom-1')
+  })
+
+  it('records the response X-Request-Id for success states', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn<typeof fetch>()
+        .mockResolvedValue(
+          jsonResponse({ ok: true }, { headers: { 'X-Request-Id': 'req-response-1' } }),
+        ),
+    )
+
+    await apiClient.get('/api/admin/me')
+
+    expect(getLastRequestId()).toBe('req-response-1')
+  })
+
+  it('attaches response X-Request-Id to ApiError without requiring raw backend copy', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn<typeof fetch>()
+        .mockResolvedValue(
+          jsonResponse(
+            { error: 'server_error', message: 'SQLSTATE leaked backend trace' },
+            { status: 500, headers: { 'X-Request-Id': 'req-error-1' } },
+          ),
+        ),
+    )
+
+    await expect(apiClient.get('/api/admin/dashboard/summary')).rejects.toMatchObject({
+      status: 500,
+      code: 'server_error',
+      requestId: 'req-error-1',
+    } satisfies Partial<ApiError>)
+  })
+})

@@ -10,7 +10,11 @@ import type { ResolvedSsoSession } from './sso-session-resolver.js'
 
 const ADMIN_BFF_PREFIX = '/api/admin'
 const ADMIN_BACKEND_PREFIX = '/admin/api'
-const ALLOWED_ADMIN_ROUTES = new Set(['GET /api/admin/me', 'GET /api/admin/oidc-foundation'])
+const ALLOWED_ADMIN_ROUTES = new Set([
+  'GET /api/admin/me',
+  'GET /api/admin/oidc-foundation',
+  'GET /api/admin/dashboard/summary',
+])
 const ALLOWED_REQUEST_HEADERS = new Set(['accept', 'content-type', 'x-request-id'])
 
 export type AdminApiRequestOptions = {

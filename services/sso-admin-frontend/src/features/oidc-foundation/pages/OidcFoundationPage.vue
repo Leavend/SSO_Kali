@@ -17,8 +17,8 @@ onMounted(() => {
 </script>
 
 <template>
-  <main class="admin-shell oidc-foundation-page">
-    <section class="admin-shell__panel oidc-foundation-layout">
+  <section class="oidc-foundation-page">
+    <div class="oidc-foundation-layout">
       <header class="hero-card oidc-hero">
         <span class="eyebrow">OIDC Foundation</span>
         <h1>Protocol Health dan Evidence FR-001–FR-005.</h1>
@@ -67,6 +67,6 @@ onMounted(() => {
           :endpoints="oidcFoundation.snapshot.endpoint_consistency"
         />
       </template>
-    </section>
-  </main>
+    </div>
+  </section>
 </template>

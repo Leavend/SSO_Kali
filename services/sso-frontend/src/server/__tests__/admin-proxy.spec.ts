@@ -109,6 +109,24 @@ describe('buildAdminApiRequest', () => {
     ).toThrow('Admin API proxy path is not allowed.')
   })
 
+  it('allows the read-only dashboard summary endpoint', () => {
+    const request = buildAdminApiRequest({
+      internalBaseUrl: 'https://backend.internal/',
+      pathname: '/api/admin/dashboard/summary',
+      search: '',
+      method: 'GET',
+      headers: { 'x-request-id': 'req-dashboard-1' },
+      session: portalSession(),
+    })
+
+    const headers = requestHeaders(request)
+
+    expect(request.url).toBe('https://backend.internal/admin/api/dashboard/summary')
+    expect(request.init.method).toBe('GET')
+    expect(headers.get('authorization')).toBe('Bearer server-held-admin-access-token')
+    expect(headers.get('x-request-id')).toBe('req-dashboard-1')
+  })
+
   it('forwards only safe admin proxy request headers', () => {
     const request = buildAdminApiRequest({
       internalBaseUrl: 'https://backend.internal',

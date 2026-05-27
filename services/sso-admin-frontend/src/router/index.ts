@@ -1,23 +1,33 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { resolveAdminGuard } from './guards'
-import HomeView from '@/views/HomeView.vue'
 import ForbiddenView from '@/views/ForbiddenView.vue'
 import AdminErrorView from '@/views/AdminErrorView.vue'
+import AdminShellLayout from '@/layouts/AdminShellLayout.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: '/',
-      name: 'admin.home',
-      component: HomeView,
-      meta: { requiresAdmin: true },
+      redirect: '/dashboard',
     },
     {
-      path: '/oidc-foundation',
-      name: 'admin.oidc-foundation',
-      component: () => import('@/features/oidc-foundation/pages/OidcFoundationPage.vue'),
-      meta: { requiresAdmin: true, permissions: ['admin.dashboard.view'] },
+      path: '/',
+      component: AdminShellLayout,
+      children: [
+        {
+          path: 'dashboard',
+          name: 'admin.dashboard',
+          component: () => import('@/features/dashboard/pages/DashboardPage.vue'),
+          meta: { requiresAdmin: true, permissions: ['admin.dashboard.view'] },
+        },
+        {
+          path: 'oidc-foundation',
+          name: 'admin.oidc-foundation',
+          component: () => import('@/features/oidc-foundation/pages/OidcFoundationPage.vue'),
+          meta: { requiresAdmin: true, permissions: ['admin.dashboard.view'] },
+        },
+      ],
     },
     {
       path: '/forbidden',
