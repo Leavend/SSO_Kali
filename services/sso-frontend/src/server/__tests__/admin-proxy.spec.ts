@@ -220,6 +220,67 @@ describe('buildAdminApiRequest', () => {
     ).toThrow('Admin API proxy path is not allowed.')
   })
 
+  it('allows explicit audit and DSR compliance routes without opening admin API', () => {
+    const eventsRequest = buildAdminApiRequest({
+      internalBaseUrl: 'https://backend.internal/',
+      pathname: '/api/admin/audit/events',
+      search: '?outcome=denied',
+      method: 'GET',
+      headers: { 'x-request-id': 'req-audit-1' },
+      session: portalSession(),
+    })
+    const eventRequest = buildAdminApiRequest({
+      internalBaseUrl: 'https://backend.internal/',
+      pathname: '/api/admin/audit/events/AUD01',
+      search: '',
+      method: 'GET',
+      headers: {},
+      session: portalSession(),
+    })
+    const integrityRequest = buildAdminApiRequest({
+      internalBaseUrl: 'https://backend.internal/',
+      pathname: '/api/admin/audit/integrity',
+      search: '',
+      method: 'GET',
+      headers: {},
+      session: portalSession(),
+    })
+    const dsrRequest = buildAdminApiRequest({
+      internalBaseUrl: 'https://backend.internal/',
+      pathname: '/api/admin/data-subject-requests',
+      search: '?status=submitted',
+      method: 'GET',
+      headers: {},
+      session: portalSession(),
+    })
+    const reviewRequest = buildAdminApiRequest({
+      internalBaseUrl: 'https://backend.internal/',
+      pathname: '/api/admin/data-subject-requests/01HX7S8Y9ZABCDEF1234567890/review',
+      search: '',
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      session: portalSession(),
+    })
+
+    expect(eventsRequest.url).toBe('https://backend.internal/admin/api/audit/events?outcome=denied')
+    expect(eventRequest.url).toBe('https://backend.internal/admin/api/audit/events/AUD01')
+    expect(integrityRequest.url).toBe('https://backend.internal/admin/api/audit/integrity')
+    expect(dsrRequest.url).toBe('https://backend.internal/admin/api/data-subject-requests?status=submitted')
+    expect(reviewRequest.url).toBe(
+      'https://backend.internal/admin/api/data-subject-requests/01HX7S8Y9ZABCDEF1234567890/review',
+    )
+    expect(() =>
+      buildAdminApiRequest({
+        internalBaseUrl: 'https://backend.internal/',
+        pathname: '/api/admin/audit/raw-token',
+        search: '',
+        method: 'GET',
+        headers: {},
+        session: portalSession(),
+      }),
+    ).toThrow('Admin API proxy path is not allowed.')
+  })
+
   it('forwards only safe admin proxy request headers', () => {
     const request = buildAdminApiRequest({
       internalBaseUrl: 'https://backend.internal',

@@ -39,6 +39,12 @@ const router = createRouter({
           component: () => import('@/features/users/pages/UsersPage.vue'),
           meta: { requiresAdmin: true, permissions: ['admin.users.read'] },
         },
+        {
+          path: 'audit',
+          name: 'admin.audit',
+          component: () => import('@/features/audit/pages/AuditPage.vue'),
+          meta: { requiresAdmin: true, permissions: ['admin.audit.read'] },
+        },
       ],
     },
     {

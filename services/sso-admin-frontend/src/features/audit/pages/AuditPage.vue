@@ -1,0 +1,164 @@
+<script setup lang="ts">
+import { onMounted, ref } from 'vue'
+import { useAuditStore } from '../stores/audit.store'
+
+const store = useAuditStore()
+const reviewNotes = ref('Evidence verified')
+
+onMounted(() => {
+  if (store.status === 'idle') void store.load()
+})
+</script>
+
+<template>
+  <section class="audit-page" aria-labelledby="audit-title">
+    <div class="page-heading">
+      <p class="eyebrow">Compliance Evidence</p>
+      <h1 id="audit-title">Audit Compliance</h1>
+      <p class="page-summary">Audit trail, integrity hash-chain, dan DSR evidence queue.</p>
+    </div>
+
+    <div v-if="store.status === 'loading'" class="state-card" role="status">Memuat audit...</div>
+
+    <div
+      v-else-if="store.status === 'forbidden'"
+      class="state-card state-card--danger"
+      role="alert"
+    >
+      <h2>Akses audit ditolak</h2>
+      <p>{{ store.errorMessage }}</p>
+    </div>
+
+    <div
+      v-else-if="store.status === 'unauthenticated'"
+      class="state-card state-card--danger"
+      role="alert"
+    >
+      <h2>Sesi admin berakhir</h2>
+      <p>{{ store.errorMessage }}</p>
+    </div>
+
+    <div v-else-if="store.status === 'error'" class="state-card state-card--danger" role="alert">
+      <h2>Audit compliance belum bisa dimuat</h2>
+      <p>{{ store.errorMessage }}</p>
+    </div>
+
+    <div v-else class="audit-layout">
+      <section class="detail-section" aria-labelledby="integrity-title">
+        <h2 id="integrity-title">Integrity evidence</h2>
+        <p class="status-pill">
+          {{ store.integrity?.verified ? 'Integrity verified' : 'Integrity needs review' }}
+        </p>
+        <dl class="inline-evidence">
+          <div>
+            <dt>Checked events</dt>
+            <dd>{{ store.integrity?.checked_events ?? 'No evidence' }}</dd>
+          </div>
+          <div>
+            <dt>Latest hash</dt>
+            <dd>{{ store.integrity?.latest_event_hash ?? 'No evidence' }}</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section class="detail-section" aria-labelledby="events-title">
+        <h2 id="events-title">Audit events</h2>
+        <div class="audit-list">
+          <button
+            v-for="event in store.events"
+            :key="event.event_id"
+            class="user-list-item"
+            :class="{ 'user-list-item--active': event.event_id === store.selectedEventId }"
+            type="button"
+            @click="store.selectEvent(event.event_id)"
+          >
+            <strong>{{ event.event_id }}</strong>
+            <span>{{ event.action }}</span>
+            <small>{{ event.outcome }} · {{ event.taxonomy ?? 'taxonomy unknown' }}</small>
+          </button>
+        </div>
+        <p v-if="store.events.length === 0" class="muted">Belum ada audit event.</p>
+      </section>
+
+      <article
+        v-if="store.selectedEvent"
+        class="detail-section"
+        aria-labelledby="event-detail-title"
+      >
+        <h2 id="event-detail-title">Event detail</h2>
+        <dl class="detail-grid">
+          <div>
+            <dt>Actor</dt>
+            <dd>
+              {{
+                store.selectedEvent.actor?.email ??
+                store.selectedEvent.actor?.subject_id ??
+                'unknown'
+              }}
+            </dd>
+          </div>
+          <div>
+            <dt>Request</dt>
+            <dd>
+              {{ store.selectedEvent.request?.method ?? 'GET' }}
+              {{ store.selectedEvent.request?.path }}
+            </dd>
+          </div>
+          <div>
+            <dt>Reason</dt>
+            <dd>{{ store.selectedEvent.reason ?? 'No reason evidence' }}</dd>
+          </div>
+          <div>
+            <dt>Occurred at</dt>
+            <dd>{{ store.selectedEvent.occurred_at ?? 'No timestamp' }}</dd>
+          </div>
+        </dl>
+      </article>
+
+      <section class="detail-section" aria-labelledby="dsr-title">
+        <h2 id="dsr-title">DSR queue</h2>
+        <label class="reason-field">
+          Review notes
+          <input v-model="reviewNotes" autocomplete="off" />
+        </label>
+        <div
+          v-for="request in store.dataSubjectRequests"
+          :key="request.request_id"
+          class="state-card"
+        >
+          <strong>{{ request.request_id }}</strong>
+          <p>{{ request.type }} · {{ request.status }} · {{ request.subject_id }}</p>
+          <p>SLA due: {{ request.sla_due_at ?? 'No SLA evidence' }}</p>
+          <div class="action-row compact-actions">
+            <button
+              type="button"
+              class="primary-action"
+              @click="store.reviewRequest(request.request_id, 'approved', reviewNotes)"
+            >
+              Approve
+            </button>
+            <button
+              type="button"
+              class="danger-action"
+              @click="store.reviewRequest(request.request_id, 'rejected', reviewNotes)"
+            >
+              Reject
+            </button>
+            <button
+              type="button"
+              class="primary-action"
+              @click="store.fulfillRequest(request.request_id, true)"
+            >
+              Dry-run fulfill
+            </button>
+          </div>
+        </div>
+        <p v-if="store.dataSubjectRequests.length === 0" class="muted">Tidak ada DSR submitted.</p>
+      </section>
+
+      <p v-if="store.errorMessage" class="action-message">{{ store.errorMessage }}</p>
+    </div>
+
+    <p v-if="store.requestId" class="request-evidence">Request ID: {{ store.requestId }}</p>
+  </section>
+</template>

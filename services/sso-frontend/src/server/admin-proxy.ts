@@ -16,10 +16,16 @@ const ALLOWED_ADMIN_ROUTES = new Set([
   'GET /api/admin/dashboard/summary',
   'GET /api/admin/clients',
   'GET /api/admin/users',
+  'GET /api/admin/audit/events',
+  'GET /api/admin/audit/integrity',
+  'GET /api/admin/audit/export',
+  'GET /api/admin/data-subject-requests',
 ])
 const ALLOWED_REQUEST_HEADERS = new Set(['accept', 'content-type', 'x-request-id'])
 const CLIENT_ID_PATTERN = '[a-z0-9-]+'
 const SUBJECT_ID_PATTERN = '[a-zA-Z0-9_-]+'
+const AUDIT_EVENT_ID_PATTERN = '[A-Z0-9]+'
+const DSR_REQUEST_ID_PATTERN = '[0-9A-HJKMNP-TV-Z]+'
 const ALLOWED_ADMIN_ROUTE_PATTERNS: readonly RegExp[] = [
   new RegExp(`^GET /api/admin/clients/${CLIENT_ID_PATTERN}$`, 'u'),
   new RegExp(`^PATCH /api/admin/clients/${CLIENT_ID_PATTERN}$`, 'u'),
@@ -31,6 +37,9 @@ const ALLOWED_ADMIN_ROUTE_PATTERNS: readonly RegExp[] = [
   new RegExp(`^POST /api/admin/users/${SUBJECT_ID_PATTERN}/reactivate$`, 'u'),
   new RegExp(`^POST /api/admin/users/${SUBJECT_ID_PATTERN}/password-reset$`, 'u'),
   new RegExp(`^POST /api/admin/users/${SUBJECT_ID_PATTERN}/reset-mfa$`, 'u'),
+  new RegExp(`^GET /api/admin/audit/events/${AUDIT_EVENT_ID_PATTERN}$`, 'u'),
+  new RegExp(`^POST /api/admin/data-subject-requests/${DSR_REQUEST_ID_PATTERN}/review$`, 'u'),
+  new RegExp(`^POST /api/admin/data-subject-requests/${DSR_REQUEST_ID_PATTERN}/fulfill$`, 'u'),
 ]
 
 export type AdminApiRequestOptions = {
