@@ -100,7 +100,7 @@ describe('buildAdminApiRequest', () => {
     expect(() =>
       buildAdminApiRequest({
         internalBaseUrl: 'https://backend.internal',
-        pathname: '/api/admin/users',
+        pathname: '/api/admin/security-policies/password',
         search: '',
         method: 'GET',
         headers: {},
@@ -162,6 +162,56 @@ describe('buildAdminApiRequest', () => {
       buildAdminApiRequest({
         internalBaseUrl: 'https://backend.internal/',
         pathname: '/api/admin/secrets',
+        search: '',
+        method: 'GET',
+        headers: {},
+        session: portalSession(),
+      }),
+    ).toThrow('Admin API proxy path is not allowed.')
+  })
+
+  it('allows explicit user lifecycle routes without opening the whole admin API', () => {
+    const listRequest = buildAdminApiRequest({
+      internalBaseUrl: 'https://backend.internal/',
+      pathname: '/api/admin/users',
+      search: '?q=admin',
+      method: 'GET',
+      headers: { 'x-request-id': 'req-users-1' },
+      session: portalSession(),
+    })
+    const detailRequest = buildAdminApiRequest({
+      internalBaseUrl: 'https://backend.internal/',
+      pathname: '/api/admin/users/sub_admin',
+      search: '',
+      method: 'GET',
+      headers: {},
+      session: portalSession(),
+    })
+    const lockRequest = buildAdminApiRequest({
+      internalBaseUrl: 'https://backend.internal/',
+      pathname: '/api/admin/users/sub_admin/lock',
+      search: '',
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      session: portalSession(),
+    })
+    const resetMfaRequest = buildAdminApiRequest({
+      internalBaseUrl: 'https://backend.internal/',
+      pathname: '/api/admin/users/sub_admin/reset-mfa',
+      search: '',
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      session: portalSession(),
+    })
+
+    expect(listRequest.url).toBe('https://backend.internal/admin/api/users?q=admin')
+    expect(detailRequest.url).toBe('https://backend.internal/admin/api/users/sub_admin')
+    expect(lockRequest.url).toBe('https://backend.internal/admin/api/users/sub_admin/lock')
+    expect(resetMfaRequest.url).toBe('https://backend.internal/admin/api/users/sub_admin/reset-mfa')
+    expect(() =>
+      buildAdminApiRequest({
+        internalBaseUrl: 'https://backend.internal/',
+        pathname: '/api/admin/users/sub_admin/raw-token',
         search: '',
         method: 'GET',
         headers: {},

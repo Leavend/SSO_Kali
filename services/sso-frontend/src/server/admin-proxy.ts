@@ -15,13 +15,22 @@ const ALLOWED_ADMIN_ROUTES = new Set([
   'GET /api/admin/oidc-foundation',
   'GET /api/admin/dashboard/summary',
   'GET /api/admin/clients',
+  'GET /api/admin/users',
 ])
 const ALLOWED_REQUEST_HEADERS = new Set(['accept', 'content-type', 'x-request-id'])
 const CLIENT_ID_PATTERN = '[a-z0-9-]+'
+const SUBJECT_ID_PATTERN = '[a-zA-Z0-9_-]+'
 const ALLOWED_ADMIN_ROUTE_PATTERNS: readonly RegExp[] = [
   new RegExp(`^GET /api/admin/clients/${CLIENT_ID_PATTERN}$`, 'u'),
   new RegExp(`^PATCH /api/admin/clients/${CLIENT_ID_PATTERN}$`, 'u'),
   new RegExp(`^POST /api/admin/clients/${CLIENT_ID_PATTERN}/rotate-secret$`, 'u'),
+  new RegExp(`^GET /api/admin/users/${SUBJECT_ID_PATTERN}$`, 'u'),
+  new RegExp(`^POST /api/admin/users/${SUBJECT_ID_PATTERN}/lock$`, 'u'),
+  new RegExp(`^POST /api/admin/users/${SUBJECT_ID_PATTERN}/unlock$`, 'u'),
+  new RegExp(`^POST /api/admin/users/${SUBJECT_ID_PATTERN}/deactivate$`, 'u'),
+  new RegExp(`^POST /api/admin/users/${SUBJECT_ID_PATTERN}/reactivate$`, 'u'),
+  new RegExp(`^POST /api/admin/users/${SUBJECT_ID_PATTERN}/password-reset$`, 'u'),
+  new RegExp(`^POST /api/admin/users/${SUBJECT_ID_PATTERN}/reset-mfa$`, 'u'),
 ]
 
 export type AdminApiRequestOptions = {

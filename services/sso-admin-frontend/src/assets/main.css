@@ -521,7 +521,9 @@ select {
 }
 
 .clients-page,
-.clients-layout {
+.clients-layout,
+.users-page,
+.users-layout {
   display: grid;
   gap: 18px;
 }
@@ -538,13 +540,16 @@ select {
   color: #cbd5e1;
 }
 
-.clients-layout {
+.clients-layout,
+.users-layout {
   grid-template-columns: minmax(220px, 320px) minmax(0, 1fr);
   align-items: start;
 }
 
 .clients-list,
+.users-list,
 .client-detail,
+.user-detail,
 .state-card,
 .request-evidence {
   padding: 20px;
@@ -554,12 +559,14 @@ select {
   box-shadow: 0 20px 56px rgb(0 0 0 / 24%);
 }
 
-.clients-list {
+.clients-list,
+.users-list {
   display: grid;
   gap: 10px;
 }
 
-.client-list-item {
+.client-list-item,
+.user-list-item {
   display: grid;
   gap: 5px;
   width: 100%;
@@ -574,7 +581,10 @@ select {
 
 .client-list-item:hover,
 .client-list-item:focus-visible,
-.client-list-item--active {
+.client-list-item--active,
+.user-list-item:hover,
+.user-list-item:focus-visible,
+.user-list-item--active {
   color: #ffffff;
   border-color: rgb(20 184 166 / 42%);
   background: rgb(20 184 166 / 14%);
@@ -583,7 +593,10 @@ select {
 
 .client-list-item span,
 .client-list-item small,
+.user-list-item span,
+.user-list-item small,
 .client-detail__header p,
+.user-detail__header p,
 .detail-grid dt,
 .detail-section p,
 .request-evidence {
@@ -591,19 +604,22 @@ select {
   overflow-wrap: anywhere;
 }
 
-.client-detail {
+.client-detail,
+.user-detail {
   display: grid;
   gap: 20px;
   min-width: 0;
 }
 
-.client-detail__header {
+.client-detail__header,
+.user-detail__header {
   display: flex;
   justify-content: space-between;
   gap: 16px;
 }
 
 .client-detail__header h2,
+.user-detail__header h2,
 .detail-section h3 {
   margin: 0;
   color: #f8fafc;
@@ -645,13 +661,15 @@ select {
   margin-top: 14px;
 }
 
-.client-form label {
+.client-form label,
+.reason-field {
   display: grid;
   gap: 6px;
   color: #cbd5e1;
 }
 
-.client-form input {
+.client-form input,
+.reason-field input {
   min-width: 0;
   padding: 11px 12px;
   color: #f8fafc;
@@ -674,6 +692,27 @@ select {
 
 .primary-action {
   background: #4f46e5;
+}
+
+.inline-evidence {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0 0;
+}
+
+.inline-evidence div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.compact-actions {
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.action-message {
+  color: #fde68a;
 }
 
 .danger-action,
@@ -726,6 +765,7 @@ select {
   .oidc-summary-grid,
   .oidc-card-grid,
   .clients-layout,
+  .users-layout,
   .detail-grid {
     grid-template-columns: 1fr;
   }
