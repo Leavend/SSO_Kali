@@ -520,6 +520,189 @@ select {
   word-break: break-word;
 }
 
+.clients-page,
+.clients-layout {
+  display: grid;
+  gap: 18px;
+}
+
+.page-heading h1 {
+  margin: 18px 0 10px;
+  color: #f8fafc;
+  font-size: clamp(2rem, 6vw, 3.5rem);
+  line-height: 1;
+}
+
+.page-summary,
+.muted {
+  color: #cbd5e1;
+}
+
+.clients-layout {
+  grid-template-columns: minmax(220px, 320px) minmax(0, 1fr);
+  align-items: start;
+}
+
+.clients-list,
+.client-detail,
+.state-card,
+.request-evidence {
+  padding: 20px;
+  border: 1px solid rgb(148 163 184 / 16%);
+  border-radius: 20px;
+  background: rgb(15 23 42 / 70%);
+  box-shadow: 0 20px 56px rgb(0 0 0 / 24%);
+}
+
+.clients-list {
+  display: grid;
+  gap: 10px;
+}
+
+.client-list-item {
+  display: grid;
+  gap: 5px;
+  width: 100%;
+  padding: 14px;
+  color: #dbeafe;
+  text-align: left;
+  border: 1px solid rgb(148 163 184 / 14%);
+  border-radius: 16px;
+  background: rgb(30 41 59 / 42%);
+  cursor: pointer;
+}
+
+.client-list-item:hover,
+.client-list-item:focus-visible,
+.client-list-item--active {
+  color: #ffffff;
+  border-color: rgb(20 184 166 / 42%);
+  background: rgb(20 184 166 / 14%);
+  outline: none;
+}
+
+.client-list-item span,
+.client-list-item small,
+.client-detail__header p,
+.detail-grid dt,
+.detail-section p,
+.request-evidence {
+  color: #94a3b8;
+  overflow-wrap: anywhere;
+}
+
+.client-detail {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+}
+
+.client-detail__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.client-detail__header h2,
+.detail-section h3 {
+  margin: 0;
+  color: #f8fafc;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.detail-grid div,
+.detail-section {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid rgb(148 163 184 / 12%);
+  border-radius: 16px;
+  background: rgb(30 41 59 / 42%);
+}
+
+.detail-grid dd {
+  margin: 6px 0 0;
+  color: #f8fafc;
+  overflow-wrap: anywhere;
+}
+
+.detail-section ul {
+  display: grid;
+  gap: 8px;
+  padding-left: 18px;
+  color: #e5e7eb;
+  overflow-wrap: anywhere;
+}
+
+.client-form {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.client-form label {
+  display: grid;
+  gap: 6px;
+  color: #cbd5e1;
+}
+
+.client-form input {
+  min-width: 0;
+  padding: 11px 12px;
+  color: #f8fafc;
+  border: 1px solid rgb(148 163 184 / 20%);
+  border-radius: 12px;
+  background: rgb(15 23 42 / 82%);
+}
+
+.primary-action,
+.danger-action,
+.secret-reveal button {
+  min-height: 42px;
+  padding: 0 14px;
+  color: #ffffff;
+  font-weight: 800;
+  border: 0;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.primary-action {
+  background: #4f46e5;
+}
+
+.danger-action,
+.secret-reveal button {
+  background: #dc2626;
+}
+
+.secret-reveal {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid rgb(239 68 68 / 34%);
+  border-radius: 14px;
+  background: rgb(127 29 29 / 28%);
+}
+
+.secret-reveal code {
+  padding: 10px;
+  color: #fecaca;
+  overflow-wrap: anywhere;
+  border-radius: 10px;
+  background: rgb(15 23 42 / 82%);
+}
+
+.state-card--danger {
+  border-color: rgb(239 68 68 / 28%);
+}
+
 @media (max-width: 760px) {
   .admin-shell {
     padding: 28px 16px;
@@ -541,7 +724,9 @@ select {
   .readiness-grid,
   .dashboard-grid,
   .oidc-summary-grid,
-  .oidc-card-grid {
+  .oidc-card-grid,
+  .clients-layout,
+  .detail-grid {
     grid-template-columns: 1fr;
   }
 

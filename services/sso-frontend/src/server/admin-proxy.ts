@@ -14,8 +14,15 @@ const ALLOWED_ADMIN_ROUTES = new Set([
   'GET /api/admin/me',
   'GET /api/admin/oidc-foundation',
   'GET /api/admin/dashboard/summary',
+  'GET /api/admin/clients',
 ])
 const ALLOWED_REQUEST_HEADERS = new Set(['accept', 'content-type', 'x-request-id'])
+const CLIENT_ID_PATTERN = '[a-z0-9-]+'
+const ALLOWED_ADMIN_ROUTE_PATTERNS: readonly RegExp[] = [
+  new RegExp(`^GET /api/admin/clients/${CLIENT_ID_PATTERN}$`, 'u'),
+  new RegExp(`^PATCH /api/admin/clients/${CLIENT_ID_PATTERN}$`, 'u'),
+  new RegExp(`^POST /api/admin/clients/${CLIENT_ID_PATTERN}/rotate-secret$`, 'u'),
+]
 
 export type AdminApiRequestOptions = {
   readonly internalBaseUrl: string
@@ -38,8 +45,9 @@ export function buildAdminApiRequest(options: AdminApiRequestOptions): AdminApiR
   }
 
   const method = options.method.toUpperCase()
-  if (method !== 'GET') throw new Error('Admin API proxy method is not allowed.')
-  if (!ALLOWED_ADMIN_ROUTES.has(`${method} ${options.pathname}`)) {
+  const routeKey = `${method} ${options.pathname}`
+  if (!isAllowedAdminRoute(routeKey)) {
+    if (isAllowedAdminPath(options.pathname)) throw new Error('Admin API proxy method is not allowed.')
     throw new Error('Admin API proxy path is not allowed.')
   }
 
@@ -128,6 +136,16 @@ function buildAdminApiHeaders(headers: IncomingHttpHeaders, accessToken: string)
   forwarded.set('Authorization', `Bearer ${accessToken}`)
 
   return forwarded
+}
+
+function isAllowedAdminRoute(routeKey: string): boolean {
+  return ALLOWED_ADMIN_ROUTES.has(routeKey) || ALLOWED_ADMIN_ROUTE_PATTERNS.some((pattern) => pattern.test(routeKey))
+}
+
+function isAllowedAdminPath(pathname: string): boolean {
+  return isAllowedAdminRoute(`GET ${pathname}`) ||
+    isAllowedAdminRoute(`PATCH ${pathname}`) ||
+    isAllowedAdminRoute(`POST ${pathname}`)
 }
 
 function trimTrailingSlash(value: string): string {

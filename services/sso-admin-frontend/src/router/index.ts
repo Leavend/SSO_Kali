@@ -27,6 +27,12 @@ const router = createRouter({
           component: () => import('@/features/oidc-foundation/pages/OidcFoundationPage.vue'),
           meta: { requiresAdmin: true, permissions: ['admin.dashboard.view'] },
         },
+        {
+          path: 'clients',
+          name: 'admin.clients',
+          component: () => import('@/features/clients/pages/ClientsPage.vue'),
+          meta: { requiresAdmin: true, permissions: ['admin.clients.read'] },
+        },
       ],
     },
     {

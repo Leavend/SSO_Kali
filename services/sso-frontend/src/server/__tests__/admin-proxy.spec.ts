@@ -127,6 +127,49 @@ describe('buildAdminApiRequest', () => {
     expect(headers.get('x-request-id')).toBe('req-dashboard-1')
   })
 
+  it('allows explicit client management routes without opening the whole admin API', () => {
+    const listRequest = buildAdminApiRequest({
+      internalBaseUrl: 'https://backend.internal/',
+      pathname: '/api/admin/clients',
+      search: '',
+      method: 'GET',
+      headers: { 'x-request-id': 'req-clients-1' },
+      session: portalSession(),
+    })
+    const updateRequest = buildAdminApiRequest({
+      internalBaseUrl: 'https://backend.internal/',
+      pathname: '/api/admin/clients/prototype-app-a',
+      search: '',
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      session: portalSession(),
+    })
+    const rotateRequest = buildAdminApiRequest({
+      internalBaseUrl: 'https://backend.internal/',
+      pathname: '/api/admin/clients/prototype-app-a/rotate-secret',
+      search: '',
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      session: portalSession(),
+    })
+
+    expect(listRequest.url).toBe('https://backend.internal/admin/api/clients')
+    expect(updateRequest.url).toBe('https://backend.internal/admin/api/clients/prototype-app-a')
+    expect(rotateRequest.url).toBe(
+      'https://backend.internal/admin/api/clients/prototype-app-a/rotate-secret',
+    )
+    expect(() =>
+      buildAdminApiRequest({
+        internalBaseUrl: 'https://backend.internal/',
+        pathname: '/api/admin/secrets',
+        search: '',
+        method: 'GET',
+        headers: {},
+        session: portalSession(),
+      }),
+    ).toThrow('Admin API proxy path is not allowed.')
+  })
+
   it('forwards only safe admin proxy request headers', () => {
     const request = buildAdminApiRequest({
       internalBaseUrl: 'https://backend.internal',
