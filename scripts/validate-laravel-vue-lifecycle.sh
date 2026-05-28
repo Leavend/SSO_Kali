@@ -177,9 +177,9 @@ has_text "docker-compose.dev.yml" 'traefik.http.routers.sso-admin-frontend.prior
 has_text "docker-compose.dev.yml" 'traefik.http.routers.sso-backend.priority=200' "Backend API/OIDC router remains highest priority"
 has_text "docker-compose.dev.yml" 'traefik.http.routers.sso-frontend.priority=50' "Primary SSO frontend remains root catch-all during canary"
 
-has_text "scripts/deploy.sh" 'admin-vue-only' "Top-level deploy supports admin-vue-only mode"
-has_text "deploy-remote.sh" 'admin-vue-only) bring_up_admin_vue' "Remote deploy can update Vue canary only"
-has_text "deploy-remote.sh" 'full) smoke_full; smoke_admin_vue' "Full remote deploy smokes Vue canary"
+has_text "scripts/deploy.sh" 'admin-frontend-only' "Top-level deploy supports admin-frontend-only mode"
+has_text "scripts/vps-deploy.sh" 'sso-admin-frontend' "VPS deploy uses admin frontend service name"
+has_text "docker-compose.dev.yml" 'sso-admin-frontend' "Compose topology uses admin frontend service name"
 has_text "scripts/vps-deploy.sh" 'export APP_IMAGE_TAG="$TAG"' "VPS deploy exports APP_IMAGE_TAG for deterministic compose image selection"
 has_text "scripts/vps-deploy.sh" 'LOCAL_IMAGE_MAP' "VPS deploy retags GHCR images to compose image names"
 has_text "scripts/vps-deploy.sh" 'SMOKE_FAILED=0' "VPS deploy treats smoke failures as rollback triggers"

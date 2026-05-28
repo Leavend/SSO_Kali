@@ -58,11 +58,11 @@ usage() {
 Usage: ./scripts/deploy.sh [options]
 
 Options:
-  --mode <full|backend-only|frontend-only|admin-vue-only|queue-only>
+  --mode <full|backend-only|frontend-only|admin-frontend-only|queue-only>
   --full
   --backend-only
   --frontend-only
-  --admin-vue-only
+  --admin-frontend-only
   --queue-only
   --preflight-only
   --skip-build
@@ -82,7 +82,7 @@ parse_args() {
       --full) MODE="full" ;;
       --backend-only) MODE="backend-only" ;;
       --frontend-only) MODE="frontend-only" ;;
-      --admin-vue-only) MODE="admin-vue-only" ;;
+      --admin-frontend-only) MODE="admin-frontend-only" ;;
       --queue-only) MODE="queue-only" ;;
       --preflight-only) PRECHECK_ONLY=1 ;;
       --skip-build) SKIP_BUILD=1 ;;
@@ -100,7 +100,7 @@ parse_args() {
 
 validate_mode() {
   case "$MODE" in
-    full|backend-only|frontend-only|admin-vue-only|queue-only) ;;
+    full|backend-only|frontend-only|admin-frontend-only|queue-only) ;;
     *) die "Unsupported mode: $MODE" ;;
   esac
 }
