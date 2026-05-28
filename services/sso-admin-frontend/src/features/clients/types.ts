@@ -33,6 +33,7 @@ export type ClientUpdatePayload = Partial<
     | 'owner_email'
     | 'redirect_uris'
     | 'post_logout_redirect_uris'
+    | 'allowed_scopes'
     | 'backchannel_logout_uri'
   >
 >

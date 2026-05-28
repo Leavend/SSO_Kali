@@ -14,9 +14,14 @@ const form = reactive({
   owner_email: '',
   redirect_uris: '',
   post_logout_redirect_uris: '',
+  allowed_scopes: '',
 })
 const uriValidationMessages = ref<readonly string[]>([])
 const uriValidationMessage = computed(() => uriValidationMessages.value.join(' '))
+const knownScopeLabels = new Set(['openid', 'profile', 'email', 'offline_access'])
+const scopeParityWarnings = computed(() =>
+  (store.selectedClient?.allowed_scopes ?? []).filter((scope) => !knownScopeLabels.has(scope)),
+)
 
 onMounted(() => {
   if (store.status === 'idle') void store.load()
@@ -34,6 +39,7 @@ function syncFormFromSelected(): void {
   form.owner_email = store.selectedClient?.owner_email ?? ''
   form.redirect_uris = store.selectedClient?.redirect_uris.join('\n') ?? ''
   form.post_logout_redirect_uris = store.selectedClient?.post_logout_redirect_uris?.join('\n') ?? ''
+  form.allowed_scopes = store.selectedClient?.allowed_scopes?.join('\n') ?? ''
 }
 
 function findUriValidationMessages(
@@ -94,6 +100,14 @@ async function saveUriPolicy(): Promise<void> {
     post_logout_redirect_uris: logoutUris,
   })
   syncFormFromSelected()
+}
+
+async function saveScopePolicy(): Promise<void> {
+  const allowedScopes = linesToValues(form.allowed_scopes)
+  await store.updateSelected({
+    allowed_scopes: allowedScopes,
+  })
+  form.allowed_scopes = allowedScopes.join('\n')
 }
 
 async function rotateSecret(): Promise<void> {
@@ -253,6 +267,20 @@ async function rotateSecret(): Promise<void> {
               />
             </label>
             <button class="primary-action" type="submit">Simpan URI policy</button>
+          </form>
+        </section>
+
+        <section class="detail-section" aria-labelledby="scope-policy-title">
+          <h3 id="scope-policy-title">Scope & consent policy</h3>
+          <p v-if="scopeParityWarnings.length > 0" class="action-message" role="status">
+            Scope label parity warning: {{ scopeParityWarnings.join(', ') }}
+          </p>
+          <form class="client-form" data-test="scope-policy-form" @submit.prevent="saveScopePolicy">
+            <label>
+              Allowed scopes
+              <textarea v-model="form.allowed_scopes" name="allowed_scopes" rows="4" />
+            </label>
+            <button class="primary-action" type="submit">Simpan scope policy</button>
           </form>
         </section>
 

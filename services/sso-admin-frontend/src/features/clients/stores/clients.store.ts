@@ -83,7 +83,7 @@ export const useClientsStore = defineStore('admin-clients', () => {
 
     try {
       const response = await clientsApi.update(selectedClientId.value, payload)
-      upsertClient(response.client)
+      upsertClient({ ...response.client, ...payload })
       requestId.value = getLastRequestId()
     } catch (error) {
       handleGenericError(error)

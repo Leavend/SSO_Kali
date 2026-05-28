@@ -91,14 +91,21 @@ test('renders OAuth client console and one-time secret evidence', async ({ page 
     })
   })
   await page.route('**/api/admin/clients/prototype-app-a', async (route) => {
+    const payload =
+      route.request().method() === 'PATCH'
+        ? (route.request().postDataJSON() as Partial<typeof client>)
+        : {}
     await route.fulfill({
       contentType: 'application/json',
       headers: { 'x-request-id': 'req-update-uri-e2e' },
       body: JSON.stringify({
         client: {
           ...client,
-          redirect_uris: ['https://app.example.test/new-callback'],
-          post_logout_redirect_uris: ['https://app.example.test/new-logout'],
+          redirect_uris: payload.redirect_uris ?? ['https://app.example.test/new-callback'],
+          post_logout_redirect_uris: payload.post_logout_redirect_uris ?? [
+            'https://app.example.test/new-logout',
+          ],
+          allowed_scopes: payload.allowed_scopes ?? client.allowed_scopes,
         },
       }),
     })
@@ -135,13 +142,34 @@ test('renders OAuth client console and one-time secret evidence', async ({ page 
   await expect(page.getByText('req-create-client-e2e')).toBeVisible()
 
   await page.getByRole('button', { name: /Prototype App A/u }).click()
+  await expect(page.locator('textarea[name="redirect_uris"]')).toHaveValue(/new-callback/u)
   await page.locator('textarea[name="redirect_uris"]').fill('https://app.example.test/new-callback')
   await page
     .locator('textarea[name="post_logout_redirect_uris"]')
     .fill('https://app.example.test/new-logout')
-  await page.getByRole('button', { name: 'Simpan URI policy' }).click()
+  const uriUpdateResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === 'PATCH' &&
+      response.url().includes('/api/admin/clients/prototype-app-a'),
+  )
+  await page.locator('form[data-test="uri-policy-form"]').getByRole('button').click()
+  await uriUpdateResponse
   await expect(page.getByText('https://app.example.test/new-callback')).toBeVisible()
   await expect(page.getByText('req-update-uri-e2e')).toBeVisible()
+
+  await expect(page.getByText('Scope & consent policy')).toBeVisible()
+  const allowedScopesInput = page.locator('textarea[name="allowed_scopes"]')
+  await allowedScopesInput.fill('openid\nprofile\nemail')
+  await expect(allowedScopesInput).toHaveValue(/email/u)
+  const scopeUpdateRequest = page.waitForRequest(
+    (request) =>
+      request.method() === 'PATCH' &&
+      request.url().includes('/api/admin/clients/prototype-app-a') &&
+      (request.postData() ?? '').includes('email'),
+  )
+  await page.locator('form[data-test="scope-policy-form"]').getByRole('button').click()
+  await scopeUpdateRequest
+  await expect(allowedScopesInput).toHaveValue(/email/u)
 
   await page.getByRole('button', { name: 'Rotate secret' }).click()
   await expect(page.getByText('once-secret-e2e')).toBeVisible()

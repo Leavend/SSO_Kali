@@ -137,6 +137,22 @@ describe('useClientsStore', () => {
     })
   })
 
+  it('updates client scope consent policy through the API', async () => {
+    vi.mocked(clientsApi.update).mockResolvedValue({
+      client: { ...client, allowed_scopes: ['openid', 'profile'] },
+    })
+    const store = useClientsStore()
+    store.clients = [client]
+    store.selectedClientId = client.client_id
+
+    await store.updateSelected({ allowed_scopes: ['openid', 'profile', 'email'] })
+
+    expect(store.selectedClient?.allowed_scopes).toEqual(['openid', 'profile', 'email'])
+    expect(clientsApi.update).toHaveBeenCalledWith('prototype-app-a', {
+      allowed_scopes: ['openid', 'profile', 'email'],
+    })
+  })
+
   it('keeps rotated secret transient and clears it explicitly', async () => {
     vi.mocked(clientsApi.rotateSecret).mockResolvedValue({
       rotation: { client_id: 'prototype-app-a', plaintext_secret: 'once-secret' },

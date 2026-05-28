@@ -70,6 +70,26 @@ describe('ClientsPage', () => {
     expect(wrapper.text()).toContain('Simpan URI policy')
   })
 
+  it('renders scope consent controls and parity warnings', async () => {
+    const store = useClientsStore()
+    store.clients = [{ ...client, allowed_scopes: ['openid', 'profile', 'unknown_scope'] }]
+    store.selectedClientId = 'prototype-app-a'
+    store.status = 'success'
+    store.detailStatus = 'success'
+    const updateSpy = vi.spyOn(store, 'updateSelected').mockResolvedValue()
+
+    const wrapper = mount(ClientsPage)
+
+    expect(wrapper.text()).toContain('Scope & consent policy')
+    expect(wrapper.text()).toContain('Scope label parity warning')
+    expect(wrapper.find('textarea[name="allowed_scopes"]').exists()).toBe(true)
+
+    await wrapper.get('textarea[name="allowed_scopes"]').setValue('openid\nprofile\nemail')
+    await wrapper.get('form[data-test="scope-policy-form"]').trigger('submit')
+
+    expect(updateSpy).toHaveBeenCalledWith({ allowed_scopes: ['openid', 'profile', 'email'] })
+  })
+
   it('blocks invalid and duplicate URI policy values before submitting', async () => {
     const store = useClientsStore()
     store.clients = [client]
