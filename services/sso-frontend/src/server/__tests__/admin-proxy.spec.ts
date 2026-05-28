@@ -333,6 +333,29 @@ describe('buildAdminApiRequest', () => {
     ).toThrow('Admin API proxy path is not allowed.')
   })
 
+  it('allows explicit ops readiness route without opening admin API', () => {
+    const request = buildAdminApiRequest({
+      internalBaseUrl: 'https://backend.internal/',
+      pathname: '/api/admin/ops/readiness',
+      search: '',
+      method: 'GET',
+      headers: { 'x-request-id': 'req-ops-1' },
+      session: portalSession(),
+    })
+
+    expect(request.url).toBe('https://backend.internal/ready')
+    expect(() =>
+      buildAdminApiRequest({
+        internalBaseUrl: 'https://backend.internal/',
+        pathname: '/api/admin/ops/metrics-token',
+        search: '',
+        method: 'GET',
+        headers: {},
+        session: portalSession(),
+      }),
+    ).toThrow('Admin API proxy path is not allowed.')
+  })
+
   it('allows explicit external IdP federation routes without opening admin API', () => {
     const listRequest = buildAdminApiRequest({
       internalBaseUrl: 'https://backend.internal/',

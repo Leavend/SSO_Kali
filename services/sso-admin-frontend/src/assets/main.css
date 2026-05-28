@@ -527,7 +527,9 @@ select {
 .audit-page,
 .audit-layout,
 .policy-page,
-.policy-layout {
+.policy-layout,
+.ops-page,
+.ops-layout {
   display: grid;
   gap: 18px;
 }

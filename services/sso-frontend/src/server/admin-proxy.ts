@@ -25,6 +25,7 @@ const ALLOWED_ADMIN_ROUTES = new Set([
   'POST /api/admin/roles',
   'GET /api/admin/external-idps',
   'POST /api/admin/external-idps',
+  'GET /api/admin/ops/readiness',
 ])
 const ALLOWED_REQUEST_HEADERS = new Set(['accept', 'content-type', 'x-request-id'])
 const CLIENT_ID_PATTERN = '[a-z0-9-]+'
@@ -94,7 +95,10 @@ export function buildAdminApiRequest(options: AdminApiRequestOptions): AdminApiR
     throw new Error('Admin API proxy path is not allowed.')
   }
 
-  const backendPath = `${ADMIN_BACKEND_PREFIX}${options.pathname.slice(ADMIN_BFF_PREFIX.length)}`
+  const backendPath =
+    options.pathname === '/api/admin/ops/readiness'
+      ? '/ready'
+      : `${ADMIN_BACKEND_PREFIX}${options.pathname.slice(ADMIN_BFF_PREFIX.length)}`
   const headers = buildAdminApiHeaders(options.headers, options.session.accessToken)
 
   return {

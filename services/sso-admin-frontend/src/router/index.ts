@@ -57,6 +57,12 @@ const router = createRouter({
           component: () => import('@/features/external-idps/pages/ExternalIdpsPage.vue'),
           meta: { requiresAdmin: true, permissions: ['admin.external-idps.read'] },
         },
+        {
+          path: 'ops',
+          name: 'admin.ops',
+          component: () => import('@/features/ops/pages/OpsPage.vue'),
+          meta: { requiresAdmin: true, permissions: ['admin.dashboard.view'] },
+        },
       ],
     },
     {
