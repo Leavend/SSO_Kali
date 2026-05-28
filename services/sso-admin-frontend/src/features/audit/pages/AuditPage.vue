@@ -186,6 +186,39 @@ onMounted(() => {
         </div>
       </section>
 
+      <section class="detail-section" aria-labelledby="portal-observable-title">
+        <h2 id="portal-observable-title">Portal/backend observable evidence</h2>
+        <div class="state-card">
+          <strong>Consent revocation audit viewer</strong>
+          <p>Consent allow, deny, and revoke events are reviewed through the audit event feed.</p>
+        </div>
+        <div class="state-card">
+          <strong>Legacy portal session fallback sunset</strong>
+          <p>
+            Fallback usage stays an ops-tracked evidence item until backend emits a dedicated
+            signal.
+          </p>
+        </div>
+        <div class="state-card">
+          <strong>Token lifetime production guard</strong>
+          <p>
+            Production token/session lifetime guard evidence remains backend-owned and deploy-gated.
+          </p>
+        </div>
+        <div class="state-card">
+          <strong>Session / logout evidence console</strong>
+          <p>
+            SID propagation, RP sessions, and front/back-channel logout outcomes use audit evidence.
+          </p>
+        </div>
+        <div class="state-card">
+          <strong>Safe error regression review</strong>
+          <p>
+            Admin evidence pages show request IDs and safe copy instead of raw backend/OIDC errors.
+          </p>
+        </div>
+      </section>
+
       <section class="detail-section" aria-labelledby="dsr-title">
         <h2 id="dsr-title">DSR queue</h2>
         <label class="reason-field">
