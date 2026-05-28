@@ -1,4 +1,4 @@
-export type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'PUT'
+export type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'
 
 let lastRequestId: string | null = null
 
@@ -30,6 +30,7 @@ export type ApiClient = {
   post<T>(path: string, body?: unknown, options?: Omit<RequestOptions, 'method'>): Promise<T>
   patch<T>(path: string, body?: unknown, options?: Omit<RequestOptions, 'method'>): Promise<T>
   put<T>(path: string, body?: unknown, options?: Omit<RequestOptions, 'method'>): Promise<T>
+  delete<T>(path: string, options?: Omit<RequestOptions, 'method' | 'body'>): Promise<T>
 }
 
 function buildHeaders(custom: Readonly<Record<string, string>> | undefined): Headers {
@@ -118,4 +119,6 @@ export const apiClient: ApiClient = {
     request<T>(path, { ...options, method: 'PATCH', body }),
   put: <T>(path: string, body?: unknown, options?: Omit<RequestOptions, 'method'>): Promise<T> =>
     request<T>(path, { ...options, method: 'PUT', body }),
+  delete: <T>(path: string, options?: Omit<RequestOptions, 'method' | 'body'>): Promise<T> =>
+    request<T>(path, { ...options, method: 'DELETE' }),
 }

@@ -333,6 +333,58 @@ describe('buildAdminApiRequest', () => {
     ).toThrow('Admin API proxy path is not allowed.')
   })
 
+  it('allows explicit external IdP federation routes without opening admin API', () => {
+    const listRequest = buildAdminApiRequest({
+      internalBaseUrl: 'https://backend.internal/',
+      pathname: '/api/admin/external-idps',
+      search: '',
+      method: 'GET',
+      headers: { 'x-request-id': 'req-idp-1' },
+      session: portalSession(),
+    })
+    const updateRequest = buildAdminApiRequest({
+      internalBaseUrl: 'https://backend.internal/',
+      pathname: '/api/admin/external-idps/google',
+      search: '',
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      session: portalSession(),
+    })
+    const previewRequest = buildAdminApiRequest({
+      internalBaseUrl: 'https://backend.internal/',
+      pathname: '/api/admin/external-idps/google/mapping-preview',
+      search: '',
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      session: portalSession(),
+    })
+    const deleteRequest = buildAdminApiRequest({
+      internalBaseUrl: 'https://backend.internal/',
+      pathname: '/api/admin/external-idps/google',
+      search: '',
+      method: 'DELETE',
+      headers: {},
+      session: portalSession(),
+    })
+
+    expect(listRequest.url).toBe('https://backend.internal/admin/api/external-idps')
+    expect(updateRequest.url).toBe('https://backend.internal/admin/api/external-idps/google')
+    expect(previewRequest.url).toBe(
+      'https://backend.internal/admin/api/external-idps/google/mapping-preview',
+    )
+    expect(deleteRequest.url).toBe('https://backend.internal/admin/api/external-idps/google')
+    expect(() =>
+      buildAdminApiRequest({
+        internalBaseUrl: 'https://backend.internal/',
+        pathname: '/api/admin/external-idps/google/raw-token',
+        search: '',
+        method: 'GET',
+        headers: {},
+        session: portalSession(),
+      }),
+    ).toThrow('Admin API proxy path is not allowed.')
+  })
+
   it('forwards only safe admin proxy request headers', () => {
     const request = buildAdminApiRequest({
       internalBaseUrl: 'https://backend.internal',

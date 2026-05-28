@@ -23,6 +23,8 @@ const ALLOWED_ADMIN_ROUTES = new Set([
   'GET /api/admin/roles',
   'GET /api/admin/permissions',
   'POST /api/admin/roles',
+  'GET /api/admin/external-idps',
+  'POST /api/admin/external-idps',
 ])
 const ALLOWED_REQUEST_HEADERS = new Set(['accept', 'content-type', 'x-request-id'])
 const CLIENT_ID_PATTERN = '[a-z0-9-]+'
@@ -32,6 +34,7 @@ const DSR_REQUEST_ID_PATTERN = '[0-9A-HJKMNP-TV-Z]+'
 const POLICY_CATEGORY_PATTERN = '[a-z_]+'
 const POLICY_VERSION_PATTERN = '[0-9]+'
 const ROLE_SLUG_PATTERN = '[a-z0-9_-]+'
+const PROVIDER_KEY_PATTERN = '[a-z0-9_-]+'
 const ALLOWED_ADMIN_ROUTE_PATTERNS: readonly RegExp[] = [
   new RegExp(`^GET /api/admin/clients/${CLIENT_ID_PATTERN}$`, 'u'),
   new RegExp(`^PATCH /api/admin/clients/${CLIENT_ID_PATTERN}$`, 'u'),
@@ -58,6 +61,10 @@ const ALLOWED_ADMIN_ROUTE_PATTERNS: readonly RegExp[] = [
   ),
   new RegExp(`^PATCH /api/admin/roles/${ROLE_SLUG_PATTERN}$`, 'u'),
   new RegExp(`^PUT /api/admin/roles/${ROLE_SLUG_PATTERN}/permissions$`, 'u'),
+  new RegExp(`^GET /api/admin/external-idps/${PROVIDER_KEY_PATTERN}$`, 'u'),
+  new RegExp(`^PATCH /api/admin/external-idps/${PROVIDER_KEY_PATTERN}$`, 'u'),
+  new RegExp(`^POST /api/admin/external-idps/${PROVIDER_KEY_PATTERN}/mapping-preview$`, 'u'),
+  new RegExp(`^DELETE /api/admin/external-idps/${PROVIDER_KEY_PATTERN}$`, 'u'),
 ]
 
 export type AdminApiRequestOptions = {
@@ -182,7 +189,8 @@ function isAllowedAdminPath(pathname: string): boolean {
   return isAllowedAdminRoute(`GET ${pathname}`) ||
     isAllowedAdminRoute(`PATCH ${pathname}`) ||
     isAllowedAdminRoute(`POST ${pathname}`) ||
-    isAllowedAdminRoute(`PUT ${pathname}`)
+    isAllowedAdminRoute(`PUT ${pathname}`) ||
+    isAllowedAdminRoute(`DELETE ${pathname}`)
 }
 
 function trimTrailingSlash(value: string): string {
