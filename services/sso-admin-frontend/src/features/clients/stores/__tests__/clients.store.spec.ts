@@ -155,6 +155,29 @@ describe('useClientsStore', () => {
     expect(store.rotationClientId).toBeNull()
   })
 
+  it('maps backend validation errors to safe copy with request evidence', async () => {
+    vi.mocked(clientsApi.update).mockRejectedValue(
+      new ApiError(
+        422,
+        'SQLSTATE leaked validation trace',
+        'validation_error',
+        null,
+        'req-client-422',
+      ),
+    )
+    const store = useClientsStore()
+    store.clients = [client]
+    store.selectedClientId = client.client_id
+
+    await store.updateSelected({ redirect_uris: ['https://app.example.test/callback'] })
+
+    expect(store.requestId).toBe('req-client-422')
+    expect(store.errorMessage).toBe(
+      'Validasi OAuth client gagal. Periksa input lalu gunakan request ID req-client-422 untuk investigasi jika perlu.',
+    )
+    expect(store.errorMessage).not.toContain('SQLSTATE')
+  })
+
   it('maps forbidden errors to safe copy without raw backend details', async () => {
     vi.mocked(clientsApi.list).mockRejectedValue(
       new ApiError(403, 'SQLSTATE leaked forbidden trace'),

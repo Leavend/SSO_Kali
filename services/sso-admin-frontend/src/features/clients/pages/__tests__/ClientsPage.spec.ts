@@ -70,6 +70,24 @@ describe('ClientsPage', () => {
     expect(wrapper.text()).toContain('Simpan URI policy')
   })
 
+  it('blocks invalid and duplicate URI policy values before submitting', async () => {
+    const store = useClientsStore()
+    store.clients = [client]
+    store.selectedClientId = 'prototype-app-a'
+    store.status = 'success'
+    store.detailStatus = 'success'
+    const updateSpy = vi.spyOn(store, 'updateSelected')
+
+    const wrapper = mount(ClientsPage)
+
+    await wrapper.get('textarea[name="redirect_uris"]').setValue('not-a-url\nnot-a-url')
+    await wrapper.get('form[data-test="uri-policy-form"]').trigger('submit')
+
+    expect(wrapper.text()).toContain('Redirect URI harus URL valid.')
+    expect(wrapper.text()).toContain('Redirect URI tidak boleh duplikat.')
+    expect(updateSpy).not.toHaveBeenCalled()
+  })
+
   it('renders safe forbidden state', () => {
     const store = useClientsStore()
     store.status = 'forbidden'

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, reactive } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useClientsStore } from '../stores/clients.store'
 
 const store = useClientsStore()
@@ -15,6 +15,8 @@ const form = reactive({
   redirect_uris: '',
   post_logout_redirect_uris: '',
 })
+const uriValidationMessages = ref<readonly string[]>([])
+const uriValidationMessage = computed(() => uriValidationMessages.value.join(' '))
 
 onMounted(() => {
   if (store.status === 'idle') void store.load()
@@ -34,12 +36,36 @@ function syncFormFromSelected(): void {
   form.post_logout_redirect_uris = store.selectedClient?.post_logout_redirect_uris?.join('\n') ?? ''
 }
 
+function findUriValidationMessages(
+  redirectUris: readonly string[],
+  logoutUris: readonly string[],
+): string[] {
+  const messages: string[] = []
+  const allUris = [...redirectUris, ...logoutUris]
+
+  if (allUris.some((uri) => !URL.canParse(uri))) {
+    messages.push('Redirect URI harus URL valid.')
+  }
+
+  if (new Set(allUris).size !== allUris.length) {
+    messages.push('Redirect URI tidak boleh duplikat.')
+  }
+
+  return messages
+}
+
 async function createClient(): Promise<void> {
+  const redirectUris = linesToValues(createForm.redirect_uris)
+  const logoutUris = linesToValues(createForm.post_logout_redirect_uris)
+  uriValidationMessages.value = findUriValidationMessages(redirectUris, logoutUris)
+
+  if (uriValidationMessages.value.length > 0) return
+
   await store.createClient({
     client_id: createForm.client_id,
     display_name: createForm.display_name,
-    redirect_uris: linesToValues(createForm.redirect_uris),
-    post_logout_redirect_uris: linesToValues(createForm.post_logout_redirect_uris),
+    redirect_uris: redirectUris,
+    post_logout_redirect_uris: logoutUris,
   })
   syncFormFromSelected()
 }
@@ -57,9 +83,15 @@ async function saveMetadata(): Promise<void> {
 }
 
 async function saveUriPolicy(): Promise<void> {
+  const redirectUris = linesToValues(form.redirect_uris)
+  const logoutUris = linesToValues(form.post_logout_redirect_uris)
+  uriValidationMessages.value = findUriValidationMessages(redirectUris, logoutUris)
+
+  if (uriValidationMessages.value.length > 0) return
+
   await store.updateSelected({
-    redirect_uris: linesToValues(form.redirect_uris),
-    post_logout_redirect_uris: linesToValues(form.post_logout_redirect_uris),
+    redirect_uris: redirectUris,
+    post_logout_redirect_uris: logoutUris,
   })
   syncFormFromSelected()
 }
@@ -204,7 +236,10 @@ async function rotateSecret(): Promise<void> {
 
         <section class="detail-section" aria-labelledby="uri-policy-title">
           <h3 id="uri-policy-title">URI policy</h3>
-          <form class="client-form" @submit.prevent="saveUriPolicy">
+          <form class="client-form" data-test="uri-policy-form" @submit.prevent="saveUriPolicy">
+            <p v-if="uriValidationMessage" class="action-message" role="alert">
+              {{ uriValidationMessage }}
+            </p>
             <label>
               Redirect URIs
               <textarea v-model="form.redirect_uris" name="redirect_uris" rows="4" />

@@ -146,6 +146,14 @@ export const useClientsStore = defineStore('admin-clients', () => {
   function handleGenericError(error: unknown): void {
     requestId.value =
       error instanceof ApiError ? (error.requestId ?? getLastRequestId()) : getLastRequestId()
+
+    if (error instanceof ApiError && error.status === 422) {
+      errorMessage.value = requestId.value
+        ? `Validasi OAuth client gagal. Periksa input lalu gunakan request ID ${requestId.value} untuk investigasi jika perlu.`
+        : 'Validasi OAuth client gagal. Periksa input lalu coba lagi.'
+      return
+    }
+
     errorMessage.value = requestId.value
       ? `Operasi OAuth client gagal. Gunakan request ID ${requestId.value} untuk investigasi.`
       : 'Operasi OAuth client gagal. Coba lagi beberapa saat lagi.'
