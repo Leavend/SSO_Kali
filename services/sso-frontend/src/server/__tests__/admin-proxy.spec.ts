@@ -237,6 +237,22 @@ describe('buildAdminApiRequest', () => {
       headers: {},
       session: portalSession(),
     })
+    const authAuditRequest = buildAdminApiRequest({
+      internalBaseUrl: 'https://backend.internal/',
+      pathname: '/api/admin/audit/authentication-events',
+      search: '?event_type=refresh_token_reuse_detected',
+      method: 'GET',
+      headers: {},
+      session: portalSession(),
+    })
+    const authAuditDetailRequest = buildAdminApiRequest({
+      internalBaseUrl: 'https://backend.internal/',
+      pathname: '/api/admin/audit/authentication-events/AUTH01',
+      search: '',
+      method: 'GET',
+      headers: {},
+      session: portalSession(),
+    })
     const integrityRequest = buildAdminApiRequest({
       internalBaseUrl: 'https://backend.internal/',
       pathname: '/api/admin/audit/integrity',
@@ -264,6 +280,12 @@ describe('buildAdminApiRequest', () => {
 
     expect(eventsRequest.url).toBe('https://backend.internal/admin/api/audit/events?outcome=denied')
     expect(eventRequest.url).toBe('https://backend.internal/admin/api/audit/events/AUD01')
+    expect(authAuditRequest.url).toBe(
+      'https://backend.internal/admin/api/audit/authentication-events?event_type=refresh_token_reuse_detected',
+    )
+    expect(authAuditDetailRequest.url).toBe(
+      'https://backend.internal/admin/api/audit/authentication-events/AUTH01',
+    )
     expect(integrityRequest.url).toBe('https://backend.internal/admin/api/audit/integrity')
     expect(dsrRequest.url).toBe('https://backend.internal/admin/api/data-subject-requests?status=submitted')
     expect(reviewRequest.url).toBe(

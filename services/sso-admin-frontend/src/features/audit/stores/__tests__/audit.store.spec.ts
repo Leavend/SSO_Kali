@@ -3,7 +3,12 @@ import { createPinia, setActivePinia } from 'pinia'
 import { ApiError, getLastRequestId } from '@/lib/api/api-client'
 import { auditApi } from '../../services/audit.api'
 import { useAuditStore } from '../audit.store'
-import type { AdminAuditEvent, AuditIntegrity, DataSubjectRequest } from '../../types'
+import type {
+  AdminAuditEvent,
+  AuthenticationAuditEvent,
+  AuditIntegrity,
+  DataSubjectRequest,
+} from '../../types'
 
 vi.mock('../../services/audit.api', () => ({
   auditApi: {
@@ -11,6 +16,9 @@ vi.mock('../../services/audit.api', () => ({
     showEvent: vi.fn<(eventId: string) => Promise<{ event: AdminAuditEvent }>>(),
     getIntegrity: vi.fn<() => Promise<{ integrity: AuditIntegrity }>>(),
     listDataSubjectRequests: vi.fn<() => Promise<{ requests: readonly DataSubjectRequest[] }>>(),
+    listAuthenticationEvents:
+      vi.fn<() => Promise<{ events: readonly AuthenticationAuditEvent[] }>>(),
+    showAuthenticationEvent: vi.fn<() => Promise<{ event: AuthenticationAuditEvent }>>(),
     reviewDataSubjectRequest: vi.fn<() => Promise<{ request: DataSubjectRequest }>>(),
     fulfillDataSubjectRequest:
       vi.fn<() => Promise<{ request?: DataSubjectRequest; dry_run?: boolean }>>(),
@@ -38,6 +46,23 @@ const event: AdminAuditEvent = {
   occurred_at: '2026-05-27T00:00:00Z',
 }
 
+const authEvent: AuthenticationAuditEvent = {
+  event_id: 'AUTH01',
+  event_type: 'refresh_token_reuse_detected',
+  outcome: 'failed',
+  subject: { subject_id: 'sub_target', email: 'target@example.test' },
+  client_id: 'prototype-app-a',
+  session_id: 'sid-123',
+  request: {
+    ip_address: '203.0.113.40',
+    user_agent: 'Test Browser',
+    request_id: 'req-auth-event-1',
+  },
+  error_code: 'refresh_token_reuse_detected',
+  context: { token: '[redacted]', notification: 'queued' },
+  occurred_at: '2026-05-27T00:00:00Z',
+}
+
 const dsr: DataSubjectRequest = {
   request_id: '01HX7S8Y9ZABCDEF1234567890',
   subject_id: 'sub_target',
@@ -59,6 +84,8 @@ describe('useAuditStore', () => {
     vi.mocked(auditApi.showEvent).mockReset()
     vi.mocked(auditApi.getIntegrity).mockReset()
     vi.mocked(auditApi.listDataSubjectRequests).mockReset()
+    vi.mocked(auditApi.listAuthenticationEvents).mockReset()
+    vi.mocked(auditApi.showAuthenticationEvent).mockReset()
     vi.mocked(auditApi.reviewDataSubjectRequest).mockReset()
     vi.mocked(auditApi.fulfillDataSubjectRequest).mockReset()
     vi.mocked(getLastRequestId).mockReturnValue('req-audit-1')
@@ -70,6 +97,7 @@ describe('useAuditStore', () => {
       integrity: { verified: true, checked_events: 1 },
     })
     vi.mocked(auditApi.listDataSubjectRequests).mockResolvedValue({ requests: [dsr] })
+    vi.mocked(auditApi.listAuthenticationEvents).mockResolvedValue({ events: [authEvent] })
     const store = useAuditStore()
 
     await store.load()
@@ -78,6 +106,7 @@ describe('useAuditStore', () => {
     expect(store.events).toEqual([event])
     expect(store.integrity?.verified).toBe(true)
     expect(store.dataSubjectRequests).toEqual([dsr])
+    expect(store.authenticationEvents).toEqual([authEvent])
     expect(store.requestId).toBe('req-audit-1')
   })
 
@@ -89,6 +118,16 @@ describe('useAuditStore', () => {
 
     expect(store.selectedEvent).toEqual(event)
     expect(auditApi.showEvent).toHaveBeenCalledWith('AUD01')
+  })
+
+  it('loads selected authentication event detail', async () => {
+    vi.mocked(auditApi.showAuthenticationEvent).mockResolvedValue({ event: authEvent })
+    const store = useAuditStore()
+
+    await store.selectAuthenticationEvent('AUTH01')
+
+    expect(store.selectedAuthenticationEvent).toEqual(authEvent)
+    expect(auditApi.showAuthenticationEvent).toHaveBeenCalledWith('AUTH01')
   })
 
   it('reviews DSR and stores audit evidence safely', async () => {

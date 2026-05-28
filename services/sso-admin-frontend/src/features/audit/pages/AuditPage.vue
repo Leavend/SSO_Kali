@@ -115,6 +115,77 @@ onMounted(() => {
         </dl>
       </article>
 
+      <section class="detail-section" aria-labelledby="security-evidence-title">
+        <h2 id="security-evidence-title">Security notification evidence</h2>
+        <div class="audit-list">
+          <button
+            v-for="event in store.authenticationEvents"
+            :key="event.event_id"
+            class="user-list-item"
+            :class="{
+              'user-list-item--active': event.event_id === store.selectedAuthenticationEventId,
+            }"
+            type="button"
+            @click="store.selectAuthenticationEvent(event.event_id)"
+          >
+            <strong>{{ event.event_id }}</strong>
+            <span>{{ event.event_type }}</span>
+            <small
+              >{{ event.outcome }} · {{ event.request?.request_id ?? 'no request evidence' }}</small
+            >
+          </button>
+        </div>
+        <p v-if="store.authenticationEvents.length === 0" class="muted">
+          Belum ada security notification evidence.
+        </p>
+        <dl v-if="store.selectedAuthenticationEvent" class="detail-grid">
+          <div>
+            <dt>Subject</dt>
+            <dd>
+              {{
+                store.selectedAuthenticationEvent.subject?.email ??
+                store.selectedAuthenticationEvent.subject?.subject_id ??
+                'unknown'
+              }}
+            </dd>
+          </div>
+          <div>
+            <dt>Client</dt>
+            <dd>{{ store.selectedAuthenticationEvent.client_id ?? 'No client evidence' }}</dd>
+          </div>
+          <div>
+            <dt>Session</dt>
+            <dd>{{ store.selectedAuthenticationEvent.session_id ?? 'No SID evidence' }}</dd>
+          </div>
+          <div>
+            <dt>Error code</dt>
+            <dd>{{ store.selectedAuthenticationEvent.error_code ?? 'No error evidence' }}</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section class="detail-section" aria-labelledby="challenge-title">
+        <h2 id="challenge-title">Suspicious login challenge matrix</h2>
+        <div class="state-card">
+          <strong>Risk challenge evidence</strong>
+          <p>
+            Backend auth audit events show login challenge outcomes, MFA-required states, and
+            notification dispatch evidence when recorded.
+          </p>
+        </div>
+      </section>
+
+      <section class="detail-section" aria-labelledby="acr-title">
+        <h2 id="acr-title">Unknown ACR policy</h2>
+        <div class="state-card">
+          <strong>Compatibility mode</strong>
+          <p>
+            Unknown ACR decisions remain backend-owned; this UI exposes safe audit evidence without
+            rendering raw provider errors.
+          </p>
+        </div>
+      </section>
+
       <section class="detail-section" aria-labelledby="dsr-title">
         <h2 id="dsr-title">DSR queue</h2>
         <label class="reason-field">

@@ -3,6 +3,9 @@ import type {
   AuditEventDetailResponse,
   AuditEventFilters,
   AuditEventListResponse,
+  AuthenticationAuditEventDetailResponse,
+  AuthenticationAuditEventFilters,
+  AuthenticationAuditEventListResponse,
   AuditExportFilters,
   AuditIntegrityResponse,
   DataSubjectFulfillPayload,
@@ -29,6 +32,18 @@ export const auditApi = {
   ): Promise<DataSubjectRequestListResponse> {
     return apiClient.get<DataSubjectRequestListResponse>(
       withQuery('/api/admin/data-subject-requests', filters),
+    )
+  },
+  listAuthenticationEvents(
+    filters: AuthenticationAuditEventFilters = {},
+  ): Promise<AuthenticationAuditEventListResponse> {
+    return apiClient.get<AuthenticationAuditEventListResponse>(
+      withQuery('/api/admin/audit/authentication-events', filters),
+    )
+  },
+  showAuthenticationEvent(eventId: string): Promise<AuthenticationAuditEventDetailResponse> {
+    return apiClient.get<AuthenticationAuditEventDetailResponse>(
+      `/api/admin/audit/authentication-events/${eventId}`,
     )
   },
   reviewDataSubjectRequest(

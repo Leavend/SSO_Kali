@@ -71,6 +71,49 @@ export type AuditExportFilters = Omit<AuditEventFilters, 'limit' | 'cursor'> & {
   readonly format: 'csv' | 'jsonl'
 }
 
+export type AuthenticationAuditSubject = {
+  readonly subject_id?: string | null
+  readonly email?: string | null
+}
+
+export type AuthenticationAuditRequest = {
+  readonly ip_address?: string | null
+  readonly user_agent?: string | null
+  readonly request_id?: string | null
+}
+
+export type AuthenticationAuditEvent = {
+  readonly event_id: string
+  readonly event_type: string
+  readonly outcome: string
+  readonly subject?: AuthenticationAuditSubject | null
+  readonly client_id?: string | null
+  readonly session_id?: string | null
+  readonly request?: AuthenticationAuditRequest | null
+  readonly error_code?: string | null
+  readonly context?: Readonly<Record<string, unknown>> | null
+  readonly occurred_at?: string | null
+}
+
+export type AuthenticationAuditEventFilters = {
+  readonly limit?: number
+  readonly cursor?: string
+  readonly event_type?: string
+  readonly outcome?: string
+  readonly subject_id?: string
+  readonly client_id?: string
+  readonly session_id?: string
+}
+
+export type AuthenticationAuditEventListResponse = {
+  readonly events: readonly AuthenticationAuditEvent[]
+  readonly pagination?: AuditPagination
+}
+
+export type AuthenticationAuditEventDetailResponse = {
+  readonly event: AuthenticationAuditEvent
+}
+
 export type DataSubjectRequest = {
   readonly request_id: string
   readonly subject_id: string

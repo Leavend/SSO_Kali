@@ -60,6 +60,23 @@ const event = {
   occurred_at: '2026-05-27T00:00:00Z',
 }
 
+const authEvent = {
+  event_id: 'AUTH01',
+  event_type: 'refresh_token_reuse_detected',
+  outcome: 'failed',
+  subject: { subject_id: 'sub_target', email: 'target@example.test' },
+  client_id: 'prototype-app-a',
+  session_id: 'sid-123',
+  request: {
+    ip_address: '203.0.113.40',
+    user_agent: 'Test Browser',
+    request_id: 'req-auth-event-1',
+  },
+  error_code: 'refresh_token_reuse_detected',
+  context: { token: '[redacted]', notification: 'queued' },
+  occurred_at: '2026-05-27T00:00:00Z',
+}
+
 const dsr = {
   request_id: '01HX7S8Y9ZABCDEF1234567890',
   subject_id: 'sub_target',
@@ -85,6 +102,13 @@ test('renders audit compliance evidence and DSR queue', async ({ page }) => {
       body: JSON.stringify({ events: [event] }),
     })
   })
+  await page.route('**/api/admin/audit/authentication-events*', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      headers: { 'x-request-id': 'req-audit-e2e' },
+      body: JSON.stringify({ events: [authEvent] }),
+    })
+  })
   await page.route('**/api/admin/audit/integrity', async (route) => {
     await route.fulfill({
       contentType: 'application/json',
@@ -108,6 +132,12 @@ test('renders audit compliance evidence and DSR queue', async ({ page }) => {
   await expect(page.getByText('AUD01')).toBeVisible()
   await expect(page.getByText('Integrity verified')).toBeVisible()
   await expect(page.getByText('01HX7S8Y9ZABCDEF1234567890')).toBeVisible()
+  await expect(page.getByText('Security notification evidence')).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: /AUTH01 refresh_token_reuse_detected/u }),
+  ).toBeVisible()
+  await expect(page.getByText('Suspicious login challenge matrix')).toBeVisible()
+  await expect(page.getByText('Unknown ACR policy')).toBeVisible()
   await expect(page.getByText('req-audit-e2e')).toBeVisible()
   await expect(page.getByText(/Bearer|refreshToken|SQLSTATE/u)).toHaveCount(0)
 })
@@ -122,6 +152,13 @@ test('shows safe audit error with request evidence', async ({ page }) => {
       contentType: 'application/json',
       headers: { 'x-request-id': 'req-audit-fail' },
       body: JSON.stringify({ error: 'server_error', message: 'SQLSTATE leaked audit trace' }),
+    })
+  })
+  await page.route('**/api/admin/audit/authentication-events*', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      headers: { 'x-request-id': 'req-audit-fail' },
+      body: JSON.stringify({ events: [] }),
     })
   })
   await page.route('**/api/admin/audit/integrity', async (route) => {

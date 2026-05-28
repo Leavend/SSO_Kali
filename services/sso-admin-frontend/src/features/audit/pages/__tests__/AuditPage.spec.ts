@@ -3,7 +3,7 @@ import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import AuditPage from '../AuditPage.vue'
 import { useAuditStore } from '../../stores/audit.store'
-import type { AdminAuditEvent, DataSubjectRequest } from '../../types'
+import type { AdminAuditEvent, AuthenticationAuditEvent, DataSubjectRequest } from '../../types'
 
 vi.mock('../../services/audit.api', () => ({
   auditApi: {
@@ -11,6 +11,8 @@ vi.mock('../../services/audit.api', () => ({
     showEvent: vi.fn<() => Promise<unknown>>(),
     getIntegrity: vi.fn<() => Promise<unknown>>(),
     listDataSubjectRequests: vi.fn<() => Promise<unknown>>(),
+    listAuthenticationEvents: vi.fn<() => Promise<unknown>>(),
+    showAuthenticationEvent: vi.fn<() => Promise<unknown>>(),
     reviewDataSubjectRequest: vi.fn<() => Promise<unknown>>(),
     fulfillDataSubjectRequest: vi.fn<() => Promise<unknown>>(),
   },
@@ -26,6 +28,23 @@ const event: AdminAuditEvent = {
   reason: 'Security review',
   context: { token: '[redacted]', subject_id: 'sub_target' },
   hash_chain: { previous_hash: 'prev-hash', event_hash: 'event-hash' },
+  occurred_at: '2026-05-27T00:00:00Z',
+}
+
+const authEvent: AuthenticationAuditEvent = {
+  event_id: 'AUTH01',
+  event_type: 'refresh_token_reuse_detected',
+  outcome: 'failed',
+  subject: { subject_id: 'sub_target', email: 'target@example.test' },
+  client_id: 'prototype-app-a',
+  session_id: 'sid-123',
+  request: {
+    ip_address: '203.0.113.40',
+    user_agent: 'Test Browser',
+    request_id: 'req-auth-event-1',
+  },
+  error_code: 'refresh_token_reuse_detected',
+  context: { token: '[redacted]', notification: 'queued' },
   occurred_at: '2026-05-27T00:00:00Z',
 }
 
@@ -54,6 +73,8 @@ describe('AuditPage', () => {
     store.events = [event]
     store.integrity = { verified: true, checked_events: 1 }
     store.dataSubjectRequests = [dsr]
+    store.authenticationEvents = [authEvent]
+    store.selectedAuthenticationEventId = 'AUTH01'
     store.requestId = 'req-audit-1'
 
     const wrapper = mount(AuditPage)
@@ -63,6 +84,10 @@ describe('AuditPage', () => {
     expect(wrapper.text()).toContain('admin.user.lock')
     expect(wrapper.text()).toContain('Integrity verified')
     expect(wrapper.text()).toContain('01HX7S8Y9ZABCDEF1234567890')
+    expect(wrapper.text()).toContain('Security notification evidence')
+    expect(wrapper.text()).toContain('refresh_token_reuse_detected')
+    expect(wrapper.text()).toContain('Suspicious login challenge matrix')
+    expect(wrapper.text()).toContain('Unknown ACR policy')
     expect(wrapper.text()).toContain('Request ID: req-audit-1')
     expect(wrapper.text()).not.toMatch(/Bearer|refreshToken|SQLSTATE/i)
   })

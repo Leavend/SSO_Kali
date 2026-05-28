@@ -2,7 +2,12 @@ import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { ApiError, getLastRequestId } from '@/lib/api/api-client'
 import { auditApi } from '../services/audit.api'
-import type { AdminAuditEvent, AuditIntegrity, DataSubjectRequest } from '../types'
+import type {
+  AdminAuditEvent,
+  AuthenticationAuditEvent,
+  AuditIntegrity,
+  DataSubjectRequest,
+} from '../types'
 
 export type AuditStatus = 'idle' | 'loading' | 'success' | 'unauthenticated' | 'forbidden' | 'error'
 export type AuditActionStatus = 'idle' | 'loading' | 'success' | 'error'
@@ -15,6 +20,9 @@ export const useAuditStore = defineStore('admin-audit', () => {
   const selectedEventDetail = ref<AdminAuditEvent | null>(null)
   const integrity = ref<AuditIntegrity | null>(null)
   const dataSubjectRequests = ref<readonly DataSubjectRequest[]>([])
+  const authenticationEvents = ref<readonly AuthenticationAuditEvent[]>([])
+  const selectedAuthenticationEventId = ref<string | null>(null)
+  const selectedAuthenticationEventDetail = ref<AuthenticationAuditEvent | null>(null)
   const errorMessage = ref<string | null>(null)
   const requestId = ref<string | null>(null)
 
@@ -24,21 +32,33 @@ export const useAuditStore = defineStore('admin-audit', () => {
       events.value.find((event) => event.event_id === selectedEventId.value) ??
       null,
   )
+  const selectedAuthenticationEvent = computed<AuthenticationAuditEvent | null>(
+    () =>
+      selectedAuthenticationEventDetail.value ??
+      authenticationEvents.value.find(
+        (event) => event.event_id === selectedAuthenticationEventId.value,
+      ) ??
+      null,
+  )
 
   async function load(): Promise<void> {
     status.value = 'loading'
     errorMessage.value = null
 
     try {
-      const [eventResponse, integrityResponse, dsrResponse] = await Promise.all([
-        auditApi.listEvents({ limit: 50 }),
-        auditApi.getIntegrity(),
-        auditApi.listDataSubjectRequests({ status: 'submitted' }),
-      ])
+      const [eventResponse, integrityResponse, dsrResponse, authenticationEventResponse] =
+        await Promise.all([
+          auditApi.listEvents({ limit: 50 }),
+          auditApi.getIntegrity(),
+          auditApi.listDataSubjectRequests({ status: 'submitted' }),
+          auditApi.listAuthenticationEvents({ limit: 25 }),
+        ])
       events.value = eventResponse.events
       selectedEventId.value = eventResponse.events[0]?.event_id ?? null
       integrity.value = integrityResponse.integrity
       dataSubjectRequests.value = dsrResponse.requests
+      authenticationEvents.value = authenticationEventResponse.events
+      selectedAuthenticationEventId.value = authenticationEventResponse.events[0]?.event_id ?? null
       requestId.value = getLastRequestId()
       status.value = 'success'
     } catch (error) {
@@ -47,6 +67,9 @@ export const useAuditStore = defineStore('admin-audit', () => {
       selectedEventDetail.value = null
       integrity.value = null
       dataSubjectRequests.value = []
+      authenticationEvents.value = []
+      selectedAuthenticationEventId.value = null
+      selectedAuthenticationEventDetail.value = null
       handleLoadError(error)
     }
   }
@@ -59,6 +82,20 @@ export const useAuditStore = defineStore('admin-audit', () => {
       const response = await auditApi.showEvent(eventId)
       selectedEventDetail.value = response.event
       upsertEvent(response.event)
+      requestId.value = getLastRequestId()
+    } catch (error) {
+      handleActionError(error)
+    }
+  }
+
+  async function selectAuthenticationEvent(eventId: string): Promise<void> {
+    selectedAuthenticationEventId.value = eventId
+    errorMessage.value = null
+
+    try {
+      const response = await auditApi.showAuthenticationEvent(eventId)
+      selectedAuthenticationEventDetail.value = response.event
+      upsertAuthenticationEvent(response.event)
       requestId.value = getLastRequestId()
     } catch (error) {
       handleActionError(error)
@@ -100,6 +137,16 @@ export const useAuditStore = defineStore('admin-audit', () => {
     events.value = events.value.some((event) => event.event_id === nextEvent.event_id)
       ? events.value.map((event) => (event.event_id === nextEvent.event_id ? nextEvent : event))
       : [nextEvent, ...events.value]
+  }
+
+  function upsertAuthenticationEvent(nextEvent: AuthenticationAuditEvent): void {
+    authenticationEvents.value = authenticationEvents.value.some(
+      (event) => event.event_id === nextEvent.event_id,
+    )
+      ? authenticationEvents.value.map((event) =>
+          event.event_id === nextEvent.event_id ? nextEvent : event,
+        )
+      : [nextEvent, ...authenticationEvents.value]
   }
 
   function upsertDataSubjectRequest(nextRequest: DataSubjectRequest): void {
@@ -155,10 +202,15 @@ export const useAuditStore = defineStore('admin-audit', () => {
     selectedEventDetail,
     integrity,
     dataSubjectRequests,
+    authenticationEvents,
+    selectedAuthenticationEventId,
+    selectedAuthenticationEvent,
+    selectedAuthenticationEventDetail,
     errorMessage,
     requestId,
     load,
     selectEvent,
+    selectAuthenticationEvent,
     reviewRequest,
     fulfillRequest,
   }

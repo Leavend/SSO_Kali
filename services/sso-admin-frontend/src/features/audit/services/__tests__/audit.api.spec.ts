@@ -19,6 +19,11 @@ describe('auditApi', () => {
     await auditApi.getIntegrity()
     await auditApi.exportEvents({ format: 'csv', outcome: 'failed' })
     await auditApi.listDataSubjectRequests({ status: 'submitted' })
+    await auditApi.listAuthenticationEvents({
+      event_type: 'refresh_token_reuse_detected',
+      limit: 10,
+    })
+    await auditApi.showAuthenticationEvent('AUTH01')
     await auditApi.reviewDataSubjectRequest('01HX7S8Y9ZABCDEF1234567890', {
       decision: 'approved',
       notes: 'Verified evidence',
@@ -38,6 +43,14 @@ describe('auditApi', () => {
     expect(apiClient.get).toHaveBeenNthCalledWith(
       5,
       '/api/admin/data-subject-requests?status=submitted',
+    )
+    expect(apiClient.get).toHaveBeenNthCalledWith(
+      6,
+      '/api/admin/audit/authentication-events?event_type=refresh_token_reuse_detected&limit=10',
+    )
+    expect(apiClient.get).toHaveBeenNthCalledWith(
+      7,
+      '/api/admin/audit/authentication-events/AUTH01',
     )
     expect(apiClient.post).toHaveBeenNthCalledWith(
       1,
