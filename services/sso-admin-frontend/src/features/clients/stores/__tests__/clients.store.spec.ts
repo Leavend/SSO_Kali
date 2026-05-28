@@ -10,6 +10,7 @@ vi.mock('../../services/clients.api', () => ({
     list: vi.fn<() => Promise<{ clients: readonly AdminClient[] }>>(),
     show: vi.fn<(clientId: string) => Promise<{ client: AdminClient }>>(),
     update: vi.fn<(clientId: string, payload: unknown) => Promise<{ client: AdminClient }>>(),
+    create: vi.fn<(payload: unknown) => Promise<{ client: AdminClient }>>(),
     rotateSecret:
       vi.fn<
         (
@@ -47,6 +48,7 @@ describe('useClientsStore', () => {
     vi.mocked(clientsApi.list).mockReset()
     vi.mocked(clientsApi.show).mockReset()
     vi.mocked(clientsApi.update).mockReset()
+    vi.mocked(clientsApi.create).mockReset()
     vi.mocked(clientsApi.rotateSecret).mockReset()
     vi.mocked(getLastRequestId).mockReturnValue('req-clients-1')
   })
@@ -74,19 +76,64 @@ describe('useClientsStore', () => {
     expect(clientsApi.show).toHaveBeenCalledWith('prototype-app-a')
   })
 
-  it('updates editable metadata through the API', async () => {
+  it('creates clients and selects the new client with request evidence', async () => {
+    const createdClient: AdminClient = {
+      ...client,
+      client_id: 'prototype-app-b',
+      display_name: 'Prototype App B',
+      redirect_uris: ['https://app-b.example.test/callback'],
+      post_logout_redirect_uris: ['https://app-b.example.test/logout'],
+    }
+    vi.mocked(clientsApi.create).mockResolvedValue({ client: createdClient })
+    const store = useClientsStore()
+    store.clients = [client]
+
+    await store.createClient({
+      client_id: 'prototype-app-b',
+      display_name: 'Prototype App B',
+      redirect_uris: ['https://app-b.example.test/callback'],
+      post_logout_redirect_uris: ['https://app-b.example.test/logout'],
+    })
+
+    expect(store.selectedClientId).toBe('prototype-app-b')
+    expect(store.selectedClient).toEqual(createdClient)
+    expect(store.requestId).toBe('req-clients-1')
+    expect(clientsApi.create).toHaveBeenCalledWith({
+      client_id: 'prototype-app-b',
+      display_name: 'Prototype App B',
+      redirect_uris: ['https://app-b.example.test/callback'],
+      post_logout_redirect_uris: ['https://app-b.example.test/logout'],
+    })
+  })
+
+  it('updates editable metadata and URI policy through the API', async () => {
     vi.mocked(clientsApi.update).mockResolvedValue({
-      client: { ...client, display_name: 'Renamed App' },
+      client: {
+        ...client,
+        display_name: 'Renamed App',
+        redirect_uris: ['https://app.example.test/new-callback'],
+        post_logout_redirect_uris: ['https://app.example.test/new-logout'],
+      },
     })
     const store = useClientsStore()
     store.clients = [client]
     store.selectedClientId = client.client_id
 
-    await store.updateSelected({ display_name: 'Renamed App' })
+    await store.updateSelected({
+      display_name: 'Renamed App',
+      redirect_uris: ['https://app.example.test/new-callback'],
+      post_logout_redirect_uris: ['https://app.example.test/new-logout'],
+    })
 
     expect(store.selectedClient?.display_name).toBe('Renamed App')
+    expect(store.selectedClient?.redirect_uris).toEqual(['https://app.example.test/new-callback'])
+    expect(store.selectedClient?.post_logout_redirect_uris).toEqual([
+      'https://app.example.test/new-logout',
+    ])
     expect(clientsApi.update).toHaveBeenCalledWith('prototype-app-a', {
       display_name: 'Renamed App',
+      redirect_uris: ['https://app.example.test/new-callback'],
+      post_logout_redirect_uris: ['https://app.example.test/new-logout'],
     })
   })
 

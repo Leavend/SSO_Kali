@@ -37,6 +37,20 @@ export type ClientUpdatePayload = Partial<
   >
 >
 
+export type ClientCreatePayload = Pick<AdminClient, 'client_id' | 'redirect_uris'> &
+  Partial<
+    Pick<
+      AdminClient,
+      | 'display_name'
+      | 'owner_email'
+      | 'type'
+      | 'environment'
+      | 'app_base_url'
+      | 'post_logout_redirect_uris'
+      | 'allowed_scopes'
+    >
+  >
+
 export type ClientSecretRotation = {
   readonly client_id: string
   readonly client_secret?: string

@@ -10,6 +10,7 @@ vi.mock('../../services/clients.api', () => ({
     list: vi.fn<() => Promise<unknown>>(),
     show: vi.fn<() => Promise<unknown>>(),
     update: vi.fn<() => Promise<unknown>>(),
+    create: vi.fn<() => Promise<unknown>>(),
     rotateSecret: vi.fn<() => Promise<unknown>>(),
   },
 }))
@@ -51,6 +52,22 @@ describe('ClientsPage', () => {
     expect(wrapper.text()).toContain('Request ID')
     expect(wrapper.text()).toContain('req-clients-1')
     expect(wrapper.text()).not.toMatch(/Bearer|refreshToken|secret_hash/i)
+  })
+
+  it('renders client create and URI edit controls', () => {
+    const store = useClientsStore()
+    store.clients = [client]
+    store.selectedClientId = 'prototype-app-a'
+    store.status = 'success'
+    store.detailStatus = 'success'
+
+    const wrapper = mount(ClientsPage)
+
+    expect(wrapper.text()).toContain('Create OAuth client')
+    expect(wrapper.text()).toContain('Redirect URIs')
+    expect(wrapper.find('textarea[name="redirect_uris"]').exists()).toBe(true)
+    expect(wrapper.find('textarea[name="post_logout_redirect_uris"]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('Simpan URI policy')
   })
 
   it('renders safe forbidden state', () => {

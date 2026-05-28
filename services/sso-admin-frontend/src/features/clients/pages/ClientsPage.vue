@@ -3,19 +3,50 @@ import { onMounted, reactive } from 'vue'
 import { useClientsStore } from '../stores/clients.store'
 
 const store = useClientsStore()
+const createForm = reactive({
+  client_id: '',
+  display_name: '',
+  redirect_uris: '',
+  post_logout_redirect_uris: '',
+})
 const form = reactive({
   display_name: '',
   owner_email: '',
+  redirect_uris: '',
+  post_logout_redirect_uris: '',
 })
 
 onMounted(() => {
   if (store.status === 'idle') void store.load()
 })
 
-async function selectClient(clientId: string): Promise<void> {
-  await store.selectClient(clientId)
+function linesToValues(value: string): string[] {
+  return value
+    .split('\n')
+    .map((item) => item.trim())
+    .filter(Boolean)
+}
+
+function syncFormFromSelected(): void {
   form.display_name = store.selectedClient?.display_name ?? ''
   form.owner_email = store.selectedClient?.owner_email ?? ''
+  form.redirect_uris = store.selectedClient?.redirect_uris.join('\n') ?? ''
+  form.post_logout_redirect_uris = store.selectedClient?.post_logout_redirect_uris?.join('\n') ?? ''
+}
+
+async function createClient(): Promise<void> {
+  await store.createClient({
+    client_id: createForm.client_id,
+    display_name: createForm.display_name,
+    redirect_uris: linesToValues(createForm.redirect_uris),
+    post_logout_redirect_uris: linesToValues(createForm.post_logout_redirect_uris),
+  })
+  syncFormFromSelected()
+}
+
+async function selectClient(clientId: string): Promise<void> {
+  await store.selectClient(clientId)
+  syncFormFromSelected()
 }
 
 async function saveMetadata(): Promise<void> {
@@ -23,6 +54,14 @@ async function saveMetadata(): Promise<void> {
     display_name: form.display_name,
     owner_email: form.owner_email,
   })
+}
+
+async function saveUriPolicy(): Promise<void> {
+  await store.updateSelected({
+    redirect_uris: linesToValues(form.redirect_uris),
+    post_logout_redirect_uris: linesToValues(form.post_logout_redirect_uris),
+  })
+  syncFormFromSelected()
 }
 
 async function rotateSecret(): Promise<void> {
@@ -69,6 +108,39 @@ async function rotateSecret(): Promise<void> {
 
     <div v-else class="clients-layout">
       <aside class="clients-list" aria-label="Daftar OAuth clients">
+        <form
+          class="client-form"
+          aria-labelledby="create-client-title"
+          @submit.prevent="createClient"
+        >
+          <h2 id="create-client-title">Create OAuth client</h2>
+          <label>
+            Client ID
+            <input v-model="createForm.client_id" name="client_id" autocomplete="off" />
+          </label>
+          <label>
+            Display name
+            <input
+              v-model="createForm.display_name"
+              name="create_display_name"
+              autocomplete="off"
+            />
+          </label>
+          <label>
+            Redirect URIs
+            <textarea v-model="createForm.redirect_uris" name="create_redirect_uris" rows="3" />
+          </label>
+          <label>
+            Post Logout Redirect URIs
+            <textarea
+              v-model="createForm.post_logout_redirect_uris"
+              name="create_post_logout_redirect_uris"
+              rows="3"
+            />
+          </label>
+          <button class="primary-action" type="submit">Create client</button>
+        </form>
+
         <button
           v-for="client in store.clients"
           :key="client.client_id"
@@ -128,6 +200,25 @@ async function rotateSecret(): Promise<void> {
               {{ uri }}
             </li>
           </ul>
+        </section>
+
+        <section class="detail-section" aria-labelledby="uri-policy-title">
+          <h3 id="uri-policy-title">URI policy</h3>
+          <form class="client-form" @submit.prevent="saveUriPolicy">
+            <label>
+              Redirect URIs
+              <textarea v-model="form.redirect_uris" name="redirect_uris" rows="4" />
+            </label>
+            <label>
+              Post Logout Redirect URIs
+              <textarea
+                v-model="form.post_logout_redirect_uris"
+                name="post_logout_redirect_uris"
+                rows="4"
+              />
+            </label>
+            <button class="primary-action" type="submit">Simpan URI policy</button>
+          </form>
         </section>
 
         <section class="detail-section" aria-labelledby="metadata-title">

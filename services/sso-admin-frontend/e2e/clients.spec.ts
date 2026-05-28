@@ -67,10 +67,40 @@ test('renders OAuth client console and one-time secret evidence', async ({ page 
     await route.fulfill({ contentType: 'application/json', body: JSON.stringify(principal) })
   })
   await page.route('**/api/admin/clients', async (route) => {
+    if (route.request().method() === 'POST') {
+      await route.fulfill({
+        contentType: 'application/json',
+        headers: { 'x-request-id': 'req-create-client-e2e' },
+        body: JSON.stringify({
+          client: {
+            ...client,
+            client_id: 'prototype-app-b',
+            display_name: 'Prototype App B',
+            redirect_uris: ['https://app-b.example.test/callback'],
+            post_logout_redirect_uris: ['https://app-b.example.test/logout'],
+          },
+        }),
+      })
+      return
+    }
+
     await route.fulfill({
       contentType: 'application/json',
       headers: { 'x-request-id': 'req-clients-e2e' },
       body: JSON.stringify({ clients: [client] }),
+    })
+  })
+  await page.route('**/api/admin/clients/prototype-app-a', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      headers: { 'x-request-id': 'req-update-uri-e2e' },
+      body: JSON.stringify({
+        client: {
+          ...client,
+          redirect_uris: ['https://app.example.test/new-callback'],
+          post_logout_redirect_uris: ['https://app.example.test/new-logout'],
+        },
+      }),
     })
   })
   await page.route('**/api/admin/clients/prototype-app-a/rotate-secret', async (route) => {
@@ -91,6 +121,27 @@ test('renders OAuth client console and one-time secret evidence', async ({ page 
   await expect(page.getByRole('heading', { name: 'Prototype App A' })).toBeVisible()
   await expect(page.getByText('https://app.example.test/callback')).toBeVisible()
   await expect(page.getByText('req-clients-e2e')).toBeVisible()
+
+  await page.locator('input[name="client_id"]').fill('prototype-app-b')
+  await page.locator('input[name="create_display_name"]').fill('Prototype App B')
+  await page
+    .locator('textarea[name="create_redirect_uris"]')
+    .fill('https://app-b.example.test/callback')
+  await page
+    .locator('textarea[name="create_post_logout_redirect_uris"]')
+    .fill('https://app-b.example.test/logout')
+  await page.getByRole('button', { name: 'Create client' }).click()
+  await expect(page.getByRole('heading', { name: 'Prototype App B' })).toBeVisible()
+  await expect(page.getByText('req-create-client-e2e')).toBeVisible()
+
+  await page.getByRole('button', { name: /Prototype App A/u }).click()
+  await page.locator('textarea[name="redirect_uris"]').fill('https://app.example.test/new-callback')
+  await page
+    .locator('textarea[name="post_logout_redirect_uris"]')
+    .fill('https://app.example.test/new-logout')
+  await page.getByRole('button', { name: 'Simpan URI policy' }).click()
+  await expect(page.getByText('https://app.example.test/new-callback')).toBeVisible()
+  await expect(page.getByText('req-update-uri-e2e')).toBeVisible()
 
   await page.getByRole('button', { name: 'Rotate secret' }).click()
   await expect(page.getByText('once-secret-e2e')).toBeVisible()

@@ -2,7 +2,7 @@ import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { ApiError, getLastRequestId } from '@/lib/api/api-client'
 import { clientsApi } from '../services/clients.api'
-import type { AdminClient, ClientUpdatePayload } from '../types'
+import type { AdminClient, ClientCreatePayload, ClientUpdatePayload } from '../types'
 
 export type ClientsStatus =
   | 'idle'
@@ -63,11 +63,31 @@ export const useClientsStore = defineStore('admin-clients', () => {
     }
   }
 
+  async function createClient(payload: ClientCreatePayload): Promise<void> {
+    errorMessage.value = null
+    clearRotationSecret()
+
+    try {
+      const response = await clientsApi.create(payload)
+      upsertClient(response.client)
+      selectedClientId.value = response.client.client_id
+      requestId.value = getLastRequestId()
+    } catch (error) {
+      handleGenericError(error)
+    }
+  }
+
   async function updateSelected(payload: ClientUpdatePayload): Promise<void> {
     if (!selectedClientId.value) return
-    const response = await clientsApi.update(selectedClientId.value, payload)
-    upsertClient(response.client)
-    requestId.value = getLastRequestId()
+    errorMessage.value = null
+
+    try {
+      const response = await clientsApi.update(selectedClientId.value, payload)
+      upsertClient(response.client)
+      requestId.value = getLastRequestId()
+    } catch (error) {
+      handleGenericError(error)
+    }
   }
 
   async function rotateSelectedSecret(): Promise<void> {
@@ -144,6 +164,7 @@ export const useClientsStore = defineStore('admin-clients', () => {
     isLoading,
     load,
     selectClient,
+    createClient,
     updateSelected,
     rotateSelectedSecret,
     clearRotationSecret,
