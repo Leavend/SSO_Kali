@@ -3,6 +3,15 @@ name: Deploy Main to VPS
 on:
   push:
     branches: [main]
+    # Skip a full VPS rebuild/redeploy when a push only touches artifacts that
+    # never ship in the runtime images (unit tests, test dirs, docs/markdown).
+    # CI workflows still run on these paths; only the production deploy is
+    # suppressed. A push is skipped only when ALL changed files match below.
+    paths-ignore:
+      - '**/*.spec.ts'
+      - '**/__tests__/**'
+      - '**/*.md'
+      - 'docs/**'
   workflow_dispatch:
     inputs:
       deploy_tag:
