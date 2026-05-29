@@ -40,4 +40,19 @@ describe('usersApi', () => {
       reason: 'Lost factor',
     })
   })
+
+  it('posts create payload to POST /api/admin/users', async () => {
+    const response = { user: { subject_id: 'sub_new', email: 'new@example.test' } }
+    vi.mocked(apiClient.post).mockResolvedValue(response)
+
+    const payload = {
+      email: 'new@example.test',
+      display_name: 'New User',
+      role: 'user' as const,
+      local_account_enabled: true,
+    }
+    await usersApi.create(payload)
+
+    expect(apiClient.post).toHaveBeenCalledWith('/api/admin/users', payload)
+  })
 })

@@ -2,9 +2,19 @@
 import { computed, onMounted, ref } from 'vue'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
 import { useUsersStore } from '../stores/users.store'
+import type { CreateUserPayload } from '../types'
 
 const store = useUsersStore()
 const reason = ref('Admin review')
+const showCreateForm = ref(false)
+
+const createEmail = ref('')
+const createDisplayName = ref('')
+const createGivenName = ref('')
+const createFamilyName = ref('')
+const createRole = ref<'admin' | 'user'>('user')
+const createPassword = ref('')
+const createLocalAccountEnabled = ref(true)
 
 const selectedSessionId = computed(
   () => store.sessions[0]?.session_id ?? store.sessions[0]?.id ?? null,
@@ -17,6 +27,34 @@ onMounted(() => {
 
 async function selectUser(subjectId: string): Promise<void> {
   await store.selectUser(subjectId)
+}
+
+function resetCreateForm(): void {
+  createEmail.value = ''
+  createDisplayName.value = ''
+  createGivenName.value = ''
+  createFamilyName.value = ''
+  createRole.value = 'user'
+  createPassword.value = ''
+  createLocalAccountEnabled.value = true
+}
+
+async function submitCreateUser(): Promise<void> {
+  const payload: Record<string, string | boolean | 'admin' | 'user'> = {
+    email: createEmail.value.trim(),
+    display_name: createDisplayName.value.trim(),
+    role: createRole.value,
+    local_account_enabled: createLocalAccountEnabled.value,
+  }
+  if (createGivenName.value.trim()) payload.given_name = createGivenName.value.trim()
+  if (createFamilyName.value.trim()) payload.family_name = createFamilyName.value.trim()
+  if (createPassword.value) payload.password = createPassword.value
+
+  await store.createUser(payload as CreateUserPayload)
+  if (store.actionStatus === 'success') {
+    resetCreateForm()
+    showCreateForm.value = false
+  }
 }
 </script>
 
@@ -71,6 +109,61 @@ async function selectUser(subjectId: string): Promise<void> {
         </button>
 
         <p v-if="store.users.length === 0" class="muted">Belum ada user untuk ditampilkan.</p>
+
+        <button
+          class="primary-action create-user-toggle"
+          type="button"
+          @click="showCreateForm = !showCreateForm"
+        >
+          {{ showCreateForm ? 'Cancel' : 'Create User' }}
+        </button>
+
+        <div v-if="showCreateForm" class="create-user-form">
+          <h3>Create User</h3>
+          <label class="reason-field">
+            Email
+            <input v-model="createEmail" name="create-email" autocomplete="off" />
+          </label>
+          <label class="reason-field">
+            Display name
+            <input v-model="createDisplayName" name="create-display-name" autocomplete="off" />
+          </label>
+          <label class="reason-field">
+            Given name
+            <input v-model="createGivenName" name="create-given-name" autocomplete="off" />
+          </label>
+          <label class="reason-field">
+            Family name
+            <input v-model="createFamilyName" name="create-family-name" autocomplete="off" />
+          </label>
+          <label class="reason-field">
+            Role
+            <select v-model="createRole" name="create-role">
+              <option value="user">user</option>
+              <option value="admin">admin</option>
+            </select>
+          </label>
+          <label class="reason-field">
+            Password (optional)
+            <input v-model="createPassword" name="create-password" type="password" autocomplete="off" />
+          </label>
+          <label class="checkbox-row">
+            <input v-model="createLocalAccountEnabled" type="checkbox" />
+            Local account enabled
+          </label>
+          <button
+            class="primary-action"
+            type="button"
+            :disabled="store.actionStatus === 'loading'"
+            @click="submitCreateUser"
+          >
+            {{ store.actionStatus === 'loading' ? 'Creating...' : 'Create' }}
+          </button>
+          <p v-if="store.actionStatus === 'step_up_required' && store.selectedSubjectId === null" class="action-message">
+            {{ store.errorMessage }}
+          </p>
+          <p v-if="store.actionStatus === 'error'" class="action-message">{{ store.errorMessage }}</p>
+        </div>
       </aside>
 
       <article v-if="store.selectedUser" class="user-detail">

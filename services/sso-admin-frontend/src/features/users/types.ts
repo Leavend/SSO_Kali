@@ -59,6 +59,20 @@ export type UserMutationResponse = {
   readonly reenrollment_required?: boolean
 }
 
+export type CreateUserPayload = {
+  readonly email: string
+  readonly display_name: string
+  readonly given_name?: string
+  readonly family_name?: string
+  readonly role: 'admin' | 'user'
+  readonly password?: string
+  readonly local_account_enabled?: boolean
+}
+
+export type CreateUserResponse = {
+  readonly user: AdminUser
+}
+
 export type UserReasonPayload = {
   readonly reason?: string
 }

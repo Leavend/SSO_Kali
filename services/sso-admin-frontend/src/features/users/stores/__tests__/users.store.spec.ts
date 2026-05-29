@@ -3,10 +3,11 @@ import { createPinia, setActivePinia } from 'pinia'
 import { ApiError, getLastRequestId } from '@/lib/api/api-client'
 import { usersApi } from '../../services/users.api'
 import { useUsersStore } from '../users.store'
-import type { AdminUser, UserDetailResponse, UserMutationResponse } from '../../types'
+import type { AdminUser, CreateUserResponse, UserDetailResponse, UserMutationResponse } from '../../types'
 
 vi.mock('../../services/users.api', () => ({
   usersApi: {
+    create: vi.fn<(payload: unknown) => Promise<CreateUserResponse>>(),
     list: vi.fn<() => Promise<{ users: readonly AdminUser[] }>>(),
     show: vi.fn<(subjectId: string) => Promise<UserDetailResponse>>(),
     lock: vi.fn<(subjectId: string, payload: unknown) => Promise<UserMutationResponse>>(),
@@ -40,6 +41,7 @@ const user: AdminUser = {
 describe('useUsersStore', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    vi.mocked(usersApi.create).mockReset()
     vi.mocked(usersApi.list).mockReset()
     vi.mocked(usersApi.show).mockReset()
     vi.mocked(usersApi.lock).mockReset()
@@ -144,5 +146,75 @@ describe('useUsersStore', () => {
       'Aksi ini membutuhkan fresh-auth atau MFA assurance. Ulangi login admin lalu coba lagi.',
     )
     expect(store.errorMessage).not.toContain('raw ACR')
+  })
+
+  describe('createUser', () => {
+    const createPayload = {
+      email: 'new@example.test',
+      display_name: 'New User',
+      role: 'user' as const,
+      local_account_enabled: true,
+    }
+
+    it('posts create payload, appends user, sets selectedSubjectId', async () => {
+      const newUser: AdminUser = {
+        subject_id: 'sub_new',
+        email: 'new@example.test',
+        display_name: 'New User',
+        role: 'user',
+        status: 'active',
+        local_account_enabled: true,
+      }
+      vi.mocked(usersApi.create).mockResolvedValue({ user: newUser })
+      const store = useUsersStore()
+      store.users = [user]
+
+      await store.createUser(createPayload)
+
+      expect(usersApi.create).toHaveBeenCalledWith(createPayload)
+      expect(store.users).toHaveLength(2)
+      expect(store.users[1]?.subject_id).toBe('sub_new')
+      expect(store.selectedSubjectId).toBe('sub_new')
+      expect(store.actionStatus).toBe('success')
+      expect(store.auditEventId).toBeNull()
+    })
+
+    it('maps validation error 422 to safe action copy', async () => {
+      vi.mocked(usersApi.create).mockRejectedValue(
+        new ApiError(422, 'raw validation: email not unique', 'validation_error'),
+      )
+      const store = useUsersStore()
+
+      await store.createUser(createPayload)
+
+      expect(store.actionStatus).toBe('error')
+      expect(store.errorMessage).not.toContain('raw validation')
+    })
+
+    it('maps step-up 428 to step_up_required state', async () => {
+      vi.mocked(usersApi.create).mockRejectedValue(
+        new ApiError(428, 'fresh auth required', 'fresh_auth_required'),
+      )
+      const store = useUsersStore()
+
+      await store.createUser(createPayload)
+
+      expect(store.actionStatus).toBe('step_up_required')
+      expect(store.errorMessage).toBe(
+        'Aksi ini membutuhkan fresh-auth atau MFA assurance. Ulangi login admin lalu coba lagi.',
+      )
+    })
+
+    it('maps forbidden 403 to safe copy', async () => {
+      vi.mocked(usersApi.create).mockRejectedValue(
+        new ApiError(403, 'raw permission missing', 'permission_required'),
+      )
+      const store = useUsersStore()
+
+      await store.createUser(createPayload)
+
+      expect(store.actionStatus).toBe('error')
+      expect(store.errorMessage).not.toContain('raw permission')
+    })
   })
 })

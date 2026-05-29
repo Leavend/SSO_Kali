@@ -7,6 +7,7 @@ import type { AdminUser } from '../../types'
 
 vi.mock('../../services/users.api', () => ({
   usersApi: {
+    create: vi.fn<() => Promise<unknown>>(),
     list: vi.fn<() => Promise<unknown>>(),
     show: vi.fn<() => Promise<unknown>>(),
     lock: vi.fn<() => Promise<unknown>>(),
@@ -109,5 +110,20 @@ describe('UsersPage', () => {
     const wrapper = mount(UsersPage)
 
     expect(wrapper.text()).toContain('Belum ada user untuk ditampilkan.')
+  })
+
+  it('renders create user form with email, display_name, role inputs', async () => {
+    const store = useUsersStore()
+    store.status = 'success'
+    store.users = [user]
+    store.selectedSubjectId = 'sub_admin'
+
+    const wrapper = mount(UsersPage)
+
+    expect(wrapper.text()).toContain('Create User')
+    await wrapper.find('button.create-user-toggle').trigger('click')
+    expect(wrapper.find('input[name="create-email"]').exists()).toBe(true)
+    expect(wrapper.find('input[name="create-display-name"]').exists()).toBe(true)
+    expect(wrapper.find('select[name="create-role"]').exists()).toBe(true)
   })
 })

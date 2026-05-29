@@ -1,5 +1,7 @@
 import { apiClient } from '@/lib/api/api-client'
 import type {
+  CreateUserPayload,
+  CreateUserResponse,
   UserDetailResponse,
   UserListResponse,
   UserLockPayload,
@@ -8,6 +10,9 @@ import type {
 } from '../types'
 
 export const usersApi = {
+  create(payload: CreateUserPayload): Promise<CreateUserResponse> {
+    return apiClient.post<CreateUserResponse>('/api/admin/users', payload)
+  },
   list(): Promise<UserListResponse> {
     return apiClient.get<UserListResponse>('/api/admin/users')
   },

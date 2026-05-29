@@ -2,7 +2,7 @@ import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { ApiError, getLastRequestId } from '@/lib/api/api-client'
 import { usersApi } from '../services/users.api'
-import type { AdminUser, AdminUserLoginContext, AdminUserSession } from '../types'
+import type { AdminUser, AdminUserLoginContext, AdminUserSession, CreateUserPayload } from '../types'
 
 export type UsersStatus = 'idle' | 'loading' | 'success' | 'unauthenticated' | 'forbidden' | 'error'
 export type UserActionStatus = 'idle' | 'loading' | 'success' | 'step_up_required' | 'error'
@@ -53,6 +53,22 @@ export const useUsersStore = defineStore('admin-users', () => {
       loginContext.value = response.login_context ?? null
       sessions.value = response.sessions ?? []
       requestId.value = getLastRequestId()
+    } catch (error) {
+      handleActionError(error)
+    }
+  }
+
+  async function createUser(payload: CreateUserPayload): Promise<void> {
+    actionStatus.value = 'loading'
+    errorMessage.value = null
+
+    try {
+      const response = await usersApi.create(payload)
+      users.value = [...users.value, response.user]
+      selectedSubjectId.value = response.user.subject_id
+      auditEventId.value = null
+      requestId.value = getLastRequestId()
+      actionStatus.value = 'success'
     } catch (error) {
       handleActionError(error)
     }
@@ -189,6 +205,7 @@ export const useUsersStore = defineStore('admin-users', () => {
     passwordResetExpiresAt,
     load,
     selectUser,
+    createUser,
     lockSelected,
     unlockSelected,
     deactivateSelected,
