@@ -6,9 +6,17 @@ import type { SsoErrorTemplate, UpsertSsoErrorTemplatePayload } from '../types'
 
 const store = useSsoErrorTemplatesStore()
 const errorCodes = [
-  'invalid_request', 'invalid_grant', 'access_denied', 'login_required',
-  'interaction_required', 'temporarily_unavailable', 'network_error',
-  'server_error', 'configuration_error', 'session_expired', 'csrf_failed',
+  'invalid_request',
+  'invalid_grant',
+  'access_denied',
+  'login_required',
+  'interaction_required',
+  'temporarily_unavailable',
+  'network_error',
+  'server_error',
+  'configuration_error',
+  'session_expired',
+  'csrf_failed',
 ]
 
 const editingCode = ref<string | null>(null)
@@ -70,11 +78,14 @@ function templateFor(code: string): SsoErrorTemplate | undefined {
       <p class="eyebrow">Security Governance</p>
       <h1 id="sso-templates-title">SSO Error Templates</h1>
       <p class="page-summary">
-        Kustomisasi pesan error SSO per error code. Tampilan yang akan dilihat pengguna saat terjadi error.
+        Kustomisasi pesan error SSO per error code. Tampilan yang akan dilihat pengguna saat terjadi
+        error.
       </p>
     </div>
 
-    <div v-if="store.status === 'loading'" class="state-card" role="status">Memuat SSO error templates...</div>
+    <div v-if="store.status === 'loading'" class="state-card" role="status">
+      Memuat SSO error templates...
+    </div>
 
     <div
       v-else-if="store.status === 'forbidden'"
@@ -106,11 +117,7 @@ function templateFor(code: string): SsoErrorTemplate | undefined {
 
     <div v-else class="policy-layout">
       <section class="detail-section" aria-label="SSO error template catalog">
-        <div
-          v-for="code in errorCodes"
-          :key="code"
-          class="state-card"
-        >
+        <div v-for="code in errorCodes" :key="code" class="state-card">
           <template v-if="editingCode === code">
             <div class="edit-form">
               <label class="reason-field">
@@ -144,7 +151,9 @@ function templateFor(code: string): SsoErrorTemplate | undefined {
                 </label>
               </div>
               <div class="action-row compact-actions">
-                <button class="primary-action" type="button" @click="saveTemplate(code)">Save</button>
+                <button class="primary-action" type="button" @click="saveTemplate(code)">
+                  Save
+                </button>
                 <button class="secondary-action" type="button" @click="cancelEdit()">Cancel</button>
               </div>
             </div>
@@ -152,19 +161,44 @@ function templateFor(code: string): SsoErrorTemplate | undefined {
           <template v-else>
             <div class="template-header">
               <strong>{{ code }}</strong>
-              <span v-if="templateFor(code)?.is_enabled" class="status-badge status-badge--enabled">enabled</span>
+              <span v-if="templateFor(code)?.is_enabled" class="status-badge status-badge--enabled"
+                >enabled</span
+              >
               <span v-else class="status-badge status-badge--default">default</span>
             </div>
             <p v-if="templateFor(code)">
-              <strong>{{ templateFor(code)!.title }}</strong> &mdash; {{ templateFor(code)!.message }}
+              <strong>{{ templateFor(code)!.title }}</strong> &mdash;
+              {{ templateFor(code)!.message }}
             </p>
             <p v-if="templateFor(code)">
               Action: {{ templateFor(code)!.action_label }}
-              <span v-if="templateFor(code)!.action_url">({{ templateFor(code)!.action_url }})</span>
+              <span v-if="templateFor(code)!.action_url"
+                >({{ templateFor(code)!.action_url }})</span
+              >
             </p>
             <p v-else class="muted">Default catalog entry (belum di-customize).</p>
             <div class="action-row compact-actions">
-              <button class="primary-action" type="button" @click="startEdit(templateFor(code) ?? { error_code: code, locale: 'id', title: '', message: '', action_label: '', action_url: null, retry_allowed: false, alternative_login_allowed: false, is_enabled: false })">Edit</button>
+              <button
+                class="primary-action"
+                type="button"
+                @click="
+                  startEdit(
+                    templateFor(code) ?? {
+                      error_code: code,
+                      locale: 'id',
+                      title: '',
+                      message: '',
+                      action_label: '',
+                      action_url: null,
+                      retry_allowed: false,
+                      alternative_login_allowed: false,
+                      is_enabled: false,
+                    },
+                  )
+                "
+              >
+                Edit
+              </button>
               <button class="danger-action" type="button" @click="handleReset(code)">Reset</button>
             </div>
           </template>

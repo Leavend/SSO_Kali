@@ -3,7 +3,12 @@ import { createPinia, setActivePinia } from 'pinia'
 import { ApiError, getLastRequestId } from '@/lib/api/api-client'
 import { usersApi } from '../../services/users.api'
 import { useUsersStore } from '../users.store'
-import type { AdminUser, CreateUserResponse, UserDetailResponse, UserMutationResponse } from '../../types'
+import type {
+  AdminUser,
+  CreateUserResponse,
+  UserDetailResponse,
+  UserMutationResponse,
+} from '../../types'
 
 vi.mock('../../services/users.api', () => ({
   usersApi: {

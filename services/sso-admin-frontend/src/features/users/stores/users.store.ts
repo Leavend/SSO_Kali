@@ -2,7 +2,12 @@ import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { ApiError, getLastRequestId } from '@/lib/api/api-client'
 import { usersApi } from '../services/users.api'
-import type { AdminUser, AdminUserLoginContext, AdminUserSession, CreateUserPayload } from '../types'
+import type {
+  AdminUser,
+  AdminUserLoginContext,
+  AdminUserSession,
+  CreateUserPayload,
+} from '../types'
 
 export type UsersStatus = 'idle' | 'loading' | 'success' | 'unauthenticated' | 'forbidden' | 'error'
 export type UserActionStatus = 'idle' | 'loading' | 'success' | 'step_up_required' | 'error'

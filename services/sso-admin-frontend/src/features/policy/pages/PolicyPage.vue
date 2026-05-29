@@ -52,7 +52,11 @@ async function submitCreateRole(): Promise<void> {
   }
 }
 
-function startEditRole(role: { readonly slug: string; readonly name: string; readonly description?: string | null }): void {
+function startEditRole(role: {
+  readonly slug: string
+  readonly name: string
+  readonly description?: string | null
+}): void {
   editingRoleSlug.value = role.slug
   editRoleName.value = role.name
   editRoleDescription.value = role.description ?? ''
@@ -207,7 +211,9 @@ async function handleDeleteRole(roleSlug: string): Promise<void> {
           <p v-if="store.actionStatus === 'step_up_required'" class="action-message">
             {{ store.errorMessage }}
           </p>
-          <p v-if="store.actionStatus === 'error'" class="action-message">{{ store.errorMessage }}</p>
+          <p v-if="store.actionStatus === 'error'" class="action-message">
+            {{ store.errorMessage }}
+          </p>
         </div>
 
         <div v-for="role in store.roles" :key="role.slug" class="state-card">
@@ -235,7 +241,9 @@ async function handleDeleteRole(roleSlug: string): Promise<void> {
               </li>
             </ul>
             <div class="action-row compact-actions">
-              <button class="primary-action" type="button" @click="startEditRole(role)">Edit</button>
+              <button class="primary-action" type="button" @click="startEditRole(role)">
+                Edit
+              </button>
               <button
                 v-if="!role.is_system"
                 class="danger-action"

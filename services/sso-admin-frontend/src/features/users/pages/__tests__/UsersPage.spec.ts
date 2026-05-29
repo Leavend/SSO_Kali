@@ -3,6 +3,7 @@ import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import UsersPage from '../UsersPage.vue'
 import { useUsersStore } from '../../stores/users.store'
+import { useSessionsStore } from '../../../sessions/stores/sessions.store'
 import type { AdminUser } from '../../types'
 
 vi.mock('../../services/users.api', () => ({
@@ -16,6 +17,15 @@ vi.mock('../../services/users.api', () => ({
     reactivate: vi.fn<() => Promise<unknown>>(),
     issuePasswordReset: vi.fn<() => Promise<unknown>>(),
     resetMfa: vi.fn<() => Promise<unknown>>(),
+  },
+}))
+
+vi.mock('../../../sessions/services/sessions.api', () => ({
+  sessionsApi: {
+    list: vi.fn<() => Promise<unknown>>(),
+    show: vi.fn<() => Promise<unknown>>(),
+    revoke: vi.fn<() => Promise<unknown>>(),
+    revokeUserSessions: vi.fn<() => Promise<unknown>>(),
   },
 }))
 
@@ -125,5 +135,27 @@ describe('UsersPage', () => {
     expect(wrapper.find('input[name="create-email"]').exists()).toBe(true)
     expect(wrapper.find('input[name="create-display-name"]').exists()).toBe(true)
     expect(wrapper.find('select[name="create-role"]').exists()).toBe(true)
+  })
+
+  it('renders revoke user sessions button and calls sessionsStore.revokeUserSessions', async () => {
+    const store = useUsersStore()
+    store.status = 'success'
+    store.users = [user]
+    store.selectedSubjectId = 'sub_admin'
+    store.loginContext = {
+      ip_address: '203.0.113.10',
+      risk_score: 3,
+      mfa_required: false,
+    }
+
+    const sessionsStore = useSessionsStore()
+    const revokeSpy = vi.spyOn(sessionsStore, 'revokeUserSessions')
+
+    const wrapper = mount(UsersPage)
+
+    expect(wrapper.text()).toContain('Revoke User Sessions')
+    await wrapper.find('button.revoke-user-sessions-button').trigger('click')
+
+    expect(revokeSpy).toHaveBeenCalledWith('sub_admin')
   })
 })

@@ -2,9 +2,11 @@
 import { computed, onMounted, ref } from 'vue'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
 import { useUsersStore } from '../stores/users.store'
+import { useSessionsStore } from '@/features/sessions/stores/sessions.store'
 import type { CreateUserPayload } from '../types'
 
 const store = useUsersStore()
+const sessionsStore = useSessionsStore()
 const reason = ref('Admin review')
 const showCreateForm = ref(false)
 
@@ -145,7 +147,12 @@ async function submitCreateUser(): Promise<void> {
           </label>
           <label class="reason-field">
             Password (optional)
-            <input v-model="createPassword" name="create-password" type="password" autocomplete="off" />
+            <input
+              v-model="createPassword"
+              name="create-password"
+              type="password"
+              autocomplete="off"
+            />
           </label>
           <label class="checkbox-row">
             <input v-model="createLocalAccountEnabled" type="checkbox" />
@@ -159,10 +166,15 @@ async function submitCreateUser(): Promise<void> {
           >
             {{ store.actionStatus === 'loading' ? 'Creating...' : 'Create' }}
           </button>
-          <p v-if="store.actionStatus === 'step_up_required' && store.selectedSubjectId === null" class="action-message">
+          <p
+            v-if="store.actionStatus === 'step_up_required' && store.selectedSubjectId === null"
+            class="action-message"
+          >
             {{ store.errorMessage }}
           </p>
-          <p v-if="store.actionStatus === 'error'" class="action-message">{{ store.errorMessage }}</p>
+          <p v-if="store.actionStatus === 'error'" class="action-message">
+            {{ store.errorMessage }}
+          </p>
         </div>
       </aside>
 
@@ -221,6 +233,13 @@ async function submitCreateUser(): Promise<void> {
             </li>
           </ul>
           <p v-if="store.sessions.length === 0" class="muted">Tidak ada session evidence.</p>
+          <button
+            class="revoke-user-sessions-button danger-action"
+            type="button"
+            @click="sessionsStore.revokeUserSessions(store.selectedUser.subject_id)"
+          >
+            Revoke User Sessions
+          </button>
         </section>
 
         <section class="detail-section detail-section--danger" aria-labelledby="actions-title">

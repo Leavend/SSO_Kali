@@ -185,10 +185,7 @@ export const usePolicyStore = defineStore('admin-policy', () => {
     }
   }
 
-  async function syncUserRoles(
-    subjectId: string,
-    roleSlugs: readonly string[],
-  ): Promise<void> {
+  async function syncUserRoles(subjectId: string, roleSlugs: readonly string[]): Promise<void> {
     actionStatus.value = 'loading'
     errorMessage.value = null
 
