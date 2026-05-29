@@ -2,6 +2,7 @@
 import { computed, onMounted } from 'vue'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
 import { useOpsStore } from '../stores/ops.store'
+import { OPS_DRILLS, runbookHref } from '../drills'
 
 const store = useOpsStore()
 
@@ -73,44 +74,24 @@ onMounted(() => {
 
       <section class="detail-section" aria-labelledby="drills-title">
         <h2 id="drills-title">Drill evidence</h2>
-        <div class="state-card">
-          <strong>JWKS rotation drill</strong>
+        <p class="page-summary">
+          Drill operasional dieksekusi lewat CI workflow dan runbook (bukan backend admin API). Tiap
+          kartu menautkan system-of-record dan runbook resmi untuk menjalankan dan mengumpulkan
+          evidence.
+        </p>
+        <div v-for="drill in OPS_DRILLS" :key="drill.key" class="state-card">
+          <strong>{{ drill.title }}</strong>
+          <p>{{ drill.summary }}</p>
+          <p class="muted">System of record: {{ drill.systemOfRecord }}</p>
           <p>
-            Evidence source belum tersedia di backend admin contract; gunakan runbook ops sampai
-            endpoint evidence tersedia.
-          </p>
-        </div>
-        <div class="state-card">
-          <strong>Discovery/JWKS availability drill timeline</strong>
-          <p>
-            SLI smoke history belum tersedia di backend admin contract; halaman ini tidak mengambil
-            telemetry credential internal.
-          </p>
-        </div>
-        <div class="state-card">
-          <strong>Backup restore drill</strong>
-          <p>Restore evidence pack belum tersedia di backend admin contract.</p>
-        </div>
-        <div class="state-card">
-          <strong>DR failover drill</strong>
-          <p>Failover signoff artifact belum tersedia di backend admin contract.</p>
-        </div>
-      </section>
-
-      <section class="detail-section" aria-labelledby="integrations-title">
-        <h2 id="integrations-title">Incident & SIEM evidence</h2>
-        <div class="state-card">
-          <strong>Incident runbook evidence</strong>
-          <p>
-            Runbook refs ditampilkan sebagai evidence placeholder sampai backend mengirim artifact
-            IDs.
-          </p>
-        </div>
-        <div class="state-card">
-          <strong>SIEM sink verification</strong>
-          <p>
-            Sink status/signoff belum tersedia di backend admin contract; tidak ada credential sink
-            di browser.
+            <a
+              class="runbook-link"
+              :href="runbookHref(drill.runbookPath)"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Buka runbook: {{ drill.runbookPath }}
+            </a>
           </p>
         </div>
       </section>

@@ -3,6 +3,21 @@ import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import OpsPage from '../OpsPage.vue'
 import { useOpsStore } from '../../stores/ops.store'
+import { OPS_DRILLS } from '../../drills'
+
+const readyReadiness = {
+  service: 'sso-backend',
+  ready: true,
+  checks: {
+    database: true,
+    redis: true,
+    queue: {
+      pending_jobs: 0,
+      failed_jobs: 0,
+      oldest_pending_age_seconds: null,
+    },
+  },
+} as const
 
 describe('OpsPage', () => {
   beforeEach(() => {
@@ -59,5 +74,27 @@ describe('OpsPage', () => {
     const wrapper = mount(OpsPage)
 
     expect(wrapper.text()).toContain('Belum ada evidence operasional untuk ditampilkan.')
+  })
+
+  it('renders a runbook link and system of record for every drill, not a confusing placeholder', () => {
+    const store = useOpsStore()
+    store.status = 'success'
+    store.readiness = readyReadiness
+
+    const wrapper = mount(OpsPage)
+
+    const runbookLinks = wrapper.findAll('a.runbook-link')
+    expect(runbookLinks).toHaveLength(OPS_DRILLS.length)
+
+    for (const link of runbookLinks) {
+      const href = link.attributes('href') ?? ''
+      expect(href).toMatch(/^https:\/\/github\.com\/.+\/docs\/.+\.md$/)
+      expect(link.attributes('rel')).toContain('noopener')
+    }
+
+    // Real system-of-record references replace the old stub copy.
+    expect(wrapper.text()).toContain('jwks-rotation-simulation.yml')
+    expect(wrapper.text()).toContain('backup-restore-drill.yml')
+    expect(wrapper.text()).not.toContain('belum tersedia di backend admin contract')
   })
 })
