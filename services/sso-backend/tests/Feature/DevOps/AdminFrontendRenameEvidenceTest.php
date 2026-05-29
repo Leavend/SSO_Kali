@@ -20,7 +20,8 @@ it('renames the admin frontend service across package compose workflows and depl
         ->and($compose)->toContain('sso-dev-sso-admin-frontend:${APP_IMAGE_TAG:-local}')
         ->and($compose)->toContain('context: ./services/sso-admin-frontend')
         ->and($compose)->toContain('traefik.http.routers.sso-admin-frontend.priority=175')
-        ->and($compose)->toContain('PathPrefix(`${SSO_ADMIN_VUE_BASE_PATH:-/__vue-preview}`)');
+        ->and($compose)->toContain('VITE_PUBLIC_BASE_PATH: ${SSO_ADMIN_FRONTEND_BASE_PATH:-${SSO_ADMIN_VUE_BASE_PATH:-/__vue-preview}}')
+        ->and($compose)->toContain('traefik.http.routers.sso-admin-frontend.rule=Host(`${SSO_ADMIN_DOMAIN:-admin-sso.timeh.my.id}`)');
 
     $files = [
         '.github/workflows/ci.yml',
