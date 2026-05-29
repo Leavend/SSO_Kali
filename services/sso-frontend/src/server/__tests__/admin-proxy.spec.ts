@@ -152,12 +152,32 @@ describe('buildAdminApiRequest', () => {
       headers: { 'content-type': 'application/json' },
       session: portalSession(),
     })
+    const disableRequest = buildAdminApiRequest({
+      internalBaseUrl: 'https://backend.internal/',
+      pathname: '/api/admin/client-integrations/prototype-app-a/disable',
+      search: '',
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      session: portalSession(),
+    })
+    const decommissionRequest = buildAdminApiRequest({
+      internalBaseUrl: 'https://backend.internal/',
+      pathname: '/api/admin/clients/prototype-app-a',
+      search: '',
+      method: 'DELETE',
+      headers: { 'content-type': 'application/json' },
+      session: portalSession(),
+    })
 
     expect(listRequest.url).toBe('https://backend.internal/admin/api/clients')
     expect(updateRequest.url).toBe('https://backend.internal/admin/api/clients/prototype-app-a')
     expect(rotateRequest.url).toBe(
       'https://backend.internal/admin/api/clients/prototype-app-a/rotate-secret',
     )
+    expect(disableRequest.url).toBe(
+      'https://backend.internal/admin/api/client-integrations/prototype-app-a/disable',
+    )
+    expect(decommissionRequest.url).toBe('https://backend.internal/admin/api/clients/prototype-app-a')
     expect(() =>
       buildAdminApiRequest({
         internalBaseUrl: 'https://backend.internal/',
@@ -168,6 +188,41 @@ describe('buildAdminApiRequest', () => {
         session: portalSession(),
       }),
     ).toThrow('Admin API proxy path is not allowed.')
+  })
+
+  it('allows staged client creation, registrations inventory, and scope sync without opening the whole admin API', () => {
+    const stageRequest = buildAdminApiRequest({
+      internalBaseUrl: 'https://backend.internal/',
+      pathname: '/api/admin/client-integrations/stage',
+      search: '',
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      session: portalSession(),
+    })
+    const registrationsRequest = buildAdminApiRequest({
+      internalBaseUrl: 'https://backend.internal/',
+      pathname: '/api/admin/client-integrations/registrations',
+      search: '',
+      method: 'GET',
+      headers: { 'x-request-id': 'req-client-registrations-1' },
+      session: portalSession(),
+    })
+    const scopeSyncRequest = buildAdminApiRequest({
+      internalBaseUrl: 'https://backend.internal/',
+      pathname: '/api/admin/clients/prototype-app-a/scopes',
+      search: '',
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      session: portalSession(),
+    })
+
+    expect(stageRequest.url).toBe('https://backend.internal/admin/api/client-integrations/stage')
+    expect(registrationsRequest.url).toBe(
+      'https://backend.internal/admin/api/client-integrations/registrations',
+    )
+    expect(scopeSyncRequest.url).toBe(
+      'https://backend.internal/admin/api/clients/prototype-app-a/scopes',
+    )
   })
 
   it('allows explicit user lifecycle routes without opening the whole admin API', () => {

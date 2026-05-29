@@ -9,8 +9,10 @@ vi.mock('../../services/clients.api', () => ({
   clientsApi: {
     list: vi.fn<() => Promise<{ clients: readonly AdminClient[] }>>(),
     show: vi.fn<(clientId: string) => Promise<{ client: AdminClient }>>(),
+    registrations: vi.fn<() => Promise<{ registrations: readonly AdminClient[] }>>(),
     update: vi.fn<(clientId: string, payload: unknown) => Promise<{ client: AdminClient }>>(),
-    create: vi.fn<(payload: unknown) => Promise<{ client: AdminClient }>>(),
+    create: vi.fn<(payload: unknown) => Promise<{ registration: AdminClient }>>(),
+    syncScopes: vi.fn<(clientId: string, payload: unknown) => Promise<{ client: AdminClient }>>(),
     disable:
       vi.fn<(clientId: string, payload: unknown) => Promise<{ registration: AdminClient }>>(),
     decommission: vi.fn<(clientId: string) => Promise<{ registration: AdminClient }>>(),
@@ -50,23 +52,64 @@ describe('useClientsStore', () => {
     setActivePinia(createPinia())
     vi.mocked(clientsApi.list).mockReset()
     vi.mocked(clientsApi.show).mockReset()
+    vi.mocked(clientsApi.registrations).mockReset()
     vi.mocked(clientsApi.update).mockReset()
     vi.mocked(clientsApi.create).mockReset()
+    vi.mocked(clientsApi.syncScopes).mockReset()
     vi.mocked(clientsApi.disable).mockReset()
     vi.mocked(clientsApi.decommission).mockReset()
     vi.mocked(clientsApi.rotateSecret).mockReset()
     vi.mocked(getLastRequestId).mockReturnValue('req-clients-1')
   })
 
-  it('loads clients and stores request evidence', async () => {
+  it('loads runtime clients, merges staged registrations, and stores request evidence', async () => {
     vi.mocked(clientsApi.list).mockResolvedValue({ clients: [client] })
+    vi.mocked(clientsApi.registrations).mockResolvedValue({
+      registrations: [
+        client,
+        {
+          ...client,
+          client_id: 'prototype-app-b',
+          display_name: 'Prototype App B',
+          redirect_uris: ['https://app-b.example.test/callback'],
+          post_logout_redirect_uris: ['https://app-b.example.test/logout'],
+          status: 'staged',
+        },
+      ],
+    })
     const store = useClientsStore()
 
     await store.load()
 
     expect(store.status).toBe('success')
-    expect(store.clients).toEqual([client])
+    expect(store.clients).toEqual([
+      client,
+      {
+        ...client,
+        client_id: 'prototype-app-b',
+        display_name: 'Prototype App B',
+        redirect_uris: ['https://app-b.example.test/callback'],
+        post_logout_redirect_uris: ['https://app-b.example.test/logout'],
+        status: 'staged',
+      },
+    ])
     expect(store.selectedClientId).toBe('prototype-app-a')
+    expect(store.requestId).toBe('req-clients-1')
+  })
+
+  it('keeps runtime client request evidence when registrations load also updates the last request id', async () => {
+    vi.mocked(clientsApi.list).mockImplementation(async () => {
+      vi.mocked(getLastRequestId).mockReturnValue('req-clients-1')
+      return { clients: [client] }
+    })
+    vi.mocked(clientsApi.registrations).mockImplementation(async () => {
+      vi.mocked(getLastRequestId).mockReturnValue('req-client-registrations-1')
+      return { registrations: [client] }
+    })
+    const store = useClientsStore()
+
+    await store.load()
+
     expect(store.requestId).toBe('req-clients-1')
   })
 
@@ -88,26 +131,53 @@ describe('useClientsStore', () => {
       display_name: 'Prototype App B',
       redirect_uris: ['https://app-b.example.test/callback'],
       post_logout_redirect_uris: ['https://app-b.example.test/logout'],
+      status: 'staged',
     }
-    vi.mocked(clientsApi.create).mockResolvedValue({ client: createdClient })
+    vi.mocked(clientsApi.create).mockResolvedValue({ registration: createdClient })
     const store = useClientsStore()
     store.clients = [client]
 
     await store.createClient({
+      app_name: 'Prototype App B',
       client_id: 'prototype-app-b',
-      display_name: 'Prototype App B',
-      redirect_uris: ['https://app-b.example.test/callback'],
-      post_logout_redirect_uris: ['https://app-b.example.test/logout'],
+      environment: 'development',
+      client_type: 'public',
+      app_base_url: 'https://app-b.example.test',
+      callback_path: '/callback',
+      logout_path: '/logout',
+      owner_email: 'owner@example.test',
+      provisioning: 'jit',
     })
 
     expect(store.selectedClientId).toBe('prototype-app-b')
     expect(store.selectedClient).toEqual(createdClient)
     expect(store.requestId).toBe('req-clients-1')
     expect(clientsApi.create).toHaveBeenCalledWith({
+      app_name: 'Prototype App B',
       client_id: 'prototype-app-b',
-      display_name: 'Prototype App B',
-      redirect_uris: ['https://app-b.example.test/callback'],
-      post_logout_redirect_uris: ['https://app-b.example.test/logout'],
+      environment: 'development',
+      client_type: 'public',
+      app_base_url: 'https://app-b.example.test',
+      callback_path: '/callback',
+      logout_path: '/logout',
+      owner_email: 'owner@example.test',
+      provisioning: 'jit',
+    })
+  })
+
+  it('updates client scope consent policy through the dedicated scope API', async () => {
+    vi.mocked(clientsApi.syncScopes).mockResolvedValue({
+      client: { ...client, allowed_scopes: ['openid', 'profile', 'email'] },
+    })
+    const store = useClientsStore()
+    store.clients = [client]
+    store.selectedClientId = client.client_id
+
+    await store.syncSelectedScopes(['openid', 'profile', 'email'])
+
+    expect(store.selectedClient?.allowed_scopes).toEqual(['openid', 'profile', 'email'])
+    expect(clientsApi.syncScopes).toHaveBeenCalledWith('prototype-app-a', {
+      scopes: ['openid', 'profile', 'email'],
     })
   })
 
@@ -139,22 +209,6 @@ describe('useClientsStore', () => {
       display_name: 'Renamed App',
       redirect_uris: ['https://app.example.test/new-callback'],
       post_logout_redirect_uris: ['https://app.example.test/new-logout'],
-    })
-  })
-
-  it('updates client scope consent policy through the API', async () => {
-    vi.mocked(clientsApi.update).mockResolvedValue({
-      client: { ...client, allowed_scopes: ['openid', 'profile'] },
-    })
-    const store = useClientsStore()
-    store.clients = [client]
-    store.selectedClientId = client.client_id
-
-    await store.updateSelected({ allowed_scopes: ['openid', 'profile', 'email'] })
-
-    expect(store.selectedClient?.allowed_scopes).toEqual(['openid', 'profile', 'email'])
-    expect(clientsApi.update).toHaveBeenCalledWith('prototype-app-a', {
-      allowed_scopes: ['openid', 'profile', 'email'],
     })
   })
 

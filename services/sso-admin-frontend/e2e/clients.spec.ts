@@ -54,7 +54,8 @@ const client = {
   environment: 'production',
   app_base_url: 'https://app.example.test',
   redirect_uris: ['https://app.example.test/callback'],
-  post_logout_redirect_uris: ['https://app.example.test/logout'],
+  post_logout_redirect_uris: ['https://app.example.test'],
+  backchannel_logout_uri: 'https://app.example.test/logout',
   allowed_scopes: ['openid', 'profile'],
   owner_email: 'owner@example.test',
   status: 'active',
@@ -69,27 +70,34 @@ test('renders OAuth client console, evidence panel, and one-time client secret f
     await route.fulfill({ contentType: 'application/json', body: JSON.stringify(principal) })
   })
   await page.route('**/api/admin/clients', async (route) => {
-    if (route.request().method() === 'POST') {
-      await route.fulfill({
-        contentType: 'application/json',
-        headers: { 'x-request-id': 'req-create-client-e2e' },
-        body: JSON.stringify({
-          client: {
-            ...client,
-            client_id: 'prototype-app-b',
-            display_name: 'Prototype App B',
-            redirect_uris: ['https://app-b.example.test/callback'],
-            post_logout_redirect_uris: ['https://app-b.example.test/logout'],
-          },
-        }),
-      })
-      return
-    }
-
     await route.fulfill({
       contentType: 'application/json',
       headers: { 'x-request-id': 'req-clients-e2e' },
       body: JSON.stringify({ clients: [client] }),
+    })
+  })
+  await page.route('**/api/admin/client-integrations/registrations', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      headers: { 'x-request-id': 'req-client-registrations-e2e' },
+      body: JSON.stringify({ registrations: [client] }),
+    })
+  })
+  await page.route('**/api/admin/client-integrations/stage', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      headers: { 'x-request-id': 'req-create-client-e2e' },
+      body: JSON.stringify({
+        registration: {
+          ...client,
+          client_id: 'prototype-app-b',
+          display_name: 'Prototype App B',
+          redirect_uris: ['https://app-b.example.test/callback'],
+          post_logout_redirect_uris: ['https://app-b.example.test'],
+          backchannel_logout_uri: 'https://app-b.example.test/auth/backchannel/logout',
+          status: 'staged',
+        },
+      }),
     })
   })
   await page.route('**/api/admin/clients/prototype-app-a', async (route) => {
@@ -116,10 +124,20 @@ test('renders OAuth client console, evidence panel, and one-time client secret f
           ...client,
           redirect_uris: payload.redirect_uris ?? ['https://app.example.test/new-callback'],
           post_logout_redirect_uris: payload.post_logout_redirect_uris ?? [
-            'https://app.example.test/new-logout',
+            'https://app.example.test',
           ],
-          allowed_scopes: payload.allowed_scopes ?? client.allowed_scopes,
+          backchannel_logout_uri:
+            payload.backchannel_logout_uri ?? 'https://app.example.test/new-logout',
         },
+      }),
+    })
+  })
+  await page.route('**/api/admin/clients/prototype-app-a/scopes', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      headers: { 'x-request-id': 'req-scope-sync-e2e' },
+      body: JSON.stringify({
+        client: { ...client, allowed_scopes: ['openid', 'profile', 'email'] },
       }),
     })
   })
@@ -149,27 +167,36 @@ test('renders OAuth client console, evidence panel, and one-time client secret f
   await expect(page.getByRole('heading', { name: 'OAuth Clients' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Prototype App A' })).toBeVisible()
   await expect(page.getByText('https://app.example.test/callback')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Backchannel logout URI' })).toBeVisible()
+  await expect(page.getByText('https://app.example.test/logout')).toBeVisible()
   await expect(page.getByText('Client evidence')).toBeVisible()
   await expect(page.getByText('Request ID')).toBeVisible()
   await expect(page.getByText('req-clients-e2e')).toBeVisible()
 
   await page.locator('input[name="client_id"]').fill('prototype-app-b')
   await page.locator('input[name="create_display_name"]').fill('Prototype App B')
+  await page.locator('input[name="create_owner_email"]').fill('owner@example.test')
   await page
-    .locator('textarea[name="create_redirect_uris"]')
+    .locator('input[name="create_redirect_uri"]')
     .fill('https://app-b.example.test/callback')
   await page
-    .locator('textarea[name="create_post_logout_redirect_uris"]')
-    .fill('https://app-b.example.test/logout')
+    .locator('input[name="create_backchannel_logout_uri"]')
+    .fill('https://app-b.example.test/auth/backchannel/logout')
+  const createRequest = page.waitForRequest(
+    (request) =>
+      request.method() === 'POST' && request.url().includes('/api/admin/client-integrations/stage'),
+  )
   await page.getByRole('button', { name: 'Create client' }).click()
+  await createRequest
   await expect(page.getByRole('heading', { name: 'Prototype App B' })).toBeVisible()
   await expect(page.getByText('req-create-client-e2e')).toBeVisible()
 
   await page.getByRole('button', { name: /Prototype App A/u }).click()
   await expect(page.locator('textarea[name="redirect_uris"]')).toHaveValue(/new-callback/u)
   await page.locator('textarea[name="redirect_uris"]').fill('https://app.example.test/new-callback')
+  await page.locator('textarea[name="post_logout_redirect_uris"]').fill('https://app.example.test')
   await page
-    .locator('textarea[name="post_logout_redirect_uris"]')
+    .locator('input[name="backchannel_logout_uri"]')
     .fill('https://app.example.test/new-logout')
   const uriUpdateResponse = page.waitForResponse(
     (response) =>
@@ -187,8 +214,8 @@ test('renders OAuth client console, evidence panel, and one-time client secret f
   await expect(allowedScopesInput).toHaveValue(/email/u)
   const scopeUpdateRequest = page.waitForRequest(
     (request) =>
-      request.method() === 'PATCH' &&
-      request.url().includes('/api/admin/clients/prototype-app-a') &&
+      request.method() === 'PUT' &&
+      request.url().includes('/api/admin/clients/prototype-app-a/scopes') &&
       (request.postData() ?? '').includes('email'),
   )
   await page.locator('form[data-test="scope-policy-form"]').getByRole('button').click()
@@ -225,6 +252,13 @@ test('shows safe OAuth clients error with request evidence', async ({ page }) =>
       contentType: 'application/json',
       headers: { 'x-request-id': 'req-clients-fail' },
       body: JSON.stringify({ error: 'server_error', message: 'SQLSTATE leaked client trace' }),
+    })
+  })
+  await page.route('**/api/admin/client-integrations/registrations', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      headers: { 'x-request-id': 'req-client-registrations-e2e' },
+      body: JSON.stringify({ registrations: [] }),
     })
   })
 

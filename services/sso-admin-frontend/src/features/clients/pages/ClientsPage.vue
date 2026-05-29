@@ -7,8 +7,9 @@ const store = useClientsStore()
 const createForm = reactive({
   client_id: '',
   display_name: '',
-  redirect_uris: '',
-  post_logout_redirect_uris: '',
+  owner_email: '',
+  redirect_uri: '',
+  backchannel_logout_uri: '',
 })
 const lifecycleForm = reactive({
   disable_reason: '',
@@ -19,6 +20,7 @@ const form = reactive({
   owner_email: '',
   redirect_uris: '',
   post_logout_redirect_uris: '',
+  backchannel_logout_uri: '',
   allowed_scopes: '',
 })
 const uriValidationMessages = ref<readonly string[]>([])
@@ -30,7 +32,14 @@ const scopeParityWarnings = computed(() =>
 )
 
 onMounted(() => {
-  if (store.status === 'idle') void store.load()
+  if (store.status === 'idle') {
+    void store.load().then(() => {
+      syncFormFromSelected()
+    })
+    return
+  }
+
+  syncFormFromSelected()
 })
 
 function linesToValues(value: string): string[] {
@@ -40,11 +49,27 @@ function linesToValues(value: string): string[] {
     .filter(Boolean)
 }
 
+function isValidUrl(value: string): boolean {
+  return URL.canParse(value)
+}
+
+function originOf(value: string): string | null {
+  return isValidUrl(value) ? new URL(value).origin : null
+}
+
+function pathOf(value: string): string {
+  if (!isValidUrl(value)) return ''
+
+  const url = new URL(value)
+  return url.pathname || '/'
+}
+
 function syncFormFromSelected(): void {
   form.display_name = store.selectedClient?.display_name ?? ''
   form.owner_email = store.selectedClient?.owner_email ?? ''
   form.redirect_uris = store.selectedClient?.redirect_uris.join('\n') ?? ''
   form.post_logout_redirect_uris = store.selectedClient?.post_logout_redirect_uris?.join('\n') ?? ''
+  form.backchannel_logout_uri = store.selectedClient?.backchannel_logout_uri ?? ''
   form.allowed_scopes = store.selectedClient?.allowed_scopes?.join('\n') ?? ''
   lifecycleForm.disable_reason = ''
   lifecycleForm.decommission_confirmation = ''
@@ -54,11 +79,12 @@ function syncFormFromSelected(): void {
 function findUriValidationMessages(
   redirectUris: readonly string[],
   logoutUris: readonly string[],
+  backchannelLogoutUri = '',
 ): string[] {
   const messages: string[] = []
   const allUris = [...redirectUris, ...logoutUris]
 
-  if (allUris.some((uri) => !URL.canParse(uri))) {
+  if (allUris.some((uri) => !isValidUrl(uri))) {
     messages.push('Redirect URI harus URL valid.')
   }
 
@@ -66,21 +92,52 @@ function findUriValidationMessages(
     messages.push('Redirect URI tidak boleh duplikat.')
   }
 
+  if (backchannelLogoutUri !== '' && !isValidUrl(backchannelLogoutUri)) {
+    messages.push('Logout URL harus URL valid.')
+    return messages
+  }
+
+  const redirectOrigins = redirectUris
+    .map((uri) => originOf(uri))
+    .filter((origin): origin is string => origin !== null)
+  const expectedOrigin = redirectOrigins[0] ?? null
+  const logoutOrigins = logoutUris
+    .map((uri) => originOf(uri))
+    .filter((origin): origin is string => origin !== null)
+  const backchannelOrigin = originOf(backchannelLogoutUri)
+
+  if (
+    expectedOrigin !== null &&
+    (logoutOrigins.some((origin) => origin !== expectedOrigin) ||
+      (backchannelOrigin !== null && backchannelOrigin !== expectedOrigin))
+  ) {
+    messages.push('Logout URL harus memakai origin yang sama dengan Redirect URI.')
+  }
+
   return messages
 }
 
 async function createClient(): Promise<void> {
-  const redirectUris = linesToValues(createForm.redirect_uris)
-  const logoutUris = linesToValues(createForm.post_logout_redirect_uris)
-  uriValidationMessages.value = findUriValidationMessages(redirectUris, logoutUris)
+  const redirectUri = createForm.redirect_uri.trim()
+  const backchannelLogoutUri = createForm.backchannel_logout_uri.trim()
+  uriValidationMessages.value = findUriValidationMessages(
+    redirectUri === '' ? [] : [redirectUri],
+    [],
+    backchannelLogoutUri,
+  )
 
-  if (uriValidationMessages.value.length > 0) return
+  if (uriValidationMessages.value.length > 0 || !isValidUrl(redirectUri)) return
 
   await store.createClient({
+    app_name: createForm.display_name,
     client_id: createForm.client_id,
-    display_name: createForm.display_name,
-    redirect_uris: redirectUris,
-    post_logout_redirect_uris: logoutUris,
+    environment: 'development',
+    client_type: 'public',
+    app_base_url: originOf(redirectUri) ?? '',
+    callback_path: pathOf(redirectUri),
+    logout_path: pathOf(backchannelLogoutUri),
+    owner_email: createForm.owner_email,
+    provisioning: 'jit',
   })
   syncFormFromSelected()
 }
@@ -100,22 +157,26 @@ async function saveMetadata(): Promise<void> {
 async function saveUriPolicy(): Promise<void> {
   const redirectUris = linesToValues(form.redirect_uris)
   const logoutUris = linesToValues(form.post_logout_redirect_uris)
-  uriValidationMessages.value = findUriValidationMessages(redirectUris, logoutUris)
+  const backchannelLogoutUri = form.backchannel_logout_uri.trim()
+  uriValidationMessages.value = findUriValidationMessages(
+    redirectUris,
+    logoutUris,
+    backchannelLogoutUri,
+  )
 
   if (uriValidationMessages.value.length > 0) return
 
   await store.updateSelected({
     redirect_uris: redirectUris,
     post_logout_redirect_uris: logoutUris,
+    backchannel_logout_uri: backchannelLogoutUri,
   })
   syncFormFromSelected()
 }
 
 async function saveScopePolicy(): Promise<void> {
   const allowedScopes = linesToValues(form.allowed_scopes)
-  await store.updateSelected({
-    allowed_scopes: allowedScopes,
-  })
+  await store.syncSelectedScopes(allowedScopes)
   form.allowed_scopes = allowedScopes.join('\n')
 }
 
@@ -199,15 +260,27 @@ async function rotateSecret(): Promise<void> {
             />
           </label>
           <label>
-            Redirect URIs
-            <textarea v-model="createForm.redirect_uris" name="create_redirect_uris" rows="3" />
+            Owner email
+            <input
+              v-model="createForm.owner_email"
+              name="create_owner_email"
+              autocomplete="email"
+            />
           </label>
           <label>
-            Post Logout Redirect URIs
-            <textarea
-              v-model="createForm.post_logout_redirect_uris"
-              name="create_post_logout_redirect_uris"
-              rows="3"
+            Redirect URI
+            <input
+              v-model="createForm.redirect_uri"
+              name="create_redirect_uri"
+              autocomplete="url"
+            />
+          </label>
+          <label>
+            Logout URL
+            <input
+              v-model="createForm.backchannel_logout_uri"
+              name="create_backchannel_logout_uri"
+              autocomplete="url"
             />
           </label>
           <button class="primary-action" type="submit">Create client</button>
@@ -276,6 +349,11 @@ async function rotateSecret(): Promise<void> {
           </ul>
         </section>
 
+        <section class="detail-section" aria-labelledby="backchannel-logout-uri-title">
+          <h3 id="backchannel-logout-uri-title">Backchannel logout URI</h3>
+          <p>{{ store.selectedClient.backchannel_logout_uri ?? 'Belum ada evidence' }}</p>
+        </section>
+
         <section class="detail-section" aria-labelledby="uri-policy-title">
           <h3 id="uri-policy-title">URI policy</h3>
           <form class="client-form" data-test="uri-policy-form" @submit.prevent="saveUriPolicy">
@@ -292,6 +370,14 @@ async function rotateSecret(): Promise<void> {
                 v-model="form.post_logout_redirect_uris"
                 name="post_logout_redirect_uris"
                 rows="4"
+              />
+            </label>
+            <label>
+              Backchannel logout URI
+              <input
+                v-model="form.backchannel_logout_uri"
+                name="backchannel_logout_uri"
+                autocomplete="url"
               />
             </label>
             <button class="primary-action" type="submit">Simpan URI policy</button>

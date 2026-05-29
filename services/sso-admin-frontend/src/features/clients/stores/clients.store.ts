@@ -40,9 +40,11 @@ export const useClientsStore = defineStore('admin-clients', () => {
 
     try {
       const response = await clientsApi.list()
-      clients.value = response.clients
-      selectedClientId.value = response.clients[0]?.client_id ?? null
-      requestId.value = getLastRequestId()
+      const listRequestId = getLastRequestId()
+      const registrations = await clientsApi.registrations()
+      clients.value = mergeClients(response.clients, registrations.registrations)
+      selectedClientId.value = clients.value[0]?.client_id ?? null
+      requestId.value = listRequestId
       status.value = 'success'
     } catch (error) {
       clients.value = []
@@ -74,8 +76,8 @@ export const useClientsStore = defineStore('admin-clients', () => {
 
     try {
       const response = await clientsApi.create(payload)
-      upsertClient(response.client)
-      selectedClientId.value = response.client.client_id
+      upsertClient(response.registration)
+      selectedClientId.value = response.registration.client_id
       requestId.value = getLastRequestId()
     } catch (error) {
       handleGenericError(error)
@@ -89,6 +91,21 @@ export const useClientsStore = defineStore('admin-clients', () => {
     try {
       const response = await clientsApi.update(selectedClientId.value, payload)
       upsertClient({ ...response.client, ...payload })
+      requestId.value = getLastRequestId()
+    } catch (error) {
+      handleGenericError(error)
+    }
+  }
+
+  async function syncSelectedScopes(scopes: readonly string[]): Promise<void> {
+    if (!selectedClientId.value) return
+    errorMessage.value = null
+
+    try {
+      const response = await clientsApi.syncScopes(selectedClientId.value, {
+        scopes: [...scopes],
+      })
+      upsertClient(response.client)
       requestId.value = getLastRequestId()
     } catch (error) {
       handleGenericError(error)
@@ -151,6 +168,18 @@ export const useClientsStore = defineStore('admin-clients', () => {
           )
   }
 
+  function mergeClients(
+    runtimeClients: readonly AdminClient[],
+    registrationClients: readonly AdminClient[],
+  ): readonly AdminClient[] {
+    const merged = new Map<string, AdminClient>()
+
+    for (const client of registrationClients) merged.set(client.client_id, client)
+    for (const client of runtimeClients) merged.set(client.client_id, client)
+
+    return [...merged.values()]
+  }
+
   function handleListError(error: unknown): void {
     if (error instanceof ApiError) {
       requestId.value = error.requestId ?? getLastRequestId()
@@ -207,6 +236,7 @@ export const useClientsStore = defineStore('admin-clients', () => {
     selectClient,
     createClient,
     updateSelected,
+    syncSelectedScopes,
     disableSelected,
     decommissionSelected,
     rotateSelectedSecret,

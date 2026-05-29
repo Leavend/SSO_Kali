@@ -26,6 +26,10 @@ export type ClientDetailResponse = {
   readonly client: AdminClient
 }
 
+export type ClientRegistrationsResponse = {
+  readonly registrations: readonly AdminClient[]
+}
+
 export type ClientUpdatePayload = Partial<
   Pick<
     AdminClient,
@@ -33,24 +37,33 @@ export type ClientUpdatePayload = Partial<
     | 'owner_email'
     | 'redirect_uris'
     | 'post_logout_redirect_uris'
-    | 'allowed_scopes'
     | 'backchannel_logout_uri'
   >
 >
 
-export type ClientCreatePayload = Pick<AdminClient, 'client_id' | 'redirect_uris'> &
-  Partial<
-    Pick<
-      AdminClient,
-      | 'display_name'
-      | 'owner_email'
-      | 'type'
-      | 'environment'
-      | 'app_base_url'
-      | 'post_logout_redirect_uris'
-      | 'allowed_scopes'
-    >
-  >
+export type ClientCreatePayload = {
+  readonly app_name: string
+  readonly client_id: string
+  readonly environment: 'development' | 'live'
+  readonly client_type: 'public' | 'confidential'
+  readonly app_base_url: string
+  readonly callback_path: string
+  readonly logout_path: string
+  readonly owner_email: string
+  readonly provisioning: 'jit' | 'scim'
+}
+
+export type ClientCreateResponse = {
+  readonly registration: AdminClient
+}
+
+export type ClientScopeSyncPayload = {
+  readonly scopes: readonly string[]
+}
+
+export type ClientScopeSyncResponse = {
+  readonly client: AdminClient
+}
 
 export type ClientLifecyclePayload = {
   readonly reason: string
