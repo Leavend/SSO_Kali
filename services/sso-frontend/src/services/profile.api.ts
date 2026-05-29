@@ -16,11 +16,17 @@ import {
 import type {
   ChangePasswordPayload,
   ChangePasswordResponse,
+  ConfirmEmailChangePayload,
+  ConfirmPhoneChangePayload,
   ConnectedApp,
   CreateDataSubjectRequestPayload,
   DataSubjectRequestSummary,
+  EmailChangeResponse,
+  PhoneChangeResponse,
   ProfilePortal,
   ProfileUpdatePayload,
+  RequestEmailChangePayload,
+  RequestPhoneChangePayload,
   RevokeAllSessionsResponse,
   RevokeConnectedAppResponse,
   RevokeSessionResponse,
@@ -103,6 +109,30 @@ export const profileApi = {
       '/api/profile/data-subject-requests',
     )
     return data.requests
+  },
+  requestEmailChange(payload: RequestEmailChangePayload): Promise<EmailChangeResponse> {
+    if (isPortalPreviewBypassEnabled()) {
+      return Promise.resolve({ message: 'Token verifikasi telah dikirim ke email baru.' })
+    }
+    return apiClient.post<EmailChangeResponse>('/api/profile/email-change', payload)
+  },
+  confirmEmailChange(payload: ConfirmEmailChangePayload): Promise<EmailChangeResponse> {
+    if (isPortalPreviewBypassEnabled()) {
+      return Promise.resolve({ message: 'Email berhasil diubah.' })
+    }
+    return apiClient.post<EmailChangeResponse>('/api/profile/email-change/confirm', payload)
+  },
+  requestPhoneChange(payload: RequestPhoneChangePayload): Promise<PhoneChangeResponse> {
+    if (isPortalPreviewBypassEnabled()) {
+      return Promise.resolve({ message: 'Kode OTP telah dikirim ke nomor baru.' })
+    }
+    return apiClient.post<PhoneChangeResponse>('/api/profile/phone-change', payload)
+  },
+  confirmPhoneChange(payload: ConfirmPhoneChangePayload): Promise<PhoneChangeResponse> {
+    if (isPortalPreviewBypassEnabled()) {
+      return Promise.resolve({ message: 'Nomor telepon berhasil diubah.' })
+    }
+    return apiClient.post<PhoneChangeResponse>('/api/profile/phone-change/confirm', payload)
   },
   async createDataSubjectRequest(
     payload: CreateDataSubjectRequestPayload,

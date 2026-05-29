@@ -10,6 +10,8 @@ export type ProfilePortal = {
     readonly family_name?: string
     readonly email?: string
     readonly email_verified?: boolean
+    readonly phone?: string | null
+    readonly phone_verified?: boolean
     readonly status: string
     readonly profile_synced_at?: string | null
     readonly last_login_at?: string | null
@@ -117,4 +119,30 @@ export type DataSubjectRequestSummary = {
 export type CreateDataSubjectRequestPayload = {
   readonly type: DataSubjectRequestType
   readonly reason?: string | null
+}
+
+export interface RequestEmailChangePayload {
+  readonly new_email: string
+  readonly current_password: string
+}
+
+export interface ConfirmEmailChangePayload {
+  readonly token: string
+}
+
+export interface EmailChangeResponse {
+  readonly message: string
+}
+
+export interface RequestPhoneChangePayload {
+  readonly new_phone: string
+  readonly current_password: string
+}
+
+export interface ConfirmPhoneChangePayload {
+  readonly otp: string
+}
+
+export interface PhoneChangeResponse {
+  readonly message: string
 }

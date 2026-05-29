@@ -87,20 +87,17 @@ describe('ProfilePage', () => {
     )
   })
 
-  it('provides avatar upload affordance and locked identity context', async () => {
+  it('provides avatar upload affordance and changeable identity context', async () => {
     const wrapper = await mountProfilePage()
 
     expect(wrapper.find('[data-testid="profile-avatar-upload"]').text()).toContain('BPU')
     expect(wrapper.text()).toContain('Klik avatar untuk mengubah foto profil')
     expect(wrapper.text()).toContain('JPG, PNG, WebP · Maks 2MB')
-    expect(wrapper.find('#profile-email').element).toHaveProperty(
-      'value',
-      'preview.user@dev-sso.local',
-    )
-    expect(wrapper.find('#profile-email').attributes()).toHaveProperty('readonly')
-    expect(wrapper.text()).toContain('Email tidak dapat diubah dari portal')
+    expect(wrapper.text()).toContain('preview.user@dev-sso.local')
+    expect(wrapper.text()).toContain('Ganti Email')
     expect(wrapper.text()).toContain('Aktif')
     expect(wrapper.text()).not.toContain('active')
+    expect(wrapper.text()).toContain('Status akun')
   })
 
   it('resets edits when the user cancels changes', async () => {

@@ -1,13 +1,18 @@
 <script setup lang="ts">
-import { Save, Upload, UserRound, X } from 'lucide-vue-next'
+import { computed, ref } from 'vue'
+import { Mail, Phone, Save, Upload, UserRound, X } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import SsoAlertBanner from '@/components/molecules/SsoAlertBanner.vue'
 import SsoFormField from '@/components/molecules/SsoFormField.vue'
+import EmailChangeDialog from '@/components/molecules/EmailChangeDialog.vue'
+import PhoneChangeDialog from '@/components/molecules/PhoneChangeDialog.vue'
 import PortalPageHeader from '@/components/molecules/PortalPageHeader.vue'
 import { useProfileForm } from '@/composables/useProfileForm'
+import { useProfileStore } from '@/stores/profile.store'
+import { storeToRefs } from 'pinia'
 
 const {
   form,
@@ -30,6 +35,26 @@ const {
   handleCancel,
   openAvatarPicker,
 } = useProfileForm()
+
+const profileStore = useProfileStore()
+const { profile } = storeToRefs(profileStore)
+
+const showEmailDialog = ref(false)
+const showPhoneDialog = ref(false)
+
+const phoneText = computed<string | null>(() => profile.value?.profile?.phone ?? null)
+const phoneDisplay = computed<string>(() => phoneText.value ?? 'Belum diisi')
+const isPhoneSet = computed<boolean>(() => Boolean(phoneText.value))
+
+function onEmailChanged(): Promise<void> {
+  showEmailDialog.value = false
+  return profileStore.loadProfile()
+}
+
+function onPhoneChanged(): Promise<void> {
+  showPhoneDialog.value = false
+  return profileStore.loadProfile()
+}
 </script>
 
 <template>
@@ -37,7 +62,7 @@ const {
     <PortalPageHeader
       eyebrow="Identitas Akun"
       title="Profil"
-      description="Kelola nama dan tampilan akunmu di portal SSO. Email dan nama pengguna tidak bisa diubah untuk menjaga keamanan akun."
+      description="Kelola nama, tampilan, email, dan nomor telepon akunmu di portal SSO."
       :icon="UserRound"
     />
 
@@ -46,10 +71,7 @@ const {
     <Card data-testid="profile-update-card" class="overflow-hidden">
       <CardHeader>
         <CardTitle>Profil Akun</CardTitle>
-        <CardDescription>
-          Informasi dasar yang ditampilkan di portal SSO. Kamu hanya bisa mengubah nama. Email dan
-          nama pengguna dikunci oleh sistem.
-        </CardDescription>
+        <CardDescription> Informasi dasar yang ditampilkan di portal SSO. </CardDescription>
       </CardHeader>
       <CardContent>
         <div v-if="load.pending.value" class="grid gap-4">
@@ -141,16 +163,16 @@ const {
           </SsoFormField>
 
           <div class="grid gap-4 sm:grid-cols-2">
-            <SsoFormField
-              id="profile-email"
-              :model-value="emailText"
-              type="email"
-              label="Email"
-              hint="Email tidak dapat diubah dari portal. Hubungi administrator."
-              readonly
-              class="content-start"
-              input-class="pr-9"
-            />
+            <div class="grid content-start gap-2">
+              <span class="text-sm font-medium">Email</span>
+              <div class="flex items-center gap-2">
+                <span class="text-sm text-muted-foreground">{{ emailText }}</span>
+                <Button type="button" variant="outline" size="sm" @click="showEmailDialog = true">
+                  <Mail class="size-3.5" aria-hidden="true" />
+                  Ganti Email
+                </Button>
+              </div>
+            </div>
             <div class="grid content-start gap-2">
               <span class="text-sm font-medium">Status akun</span>
               <Badge
@@ -199,5 +221,69 @@ const {
         </form>
       </CardContent>
     </Card>
+
+    <Card data-testid="profile-contact-card">
+      <CardHeader>
+        <CardTitle>Kontak</CardTitle>
+        <CardDescription>
+          Kelola email dan nomor telepon untuk verifikasi dan pemulihan akun.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div v-if="load.pending.value" class="grid gap-4">
+          <Skeleton class="h-12 w-full" />
+          <Skeleton class="h-12 w-full" />
+        </div>
+        <div v-else class="grid gap-4">
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div class="grid gap-0.5">
+              <span class="text-sm font-medium">Email</span>
+              <span class="text-sm text-muted-foreground">{{ emailText }}</span>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              data-testid="email-change-button"
+              @click="showEmailDialog = true"
+            >
+              <Mail class="size-3.5" aria-hidden="true" />
+              Ganti Email
+            </Button>
+          </div>
+
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div class="grid gap-0.5">
+              <span class="text-sm font-medium">Nomor Telepon</span>
+              <span class="text-sm text-muted-foreground">{{ phoneDisplay }}</span>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              data-testid="phone-change-button"
+              @click="showPhoneDialog = true"
+            >
+              <Phone class="size-3.5" aria-hidden="true" />
+              {{ isPhoneSet ? 'Ubah Nomor' : 'Tambah Nomor' }}
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+
+    <EmailChangeDialog
+      :open="showEmailDialog"
+      :current-email="emailText"
+      @update:open="showEmailDialog = $event"
+      @done="onEmailChanged()"
+    />
+
+    <PhoneChangeDialog
+      :open="showPhoneDialog"
+      :current-phone="phoneText"
+      @update:open="showPhoneDialog = $event"
+      @done="onPhoneChanged()"
+    />
   </section>
 </template>
