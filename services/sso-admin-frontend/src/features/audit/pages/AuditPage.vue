@@ -2,9 +2,29 @@
 import { computed, onMounted, ref } from 'vue'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
 import { useAuditStore } from '../stores/audit.store'
+import type { AuditExportFilters } from '../types'
 
 const store = useAuditStore()
 const reviewNotes = ref('Evidence verified')
+
+const exportFormat = ref<'csv' | 'jsonl'>('csv')
+const exportFrom = ref('')
+const exportTo = ref('')
+const exportAction = ref('')
+const exportOutcome = ref('')
+
+async function submitExport(): Promise<void> {
+  const action = exportAction.value.trim()
+  const outcome = exportOutcome.value.trim()
+  const filters: AuditExportFilters = {
+    format: exportFormat.value,
+    ...(exportFrom.value && { from: exportFrom.value }),
+    ...(exportTo.value && { to: exportTo.value }),
+    ...(action && { action }),
+    ...(outcome && { outcome }),
+  }
+  await store.exportEvents(filters)
+}
 
 const selectedCorrelationId = computed(
   () => store.selectedAuthenticationEvent?.request?.request_id ?? null,
@@ -69,6 +89,54 @@ onMounted(() => {
     </div>
 
     <div v-else class="audit-layout">
+      <section class="detail-section" aria-labelledby="export-title">
+        <h2 id="export-title">Export Audit Trail</h2>
+        <p class="page-summary">
+          Export audit events terfilter ke CSV atau JSONL. Aksi privileged: backend meminta
+          re-autentikasi (step-up) dan permission AUDIT_EXPORT.
+        </p>
+        <fieldset class="export-format">
+          <legend>Format</legend>
+          <label class="checkbox-row">
+            <input v-model="exportFormat" type="radio" name="export-format" value="csv" />
+            CSV
+          </label>
+          <label class="checkbox-row">
+            <input v-model="exportFormat" type="radio" name="export-format" value="jsonl" />
+            JSONL
+          </label>
+        </fieldset>
+        <div class="export-filters">
+          <label class="reason-field">
+            From
+            <input v-model="exportFrom" name="export-from" type="date" />
+          </label>
+          <label class="reason-field">
+            To
+            <input v-model="exportTo" name="export-to" type="date" />
+          </label>
+          <label class="reason-field">
+            Action
+            <input v-model="exportAction" name="export-action" autocomplete="off" />
+          </label>
+          <label class="reason-field">
+            Outcome
+            <input v-model="exportOutcome" name="export-outcome" autocomplete="off" />
+          </label>
+        </div>
+        <button
+          class="primary-action audit-export-button"
+          type="button"
+          :disabled="store.actionStatus === 'loading'"
+          @click="submitExport"
+        >
+          {{ store.actionStatus === 'loading' ? 'Exporting...' : 'Export' }}
+        </button>
+        <p v-if="store.actionStatus === 'step_up_required'" class="action-message" role="alert">
+          {{ store.errorMessage }}
+        </p>
+      </section>
+
       <section class="detail-section" aria-labelledby="integrity-title">
         <h2 id="integrity-title">Integrity evidence</h2>
         <p class="status-pill">

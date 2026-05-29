@@ -1,16 +1,18 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { ApiError, getLastRequestId } from '@/lib/api/api-client'
+import { triggerBlobDownload } from '@/lib/download/trigger-download'
 import { auditApi } from '../services/audit.api'
 import type {
   AdminAuditEvent,
   AuthenticationAuditEvent,
+  AuditExportFilters,
   AuditIntegrity,
   DataSubjectRequest,
 } from '../types'
 
 export type AuditStatus = 'idle' | 'loading' | 'success' | 'unauthenticated' | 'forbidden' | 'error'
-export type AuditActionStatus = 'idle' | 'loading' | 'success' | 'error'
+export type AuditActionStatus = 'idle' | 'loading' | 'success' | 'step_up_required' | 'error'
 
 export const useAuditStore = defineStore('admin-audit', () => {
   const status = ref<AuditStatus>('idle')
@@ -133,6 +135,20 @@ export const useAuditStore = defineStore('admin-audit', () => {
     }
   }
 
+  async function exportEvents(filters: AuditExportFilters): Promise<void> {
+    actionStatus.value = 'loading'
+    errorMessage.value = null
+
+    try {
+      const { blob, filename } = await auditApi.exportEvents(filters)
+      triggerBlobDownload(blob, filename ?? `audit-export.${filters.format}`)
+      requestId.value = getLastRequestId()
+      actionStatus.value = 'success'
+    } catch (error) {
+      handleActionError(error)
+    }
+  }
+
   function upsertEvent(nextEvent: AdminAuditEvent): void {
     events.value = events.value.some((event) => event.event_id === nextEvent.event_id)
       ? events.value.map((event) => (event.event_id === nextEvent.event_id ? nextEvent : event))
@@ -187,6 +203,14 @@ export const useAuditStore = defineStore('admin-audit', () => {
   function handleActionError(error: unknown): void {
     requestId.value =
       error instanceof ApiError ? (error.requestId ?? getLastRequestId()) : getLastRequestId()
+
+    if (error instanceof ApiError && (error.status === 428 || error.status === 412)) {
+      actionStatus.value = 'step_up_required'
+      errorMessage.value =
+        'Aksi audit membutuhkan re-autentikasi (fresh-auth atau MFA assurance). Ulangi login admin lalu coba lagi.'
+      return
+    }
+
     actionStatus.value = 'error'
     errorMessage.value = requestId.value
       ? `Operasi audit compliance gagal. Gunakan request ID ${requestId.value} untuk investigasi.`
@@ -213,5 +237,6 @@ export const useAuditStore = defineStore('admin-audit', () => {
     selectAuthenticationEvent,
     reviewRequest,
     fulfillRequest,
+    exportEvents,
   }
 })

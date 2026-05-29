@@ -1,4 +1,5 @@
 import { apiClient } from '@/lib/api/api-client'
+import type { BlobResponse } from '@/lib/api/api-client'
 import type {
   AuditEventDetailResponse,
   AuditEventFilters,
@@ -24,8 +25,8 @@ export const auditApi = {
   getIntegrity(): Promise<AuditIntegrityResponse> {
     return apiClient.get<AuditIntegrityResponse>('/api/admin/audit/integrity')
   },
-  exportEvents(filters: AuditExportFilters): Promise<unknown> {
-    return apiClient.get<unknown>(withQuery('/api/admin/audit/export', filters))
+  exportEvents(filters: AuditExportFilters): Promise<BlobResponse> {
+    return apiClient.getBlob(withQuery('/api/admin/audit/export', filters))
   },
   listDataSubjectRequests(
     filters: DataSubjectRequestFilters = {},

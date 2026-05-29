@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { ApiError, getLastRequestId } from '@/lib/api/api-client'
+import { triggerBlobDownload } from '@/lib/download/trigger-download'
 import { auditApi } from '../../services/audit.api'
 import { useAuditStore } from '../audit.store'
 import type {
@@ -15,6 +16,7 @@ vi.mock('../../services/audit.api', () => ({
     listEvents: vi.fn<() => Promise<{ events: readonly AdminAuditEvent[] }>>(),
     showEvent: vi.fn<(eventId: string) => Promise<{ event: AdminAuditEvent }>>(),
     getIntegrity: vi.fn<() => Promise<{ integrity: AuditIntegrity }>>(),
+    exportEvents: vi.fn<() => Promise<{ blob: Blob; filename: string | null }>>(),
     listDataSubjectRequests: vi.fn<() => Promise<{ requests: readonly DataSubjectRequest[] }>>(),
     listAuthenticationEvents:
       vi.fn<() => Promise<{ events: readonly AuthenticationAuditEvent[] }>>(),
@@ -23,6 +25,10 @@ vi.mock('../../services/audit.api', () => ({
     fulfillDataSubjectRequest:
       vi.fn<() => Promise<{ request?: DataSubjectRequest; dry_run?: boolean }>>(),
   },
+}))
+
+vi.mock('@/lib/download/trigger-download', () => ({
+  triggerBlobDownload: vi.fn<(blob: Blob, filename: string) => void>(),
 }))
 
 vi.mock('@/lib/api/api-client', async (importOriginal) => {
@@ -83,11 +89,13 @@ describe('useAuditStore', () => {
     vi.mocked(auditApi.listEvents).mockReset()
     vi.mocked(auditApi.showEvent).mockReset()
     vi.mocked(auditApi.getIntegrity).mockReset()
+    vi.mocked(auditApi.exportEvents).mockReset()
     vi.mocked(auditApi.listDataSubjectRequests).mockReset()
     vi.mocked(auditApi.listAuthenticationEvents).mockReset()
     vi.mocked(auditApi.showAuthenticationEvent).mockReset()
     vi.mocked(auditApi.reviewDataSubjectRequest).mockReset()
     vi.mocked(auditApi.fulfillDataSubjectRequest).mockReset()
+    vi.mocked(triggerBlobDownload).mockReset()
     vi.mocked(getLastRequestId).mockReturnValue('req-audit-1')
   })
 
@@ -168,5 +176,46 @@ describe('useAuditStore', () => {
       'Audit compliance belum bisa dimuat. Coba lagi atau gunakan request ID req-audit-fail untuk investigasi.',
     )
     expect(store.errorMessage).not.toMatch(/Bearer|SQLSTATE/i)
+  })
+
+  describe('exportEvents', () => {
+    it('downloads the export blob using the backend filename and stores evidence', async () => {
+      const blob = new Blob(['action,outcome\n'], { type: 'text/csv' })
+      vi.mocked(auditApi.exportEvents).mockResolvedValue({ blob, filename: 'audit-export.csv' })
+      const store = useAuditStore()
+
+      await store.exportEvents({ format: 'csv', outcome: 'failed' })
+
+      expect(auditApi.exportEvents).toHaveBeenCalledWith({ format: 'csv', outcome: 'failed' })
+      expect(triggerBlobDownload).toHaveBeenCalledWith(blob, 'audit-export.csv')
+      expect(store.actionStatus).toBe('success')
+      expect(store.requestId).toBe('req-audit-1')
+    })
+
+    it('falls back to a format-derived filename when backend omits one', async () => {
+      const blob = new Blob(['{}\n'], { type: 'application/x-ndjson' })
+      vi.mocked(auditApi.exportEvents).mockResolvedValue({ blob, filename: null })
+      const store = useAuditStore()
+
+      await store.exportEvents({ format: 'jsonl' })
+
+      expect(triggerBlobDownload).toHaveBeenCalledWith(blob, expect.stringMatching(/\.jsonl$/))
+      expect(store.actionStatus).toBe('success')
+    })
+
+    it('maps step-up 428 to a re-authentication prompt without downloading', async () => {
+      vi.mocked(auditApi.exportEvents).mockRejectedValue(
+        new ApiError(428, 'raw ACR trace', 'fresh_auth_required', null, 'req-export-step'),
+      )
+      const store = useAuditStore()
+
+      await store.exportEvents({ format: 'csv' })
+
+      expect(triggerBlobDownload).not.toHaveBeenCalled()
+      expect(store.actionStatus).toBe('step_up_required')
+      expect(store.requestId).toBe('req-export-step')
+      expect(store.errorMessage).toContain('re-autentikasi')
+      expect(store.errorMessage).not.toContain('raw ACR')
+    })
   })
 })

@@ -10,6 +10,7 @@ vi.mock('../../services/audit.api', () => ({
     listEvents: vi.fn<() => Promise<unknown>>(),
     showEvent: vi.fn<() => Promise<unknown>>(),
     getIntegrity: vi.fn<() => Promise<unknown>>(),
+    exportEvents: vi.fn<() => Promise<unknown>>(),
     listDataSubjectRequests: vi.fn<() => Promise<unknown>>(),
     listAuthenticationEvents: vi.fn<() => Promise<unknown>>(),
     showAuthenticationEvent: vi.fn<() => Promise<unknown>>(),
@@ -146,5 +147,61 @@ describe('AuditPage', () => {
     const wrapper = mount(AuditPage)
 
     expect(wrapper.text()).toContain('Belum ada evidence audit untuk ditampilkan.')
+  })
+
+  it('submits the export form and calls store.exportEvents with parsed filters', async () => {
+    const store = useAuditStore()
+    store.status = 'success'
+    store.events = [event]
+    store.integrity = { verified: true, checked_events: 1 }
+    const exportSpy = vi.spyOn(store, 'exportEvents').mockResolvedValue()
+
+    const wrapper = mount(AuditPage)
+
+    expect(wrapper.text()).toContain('Export Audit Trail')
+
+    await wrapper.find('input[name="export-from"]').setValue('2026-01-01')
+    await wrapper.find('input[name="export-to"]').setValue('2026-01-31')
+    await wrapper.find('input[name="export-action"]').setValue('admin.user.lock')
+    await wrapper.find('input[name="export-outcome"]').setValue('failed')
+
+    await wrapper.find('button.audit-export-button').trigger('click')
+
+    expect(exportSpy).toHaveBeenCalledWith({
+      format: 'csv',
+      from: '2026-01-01',
+      to: '2026-01-31',
+      action: 'admin.user.lock',
+      outcome: 'failed',
+    })
+  })
+
+  it('exports as jsonl when the jsonl format radio is selected', async () => {
+    const store = useAuditStore()
+    store.status = 'success'
+    store.events = [event]
+    store.integrity = { verified: true, checked_events: 1 }
+    const exportSpy = vi.spyOn(store, 'exportEvents').mockResolvedValue()
+
+    const wrapper = mount(AuditPage)
+
+    await wrapper.find('input[name="export-format"][value="jsonl"]').setValue()
+    await wrapper.find('button.audit-export-button').trigger('click')
+
+    expect(exportSpy).toHaveBeenCalledWith(expect.objectContaining({ format: 'jsonl' }))
+  })
+
+  it('shows a re-authentication prompt when export requires step-up', () => {
+    const store = useAuditStore()
+    store.status = 'success'
+    store.events = [event]
+    store.integrity = { verified: true, checked_events: 1 }
+    store.actionStatus = 'step_up_required'
+    store.errorMessage =
+      'Aksi audit membutuhkan re-autentikasi (fresh-auth atau MFA assurance). Ulangi login admin lalu coba lagi.'
+
+    const wrapper = mount(AuditPage)
+
+    expect(wrapper.text()).toContain('re-autentikasi')
   })
 })

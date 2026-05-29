@@ -25,8 +25,14 @@ export type RequestOptions = {
   readonly headers?: Readonly<Record<string, string>>
 }
 
+export type BlobResponse = {
+  readonly blob: Blob
+  readonly filename: string | null
+}
+
 export type ApiClient = {
   get<T>(path: string, options?: Omit<RequestOptions, 'method' | 'body'>): Promise<T>
+  getBlob(path: string, options?: Omit<RequestOptions, 'method' | 'body'>): Promise<BlobResponse>
   post<T>(path: string, body?: unknown, options?: Omit<RequestOptions, 'method'>): Promise<T>
   patch<T>(path: string, body?: unknown, options?: Omit<RequestOptions, 'method'>): Promise<T>
   put<T>(path: string, body?: unknown, options?: Omit<RequestOptions, 'method'>): Promise<T>
@@ -48,7 +54,7 @@ function buildHeaders(custom: Readonly<Record<string, string>> | undefined): Hea
   return headers
 }
 
-async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+async function sendRequest(path: string, options: RequestOptions = {}): Promise<Response> {
   const method = options.method ?? 'GET'
   const headers = buildHeaders(options.headers)
   let body: BodyInit | undefined
@@ -68,9 +74,37 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   lastRequestId = response.headers.get('X-Request-Id') ?? headers.get('X-Request-Id')
 
   if (!response.ok) throw await apiErrorFromResponse(response)
+
+  return response
+}
+
+async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const response = await sendRequest(path, options)
   if (response.status === 204) return undefined as T
 
   return (await response.json()) as T
+}
+
+async function requestBlob(path: string, options: RequestOptions = {}): Promise<BlobResponse> {
+  const response = await sendRequest(path, options)
+  const blob = await response.blob()
+
+  return {
+    blob,
+    filename: filenameFromContentDisposition(response.headers.get('Content-Disposition')),
+  }
+}
+
+function filenameFromContentDisposition(header: string | null): string | null {
+  if (!header) return null
+
+  const utf8Match = /filename\*=(?:UTF-8'')?([^;]+)/i.exec(header)
+  if (utf8Match?.[1]) {
+    return decodeURIComponent(utf8Match[1].trim().replace(/^"|"$/g, ''))
+  }
+
+  const asciiMatch = /filename="?([^";]+)"?/i.exec(header)
+  return asciiMatch?.[1]?.trim() ?? null
 }
 
 async function apiErrorFromResponse(response: Response): Promise<ApiError> {
@@ -113,6 +147,10 @@ function generateRequestId(): string {
 export const apiClient: ApiClient = {
   get: <T>(path: string, options?: Omit<RequestOptions, 'method' | 'body'>): Promise<T> =>
     request<T>(path, { ...options, method: 'GET' }),
+  getBlob: (
+    path: string,
+    options?: Omit<RequestOptions, 'method' | 'body'>,
+  ): Promise<BlobResponse> => requestBlob(path, { ...options, method: 'GET' }),
   post: <T>(path: string, body?: unknown, options?: Omit<RequestOptions, 'method'>): Promise<T> =>
     request<T>(path, { ...options, method: 'POST', body }),
   patch: <T>(path: string, body?: unknown, options?: Omit<RequestOptions, 'method'>): Promise<T> =>

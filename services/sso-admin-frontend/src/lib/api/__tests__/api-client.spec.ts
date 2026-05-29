@@ -74,4 +74,47 @@ describe('apiClient request evidence', () => {
       requestId: 'req-error-1',
     } satisfies Partial<ApiError>)
   })
+
+  it('reads a blob body and filename from Content-Disposition for downloads', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn<typeof fetch>().mockResolvedValue(
+        new Response('action,outcome\nadmin.user.lock,succeeded\n', {
+          status: 200,
+          headers: {
+            'Content-Type': 'text/csv',
+            'Content-Disposition': 'attachment; filename="audit-export.csv"',
+            'X-Request-Id': 'req-export-1',
+          },
+        }),
+      ),
+    )
+
+    const result = await apiClient.getBlob('/api/admin/audit/export?format=csv')
+
+    expect(result.blob).toBeInstanceOf(Blob)
+    expect(await result.blob.text()).toBe('action,outcome\nadmin.user.lock,succeeded\n')
+    expect(result.filename).toBe('audit-export.csv')
+    expect(getLastRequestId()).toBe('req-export-1')
+  })
+
+  it('throws ApiError for failed blob downloads without leaking raw backend copy', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn<typeof fetch>()
+        .mockResolvedValue(
+          jsonResponse(
+            { error: 'fresh_auth_required', message: 'raw ACR provider trace' },
+            { status: 428, headers: { 'X-Request-Id': 'req-export-428' } },
+          ),
+        ),
+    )
+
+    await expect(apiClient.getBlob('/api/admin/audit/export?format=csv')).rejects.toMatchObject({
+      status: 428,
+      code: 'fresh_auth_required',
+      requestId: 'req-export-428',
+    } satisfies Partial<ApiError>)
+  })
 })
