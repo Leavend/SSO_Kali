@@ -21,6 +21,7 @@ vi.mock('../../services/users.api', () => ({
     reactivate: vi.fn<(subjectId: string) => Promise<UserMutationResponse>>(),
     issuePasswordReset: vi.fn<(subjectId: string) => Promise<UserMutationResponse>>(),
     resetMfa: vi.fn<(subjectId: string, payload: unknown) => Promise<UserMutationResponse>>(),
+    syncProfile: vi.fn<(subjectId: string, payload: unknown) => Promise<UserMutationResponse>>(),
   },
 }))
 
@@ -55,6 +56,7 @@ describe('useUsersStore', () => {
     vi.mocked(usersApi.reactivate).mockReset()
     vi.mocked(usersApi.issuePasswordReset).mockReset()
     vi.mocked(usersApi.resetMfa).mockReset()
+    vi.mocked(usersApi.syncProfile).mockReset()
     vi.mocked(getLastRequestId).mockReturnValue('req-users-1')
   })
 
@@ -220,6 +222,52 @@ describe('useUsersStore', () => {
 
       expect(store.actionStatus).toBe('error')
       expect(store.errorMessage).not.toContain('raw permission')
+    })
+  })
+
+  describe('syncProfileSelected', () => {
+    const syncPayload = {
+      email: 'synced@example.test',
+      display_name: 'Synced User',
+    }
+
+    it('posts sync payload and upserts updated user', async () => {
+      const syncedUser: AdminUser = {
+        ...user,
+        email: 'synced@example.test',
+        display_name: 'Synced User',
+      }
+      vi.mocked(usersApi.syncProfile).mockResolvedValue({
+        user: syncedUser,
+        audit_event_id: 'AUD-SYNC-1',
+      })
+      const store = useUsersStore()
+      store.users = [user]
+      store.selectedSubjectId = 'sub_admin'
+
+      await store.syncProfileSelected(syncPayload)
+
+      expect(usersApi.syncProfile).toHaveBeenCalledWith('sub_admin', syncPayload)
+      expect(store.selectedUser?.email).toBe('synced@example.test')
+      expect(store.selectedUser?.display_name).toBe('Synced User')
+      expect(store.auditEventId).toBe('AUD-SYNC-1')
+      expect(store.actionStatus).toBe('success')
+    })
+
+    it('maps step-up 428 to step_up_required state', async () => {
+      vi.mocked(usersApi.syncProfile).mockRejectedValue(
+        new ApiError(428, 'fresh auth required', 'fresh_auth_required', null, 'req-step-up'),
+      )
+      const store = useUsersStore()
+      store.selectedSubjectId = 'sub_admin'
+
+      await store.syncProfileSelected(syncPayload)
+
+      expect(store.actionStatus).toBe('step_up_required')
+      expect(store.requestId).toBe('req-step-up')
+      expect(store.errorMessage).toBe(
+        'Aksi ini membutuhkan fresh-auth atau MFA assurance. Ulangi login admin lalu coba lagi.',
+      )
     })
   })
 })

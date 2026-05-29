@@ -80,3 +80,10 @@ export type UserReasonPayload = {
 export type UserLockPayload = UserReasonPayload & {
   readonly locked_until?: string | null
 }
+
+export type SyncProfilePayload = {
+  readonly email?: string
+  readonly display_name?: string
+  readonly given_name?: string
+  readonly family_name?: string
+}

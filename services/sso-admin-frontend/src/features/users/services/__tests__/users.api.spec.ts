@@ -55,4 +55,14 @@ describe('usersApi', () => {
 
     expect(apiClient.post).toHaveBeenCalledWith('/api/admin/users', payload)
   })
+
+  it('posts sync profile payload to POST /api/admin/users/:subjectId/sync-profile', async () => {
+    const response = { user: { subject_id: 'sub_admin', email: 'synced@example.test' } }
+    vi.mocked(apiClient.post).mockResolvedValue(response)
+
+    const payload = { email: 'synced@example.test', display_name: 'Synced User' }
+    await usersApi.syncProfile('sub_admin', payload)
+
+    expect(apiClient.post).toHaveBeenCalledWith('/api/admin/users/sub_admin/sync-profile', payload)
+  })
 })

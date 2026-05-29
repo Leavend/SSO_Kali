@@ -7,6 +7,7 @@ import type {
   AdminUserLoginContext,
   AdminUserSession,
   CreateUserPayload,
+  SyncProfilePayload,
 } from '../types'
 
 export type UsersStatus = 'idle' | 'loading' | 'success' | 'unauthenticated' | 'forbidden' | 'error'
@@ -118,6 +119,22 @@ export const useUsersStore = defineStore('admin-users', () => {
     }
   }
 
+  async function syncProfileSelected(payload: SyncProfilePayload): Promise<void> {
+    if (!selectedSubjectId.value) return
+    actionStatus.value = 'loading'
+    errorMessage.value = null
+
+    try {
+      const response = await usersApi.syncProfile(selectedSubjectId.value, payload)
+      if (response.user) upsertUser(response.user)
+      auditEventId.value = response.audit_event_id ?? null
+      requestId.value = getLastRequestId()
+      actionStatus.value = 'success'
+    } catch (error) {
+      handleActionError(error)
+    }
+  }
+
   function clearPasswordResetToken(): void {
     passwordResetToken.value = null
     passwordResetExpiresAt.value = null
@@ -217,6 +234,7 @@ export const useUsersStore = defineStore('admin-users', () => {
     reactivateSelected,
     resetMfaSelected,
     issuePasswordResetSelected,
+    syncProfileSelected,
     clearPasswordResetToken,
   }
 })

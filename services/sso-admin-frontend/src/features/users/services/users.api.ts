@@ -2,6 +2,7 @@ import { apiClient } from '@/lib/api/api-client'
 import type {
   CreateUserPayload,
   CreateUserResponse,
+  SyncProfilePayload,
   UserDetailResponse,
   UserListResponse,
   UserLockPayload,
@@ -39,5 +40,11 @@ export const usersApi = {
   },
   resetMfa(subjectId: string, payload: Required<UserReasonPayload>): Promise<UserMutationResponse> {
     return apiClient.post<UserMutationResponse>(`/api/admin/users/${subjectId}/reset-mfa`, payload)
+  },
+  syncProfile(subjectId: string, payload: SyncProfilePayload): Promise<UserMutationResponse> {
+    return apiClient.post<UserMutationResponse>(
+      `/api/admin/users/${subjectId}/sync-profile`,
+      payload,
+    )
   },
 }

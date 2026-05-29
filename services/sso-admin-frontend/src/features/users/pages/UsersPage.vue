@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
 import { useUsersStore } from '../stores/users.store'
 import { useSessionsStore } from '@/features/sessions/stores/sessions.store'
-import type { CreateUserPayload } from '../types'
+import type { CreateUserPayload, SyncProfilePayload } from '../types'
 
 const store = useUsersStore()
 const sessionsStore = useSessionsStore()
@@ -17,6 +17,36 @@ const createFamilyName = ref('')
 const createRole = ref<'admin' | 'user'>('user')
 const createPassword = ref('')
 const createLocalAccountEnabled = ref(true)
+
+const syncEmail = ref('')
+const syncDisplayName = ref('')
+const syncGivenName = ref('')
+const syncFamilyName = ref('')
+
+watch(
+  () => store.selectedUser,
+  (user) => {
+    syncEmail.value = user?.email ?? ''
+    syncDisplayName.value = user?.display_name ?? ''
+    syncGivenName.value = user?.given_name ?? ''
+    syncFamilyName.value = user?.family_name ?? ''
+  },
+  { immediate: true },
+)
+
+async function submitSyncProfile(): Promise<void> {
+  const email = syncEmail.value.trim()
+  const displayName = syncDisplayName.value.trim()
+  const givenName = syncGivenName.value.trim()
+  const familyName = syncFamilyName.value.trim()
+  const payload: SyncProfilePayload = {
+    ...(email && { email }),
+    ...(displayName && { display_name: displayName }),
+    ...(givenName && { given_name: givenName }),
+    ...(familyName && { family_name: familyName }),
+  }
+  await store.syncProfileSelected(payload)
+}
 
 const selectedSessionId = computed(
   () => store.sessions[0]?.session_id ?? store.sessions[0]?.id ?? null,
@@ -206,6 +236,41 @@ async function submitCreateUser(): Promise<void> {
             <dd>{{ store.selectedUser.local_account_enabled ? 'Enabled' : 'Disabled' }}</dd>
           </div>
         </dl>
+
+        <section class="detail-section" aria-labelledby="sync-title">
+          <h3 id="sync-title">Sync Profile</h3>
+          <p v-if="store.selectedUser.profile_synced_at" class="muted">
+            Last synced: {{ store.selectedUser.profile_synced_at }}
+          </p>
+          <div class="create-user-form">
+            <label class="reason-field">
+              Email
+              <input v-model="syncEmail" name="sync-email" autocomplete="off" />
+            </label>
+            <label class="reason-field">
+              Display name
+              <input v-model="syncDisplayName" name="sync-display-name" autocomplete="off" />
+            </label>
+            <label class="reason-field">
+              Given name
+              <input v-model="syncGivenName" name="sync-given-name" autocomplete="off" />
+            </label>
+            <label class="reason-field">
+              Family name
+              <input v-model="syncFamilyName" name="sync-family-name" autocomplete="off" />
+            </label>
+            <div class="action-row compact-actions">
+              <button
+                class="sync-profile-button primary-action"
+                type="button"
+                :disabled="store.actionStatus === 'loading'"
+                @click="submitSyncProfile"
+              >
+                {{ store.actionStatus === 'loading' ? 'Syncing...' : 'Sync Profile' }}
+              </button>
+            </div>
+          </div>
+        </section>
 
         <section class="detail-section" aria-labelledby="assurance-title">
           <h3 id="assurance-title">MFA assurance / risk context</h3>

@@ -17,6 +17,7 @@ vi.mock('../../services/users.api', () => ({
     reactivate: vi.fn<() => Promise<unknown>>(),
     issuePasswordReset: vi.fn<() => Promise<unknown>>(),
     resetMfa: vi.fn<() => Promise<unknown>>(),
+    syncProfile: vi.fn<() => Promise<unknown>>(),
   },
 }))
 
@@ -157,5 +158,49 @@ describe('UsersPage', () => {
     await wrapper.find('button.revoke-user-sessions-button').trigger('click')
 
     expect(revokeSpy).toHaveBeenCalledWith('sub_admin')
+  })
+
+  it('renders sync profile form with pre-filled fields and calls store.syncProfileSelected', async () => {
+    const store = useUsersStore()
+    store.status = 'success'
+    store.users = [
+      {
+        ...user,
+        given_name: 'Admin',
+        family_name: 'One',
+        profile_synced_at: '2026-05-29T08:00:00Z',
+      },
+    ]
+    store.selectedSubjectId = 'sub_admin'
+    store.loginContext = {
+      ip_address: '203.0.113.10',
+      risk_score: 3,
+      mfa_required: false,
+    }
+    const syncSpy = vi.spyOn(store, 'syncProfileSelected')
+
+    const wrapper = mount(UsersPage)
+
+    expect(wrapper.text()).toContain('Sync Profile')
+    expect(wrapper.text()).toContain('2026-05-29T08:00:00Z')
+
+    const emailInput = wrapper.find('input[name="sync-email"]')
+    const displayNameInput = wrapper.find('input[name="sync-display-name"]')
+    const givenNameInput = wrapper.find('input[name="sync-given-name"]')
+    const familyNameInput = wrapper.find('input[name="sync-family-name"]')
+
+    expect((emailInput.element as HTMLInputElement).value).toBe('admin@example.test')
+    expect((displayNameInput.element as HTMLInputElement).value).toBe('Admin User')
+    expect((givenNameInput.element as HTMLInputElement).value).toBe('Admin')
+    expect((familyNameInput.element as HTMLInputElement).value).toBe('One')
+
+    await wrapper.find('button.sync-profile-button').trigger('click')
+
+    expect(syncSpy).toHaveBeenCalledWith({
+      email: 'admin@example.test',
+      display_name: 'Admin User',
+      given_name: 'Admin',
+      family_name: 'One',
+    })
   })
 })
