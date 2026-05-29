@@ -16,6 +16,8 @@ vi.mock('../../services/policy.api', () => ({
     createRole: vi.fn<() => Promise<unknown>>(),
     updateRole: vi.fn<() => Promise<unknown>>(),
     syncRolePermissions: vi.fn<() => Promise<unknown>>(),
+    deleteRole: vi.fn<() => Promise<unknown>>(),
+    syncUserRoles: vi.fn<() => Promise<unknown>>(),
   },
 }))
 
@@ -91,5 +93,34 @@ describe('PolicyPage', () => {
     const wrapper = mount(PolicyPage)
 
     expect(wrapper.text()).toContain('Belum ada policy atau RBAC evidence untuk ditampilkan.')
+  })
+
+  it('renders create role form with name, slug, description inputs', async () => {
+    const store = usePolicyStore()
+    store.status = 'success'
+    store.policies = [policy]
+    store.roles = [role]
+    store.permissions = role.permissions
+
+    const wrapper = mount(PolicyPage)
+
+    expect(wrapper.text()).toContain('Create Role')
+    await wrapper.find('button.create-role-toggle').trigger('click')
+    expect(wrapper.find('input[name="create-role-name"]').exists()).toBe(true)
+    expect(wrapper.find('input[name="create-role-slug"]').exists()).toBe(true)
+    expect(wrapper.find('textarea[name="create-role-description"]').exists()).toBe(true)
+  })
+
+  it('hides delete button for system roles', () => {
+    const store = usePolicyStore()
+    store.status = 'success'
+    store.policies = [policy]
+    store.roles = [role]
+    store.permissions = role.permissions
+
+    const wrapper = mount(PolicyPage)
+
+    expect(wrapper.text()).toContain('Auditor')
+    expect(wrapper.find('button[aria-label="Delete role auditor"]').exists()).toBe(false)
   })
 })

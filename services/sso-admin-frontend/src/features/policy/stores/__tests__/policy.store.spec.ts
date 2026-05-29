@@ -19,6 +19,8 @@ vi.mock('../../services/policy.api', () => ({
     createRole: vi.fn<() => Promise<{ role: AdminRole }>>(),
     updateRole: vi.fn<() => Promise<{ role: AdminRole }>>(),
     syncRolePermissions: vi.fn<() => Promise<{ role: AdminRole }>>(),
+    deleteRole: vi.fn<() => Promise<{ deleted: boolean }>>(),
+    syncUserRoles: vi.fn<() => Promise<{ user: { subject_id: string } }>>(),
   },
 }))
 
@@ -67,6 +69,8 @@ describe('usePolicyStore', () => {
     vi.mocked(policyApi.createRole).mockReset()
     vi.mocked(policyApi.updateRole).mockReset()
     vi.mocked(policyApi.syncRolePermissions).mockReset()
+    vi.mocked(policyApi.deleteRole).mockReset()
+    vi.mocked(policyApi.syncUserRoles).mockReset()
     vi.mocked(getLastRequestId).mockReturnValue('req-policy-1')
   })
 
@@ -132,5 +136,87 @@ describe('usePolicyStore', () => {
     expect(store.status).toBe('forbidden')
     expect(store.errorMessage).toBe('Kamu tidak memiliki izin untuk melihat policy/RBAC admin.')
     expect(store.errorMessage).not.toContain('SQLSTATE')
+  })
+
+  describe('role CRUD', () => {
+    it('creates a role and appends to list', async () => {
+      const newRole: AdminRole = {
+        id: 2,
+        slug: 'operator',
+        name: 'Operator',
+        permissions: [],
+      }
+      vi.mocked(policyApi.createRole).mockResolvedValue({ role: newRole })
+      const store = usePolicyStore()
+      store.roles = [role]
+
+      await store.createRole({ slug: 'operator', name: 'Operator' })
+
+      expect(policyApi.createRole).toHaveBeenCalledWith({ slug: 'operator', name: 'Operator' })
+      expect(store.roles).toHaveLength(2)
+      expect(store.roles[1]?.slug).toBe('operator')
+      expect(store.actionStatus).toBe('success')
+    })
+
+    it('updates a role and upserts in list', async () => {
+      const updated: AdminRole = { ...role, name: 'Auditor Updated' }
+      vi.mocked(policyApi.updateRole).mockResolvedValue({ role: updated })
+      const store = usePolicyStore()
+      store.roles = [role]
+
+      await store.updateRole('auditor', { name: 'Auditor Updated' })
+
+      expect(policyApi.updateRole).toHaveBeenCalledWith('auditor', { name: 'Auditor Updated' })
+      expect(store.roles[0]?.name).toBe('Auditor Updated')
+    })
+
+    it('deletes a non-system role and removes from list', async () => {
+      const nonSystemRole: AdminRole = { ...role, slug: 'temp-role', is_system: false }
+      vi.mocked(policyApi.deleteRole).mockResolvedValue({ deleted: true })
+      const store = usePolicyStore()
+      store.roles = [role, nonSystemRole]
+
+      await store.deleteRole('temp-role')
+
+      expect(policyApi.deleteRole).toHaveBeenCalledWith('temp-role')
+      expect(store.roles).toHaveLength(1)
+      expect(store.roles[0]?.slug).toBe('auditor')
+    })
+
+    it('rejects delete for system role', async () => {
+      const store = usePolicyStore()
+      store.roles = [role]
+
+      await store.deleteRole('auditor')
+
+      expect(policyApi.deleteRole).not.toHaveBeenCalled()
+      expect(store.roles).toHaveLength(1)
+      expect(store.actionStatus).toBe('error')
+      expect(store.errorMessage).toContain('system')
+    })
+
+    it('maps create role step-up 428 to safe copy', async () => {
+      vi.mocked(policyApi.createRole).mockRejectedValue(
+        new ApiError(428, 'raw ACR trace', 'fresh_auth_required'),
+      )
+      const store = usePolicyStore()
+
+      await store.createRole({ slug: 'operator', name: 'Operator' })
+
+      expect(store.actionStatus).toBe('step_up_required')
+      expect(store.errorMessage).toContain('fresh-auth')
+    })
+
+    it('syncs user roles', async () => {
+      vi.mocked(policyApi.syncUserRoles).mockResolvedValue({
+        user: { subject_id: 'sub_admin' },
+      })
+      const store = usePolicyStore()
+
+      await store.syncUserRoles('sub_admin', ['admin', 'auditor'])
+
+      expect(policyApi.syncUserRoles).toHaveBeenCalledWith('sub_admin', ['admin', 'auditor'])
+      expect(store.actionStatus).toBe('success')
+    })
   })
 })

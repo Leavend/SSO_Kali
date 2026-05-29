@@ -123,6 +123,84 @@ export const usePolicyStore = defineStore('admin-policy', () => {
     }
   }
 
+  async function createRole(payload: {
+    readonly slug?: string
+    readonly name?: string
+    readonly description?: string | null
+    readonly permission_slugs?: readonly string[]
+  }): Promise<void> {
+    actionStatus.value = 'loading'
+    errorMessage.value = null
+
+    try {
+      const response = await policyApi.createRole(payload)
+      roles.value = [...roles.value, response.role]
+      requestId.value = getLastRequestId()
+      actionStatus.value = 'success'
+    } catch (error) {
+      handleActionError(error)
+    }
+  }
+
+  async function updateRole(
+    roleSlug: string,
+    payload: {
+      readonly slug?: string
+      readonly name?: string
+      readonly description?: string | null
+      readonly permission_slugs?: readonly string[]
+    },
+  ): Promise<void> {
+    actionStatus.value = 'loading'
+    errorMessage.value = null
+
+    try {
+      const response = await policyApi.updateRole(roleSlug, payload)
+      upsertRole(response.role)
+      requestId.value = getLastRequestId()
+      actionStatus.value = 'success'
+    } catch (error) {
+      handleActionError(error)
+    }
+  }
+
+  async function deleteRole(roleSlug: string): Promise<void> {
+    const target = roles.value.find((r) => r.slug === roleSlug)
+    if (target?.is_system) {
+      actionStatus.value = 'error'
+      errorMessage.value = `Role '${roleSlug}' adalah system role dan tidak dapat dihapus.`
+      return
+    }
+
+    actionStatus.value = 'loading'
+    errorMessage.value = null
+
+    try {
+      await policyApi.deleteRole(roleSlug)
+      roles.value = roles.value.filter((r) => r.slug !== roleSlug)
+      requestId.value = getLastRequestId()
+      actionStatus.value = 'success'
+    } catch (error) {
+      handleActionError(error)
+    }
+  }
+
+  async function syncUserRoles(
+    subjectId: string,
+    roleSlugs: readonly string[],
+  ): Promise<void> {
+    actionStatus.value = 'loading'
+    errorMessage.value = null
+
+    try {
+      await policyApi.syncUserRoles(subjectId, roleSlugs)
+      requestId.value = getLastRequestId()
+      actionStatus.value = 'success'
+    } catch (error) {
+      handleActionError(error)
+    }
+  }
+
   function upsertPolicy(nextPolicy: SecurityPolicy): void {
     policies.value = policies.value.some((policy) => policy.id === nextPolicy.id)
       ? policies.value.map((policy) => (policy.id === nextPolicy.id ? nextPolicy : policy))
@@ -194,5 +272,9 @@ export const usePolicyStore = defineStore('admin-policy', () => {
     activatePolicy,
     rollbackPolicy,
     syncRolePermissions,
+    createRole,
+    updateRole,
+    deleteRole,
+    syncUserRoles,
   }
 })

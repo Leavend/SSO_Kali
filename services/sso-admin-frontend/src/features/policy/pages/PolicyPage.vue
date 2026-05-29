@@ -7,6 +7,15 @@ const store = usePolicyStore()
 const category = ref(store.selectedCategory)
 const reason = ref('Security governance update')
 const draftPayload = ref('{"min_length":14}')
+const showCreateRoleForm = ref(false)
+
+const createRoleName = ref('')
+const createRoleSlug = ref('')
+const createRoleDescription = ref('')
+
+const editingRoleSlug = ref<string | null>(null)
+const editRoleName = ref('')
+const editRoleDescription = ref('')
 
 const hasPolicyEvidence = computed(
   () => store.policies.length > 0 || store.roles.length > 0 || store.permissions.length > 0,
@@ -23,6 +32,52 @@ async function changeCategory(): Promise<void> {
 async function proposeDraft(): Promise<void> {
   const parsed = JSON.parse(draftPayload.value) as Record<string, unknown>
   await store.proposePolicy(parsed, reason.value)
+}
+
+function resetCreateRoleForm(): void {
+  createRoleName.value = ''
+  createRoleSlug.value = ''
+  createRoleDescription.value = ''
+}
+
+async function submitCreateRole(): Promise<void> {
+  await store.createRole({
+    slug: createRoleSlug.value.trim() || undefined,
+    name: createRoleName.value.trim(),
+    description: createRoleDescription.value.trim() || null,
+  })
+  if (store.actionStatus === 'success') {
+    resetCreateRoleForm()
+    showCreateRoleForm.value = false
+  }
+}
+
+function startEditRole(role: { readonly slug: string; readonly name: string; readonly description?: string | null }): void {
+  editingRoleSlug.value = role.slug
+  editRoleName.value = role.name
+  editRoleDescription.value = role.description ?? ''
+}
+
+function cancelEditRole(): void {
+  editingRoleSlug.value = null
+  editRoleName.value = ''
+  editRoleDescription.value = ''
+}
+
+async function submitEditRole(): Promise<void> {
+  if (!editingRoleSlug.value) return
+  const target = store.roles.find((r) => r.slug === editingRoleSlug.value)
+  const slug = target?.is_system ? undefined : editingRoleSlug.value
+
+  await store.updateRole(editingRoleSlug.value, {
+    name: editRoleName.value.trim(),
+    description: editRoleDescription.value.trim() || null,
+  })
+  if (store.actionStatus === 'success') cancelEditRole()
+}
+
+async function handleDeleteRole(roleSlug: string): Promise<void> {
+  await store.deleteRole(roleSlug)
 }
 </script>
 
@@ -119,14 +174,79 @@ async function proposeDraft(): Promise<void> {
 
       <section class="detail-section" aria-labelledby="roles-title">
         <h2 id="roles-title">Roles</h2>
+        <button
+          class="primary-action create-role-toggle"
+          type="button"
+          @click="showCreateRoleForm = !showCreateRoleForm"
+        >
+          {{ showCreateRoleForm ? 'Cancel' : 'Create Role' }}
+        </button>
+
+        <div v-if="showCreateRoleForm" class="create-role-form">
+          <h3>Create Role</h3>
+          <label class="reason-field">
+            Name
+            <input v-model="createRoleName" name="create-role-name" autocomplete="off" />
+          </label>
+          <label class="reason-field">
+            Slug
+            <input v-model="createRoleSlug" name="create-role-slug" autocomplete="off" />
+          </label>
+          <label class="reason-field">
+            Description
+            <textarea v-model="createRoleDescription" name="create-role-description" rows="2" />
+          </label>
+          <button
+            class="primary-action"
+            type="button"
+            :disabled="store.actionStatus === 'loading'"
+            @click="submitCreateRole"
+          >
+            {{ store.actionStatus === 'loading' ? 'Creating...' : 'Create' }}
+          </button>
+          <p v-if="store.actionStatus === 'step_up_required'" class="action-message">
+            {{ store.errorMessage }}
+          </p>
+          <p v-if="store.actionStatus === 'error'" class="action-message">{{ store.errorMessage }}</p>
+        </div>
+
         <div v-for="role in store.roles" :key="role.slug" class="state-card">
-          <strong>{{ role.name }}</strong>
-          <p>{{ role.slug }} · {{ role.users_count ?? 0 }} users</p>
-          <ul>
-            <li v-for="permission in role.permissions" :key="permission.slug">
-              {{ permission.slug }}
-            </li>
-          </ul>
+          <template v-if="editingRoleSlug === role.slug">
+            <label class="reason-field">
+              Name
+              <input v-model="editRoleName" autocomplete="off" />
+            </label>
+            <label class="reason-field">
+              Description
+              <textarea v-model="editRoleDescription" rows="2" />
+            </label>
+            <div class="action-row compact-actions">
+              <button class="primary-action" type="button" @click="submitEditRole">Save</button>
+              <button class="secondary-action" type="button" @click="cancelEditRole">Cancel</button>
+            </div>
+          </template>
+          <template v-else>
+            <strong>{{ role.name }}</strong>
+            <p>{{ role.slug }} · {{ role.users_count ?? 0 }} users</p>
+            <p v-if="role.description" class="muted">{{ role.description }}</p>
+            <ul>
+              <li v-for="permission in role.permissions" :key="permission.slug">
+                {{ permission.slug }}
+              </li>
+            </ul>
+            <div class="action-row compact-actions">
+              <button class="primary-action" type="button" @click="startEditRole(role)">Edit</button>
+              <button
+                v-if="!role.is_system"
+                class="danger-action"
+                type="button"
+                :aria-label="`Delete role ${role.slug}`"
+                @click="handleDeleteRole(role.slug)"
+              >
+                Delete
+              </button>
+            </div>
+          </template>
         </div>
         <p v-if="store.roles.length === 0" class="muted">Belum ada role.</p>
       </section>

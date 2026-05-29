@@ -8,6 +8,7 @@ vi.mock('@/lib/api/api-client', () => ({
     post: vi.fn<() => Promise<unknown>>(),
     patch: vi.fn<() => Promise<unknown>>(),
     put: vi.fn<() => Promise<unknown>>(),
+    delete: vi.fn<() => Promise<unknown>>(),
   },
 }))
 
@@ -57,6 +58,24 @@ describe('policyApi', () => {
     })
     expect(apiClient.put).toHaveBeenCalledWith('/api/admin/roles/auditor-lite/permissions', {
       permission_slugs: ['admin.audit.read'],
+    })
+  })
+
+  it('deletes a role via DELETE /api/admin/roles/{role}', async () => {
+    vi.mocked(apiClient.delete).mockResolvedValue({ deleted: true })
+
+    await policyApi.deleteRole('auditor-lite')
+
+    expect(apiClient.delete).toHaveBeenCalledWith('/api/admin/roles/auditor-lite')
+  })
+
+  it('syncs user roles via PUT /api/admin/users/{subjectId}/roles', async () => {
+    vi.mocked(apiClient.put).mockResolvedValue({ user: { subject_id: 'sub_admin' } })
+
+    await policyApi.syncUserRoles('sub_admin', ['admin', 'auditor'])
+
+    expect(apiClient.put).toHaveBeenCalledWith('/api/admin/users/sub_admin/roles', {
+      roles: ['admin', 'auditor'],
     })
   })
 })

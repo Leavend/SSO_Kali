@@ -53,4 +53,15 @@ export const policyApi = {
       permission_slugs: permissionSlugs,
     })
   },
+  deleteRole(role: string): Promise<{ readonly deleted: boolean }> {
+    return apiClient.delete(`/api/admin/roles/${role}`)
+  },
+  syncUserRoles(
+    subjectId: string,
+    roleSlugs: readonly string[],
+  ): Promise<{ readonly user: { readonly subject_id: string } }> {
+    return apiClient.put(`/api/admin/users/${subjectId}/roles`, {
+      roles: roleSlugs,
+    })
+  },
 }
