@@ -52,6 +52,12 @@ const router = createRouter({
           meta: { requiresAdmin: true, permissions: ['admin.security-policy.read'] },
         },
         {
+          path: 'sso-error-templates',
+          name: 'admin.sso-error-templates',
+          component: () => import('@/features/sso-error-templates/pages/SsoErrorTemplatesPage.vue'),
+          meta: { requiresAdmin: true, permissions: ['admin.security-policy.read'] },
+        },
+        {
           path: 'external-idps',
           name: 'admin.external-idps',
           component: () => import('@/features/external-idps/pages/ExternalIdpsPage.vue'),

@@ -21,4 +21,14 @@ describe('admin routes', () => {
       permissions: ['admin.dashboard.view'],
     })
   })
+
+  it('registers the SSO error templates route behind security policy read permission', () => {
+    const route = router.getRoutes().find((entry) => entry.name === 'admin.sso-error-templates')
+
+    expect(route?.path).toBe('/sso-error-templates')
+    expect(route?.meta).toMatchObject({
+      requiresAdmin: true,
+      permissions: ['admin.security-policy.read'],
+    })
+  })
 })
