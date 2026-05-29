@@ -92,7 +92,10 @@ describe('apiClient request evidence', () => {
 
     const result = await apiClient.getBlob('/api/admin/audit/export?format=csv')
 
-    expect(result.blob).toBeInstanceOf(Blob)
+    // Assert blob behaviour, not instance identity: under Node's undici the
+    // fetch Blob comes from a different realm than the global Blob, so
+    // toBeInstanceOf(Blob) is flaky across environments.
+    expect(result.blob.type).toBe('text/csv')
     expect(await result.blob.text()).toBe('action,outcome\nadmin.user.lock,succeeded\n')
     expect(result.filename).toBe('audit-export.csv')
     expect(getLastRequestId()).toBe('req-export-1')
