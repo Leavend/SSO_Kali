@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
 import { useExternalIdpsStore } from '../stores/external-idps.store'
 
 const store = useExternalIdpsStore()
 const mappingClaims = ref('{"sub":"ext-user-123","email":"user@example.com"}')
+
+const hasProviderEvidence = computed(() => store.providers.length > 0)
 
 onMounted(() => {
   if (store.status === 'idle') void store.load()
@@ -48,6 +51,11 @@ async function previewMapping(): Promise<void> {
     <div v-else-if="store.status === 'error'" class="state-card state-card--danger" role="alert">
       <h2>External IdP admin belum bisa dimuat</h2>
       <p>{{ store.errorMessage }}</p>
+    </div>
+
+    <div v-else-if="!hasProviderEvidence" class="state-card" role="status">
+      <h2>Provider eksternal belum tersedia</h2>
+      <p>Belum ada provider eksternal untuk ditampilkan.</p>
     </div>
 
     <div v-else class="idp-layout">
@@ -163,6 +171,10 @@ async function previewMapping(): Promise<void> {
       <p v-if="store.errorMessage" class="action-message">{{ store.errorMessage }}</p>
     </div>
 
-    <p v-if="store.requestId" class="request-evidence">Request ID: {{ store.requestId }}</p>
+    <EvidenceContextPanel
+      title="Federation evidence"
+      :request-id="store.requestId"
+      :client-id="store.selectedProvider?.client_id ?? null"
+    />
   </section>
 </template>

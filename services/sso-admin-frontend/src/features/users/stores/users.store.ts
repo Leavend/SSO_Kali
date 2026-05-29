@@ -87,7 +87,7 @@ export const useUsersStore = defineStore('admin-users', () => {
     try {
       const response = await usersApi.issuePasswordReset(selectedSubjectId.value)
       if (response.user) upsertUser(response.user)
-      passwordResetToken.value = response.password_reset?.token ?? null
+      passwordResetToken.value = null
       passwordResetExpiresAt.value = response.password_reset?.expires_at ?? null
       auditEventId.value = response.audit_event_id ?? null
       requestId.value = getLastRequestId()
@@ -103,9 +103,10 @@ export const useUsersStore = defineStore('admin-users', () => {
   }
 
   async function mutateSelected(
-    callback: (
-      subjectId: string,
-    ) => Promise<{ readonly user?: AdminUser; readonly audit_event_id?: string | null }>,
+    callback: (subjectId: string) => Promise<{
+      readonly user?: AdminUser
+      readonly audit_event_id?: string | null
+    }>,
   ): Promise<void> {
     if (!selectedSubjectId.value) return
     actionStatus.value = 'loading'

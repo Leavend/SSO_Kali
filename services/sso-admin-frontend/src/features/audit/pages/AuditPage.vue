@@ -1,9 +1,29 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
 import { useAuditStore } from '../stores/audit.store'
 
 const store = useAuditStore()
 const reviewNotes = ref('Evidence verified')
+
+const selectedCorrelationId = computed(
+  () => store.selectedAuthenticationEvent?.request?.request_id ?? null,
+)
+const selectedSessionId = computed(() => store.selectedAuthenticationEvent?.session_id ?? null)
+const selectedClientId = computed(() => store.selectedAuthenticationEvent?.client_id ?? null)
+const selectedSubjectId = computed(
+  () =>
+    store.selectedAuthenticationEvent?.subject?.subject_id ??
+    store.selectedEvent?.actor?.subject_id ??
+    null,
+)
+const hasAuditEvidence = computed(
+  () =>
+    store.events.length > 0 ||
+    store.authenticationEvents.length > 0 ||
+    store.dataSubjectRequests.length > 0 ||
+    store.integrity !== null,
+)
 
 onMounted(() => {
   if (store.status === 'idle') void store.load()
@@ -41,6 +61,11 @@ onMounted(() => {
     <div v-else-if="store.status === 'error'" class="state-card state-card--danger" role="alert">
       <h2>Audit compliance belum bisa dimuat</h2>
       <p>{{ store.errorMessage }}</p>
+    </div>
+
+    <div v-else-if="!hasAuditEvidence" class="state-card" role="status">
+      <h2>Evidence audit belum tersedia</h2>
+      <p>Belum ada evidence audit untuk ditampilkan.</p>
     </div>
 
     <div v-else class="audit-layout">
@@ -263,6 +288,13 @@ onMounted(() => {
       <p v-if="store.errorMessage" class="action-message">{{ store.errorMessage }}</p>
     </div>
 
-    <p v-if="store.requestId" class="request-evidence">Request ID: {{ store.requestId }}</p>
+    <EvidenceContextPanel
+      title="Audit evidence context"
+      :request-id="store.requestId"
+      :correlation-id="selectedCorrelationId"
+      :session-id="selectedSessionId"
+      :client-id="selectedClientId"
+      :subject-id="selectedSubjectId"
+    />
   </section>
 </template>

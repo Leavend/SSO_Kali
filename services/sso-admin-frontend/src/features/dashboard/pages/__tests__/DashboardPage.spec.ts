@@ -19,7 +19,13 @@ const summary: DashboardSummary = {
     clients: { total: 3, active: 2, staged: 1, decommissioned: 0 },
     audit: { admin_last_24h: 4, auth_last_24h: 9 },
     incidents: { admin_denied_last_24h: 2 },
-    data_subject_requests: { submitted: 1, approved: 1, rejected: 0, fulfilled: 2, on_hold: 0 },
+    data_subject_requests: {
+      submitted: 1,
+      approved: 1,
+      rejected: 0,
+      fulfilled: 2,
+      on_hold: 0,
+    },
   },
 }
 
@@ -67,5 +73,25 @@ describe('DashboardPage', () => {
     expect(wrapper.text()).toContain('Dashboard admin belum bisa dimuat')
     expect(wrapper.text()).toContain('req-fail-1')
     expect(wrapper.text()).not.toMatch(/Bearer|refreshToken|SQLSTATE/i)
+  })
+
+  it('renders empty state when dashboard summary has no counters', () => {
+    const store = useDashboardStore()
+    store.status = 'success'
+    store.summary = {
+      generated_at: '2026-05-27T00:00:00Z',
+      counters: {
+        users: {},
+        sessions: {},
+        clients: {},
+        audit: {},
+        incidents: {},
+        data_subject_requests: {},
+      },
+    }
+
+    const wrapper = mount(DashboardPage)
+
+    expect(wrapper.text()).toContain('Belum ada ringkasan dashboard untuk ditampilkan.')
   })
 })

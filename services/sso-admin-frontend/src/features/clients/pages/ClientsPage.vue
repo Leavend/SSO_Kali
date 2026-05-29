@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
+import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
 import { useClientsStore } from '../stores/clients.store'
 
 const store = useClientsStore()
@@ -9,6 +10,10 @@ const createForm = reactive({
   redirect_uris: '',
   post_logout_redirect_uris: '',
 })
+const lifecycleForm = reactive({
+  disable_reason: '',
+  decommission_confirmation: '',
+})
 const form = reactive({
   display_name: '',
   owner_email: '',
@@ -17,6 +22,7 @@ const form = reactive({
   allowed_scopes: '',
 })
 const uriValidationMessages = ref<readonly string[]>([])
+const lifecycleMessage = ref<string | null>(null)
 const uriValidationMessage = computed(() => uriValidationMessages.value.join(' '))
 const knownScopeLabels = new Set(['openid', 'profile', 'email', 'offline_access'])
 const scopeParityWarnings = computed(() =>
@@ -40,6 +46,9 @@ function syncFormFromSelected(): void {
   form.redirect_uris = store.selectedClient?.redirect_uris.join('\n') ?? ''
   form.post_logout_redirect_uris = store.selectedClient?.post_logout_redirect_uris?.join('\n') ?? ''
   form.allowed_scopes = store.selectedClient?.allowed_scopes?.join('\n') ?? ''
+  lifecycleForm.disable_reason = ''
+  lifecycleForm.decommission_confirmation = ''
+  lifecycleMessage.value = null
 }
 
 function findUriValidationMessages(
@@ -108,6 +117,23 @@ async function saveScopePolicy(): Promise<void> {
     allowed_scopes: allowedScopes,
   })
   form.allowed_scopes = allowedScopes.join('\n')
+}
+
+async function disableClient(): Promise<void> {
+  const reason = lifecycleForm.disable_reason.trim()
+  await store.disableSelected({ reason })
+  lifecycleForm.disable_reason = ''
+}
+
+async function decommissionClient(): Promise<void> {
+  if (lifecycleForm.decommission_confirmation !== store.selectedClient?.client_id) {
+    lifecycleMessage.value = 'Ketik client ID untuk konfirmasi decommission.'
+    return
+  }
+
+  await store.decommissionSelected()
+  lifecycleForm.decommission_confirmation = ''
+  lifecycleMessage.value = null
 }
 
 async function rotateSecret(): Promise<void> {
@@ -200,7 +226,9 @@ async function rotateSecret(): Promise<void> {
           <small>{{ client.status ?? 'unknown' }}</small>
         </button>
 
-        <p v-if="store.clients.length === 0" class="muted">Belum ada OAuth client.</p>
+        <p v-if="store.clients.length === 0" class="muted">
+          Belum ada OAuth client untuk ditampilkan.
+        </p>
       </aside>
 
       <article v-if="store.selectedClient" class="client-detail">
@@ -299,6 +327,47 @@ async function rotateSecret(): Promise<void> {
           </form>
         </section>
 
+        <section class="detail-section detail-section--danger" aria-labelledby="lifecycle-title">
+          <h3 id="lifecycle-title">Client lifecycle</h3>
+          <p>
+            Impact summary: disable blocks new authorization and may revoke active tokens.
+            Decommission retires client configuration and clears redirect evidence.
+          </p>
+          <p v-if="lifecycleMessage" class="action-message" role="alert">{{ lifecycleMessage }}</p>
+          <label>
+            Disable reason
+            <textarea
+              v-model="lifecycleForm.disable_reason"
+              name="client_disable_reason"
+              rows="3"
+            />
+          </label>
+          <button
+            class="danger-action"
+            data-test="disable-client"
+            type="button"
+            @click="disableClient"
+          >
+            Disable client
+          </button>
+          <label>
+            Type client ID to decommission
+            <input
+              v-model="lifecycleForm.decommission_confirmation"
+              name="decommission_confirmation"
+              autocomplete="off"
+            />
+          </label>
+          <button
+            class="danger-action"
+            data-test="decommission-client"
+            type="button"
+            @click="decommissionClient"
+          >
+            Decommission client
+          </button>
+        </section>
+
         <section class="detail-section detail-section--danger" aria-labelledby="secret-title">
           <h3 id="secret-title">Client secret</h3>
           <p>Rotasi secret hanya menampilkan plaintext satu kali. Salin lalu hapus dari layar.</p>
@@ -316,8 +385,17 @@ async function rotateSecret(): Promise<void> {
           </div>
         </section>
       </article>
+
+      <section v-else class="state-card" role="status">
+        <h2>Belum ada detail client</h2>
+        <p>Pilih atau buat OAuth client untuk melihat governance evidence.</p>
+      </section>
     </div>
 
-    <p v-if="store.requestId" class="request-evidence">Request ID: {{ store.requestId }}</p>
+    <EvidenceContextPanel
+      title="Client evidence"
+      :request-id="store.requestId"
+      :client-id="store.selectedClient?.client_id ?? store.rotationClientId"
+    />
   </section>
 </template>

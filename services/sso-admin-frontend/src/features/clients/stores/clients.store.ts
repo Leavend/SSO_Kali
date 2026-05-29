@@ -2,7 +2,12 @@ import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { ApiError, getLastRequestId } from '@/lib/api/api-client'
 import { clientsApi } from '../services/clients.api'
-import type { AdminClient, ClientCreatePayload, ClientUpdatePayload } from '../types'
+import type {
+  AdminClient,
+  ClientCreatePayload,
+  ClientLifecyclePayload,
+  ClientUpdatePayload,
+} from '../types'
 
 export type ClientsStatus =
   | 'idle'
@@ -84,6 +89,34 @@ export const useClientsStore = defineStore('admin-clients', () => {
     try {
       const response = await clientsApi.update(selectedClientId.value, payload)
       upsertClient({ ...response.client, ...payload })
+      requestId.value = getLastRequestId()
+    } catch (error) {
+      handleGenericError(error)
+    }
+  }
+
+  async function disableSelected(payload: ClientLifecyclePayload): Promise<void> {
+    if (!selectedClientId.value) return
+    errorMessage.value = null
+    clearRotationSecret()
+
+    try {
+      const response = await clientsApi.disable(selectedClientId.value, payload)
+      upsertClient(response.registration)
+      requestId.value = getLastRequestId()
+    } catch (error) {
+      handleGenericError(error)
+    }
+  }
+
+  async function decommissionSelected(): Promise<void> {
+    if (!selectedClientId.value) return
+    errorMessage.value = null
+    clearRotationSecret()
+
+    try {
+      const response = await clientsApi.decommission(selectedClientId.value)
+      upsertClient(response.registration)
       requestId.value = getLastRequestId()
     } catch (error) {
       handleGenericError(error)
@@ -174,6 +207,8 @@ export const useClientsStore = defineStore('admin-clients', () => {
     selectClient,
     createClient,
     updateSelected,
+    disableSelected,
+    decommissionSelected,
     rotateSelectedSecret,
     clearRotationSecret,
   }

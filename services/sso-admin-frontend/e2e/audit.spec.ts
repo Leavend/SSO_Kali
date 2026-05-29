@@ -144,7 +144,12 @@ test('renders audit compliance evidence and DSR queue', async ({ page }) => {
   await expect(page.getByText('Token lifetime production guard')).toBeVisible()
   await expect(page.getByText('Session / logout evidence console')).toBeVisible()
   await expect(page.getByText('Safe error regression review')).toBeVisible()
-  await expect(page.getByText('req-audit-e2e')).toBeVisible()
+  const evidencePanel = page.getByRole('heading', { name: 'Audit evidence context' }).locator('..')
+  await expect(evidencePanel).toBeVisible()
+  await expect(evidencePanel).toContainText('Request ID')
+  await expect(evidencePanel).toContainText('req-audit-e2e')
+  await expect(evidencePanel).toContainText('Correlation ID')
+  await expect(evidencePanel).toContainText('SID')
   await expect(page.getByText(/Bearer|refreshToken|SQLSTATE/u)).toHaveCount(0)
 })
 
@@ -187,6 +192,6 @@ test('shows safe audit error with request evidence', async ({ page }) => {
   await expect(
     page.getByRole('heading', { name: 'Audit compliance belum bisa dimuat' }),
   ).toBeVisible()
-  await expect(page.getByText('Request ID: req-audit-fail')).toBeVisible()
+  await expect(page.getByRole('alert')).toContainText('req-audit-fail')
   await expect(page.getByText('SQLSTATE')).toHaveCount(0)
 })

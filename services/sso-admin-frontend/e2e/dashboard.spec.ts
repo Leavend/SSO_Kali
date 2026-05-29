@@ -69,6 +69,8 @@ test('renders permission-aware admin shell and dashboard summary evidence', asyn
   await expect(page.getByRole('navigation', { name: 'Modul admin' })).toContainText('Dashboard')
   await expect(page.getByRole('navigation', { name: 'Modul admin' })).not.toContainText('Users')
   await expect(page.getByRole('heading', { name: 'Admin Dashboard' })).toBeVisible()
+  await expect(page.getByText('Dashboard evidence')).toBeVisible()
+  await expect(page.getByText('Request ID')).toBeVisible()
   await expect(page.getByText('req-dashboard-e2e')).toBeVisible()
   await expect(page.getByText('10')).toBeVisible()
   await expect(page.getByText(/Bearer|refreshToken|idToken/u)).toHaveCount(0)

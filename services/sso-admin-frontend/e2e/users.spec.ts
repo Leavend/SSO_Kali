@@ -58,7 +58,7 @@ const user = {
   last_login_at: '2026-05-27T01:00:00Z',
 }
 
-test('renders user lifecycle console and one-time reset token', async ({ page }) => {
+test('renders user lifecycle console and safe reset evidence', async ({ page }) => {
   await page.route('**/api/admin/me', async (route) => {
     await route.fulfill({ contentType: 'application/json', body: JSON.stringify(principal) })
   })
@@ -73,7 +73,10 @@ test('renders user lifecycle console and one-time reset token', async ({ page })
     await route.fulfill({
       contentType: 'application/json',
       headers: { 'x-request-id': 'req-reset-e2e' },
-      body: JSON.stringify({ password_reset: { token: 'reset-token-e2e' } }),
+      body: JSON.stringify({
+        password_reset: { token: 'reset-token-e2e', expires_at: '2026-05-27T02:00:00Z' },
+        audit_event_id: 'AUD-RESET-E2E',
+      }),
     })
   })
 
@@ -85,10 +88,13 @@ test('renders user lifecycle console and one-time reset token', async ({ page })
   await expect(page.getByText('req-users-e2e')).toBeVisible()
 
   await page.getByRole('button', { name: 'Issue reset link' }).click()
-  await expect(page.getByText('reset-token-e2e')).toBeVisible()
+  await expect(
+    page.getByText(
+      'Password reset dikirim melalui channel aman backend. Gunakan audit evidence untuk pelacakan.',
+    ),
+  ).toBeVisible()
+  await expect(page.getByText('AUD-RESET-E2E')).toBeVisible()
   await expect(page.getByText('req-reset-e2e')).toBeVisible()
-
-  await page.getByRole('button', { name: 'Hapus token dari layar' }).click()
   await expect(page.getByText('reset-token-e2e')).toHaveCount(0)
   await expect(page.getByText(/Bearer|refreshToken|SQLSTATE/u)).toHaveCount(0)
 })

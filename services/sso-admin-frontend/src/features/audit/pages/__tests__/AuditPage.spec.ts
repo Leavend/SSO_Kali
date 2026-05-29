@@ -23,8 +23,16 @@ const event: AdminAuditEvent = {
   action: 'admin.user.lock',
   outcome: 'succeeded',
   taxonomy: 'user_lifecycle',
-  actor: { subject_id: 'sub_admin', email: 'admin@example.test', role: 'admin' },
-  request: { method: 'POST', path: '/admin/api/users/sub_target/lock', ip_address: '203.0.113.10' },
+  actor: {
+    subject_id: 'sub_admin',
+    email: 'admin@example.test',
+    role: 'admin',
+  },
+  request: {
+    method: 'POST',
+    path: '/admin/api/users/sub_target/lock',
+    ip_address: '203.0.113.10',
+  },
   reason: 'Security review',
   context: { token: '[redacted]', subject_id: 'sub_target' },
   hash_chain: { previous_hash: 'prev-hash', event_hash: 'event-hash' },
@@ -94,7 +102,11 @@ describe('AuditPage', () => {
     expect(wrapper.text()).toContain('Token lifetime production guard')
     expect(wrapper.text()).toContain('Session / logout evidence console')
     expect(wrapper.text()).toContain('Safe error regression review')
-    expect(wrapper.text()).toContain('Request ID: req-audit-1')
+    expect(wrapper.text()).toContain('Audit evidence context')
+    expect(wrapper.text()).toContain('Request ID')
+    expect(wrapper.text()).toContain('req-audit-1')
+    expect(wrapper.text()).toContain('Correlation ID')
+    expect(wrapper.text()).toContain('SID')
     expect(wrapper.text()).not.toMatch(/Bearer|refreshToken|SQLSTATE/i)
   })
 
@@ -121,5 +133,18 @@ describe('AuditPage', () => {
     expect(wrapper.text()).toContain('Audit compliance belum bisa dimuat')
     expect(wrapper.text()).toContain('req-audit-fail')
     expect(wrapper.text()).not.toMatch(/Bearer|SQLSTATE/i)
+  })
+
+  it('renders empty state when audit evidence is not available yet', () => {
+    const store = useAuditStore()
+    store.status = 'success'
+    store.events = []
+    store.dataSubjectRequests = []
+    store.authenticationEvents = []
+    store.integrity = null
+
+    const wrapper = mount(AuditPage)
+
+    expect(wrapper.text()).toContain('Belum ada evidence audit untuk ditampilkan.')
   })
 })

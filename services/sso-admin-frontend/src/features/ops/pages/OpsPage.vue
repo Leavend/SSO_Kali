@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
+import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
 import { useOpsStore } from '../stores/ops.store'
 
 const store = useOpsStore()
 
 const queueCheck = computed(() => store.readiness?.checks.queue ?? null)
+const hasOpsEvidence = computed(() => store.readiness !== null)
 
 onMounted(() => {
   if (store.status === 'idle') void store.load()
@@ -47,6 +49,11 @@ onMounted(() => {
     <div v-else-if="store.status === 'error'" class="state-card state-card--danger" role="alert">
       <h2>Ops evidence belum bisa dimuat</h2>
       <p>{{ store.errorMessage }}</p>
+    </div>
+
+    <div v-else-if="!hasOpsEvidence" class="state-card" role="status">
+      <h2>Evidence operasional belum tersedia</h2>
+      <p>Belum ada evidence operasional untuk ditampilkan.</p>
     </div>
 
     <div v-else class="ops-layout">
@@ -109,6 +116,6 @@ onMounted(() => {
       </section>
     </div>
 
-    <p v-if="store.requestId" class="request-evidence">Request ID: {{ store.requestId }}</p>
+    <EvidenceContextPanel title="Ops evidence" :request-id="store.requestId" />
   </section>
 </template>

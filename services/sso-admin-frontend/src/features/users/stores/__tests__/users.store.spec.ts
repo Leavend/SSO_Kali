@@ -66,7 +66,11 @@ describe('useUsersStore', () => {
   it('loads selected user detail with login/session evidence', async () => {
     vi.mocked(usersApi.show).mockResolvedValue({
       user,
-      login_context: { ip_address: '203.0.113.10', risk_score: 15, mfa_required: true },
+      login_context: {
+        ip_address: '203.0.113.10',
+        risk_score: 15,
+        mfa_required: true,
+      },
       sessions: [{ session_id: 'sess_1', client_id: 'portal' }],
     })
     const store = useUsersStore()
@@ -89,25 +93,29 @@ describe('useUsersStore', () => {
 
     await store.lockSelected('Security review')
 
-    expect(usersApi.lock).toHaveBeenCalledWith('sub_admin', { reason: 'Security review' })
+    expect(usersApi.lock).toHaveBeenCalledWith('sub_admin', {
+      reason: 'Security review',
+    })
     expect(store.selectedUser?.status).toBe('locked')
     expect(store.auditEventId).toBe('AUD01')
   })
 
-  it('stores password reset token transiently and clears it explicitly', async () => {
+  it('drops password reset token and keeps only safe audit evidence', async () => {
     vi.mocked(usersApi.issuePasswordReset).mockResolvedValue({
-      password_reset: { token: 'reset-token-once', expires_at: '2026-05-27T02:00:00Z' },
+      password_reset: {
+        token: 'reset-token-once',
+        expires_at: '2026-05-27T02:00:00Z',
+      },
+      audit_event_id: 'AUD-RESET-1',
     })
     const store = useUsersStore()
     store.selectedSubjectId = 'sub_admin'
 
     await store.issuePasswordResetSelected()
 
-    expect(store.passwordResetToken).toBe('reset-token-once')
-
-    store.clearPasswordResetToken()
-
     expect(store.passwordResetToken).toBeNull()
+    expect(store.passwordResetExpiresAt).toBe('2026-05-27T02:00:00Z')
+    expect(store.auditEventId).toBe('AUD-RESET-1')
   })
 
   it('maps forbidden errors to safe copy', async () => {

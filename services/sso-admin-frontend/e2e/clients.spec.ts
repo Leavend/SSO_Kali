@@ -62,7 +62,9 @@ const client = {
   has_secret_hash: true,
 }
 
-test('renders OAuth client console and one-time secret evidence', async ({ page }) => {
+test('renders OAuth client console, evidence panel, and one-time client secret flow', async ({
+  page,
+}) => {
   await page.route('**/api/admin/me', async (route) => {
     await route.fulfill({ contentType: 'application/json', body: JSON.stringify(principal) })
   })
@@ -91,6 +93,17 @@ test('renders OAuth client console and one-time secret evidence', async ({ page 
     })
   })
   await page.route('**/api/admin/clients/prototype-app-a', async (route) => {
+    if (route.request().method() === 'DELETE') {
+      await route.fulfill({
+        contentType: 'application/json',
+        headers: { 'x-request-id': 'req-decommission-e2e' },
+        body: JSON.stringify({
+          registration: { ...client, status: 'decommissioned', redirect_uris: [] },
+        }),
+      })
+      return
+    }
+
     const payload =
       route.request().method() === 'PATCH'
         ? (route.request().postDataJSON() as Partial<typeof client>)
@@ -119,6 +132,15 @@ test('renders OAuth client console and one-time secret evidence', async ({ page 
       }),
     })
   })
+  await page.route('**/api/admin/client-integrations/prototype-app-a/disable', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      headers: { 'x-request-id': 'req-disable-e2e' },
+      body: JSON.stringify({
+        registration: { ...client, status: 'disabled', disabled_at: '2026-05-28T00:00:00Z' },
+      }),
+    })
+  })
 
   await page.goto('/clients')
 
@@ -127,6 +149,8 @@ test('renders OAuth client console and one-time secret evidence', async ({ page 
   await expect(page.getByRole('heading', { name: 'OAuth Clients' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Prototype App A' })).toBeVisible()
   await expect(page.getByText('https://app.example.test/callback')).toBeVisible()
+  await expect(page.getByText('Client evidence')).toBeVisible()
+  await expect(page.getByText('Request ID')).toBeVisible()
   await expect(page.getByText('req-clients-e2e')).toBeVisible()
 
   await page.locator('input[name="client_id"]').fill('prototype-app-b')
@@ -171,6 +195,17 @@ test('renders OAuth client console and one-time secret evidence', async ({ page 
   await scopeUpdateRequest
   await expect(allowedScopesInput).toHaveValue(/email/u)
 
+  await expect(page.getByText('Client lifecycle')).toBeVisible()
+  await expect(page.getByText('Impact summary')).toBeVisible()
+  await page.locator('textarea[name="client_disable_reason"]').fill('incident response')
+  await page.getByRole('button', { name: 'Disable client' }).click()
+  await expect(page.getByText('req-disable-e2e')).toBeVisible()
+  await expect(page.locator('.status-pill')).toContainText('disabled')
+  await page.locator('input[name="decommission_confirmation"]').fill('prototype-app-a')
+  await page.getByRole('button', { name: 'Decommission client' }).click()
+  await expect(page.getByText('req-decommission-e2e')).toBeVisible()
+  await expect(page.locator('.status-pill')).toContainText('decommissioned')
+
   await page.getByRole('button', { name: 'Rotate secret' }).click()
   await expect(page.getByText('once-secret-e2e')).toBeVisible()
   await expect(page.getByText('req-rotate-e2e')).toBeVisible()
@@ -196,6 +231,6 @@ test('shows safe OAuth clients error with request evidence', async ({ page }) =>
   await page.goto('/clients')
 
   await expect(page.getByRole('heading', { name: 'OAuth clients belum bisa dimuat' })).toBeVisible()
-  await expect(page.getByText('Request ID: req-clients-fail')).toBeVisible()
+  await expect(page.getByRole('alert')).toContainText('req-clients-fail')
   await expect(page.getByText('SQLSTATE')).toHaveCount(0)
 })

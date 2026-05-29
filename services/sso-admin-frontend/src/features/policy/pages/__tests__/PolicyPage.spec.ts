@@ -64,7 +64,9 @@ describe('PolicyPage', () => {
     expect(wrapper.text()).toContain('version 1')
     expect(wrapper.text()).toContain('Auditor')
     expect(wrapper.text()).toContain('admin.audit.read')
-    expect(wrapper.text()).toContain('Request ID: req-policy-1')
+    expect(wrapper.text()).toContain('Policy evidence')
+    expect(wrapper.text()).toContain('Request ID')
+    expect(wrapper.text()).toContain('req-policy-1')
     expect(wrapper.text()).not.toMatch(/Bearer|refreshToken|SQLSTATE/i)
   })
 
@@ -77,5 +79,17 @@ describe('PolicyPage', () => {
 
     expect(wrapper.text()).toContain('Akses policy ditolak')
     expect(wrapper.text()).not.toContain('SQLSTATE')
+  })
+
+  it('renders empty state when no policy or RBAC evidence exists', () => {
+    const store = usePolicyStore()
+    store.status = 'success'
+    store.policies = []
+    store.roles = []
+    store.permissions = []
+
+    const wrapper = mount(PolicyPage)
+
+    expect(wrapper.text()).toContain('Belum ada policy atau RBAC evidence untuk ditampilkan.')
   })
 })

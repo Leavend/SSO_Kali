@@ -11,6 +11,9 @@ vi.mock('../../services/clients.api', () => ({
     show: vi.fn<(clientId: string) => Promise<{ client: AdminClient }>>(),
     update: vi.fn<(clientId: string, payload: unknown) => Promise<{ client: AdminClient }>>(),
     create: vi.fn<(payload: unknown) => Promise<{ client: AdminClient }>>(),
+    disable:
+      vi.fn<(clientId: string, payload: unknown) => Promise<{ registration: AdminClient }>>(),
+    decommission: vi.fn<(clientId: string) => Promise<{ registration: AdminClient }>>(),
     rotateSecret:
       vi.fn<
         (
@@ -49,6 +52,8 @@ describe('useClientsStore', () => {
     vi.mocked(clientsApi.show).mockReset()
     vi.mocked(clientsApi.update).mockReset()
     vi.mocked(clientsApi.create).mockReset()
+    vi.mocked(clientsApi.disable).mockReset()
+    vi.mocked(clientsApi.decommission).mockReset()
     vi.mocked(clientsApi.rotateSecret).mockReset()
     vi.mocked(getLastRequestId).mockReturnValue('req-clients-1')
   })
@@ -151,6 +156,32 @@ describe('useClientsStore', () => {
     expect(clientsApi.update).toHaveBeenCalledWith('prototype-app-a', {
       allowed_scopes: ['openid', 'profile', 'email'],
     })
+  })
+
+  it('disables and decommissions clients with request evidence', async () => {
+    vi.mocked(clientsApi.disable).mockResolvedValue({
+      registration: { ...client, status: 'disabled', disabled_at: '2026-05-28T00:00:00Z' },
+    })
+    vi.mocked(clientsApi.decommission).mockResolvedValue({
+      registration: { ...client, status: 'decommissioned', redirect_uris: [] },
+    })
+    const store = useClientsStore()
+    store.clients = [client]
+    store.selectedClientId = client.client_id
+
+    await store.disableSelected({ reason: 'incident response' })
+
+    expect(store.selectedClient?.status).toBe('disabled')
+    expect(store.requestId).toBe('req-clients-1')
+    expect(clientsApi.disable).toHaveBeenCalledWith('prototype-app-a', {
+      reason: 'incident response',
+    })
+
+    await store.decommissionSelected()
+
+    expect(store.selectedClient?.status).toBe('decommissioned')
+    expect(store.selectedClient?.redirect_uris).toEqual([])
+    expect(clientsApi.decommission).toHaveBeenCalledWith('prototype-app-a')
   })
 
   it('keeps rotated secret transient and clears it explicitly', async () => {

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
+import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
 import { useDashboardStore } from '../stores/dashboard.store'
 import type { DashboardCounterGroup } from '../types'
 
@@ -18,6 +19,10 @@ const cards = computed(() => {
     { title: 'DSR', counters: counters.data_subject_requests },
   ]
 })
+
+const hasCounterValues = computed(() =>
+  cards.value.some((card) => Object.values(card.counters).length > 0),
+)
 
 onMounted(() => {
   if (dashboard.status === 'idle') void dashboard.load()
@@ -46,10 +51,6 @@ function label(value: string): string {
           <dt>Generated at</dt>
           <dd>{{ dashboard.summary.generated_at }}</dd>
         </div>
-        <div v-if="dashboard.requestId">
-          <dt>Request ID</dt>
-          <dd class="break-anywhere">{{ dashboard.requestId }}</dd>
-        </div>
       </dl>
     </header>
 
@@ -77,6 +78,11 @@ function label(value: string): string {
       <p>{{ dashboard.errorMessage }}</p>
     </section>
 
+    <section v-else-if="!hasCounterValues" class="oidc-panel" role="status">
+      <h2>Dashboard belum memiliki evidence</h2>
+      <p>Belum ada ringkasan dashboard untuk ditampilkan.</p>
+    </section>
+
     <section v-else class="dashboard-grid" aria-label="Ringkasan dashboard admin">
       <article v-for="card in cards" :key="card.title" class="dashboard-card">
         <h2>{{ card.title }}</h2>
@@ -88,5 +94,7 @@ function label(value: string): string {
         </dl>
       </article>
     </section>
+
+    <EvidenceContextPanel title="Dashboard evidence" :request-id="dashboard.requestId" />
   </section>
 </template>

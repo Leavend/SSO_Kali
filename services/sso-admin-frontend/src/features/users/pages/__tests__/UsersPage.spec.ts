@@ -39,7 +39,11 @@ describe('UsersPage', () => {
     store.status = 'success'
     store.users = [user]
     store.selectedSubjectId = 'sub_admin'
-    store.loginContext = { ip_address: '203.0.113.10', risk_score: 15, mfa_required: true }
+    store.loginContext = {
+      ip_address: '203.0.113.10',
+      risk_score: 15,
+      mfa_required: true,
+    }
     store.sessions = [{ session_id: 'sess_1', client_id: 'portal' }]
     store.requestId = 'req-users-1'
 
@@ -81,20 +85,29 @@ describe('UsersPage', () => {
     expect(wrapper.text()).not.toContain('raw ACR')
   })
 
-  it('renders password reset token once and clears it', async () => {
+  it('does not render password reset token and shows safe reset evidence instead', () => {
     const store = useUsersStore()
     store.status = 'success'
     store.users = [user]
     store.selectedSubjectId = 'sub_admin'
+    store.auditEventId = 'AUD-RESET-1'
     store.passwordResetToken = 'reset-token-once'
 
     const wrapper = mount(UsersPage)
 
-    expect(wrapper.text()).toContain('reset-token-once')
-
-    await wrapper.get('button[data-test="clear-password-reset-token"]').trigger('click')
-
-    expect(store.passwordResetToken).toBeNull()
+    expect(wrapper.text()).toContain('Password reset dikirim melalui channel aman backend.')
+    expect(wrapper.text()).toContain('AUD-RESET-1')
     expect(wrapper.text()).not.toContain('reset-token-once')
+  })
+
+  it('renders empty state when no users are available', () => {
+    const store = useUsersStore()
+    store.status = 'success'
+    store.users = []
+    store.selectedSubjectId = null
+
+    const wrapper = mount(UsersPage)
+
+    expect(wrapper.text()).toContain('Belum ada user untuk ditampilkan.')
   })
 })

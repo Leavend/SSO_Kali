@@ -100,7 +100,9 @@ test('renders policy and RBAC evidence', async ({ page }) => {
   const roles = page.getByRole('heading', { name: 'Roles' }).locator('..')
   await expect(roles).toContainText('Auditor')
   await expect(roles).toContainText('admin.audit.read')
-  await expect(page.getByText('Request ID: req-policy-e2e')).toBeVisible()
+  await expect(page.getByText('Policy evidence')).toBeVisible()
+  await expect(page.getByText('Request ID')).toBeVisible()
+  await expect(page.getByText('req-policy-e2e')).toBeVisible()
   await expect(page.getByText(/Bearer|refreshToken|SQLSTATE/u)).toHaveCount(0)
 })
 
@@ -140,6 +142,6 @@ test('shows safe step-up copy for high-risk policy action', async ({ page }) => 
   await page.getByRole('button', { name: 'Activate' }).click()
 
   await expect(page.getByText('fresh-auth atau MFA assurance')).toBeVisible()
-  await expect(page.getByText('Request ID: req-policy-step')).toBeVisible()
+  await expect(page.getByText('req-policy-step')).toBeVisible()
   await expect(page.getByText('raw ACR')).toHaveCount(0)
 })

@@ -52,6 +52,14 @@ export type ClientCreatePayload = Pick<AdminClient, 'client_id' | 'redirect_uris
     >
   >
 
+export type ClientLifecyclePayload = {
+  readonly reason: string
+}
+
+export type ClientLifecycleResponse = {
+  readonly registration: AdminClient
+}
+
 export type ClientSecretRotation = {
   readonly client_id: string
   readonly client_secret?: string

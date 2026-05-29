@@ -97,7 +97,9 @@ test('renders external IdP provider and mapping evidence', async ({ page }) => {
   await expect(providerList).toContainText('Google Workspace')
   await expect(providerList).toContainText('healthy')
   await expect(page.getByText('safe to link: true')).toBeVisible()
-  await expect(page.getByText('Request ID: req-idp-e2e')).toBeVisible()
+  await expect(page.getByText('Federation evidence')).toBeVisible()
+  await expect(page.getByText('Request ID')).toBeVisible()
+  await expect(page.getByText('req-idp-e2e')).toBeVisible()
   await expect(page.getByText(/Bearer|client_secret|access_token|SQLSTATE/u)).toHaveCount(0)
 })
 
@@ -125,6 +127,6 @@ test('shows safe step-up copy for provider disable', async ({ page }) => {
   await page.getByRole('button', { name: 'Disable provider' }).click()
 
   await expect(page.getByText('fresh-auth atau MFA assurance')).toBeVisible()
-  await expect(page.getByText('Request ID: req-idp-step')).toBeVisible()
+  await expect(page.getByText('req-idp-step')).toBeVisible()
   await expect(page.getByText('raw ACR')).toHaveCount(0)
 })

@@ -19,7 +19,11 @@ describe('OpsPage', () => {
       checks: {
         database: true,
         redis: true,
-        queue: { pending_jobs: 0, failed_jobs: 0, oldest_pending_age_seconds: null },
+        queue: {
+          pending_jobs: 0,
+          failed_jobs: 0,
+          oldest_pending_age_seconds: null,
+        },
       },
     }
 
@@ -45,5 +49,15 @@ describe('OpsPage', () => {
 
     expect(wrapper.text()).toContain('Akses ops evidence ditolak')
     expect(wrapper.text()).not.toContain('SQLSTATE')
+  })
+
+  it('renders empty state when no ops readiness evidence is available', () => {
+    const store = useOpsStore()
+    store.status = 'success'
+    store.readiness = null
+
+    const wrapper = mount(OpsPage)
+
+    expect(wrapper.text()).toContain('Belum ada evidence operasional untuk ditampilkan.')
   })
 })

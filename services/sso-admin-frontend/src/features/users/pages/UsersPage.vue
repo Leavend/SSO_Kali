@@ -1,9 +1,15 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
 import { useUsersStore } from '../stores/users.store'
 
 const store = useUsersStore()
 const reason = ref('Admin review')
+
+const selectedSessionId = computed(
+  () => store.sessions[0]?.session_id ?? store.sessions[0]?.id ?? null,
+)
+const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
 
 onMounted(() => {
   if (store.status === 'idle') void store.load()
@@ -64,7 +70,7 @@ async function selectUser(subjectId: string): Promise<void> {
           <small>{{ user.status ?? 'unknown' }}</small>
         </button>
 
-        <p v-if="store.users.length === 0" class="muted">Belum ada user.</p>
+        <p v-if="store.users.length === 0" class="muted">Belum ada user untuk ditampilkan.</p>
       </aside>
 
       <article v-if="store.selectedUser" class="user-detail">
@@ -151,24 +157,31 @@ async function selectUser(subjectId: string): Promise<void> {
             </button>
           </div>
           <p v-if="store.errorMessage" class="action-message">{{ store.errorMessage }}</p>
-          <p v-if="store.auditEventId" class="request-evidence">
-            Audit event: {{ store.auditEventId }}
+          <p
+            v-if="store.passwordResetToken || store.auditEventId"
+            class="action-message"
+            role="status"
+          >
+            Password reset dikirim melalui channel aman backend. Gunakan audit evidence untuk
+            pelacakan.
           </p>
-          <div v-if="store.passwordResetToken" class="secret-reveal" role="status">
-            <strong>Password reset token</strong>
-            <code>{{ store.passwordResetToken }}</code>
-            <button
-              data-test="clear-password-reset-token"
-              type="button"
-              @click="store.clearPasswordResetToken"
-            >
-              Hapus token dari layar
-            </button>
-          </div>
         </section>
+
+        <EvidenceContextPanel
+          title="Lifecycle evidence"
+          :request-id="store.requestId"
+          :audit-event-id="store.auditEventId"
+          :session-id="selectedSessionId"
+          :client-id="selectedClientId"
+          :subject-id="store.selectedUser.subject_id"
+        />
       </article>
     </div>
 
-    <p v-if="store.requestId" class="request-evidence">Request ID: {{ store.requestId }}</p>
+    <EvidenceContextPanel
+      v-if="!store.selectedUser"
+      title="Users evidence"
+      :request-id="store.requestId"
+    />
   </section>
 </template>

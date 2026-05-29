@@ -66,4 +66,16 @@ describe('ExternalIdpsPage', () => {
     expect(wrapper.text()).toContain('Akses External IdP ditolak')
     expect(wrapper.text()).not.toContain('SQLSTATE')
   })
+
+  it('renders empty state when no providers are available', () => {
+    const store = useExternalIdpsStore()
+    store.status = 'success'
+    store.providers = []
+    store.selectedProviderKey = null
+    store.mappingPreview = null
+
+    const wrapper = mount(ExternalIdpsPage)
+
+    expect(wrapper.text()).toContain('Belum ada provider eksternal untuk ditampilkan.')
+  })
 })

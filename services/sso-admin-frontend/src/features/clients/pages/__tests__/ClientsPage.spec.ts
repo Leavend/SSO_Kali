@@ -87,7 +87,51 @@ describe('ClientsPage', () => {
     await wrapper.get('textarea[name="allowed_scopes"]').setValue('openid\nprofile\nemail')
     await wrapper.get('form[data-test="scope-policy-form"]').trigger('submit')
 
-    expect(updateSpy).toHaveBeenCalledWith({ allowed_scopes: ['openid', 'profile', 'email'] })
+    expect(updateSpy).toHaveBeenCalledWith({
+      allowed_scopes: ['openid', 'profile', 'email'],
+    })
+  })
+
+  it('renders destructive client lifecycle controls behind confirmation text', async () => {
+    const store = useClientsStore()
+    store.clients = [client]
+    store.selectedClientId = 'prototype-app-a'
+    store.status = 'success'
+    store.detailStatus = 'success'
+    const disableSpy = vi.spyOn(store, 'disableSelected').mockResolvedValue()
+    const decommissionSpy = vi.spyOn(store, 'decommissionSelected').mockResolvedValue()
+
+    const wrapper = mount(ClientsPage)
+
+    expect(wrapper.text()).toContain('Client lifecycle')
+    expect(wrapper.text()).toContain('Impact summary')
+
+    await wrapper.get('textarea[name="client_disable_reason"]').setValue('incident response')
+    await wrapper.get('button[data-test="disable-client"]').trigger('click')
+
+    expect(disableSpy).toHaveBeenCalledWith({ reason: 'incident response' })
+
+    await wrapper.get('input[name="decommission_confirmation"]').setValue('prototype-app-a')
+    await wrapper.get('button[data-test="decommission-client"]').trigger('click')
+
+    expect(decommissionSpy).toHaveBeenCalled()
+  })
+
+  it('blocks decommission without exact client confirmation', async () => {
+    const store = useClientsStore()
+    store.clients = [client]
+    store.selectedClientId = 'prototype-app-a'
+    store.status = 'success'
+    store.detailStatus = 'success'
+    const decommissionSpy = vi.spyOn(store, 'decommissionSelected')
+
+    const wrapper = mount(ClientsPage)
+
+    await wrapper.get('input[name="decommission_confirmation"]').setValue('wrong-client')
+    await wrapper.get('button[data-test="decommission-client"]').trigger('click')
+
+    expect(wrapper.text()).toContain('Ketik client ID untuk konfirmasi decommission.')
+    expect(decommissionSpy).not.toHaveBeenCalled()
   })
 
   it('blocks invalid and duplicate URI policy values before submitting', async () => {
@@ -135,5 +179,16 @@ describe('ClientsPage', () => {
 
     expect(store.rotationSecret).toBeNull()
     expect(wrapper.text()).not.toContain('once-secret')
+  })
+
+  it('renders empty state when no clients are available', () => {
+    const store = useClientsStore()
+    store.status = 'success'
+    store.clients = []
+    store.selectedClientId = null
+
+    const wrapper = mount(ClientsPage)
+
+    expect(wrapper.text()).toContain('Belum ada OAuth client untuk ditampilkan.')
   })
 })

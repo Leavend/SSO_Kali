@@ -1,11 +1,16 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
 import { usePolicyStore } from '../stores/policy.store'
 
 const store = usePolicyStore()
 const category = ref(store.selectedCategory)
 const reason = ref('Security governance update')
 const draftPayload = ref('{"min_length":14}')
+
+const hasPolicyEvidence = computed(
+  () => store.policies.length > 0 || store.roles.length > 0 || store.permissions.length > 0,
+)
 
 onMounted(() => {
   if (store.status === 'idle') void store.load()
@@ -54,6 +59,11 @@ async function proposeDraft(): Promise<void> {
     <div v-else-if="store.status === 'error'" class="state-card state-card--danger" role="alert">
       <h2>Policy/RBAC admin belum bisa dimuat</h2>
       <p>{{ store.errorMessage }}</p>
+    </div>
+
+    <div v-else-if="!hasPolicyEvidence" class="state-card" role="status">
+      <h2>Policy/RBAC evidence belum tersedia</h2>
+      <p>Belum ada policy atau RBAC evidence untuk ditampilkan.</p>
     </div>
 
     <div v-else class="policy-layout">
@@ -134,6 +144,6 @@ async function proposeDraft(): Promise<void> {
       <p v-if="store.errorMessage" class="action-message">{{ store.errorMessage }}</p>
     </div>
 
-    <p v-if="store.requestId" class="request-evidence">Request ID: {{ store.requestId }}</p>
+    <EvidenceContextPanel title="Policy evidence" :request-id="store.requestId" />
   </section>
 </template>

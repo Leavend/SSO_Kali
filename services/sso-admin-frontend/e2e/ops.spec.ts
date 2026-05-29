@@ -62,12 +62,17 @@ test('renders ops readiness and evidence placeholders', async ({ page }) => {
   await page.goto('/ops')
 
   await expect(page.getByRole('navigation', { name: 'Modul admin' })).toContainText('Ops')
-  await expect(page.getByRole('heading', { name: 'Ops Evidence' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Ops Evidence', exact: true })).toBeVisible()
   await expect(page.getByText('sso-backend')).toBeVisible()
   await expect(page.getByText('ready')).toBeVisible()
   await expect(page.getByText('JWKS rotation drill')).toBeVisible()
   await expect(page.getByText('SIEM sink verification')).toBeVisible()
-  await expect(page.getByText('Request ID: req-ops-e2e')).toBeVisible()
+  const evidencePanel = page
+    .getByRole('heading', { name: 'Ops evidence', exact: true })
+    .locator('..')
+  await expect(evidencePanel).toBeVisible()
+  await expect(evidencePanel).toContainText('Request ID')
+  await expect(evidencePanel).toContainText('req-ops-e2e')
   await expect(page.getByText(/Bearer|metrics token|secret|SQLSTATE/u)).toHaveCount(0)
 })
 
@@ -87,6 +92,6 @@ test('shows safe ops error with request ID', async ({ page }) => {
   await page.goto('/ops')
 
   await expect(page.getByRole('heading', { name: 'Ops evidence belum bisa dimuat' })).toBeVisible()
-  await expect(page.getByText('Request ID: req-ops-fail')).toBeVisible()
+  await expect(page.getByRole('alert')).toContainText('req-ops-fail')
   await expect(page.getByText('raw metrics token')).toHaveCount(0)
 })
