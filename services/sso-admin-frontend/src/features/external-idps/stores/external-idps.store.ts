@@ -3,6 +3,7 @@ import { defineStore } from 'pinia'
 import { ApiError, getLastRequestId } from '@/lib/api/api-client'
 import { externalIdpsApi } from '../services/external-idps.api'
 import type {
+  ExternalIdpCreatePayload,
   ExternalIdpMappingPreview,
   ExternalIdpUpdatePayload,
   ExternalIdentityProvider,
@@ -61,14 +62,12 @@ export const useExternalIdpsStore = defineStore('admin-external-idps', () => {
     }
   }
 
-  async function createProvider(payload: Record<string, unknown>): Promise<void> {
+  async function createProvider(payload: ExternalIdpCreatePayload): Promise<void> {
     actionStatus.value = 'loading'
     errorMessage.value = null
 
     try {
-      const response = await externalIdpsApi.create(
-        payload as Parameters<typeof externalIdpsApi.create>[0],
-      )
+      const response = await externalIdpsApi.create(payload)
       upsertProvider(response.provider)
       selectedProviderKey.value = response.provider.provider_key
       requestId.value = getLastRequestId()

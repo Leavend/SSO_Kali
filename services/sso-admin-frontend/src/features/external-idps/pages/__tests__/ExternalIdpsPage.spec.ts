@@ -1,9 +1,20 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import ExternalIdpsPage from '../ExternalIdpsPage.vue'
 import { useExternalIdpsStore } from '../../stores/external-idps.store'
 import type { ExternalIdentityProvider } from '../../types'
+
+vi.mock('../../services/external-idps.api', () => ({
+  externalIdpsApi: {
+    list: vi.fn<() => Promise<unknown>>(),
+    show: vi.fn<() => Promise<unknown>>(),
+    create: vi.fn<() => Promise<unknown>>(),
+    update: vi.fn<() => Promise<unknown>>(),
+    previewMapping: vi.fn<() => Promise<unknown>>(),
+    delete: vi.fn<() => Promise<unknown>>(),
+  },
+}))
 
 const provider: ExternalIdentityProvider = {
   provider_key: 'google',
@@ -67,7 +78,7 @@ describe('ExternalIdpsPage', () => {
     expect(wrapper.text()).not.toContain('SQLSTATE')
   })
 
-  it('renders empty state when no providers are available', () => {
+  it('renders empty state and Add External IdP toggle when no providers exist', () => {
     const store = useExternalIdpsStore()
     store.status = 'success'
     store.providers = []
@@ -77,5 +88,118 @@ describe('ExternalIdpsPage', () => {
     const wrapper = mount(ExternalIdpsPage)
 
     expect(wrapper.text()).toContain('Belum ada provider eksternal untuk ditampilkan.')
+    expect(wrapper.find('button.create-idp-toggle').exists()).toBe(true)
+  })
+
+  it('shows Add External IdP form with required inputs on toggle', async () => {
+    const store = useExternalIdpsStore()
+    store.status = 'success'
+    store.providers = []
+
+    const wrapper = mount(ExternalIdpsPage)
+
+    expect(wrapper.find('input[name="create-provider-key"]').exists()).toBe(false)
+
+    await wrapper.find('button.create-idp-toggle').trigger('click')
+
+    expect(wrapper.find('input[name="create-provider-key"]').exists()).toBe(true)
+    expect(wrapper.find('input[name="create-display-name"]').exists()).toBe(true)
+    expect(wrapper.find('input[name="create-issuer"]').exists()).toBe(true)
+    expect(wrapper.find('input[name="create-metadata-url"]').exists()).toBe(true)
+    expect(wrapper.find('input[name="create-client-id"]').exists()).toBe(true)
+  })
+
+  it('submits create form and calls store.createProvider with parsed payload', async () => {
+    const store = useExternalIdpsStore()
+    store.status = 'success'
+    store.providers = []
+
+    const createSpy = vi.spyOn(store, 'createProvider').mockImplementation(() => Promise.resolve())
+
+    const wrapper = mount(ExternalIdpsPage)
+
+    await wrapper.find('button.create-idp-toggle').trigger('click')
+
+    await wrapper.find('input[name="create-provider-key"]').setValue('azure')
+    await wrapper.find('input[name="create-display-name"]').setValue('Azure AD')
+    await wrapper
+      .find('input[name="create-issuer"]')
+      .setValue('https://login.microsoftonline.com/tenant')
+    await wrapper
+      .find('input[name="create-metadata-url"]')
+      .setValue('https://login.microsoftonline.com/tenant/.well-known/openid-configuration')
+    await wrapper.find('input[name="create-client-id"]').setValue('azure-app-id')
+
+    await wrapper.find('button.create-idp-submit').trigger('click')
+
+    expect(createSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        provider_key: 'azure',
+        display_name: 'Azure AD',
+        issuer: 'https://login.microsoftonline.com/tenant',
+        client_id: 'azure-app-id',
+      }),
+    )
+  })
+
+  it('keeps delete button disabled until provider_key confirmation matches', async () => {
+    const store = useExternalIdpsStore()
+    store.status = 'success'
+    store.providers = [provider]
+    store.selectedProviderKey = 'google'
+
+    const wrapper = mount(ExternalIdpsPage)
+
+    expect(wrapper.find('button.delete-idp-button').attributes('disabled')).toBeDefined()
+
+    await wrapper.find('input[name="delete-confirm-key"]').setValue('wrong-key')
+    expect(wrapper.find('button.delete-idp-button').attributes('disabled')).toBeDefined()
+
+    await wrapper.find('input[name="delete-confirm-key"]').setValue('google')
+    expect(wrapper.find('button.delete-idp-button').attributes('disabled')).toBeUndefined()
+  })
+
+  it('calls store.deleteSelected when provider_key confirmed and delete submitted', async () => {
+    const store = useExternalIdpsStore()
+    store.status = 'success'
+    store.providers = [provider]
+    store.selectedProviderKey = 'google'
+
+    const deleteSpy = vi.spyOn(store, 'deleteSelected').mockImplementation(() => Promise.resolve())
+
+    const wrapper = mount(ExternalIdpsPage)
+
+    await wrapper.find('input[name="delete-confirm-key"]').setValue('google')
+    await wrapper.find('button.delete-idp-button').trigger('click')
+
+    expect(deleteSpy).toHaveBeenCalled()
+  })
+
+  it('renders edit form pre-filled from selectedProvider and calls store.updateSelected on submit', async () => {
+    const store = useExternalIdpsStore()
+    store.status = 'success'
+    store.providers = [provider]
+    store.selectedProviderKey = 'google'
+
+    const updateSpy = vi.spyOn(store, 'updateSelected').mockImplementation(() => Promise.resolve())
+
+    const wrapper = mount(ExternalIdpsPage)
+
+    expect(
+      (wrapper.find('input[name="edit-display-name"]').element as HTMLInputElement).value,
+    ).toBe('Google Workspace')
+    expect((wrapper.find('input[name="edit-client-id"]').element as HTMLInputElement).value).toBe(
+      'google-client',
+    )
+
+    await wrapper.find('input[name="edit-display-name"]').setValue('Google Workspace Updated')
+
+    await wrapper.find('button.edit-idp-submit').trigger('click')
+
+    expect(updateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        display_name: 'Google Workspace Updated',
+      }),
+    )
   })
 })
