@@ -13,10 +13,12 @@ import type {
 
 vi.mock('../../services/audit.api', () => ({
   auditApi: {
-    listEvents: vi.fn<() => Promise<{ events: readonly AdminAuditEvent[]; pagination?: unknown }>>(),
+    listEvents:
+      vi.fn<() => Promise<{ events: readonly AdminAuditEvent[]; pagination?: unknown }>>(),
     showEvent: vi.fn<(eventId: string) => Promise<{ event: AdminAuditEvent }>>(),
     getIntegrity: vi.fn<() => Promise<{ integrity: AuditIntegrity }>>(),
     exportEvents: vi.fn<() => Promise<{ blob: Blob; filename: string | null }>>(),
+    generateEvidencePack: vi.fn<() => Promise<{ blob: Blob; filename: string | null }>>(),
     listDataSubjectRequests: vi.fn<() => Promise<{ requests: readonly DataSubjectRequest[] }>>(),
     listAuthenticationEvents:
       vi.fn<() => Promise<{ events: readonly AuthenticationAuditEvent[]; pagination?: unknown }>>(),
@@ -90,6 +92,7 @@ describe('useAuditStore', () => {
     vi.mocked(auditApi.showEvent).mockReset()
     vi.mocked(auditApi.getIntegrity).mockReset()
     vi.mocked(auditApi.exportEvents).mockReset()
+    vi.mocked(auditApi.generateEvidencePack).mockReset()
     vi.mocked(auditApi.listDataSubjectRequests).mockReset()
     vi.mocked(auditApi.listAuthenticationEvents).mockReset()
     vi.mocked(auditApi.showAuthenticationEvent).mockReset()
@@ -330,6 +333,53 @@ describe('useAuditStore', () => {
       expect(triggerBlobDownload).not.toHaveBeenCalled()
       expect(store.actionStatus).toBe('step_up_required')
       expect(store.requestId).toBe('req-export-step')
+      expect(store.errorMessage).toContain('re-autentikasi')
+      expect(store.errorMessage).not.toContain('raw ACR')
+    })
+  })
+
+  describe('generateEvidencePack', () => {
+    it('downloads the compliance evidence pack using the backend filename', async () => {
+      const blob = new Blob(['pack'], { type: 'application/zip' })
+      vi.mocked(auditApi.generateEvidencePack).mockResolvedValue({
+        blob,
+        filename: 'compliance-evidence-pack-INC-42.zip',
+      })
+      const store = useAuditStore()
+
+      await store.generateEvidencePack({ correlation_id: 'INC-42', format: 'zip' })
+
+      expect(auditApi.generateEvidencePack).toHaveBeenCalledWith({
+        correlation_id: 'INC-42',
+        format: 'zip',
+      })
+      expect(triggerBlobDownload).toHaveBeenCalledWith(blob, 'compliance-evidence-pack-INC-42.zip')
+      expect(store.actionStatus).toBe('success')
+      expect(store.requestId).toBe('req-audit-1')
+    })
+
+    it('falls back to a format-derived filename when backend omits one', async () => {
+      const blob = new Blob(['{}'], { type: 'application/json' })
+      vi.mocked(auditApi.generateEvidencePack).mockResolvedValue({ blob, filename: null })
+      const store = useAuditStore()
+
+      await store.generateEvidencePack({ from: '2026-01-01', to: '2026-01-31', format: 'json' })
+
+      expect(triggerBlobDownload).toHaveBeenCalledWith(blob, expect.stringMatching(/\.json$/))
+      expect(store.actionStatus).toBe('success')
+    })
+
+    it('maps step-up 428 to a re-authentication prompt without downloading', async () => {
+      vi.mocked(auditApi.generateEvidencePack).mockRejectedValue(
+        new ApiError(428, 'raw ACR trace', 'fresh_auth_required', null, 'req-pack-step'),
+      )
+      const store = useAuditStore()
+
+      await store.generateEvidencePack({ correlation_id: 'INC-42' })
+
+      expect(triggerBlobDownload).not.toHaveBeenCalled()
+      expect(store.actionStatus).toBe('step_up_required')
+      expect(store.requestId).toBe('req-pack-step')
       expect(store.errorMessage).toContain('re-autentikasi')
       expect(store.errorMessage).not.toContain('raw ACR')
     })

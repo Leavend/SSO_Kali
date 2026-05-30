@@ -12,6 +12,7 @@ vi.mock('../../services/audit.api', () => ({
     showEvent: vi.fn<() => Promise<unknown>>(),
     getIntegrity: vi.fn<() => Promise<unknown>>(),
     exportEvents: vi.fn<() => Promise<unknown>>(),
+    generateEvidencePack: vi.fn<() => Promise<unknown>>(),
     listDataSubjectRequests: vi.fn<() => Promise<unknown>>(),
     listAuthenticationEvents: vi.fn<() => Promise<unknown>>(),
     showAuthenticationEvent: vi.fn<() => Promise<unknown>>(),
@@ -98,8 +99,8 @@ function seedPrincipal(capabilities: Record<string, boolean>): void {
 
 function seedFullAccessPrincipal(): void {
   seedPrincipal({
-      'admin.audit.export': true,
-      'admin.dsr.review': true,
+    'admin.audit.export': true,
+    'admin.dsr.review': true,
   })
 }
 
@@ -259,9 +260,9 @@ describe('AuditPage', () => {
 
     expect(searchEventsSpy).toHaveBeenCalledWith({})
     expect(searchAuthSpy).toHaveBeenCalledWith({})
-    expect((wrapper.find('input[name="audit-search-action"]').element as HTMLInputElement).value).toBe(
-      '',
-    )
+    expect(
+      (wrapper.find('input[name="audit-search-action"]').element as HTMLInputElement).value,
+    ).toBe('')
   })
 
   it('loads more audit and authentication events from cursor pagination', async () => {
@@ -372,4 +373,48 @@ describe('AuditPage', () => {
     expect(wrapper.text()).toContain('Dry-run fulfill')
   })
 
+  it('renders the compliance evidence pack generator for permitted principals', () => {
+    const store = useAuditStore()
+    store.status = 'success'
+    store.events = [event]
+    store.integrity = { verified: true, checked_events: 1 }
+
+    const wrapper = mount(AuditPage)
+
+    expect(wrapper.text()).toContain('Compliance Evidence Pack')
+    expect(wrapper.find('button.compliance-evidence-pack-button').exists()).toBe(true)
+  })
+
+  it('keeps generate disabled until a range or correlation id is set, then calls store.generateEvidencePack', async () => {
+    const store = useAuditStore()
+    store.status = 'success'
+    store.events = [event]
+    store.integrity = { verified: true, checked_events: 1 }
+    const packSpy = vi.spyOn(store, 'generateEvidencePack').mockResolvedValue()
+
+    const wrapper = mount(AuditPage)
+
+    const button = wrapper.find('button.compliance-evidence-pack-button')
+    expect(button.attributes('disabled')).toBeDefined()
+
+    await wrapper.find('input[name="evidence-pack-correlation-id"]').setValue('INC-42')
+    expect(button.attributes('disabled')).toBeUndefined()
+
+    await button.trigger('click')
+
+    expect(packSpy).toHaveBeenCalledWith({ format: 'zip', correlation_id: 'INC-42' })
+  })
+
+  it('hides the compliance evidence pack generator for principals without audit export permission', () => {
+    seedPrincipal({ 'admin.dsr.review': true })
+    const store = useAuditStore()
+    store.status = 'success'
+    store.events = [event]
+    store.integrity = { verified: true, checked_events: 1 }
+
+    const wrapper = mount(AuditPage)
+
+    expect(wrapper.text()).not.toContain('Compliance Evidence Pack')
+    expect(wrapper.find('button.compliance-evidence-pack-button').exists()).toBe(false)
+  })
 })

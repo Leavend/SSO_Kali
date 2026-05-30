@@ -3,13 +3,35 @@ import { computed, onMounted, ref } from 'vue'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
 import { useSessionStore } from '@/stores/session.store'
 import { useAuditStore } from '../stores/audit.store'
-import type { AuditExportFilters } from '../types'
+import type { AuditExportFilters, ComplianceEvidencePackFilters } from '../types'
 
 const store = useAuditStore()
 const session = useSessionStore()
 const canExportAudit = computed(() => session.hasPermission('admin.audit.export'))
+const canGenerateEvidencePack = computed(() => session.hasPermission('admin.audit.export'))
 const canReviewDsr = computed(() => session.hasPermission('admin.dsr.review'))
 const reviewNotes = ref('Evidence verified')
+
+const packFormat = ref<'zip' | 'json'>('zip')
+const packFrom = ref('')
+const packTo = ref('')
+const packCorrelationId = ref('')
+
+const canSubmitEvidencePack = computed(
+  () => (packFrom.value !== '' && packTo.value !== '') || packCorrelationId.value.trim() !== '',
+)
+
+async function submitEvidencePack(): Promise<void> {
+  if (!canSubmitEvidencePack.value) return
+  const correlationId = packCorrelationId.value.trim()
+  const filters: ComplianceEvidencePackFilters = {
+    format: packFormat.value,
+    ...(packFrom.value && { from: packFrom.value }),
+    ...(packTo.value && { to: packTo.value }),
+    ...(correlationId && { correlation_id: correlationId }),
+  }
+  await store.generateEvidencePack(filters)
+}
 
 const exportFormat = ref<'csv' | 'jsonl'>('csv')
 const exportFrom = ref('')
@@ -185,6 +207,63 @@ onMounted(() => {
           @click="submitExport"
         >
           {{ store.actionStatus === 'loading' ? 'Exporting...' : 'Export' }}
+        </button>
+        <p v-if="store.actionStatus === 'step_up_required'" class="action-message" role="alert">
+          {{ store.errorMessage }}
+        </p>
+      </section>
+
+      <section
+        v-if="canGenerateEvidencePack"
+        class="detail-section"
+        aria-labelledby="evidence-pack-title"
+      >
+        <h2 id="evidence-pack-title">Compliance Evidence Pack</h2>
+        <p class="page-summary">
+          Rakit paket bukti terkurasi (audit subset + integrity hash-chain + DSR terkait + retensi)
+          untuk satu rentang tanggal atau satu correlation ID insiden. Aksi privileged: backend
+          meminta re-autentikasi (step-up) dan permission AUDIT_EXPORT, lalu mencatat audit event
+          <code>evidence_pack_generated</code>.
+        </p>
+        <fieldset class="export-format">
+          <legend>Format paket</legend>
+          <label class="checkbox-row">
+            <input v-model="packFormat" type="radio" name="evidence-pack-format" value="zip" />
+            ZIP
+          </label>
+          <label class="checkbox-row">
+            <input v-model="packFormat" type="radio" name="evidence-pack-format" value="json" />
+            JSON
+          </label>
+        </fieldset>
+        <div class="export-filters">
+          <label class="reason-field">
+            From
+            <input v-model="packFrom" name="evidence-pack-from" type="date" />
+          </label>
+          <label class="reason-field">
+            To
+            <input v-model="packTo" name="evidence-pack-to" type="date" />
+          </label>
+          <label class="reason-field">
+            Correlation ID / insiden
+            <input
+              v-model="packCorrelationId"
+              name="evidence-pack-correlation-id"
+              autocomplete="off"
+            />
+          </label>
+        </div>
+        <p v-if="!canSubmitEvidencePack" class="muted">
+          Isi rentang tanggal (From + To) atau correlation ID untuk mengaktifkan generate.
+        </p>
+        <button
+          class="primary-action compliance-evidence-pack-button"
+          type="button"
+          :disabled="store.actionStatus === 'loading' || !canSubmitEvidencePack"
+          @click="submitEvidencePack"
+        >
+          {{ store.actionStatus === 'loading' ? 'Generating...' : 'Generate evidence pack' }}
         </button>
         <p v-if="store.actionStatus === 'step_up_required'" class="action-message" role="alert">
           {{ store.errorMessage }}

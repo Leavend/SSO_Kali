@@ -11,6 +11,7 @@ import type {
   AuditIntegrity,
   AuditPagination,
   AuthenticationAuditEventFilters,
+  ComplianceEvidencePackFilters,
   DataSubjectRequest,
 } from '../types'
 
@@ -125,7 +126,9 @@ export const useAuditStore = defineStore('admin-audit', () => {
     }
   }
 
-  async function searchAuthenticationEvents(filters: AuthenticationAuditEventFilters): Promise<void> {
+  async function searchAuthenticationEvents(
+    filters: AuthenticationAuditEventFilters,
+  ): Promise<void> {
     status.value = 'loading'
     errorMessage.value = null
     authenticationEventFilters.value = { ...filters, limit: 25 }
@@ -239,6 +242,20 @@ export const useAuditStore = defineStore('admin-audit', () => {
     }
   }
 
+  async function generateEvidencePack(filters: ComplianceEvidencePackFilters): Promise<void> {
+    actionStatus.value = 'loading'
+    errorMessage.value = null
+
+    try {
+      const { blob, filename } = await auditApi.generateEvidencePack(filters)
+      triggerBlobDownload(blob, filename ?? `compliance-evidence-pack.${filters.format ?? 'zip'}`)
+      requestId.value = getLastRequestId()
+      actionStatus.value = 'success'
+    } catch (error) {
+      handleActionError(error)
+    }
+  }
+
   function upsertEvent(nextEvent: AdminAuditEvent): void {
     events.value = events.value.some((event) => event.event_id === nextEvent.event_id)
       ? events.value.map((event) => (event.event_id === nextEvent.event_id ? nextEvent : event))
@@ -336,5 +353,6 @@ export const useAuditStore = defineStore('admin-audit', () => {
     reviewRequest,
     fulfillRequest,
     exportEvents,
+    generateEvidencePack,
   }
 })

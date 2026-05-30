@@ -9,6 +9,7 @@ import type {
   AuthenticationAuditEventListResponse,
   AuditExportFilters,
   AuditIntegrityResponse,
+  ComplianceEvidencePackFilters,
   DataSubjectFulfillPayload,
   DataSubjectRequestFilters,
   DataSubjectRequestListResponse,
@@ -27,6 +28,9 @@ export const auditApi = {
   },
   exportEvents(filters: AuditExportFilters): Promise<BlobResponse> {
     return apiClient.getBlob(withQuery('/api/admin/audit/export', filters))
+  },
+  generateEvidencePack(filters: ComplianceEvidencePackFilters): Promise<BlobResponse> {
+    return apiClient.getBlob(withQuery('/api/admin/compliance/evidence-pack', filters))
   },
   listDataSubjectRequests(
     filters: DataSubjectRequestFilters = {},

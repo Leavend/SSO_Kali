@@ -71,6 +71,18 @@ export type AuditExportFilters = Omit<AuditEventFilters, 'limit' | 'cursor'> & {
   readonly format: 'csv' | 'jsonl'
 }
 
+/**
+ * Filters for a curated compliance evidence pack (UC-65): a bundle covering an
+ * audit subset, integrity hash-chain status, related DSR, and retention for a
+ * single date range or incident correlation ID.
+ */
+export type ComplianceEvidencePackFilters = {
+  readonly from?: string
+  readonly to?: string
+  readonly correlation_id?: string
+  readonly format?: 'zip' | 'json'
+}
+
 export type AuthenticationAuditSubject = {
   readonly subject_id?: string | null
   readonly email?: string | null

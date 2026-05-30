@@ -111,4 +111,22 @@ describe('auditApi', () => {
       '/api/admin/audit/export?format=csv&outcome=failed&from=2026-01-01',
     )
   })
+
+  it('downloads a compliance evidence pack through GET /api/admin/compliance/evidence-pack', async () => {
+    vi.mocked(apiClient.getBlob).mockResolvedValue({
+      blob: new Blob(['pack'], { type: 'application/zip' }),
+      filename: 'compliance-evidence-pack.zip',
+    })
+
+    await auditApi.generateEvidencePack({
+      from: '2026-01-01',
+      to: '2026-01-31',
+      correlation_id: 'INC-42',
+      format: 'zip',
+    })
+
+    expect(apiClient.getBlob).toHaveBeenCalledWith(
+      '/api/admin/compliance/evidence-pack?from=2026-01-01&to=2026-01-31&correlation_id=INC-42&format=zip',
+    )
+  })
 })
