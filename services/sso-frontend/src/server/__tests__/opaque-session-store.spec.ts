@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { SSO_PORTAL_LEGACY_SESSION_COOKIE } from '../cookies.js'
+import { encryptSession } from '../session-crypto.js'
 import { readSession, sessionCookie, type PortalSession } from '../session.js'
 
 function portalSession(): PortalSession {
@@ -46,9 +46,27 @@ describe('opaque portal session store', () => {
     expect((await readSession(request as never))?.accessToken).toBe('server-only-access-token')
   })
 
-  it('ignores legacy encrypted token cookies by default', async () => {
+  it('ignores legacy encrypted token cookies even with a valid payload', async () => {
+    // A valid encrypted legacy cookie must still be ignored — opaque session
+    // fallback was removed; only __Host-sso-portal-session is accepted.
+    const now = Math.floor(Date.now() / 1000)
+    const legacyCookieName = '__Host-sso-portal-session-legacy'
+    const validSessionPayload = {
+      accessToken: 'server-only-access-token',
+      idToken: 'server-only-id-token',
+      refreshToken: 'server-only-refresh-token',
+      sub: 'user-1',
+      email: 'a@b.test',
+      displayName: 'User Test',
+      role: 'user',
+      expiresAt: now + 3600,
+      issuedAt: now,
+      absoluteExpiresAt: now + 7200,
+      lastRefreshedAt: now,
+    }
+    const encryptedToken = encryptSession(JSON.stringify(validSessionPayload))
     const request = {
-      headers: { cookie: `${SSO_PORTAL_LEGACY_SESSION_COOKIE}=legacy-token-cookie` },
+      headers: { cookie: `${legacyCookieName}=${encryptedToken}` },
     }
 
     expect(await readSession(request as never)).toBeNull()

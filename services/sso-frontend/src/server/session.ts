@@ -2,7 +2,6 @@ import type { IncomingMessage } from 'node:http'
 import type { PortalSessionView, SsoPrincipal } from '../shared/user.js'
 import { getConfig } from './config.js'
 import {
-  SSO_PORTAL_LEGACY_SESSION_COOKIE,
   SSO_PORTAL_SESSION_COOKIE,
   SSO_PORTAL_TX_COOKIE,
   expiredHostCookieOptions,
@@ -45,9 +44,9 @@ export async function getSession(request: IncomingMessage): Promise<PortalSessio
 
 export async function readSession(request: IncomingMessage): Promise<PortalSession | null> {
   const sessionId = readSessionId(request)
-  if (sessionId) return readSessionRecord(sessionId)
+  if (!sessionId) return null
 
-  return readLegacySession(request)
+  return readSessionRecord(sessionId)
 }
 
 export async function sessionCookie(session: PortalSession): Promise<string> {
@@ -72,7 +71,8 @@ export async function clearSessionCookie(request?: IncomingMessage): Promise<rea
 
   return [
     serializeCookie(SSO_PORTAL_SESSION_COOKIE, '', expiredHostCookieOptions()),
-    serializeCookie(SSO_PORTAL_LEGACY_SESSION_COOKIE, '', expiredHostCookieOptions()),
+    // Clear stale __Host-sso-portal-session-legacy cookie from browsers
+    serializeCookie('__Host-sso-portal-session-legacy', '', expiredHostCookieOptions()),
   ]
 }
 
@@ -168,57 +168,7 @@ function isOpaqueSessionId(value: string | null): value is string {
   return Boolean(value && /^[A-Za-z0-9_-]{43,}$/u.test(value))
 }
 
-function readLegacySession(request: IncomingMessage): PortalSession | null {
-  const raw = readCookie(request, SSO_PORTAL_LEGACY_SESSION_COOKIE)
-  if (!raw) return null
-
-  try {
-    const decrypted = decryptSession(raw)
-    if (!decrypted) return null
-
-    return normalizeSession(JSON.parse(decrypted) as Partial<PortalSession>)
-  } catch {
-    return null
-  }
-}
-
-function normalizeSession(session: Partial<PortalSession>): PortalSession | null {
-  if (!isValidSessionShape(session)) return null
-
-  const issuedAt = numericOr(session.issuedAt, session.authTime ?? unixTime())
-  const absoluteExpiresAt = numericOr(
-    session.absoluteExpiresAt,
-    issuedAt + getConfig().sessionAbsoluteTtlSeconds,
-  )
-
-  if (absoluteExpiresAt <= unixTime()) return null
-
-  return {
-    ...session,
-    issuedAt,
-    absoluteExpiresAt,
-    lastRefreshedAt: numericOr(session.lastRefreshedAt, unixTime()),
-  }
-}
-
-function isValidSessionShape(session: Partial<PortalSession>): session is PortalSession {
-  return Boolean(
-    session.accessToken &&
-    session.idToken &&
-    session.refreshToken &&
-    session.sub &&
-    session.email &&
-    session.displayName &&
-    session.role &&
-    typeof session.expiresAt === 'number',
-  )
-}
-
 function sessionCookieMaxAge(session: PortalSession): number {
   const absoluteRemaining = Math.max(0, session.absoluteExpiresAt - unixTime())
   return Math.min(getConfig().sessionIdleTtlSeconds, absoluteRemaining)
-}
-
-function numericOr(value: number | undefined | null, fallback: number): number {
-  return typeof value === 'number' && Number.isFinite(value) ? value : fallback
 }
