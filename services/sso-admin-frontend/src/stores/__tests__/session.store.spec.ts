@@ -64,6 +64,46 @@ describe('useSessionStore', () => {
     expect(session.user).toBeNull()
   })
 
+  it('returns mfa_enrollment_required for explicit backend enrollment denials', async () => {
+    vi.mocked(authApi.getPrincipal).mockRejectedValue(
+      new ApiError(403, 'MFA enrollment required', 'mfa_enrollment_required'),
+    )
+
+    const session = useSessionStore()
+
+    await expect(session.ensureSession()).resolves.toBe('mfa_enrollment_required')
+    expect(session.isAuthenticated).toBe(false)
+  })
+
+  it('returns step_up_required for stale auth and MFA assurance bootstrap failures', async () => {
+    vi.mocked(authApi.getPrincipal).mockRejectedValue(
+      new ApiError(428, 'Step up required', 'step_up_required'),
+    )
+
+    const session = useSessionStore()
+
+    await expect(session.ensureSession()).resolves.toBe('step_up_required')
+    expect(session.isAuthenticated).toBe(false)
+  })
+
+  it('returns step_up_required for current backend reauth_required bootstrap failures', async () => {
+    vi.mocked(authApi.getPrincipal).mockRejectedValue(
+      new ApiError(401, 'Fresh authentication is required', 'reauth_required'),
+    )
+
+    const session = useSessionStore()
+
+    await expect(session.ensureSession()).resolves.toBe('step_up_required')
+  })
+
+  it('keeps generic 403 mapped to forbidden', async () => {
+    vi.mocked(authApi.getPrincipal).mockRejectedValue(new ApiError(403, 'Forbidden', 'forbidden'))
+
+    const session = useSessionStore()
+
+    await expect(session.ensureSession()).resolves.toBe('forbidden')
+  })
+
   it('returns error without collapsing network failures into unauthenticated state', async () => {
     vi.mocked(authApi.getPrincipal).mockRejectedValue(new Error('network down'))
 

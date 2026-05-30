@@ -164,6 +164,30 @@ describe('resolveAdminGuard', () => {
     await expect(resolveAdminGuard(route())).resolves.toEqual({ name: 'admin.error' })
   })
 
+  it('routes admins without enrolled MFA to the MFA required view', async () => {
+    vi.mocked(authApi.getPrincipal).mockRejectedValue(
+      new ApiError(403, 'MFA enrollment required', 'mfa_enrollment_required'),
+    )
+
+    await expect(resolveAdminGuard(route())).resolves.toEqual({ name: 'admin.mfa-required' })
+  })
+
+  it('routes stale admin assurance bootstrap failures to the step-up view', async () => {
+    vi.mocked(authApi.getPrincipal).mockRejectedValue(
+      new ApiError(428, 'Step up required', 'step_up_required'),
+    )
+
+    await expect(resolveAdminGuard(route())).resolves.toEqual({ name: 'admin.step-up-required' })
+  })
+
+  it('routes current backend reauth_required bootstrap failures to the step-up view', async () => {
+    vi.mocked(authApi.getPrincipal).mockRejectedValue(
+      new ApiError(401, 'Fresh authentication is required', 'reauth_required'),
+    )
+
+    await expect(resolveAdminGuard(route())).resolves.toEqual({ name: 'admin.step-up-required' })
+  })
+
   it('allows admins with required route permissions', async () => {
     vi.mocked(authApi.getPrincipal).mockResolvedValue(adminPrincipal)
 

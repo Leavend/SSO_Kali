@@ -63,6 +63,7 @@ This taxonomy standardizes machine-readable security and access errors for Broke
 - public UX must stay generic for `invalid_credentials`
 - `ambiguous_identifier` may be machine-readable internally without disclosing sensitive identity details to end users
 - `reauth_required` must not be collapsed into `forbidden`
+- Admin bootstrap clients must map `mfa_enrollment_required` to an MFA enrollment CTA and `reauth_required`, `mfa_required`, or `step_up_required` to a re-verification/step-up CTA. These errors must not fall through to generic forbidden or retryable error screens.
 - `forbidden` must not be reused for unknown or invalid credentials
 
 ## Audit Mapping

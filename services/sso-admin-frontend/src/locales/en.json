@@ -11,6 +11,17 @@
       "title": "This account does not have admin access.",
       "description": "You are signed in through the SSO portal, but this account role is not allowed to open the admin frontend.",
       "back_to_portal": "Back to SSO Portal"
+    },
+    "mfa_required": {
+      "enrollment_eyebrow": "Admin MFA required",
+      "enrollment_title": "Enroll multi-factor authentication before opening admin.",
+      "enrollment_description": "Admin accounts must have a verified second factor. Open the security portal, enroll MFA, then return to the admin frontend.",
+      "enrollment_action": "Enroll MFA",
+      "step_up_eyebrow": "Re-verification required",
+      "step_up_title": "Your admin session needs fresh verification.",
+      "step_up_description": "The admin session is active, but freshness or MFA assurance is not enough to bootstrap the panel. Verify again through the SSO portal.",
+      "step_up_action": "Verify again",
+      "secondary_action": "Back to SSO Portal"
     }
   },
   "language": {

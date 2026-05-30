@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { resolveAdminGuard } from './guards'
 import ForbiddenView from '@/views/ForbiddenView.vue'
 import AdminErrorView from '@/views/AdminErrorView.vue'
+import AdminMfaRequiredView from '@/views/AdminMfaRequiredView.vue'
 import AdminShellLayout from '@/layouts/AdminShellLayout.vue'
 
 const router = createRouter({
@@ -87,6 +88,18 @@ const router = createRouter({
       path: '/forbidden',
       name: 'admin.forbidden',
       component: ForbiddenView,
+    },
+    {
+      path: '/mfa-required',
+      name: 'admin.mfa-required',
+      component: AdminMfaRequiredView,
+      props: { mode: 'enrollment' },
+    },
+    {
+      path: '/step-up-required',
+      name: 'admin.step-up-required',
+      component: AdminMfaRequiredView,
+      props: { mode: 'step_up' },
     },
     {
       path: '/admin-error',

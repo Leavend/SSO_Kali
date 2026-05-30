@@ -11,6 +11,17 @@
       "title": "Akun ini belum memiliki akses admin.",
       "description": "Kamu sudah login melalui portal SSO, tetapi role akun ini tidak diizinkan membuka admin frontend.",
       "back_to_portal": "Kembali ke Portal SSO"
+    },
+    "mfa_required": {
+      "enrollment_eyebrow": "MFA admin diperlukan",
+      "enrollment_title": "Daftarkan autentikasi multi-faktor sebelum membuka admin.",
+      "enrollment_description": "Akun admin wajib memiliki faktor kedua terverifikasi. Buka portal keamanan, daftarkan MFA, lalu kembali ke admin frontend.",
+      "enrollment_action": "Daftarkan MFA",
+      "step_up_eyebrow": "Verifikasi ulang diperlukan",
+      "step_up_title": "Sesi admin perlu diverifikasi ulang.",
+      "step_up_description": "Session admin masih aktif, tetapi freshness atau MFA assurance tidak cukup untuk bootstrap panel. Verifikasi ulang melalui portal SSO.",
+      "step_up_action": "Verifikasi ulang",
+      "secondary_action": "Kembali ke Portal SSO"
     }
   },
   "language": {

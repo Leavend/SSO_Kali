@@ -17,6 +17,8 @@ export async function resolveAdminGuard(
   }
 
   if (sessionResult === 'forbidden') return { name: 'admin.forbidden' }
+  if (sessionResult === 'mfa_enrollment_required') return { name: 'admin.mfa-required' }
+  if (sessionResult === 'step_up_required') return { name: 'admin.step-up-required' }
   if (sessionResult === 'error') return { name: 'admin.error' }
 
   if (!hasAdminRole(session.roles)) return { name: 'admin.forbidden' }

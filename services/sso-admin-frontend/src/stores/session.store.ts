@@ -5,7 +5,13 @@ import { authApi } from '@/services/auth.api'
 import type { AdminPrincipal, SsoUser } from '@/types/auth.types'
 
 export type SessionStatus = 'idle' | 'loading' | 'ready'
-export type SessionEnsureResult = 'authenticated' | 'unauthenticated' | 'forbidden' | 'error'
+export type SessionEnsureResult =
+  | 'authenticated'
+  | 'unauthenticated'
+  | 'forbidden'
+  | 'mfa_enrollment_required'
+  | 'step_up_required'
+  | 'error'
 
 export const useSessionStore = defineStore('admin-session', () => {
   const user = ref<SsoUser | null>(null)
@@ -47,6 +53,8 @@ export const useSessionStore = defineStore('admin-session', () => {
       clear()
 
       if (error instanceof ApiError) {
+        if (error.code === 'mfa_enrollment_required') return 'mfa_enrollment_required'
+        if (requiresStepUp(error)) return 'step_up_required'
         if (error.status === 401) return 'unauthenticated'
         if (error.status === 403) return 'forbidden'
       }
@@ -75,6 +83,13 @@ export const useSessionStore = defineStore('admin-session', () => {
 
   function hasEveryPermission(requiredPermissions: readonly string[]): boolean {
     return requiredPermissions.every((permission) => hasPermission(permission))
+  }
+
+  function requiresStepUp(error: ApiError): boolean {
+    if (error.code === 'step_up_required') return true
+    if (error.code === 'reauth_required') return true
+    if (error.code === 'mfa_required') return true
+    return error.status === 412 || error.status === 428
   }
 
   return {
