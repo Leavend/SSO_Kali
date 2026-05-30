@@ -1,0 +1,151 @@
+{
+  "app": {
+    "name": "Dev-SSO",
+    "tagline": "Single sign-on portal for all your applications."
+  },
+  "auth": {
+    "login": {
+      "title": "Sign in to your account",
+      "headline_identifier": "Welcome back",
+      "headline_password": "Enter your password",
+      "subtitle": "Use your SSO credentials to access every work application.",
+      "password_subtitle": "A secure session will be created after successful verification.",
+      "identifier_label": "Email or username",
+      "identifier_placeholder": "Email or username",
+      "password_label": "Password",
+      "submit": "Sign in",
+      "submitting": "Processing...",
+      "change_identifier": "Change email",
+      "forgot_password": "Forgot password?",
+      "no_account_prompt": "Don't have an account?",
+      "register_now": "Register now",
+      "retry_after": "The sign-in button will be available again in {seconds} seconds.",
+      "next_password_step": "Continue to password step",
+      "no_account": "Don't have an account? Contact your organization administrator.",
+      "error_generic": "The email or password you entered is incorrect. Please try again.",
+      "error_unexpected": "Unable to process sign-in. Try again shortly."
+    },
+    "callback": {
+      "title_loading": "Verifying sign-in...",
+      "title_error": "Sign-in failed",
+      "title_done": "Done",
+      "description": "Processing the OIDC response and preparing a secure session for you.",
+      "wait": "Please wait a moment.",
+      "fallback_error": "Unable to process the sign-in callback.",
+      "back_to_login": "Back to sign-in"
+    },
+    "skip_link": "Skip to main content",
+    "theme_toggle": "Change theme"
+  },
+  "portal": {
+    "brand": "User Portal",
+    "sessions": {
+      "title": "Active Sessions",
+      "subtitle": "Active sign-in sessions on connected devices and applications. You can end sessions one by one or sign out from all devices at once.",
+      "logout_all": "Sign Out All Devices",
+      "logout_all_processing": "Processing...",
+      "empty_title": "No other sessions",
+      "empty_description": "You are only active on this device. Other sessions will appear here.",
+      "revoke_button": "End Session",
+      "apps_count": "{count} applications",
+      "opened_at": "Opened {date}",
+      "last_active": "Last active {date}",
+      "confirm_revoke_title": "End this session?",
+      "confirm_revoke_description": "The device using this session will be forced to sign out and must authenticate again.",
+      "confirm_logout_all_title": "Sign out from all devices?",
+      "confirm_logout_all_description": "All active sessions will be signed out and you will be redirected to the sign-in page.",
+      "confirm_logout_all_button": "Sign Out All"
+    },
+    "nav": {
+      "home": "Home",
+      "profile": "Profile",
+      "apps": "Apps",
+      "sessions": "Active Sessions",
+      "sessions_short": "Sessions",
+      "security": "Security",
+      "privacy": "Privacy"
+    },
+    "footer": "© {year} Dev-SSO Platform"
+  },
+  "language": {
+    "label": "Language",
+    "id": "ID",
+    "en": "EN"
+  },
+  "errors": {
+    "not_found_title": "404 - Page not found",
+    "not_found_description": "This URL is not registered in the portal. Return home or sign in.",
+    "go_home": "Home",
+    "go_login": "Sign in"
+  },
+  "api": {
+    "status_400": "The request is invalid. Check the data and try again.",
+    "status_401": "Your SSO session expired. Please sign in again.",
+    "status_403": "You are not allowed to access this resource.",
+    "status_404": "Resource not found.",
+    "status_408": "The server took too long to respond. Try again.",
+    "status_409": "A data conflict occurred. Reload and try again.",
+    "status_419": "The security session expired. Reload the page and try again.",
+    "status_422": "The submitted data is invalid.",
+    "status_429": "Too many attempts. Wait a moment before trying again.",
+    "status_5xx": "The SSO service is unavailable. Try again later.",
+    "status_generic": "Request failed with status {status}.",
+    "network_error": "Unable to reach the SSO server.",
+    "timeout": "The request to the server took too long. Try again.",
+    "aborted": "The request was cancelled.",
+    "messages": {
+      "Unauthenticated.": "Your SSO session expired. Please sign in again.",
+      "The bearer token is invalid.": "The access token is invalid. Please sign in again.",
+      "Server Error": "The SSO service is unavailable. Try again later.",
+      "Too Many Attempts.": "Too many attempts. Wait a moment before trying again.",
+      "This action is unauthorized.": "You are not allowed to access this resource.",
+      "CSRF token mismatch.": "The security session expired. Reload the page and try again.",
+      "Page Expired": "The security session expired. Reload the page and try again.",
+      "Not Found": "Resource not found.",
+      "You must enroll a multi-factor authentication method before accessing the admin panel.": "Enable multi-factor authentication (MFA) before accessing the admin panel.",
+      "Akun Anda telah direset oleh admin. Aktifkan kembali autentikasi multi-faktor (MFA) sebelum melanjutkan.": "Your administrator reset your MFA. Enable multi-factor authentication again before continuing.",
+      "Your administrator has reset your multi-factor authentication. Enroll a new second factor before continuing.": "Your administrator reset your MFA. Enroll a new second factor before continuing."
+    },
+    "patterns": {
+      "could not be found": "Resource not found."
+    }
+  },
+  "common": {
+    "continue": "Continue",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "loading": "Loading...",
+    "retry": "Try again"
+  },
+  "oauth": {
+    "errors": {
+      "_generic": "Sign-in could not be completed. Restart from the sign-in page or return to the original application.",
+      "invalid_request": "The authorization request is invalid. Restart from the sign-in page.",
+      "invalid_client": "The application failed to authenticate with SSO. Contact the application administrator.",
+      "invalid_grant": "The authorization session is no longer valid. Sign in again to continue.",
+      "unauthorized_client": "This application is not allowed to use SSO. Contact an administrator.",
+      "unsupported_grant_type": "This token request type is not supported. Contact the application administrator.",
+      "access_denied": "The access request was denied. Try again or return to the original application.",
+      "unsupported_response_type": "This authorization mode is not supported. Restart from the sign-in page.",
+      "invalid_scope": "The requested permission scope is invalid. Contact an administrator.",
+      "server_error": "An SSO server error occurred. Try again shortly.",
+      "temporarily_unavailable": "The SSO service is busy. Try again shortly.",
+      "interaction_required": "Additional action is required to continue sign-in. Try again without prompt=none.",
+      "login_required": "Your SSO session ended. Sign in again to continue.",
+      "account_selection_required": "Select the account to use, then try again.",
+      "consent_required": "Access consent is required. Continue to the consent page.",
+      "invalid_token": "The access token is invalid or expired. Please sign in again.",
+      "insufficient_scope": "Access was denied because the permission scope is insufficient. Contact an administrator.",
+      "invalid_request_uri": "The authorization request is invalid. Restart from the sign-in page.",
+      "invalid_request_object": "The authorization request is invalid. Restart from the sign-in page.",
+      "request_not_supported": "This request mode is not supported. Restart from the sign-in page.",
+      "request_uri_not_supported": "This request mode is not supported. Restart from the sign-in page.",
+      "registration_not_supported": "Client registration is not supported. Contact an administrator.",
+      "session_expired": "Your SSO session expired. Please sign in again to continue.",
+      "too_many_attempts": "Too many attempts. Wait a moment before trying again.",
+      "mfa_enrollment_required": "This application requires multi-factor authentication. Enable MFA on your account and try again.",
+      "mfa_reenrollment_required": "Your account was reset by an administrator. Enable multi-factor authentication (MFA) again before continuing."
+    },
+    "support_ref": "Support code: {ref}"
+  }
+}

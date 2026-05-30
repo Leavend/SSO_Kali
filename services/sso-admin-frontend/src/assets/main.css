@@ -104,6 +104,27 @@ select {
   font-size: 1.2rem;
 }
 
+.admin-locale-switcher {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  color: #dbeafe;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border: 1px solid rgb(148 163 184 / 14%);
+  border-radius: 12px;
+  background: rgb(30 41 59 / 42%);
+}
+
+.admin-locale-switcher select {
+  color: #f8fafc;
+  font: inherit;
+  border: 0;
+  background: transparent;
+}
+
 .admin-nav {
   display: grid;
   gap: 10px;

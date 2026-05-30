@@ -13,6 +13,7 @@ describe('apiClient request evidence', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
     vi.restoreAllMocks()
+    document.documentElement.removeAttribute('lang')
   })
 
   it('sends a generated X-Request-Id when caller does not provide one', async () => {
@@ -38,6 +39,18 @@ describe('apiClient request evidence', () => {
     expect(init).toBeDefined()
     const headers = init?.headers as Headers
     expect(headers.get('X-Request-Id')).toBe('req-custom-1')
+  })
+
+  it('propagates Accept-Language from the active document locale', async () => {
+    document.documentElement.setAttribute('lang', 'en')
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse({ ok: true }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await apiClient.get('/api/admin/me')
+
+    const init = fetchMock.mock.calls[0]?.[1]
+    const headers = init?.headers as Headers
+    expect(headers.get('Accept-Language')).toBe('en')
   })
 
   it('records the response X-Request-Id for success states', async () => {

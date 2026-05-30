@@ -45,6 +45,9 @@ function buildHeaders(custom: Readonly<Record<string, string>> | undefined): Hea
     'X-Requested-With': 'XMLHttpRequest',
   })
 
+  const language = readDocumentLanguage()
+  if (language) headers.set('Accept-Language', language)
+
   if (custom) {
     for (const [key, value] of Object.entries(custom)) headers.set(key, value)
   }
@@ -52,6 +55,12 @@ function buildHeaders(custom: Readonly<Record<string, string>> | undefined): Hea
   if (!headers.has('X-Request-Id')) headers.set('X-Request-Id', generateRequestId())
 
   return headers
+}
+
+function readDocumentLanguage(): string | null {
+  if (typeof document === 'undefined') return null
+  const language = document.documentElement.getAttribute('lang')
+  return language && language.length > 0 ? language : null
 }
 
 async function sendRequest(path: string, options: RequestOptions = {}): Promise<Response> {

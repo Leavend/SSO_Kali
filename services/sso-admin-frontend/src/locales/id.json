@@ -1,0 +1,21 @@
+{
+  "admin": {
+    "skip_link": "Lewati ke konten utama",
+    "sidebar_label": "Navigasi admin",
+    "module_label": "Modul admin",
+    "principal_label": "Principal admin aktif",
+    "brand_eyebrow": "SSO Admin",
+    "brand_title": "Control Plane",
+    "forbidden": {
+      "eyebrow": "Akses Ditolak",
+      "title": "Akun ini belum memiliki akses admin.",
+      "description": "Kamu sudah login melalui portal SSO, tetapi role akun ini tidak diizinkan membuka admin frontend.",
+      "back_to_portal": "Kembali ke Portal SSO"
+    }
+  },
+  "language": {
+    "label": "Bahasa",
+    "id": "ID",
+    "en": "EN"
+  }
+}

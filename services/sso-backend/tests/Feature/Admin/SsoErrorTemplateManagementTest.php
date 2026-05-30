@@ -18,7 +18,10 @@ beforeEach(function (): void {
 it('exposes default sso error templates to authorized admins', function (): void {
     $admin = ssoErrorTemplateAdmin([AdminPermission::SSO_ERROR_TEMPLATES_READ]);
 
-    $response = $this->getJson('/admin/api/sso-error-templates', ssoErrorTemplateHeaders($admin));
+    $response = $this->getJson('/admin/api/sso-error-templates', [
+        ...ssoErrorTemplateHeaders($admin),
+        'Accept-Language' => 'id',
+    ]);
 
     $response->assertOk()
         ->assertJsonPath('templates.0.error_code', 'invalid_request')
@@ -65,6 +68,23 @@ it('allows authorized admins to update and reset an sso error template', functio
     $this->postJson('/admin/api/sso-error-templates/invalid_grant/reset', ['locale' => 'id'], ssoErrorTemplateHeaders($admin))
         ->assertOk()
         ->assertJsonPath('template.is_enabled', false);
+});
+
+it('uses accept language for read-only sso error template locale when query locale is absent', function (): void {
+    $admin = ssoErrorTemplateAdmin([AdminPermission::SSO_ERROR_TEMPLATES_READ]);
+
+    $headers = [
+        ...ssoErrorTemplateHeaders($admin),
+        'Accept-Language' => 'en-US,en;q=0.9,id;q=0.8',
+    ];
+
+    $this->getJson('/admin/api/sso-error-templates', $headers)
+        ->assertOk()
+        ->assertJsonPath('templates.0.locale', 'en');
+
+    $this->getJson('/admin/api/sso-error-templates/invalid_grant', $headers)
+        ->assertOk()
+        ->assertJsonPath('template.locale', 'en');
 });
 
 it('rejects unsafe action urls in sso error templates', function (): void {

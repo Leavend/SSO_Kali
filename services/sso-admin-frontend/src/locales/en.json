@@ -1,0 +1,21 @@
+{
+  "admin": {
+    "skip_link": "Skip to main content",
+    "sidebar_label": "Admin navigation",
+    "module_label": "Admin modules",
+    "principal_label": "Active admin principal",
+    "brand_eyebrow": "SSO Admin",
+    "brand_title": "Control Plane",
+    "forbidden": {
+      "eyebrow": "Access Denied",
+      "title": "This account does not have admin access.",
+      "description": "You are signed in through the SSO portal, but this account role is not allowed to open the admin frontend.",
+      "back_to_portal": "Back to SSO Portal"
+    }
+  },
+  "language": {
+    "label": "Language",
+    "id": "ID",
+    "en": "EN"
+  }
+}

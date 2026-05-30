@@ -14,9 +14,9 @@ final class SsoErrorTemplateController
 {
     public function __construct(private readonly ManageSsoErrorTemplateAction $templates) {}
 
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        return AdminApiResponse::ok(['templates' => $this->templates->list()]);
+        return AdminApiResponse::ok(['templates' => $this->templates->list($this->locale($request))]);
     }
 
     public function show(Request $request, string $errorCode): JsonResponse
@@ -56,7 +56,15 @@ final class SsoErrorTemplateController
 
     private function locale(Request $request): string
     {
-        $locale = $request->input('locale', $request->query('locale', 'id'));
+        $locale = $request->input('locale', $request->query('locale'));
+
+        if ($locale === null && $request->headers->has('Accept-Language')) {
+            $locale = $request->getPreferredLanguage(['id', 'en']) ?? 'id';
+        }
+
+        if ($locale === null) {
+            $locale = 'id';
+        }
 
         return is_string($locale) ? $locale : 'id';
     }

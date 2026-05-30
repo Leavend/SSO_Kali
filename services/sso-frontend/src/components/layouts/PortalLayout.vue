@@ -9,8 +9,10 @@ import SsoGlassBackground from '@/components/atoms/SsoGlassBackground.vue'
 import PortalHeader from '@/components/organisms/PortalHeader.vue'
 import { useSessionHeartbeat } from '@/composables/useSessionHeartbeat'
 import { useAuthRedirect } from '@/composables/useAuthRedirect'
+import { useI18n } from '@/composables/useI18n'
 
 const redirect = useAuthRedirect()
+const { t } = useI18n()
 
 useSessionHeartbeat({
   onExpired: () => redirect.toLogin(),
@@ -28,7 +30,7 @@ useSessionHeartbeat({
       href="#portal-main"
       class="sr-only focus:not-sr-only focus:bg-primary focus:text-primary-foreground focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-md focus:px-3 focus:py-2"
     >
-      Langsung ke konten utama
+      {{ t('auth.skip_link') }}
     </a>
 
     <PortalHeader />
@@ -53,9 +55,9 @@ useSessionHeartbeat({
         class="mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 px-4 sm:flex-row sm:px-6"
       >
         <span class="flex items-center gap-2">
-          <UserCircle2 class="size-4" /> Dev-SSO Portal Pengguna
+          <UserCircle2 class="size-4" /> Dev-SSO {{ t('portal.brand') }}
         </span>
-        <span>© {{ new Date().getFullYear() }} Dev-SSO Platform</span>
+        <span>{{ t('portal.footer', { year: new Date().getFullYear() }) }}</span>
       </div>
     </footer>
   </div>

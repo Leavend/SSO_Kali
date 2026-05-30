@@ -12,14 +12,24 @@
  * Locale aktif di-set via `<html lang>` dan bisa di-switch runtime.
  */
 
-import { computed, type ComputedRef } from 'vue'
+import { computed, ref, type ComputedRef } from 'vue'
+import enLocale from '@/locales/en.json'
 import idLocale from '@/locales/id.json'
 
 type LocaleMessages = Record<string, unknown>
+export type SupportedLocale = 'id' | 'en'
 
-const locales: Record<string, LocaleMessages> = {
+const STORAGE_KEY = 'dev-sso-locale' as const
+const DEFAULT_LOCALE: SupportedLocale = 'id'
+
+const locales: Record<SupportedLocale, LocaleMessages> = {
   id: idLocale as LocaleMessages,
+  en: enLocale as LocaleMessages,
 }
+
+const activeLocale = ref<SupportedLocale>(detectInitialLocale())
+
+syncDocumentLocale(activeLocale.value)
 
 function resolveKey(messages: LocaleMessages, key: string): string | undefined {
   const segments = key.split('.')
@@ -43,19 +53,20 @@ function interpolate(template: string, params: Record<string, unknown>): string 
 export type UseI18nReturn = {
   /** Translate key dengan optional interpolasi. */
   t: (key: string, params?: Record<string, unknown>) => string
-  /** Reactive locale code (mis. 'id'). */
-  locale: ComputedRef<string>
+  /** Reactive locale code. */
+  locale: ComputedRef<SupportedLocale>
+  /** Supported locales for switchers. */
+  availableLocales: readonly SupportedLocale[]
+  /** Persist locale and update <html lang>. */
+  setLocale: (locale: SupportedLocale) => void
 }
 
 export function useI18n(): UseI18nReturn {
-  const locale = computed<string>(() => {
-    if (typeof document === 'undefined') return 'id'
-    return document.documentElement.getAttribute('lang') ?? 'id'
-  })
+  const locale = computed<SupportedLocale>(() => activeLocale.value)
 
   function t(key: string, params?: Record<string, unknown>): string {
-    const messages = locales[locale.value] ?? locales['id']!
-    const template = resolveKey(messages, key)
+    const messages = locales[locale.value]
+    const template = resolveKey(messages, key) ?? resolveKey(locales[DEFAULT_LOCALE], key)
 
     if (!template) {
       if (import.meta.env.DEV) {
@@ -67,5 +78,60 @@ export function useI18n(): UseI18nReturn {
     return params ? interpolate(template, params) : template
   }
 
-  return { t, locale }
+  function setLocale(locale: SupportedLocale): void {
+    activeLocale.value = locale
+    syncDocumentLocale(locale)
+    persistLocale(locale)
+  }
+
+  return { t, locale, availableLocales: ['id', 'en'], setLocale }
+}
+
+function detectInitialLocale(): SupportedLocale {
+  const stored = readStoredLocale()
+  if (stored) return stored
+
+  const documentLocale = readDocumentLocale()
+  if (documentLocale) return documentLocale
+
+  return readNavigatorLocale() ?? DEFAULT_LOCALE
+}
+
+function normalizeLocale(value: string | null | undefined): SupportedLocale | null {
+  if (!value) return null
+  const base = value.toLowerCase().split('-')[0]
+  return base === 'id' || base === 'en' ? base : null
+}
+
+function readStoredLocale(): SupportedLocale | null {
+  if (typeof window === 'undefined') return null
+  try {
+    return normalizeLocale(window.localStorage.getItem(STORAGE_KEY))
+  } catch {
+    return null
+  }
+}
+
+function readDocumentLocale(): SupportedLocale | null {
+  if (typeof document === 'undefined') return null
+  return normalizeLocale(document.documentElement.getAttribute('lang'))
+}
+
+function readNavigatorLocale(): SupportedLocale | null {
+  if (typeof navigator === 'undefined') return null
+  return normalizeLocale(navigator.language)
+}
+
+function syncDocumentLocale(locale: SupportedLocale): void {
+  if (typeof document === 'undefined') return
+  document.documentElement.setAttribute('lang', locale)
+}
+
+function persistLocale(locale: SupportedLocale): void {
+  if (typeof window === 'undefined') return
+  try {
+    window.localStorage.setItem(STORAGE_KEY, locale)
+  } catch {
+    // Locale persistence is best-effort; runtime language still updates.
+  }
 }

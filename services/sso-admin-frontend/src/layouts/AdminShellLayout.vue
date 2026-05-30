@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import LocaleSwitcher from '@/components/LocaleSwitcher.vue'
+import { useI18n } from '@/composables/useI18n'
 import { useSessionStore } from '@/stores/session.store'
 import type { AdminPermissionMenu } from '@/types/auth.types'
 
 const session = useSessionStore()
+const { t } = useI18n()
 
 const visibleMenus = computed<readonly AdminPermissionMenu[]>(() =>
   (session.principal?.permissions.menus ?? []).filter((menu) => menu.visible),
@@ -19,14 +22,15 @@ function menuPath(menu: AdminPermissionMenu): string {
 
 <template>
   <div class="admin-control-plane">
-    <a class="skip-link" href="#admin-main">Lewati ke konten utama</a>
-    <aside class="admin-sidebar" aria-label="Navigasi admin">
+    <a class="skip-link" href="#admin-main">{{ t('admin.skip_link') }}</a>
+    <aside class="admin-sidebar" :aria-label="t('admin.sidebar_label')">
       <div class="admin-brand">
-        <span class="eyebrow">SSO Admin</span>
-        <strong>Control Plane</strong>
+        <span class="eyebrow">{{ t('admin.brand_eyebrow') }}</span>
+        <strong>{{ t('admin.brand_title') }}</strong>
       </div>
+      <LocaleSwitcher />
 
-      <nav class="admin-nav" aria-label="Modul admin">
+      <nav class="admin-nav" :aria-label="t('admin.module_label')">
         <RouterLink
           v-for="menu in visibleMenus"
           :key="menu.id"
@@ -39,7 +43,7 @@ function menuPath(menu: AdminPermissionMenu): string {
         </RouterLink>
       </nav>
 
-      <section v-if="session.principal" class="admin-principal" aria-label="Principal admin aktif">
+      <section v-if="session.principal" class="admin-principal" :aria-label="t('admin.principal_label')">
         <strong>{{ session.principal.display_name }}</strong>
         <span>{{ session.principal.email }}</span>
       </section>

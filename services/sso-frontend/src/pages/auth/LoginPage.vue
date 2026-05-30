@@ -22,10 +22,12 @@ import SsoAlertBanner from '@/components/molecules/SsoAlertBanner.vue'
 import { useLoginForm } from '@/composables/useLoginForm'
 import { cn } from '@/lib/utils'
 import { useAuthSteps } from '@/composables/useAuthSteps'
+import { useI18n } from '@/composables/useI18n'
 
 type LoginStepId = 'identifier' | 'password'
 
 const login = useLoginForm()
+const { t } = useI18n()
 
 const isIdentifierValid = computed<boolean>(() => login.form.identifier.trim().length > 0)
 
@@ -46,12 +48,14 @@ const steps = useAuthSteps<LoginStepId>([
 ])
 
 const headline = computed<string>(() =>
-  steps.current.value === 'identifier' ? 'Selamat datang kembali' : 'Masukkan password',
+  steps.current.value === 'identifier'
+    ? t('auth.login.headline_identifier')
+    : t('auth.login.headline_password'),
 )
 const tagline = computed<string>(() =>
   steps.current.value === 'identifier'
-    ? 'Gunakan kredensial SSO-mu untuk mengakses semua aplikasi kerja.'
-    : 'Sesi aman akan dibuat setelah verifikasi berhasil.',
+    ? t('auth.login.subtitle')
+    : t('auth.login.password_subtitle'),
 )
 
 function onIdentifierEnter(event: KeyboardEvent): void {
@@ -114,7 +118,7 @@ function onSubmit(event: Event): void {
             type="text"
             autocomplete="username"
             inputmode="email"
-            placeholder="Email atau username"
+            :placeholder="t('auth.login.identifier_placeholder')"
             :required="true"
             :autofocus="true"
             :disabled="login.pending.value"
@@ -127,7 +131,7 @@ function onSubmit(event: Event): void {
             <template #trailing>
               <button
                 type="button"
-                aria-label="Lanjut ke step password"
+                :aria-label="t('auth.login.next_password_step')"
                 :aria-hidden="!isIdentifierValid"
                 :tabindex="isIdentifierValid ? 0 : -1"
                 :disabled="!isIdentifierValid"
@@ -150,7 +154,7 @@ function onSubmit(event: Event): void {
             v-model="login.form.password"
             type="password"
             autocomplete="current-password"
-            placeholder="Password"
+            :placeholder="t('auth.login.password_label')"
             :required="true"
             :autofocus="true"
             :disabled="login.pending.value"
@@ -166,7 +170,7 @@ function onSubmit(event: Event): void {
             class="text-center text-xs text-muted-foreground"
             aria-live="polite"
           >
-            Tombol masuk aktif kembali dalam {{ login.retryAfterSeconds.value }} detik.
+            {{ t('auth.login.retry_after', { seconds: login.retryAfterSeconds.value }) }}
           </p>
 
           <SsoGlassButton
@@ -179,7 +183,7 @@ function onSubmit(event: Event): void {
             <template v-if="!login.pending.value" #trailing>
               <ArrowRight class="size-4" aria-hidden="true" />
             </template>
-            {{ login.pending.value ? 'Memproses…' : 'Masuk' }}
+            {{ login.pending.value ? t('auth.login.submitting') : t('auth.login.submit') }}
           </SsoGlassButton>
 
           <button
@@ -188,7 +192,7 @@ function onSubmit(event: Event): void {
             @click="steps.back()"
           >
             <ArrowLeft class="size-3.5" aria-hidden="true" />
-            Ganti email
+            {{ t('auth.login.change_identifier') }}
           </button>
         </div>
       </Transition>
@@ -199,15 +203,15 @@ function onSubmit(event: Event): void {
         :to="{ name: 'auth.forgot-password' }"
         class="font-medium text-foreground underline-offset-4 hover:underline"
       >
-        Lupa password?
+        {{ t('auth.login.forgot_password') }}
       </RouterLink>
       <p>
-        Belum punya akun?
+        {{ t('auth.login.no_account_prompt') }}
         <RouterLink
           :to="{ name: 'auth.register' }"
           class="ml-1 font-medium text-foreground underline-offset-4 hover:underline"
         >
-          Daftar sekarang
+          {{ t('auth.login.register_now') }}
         </RouterLink>
       </p>
     </div>

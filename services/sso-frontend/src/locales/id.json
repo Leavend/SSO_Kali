@@ -6,12 +6,21 @@
   "auth": {
     "login": {
       "title": "Masuk ke akunmu",
+      "headline_identifier": "Selamat datang kembali",
+      "headline_password": "Masukkan password",
       "subtitle": "Gunakan kredensial SSO-mu untuk mengakses semua aplikasi kerja.",
+      "password_subtitle": "Sesi aman akan dibuat setelah verifikasi berhasil.",
       "identifier_label": "Email atau username",
-      "identifier_placeholder": "user@company.com",
+      "identifier_placeholder": "Email atau username",
       "password_label": "Password",
       "submit": "Masuk",
       "submitting": "Memproses…",
+      "change_identifier": "Ganti email",
+      "forgot_password": "Lupa password?",
+      "no_account_prompt": "Belum punya akun?",
+      "register_now": "Daftar sekarang",
+      "retry_after": "Tombol masuk aktif kembali dalam {seconds} detik.",
+      "next_password_step": "Lanjut ke step password",
       "no_account": "Belum punya akun? Hubungi administrator organisasi kamu.",
       "error_generic": "Email atau password yang kamu masukkan salah. Silakan coba lagi.",
       "error_unexpected": "Gagal memproses login. Coba lagi beberapa saat."
@@ -29,6 +38,7 @@
     "theme_toggle": "Ganti tema"
   },
   "portal": {
+    "brand": "Portal Pengguna",
     "sessions": {
       "title": "Sesi Aktif",
       "subtitle": "Daftar sesi login aktif pada perangkat dan aplikasi terhubung. Kamu dapat mengakhiri sesi satu per satu atau keluar dari semuanya sekaligus.",
@@ -49,11 +59,18 @@
     "nav": {
       "home": "Beranda",
       "profile": "Profil",
-      "apps": "Aplikasi Terhubung",
+      "apps": "Aplikasi",
       "sessions": "Sesi Aktif",
-      "security": "Keamanan"
+      "sessions_short": "Sesi",
+      "security": "Keamanan",
+      "privacy": "Privasi"
     },
     "footer": "© {year} Dev-SSO Platform"
+  },
+  "language": {
+    "label": "Bahasa",
+    "id": "ID",
+    "en": "EN"
   },
   "errors": {
     "not_found_title": "404 — Halaman tidak ditemukan",
