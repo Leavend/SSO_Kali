@@ -1,9 +1,19 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
+import { useSessionStore } from '@/stores/session.store'
 import { usePolicyStore } from '../stores/policy.store'
 
 const store = usePolicyStore()
+const session = useSessionStore()
+const canWriteSecurityPolicy = computed(() => session.hasPermission('admin.security-policy.write'))
+const canActivateSecurityPolicy = computed(() =>
+  session.hasPermission('admin.security-policy.activate'),
+)
+const canWriteRoles = computed(() => session.hasPermission('admin.roles.write'))
+const canDeleteRoles = computed(
+  () => canWriteRoles.value && session.hasPermission('admin.sessions.terminate'),
+)
 const category = ref(store.selectedCategory)
 const reason = ref('Security governance update')
 const draftPayload = ref('{"min_length":14}')
@@ -145,18 +155,18 @@ async function handleDeleteRole(roleSlug: string): Promise<void> {
           </label>
         </div>
 
-        <label class="reason-field">
+        <label v-if="canWriteSecurityPolicy" class="reason-field">
           Draft payload JSON
           <textarea v-model="draftPayload" rows="4" />
         </label>
-        <button class="primary-action" type="button" @click="proposeDraft">Create draft</button>
+        <button v-if="canWriteSecurityPolicy" class="primary-action" type="button" @click="proposeDraft">Create draft</button>
 
         <div v-for="policy in store.policies" :key="policy.id" class="state-card">
           <strong>{{ policy.category }} version {{ policy.version }}</strong>
           <p>{{ policy.status }} · effective {{ policy.effective_at ?? 'not active' }}</p>
           <p>Actor: {{ policy.actor_subject_id ?? 'unknown' }}</p>
           <pre class="policy-json">{{ JSON.stringify(policy.payload, null, 2) }}</pre>
-          <div class="action-row compact-actions">
+          <div v-if="canActivateSecurityPolicy" class="action-row compact-actions">
             <button
               class="primary-action"
               type="button"
@@ -179,6 +189,7 @@ async function handleDeleteRole(roleSlug: string): Promise<void> {
       <section class="detail-section" aria-labelledby="roles-title">
         <h2 id="roles-title">Roles</h2>
         <button
+          v-if="canWriteRoles"
           class="primary-action create-role-toggle"
           type="button"
           @click="showCreateRoleForm = !showCreateRoleForm"
@@ -186,7 +197,7 @@ async function handleDeleteRole(roleSlug: string): Promise<void> {
           {{ showCreateRoleForm ? 'Cancel' : 'Create Role' }}
         </button>
 
-        <div v-if="showCreateRoleForm" class="create-role-form">
+        <div v-if="canWriteRoles && showCreateRoleForm" class="create-role-form">
           <h3>Create Role</h3>
           <label class="reason-field">
             Name
@@ -241,11 +252,11 @@ async function handleDeleteRole(roleSlug: string): Promise<void> {
               </li>
             </ul>
             <div class="action-row compact-actions">
-              <button class="primary-action" type="button" @click="startEditRole(role)">
+              <button v-if="canWriteRoles" class="primary-action" type="button" @click="startEditRole(role)">
                 Edit
               </button>
               <button
-                v-if="!role.is_system"
+                v-if="canDeleteRoles && !role.is_system"
                 class="danger-action"
                 type="button"
                 :aria-label="`Delete role ${role.slug}`"

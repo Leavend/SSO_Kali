@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
+import { useSessionStore } from '@/stores/session.store'
 import ExternalIdpsPage from '../ExternalIdpsPage.vue'
 import { useExternalIdpsStore } from '../../stores/external-idps.store'
 import type { ExternalIdentityProvider } from '../../types'
@@ -37,9 +38,41 @@ const provider: ExternalIdentityProvider = {
   health_status: 'healthy',
 }
 
+function seedPrincipal(capabilities: Record<string, boolean>): void {
+  useSessionStore().setPrincipal({
+    subject_id: 'admin-1',
+    email: 'admin@example.test',
+    display_name: 'Admin One',
+    role: 'admin',
+    last_login_at: null,
+    auth_context: {
+      auth_time: null,
+      amr: [],
+      acr: null,
+      mfa_enforced: false,
+      mfa_verified: false,
+    },
+    permissions: {
+      view_admin_panel: true,
+      manage_sessions: capabilities['admin.sessions.terminate'] === true,
+      capabilities,
+      permissions: Object.keys(capabilities),
+      menus: [],
+    },
+  })
+}
+
+function seedFullAccessPrincipal(): void {
+  seedPrincipal({
+      'admin.external-idps.write': true,
+      'admin.sessions.terminate': true,
+  })
+}
+
 describe('ExternalIdpsPage', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    seedFullAccessPrincipal()
   })
 
   it('renders provider config, mapping preview, health, and request evidence', () => {
@@ -202,4 +235,35 @@ describe('ExternalIdpsPage', () => {
       }),
     )
   })
+
+  it('hides external IdP write actions for read-only principals', () => {
+    seedPrincipal({})
+    const store = useExternalIdpsStore()
+    store.status = 'success'
+    store.providers = [provider]
+    store.selectedProviderKey = 'google'
+
+    const wrapper = mount(ExternalIdpsPage)
+
+    expect(wrapper.text()).not.toContain('Add External IdP')
+    expect(wrapper.text()).not.toContain('Save changes')
+    expect(wrapper.text()).not.toContain('Delete Provider')
+    expect(wrapper.text()).not.toContain('Preview mapping')
+  })
+
+  it('requires session termination permission for external IdP deletion', () => {
+    seedPrincipal({ 'admin.external-idps.write': true })
+    const store = useExternalIdpsStore()
+    store.status = 'success'
+    store.providers = [provider]
+    store.selectedProviderKey = 'google'
+
+    const wrapper = mount(ExternalIdpsPage)
+
+    expect(wrapper.text()).toContain('Add External IdP')
+    expect(wrapper.text()).toContain('Save changes')
+    expect(wrapper.text()).toContain('Preview mapping')
+    expect(wrapper.text()).not.toContain('Delete Provider')
+  })
+
 })

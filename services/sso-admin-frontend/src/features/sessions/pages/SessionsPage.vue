@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
+import { useSessionStore } from '@/stores/session.store'
 import { useSessionsStore } from '../stores/sessions.store'
 
 const store = useSessionsStore()
+const session = useSessionStore()
+const canTerminateSessions = computed(() => session.hasPermission('admin.sessions.terminate'))
 
 onMounted(() => {
   if (store.status === 'idle') void store.load()
@@ -63,6 +66,7 @@ onMounted(() => {
             <td>{{ session.ip_address }}</td>
             <td>
               <button
+                v-if="canTerminateSessions"
                 class="revoke-button danger-action"
                 type="button"
                 @click="store.revokeSession(session.session_id)"

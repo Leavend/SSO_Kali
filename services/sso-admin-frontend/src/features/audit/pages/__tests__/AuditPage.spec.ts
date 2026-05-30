@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
+import { useSessionStore } from '@/stores/session.store'
 import AuditPage from '../AuditPage.vue'
 import { useAuditStore } from '../../stores/audit.store'
 import type { AdminAuditEvent, AuthenticationAuditEvent, DataSubjectRequest } from '../../types'
@@ -71,9 +72,41 @@ const dsr: DataSubjectRequest = {
   sla_due_at: '2026-06-26T00:00:00Z',
 }
 
+function seedPrincipal(capabilities: Record<string, boolean>): void {
+  useSessionStore().setPrincipal({
+    subject_id: 'admin-1',
+    email: 'admin@example.test',
+    display_name: 'Admin One',
+    role: 'admin',
+    last_login_at: null,
+    auth_context: {
+      auth_time: null,
+      amr: [],
+      acr: null,
+      mfa_enforced: false,
+      mfa_verified: false,
+    },
+    permissions: {
+      view_admin_panel: true,
+      manage_sessions: capabilities['admin.sessions.terminate'] === true,
+      capabilities,
+      permissions: Object.keys(capabilities),
+      menus: [],
+    },
+  })
+}
+
+function seedFullAccessPrincipal(): void {
+  seedPrincipal({
+      'admin.audit.export': true,
+      'admin.dsr.review': true,
+  })
+}
+
 describe('AuditPage', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    seedFullAccessPrincipal()
   })
 
   it('renders audit evidence, integrity, DSR queue, and request ID', () => {
@@ -204,4 +237,37 @@ describe('AuditPage', () => {
 
     expect(wrapper.text()).toContain('re-autentikasi')
   })
+
+  it('hides audit export and DSR review actions for read-only principals', () => {
+    seedPrincipal({})
+    const store = useAuditStore()
+    store.status = 'success'
+    store.events = [event]
+    store.integrity = { verified: true, checked_events: 1 }
+    store.dataSubjectRequests = [dsr]
+
+    const wrapper = mount(AuditPage)
+
+    expect(wrapper.text()).not.toContain('Export')
+    expect(wrapper.text()).not.toContain('Approve')
+    expect(wrapper.text()).not.toContain('Reject')
+    expect(wrapper.text()).not.toContain('Dry-run fulfill')
+  })
+
+  it('renders audit export and DSR review actions for matching permissions', () => {
+    seedPrincipal({ 'admin.audit.export': true, 'admin.dsr.review': true })
+    const store = useAuditStore()
+    store.status = 'success'
+    store.events = [event]
+    store.integrity = { verified: true, checked_events: 1 }
+    store.dataSubjectRequests = [dsr]
+
+    const wrapper = mount(AuditPage)
+
+    expect(wrapper.text()).toContain('Export')
+    expect(wrapper.text()).toContain('Approve')
+    expect(wrapper.text()).toContain('Reject')
+    expect(wrapper.text()).toContain('Dry-run fulfill')
+  })
+
 })

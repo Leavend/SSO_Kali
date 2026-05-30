@@ -1,12 +1,17 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
+import { useSessionStore } from '@/stores/session.store'
 import { useUsersStore } from '../stores/users.store'
 import { useSessionsStore } from '@/features/sessions/stores/sessions.store'
 import type { CreateUserPayload, SyncProfilePayload } from '../types'
 
 const store = useUsersStore()
 const sessionsStore = useSessionsStore()
+const session = useSessionStore()
+const canWriteUsers = computed(() => session.hasPermission('admin.users.write'))
+const canLockUsers = computed(() => session.hasPermission('admin.users.lock'))
+const canTerminateSessions = computed(() => session.hasPermission('admin.sessions.terminate'))
 const reason = ref('Admin review')
 const showCreateForm = ref(false)
 
@@ -143,6 +148,7 @@ async function submitCreateUser(): Promise<void> {
         <p v-if="store.users.length === 0" class="muted">Belum ada user untuk ditampilkan.</p>
 
         <button
+          v-if="canWriteUsers"
           class="primary-action create-user-toggle"
           type="button"
           @click="showCreateForm = !showCreateForm"
@@ -150,7 +156,7 @@ async function submitCreateUser(): Promise<void> {
           {{ showCreateForm ? 'Cancel' : 'Create User' }}
         </button>
 
-        <div v-if="showCreateForm" class="create-user-form">
+        <div v-if="canWriteUsers && showCreateForm" class="create-user-form">
           <h3>Create User</h3>
           <label class="reason-field">
             Email
@@ -237,7 +243,7 @@ async function submitCreateUser(): Promise<void> {
           </div>
         </dl>
 
-        <section class="detail-section" aria-labelledby="sync-title">
+        <section v-if="canWriteUsers" class="detail-section" aria-labelledby="sync-title">
           <h3 id="sync-title">Sync Profile</h3>
           <p v-if="store.selectedUser.profile_synced_at" class="muted">
             Last synced: {{ store.selectedUser.profile_synced_at }}
@@ -299,6 +305,7 @@ async function submitCreateUser(): Promise<void> {
           </ul>
           <p v-if="store.sessions.length === 0" class="muted">Tidak ada session evidence.</p>
           <button
+            v-if="canTerminateSessions"
             class="revoke-user-sessions-button danger-action"
             type="button"
             @click="sessionsStore.revokeUserSessions(store.selectedUser.subject_id)"
@@ -307,29 +314,29 @@ async function submitCreateUser(): Promise<void> {
           </button>
         </section>
 
-        <section class="detail-section detail-section--danger" aria-labelledby="actions-title">
+        <section v-if="canLockUsers || canWriteUsers" class="detail-section detail-section--danger" aria-labelledby="actions-title">
           <h3 id="actions-title">Lifecycle actions</h3>
           <label class="reason-field">
             Reason
             <input v-model="reason" autocomplete="off" />
           </label>
           <div class="action-row compact-actions">
-            <button class="danger-action" type="button" @click="store.lockSelected(reason)">
+            <button v-if="canLockUsers" class="danger-action" type="button" @click="store.lockSelected(reason)">
               Lock
             </button>
-            <button class="primary-action" type="button" @click="store.unlockSelected(reason)">
+            <button v-if="canLockUsers" class="primary-action" type="button" @click="store.unlockSelected(reason)">
               Unlock
             </button>
-            <button class="danger-action" type="button" @click="store.deactivateSelected(reason)">
+            <button v-if="canWriteUsers" class="danger-action" type="button" @click="store.deactivateSelected(reason)">
               Deactivate
             </button>
-            <button class="primary-action" type="button" @click="store.reactivateSelected">
+            <button v-if="canWriteUsers" class="primary-action" type="button" @click="store.reactivateSelected">
               Reactivate
             </button>
-            <button class="danger-action" type="button" @click="store.resetMfaSelected(reason)">
+            <button v-if="canWriteUsers" class="danger-action" type="button" @click="store.resetMfaSelected(reason)">
               Reset MFA
             </button>
-            <button class="danger-action" type="button" @click="store.issuePasswordResetSelected">
+            <button v-if="canWriteUsers" class="danger-action" type="button" @click="store.issuePasswordResetSelected">
               Issue reset link
             </button>
           </div>
