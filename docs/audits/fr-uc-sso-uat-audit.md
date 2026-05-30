@@ -16,7 +16,7 @@ Kesimpulan:
 
 1. **Portal SSO user UAT siap diuji end-to-end** untuk login, callback, session, profile, password, MFA, connected apps, active sessions, consent, logout, safe error UX, dan DSR intake.
 2. **Backend protocol UAT/API contract kuat** untuk OIDC discovery/JWKS/authorize/token/userinfo/introspection/revocation/session/logout/key rotation.
-3. **Admin/governance backend siap diuji via API**, tetapi **browser admin UI bukan scope `services/sso-frontend`**. UAT klik-path admin perlu dedicated admin app (`services/sso-admin-vue`/successor), bukan re-add admin route ke portal.
+3. **Admin/governance backend siap diuji via API**, tetapi **browser admin UI bukan scope `services/sso-frontend`**. UAT klik-path admin perlu dedicated admin app (`services/sso-admin-frontend`/successor), bukan re-add admin route ke portal.
 4. **Known UAT gaps**: DSR delete/anonymize full automation, opaque server-side BFF token session, full admin UI, broader device inventory, SIEM/export ops signoff, DR/failover drill evidence.
 5. **Recent prod risk fixed:** BFF now preserves every upstream `Set-Cookie` via `services/sso-frontend/src/server/proxy-headers.ts`; UAT login must verify all auth cookies survive proxy.
 
@@ -378,7 +378,7 @@ A UC can be signed off only if:
 
 1. Run **UAT-001** immediately after deploy: confirms login 401 regression fixed.
 2. Create UAT evidence folder/run log per execution date using `docs/audits/fr-uc-sso-uat-runbook-template.md`.
-3. Define admin UI UAT separately for `services/sso-admin-vue`; do not put admin pages back into `services/sso-frontend`.
+3. Define admin UI UAT separately for `services/sso-admin-frontend`; do not put admin pages back into `services/sso-frontend`.
 4. Add DSR fulfillment automation UAT once queue/legal-hold/delete-anonymize implementation lands.
 5. Add operator drill artifacts for UC-78/79/83 before claiming full operations signoff.
 6. Repair local frontend dependencies if local Vitest/browser UAT automation is needed.

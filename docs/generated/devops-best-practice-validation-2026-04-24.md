@@ -61,7 +61,7 @@ Live VPS validation completed:
 - Rollback image tag: `rollback-direct-20260424204601-40a46b8`.
 - VPS deploy log: `/var/log/sso-direct-build-deploy-20260424124602.log`.
 - Post-deploy smokes returned HTTP 200 for discovery, root admin panel, and Vue admin canary.
-- `sso-frontend` and `sso-admin-vue` were scaled to two healthy replicas each using the same immutable tag.
+- `sso-frontend` and `sso-admin-frontend` were scaled to two healthy replicas each using the same immutable tag.
 - Scale monitor returned 9/9 HTTP 200 samples during replica expansion.
 
 ## Lifecycle Assessment

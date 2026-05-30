@@ -38,7 +38,7 @@ Custom image Compose yang tervalidasi:
 
 - `sso-dev-sso-backend:${APP_IMAGE_TAG:-local}`
 - `sso-dev-sso-frontend:${APP_IMAGE_TAG:-local}`
-- `sso-dev-sso-admin-vue:${APP_IMAGE_TAG:-local}`
+- `sso-dev-sso-admin-frontend:${APP_IMAGE_TAG:-local}`
 - `sso-dev-zitadel-login:${APP_IMAGE_TAG:-local}`
 - `sso-dev-app-a-next:${APP_IMAGE_TAG:-local}`
 - `sso-dev-app-b-laravel:${APP_IMAGE_TAG:-local}`

@@ -127,7 +127,7 @@ GET /.well-known/openid-configuration
 GET /.well-known/jwks.json
 backend-only topology
 sso-backend-worker presence
-forbidden sso-admin-vue absence
+forbidden sso-admin-frontend absence
 worker logs without immediate failure markers
 ```
 

@@ -27,7 +27,7 @@ Hasil audit awal di bawah dipertahankan sebagai riwayat backlog. Re-audit live t
 
 ### Highest Priority Themes — Live Baseline `3e45cc2`
 
-1. **Admin UI ownership:** backend admin/governance APIs kuat, tetapi `services/sso-admin-vue` masih canary/skeleton; admin UI tidak boleh dikembalikan ke `services/sso-frontend`.
+1. **Admin UI ownership:** backend admin/governance APIs kuat, tetapi `services/sso-admin-frontend` masih canary/skeleton; admin UI tidak boleh dikembalikan ke `services/sso-frontend`.
 2. **Federation:** public external IdP start+callback route sudah wired; perlu negative-route coverage tambahan untuk issuer/nonce/missing-email edge.
 3. **Portal BFF boundary:** `sso-frontend` portal-only dan production `VITE_SSO_API_URL=''` sudah terkunci; active BFF juga mem-proxy `/introspect` dan `/connect/logout/frontchannel`; lanjutkan session hardening.
 4. **BFF session hardening:** browser tidak menerima token, namun BFF masih menyimpan access/id/refresh token dalam encrypted HttpOnly cookie; opaque server-side session store lebih kuat.
@@ -352,7 +352,7 @@ Hasil audit awal di bawah dipertahankan sebagai riwayat backlog. Re-audit live t
 - **Severity:** Medium
 - **FR/UC:** FR-050 / UC-52
 - **Area:** Admin dashboard
-- **Evidence:** `/admin/api/me` returns principal/capabilities/menus. `services/sso-admin-vue` is skeleton; real `sso-frontend` admin page focuses client management.
+- **Evidence:** `/admin/api/me` returns principal/capabilities/menus. `services/sso-admin-frontend` is skeleton; real `sso-frontend` admin page focuses client management.
 - **Issue:** No dashboard metrics/summary endpoint or UI for sessions, clients, audit, incidents.
 - **Acceptance Criteria:**
   - Read-only dashboard summary under `admin.panel.view`.
@@ -409,7 +409,7 @@ Hasil audit awal di bawah dipertahankan sebagai riwayat backlog. Re-audit live t
 - **FR/UC:** FR-054 / UC-03, UC-04, UC-05, UC-60, UC-61
 - **Area:** Admin client console
 - **Evidence:** Backend supports stage/activate/disable/decommission, secret rotation, scope policy endpoints; `services/sso-frontend` is now portal-only and no longer ships admin client screens.
-- **Issue:** Admin client console belongs in a dedicated admin app (`services/sso-admin-vue` or successor), not the SSO user portal.
+- **Issue:** Admin client console belongs in a dedicated admin app (`services/sso-admin-frontend` or successor), not the SSO user portal.
 - **Acceptance Criteria:**
   - UI supports suspend/activate and scope editing.
   - Destructive actions confirm and show token revocation impact.
@@ -594,7 +594,7 @@ Hasil audit awal di bawah dipertahankan sebagai riwayat backlog. Re-audit live t
 - **Severity:** Medium
 - **FR/UC:** FR-050 / UC-52
 - **Area:** Admin UI
-- **Evidence:** `services/sso-admin-vue` skeleton; `services/sso-frontend` is intentionally portal-only and has no active `/admin/*` routes.
+- **Evidence:** `services/sso-admin-frontend` skeleton; `services/sso-frontend` is intentionally portal-only and has no active `/admin/*` routes.
 - **Issue:** Admin dashboard must be implemented outside the SSO user portal.
 - **Acceptance Criteria:**
   - Dashboard page uses design system cards and RBAC capabilities.
@@ -975,7 +975,7 @@ it. New regressions for these AC IDs MUST add tests in the listed file.
 | BE-FR061-001 | `services/sso-frontend/src/locales/id.json` (`api.messages`/`api.patterns`/`oauth.*` keys), `services/sso-frontend/src/lib/api/api-error.ts` (locale-driven copy w/ technical-message scrubber + `errorRef`/`requestId`/`supportReference()`) | `services/sso-frontend/src/lib/api/__tests__/api-error.spec.ts` | `<pending>` |
 | BE-FR062-001 (re-hardened) | `app/Support/Responses/OidcErrorResponse.php` (catalog-driven safe description, technical-text scrubber, mints `error_ref`/`request_id` headers + body), `app/Exceptions/SafeOidcExceptionRenderer.php` (global renderer wired via `bootstrap/app.php` for OIDC/admin/JSON paths), `app/Http/Middleware/HandleDiscoveryErrors.php` (re-throws `HttpResponseException`/`HttpExceptionInterface` so the global renderer maps 429/4xx safely) | `tests/Feature/Oidc/OidcErrorCatalogContractTest.php`, `tests/Unit/Oidc/OidcErrorResponseTest.php`, `tests/Feature/Oidc/SafeErrorDescriptionContractTest.php` | `<pending>` |
 | BE-FR063-001 (re-hardened) | `app/Support/Responses/OidcErrorResponse.php` (auto-mirrors `X-Request-Id` to body + headers, mints `SSOERR-*` ref), `app/Jobs/DispatchBackChannelLogoutJob.php` + `app/Services/Oidc/BackChannelLogoutDispatcher.php` (request_id propagated through dispatch + dead-letter audits) | `tests/Feature/Oidc/OidcErrorCatalogContractTest.php`, `tests/Feature/Oidc/ErrorRefPropagationContractTest.php` | `<pending>` |
-| BE-FR054-001 | Backend admin client lifecycle endpoints remain available; frontend controls must be implemented in a dedicated admin app (`services/sso-admin-vue` or successor), not `services/sso-frontend`. | Dedicated admin-app tests pending | `<pending>` |
+| BE-FR054-001 | Backend admin client lifecycle endpoints remain available; frontend controls must be implemented in a dedicated admin app (`services/sso-admin-frontend` or successor), not `services/sso-frontend`. | Dedicated admin-app tests pending | `<pending>` |
 | BE-FR055-001 | `database/migrations/2026_05_18_000001_create_security_policies_table.php`, `app/Models/SecurityPolicy.php` (categories + lifecycle states), `app/Services/Security/SecurityPolicyService.php` (propose → activate → rollback w/ row lock + cache invalidation + audit), `app/Http/Controllers/Admin/SecurityPolicyController.php` (admin endpoints under `admin.security-policy.*` permissions), `app/Http/Requests/Admin/ProposeSecurityPolicyRequest.php`, `app/Http/Requests/Admin/TransitionSecurityPolicyRequest.php`, `app/Support/Rbac/AdminPermission.php` (new `SECURITY_POLICY_READ`/`WRITE`/`ACTIVATE` permissions wired into admin/security-officer defaults) | `tests/Feature/Admin/SecurityPolicyAndFederationContractTest.php` | `<pending>` |
 | BE-FR056-001 | `app/Http/Middleware/EnsureInternalMetricsToken.php` (configurable header token guard wired onto `/_internal/performance-metrics` and `/_internal/queue-metrics`), `config/sso.php` (`observability.internal_metrics_token_header`/`internal_metrics_token`) | `tests/Feature/System/InternalMetricsTokenGuardTest.php` | shipped earlier (no new commit) |
 | BE-FR057-001 | `config/sso.php` (`sso.external_idp.*` block w/ discovery, JWKS, token, health, callback, auth-state TTL, `public_start_route_enabled`, `missing_email_strategy`), `app/Http/Controllers/ExternalIdp/StartExternalIdpAuthenticationController.php` (public federation start route w/ feature flag + safe login fallback), `app/Services/ExternalIdp/ExternalIdentityProviderRegistry.php` (`isUsable()` gate), `routes/web.php` registers `GET /external-idp/start/{providerKey}` | `tests/Feature/Admin/SecurityPolicyAndFederationContractTest.php` | `<pending>` |

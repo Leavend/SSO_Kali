@@ -311,7 +311,7 @@ footer {
 <ol>
 <li><strong>Portal SSO user UAT siap diuji end-to-end</strong> untuk login, callback, session, profile, password, MFA, connected apps, active sessions, consent, logout, safe error UX, dan DSR intake.</li>
 <li><strong>Backend protocol UAT/API contract kuat</strong> untuk OIDC discovery/JWKS/authorize/token/userinfo/introspection/revocation/session/logout/key rotation.</li>
-<li><strong>Admin/governance backend siap diuji via API</strong>, tetapi <strong>browser admin UI bukan scope <code>services/sso-frontend</code></strong>. UAT klik-path admin perlu dedicated admin app (<code>services/sso-admin-vue</code>/successor), bukan re-add admin route ke portal.</li>
+<li><strong>Admin/governance backend siap diuji via API</strong>, tetapi <strong>browser admin UI bukan scope <code>services/sso-frontend</code></strong>. UAT klik-path admin perlu dedicated admin app (<code>services/sso-admin-frontend</code>/successor), bukan re-add admin route ke portal.</li>
 <li><strong>Known UAT gaps</strong>: DSR delete/anonymize full automation, opaque server-side BFF token session, full admin UI, broader device inventory, SIEM/export ops signoff, DR/failover drill evidence.</li>
 <li><strong>Recent prod risk fixed:</strong> BFF now preserves every upstream <code>Set-Cookie</code> via <code>services/sso-frontend/src/server/proxy-headers.ts</code>; UAT login must verify all auth cookies survive proxy.</li>
 </ol>
@@ -1578,7 +1578,7 @@ footer {
 <ol>
 <li>Run <strong>UAT-001</strong> immediately after deploy: confirms login 401 regression fixed.</li>
 <li>Create UAT evidence folder/run log per execution date using <code>docs/audits/fr-uc-sso-uat-runbook-template.md</code>.</li>
-<li>Define admin UI UAT separately for <code>services/sso-admin-vue</code>; do not put admin pages back into <code>services/sso-frontend</code>.</li>
+<li>Define admin UI UAT separately for <code>services/sso-admin-frontend</code>; do not put admin pages back into <code>services/sso-frontend</code>.</li>
 <li>Add DSR fulfillment automation UAT once queue/legal-hold/delete-anonymize implementation lands.</li>
 <li>Add operator drill artifacts for UC-78/79/83 before claiming full operations signoff.</li>
 <li>Repair local frontend dependencies if local Vitest/browser UAT automation is needed.</li>

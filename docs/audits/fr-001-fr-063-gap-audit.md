@@ -7,7 +7,7 @@
 
 ## 1. Executive Summary
 
-Audit ini meninjau ulang FR-001 sampai FR-063 dan UC terkait untuk melihat gap tersisa pada backend SSO, portal user, dan admin frontend. Kondisi terkini berbeda dari audit lama: `services/sso-admin-vue` sudah menjadi target rename ke `services/sso-admin-frontend`, portal SSO sudah memakai pola BFF/session same-origin, dan backend sudah memiliki coverage luas untuk protokol OIDC, token lifecycle, session/logout, DSR, admin API, RBAC, audit, dan federation.
+Audit ini meninjau ulang FR-001 sampai FR-063 dan UC terkait untuk melihat gap tersisa pada backend SSO, portal user, dan admin frontend. Kondisi terkini berbeda dari audit lama: admin frontend aktif berada di `services/sso-admin-frontend`, portal SSO sudah memakai pola BFF/session same-origin, dan backend sudah memiliki coverage luas untuk protokol OIDC, token lifecycle, session/logout, DSR, admin API, RBAC, audit, dan federation.
 
 ### Kesimpulan utama
 
@@ -220,7 +220,7 @@ Severity:
 - **Severity:** Low
 - **FR/UC:** FR-050–FR-056 / UC-51–UC-65
 - **Services:** docs/devops/admin frontend
-- **Evidence:** Older audit text referenced `services/sso-admin-vue`; current target is `services/sso-admin-frontend`. Env variable `SSO_ADMIN_VUE_BASE_PATH` intentionally remains stable for this release.
+- **Evidence:** Older audit text referenced the deprecated admin Vue service name; current target is `services/sso-admin-frontend`. Env variable `SSO_ADMIN_VUE_BASE_PATH` intentionally remains stable for this release.
 - **Impact:** Readers may confuse current service name with historical canary name.
 - **Recommendation:** Update docs opportunistically to use `services/sso-admin-frontend` while keeping `SSO_ADMIN_VUE_BASE_PATH` documented as legacy/stable env name until separately renamed.
 - **Suggested priority:** P3.
@@ -267,14 +267,14 @@ Severity:
 1. Define IP allow/blocklist ownership and audit trail.
 2. Expand security notification matrix.
 3. Sunset legacy portal session cookie fallback after migration window.
-4. Normalize stale `sso-admin-vue` docs references while preserving stable env names where intentional.
+4. Normalize stale admin frontend service-name docs references while preserving stable env names where intentional.
 
 ## 8. Verification Checklist for This Audit
 
 - FR-001 through FR-063 are represented in the coverage matrix.
 - UC-01 through UC-83 are represented by range in the UC matrix.
 - Current admin service name is `services/sso-admin-frontend`.
-- Historical `sso-admin-vue` references are treated as stale unless explicitly discussing previous audit context.
+- Historical deprecated admin Vue service references are treated as stale unless explicitly discussing previous audit context.
 - Findings distinguish backend/API implementation from admin frontend UI delivery.
 - Operational items distinguish scripts/runbooks from completed evidence/signoff.
 - Historical findings are not repeated if current evidence shows they were closed.

@@ -67,7 +67,7 @@ Frontend:
   - Vitest: PASS, 100 passed
   - Production build: PASS, 30 app routes generated
   - `npm audit --audit-level=high`: PASS, 0 vulnerabilities
-- `services/sso-admin-vue`
+- `services/sso-admin-frontend`
   - Typecheck: PASS
   - Oxlint/ESLint: PASS
   - Vitest: PASS, 2 passed

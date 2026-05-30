@@ -54,7 +54,7 @@ Deploy through the existing VPS direct deploy path:
 
 1. Build immutable image tag on the VPS.
 2. Snapshot current images as `rollback-${TAG}`.
-3. Preserve two replicas for `sso-frontend` and `sso-admin-vue`.
+3. Preserve two replicas for `sso-frontend` and `sso-admin-frontend`.
 4. Wait for all expected replicas to be healthy.
 5. Run HTTPS smoke checks through local reverse proxy resolution.
 6. Keep rollback tag until post-deploy verification is accepted.

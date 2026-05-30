@@ -83,13 +83,13 @@ Implemented:
   migrating, or replacing services.
 - Rollback now preflights the live Compose control plane before replacing
   containers.
-- Both scripts fail early if required services such as `sso-admin-vue` are not
+- Both scripts fail early if required services such as `sso-admin-frontend` are not
   defined by the remote Compose file.
 
 Why this matters:
 
 - Previous live VPS investigation found the VPS did not yet contain
-  `sso-admin-vue` in `/opt/sso-prototype-dev`.
+  `sso-admin-frontend` in `/opt/sso-prototype-dev`.
 - The new CD sync step and script preflight close that lifecycle gap.
 - Failed control-plane alignment now stops before a partial rollout.
 

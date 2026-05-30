@@ -15,7 +15,7 @@ Validasi lanjutan menemukan bahwa arah arsitektur masih benar:
 
 Perubahan hardening yang sudah dieksekusi pada validasi ini:
 
-- `services/sso-admin-vue/package.json` sekarang punya script `typecheck` dan
+- `services/sso-admin-frontend/package.json` sekarang punya script `typecheck` dan
   `test` agar cocok dengan generic frontend CI.
 - `docker-compose.dev.yml` sekarang memberi image name eksplisit untuk service
   custom memakai `APP_IMAGE_TAG`.
@@ -57,7 +57,7 @@ Laravel:
 
 Vue:
 
-- `services/sso-admin-vue/package-lock.json` memuat:
+- `services/sso-admin-frontend/package-lock.json` memuat:
   - Vue `3.5.33`
   - Vue Router `5.0.6`
   - Pinia `3.0.4`
@@ -66,7 +66,7 @@ Vue:
 
 Deployment:
 
-- `sso-admin-vue` tetap isolated pada path canary.
+- `sso-admin-frontend` tetap isolated pada path canary.
 - Backend/OIDC/Admin API router tetap prioritas 200.
 - Vue canary router prioritas 175.
 - Next.js admin root catch-all tetap prioritas 50.
@@ -124,7 +124,7 @@ punya image eksplisit:
 ```text
 sso-dev-sso-backend:${APP_IMAGE_TAG:-local}
 sso-dev-sso-frontend:${APP_IMAGE_TAG:-local}
-sso-dev-sso-admin-vue:${APP_IMAGE_TAG:-local}
+sso-dev-sso-admin-frontend:${APP_IMAGE_TAG:-local}
 sso-dev-zitadel-login:${APP_IMAGE_TAG:-local}
 sso-dev-app-a-next:${APP_IMAGE_TAG:-local}
 sso-dev-app-b-laravel:${APP_IMAGE_TAG:-local}

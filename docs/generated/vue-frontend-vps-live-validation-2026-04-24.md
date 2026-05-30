@@ -31,7 +31,7 @@ Conclusion: production-safe latest Vue target is `3.5.33`, not `3.6.0-beta.10`.
 
 ## Local Frontend Stack Validation
 
-Workspace path: `/Users/leavend/Desktop/Project_SSO/services/sso-admin-vue`
+Workspace path: `/Users/leavend/Desktop/Project_SSO/services/sso-admin-frontend`
 
 Locked package versions:
 
@@ -48,8 +48,8 @@ Locked package versions:
 
 Relevant local evidence:
 
-- `services/sso-admin-vue/package.json` exposes `typecheck`, `test`, `lint`, `build`, `test:e2e`, and modern Vue/Vite/TS tooling.
-- `docker-compose.dev.yml` defines `sso-admin-vue` as an isolated canary service.
+- `services/sso-admin-frontend/package.json` exposes `typecheck`, `test`, `lint`, `build`, `test:e2e`, and modern Vue/Vite/TS tooling.
+- `docker-compose.dev.yml` defines `sso-admin-frontend` as an isolated canary service.
 - The Vue canary image is tag-addressable through `APP_IMAGE_TAG`.
 - The canary route is isolated under `${SSO_ADMIN_VUE_BASE_PATH:-/__vue-preview}`.
 - Traefik priority model:
@@ -118,8 +118,8 @@ Public HTTPS smoke from VPS:
 Important live gap:
 
 - `/opt/sso-prototype-dev/services` contains only `sso-backend` and `sso-frontend`.
-- `/opt/sso-prototype-dev/services/sso-admin-vue` does not exist.
-- Live `docker-compose.dev.yml` does not contain `sso-admin-vue`, `__vue-preview`, or `SSO_ADMIN_VUE_BASE_PATH`.
+- `/opt/sso-prototype-dev/services/sso-admin-frontend` does not exist.
+- Live `docker-compose.dev.yml` does not contain `sso-admin-frontend`, `__vue-preview`, or `SSO_ADMIN_VUE_BASE_PATH`.
 - Live `/opt/sso-prototype-dev` is not a git working tree.
 - Live `scripts` contains only `deploy-frontend-smoke.sh` and `deploy.sh`.
 - Live `scripts/vps-deploy.sh` does not exist.
@@ -148,7 +148,7 @@ These do not block the observed SSO backend/frontend smoke tests, but they shoul
 
 The current workspace design supports zero-downtime Vue rollout because the Vue frontend is isolated behind `__vue-preview` and does not replace the root Next.js frontend. Backend OIDC/API routes keep higher Traefik priority.
 
-Live VPS is not yet aligned, so zero-downtime update should start with a controlled bootstrap/sync of the new release artifacts and scripts before enabling `sso-admin-vue`.
+Live VPS is not yet aligned, so zero-downtime update should start with a controlled bootstrap/sync of the new release artifacts and scripts before enabling `sso-admin-frontend`.
 
 ### Rollback Mechanism
 
@@ -169,7 +169,7 @@ Recommended lifecycle path:
 1. Build and tag immutable Vue canary image from the validated workspace.
 2. Sync the current release bundle and lifecycle scripts to VPS in a release directory.
 3. Keep existing Next.js root frontend online.
-4. Bring up only `sso-admin-vue` using the new `APP_IMAGE_TAG`.
+4. Bring up only `sso-admin-frontend` using the new `APP_IMAGE_TAG`.
 5. Smoke `https://dev-sso.timeh.my.id/__vue-preview/healthz`.
 6. Smoke `https://dev-sso.timeh.my.id/__vue-preview/`.
 7. If smoke fails, run rollback to previous tag or remove the canary service without touching root frontend/backend.

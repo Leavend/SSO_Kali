@@ -652,6 +652,7 @@ services:
       context: ./services/sso-admin-frontend
       args:
         VITE_ADMIN_BASE_URL: ${ADMIN_PANEL_BASE_URL}
+        # SSO_ADMIN_VUE_BASE_PATH is a legacy/stable fallback kept for this release.
         VITE_PUBLIC_BASE_PATH: ${SSO_ADMIN_FRONTEND_BASE_PATH:-${SSO_ADMIN_VUE_BASE_PATH:-/__vue-preview}}
         VITE_SSO_BASE_URL: ${SSO_BASE_URL}
         VITE_ZITADEL_ISSUER_URL: ${ZITADEL_ISSUER}

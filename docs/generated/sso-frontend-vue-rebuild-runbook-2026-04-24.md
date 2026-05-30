@@ -33,7 +33,7 @@ The root login experience now ports the previous Next.js UI into Vue instead of 
 5. Smoke HTTPS through local Traefik using `--resolve`.
 6. Keep the prior image tag until the post-deploy window closes.
 
-The live VPS has been lifted from single-replica frontend Compose to two healthy replicas for `sso-frontend` and `sso-admin-vue`. The direct deploy script now keeps that scale during update and rollback. The first single-replica recreate produced one observed non-200 root sample, so strict zero downtime for future promotions must be proven with a multi-replica or blue/green rollout monitor before being treated as production-grade.
+The live VPS has been lifted from single-replica frontend Compose to two healthy replicas for `sso-frontend` and `sso-admin-frontend`. The direct deploy script now keeps that scale during update and rollback. The first single-replica recreate produced one observed non-200 root sample, so strict zero downtime for future promotions must be proven with a multi-replica or blue/green rollout monitor before being treated as production-grade.
 
 ## Rollback
 
@@ -50,7 +50,7 @@ Latest VPS deployment:
 
 - Active tag: `direct-20260424204601-40a46b8`
 - Rollback tag: `rollback-direct-20260424204601-40a46b8`
-- Live services: two healthy `sso-frontend` replicas and two healthy `sso-admin-vue` replicas
+- Live services: two healthy `sso-frontend` replicas and two healthy `sso-admin-frontend` replicas
 
 ## Validation Evidence
 

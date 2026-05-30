@@ -73,7 +73,7 @@ Deployment:
 
 ### Option A: Laravel Backend + Vue SPA Service
 
-Bangun service baru, contoh `services/sso-admin-vue`, memakai:
+Bangun service baru, contoh `services/sso-admin-frontend`, memakai:
 
 - Vue 3.5 stable
 - Vite latest stable
@@ -112,7 +112,7 @@ Konsekuensi:
 Pilih Option B sebagai target final, tetapi eksekusi dengan parallel service:
 
 - Current service tetap `services/sso-frontend` sampai cutover.
-- Buat `services/sso-admin-vue` atau `services/sso-control-plane`.
+- Buat `services/sso-admin-frontend` atau `services/sso-control-plane`.
 - Laravel 13 BFF menyajikan Vue shell dan menangani route auth admin.
 - Proxy dapat mengarahkan canary host/path ke service baru.
 
@@ -173,7 +173,7 @@ Tujuan:
 
 Langkah:
 
-- Tambahkan service paralel, misalnya `services/sso-admin-vue`.
+- Tambahkan service paralel, misalnya `services/sso-admin-frontend`.
 - Implementasikan UI dari route yang paling aman:
   dashboard read-only, status pages, user list, session list.
 - Reimplementasi auth BFF hanya setelah contract dan smoke test siap.
@@ -306,7 +306,7 @@ vendor/bin/pest --no-interaction
 Vue scaffold target:
 
 ```bash
-npm create vue@latest services/sso-admin-vue
+npm create vue@latest services/sso-admin-frontend
 ```
 
 Production-safe deployment pattern:

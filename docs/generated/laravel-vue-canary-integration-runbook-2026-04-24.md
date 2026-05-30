@@ -11,17 +11,17 @@ berdasarkan audit `laravel-vue-target-stack-transition-audit-2026-04-24.md`.
 
 Perubahan yang sudah dieksekusi:
 
-- service baru `services/sso-admin-vue`
+- service baru `services/sso-admin-frontend`
 - Vue 3 + Vite + TypeScript strict
 - Pinia, Vue Router, Vitest, Playwright, ESLint, Prettier
 - Docker static runtime berbasis Nginx unprivileged
 - Traefik canary route di `https://dev-sso.timeh.my.id/__vue-preview`
 - deploy mode baru `admin-vue-only`
-- CI matrix untuk test/build/image `sso-admin-vue`
+- CI matrix untuk test/build/image `sso-admin-frontend`
 
 Update validasi lanjutan:
 
-- `sso-admin-vue` punya alias `typecheck` dan `test` agar cocok dengan CI
+- `sso-admin-frontend` punya alias `typecheck` dan `test` agar cocok dengan CI
   frontend matrix.
 - Custom service images di Compose memakai `APP_IMAGE_TAG` agar deploy dan
   rollback VPS memakai image yang tepat.
@@ -88,7 +88,7 @@ Backend, frontend lama, dan worker tetap bisa di-rollout terpisah:
 Rollback tercepat untuk canary:
 
 1. Hentikan route canary dengan menghapus atau menonaktifkan router
-   `sso-admin-vue`.
+   `sso-admin-frontend`.
 2. Trafik root tidak terdampak karena tetap berada di `sso-frontend`.
 3. Untuk rollback image di pipeline release, jalankan workflow rollback yang
    sudah memanggil `scripts/vps-rollback.sh`.
@@ -101,7 +101,7 @@ melakukan migration dan tidak menulis state server.
 Update Vue canary memakai lifecycle berikut:
 
 1. Build image baru.
-2. Start container `sso-admin-vue` dengan `docker compose up -d --no-deps`.
+2. Start container `sso-admin-frontend` dengan `docker compose up -d --no-deps`.
 3. Tunggu healthcheck `/healthz`.
 4. Smoke test path canary.
 5. Jika gagal, rollback image tanpa menyentuh root admin panel.
