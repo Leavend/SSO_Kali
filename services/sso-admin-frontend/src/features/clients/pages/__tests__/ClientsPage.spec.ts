@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
+import { useSessionStore } from '@/stores/session.store'
 import ClientsPage from '../ClientsPage.vue'
 import { useClientsStore } from '../../stores/clients.store'
 import type { AdminClient } from '../../types'
@@ -31,9 +32,41 @@ const client: AdminClient = {
   has_secret_hash: true,
 }
 
+function seedPrincipal(capabilities: Record<string, boolean>): void {
+  useSessionStore().setPrincipal({
+    subject_id: 'admin-1',
+    email: 'admin@example.test',
+    display_name: 'Admin One',
+    role: 'admin',
+    last_login_at: null,
+    auth_context: {
+      auth_time: null,
+      amr: [],
+      acr: null,
+      mfa_enforced: false,
+      mfa_verified: false,
+    },
+    permissions: {
+      view_admin_panel: true,
+      manage_sessions: capabilities['admin.sessions.terminate'] === true,
+      capabilities,
+      permissions: Object.keys(capabilities),
+      menus: [],
+    },
+  })
+}
+
+function seedFullAccessPrincipal(): void {
+  seedPrincipal({
+      'admin.clients.write': true,
+      'admin.sessions.terminate': true,
+  })
+}
+
 describe('ClientsPage', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    seedFullAccessPrincipal()
   })
 
   it('renders client detail with separate logout evidence and request context', () => {
@@ -283,4 +316,40 @@ describe('ClientsPage', () => {
 
     expect(wrapper.text()).toContain('Belum ada OAuth client untuk ditampilkan.')
   })
+
+  it('hides client write and lifecycle actions for read-only principals', () => {
+    seedPrincipal({})
+    const store = useClientsStore()
+    store.clients = [client]
+    store.selectedClientId = 'prototype-app-a'
+    store.status = 'success'
+    store.detailStatus = 'success'
+
+    const wrapper = mount(ClientsPage)
+
+    expect(wrapper.text()).not.toContain('Create OAuth client')
+    expect(wrapper.text()).not.toContain('Simpan URI policy')
+    expect(wrapper.text()).not.toContain('Simpan scope policy')
+    expect(wrapper.text()).not.toContain('Simpan metadata')
+    expect(wrapper.text()).not.toContain('Disable client')
+    expect(wrapper.text()).not.toContain('Decommission client')
+    expect(wrapper.text()).not.toContain('Rotate secret')
+  })
+
+  it('requires session termination permission for client lifecycle actions', () => {
+    seedPrincipal({ 'admin.clients.write': true })
+    const store = useClientsStore()
+    store.clients = [client]
+    store.selectedClientId = 'prototype-app-a'
+    store.status = 'success'
+    store.detailStatus = 'success'
+
+    const wrapper = mount(ClientsPage)
+
+    expect(wrapper.text()).toContain('Create OAuth client')
+    expect(wrapper.text()).toContain('Rotate secret')
+    expect(wrapper.text()).not.toContain('Disable client')
+    expect(wrapper.text()).not.toContain('Decommission client')
+  })
+
 })

@@ -1,10 +1,16 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
+import { useSessionStore } from '@/stores/session.store'
 import { useExternalIdpsStore } from '../stores/external-idps.store'
 import type { ExternalIdpCreatePayload, ExternalIdpUpdatePayload } from '../types'
 
 const store = useExternalIdpsStore()
+const session = useSessionStore()
+const canWriteExternalIdps = computed(() => session.hasPermission('admin.external-idps.write'))
+const canDeleteExternalIdps = computed(
+  () => canWriteExternalIdps.value && session.hasPermission('admin.sessions.terminate'),
+)
 
 // ─── Mapping preview ──────────────────────────────────────────────────────────
 const mappingClaims = ref('{"sub":"ext-user-123","email":"user@example.com"}')
@@ -201,6 +207,7 @@ onMounted(() => {
         </p>
 
         <button
+          v-if="canWriteExternalIdps"
           class="primary-action create-idp-toggle"
           type="button"
           @click="showCreateForm = !showCreateForm"
@@ -208,7 +215,7 @@ onMounted(() => {
           {{ showCreateForm ? 'Cancel' : 'Add External IdP' }}
         </button>
 
-        <div v-if="showCreateForm" class="create-idp-form">
+        <div v-if="canWriteExternalIdps && showCreateForm" class="create-idp-form">
           <h3>Add External IdP</h3>
           <label class="reason-field">
             Provider key
@@ -342,7 +349,7 @@ onMounted(() => {
         </div>
 
         <!-- ─── Edit form ─────────────────────────────────────────────── -->
-        <section class="detail-section" aria-labelledby="edit-idp-title">
+        <section v-if="canWriteExternalIdps" class="detail-section" aria-labelledby="edit-idp-title">
           <h3 id="edit-idp-title">Edit Provider</h3>
           <label class="reason-field">
             Display name
@@ -404,7 +411,7 @@ onMounted(() => {
         </section>
 
         <!-- ─── Delete section ────────────────────────────────────────── -->
-        <section class="detail-section detail-section--danger" aria-labelledby="delete-idp-title">
+        <section v-if="canDeleteExternalIdps" class="detail-section detail-section--danger" aria-labelledby="delete-idp-title">
           <h3 id="delete-idp-title">Delete Provider</h3>
           <p class="muted">
             Untuk menghapus provider, ketik
@@ -436,7 +443,7 @@ onMounted(() => {
       </article>
 
       <!-- ─── Mapping preview ───────────────────────────────────────────── -->
-      <section class="detail-section" aria-labelledby="idp-mapping-title">
+      <section v-if="canWriteExternalIdps" class="detail-section" aria-labelledby="idp-mapping-title">
         <h2 id="idp-mapping-title">Mapping preview</h2>
         <label class="reason-field">
           Sample claims JSON

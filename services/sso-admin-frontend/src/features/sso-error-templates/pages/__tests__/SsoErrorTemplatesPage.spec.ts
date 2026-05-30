@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
+import { useSessionStore } from '@/stores/session.store'
 import SsoErrorTemplatesPage from '../SsoErrorTemplatesPage.vue'
 import { useSsoErrorTemplatesStore } from '../../stores/sso-error-templates.store'
 import type { SsoErrorTemplate } from '../../types'
@@ -26,9 +27,40 @@ const template: SsoErrorTemplate = {
   is_enabled: true,
 }
 
+function seedPrincipal(capabilities: Record<string, boolean>): void {
+  useSessionStore().setPrincipal({
+    subject_id: 'admin-1',
+    email: 'admin@example.test',
+    display_name: 'Admin One',
+    role: 'admin',
+    last_login_at: null,
+    auth_context: {
+      auth_time: null,
+      amr: [],
+      acr: null,
+      mfa_enforced: false,
+      mfa_verified: false,
+    },
+    permissions: {
+      view_admin_panel: true,
+      manage_sessions: capabilities['admin.sessions.terminate'] === true,
+      capabilities,
+      permissions: Object.keys(capabilities),
+      menus: [],
+    },
+  })
+}
+
+function seedFullAccessPrincipal(): void {
+  seedPrincipal({
+      'admin.sso-error-templates.write': true,
+  })
+}
+
 describe('SsoErrorTemplatesPage', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    seedFullAccessPrincipal()
   })
 
   it('renders the catalog with a customized template', () => {
@@ -155,4 +187,18 @@ describe('SsoErrorTemplatesPage', () => {
 
     expect(resetSpy).toHaveBeenCalledWith('session_expired', 'id')
   })
+
+  it('hides template write actions for read-only principals', () => {
+    seedPrincipal({})
+    const store = useSsoErrorTemplatesStore()
+    store.templates = [template]
+    store.status = 'success'
+
+    const wrapper = mount(SsoErrorTemplatesPage)
+
+    expect(wrapper.text()).not.toContain('Edit')
+    expect(wrapper.text()).not.toContain('Reset')
+    expect(wrapper.text()).not.toContain('Save')
+  })
+
 })

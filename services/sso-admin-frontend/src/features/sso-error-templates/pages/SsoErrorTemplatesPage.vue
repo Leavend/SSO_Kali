@@ -1,10 +1,15 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
+import { useSessionStore } from '@/stores/session.store'
 import { useSsoErrorTemplatesStore } from '../stores/sso-error-templates.store'
 import type { SsoErrorTemplate, UpsertSsoErrorTemplatePayload } from '../types'
 
 const store = useSsoErrorTemplatesStore()
+const session = useSessionStore()
+const canWriteSsoErrorTemplates = computed(() =>
+  session.hasPermission('admin.sso-error-templates.write'),
+)
 const errorCodes = [
   'invalid_request',
   'invalid_grant',
@@ -151,7 +156,7 @@ function templateFor(code: string): SsoErrorTemplate | undefined {
                 </label>
               </div>
               <div class="action-row compact-actions">
-                <button class="primary-action" type="button" @click="saveTemplate(code)">
+                <button v-if="canWriteSsoErrorTemplates" class="primary-action" type="button" @click="saveTemplate(code)">
                   Save
                 </button>
                 <button class="secondary-action" type="button" @click="cancelEdit()">Cancel</button>
@@ -177,7 +182,7 @@ function templateFor(code: string): SsoErrorTemplate | undefined {
               >
             </p>
             <p v-else class="muted">Default catalog entry (belum di-customize).</p>
-            <div class="action-row compact-actions">
+            <div v-if="canWriteSsoErrorTemplates" class="action-row compact-actions">
               <button
                 class="primary-action"
                 type="button"

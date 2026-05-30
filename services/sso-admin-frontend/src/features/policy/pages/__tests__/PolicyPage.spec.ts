@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
+import { useSessionStore } from '@/stores/session.store'
 import PolicyPage from '../PolicyPage.vue'
 import { usePolicyStore } from '../../stores/policy.store'
 import type { AdminRole, SecurityPolicy } from '../../types'
@@ -46,9 +47,43 @@ const role: AdminRole = {
   permissions: [{ slug: 'admin.audit.read', name: 'Audit read', category: 'audit' }],
 }
 
+function seedPrincipal(capabilities: Record<string, boolean>): void {
+  useSessionStore().setPrincipal({
+    subject_id: 'admin-1',
+    email: 'admin@example.test',
+    display_name: 'Admin One',
+    role: 'admin',
+    last_login_at: null,
+    auth_context: {
+      auth_time: null,
+      amr: [],
+      acr: null,
+      mfa_enforced: false,
+      mfa_verified: false,
+    },
+    permissions: {
+      view_admin_panel: true,
+      manage_sessions: capabilities['admin.sessions.terminate'] === true,
+      capabilities,
+      permissions: Object.keys(capabilities),
+      menus: [],
+    },
+  })
+}
+
+function seedFullAccessPrincipal(): void {
+  seedPrincipal({
+      'admin.security-policy.write': true,
+      'admin.security-policy.activate': true,
+      'admin.roles.write': true,
+      'admin.sessions.terminate': true,
+  })
+}
+
 describe('PolicyPage', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    seedFullAccessPrincipal()
   })
 
   it('renders security policy, RBAC, step-up evidence, and request ID', () => {
@@ -123,4 +158,38 @@ describe('PolicyPage', () => {
     expect(wrapper.text()).toContain('Auditor')
     expect(wrapper.find('button[aria-label="Delete role auditor"]').exists()).toBe(false)
   })
+
+  it('hides policy and role write actions for read-only principals', () => {
+    seedPrincipal({})
+    const store = usePolicyStore()
+    store.status = 'success'
+    store.policies = [policy]
+    store.roles = [{ ...role, is_system: false }]
+    store.permissions = role.permissions
+
+    const wrapper = mount(PolicyPage)
+
+    expect(wrapper.text()).not.toContain('Create draft')
+    expect(wrapper.text()).not.toContain('Activate')
+    expect(wrapper.text()).not.toContain('Rollback')
+    expect(wrapper.text()).not.toContain('Create Role')
+    expect(wrapper.text()).not.toContain('Edit')
+    expect(wrapper.text()).not.toContain('Delete')
+  })
+
+  it('requires session termination permission for role deletion', () => {
+    seedPrincipal({ 'admin.roles.write': true })
+    const store = usePolicyStore()
+    store.status = 'success'
+    store.policies = [policy]
+    store.roles = [{ ...role, is_system: false }]
+    store.permissions = role.permissions
+
+    const wrapper = mount(PolicyPage)
+
+    expect(wrapper.text()).toContain('Create Role')
+    expect(wrapper.text()).toContain('Edit')
+    expect(wrapper.text()).not.toContain('Delete')
+  })
+
 })

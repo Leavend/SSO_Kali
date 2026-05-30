@@ -1,9 +1,15 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
+import { useSessionStore } from '@/stores/session.store'
 import { useClientsStore } from '../stores/clients.store'
 
 const store = useClientsStore()
+const session = useSessionStore()
+const canWriteClients = computed(() => session.hasPermission('admin.clients.write'))
+const canManageClientLifecycle = computed(
+  () => canWriteClients.value && session.hasPermission('admin.sessions.terminate'),
+)
 const createForm = reactive({
   client_id: '',
   display_name: '',
@@ -242,6 +248,7 @@ async function rotateSecret(): Promise<void> {
     <div v-else class="clients-layout">
       <aside class="clients-list" aria-label="Daftar OAuth clients">
         <form
+          v-if="canWriteClients"
           class="client-form"
           aria-labelledby="create-client-title"
           @submit.prevent="createClient"
@@ -354,7 +361,7 @@ async function rotateSecret(): Promise<void> {
           <p>{{ store.selectedClient.backchannel_logout_uri ?? 'Belum ada evidence' }}</p>
         </section>
 
-        <section class="detail-section" aria-labelledby="uri-policy-title">
+        <section v-if="canWriteClients" class="detail-section" aria-labelledby="uri-policy-title">
           <h3 id="uri-policy-title">URI policy</h3>
           <form class="client-form" data-test="uri-policy-form" @submit.prevent="saveUriPolicy">
             <p v-if="uriValidationMessage" class="action-message" role="alert">
@@ -384,7 +391,7 @@ async function rotateSecret(): Promise<void> {
           </form>
         </section>
 
-        <section class="detail-section" aria-labelledby="scope-policy-title">
+        <section v-if="canWriteClients" class="detail-section" aria-labelledby="scope-policy-title">
           <h3 id="scope-policy-title">Scope & consent policy</h3>
           <p v-if="scopeParityWarnings.length > 0" class="action-message" role="status">
             Scope label parity warning: {{ scopeParityWarnings.join(', ') }}
@@ -398,7 +405,7 @@ async function rotateSecret(): Promise<void> {
           </form>
         </section>
 
-        <section class="detail-section" aria-labelledby="metadata-title">
+        <section v-if="canWriteClients" class="detail-section" aria-labelledby="metadata-title">
           <h3 id="metadata-title">Metadata</h3>
           <form class="client-form" @submit.prevent="saveMetadata">
             <label>
@@ -413,7 +420,7 @@ async function rotateSecret(): Promise<void> {
           </form>
         </section>
 
-        <section class="detail-section detail-section--danger" aria-labelledby="lifecycle-title">
+        <section v-if="canManageClientLifecycle" class="detail-section detail-section--danger" aria-labelledby="lifecycle-title">
           <h3 id="lifecycle-title">Client lifecycle</h3>
           <p>
             Impact summary: disable blocks new authorization and may revoke active tokens.
@@ -454,7 +461,7 @@ async function rotateSecret(): Promise<void> {
           </button>
         </section>
 
-        <section class="detail-section detail-section--danger" aria-labelledby="secret-title">
+        <section v-if="canWriteClients" class="detail-section detail-section--danger" aria-labelledby="secret-title">
           <h3 id="secret-title">Client secret</h3>
           <p>Rotasi secret hanya menampilkan plaintext satu kali. Salin lalu hapus dari layar.</p>
           <button class="danger-action" type="button" @click="rotateSecret">Rotate secret</button>

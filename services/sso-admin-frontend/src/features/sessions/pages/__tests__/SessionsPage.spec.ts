@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
+import { useSessionStore } from '@/stores/session.store'
 import SessionsPage from '../SessionsPage.vue'
 import { useSessionsStore } from '../../stores/sessions.store'
 import type { AdminSession } from '../../types'
@@ -35,9 +36,40 @@ const session2: AdminSession = {
   last_activity_at: '2026-05-29T09:30:00Z',
 }
 
+function seedPrincipal(capabilities: Record<string, boolean>): void {
+  useSessionStore().setPrincipal({
+    subject_id: 'admin-1',
+    email: 'admin@example.test',
+    display_name: 'Admin One',
+    role: 'admin',
+    last_login_at: null,
+    auth_context: {
+      auth_time: null,
+      amr: [],
+      acr: null,
+      mfa_enforced: false,
+      mfa_verified: false,
+    },
+    permissions: {
+      view_admin_panel: true,
+      manage_sessions: capabilities['admin.sessions.terminate'] === true,
+      capabilities,
+      permissions: Object.keys(capabilities),
+      menus: [],
+    },
+  })
+}
+
+function seedFullAccessPrincipal(): void {
+  seedPrincipal({
+      'admin.sessions.terminate': true,
+  })
+}
+
 describe('SessionsPage', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    seedFullAccessPrincipal()
   })
 
   it('renders sessions table with session data', () => {
@@ -142,4 +174,16 @@ describe('SessionsPage', () => {
     expect(wrapper.text()).toContain('Sessions admin belum bisa dimuat')
     expect(wrapper.text()).toContain('Gunakan request ID req-123.')
   })
+
+  it('hides revoke buttons for read-only principals', () => {
+    seedPrincipal({})
+    const store = useSessionsStore()
+    store.sessions = [session1, session2]
+    store.status = 'success'
+
+    const wrapper = mount(SessionsPage)
+
+    expect(wrapper.findAll('button.revoke-button')).toHaveLength(0)
+  })
+
 })

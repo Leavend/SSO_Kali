@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
+import { useSessionStore } from '@/stores/session.store'
 import { useAuditStore } from '../stores/audit.store'
 import type { AuditExportFilters } from '../types'
 
 const store = useAuditStore()
+const session = useSessionStore()
+const canExportAudit = computed(() => session.hasPermission('admin.audit.export'))
+const canReviewDsr = computed(() => session.hasPermission('admin.dsr.review'))
 const reviewNotes = ref('Evidence verified')
 
 const exportFormat = ref<'csv' | 'jsonl'>('csv')
@@ -89,7 +93,7 @@ onMounted(() => {
     </div>
 
     <div v-else class="audit-layout">
-      <section class="detail-section" aria-labelledby="export-title">
+      <section v-if="canExportAudit" class="detail-section" aria-labelledby="export-title">
         <h2 id="export-title">Export Audit Trail</h2>
         <p class="page-summary">
           Export audit events terfilter ke CSV atau JSONL. Aksi privileged: backend meminta
@@ -314,7 +318,7 @@ onMounted(() => {
 
       <section class="detail-section" aria-labelledby="dsr-title">
         <h2 id="dsr-title">DSR queue</h2>
-        <label class="reason-field">
+        <label v-if="canReviewDsr" class="reason-field">
           Review notes
           <input v-model="reviewNotes" autocomplete="off" />
         </label>
@@ -326,7 +330,7 @@ onMounted(() => {
           <strong>{{ request.request_id }}</strong>
           <p>{{ request.type }} · {{ request.status }} · {{ request.subject_id }}</p>
           <p>SLA due: {{ request.sla_due_at ?? 'No SLA evidence' }}</p>
-          <div class="action-row compact-actions">
+          <div v-if="canReviewDsr" class="action-row compact-actions">
             <button
               type="button"
               class="primary-action"
