@@ -22,12 +22,24 @@ final class AcrEvaluator
 
     /**
      * Check if the current ACR level satisfies the requested level.
+     *
+     * POLICY (Permissive for unknown ACR): Unknown requested ACR values
+     * (those not in HIERARCHY) are treated as "no requirement" and return
+     * true. This is a deliberate compat policy — RPs that request an
+     * unrecognised assurance level receive the password-level flow rather
+     * than an error. See FR-021 / NG-03 for the accepted policy decision.
+     *
+     * Rationale: strict rejection (per RFC OIDC Core §3.1.2.1) would break
+     * RPs that send custom or future ACR values before the OP is updated to
+     * recognise them. The advertised set is published via
+     * acr_values_supported in the Discovery document so RPs can discover
+     * supported values proactively.
      */
     public function satisfies(?string $current, string $requested): bool
     {
         $requestedLevel = $this->level($requested);
 
-        // Unknown requested ACR → permissive (don't block)
+        // NG-03: permissive compat policy — unknown ACR → no requirement
         if ($requestedLevel === 0) {
             return true;
         }

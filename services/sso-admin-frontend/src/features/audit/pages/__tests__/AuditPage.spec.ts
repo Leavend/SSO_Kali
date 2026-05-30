@@ -129,7 +129,7 @@ describe('AuditPage', () => {
     expect(wrapper.text()).toContain('Security notification evidence')
     expect(wrapper.text()).toContain('refresh_token_reuse_detected')
     expect(wrapper.text()).toContain('Suspicious login challenge matrix')
-    expect(wrapper.text()).toContain('Unknown ACR policy')
+    expect(wrapper.text()).toContain('ACR permissive policy (NG-03)')
     expect(wrapper.text()).toContain('Portal/backend observable evidence')
     expect(wrapper.text()).toContain('Consent revocation audit viewer')
     expect(wrapper.text()).toContain('Legacy portal session fallback sunset')

@@ -68,6 +68,11 @@ final class OidcCatalog
             'token_endpoint_auth_methods_supported' => ['client_secret_basic', 'client_secret_post', 'none'],
             'code_challenge_methods_supported' => ['S256'],
             'claims_supported' => ['sub', 'iss', 'aud', 'exp', 'iat', 'auth_time', 'email', 'email_verified', 'name'],
+            // FR-021: advertised ACR values. Unknown requested values are
+            // handled permissively (compat policy) — the OP treats them as
+            // "no requirement" rather than rejecting the request. See
+            // AcrEvaluator::satisfies() for the implementation rationale.
+            'acr_values_supported' => ['urn:sso:loa:password', 'urn:sso:loa:mfa'],
             'end_session_endpoint' => $baseUrl.'/connect/logout',
             'backchannel_logout_supported' => true,
             'backchannel_logout_session_supported' => true,

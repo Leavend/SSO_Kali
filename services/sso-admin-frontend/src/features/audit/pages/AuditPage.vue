@@ -400,12 +400,14 @@ onMounted(() => {
       </section>
 
       <section class="detail-section" aria-labelledby="acr-title">
-        <h2 id="acr-title">Unknown ACR policy</h2>
+        <h2 id="acr-title">ACR permissive policy (NG-03)</h2>
         <div class="state-card">
-          <strong>Compatibility mode</strong>
+          <strong>Accepted policy — permissive compat mode</strong>
           <p>
-            Unknown ACR decisions remain backend-owned; this UI exposes safe audit evidence without
-            rendering raw provider errors.
+            Unknown ACR values are treated as no requirement (permissive) per accepted policy
+            NG-03/FR-021. RPs requesting unrecognised assurance levels receive password-level flow
+            rather than an error. Supported ACR values are advertised in
+            <code>acr_values_supported</code> in the Discovery document.
           </p>
         </div>
       </section>
