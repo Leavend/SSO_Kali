@@ -11,7 +11,7 @@ export type TemplatesStatus =
   | 'unauthenticated'
   | 'forbidden'
   | 'error'
-export type ActionStatus = 'idle' | 'loading' | 'success' | 'error'
+export type ActionStatus = 'idle' | 'loading' | 'success' | 'step_up_required' | 'error'
 
 export const useSsoErrorTemplatesStore = defineStore('admin-sso-error-templates', () => {
   const status = ref<TemplatesStatus>('idle')
@@ -104,6 +104,13 @@ export const useSsoErrorTemplatesStore = defineStore('admin-sso-error-templates'
   function handleActionError(error: unknown): void {
     requestId.value =
       error instanceof ApiError ? (error.requestId ?? getLastRequestId()) : getLastRequestId()
+
+    if (error instanceof ApiError && (error.status === 428 || error.status === 412)) {
+      actionStatus.value = 'step_up_required'
+      errorMessage.value =
+        'Aksi ini membutuhkan fresh-auth atau MFA assurance. Ulangi login admin lalu coba lagi.'
+      return
+    }
 
     actionStatus.value = 'error'
     errorMessage.value = requestId.value

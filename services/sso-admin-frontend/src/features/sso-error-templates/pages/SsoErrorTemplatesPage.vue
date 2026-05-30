@@ -203,7 +203,13 @@ function templateFor(code: string): SsoErrorTemplate | undefined {
             </div>
           </template>
         </div>
-        <p v-if="store.actionStatus === 'error'" class="action-message">{{ store.errorMessage }}</p>
+        <p
+          v-if="store.actionStatus === 'error' || store.actionStatus === 'step_up_required'"
+          class="action-message"
+          role="alert"
+        >
+          {{ store.errorMessage }}
+        </p>
       </section>
     </div>
 
