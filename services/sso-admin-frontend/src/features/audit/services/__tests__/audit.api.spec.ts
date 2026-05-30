@@ -60,6 +60,45 @@ describe('auditApi', () => {
     )
   })
 
+  it('serializes full audit event filters', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue({})
+
+    await auditApi.listEvents({
+      action: 'admin.user.lock',
+      outcome: 'denied',
+      taxonomy: 'user_lifecycle',
+      admin_subject_id: 'admin-1',
+      from: '2026-05-01',
+      to: '2026-05-30',
+      cursor: 'cursor-audit-2',
+      limit: 50,
+    })
+
+    expect(apiClient.get).toHaveBeenCalledWith(
+      '/api/admin/audit/events?action=admin.user.lock&outcome=denied&taxonomy=user_lifecycle&admin_subject_id=admin-1&from=2026-05-01&to=2026-05-30&cursor=cursor-audit-2&limit=50',
+    )
+  })
+
+  it('serializes authentication audit correlation filters', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue({})
+
+    await auditApi.listAuthenticationEvents({
+      request_id: 'req-auth-1',
+      subject_id: 'sub-target',
+      session_id: 'sid-123',
+      event_type: 'login_failed',
+      outcome: 'failed',
+      from: '2026-05-01',
+      to: '2026-05-30',
+      cursor: 'cursor-auth-2',
+      limit: 25,
+    })
+
+    expect(apiClient.get).toHaveBeenCalledWith(
+      '/api/admin/audit/authentication-events?request_id=req-auth-1&subject_id=sub-target&session_id=sid-123&event_type=login_failed&outcome=failed&from=2026-05-01&to=2026-05-30&cursor=cursor-auth-2&limit=25',
+    )
+  })
+
   it('downloads audit export as a blob through GET /api/admin/audit/export', async () => {
     vi.mocked(apiClient.getBlob).mockResolvedValue({
       blob: new Blob(['action,outcome\n'], { type: 'text/csv' }),

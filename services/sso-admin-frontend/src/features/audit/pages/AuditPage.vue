@@ -16,6 +16,56 @@ const exportFrom = ref('')
 const exportTo = ref('')
 const exportAction = ref('')
 const exportOutcome = ref('')
+const searchRequestId = ref('')
+const searchSessionId = ref('')
+const searchAction = ref('')
+const searchOutcome = ref('')
+const searchTaxonomy = ref('')
+const searchAdminSubjectId = ref('')
+const searchSubjectId = ref('')
+const searchFrom = ref('')
+const searchTo = ref('')
+
+function filled(value: string): string | undefined {
+  const trimmed = value.trim()
+  return trimmed === '' ? undefined : trimmed
+}
+
+async function submitSearch(): Promise<void> {
+  await Promise.all([
+    store.searchEvents({
+      ...(filled(searchAction.value) && { action: filled(searchAction.value) }),
+      ...(filled(searchOutcome.value) && { outcome: filled(searchOutcome.value) }),
+      ...(filled(searchTaxonomy.value) && { taxonomy: filled(searchTaxonomy.value) }),
+      ...(filled(searchAdminSubjectId.value) && {
+        admin_subject_id: filled(searchAdminSubjectId.value),
+      }),
+      ...(searchFrom.value && { from: searchFrom.value }),
+      ...(searchTo.value && { to: searchTo.value }),
+    }),
+    store.searchAuthenticationEvents({
+      ...(filled(searchRequestId.value) && { request_id: filled(searchRequestId.value) }),
+      ...(filled(searchSessionId.value) && { session_id: filled(searchSessionId.value) }),
+      ...(filled(searchSubjectId.value) && { subject_id: filled(searchSubjectId.value) }),
+      ...(filled(searchOutcome.value) && { outcome: filled(searchOutcome.value) }),
+      ...(searchFrom.value && { from: searchFrom.value }),
+      ...(searchTo.value && { to: searchTo.value }),
+    }),
+  ])
+}
+
+async function resetSearch(): Promise<void> {
+  searchRequestId.value = ''
+  searchSessionId.value = ''
+  searchAction.value = ''
+  searchOutcome.value = ''
+  searchTaxonomy.value = ''
+  searchAdminSubjectId.value = ''
+  searchSubjectId.value = ''
+  searchFrom.value = ''
+  searchTo.value = ''
+  await Promise.all([store.searchEvents({}), store.searchAuthenticationEvents({})])
+}
 
 async function submitExport(): Promise<void> {
   const action = exportAction.value.trim()
@@ -158,6 +208,64 @@ onMounted(() => {
         </dl>
       </section>
 
+      <section class="detail-section" aria-labelledby="audit-search-title">
+        <h2 id="audit-search-title">Cari audit event</h2>
+        <p class="page-summary">
+          Cari evidence berdasarkan correlation/request ID, SID, action, outcome, taxonomy, subject,
+          atau rentang tanggal.
+        </p>
+        <div class="export-filters">
+          <label class="reason-field">
+            Correlation / request ID
+            <input v-model="searchRequestId" name="audit-search-request-id" autocomplete="off" />
+          </label>
+          <label class="reason-field">
+            SID
+            <input v-model="searchSessionId" name="audit-search-session-id" autocomplete="off" />
+          </label>
+          <label class="reason-field">
+            Action
+            <input v-model="searchAction" name="audit-search-action" autocomplete="off" />
+          </label>
+          <label class="reason-field">
+            Outcome
+            <input v-model="searchOutcome" name="audit-search-outcome" autocomplete="off" />
+          </label>
+          <label class="reason-field">
+            Taxonomy
+            <input v-model="searchTaxonomy" name="audit-search-taxonomy" autocomplete="off" />
+          </label>
+          <label class="reason-field">
+            Admin subject
+            <input
+              v-model="searchAdminSubjectId"
+              name="audit-search-admin-subject-id"
+              autocomplete="off"
+            />
+          </label>
+          <label class="reason-field">
+            Subject ID
+            <input v-model="searchSubjectId" name="audit-search-subject-id" autocomplete="off" />
+          </label>
+          <label class="reason-field">
+            From
+            <input v-model="searchFrom" name="audit-search-from" type="date" />
+          </label>
+          <label class="reason-field">
+            To
+            <input v-model="searchTo" name="audit-search-to" type="date" />
+          </label>
+        </div>
+        <div class="action-row compact-actions">
+          <button class="primary-action audit-search-button" type="button" @click="submitSearch">
+            Search
+          </button>
+          <button class="danger-action audit-reset-button" type="button" @click="resetSearch">
+            Reset
+          </button>
+        </div>
+      </section>
+
       <section class="detail-section" aria-labelledby="events-title">
         <h2 id="events-title">Audit events</h2>
         <div class="audit-list">
@@ -175,6 +283,14 @@ onMounted(() => {
           </button>
         </div>
         <p v-if="store.events.length === 0" class="muted">Belum ada audit event.</p>
+        <button
+          v-if="store.eventPagination?.has_more && store.eventPagination?.next_cursor"
+          class="primary-action audit-load-more-button"
+          type="button"
+          @click="store.loadMoreEvents"
+        >
+          Muat lebih banyak audit event
+        </button>
       </section>
 
       <article
@@ -235,6 +351,17 @@ onMounted(() => {
         <p v-if="store.authenticationEvents.length === 0" class="muted">
           Belum ada security notification evidence.
         </p>
+        <button
+          v-if="
+            store.authenticationEventPagination?.has_more &&
+            store.authenticationEventPagination?.next_cursor
+          "
+          class="primary-action authentication-load-more-button"
+          type="button"
+          @click="store.loadMoreAuthenticationEvents"
+        >
+          Muat lebih banyak security notification evidence
+        </button>
         <dl v-if="store.selectedAuthenticationEvent" class="detail-grid">
           <div>
             <dt>Subject</dt>

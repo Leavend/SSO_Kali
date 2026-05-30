@@ -182,6 +182,108 @@ describe('AuditPage', () => {
     expect(wrapper.text()).toContain('Belum ada evidence audit untuk ditampilkan.')
   })
 
+  it('renders audit search controls for incident correlation', () => {
+    const store = useAuditStore()
+    store.status = 'success'
+    store.events = [event]
+    store.authenticationEvents = [authEvent]
+    store.integrity = { verified: true, checked_events: 1 }
+
+    const wrapper = mount(AuditPage)
+
+    expect(wrapper.text()).toContain('Cari audit event')
+    expect(wrapper.text()).toContain('Correlation / request ID')
+    expect(wrapper.text()).toContain('SID')
+    expect(wrapper.text()).toContain('Action')
+    expect(wrapper.text()).toContain('Outcome')
+    expect(wrapper.text()).toContain('Taxonomy')
+    expect(wrapper.text()).toContain('Admin subject')
+    expect(wrapper.text()).toContain('Subject ID')
+    expect(wrapper.text()).toContain('Search')
+    expect(wrapper.text()).toContain('Reset')
+  })
+
+  it('submits audit and authentication search filters', async () => {
+    const store = useAuditStore()
+    store.status = 'success'
+    store.events = [event]
+    store.authenticationEvents = [authEvent]
+    store.integrity = { verified: true, checked_events: 1 }
+    const searchEventsSpy = vi.spyOn(store, 'searchEvents').mockResolvedValue()
+    const searchAuthSpy = vi.spyOn(store, 'searchAuthenticationEvents').mockResolvedValue()
+
+    const wrapper = mount(AuditPage)
+
+    await wrapper.find('input[name="audit-search-request-id"]').setValue('req-auth-event-1')
+    await wrapper.find('input[name="audit-search-session-id"]').setValue('sid-123')
+    await wrapper.find('input[name="audit-search-action"]').setValue('admin.user.lock')
+    await wrapper.find('input[name="audit-search-outcome"]').setValue('failed')
+    await wrapper.find('input[name="audit-search-taxonomy"]').setValue('user_lifecycle')
+    await wrapper.find('input[name="audit-search-admin-subject-id"]').setValue('admin-1')
+    await wrapper.find('input[name="audit-search-subject-id"]').setValue('sub_target')
+    await wrapper.find('input[name="audit-search-from"]').setValue('2026-05-01')
+    await wrapper.find('input[name="audit-search-to"]').setValue('2026-05-30')
+    await wrapper.find('button.audit-search-button').trigger('click')
+
+    expect(searchEventsSpy).toHaveBeenCalledWith({
+      action: 'admin.user.lock',
+      outcome: 'failed',
+      taxonomy: 'user_lifecycle',
+      admin_subject_id: 'admin-1',
+      from: '2026-05-01',
+      to: '2026-05-30',
+    })
+    expect(searchAuthSpy).toHaveBeenCalledWith({
+      request_id: 'req-auth-event-1',
+      session_id: 'sid-123',
+      subject_id: 'sub_target',
+      outcome: 'failed',
+      from: '2026-05-01',
+      to: '2026-05-30',
+    })
+  })
+
+  it('resets audit search filters', async () => {
+    const store = useAuditStore()
+    store.status = 'success'
+    store.events = [event]
+    store.authenticationEvents = [authEvent]
+    store.integrity = { verified: true, checked_events: 1 }
+    const searchEventsSpy = vi.spyOn(store, 'searchEvents').mockResolvedValue()
+    const searchAuthSpy = vi.spyOn(store, 'searchAuthenticationEvents').mockResolvedValue()
+
+    const wrapper = mount(AuditPage)
+
+    await wrapper.find('input[name="audit-search-action"]').setValue('admin.user.lock')
+    await wrapper.find('button.audit-reset-button').trigger('click')
+
+    expect(searchEventsSpy).toHaveBeenCalledWith({})
+    expect(searchAuthSpy).toHaveBeenCalledWith({})
+    expect((wrapper.find('input[name="audit-search-action"]').element as HTMLInputElement).value).toBe(
+      '',
+    )
+  })
+
+  it('loads more audit and authentication events from cursor pagination', async () => {
+    const store = useAuditStore()
+    store.status = 'success'
+    store.events = [event]
+    store.authenticationEvents = [authEvent]
+    store.integrity = { verified: true, checked_events: 1 }
+    store.eventPagination = { next_cursor: 'cursor-audit-2', has_more: true }
+    store.authenticationEventPagination = { next_cursor: 'cursor-auth-2', has_more: true }
+    const loadMoreEventsSpy = vi.spyOn(store, 'loadMoreEvents').mockResolvedValue()
+    const loadMoreAuthSpy = vi.spyOn(store, 'loadMoreAuthenticationEvents').mockResolvedValue()
+
+    const wrapper = mount(AuditPage)
+
+    await wrapper.find('button.audit-load-more-button').trigger('click')
+    await wrapper.find('button.authentication-load-more-button').trigger('click')
+
+    expect(loadMoreEventsSpy).toHaveBeenCalled()
+    expect(loadMoreAuthSpy).toHaveBeenCalled()
+  })
+
   it('submits the export form and calls store.exportEvents with parsed filters', async () => {
     const store = useAuditStore()
     store.status = 'success'
