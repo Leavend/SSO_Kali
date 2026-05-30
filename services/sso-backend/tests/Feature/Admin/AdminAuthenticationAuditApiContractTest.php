@@ -35,18 +35,25 @@ it('lists filters and paginates central authentication audit events safely', fun
         'session_id' => 'session-login-85',
         'request_id' => 'req-auth-audit-login-85',
         'context' => ['access_token' => 'raw-access-token-must-not-leak-85', 'safe' => 'visible'],
+        'occurred_at' => now()->subHour(),
     ]);
     authenticationAuditRecord('token_revoked', 'succeeded', [
         'subject_id' => 'subject-token-85',
         'client_id' => 'app-a',
         'request_id' => 'req-auth-audit-token-85',
+        'session_id' => 'session-token-85',
         'context' => ['token_hash' => hash('sha256', 'token-85'), 'token_type_hint' => 'refresh_token'],
+        'occurred_at' => now()->subDays(2),
     ]);
 
     $response = $this->getJson('/admin/api/audit/authentication-events?'.http_build_query([
         'event_type' => 'login_succeeded',
         'outcome' => 'succeeded',
         'subject_id' => 'subject-login-85',
+        'session_id' => 'session-login-85',
+        'request_id' => 'req-auth-audit-login-85',
+        'from' => now()->subDay()->toIso8601String(),
+        'to' => now()->addMinute()->toIso8601String(),
         'limit' => 1,
     ]), authenticationAuditHeaders($admin));
 
@@ -60,6 +67,20 @@ it('lists filters and paginates central authentication audit events safely', fun
         ->assertJsonStructure(['events' => [['event_id', 'event_type', 'outcome', 'subject', 'request', 'context', 'occurred_at']], 'pagination']);
 
     expect(json_encode($response->json(), JSON_THROW_ON_ERROR))->not->toContain('raw-access-token-must-not-leak-85');
+
+    $cursorResponse = $this->getJson('/admin/api/audit/authentication-events?'.http_build_query([
+        'limit' => 1,
+    ]), authenticationAuditHeaders($admin));
+
+    $nextCursor = $cursorResponse->json('pagination.next_cursor');
+    expect($nextCursor)->toBeString();
+
+    $this->getJson('/admin/api/audit/authentication-events?'.http_build_query([
+        'limit' => 1,
+        'cursor' => $nextCursor,
+    ]), authenticationAuditHeaders($admin))
+        ->assertOk()
+        ->assertJsonCount(1, 'events');
 });
 
 it('shows one central authentication audit event and returns not found for unknown event ids', function (): void {
@@ -137,6 +158,6 @@ function authenticationAuditRecord(string $eventType, string $outcome, array $ov
         errorCode: $overrides['error_code'] ?? null,
         requestId: $overrides['request_id'] ?? 'req-auth-audit-85',
         context: $overrides['context'] ?? null,
-        occurredAt: now(),
+        occurredAt: $overrides['occurred_at'] ?? now(),
     ));
 }

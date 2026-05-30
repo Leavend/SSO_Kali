@@ -13,13 +13,13 @@ import type {
 
 vi.mock('../../services/audit.api', () => ({
   auditApi: {
-    listEvents: vi.fn<() => Promise<{ events: readonly AdminAuditEvent[] }>>(),
+    listEvents: vi.fn<() => Promise<{ events: readonly AdminAuditEvent[]; pagination?: unknown }>>(),
     showEvent: vi.fn<(eventId: string) => Promise<{ event: AdminAuditEvent }>>(),
     getIntegrity: vi.fn<() => Promise<{ integrity: AuditIntegrity }>>(),
     exportEvents: vi.fn<() => Promise<{ blob: Blob; filename: string | null }>>(),
     listDataSubjectRequests: vi.fn<() => Promise<{ requests: readonly DataSubjectRequest[] }>>(),
     listAuthenticationEvents:
-      vi.fn<() => Promise<{ events: readonly AuthenticationAuditEvent[] }>>(),
+      vi.fn<() => Promise<{ events: readonly AuthenticationAuditEvent[]; pagination?: unknown }>>(),
     showAuthenticationEvent: vi.fn<() => Promise<{ event: AuthenticationAuditEvent }>>(),
     reviewDataSubjectRequest: vi.fn<() => Promise<{ request: DataSubjectRequest }>>(),
     fulfillDataSubjectRequest:
@@ -116,6 +116,122 @@ describe('useAuditStore', () => {
     expect(store.dataSubjectRequests).toEqual([dsr])
     expect(store.authenticationEvents).toEqual([authEvent])
     expect(store.requestId).toBe('req-audit-1')
+  })
+
+  it('searches audit events with filters and stores pagination evidence', async () => {
+    vi.mocked(auditApi.listEvents).mockResolvedValue({
+      events: [event],
+      pagination: { next_cursor: 'cursor-audit-2', has_more: true },
+    })
+    const store = useAuditStore()
+
+    await store.searchEvents({
+      action: 'admin.user.lock',
+      outcome: 'succeeded',
+      taxonomy: 'user_lifecycle',
+      admin_subject_id: 'admin-1',
+      from: '2026-05-01',
+      to: '2026-05-30',
+    })
+
+    expect(auditApi.listEvents).toHaveBeenCalledWith({
+      action: 'admin.user.lock',
+      outcome: 'succeeded',
+      taxonomy: 'user_lifecycle',
+      admin_subject_id: 'admin-1',
+      from: '2026-05-01',
+      to: '2026-05-30',
+      limit: 50,
+    })
+    expect(store.events).toEqual([event])
+    expect(store.selectedEventId).toBe('AUD01')
+    expect(store.eventPagination?.next_cursor).toBe('cursor-audit-2')
+    expect(store.eventFilters.action).toBe('admin.user.lock')
+  })
+
+  it('loads more audit events with the stored cursor and appends results', async () => {
+    vi.mocked(auditApi.listEvents).mockResolvedValue({
+      events: [{ ...event, event_id: 'AUD02', action: 'admin.user.unlock' }],
+      pagination: { next_cursor: null, has_more: false },
+    })
+    const store = useAuditStore()
+    store.events = [event]
+    store.eventFilters = { action: 'admin.user.lock', limit: 50 }
+    store.eventPagination = { next_cursor: 'cursor-audit-2', has_more: true }
+
+    await store.loadMoreEvents()
+
+    expect(auditApi.listEvents).toHaveBeenCalledWith({
+      action: 'admin.user.lock',
+      limit: 50,
+      cursor: 'cursor-audit-2',
+    })
+    expect(store.events).toHaveLength(2)
+    expect(store.eventPagination?.has_more).toBe(false)
+  })
+
+  it('searches authentication audit events with correlation filters', async () => {
+    vi.mocked(auditApi.listAuthenticationEvents).mockResolvedValue({
+      events: [authEvent],
+      pagination: { next_cursor: 'cursor-auth-2', has_more: true },
+    })
+    const store = useAuditStore()
+
+    await store.searchAuthenticationEvents({
+      request_id: 'req-auth-event-1',
+      subject_id: 'sub_target',
+      session_id: 'sid-123',
+      outcome: 'failed',
+      from: '2026-05-01',
+      to: '2026-05-30',
+    })
+
+    expect(auditApi.listAuthenticationEvents).toHaveBeenCalledWith({
+      request_id: 'req-auth-event-1',
+      subject_id: 'sub_target',
+      session_id: 'sid-123',
+      outcome: 'failed',
+      from: '2026-05-01',
+      to: '2026-05-30',
+      limit: 25,
+    })
+    expect(store.authenticationEvents).toEqual([authEvent])
+    expect(store.selectedAuthenticationEventId).toBe('AUTH01')
+    expect(store.authenticationEventPagination?.next_cursor).toBe('cursor-auth-2')
+  })
+
+  it('loads more authentication audit events with the stored cursor', async () => {
+    vi.mocked(auditApi.listAuthenticationEvents).mockResolvedValue({
+      events: [{ ...authEvent, event_id: 'AUTH02', session_id: 'sid-456' }],
+      pagination: { next_cursor: null, has_more: false },
+    })
+    const store = useAuditStore()
+    store.authenticationEvents = [authEvent]
+    store.authenticationEventFilters = { request_id: 'req-auth-event-1', limit: 25 }
+    store.authenticationEventPagination = { next_cursor: 'cursor-auth-2', has_more: true }
+
+    await store.loadMoreAuthenticationEvents()
+
+    expect(auditApi.listAuthenticationEvents).toHaveBeenCalledWith({
+      request_id: 'req-auth-event-1',
+      limit: 25,
+      cursor: 'cursor-auth-2',
+    })
+    expect(store.authenticationEvents).toHaveLength(2)
+    expect(store.authenticationEventPagination?.has_more).toBe(false)
+  })
+
+  it('maps audit search errors to safe copy with request evidence', async () => {
+    vi.mocked(auditApi.listEvents).mockRejectedValue(
+      new ApiError(500, 'SQLSTATE raw failure', 'server_error', null, 'req-search-fail'),
+    )
+    const store = useAuditStore()
+
+    await store.searchEvents({ action: 'admin.user.lock' })
+
+    expect(store.status).toBe('error')
+    expect(store.errorMessage).toContain('req-search-fail')
+    expect(store.errorMessage).not.toContain('SQLSTATE')
   })
 
   it('loads selected audit event detail', async () => {

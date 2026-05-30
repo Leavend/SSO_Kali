@@ -6,8 +6,11 @@ import { auditApi } from '../services/audit.api'
 import type {
   AdminAuditEvent,
   AuthenticationAuditEvent,
+  AuditEventFilters,
   AuditExportFilters,
   AuditIntegrity,
+  AuditPagination,
+  AuthenticationAuditEventFilters,
   DataSubjectRequest,
 } from '../types'
 
@@ -18,11 +21,15 @@ export const useAuditStore = defineStore('admin-audit', () => {
   const status = ref<AuditStatus>('idle')
   const actionStatus = ref<AuditActionStatus>('idle')
   const events = ref<readonly AdminAuditEvent[]>([])
+  const eventFilters = ref<AuditEventFilters>({ limit: 50 })
+  const eventPagination = ref<AuditPagination | null>(null)
   const selectedEventId = ref<string | null>(null)
   const selectedEventDetail = ref<AdminAuditEvent | null>(null)
   const integrity = ref<AuditIntegrity | null>(null)
   const dataSubjectRequests = ref<readonly DataSubjectRequest[]>([])
   const authenticationEvents = ref<readonly AuthenticationAuditEvent[]>([])
+  const authenticationEventFilters = ref<AuthenticationAuditEventFilters>({ limit: 25 })
+  const authenticationEventPagination = ref<AuditPagination | null>(null)
   const selectedAuthenticationEventId = ref<string | null>(null)
   const selectedAuthenticationEventDetail = ref<AuthenticationAuditEvent | null>(null)
   const errorMessage = ref<string | null>(null)
@@ -50,29 +57,112 @@ export const useAuditStore = defineStore('admin-audit', () => {
     try {
       const [eventResponse, integrityResponse, dsrResponse, authenticationEventResponse] =
         await Promise.all([
-          auditApi.listEvents({ limit: 50 }),
+          auditApi.listEvents(eventFilters.value),
           auditApi.getIntegrity(),
           auditApi.listDataSubjectRequests({ status: 'submitted' }),
-          auditApi.listAuthenticationEvents({ limit: 25 }),
+          auditApi.listAuthenticationEvents(authenticationEventFilters.value),
         ])
       events.value = eventResponse.events
+      eventPagination.value = eventResponse.pagination ?? null
       selectedEventId.value = eventResponse.events[0]?.event_id ?? null
       integrity.value = integrityResponse.integrity
       dataSubjectRequests.value = dsrResponse.requests
       authenticationEvents.value = authenticationEventResponse.events
+      authenticationEventPagination.value = authenticationEventResponse.pagination ?? null
       selectedAuthenticationEventId.value = authenticationEventResponse.events[0]?.event_id ?? null
       requestId.value = getLastRequestId()
       status.value = 'success'
     } catch (error) {
       events.value = []
+      eventPagination.value = null
       selectedEventId.value = null
       selectedEventDetail.value = null
       integrity.value = null
       dataSubjectRequests.value = []
       authenticationEvents.value = []
+      authenticationEventPagination.value = null
       selectedAuthenticationEventId.value = null
       selectedAuthenticationEventDetail.value = null
       handleLoadError(error)
+    }
+  }
+
+  async function searchEvents(filters: AuditEventFilters): Promise<void> {
+    status.value = 'loading'
+    errorMessage.value = null
+    eventFilters.value = { ...filters, limit: 50 }
+
+    try {
+      const response = await auditApi.listEvents(eventFilters.value)
+      events.value = response.events
+      eventPagination.value = response.pagination ?? null
+      selectedEventId.value = response.events[0]?.event_id ?? null
+      selectedEventDetail.value = null
+      requestId.value = getLastRequestId()
+      status.value = 'success'
+    } catch (error) {
+      events.value = []
+      eventPagination.value = null
+      selectedEventId.value = null
+      selectedEventDetail.value = null
+      handleLoadError(error)
+    }
+  }
+
+  async function loadMoreEvents(): Promise<void> {
+    const cursor = eventPagination.value?.next_cursor
+    if (!cursor) return
+
+    errorMessage.value = null
+
+    try {
+      const response = await auditApi.listEvents({ ...eventFilters.value, cursor })
+      events.value = [...events.value, ...response.events]
+      eventPagination.value = response.pagination ?? null
+      requestId.value = getLastRequestId()
+    } catch (error) {
+      handleActionError(error)
+    }
+  }
+
+  async function searchAuthenticationEvents(filters: AuthenticationAuditEventFilters): Promise<void> {
+    status.value = 'loading'
+    errorMessage.value = null
+    authenticationEventFilters.value = { ...filters, limit: 25 }
+
+    try {
+      const response = await auditApi.listAuthenticationEvents(authenticationEventFilters.value)
+      authenticationEvents.value = response.events
+      authenticationEventPagination.value = response.pagination ?? null
+      selectedAuthenticationEventId.value = response.events[0]?.event_id ?? null
+      selectedAuthenticationEventDetail.value = null
+      requestId.value = getLastRequestId()
+      status.value = 'success'
+    } catch (error) {
+      authenticationEvents.value = []
+      authenticationEventPagination.value = null
+      selectedAuthenticationEventId.value = null
+      selectedAuthenticationEventDetail.value = null
+      handleLoadError(error)
+    }
+  }
+
+  async function loadMoreAuthenticationEvents(): Promise<void> {
+    const cursor = authenticationEventPagination.value?.next_cursor
+    if (!cursor) return
+
+    errorMessage.value = null
+
+    try {
+      const response = await auditApi.listAuthenticationEvents({
+        ...authenticationEventFilters.value,
+        cursor,
+      })
+      authenticationEvents.value = [...authenticationEvents.value, ...response.events]
+      authenticationEventPagination.value = response.pagination ?? null
+      requestId.value = getLastRequestId()
+    } catch (error) {
+      handleActionError(error)
     }
   }
 
@@ -221,18 +311,26 @@ export const useAuditStore = defineStore('admin-audit', () => {
     status,
     actionStatus,
     events,
+    eventFilters,
+    eventPagination,
     selectedEventId,
     selectedEvent,
     selectedEventDetail,
     integrity,
     dataSubjectRequests,
     authenticationEvents,
+    authenticationEventFilters,
+    authenticationEventPagination,
     selectedAuthenticationEventId,
     selectedAuthenticationEvent,
     selectedAuthenticationEventDetail,
     errorMessage,
     requestId,
     load,
+    searchEvents,
+    loadMoreEvents,
+    searchAuthenticationEvents,
+    loadMoreAuthenticationEvents,
     selectEvent,
     selectAuthenticationEvent,
     reviewRequest,

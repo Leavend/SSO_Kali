@@ -29,21 +29,41 @@ it('requires admin audit read permission for audit trail access', function (): v
 
 it('lists filters and paginates safe audit trail events', function (): void {
     $admin = auditTrailAdmin([AdminPermission::AUDIT_READ]);
-    auditTrailStore()->append(auditTrailPayload('denied', 'admin_api', ['access_token' => 'secret-token']));
-    auditTrailStore()->append(auditTrailPayload('succeeded', 'sync_user_roles', ['role' => 'auditor']));
+    auditTrailStore()->append(auditTrailPayload('denied', 'admin_api', ['access_token' => 'secret-token'], 'admin-1', now()->subHour()));
+    auditTrailStore()->append(auditTrailPayload('succeeded', 'sync_user_roles', ['role' => 'auditor'], 'admin-2', now()->subDays(2)));
 
     $response = $this->getJson('/admin/api/audit/events?'.http_build_query([
+        'action' => 'admin_api',
         'outcome' => 'denied',
+        'taxonomy' => 'forbidden',
+        'admin_subject_id' => 'admin-1',
+        'from' => now()->subDay()->toIso8601String(),
+        'to' => now()->addMinute()->toIso8601String(),
         'limit' => 1,
     ]), auditTrailHeaders($admin));
 
     $response->assertOk()
         ->assertJsonCount(1, 'events')
         ->assertJsonPath('events.0.action', 'admin_api')
+        ->assertJsonPath('events.0.actor.subject_id', 'admin-1')
         ->assertJsonPath('events.0.context.access_token', '[redacted]')
         ->assertJsonStructure(['events' => [['event_id', 'hash_chain', 'occurred_at']], 'pagination']);
 
     expect(json_encode($response->json(), JSON_THROW_ON_ERROR))->not->toContain('secret-token');
+
+    $cursorResponse = $this->getJson('/admin/api/audit/events?'.http_build_query([
+        'limit' => 1,
+    ]), auditTrailHeaders($admin));
+
+    $nextCursor = $cursorResponse->json('pagination.next_cursor');
+    expect($nextCursor)->toBeString();
+
+    $this->getJson('/admin/api/audit/events?'.http_build_query([
+        'limit' => 1,
+        'cursor' => $nextCursor,
+    ]), auditTrailHeaders($admin))
+        ->assertOk()
+        ->assertJsonCount(1, 'events');
 });
 
 it('shows one safe audit event and returns not found for unknown event ids', function (): void {
@@ -122,13 +142,13 @@ function auditTrailStore(): AdminAuditEventStore
  * @param  array<string, mixed>  $context
  * @return array<string, mixed>
  */
-function auditTrailPayload(string $outcome, string $action, array $context = []): array
+function auditTrailPayload(string $outcome, string $action, array $context = [], string $adminSubjectId = 'admin-1', mixed $occurredAt = null): array
 {
     return [
         'action' => $action,
         'outcome' => $outcome,
         'taxonomy' => 'forbidden',
-        'admin_subject_id' => 'admin-1',
+        'admin_subject_id' => $adminSubjectId,
         'admin_email' => 'admin@example.com',
         'admin_role' => 'admin',
         'method' => 'GET',
@@ -136,6 +156,6 @@ function auditTrailPayload(string $outcome, string $action, array $context = [])
         'ip_address' => '127.0.0.1',
         'reason' => 'policy',
         'context' => $context,
-        'occurred_at' => now(),
+        'occurred_at' => $occurredAt ?? now(),
     ];
 }

@@ -103,6 +103,10 @@ export type AuthenticationAuditEventFilters = {
   readonly subject_id?: string
   readonly client_id?: string
   readonly session_id?: string
+  readonly request_id?: string
+  readonly error_code?: string
+  readonly from?: string
+  readonly to?: string
 }
 
 export type AuthenticationAuditEventListResponse = {
