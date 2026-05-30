@@ -21,6 +21,8 @@ export type OpsDrillEvidence = {
   readonly systemOfRecord: string
   /** Repo-relative path to the runbook document of record. */
   readonly runbookPath: string
+  /** Repo-relative path to the dated evidence pack. */
+  readonly evidenceRef?: string
 }
 
 export const OPS_DRILLS: readonly OpsDrillEvidence[] = [
@@ -31,6 +33,7 @@ export const OPS_DRILLS: readonly OpsDrillEvidence[] = [
       'Rotasi signing key tanpa downtime: key baru dipublish ke JWKS sementara key lama tetap valid selama grace window verifikasi token.',
     systemOfRecord: 'CI workflow: .github/workflows/jwks-rotation-simulation.yml',
     runbookPath: 'docs/security/jwks-caching-rotation-runbook.md',
+    evidenceRef: 'docs/ops/evidence/jwks-rotation-2026-05-30.md',
   },
   {
     key: 'discovery-jwks-availability',
@@ -48,6 +51,7 @@ export const OPS_DRILLS: readonly OpsDrillEvidence[] = [
       'Restore database/state dari backup terbaru lalu rekonsiliasi hasil; bukti dikumpulkan dalam evidence pack (docs/runbooks/backup-drill-evidence-pack.md).',
     systemOfRecord: 'CI workflow: .github/workflows/backup-restore-drill.yml',
     runbookPath: 'docs/runbooks/backup-restore-drill-runbook.md',
+    evidenceRef: 'docs/ops/evidence/backup-restore-2026-05-30.md',
   },
   {
     key: 'dr-failover',
@@ -57,6 +61,7 @@ export const OPS_DRILLS: readonly OpsDrillEvidence[] = [
     systemOfRecord:
       'CI workflows: .github/workflows/rollback.yml, .github/workflows/vps-maintenance.yml',
     runbookPath: 'docs/runbooks/rollback-runbook-vps-coexistence.md',
+    evidenceRef: 'docs/ops/evidence/incident-dr-failover-2026-05-30.md',
   },
   {
     key: 'incident-runbook',
@@ -65,6 +70,7 @@ export const OPS_DRILLS: readonly OpsDrillEvidence[] = [
       'On-call routing, severity matrix, dan observability package untuk respons insiden SSO control plane.',
     systemOfRecord: 'On-call rotation + observability package',
     runbookPath: 'docs/runbooks/on-call-observability-runbook.md',
+    evidenceRef: 'docs/ops/evidence/incident-dr-failover-2026-05-30.md',
   },
   {
     key: 'siem-sink',
@@ -73,6 +79,7 @@ export const OPS_DRILLS: readonly OpsDrillEvidence[] = [
       'Verifikasi forwarding audit log ke observability/SIEM sink; bukti in-app tersedia lewat export di halaman Audit Compliance.',
     systemOfRecord: 'Observability package + audit export (Audit Compliance)',
     runbookPath: 'docs/runbooks/on-call-observability-runbook.md',
+    evidenceRef: 'docs/ops/evidence/siem-sink-2026-05-30.md',
   },
 ]
 

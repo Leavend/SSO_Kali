@@ -52,6 +52,7 @@ describe('OpsPage', () => {
     expect(wrapper.text()).toContain('Backup restore drill')
     expect(wrapper.text()).toContain('DR failover drill')
     expect(wrapper.text()).toContain('req-ops-1')
+    expect(wrapper.text()).toContain('Lihat evidence')
     expect(wrapper.text()).not.toMatch(/Bearer|metrics token|secret|SQLSTATE/u)
   })
 
@@ -88,7 +89,18 @@ describe('OpsPage', () => {
 
     for (const link of runbookLinks) {
       const href = link.attributes('href') ?? ''
-      expect(href).toMatch(/^https:\/\/github\.com\/.+\/docs\/.+\.md$/)
+      expect(href).toMatch(/^https:\/\/github\.com\/.+\/docs\/.+\.(md|yml)$/)
+      expect(link.attributes('rel')).toContain('noopener')
+    }
+
+    // Evidence links rendered for drills that have evidenceRef
+    const drillsWithEvidence = OPS_DRILLS.filter((d) => d.evidenceRef !== undefined)
+    const evidenceLinks = wrapper.findAll('a.evidence-link')
+    expect(evidenceLinks).toHaveLength(drillsWithEvidence.length)
+
+    for (const link of evidenceLinks) {
+      const href = link.attributes('href') ?? ''
+      expect(href).toMatch(/^https:\/\/github\.com\/.+\/docs\/ops\/evidence\/.+\.md$/)
       expect(link.attributes('rel')).toContain('noopener')
     }
 

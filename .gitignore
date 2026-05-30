@@ -56,4 +56,6 @@ charts/**/*.tgz
 # Ignore docs workspace by default; track explicitly with `git add -f`
 docs/*
 !docs/README.md
+!docs/ops/
+!docs/ops/evidence/
 node_modules

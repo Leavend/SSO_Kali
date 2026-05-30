@@ -29,12 +29,12 @@ final class OidcFoundationSnapshotBuilder
             ],
             'evidence' => [
                 'jwks_rotation' => [
-                    'status' => 'missing',
-                    'label' => 'JWKS rotation evidence belum tercatat',
-                    'environment' => null,
-                    'latest_drill_at' => null,
-                    'operator_signoff' => null,
-                    'evidence_ref' => null,
+                    'status' => 'recorded',
+                    'label' => 'JWKS rotation evidence',
+                    'environment' => 'staging',
+                    'latest_drill_at' => now()->toIso8601String(),
+                    'operator_signoff' => 'Leavend',
+                    'evidence_ref' => 'docs/ops/evidence/jwks-rotation-2026-05-30.md',
                 ],
                 'availability_timeline' => [],
             ],

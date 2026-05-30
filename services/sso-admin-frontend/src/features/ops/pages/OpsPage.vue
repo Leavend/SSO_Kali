@@ -93,6 +93,16 @@ onMounted(() => {
               Buka runbook: {{ drill.runbookPath }}
             </a>
           </p>
+          <p v-if="drill.evidenceRef">
+            <a
+              class="evidence-link"
+              :href="runbookHref(drill.evidenceRef)"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Lihat evidence: {{ drill.evidenceRef }}
+            </a>
+          </p>
         </div>
       </section>
     </div>

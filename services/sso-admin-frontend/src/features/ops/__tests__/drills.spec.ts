@@ -19,7 +19,19 @@ describe('ops drill evidence catalog', () => {
       expect(drill.summary.length).toBeGreaterThan(0)
       expect(drill.systemOfRecord.length).toBeGreaterThan(0)
       expect(drill.runbookPath).toMatch(/^docs\/.+\.md$/)
+
+      if (drill.evidenceRef) {
+        expect(drill.evidenceRef).toMatch(/^docs\/ops\/evidence\/.+\.md$/)
+      }
     }
+  })
+
+  it('has evidenceRef on five of six drills (excluding discovery-jwks-availability)', () => {
+    const withEvidence = OPS_DRILLS.filter((d) => d.evidenceRef !== undefined)
+    expect(withEvidence).toHaveLength(5)
+
+    const discovery = OPS_DRILLS.find((d) => d.key === 'discovery-jwks-availability')
+    expect(discovery?.evidenceRef).toBeUndefined()
   })
 
   it('builds an absolute runbook URL from the repo base and the doc path', () => {
