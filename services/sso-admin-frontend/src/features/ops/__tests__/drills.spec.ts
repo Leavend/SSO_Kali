@@ -15,14 +15,16 @@ describe('ops drill evidence catalog', () => {
   })
 
   it('points every drill at a real repo runbook path with a system of record', () => {
+    const drillsWithEvidence = OPS_DRILLS.filter((d) => d.evidenceRef !== undefined)
+
     for (const drill of OPS_DRILLS) {
       expect(drill.summary.length).toBeGreaterThan(0)
       expect(drill.systemOfRecord.length).toBeGreaterThan(0)
       expect(drill.runbookPath).toMatch(/^docs\/.+\.md$/)
+    }
 
-      if (drill.evidenceRef) {
-        expect(drill.evidenceRef).toMatch(/^docs\/ops\/evidence\/.+\.md$/)
-      }
+    for (const drill of drillsWithEvidence) {
+      expect(drill.evidenceRef).toMatch(/^docs\/ops\/evidence\/.+\.md$/)
     }
   })
 
