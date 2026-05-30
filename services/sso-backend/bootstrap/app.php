@@ -97,6 +97,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'api/auth/register',
             'api/profile/sessions',
             'api/profile/sessions/*',
+            'api/profile/devices',
+            'api/profile/devices/*',
             'api/profile/email-change',
             'api/profile/email-change/confirm',
             'api/profile/phone-change',

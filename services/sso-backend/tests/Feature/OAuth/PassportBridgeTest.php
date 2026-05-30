@@ -2,6 +2,13 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Facades\URL;
+
+beforeEach(function (): void {
+    config()->set('app.url', 'http://localhost');
+    URL::forceRootUrl('http://localhost');
+});
+
 it('exposes a backend login route that bridges unauthenticated OAuth browsers to the Vue login page', function (): void {
     config()->set('sso.login_url', 'http://localhost:3000/login');
 

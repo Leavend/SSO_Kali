@@ -70,6 +70,12 @@ const router = createRouter({
           meta: { requiresAdmin: true, permissions: ['admin.external-idps.read'] },
         },
         {
+          path: 'ip-access',
+          name: 'admin.ip-access',
+          component: () => import('@/features/ip-access/pages/IpAccessPage.vue'),
+          meta: { requiresAdmin: true, permissions: ['admin.ip-access.read'] },
+        },
+        {
           path: 'ops',
           name: 'admin.ops',
           component: () => import('@/features/ops/pages/OpsPage.vue'),

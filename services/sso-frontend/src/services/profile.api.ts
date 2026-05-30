@@ -12,6 +12,7 @@ import {
   previewDataSubjectRequests,
   previewProfile,
   previewSessions,
+  previewTrustedDevices,
 } from '@/lib/portal-preview'
 import type {
   ChangePasswordPayload,
@@ -25,11 +26,15 @@ import type {
   PhoneChangeResponse,
   ProfilePortal,
   ProfileUpdatePayload,
+  RenameTrustedDevicePayload,
+  RenameTrustedDeviceResponse,
   RequestEmailChangePayload,
   RequestPhoneChangePayload,
   RevokeAllSessionsResponse,
   RevokeConnectedAppResponse,
   RevokeSessionResponse,
+  RevokeTrustedDeviceResponse,
+  TrustedDeviceSummary,
   UserSessionSummary,
 } from '@/types/profile.types'
 import type { AuditListResponse } from '@/types/audit.types'
@@ -67,6 +72,26 @@ export const profileApi = {
     if (isPortalPreviewBypassEnabled()) return previewSessions
     const data = await apiClient.get<{ sessions: UserSessionSummary[] }>('/api/profile/sessions')
     return data.sessions
+  },
+  async getTrustedDevices(): Promise<readonly TrustedDeviceSummary[]> {
+    if (isPortalPreviewBypassEnabled()) return previewTrustedDevices
+    const data = await apiClient.get<{ devices: TrustedDeviceSummary[] }>('/api/profile/devices')
+    return data.devices
+  },
+  renameTrustedDevice(
+    deviceId: number,
+    payload: RenameTrustedDevicePayload,
+  ): Promise<RenameTrustedDeviceResponse> {
+    if (isPortalPreviewBypassEnabled()) {
+      return Promise.resolve({ device: { id: deviceId, label: payload.label } })
+    }
+    return apiClient.patch<RenameTrustedDeviceResponse>(`/api/profile/devices/${deviceId}`, payload)
+  },
+  revokeTrustedDevice(deviceId: number): Promise<RevokeTrustedDeviceResponse> {
+    if (isPortalPreviewBypassEnabled()) {
+      return Promise.resolve({ device_id: deviceId, revoked: true })
+    }
+    return apiClient.delete<RevokeTrustedDeviceResponse>(`/api/profile/devices/${deviceId}`)
   },
   revokeSession(sessionId: string): Promise<RevokeSessionResponse> {
     if (isPortalPreviewBypassEnabled()) {

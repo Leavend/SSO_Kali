@@ -52,6 +52,10 @@ final class AdminPermission
 
     public const SECURITY_POLICY_ACTIVATE = 'admin.security-policy.activate';
 
+    public const IP_ACCESS_READ = 'admin.ip-access.read';
+
+    public const IP_ACCESS_WRITE = 'admin.ip-access.write';
+
     public const PROFILE_READ = 'profile.read';
 
     public const PROFILE_WRITE = 'profile.write';
@@ -84,6 +88,8 @@ final class AdminPermission
             self::USER_LIFECYCLE_LOCK,
             self::SECURITY_POLICY_READ,
             self::SECURITY_POLICY_WRITE,
+            self::IP_ACCESS_READ,
+            self::IP_ACCESS_WRITE,
             self::SECURITY_POLICY_ACTIVATE,
             self::PROFILE_READ,
             self::PROFILE_WRITE,
@@ -109,6 +115,7 @@ final class AdminPermission
             self::AUDIT_READ,
             self::AUDIT_EXPORT,
             self::AUTHENTICATION_AUDIT_READ,
+            self::IP_ACCESS_READ,
         ];
     }
 
@@ -161,6 +168,8 @@ final class AdminPermission
             self::DATA_SUBJECT_REQUESTS_READ,
             self::DATA_SUBJECT_REQUESTS_REVIEW,
             self::SSO_ERROR_TEMPLATES_READ,
+            self::IP_ACCESS_READ,
+            self::IP_ACCESS_WRITE,
         ];
     }
 

@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Resource;
 
 use App\Actions\Profile\ListConnectedAppsAction;
+use App\Actions\Profile\ListTrustedDevicesAction;
 use App\Actions\Profile\ListUserSessionsAction;
+use App\Actions\Profile\RenameTrustedDeviceAction;
 use App\Actions\Profile\RevokeAllUserSessionsAction;
 use App\Actions\Profile\RevokeConnectedAppAction;
+use App\Actions\Profile\RevokeTrustedDeviceAction;
 use App\Actions\Profile\RevokeUserSessionAction;
 use App\Actions\Profile\ShowProfilePortalAction;
 use App\Actions\Profile\UpdateProfilePortalAction;
@@ -50,5 +53,20 @@ final class ProfileController
     public function revokeAllSessions(Request $request, RevokeAllUserSessionsAction $action): JsonResponse
     {
         return $action->handle($request);
+    }
+
+    public function trustedDevices(Request $request, ListTrustedDevicesAction $action): JsonResponse
+    {
+        return $action->handle($request);
+    }
+
+    public function renameTrustedDevice(Request $request, int $deviceId, RenameTrustedDeviceAction $action): JsonResponse
+    {
+        return $action->handle($request, $deviceId);
+    }
+
+    public function revokeTrustedDevice(Request $request, int $deviceId, RevokeTrustedDeviceAction $action): JsonResponse
+    {
+        return $action->handle($request, $deviceId);
     }
 }

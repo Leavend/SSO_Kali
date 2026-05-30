@@ -5,12 +5,22 @@ declare(strict_types=1);
 use App\Actions\Audit\RecordLogoutAuditEventAction;
 use App\Jobs\DispatchBackChannelLogoutJob;
 use App\Services\Oidc\BackChannelSessionRegistry;
+use App\Services\Oidc\DownstreamClientRegistry;
 use App\Services\Oidc\LocalLogoutTokenVerifier;
 use App\Services\Oidc\LogoutTokenService;
 use App\Services\Oidc\SigningKeyService;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+
+beforeEach(function (): void {
+    config()->set('oidc_clients.clients.app-a', [
+        'type' => 'public',
+        'redirect_uris' => ['https://app-a.example.test/callback'],
+        'post_logout_redirect_uris' => ['https://app-a.example.test/signed-out'],
+    ]);
+    app(DownstreamClientRegistry::class)->flush();
+});
 
 it('rejects centralized logout without bearer token', function (): void {
     $this->postJson('/connect/logout')

@@ -3,10 +3,16 @@ import { apiClient } from '@/lib/api/api-client'
 import { profileApi } from '../profile.api'
 
 describe('profile.api — email/phone change contract', () => {
+  let getSpy: ReturnType<typeof vi.spyOn>
   let postSpy: ReturnType<typeof vi.spyOn>
+  let patchSpy: ReturnType<typeof vi.spyOn>
+  let deleteSpy: ReturnType<typeof vi.spyOn>
 
   beforeEach(() => {
+    getSpy = vi.spyOn(apiClient, 'get')
     postSpy = vi.spyOn(apiClient, 'post')
+    patchSpy = vi.spyOn(apiClient, 'patch')
+    deleteSpy = vi.spyOn(apiClient, 'delete')
   })
 
   afterEach(() => {
@@ -66,6 +72,33 @@ describe('profile.api — email/phone change contract', () => {
       expect(postSpy).toHaveBeenCalledWith('/api/profile/phone-change/confirm', {
         otp: '123456',
       })
+    })
+  })
+
+  describe('trusted devices', () => {
+    it('loads GET /api/profile/devices and returns devices list', async () => {
+      getSpy.mockResolvedValueOnce({ devices: [{ id: 7, label: 'Laptop', fingerprint: 'abc' }] })
+
+      const devices = await profileApi.getTrustedDevices()
+
+      expect(getSpy).toHaveBeenCalledWith('/api/profile/devices')
+      expect(devices).toEqual([{ id: 7, label: 'Laptop', fingerprint: 'abc' }])
+    })
+
+    it('renames PATCH /api/profile/devices/{id} with label payload', async () => {
+      patchSpy.mockResolvedValueOnce({ device: { id: 7, label: 'Laptop utama' } })
+
+      await profileApi.renameTrustedDevice(7, { label: 'Laptop utama' })
+
+      expect(patchSpy).toHaveBeenCalledWith('/api/profile/devices/7', { label: 'Laptop utama' })
+    })
+
+    it('revokes DELETE /api/profile/devices/{id}', async () => {
+      deleteSpy.mockResolvedValueOnce({ device_id: 7, revoked: true })
+
+      await profileApi.revokeTrustedDevice(7)
+
+      expect(deleteSpy).toHaveBeenCalledWith('/api/profile/devices/7')
     })
   })
 })

@@ -6,10 +6,13 @@ use App\Models\SsoSession;
 use App\Models\User;
 use Database\Seeders\PassportClientSeeder;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 
 beforeEach(function (): void {
+    config()->set('app.url', 'http://localhost');
     config()->set('sso.admin.panel_redirect_uri', 'http://localhost:3000/auth/callback');
+    URL::forceRootUrl('http://localhost');
     $this->seed(PassportClientSeeder::class);
 });
 

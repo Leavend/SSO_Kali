@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\DashboardSummaryController;
 use App\Http\Controllers\Admin\DataSubjectRequestAdminController;
 use App\Http\Controllers\Admin\ExternalIdentityProviderController;
 use App\Http\Controllers\Admin\ExternalIdentityProviderMappingPreviewController;
+use App\Http\Controllers\Admin\IpAccessRuleController;
 use App\Http\Controllers\Admin\OidcFoundationController;
 use App\Http\Controllers\Admin\PrincipalController;
 use App\Http\Controllers\Admin\RoleController;
@@ -186,6 +187,27 @@ Route::middleware([AdminGuard::class, EnsureAdminMfaEnrolled::class])->prefix('a
         Route::post('/security-policies/{category}/{version}/rollback', [SecurityPolicyController::class, 'rollback'])
             ->where('category', '[a-z_]+')
             ->where('version', '[0-9]+');
+    });
+
+    Route::middleware([
+        'throttle:admin-read',
+        RequireAdminPermission::class.':'.AdminPermission::IP_ACCESS_READ,
+        EnsureFreshAdminAuth::class.':read',
+        EnsureAdminMfaAssurance::class,
+    ])->group(function (): void {
+        Route::get('/ip-access-rules', [IpAccessRuleController::class, 'index']);
+    });
+
+    Route::middleware([
+        'throttle:admin-write',
+        RequireAdminPermission::class.':'.AdminPermission::IP_ACCESS_WRITE,
+        EnsureFreshAdminAuth::class.':step_up',
+        EnsureAdminMfaAssurance::class,
+    ])->group(function (): void {
+        Route::post('/ip-access-rules', [IpAccessRuleController::class, 'store']);
+        Route::delete('/ip-access-rules/{id}', [IpAccessRuleController::class, 'destroy'])
+            ->middleware(RequireAdminSessionManagementRole::class)
+            ->where('id', '[0-9]+');
     });
 
     Route::middleware([

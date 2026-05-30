@@ -7,11 +7,14 @@ namespace App\Repositories;
 use App\Models\SsoSession;
 use App\Models\User;
 use App\Services\Directory\DirectoryUser;
+use App\Services\Profile\TrustedDevicesService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
 final class SsoSessionRepository
 {
+    public function __construct(private readonly TrustedDevicesService $devices) {}
+
     public function createForDirectoryUser(DirectoryUser $user, ?string $ipAddress, ?string $userAgent): SsoSession
     {
         return $this->create($user->id, $user->subjectId, $ipAddress, $userAgent);
@@ -59,6 +62,7 @@ final class SsoSessionRepository
     private function create(int $userId, string $subjectId, ?string $ipAddress, ?string $userAgent): SsoSession
     {
         $now = now();
+        $device = $this->devices->remember($userId, $subjectId, $ipAddress, $userAgent);
 
         return SsoSession::query()->create([
             'session_id' => (string) Str::uuid(),
@@ -66,6 +70,7 @@ final class SsoSessionRepository
             'subject_id' => $subjectId,
             'ip_address' => $ipAddress,
             'user_agent' => $userAgent,
+            'trusted_device_id' => $device->id,
             'authenticated_at' => $now,
             'last_seen_at' => $now,
             'expires_at' => $now->copy()->addMinutes((int) config('sso.session.ttl_minutes', 480)),

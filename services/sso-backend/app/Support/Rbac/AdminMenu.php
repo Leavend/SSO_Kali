@@ -24,6 +24,8 @@ final class AdminMenu
 
     public const PROFILE = 'profile';
 
+    public const IP_ACCESS = 'ip-access';
+
     /**
      * @return list<array{id: string, label: string, required_permission: string}>
      */
@@ -74,6 +76,11 @@ final class AdminMenu
                 'id' => self::PROFILE,
                 'label' => 'Profile',
                 'required_permission' => AdminPermission::PROFILE_READ,
+            ],
+            [
+                'id' => self::IP_ACCESS,
+                'label' => 'IP Access',
+                'required_permission' => AdminPermission::IP_ACCESS_READ,
             ],
         ];
     }

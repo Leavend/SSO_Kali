@@ -4,7 +4,17 @@ declare(strict_types=1);
 
 use App\Models\DataSubjectRequest;
 use App\Models\User;
+use App\Services\Oidc\DownstreamClientRegistry;
 use App\Services\Oidc\LocalTokenService;
+
+beforeEach(function (): void {
+    config()->set('oidc_clients.clients.app-a', [
+        'type' => 'public',
+        'redirect_uris' => ['https://app-a.example.test/callback'],
+        'post_logout_redirect_uris' => ['https://app-a.example.test/signed-out'],
+    ]);
+    app(DownstreamClientRegistry::class)->flush();
+});
 
 it('validates data subject request submission with a dedicated form request', function (): void {
     $user = dataSubjectRequestUser();

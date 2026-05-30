@@ -125,6 +125,7 @@ final class SafeOidcExceptionRenderer
         return match (true) {
             $exception instanceof ThrottleRequestsException => 'too_many_attempts',
             $exception instanceof AuthenticationException => 'invalid_token',
+            $exception instanceof IpAccessDeniedException => 'access_denied',
             $exception instanceof AuthorizationException => 'access_denied',
             $exception instanceof TokenMismatchException => 'invalid_request',
             $exception instanceof InvalidSignatureException => 'invalid_request',

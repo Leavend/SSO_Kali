@@ -12,6 +12,7 @@ import type {
   ConnectedApp,
   DataSubjectRequestSummary,
   ProfilePortal,
+  TrustedDeviceSummary,
   UserSessionSummary,
 } from '@/types/profile.types'
 
@@ -102,6 +103,28 @@ export const previewSessions: readonly UserSessionSummary[] = [
     user_agent:
       'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148',
     is_current: false,
+  },
+]
+
+export const previewTrustedDevices: readonly TrustedDeviceSummary[] = [
+  {
+    id: 101,
+    label: 'Mac kerja utama',
+    fingerprint: '7f2a8c91b633',
+    trusted_at: '2026-05-18T10:00:00Z',
+    last_seen_at: '2026-05-20T18:42:00Z',
+    ip_address: '103.88.12.10',
+    user_agent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/124.0',
+  },
+  {
+    id: 102,
+    label: null,
+    fingerprint: '4db712fa092e',
+    trusted_at: '2026-05-16T09:15:00Z',
+    last_seen_at: '2026-05-19T21:10:00Z',
+    ip_address: '36.82.10.20',
+    user_agent:
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148',
   },
 ]
 

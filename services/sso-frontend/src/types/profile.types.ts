@@ -67,6 +67,32 @@ export type UserSessionSummary = {
   readonly is_current?: boolean
 }
 
+export type TrustedDeviceSummary = {
+  readonly id: number
+  readonly label: string | null
+  readonly fingerprint: string
+  readonly trusted_at: string | null
+  readonly last_seen_at: string | null
+  readonly ip_address: string | null
+  readonly user_agent: string | null
+}
+
+export type RenameTrustedDevicePayload = {
+  readonly label: string
+}
+
+export type RenameTrustedDeviceResponse = {
+  readonly device: {
+    readonly id: number
+    readonly label: string | null
+  }
+}
+
+export type RevokeTrustedDeviceResponse = {
+  readonly device_id: number
+  readonly revoked: true
+}
+
 export type RevokeSessionResponse = {
   readonly session_id: string
   readonly revoked: true

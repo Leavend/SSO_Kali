@@ -25,6 +25,13 @@ beforeEach(function (): void {
     config()->set('app.url', 'https://api-sso.timeh.my.id');
     config()->set('sso.issuer', 'https://api-sso.timeh.my.id');
     config()->set('sso.frontend_url', 'https://sso.timeh.my.id');
+    config()->set('oidc_clients.load_test_client.enabled', false);
+    config()->set('oidc_clients.locked_production_client_ids', [
+        'app-a',
+        'app-b',
+        'sso-admin-panel',
+        'sso-frontend-portal',
+    ]);
 
     $secretHash = app(ClientSecretHashPolicy::class)->make('app-b-secret');
 

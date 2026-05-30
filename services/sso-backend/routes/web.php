@@ -57,6 +57,9 @@ Route::delete('/api/profile/connected-apps/{clientId}', [ProfileController::clas
 Route::get('/api/profile/sessions', [ProfileController::class, 'sessions'])->middleware('throttle:profile-api');
 Route::delete('/api/profile/sessions', [ProfileController::class, 'revokeAllSessions'])->middleware('throttle:profile-api');
 Route::delete('/api/profile/sessions/{sessionId}', [ProfileController::class, 'revokeSession'])->middleware('throttle:profile-api');
+Route::get('/api/profile/devices', [ProfileController::class, 'trustedDevices'])->middleware('throttle:profile-api');
+Route::patch('/api/profile/devices/{deviceId}', [ProfileController::class, 'renameTrustedDevice'])->whereNumber('deviceId')->middleware('throttle:profile-api');
+Route::delete('/api/profile/devices/{deviceId}', [ProfileController::class, 'revokeTrustedDevice'])->whereNumber('deviceId')->middleware('throttle:profile-api');
 
 // --- Data Subject Rights (FR-049) ---
 Route::get('/api/profile/data-subject-requests', [DataSubjectRequestController::class, 'index'])->middleware('throttle:profile-api');

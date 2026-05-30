@@ -8,8 +8,8 @@ use Illuminate\Support\Facades\Route as RouteFacade;
 it('keeps the production route inventory intentional', function (): void {
     $routes = collect(RouteFacade::getRoutes()->getRoutes());
 
-    expect($routes)->toHaveCount(127);
-    expect(applicationRoutes($routes))->toHaveCount(115);
+    expect($routes)->toHaveCount(133);
+    expect(applicationRoutes($routes))->toHaveCount(121);
     expect(vendorRoutes($routes))->toHaveCount(12);
 });
 
@@ -109,6 +109,9 @@ function expectedApplicationRouteSignatures(): array
         'GET|HEAD admin/api/dashboard/summary',
         'GET|HEAD admin/api/oidc-foundation',
         'GET|HEAD admin/api/data-subject-requests',
+        'GET|HEAD admin/api/ip-access-rules',
+        'POST admin/api/ip-access-rules',
+        'DELETE admin/api/ip-access-rules/{id}',
         'POST admin/api/data-subject-requests/{requestId}/fulfill',
         'POST admin/api/data-subject-requests/{requestId}/review',
         'POST admin/api/client-integrations/contract',
@@ -182,6 +185,9 @@ function expectedApplicationRouteSignatures(): array
         'DELETE api/profile/connected-apps/{clientId}',
         'GET|HEAD api/profile/data-subject-requests',
         'POST api/profile/data-subject-requests',
+        'GET|HEAD api/profile/devices',
+        'PATCH api/profile/devices/{deviceId}',
+        'DELETE api/profile/devices/{deviceId}',
         'GET|HEAD api/profile/sessions',
         'DELETE api/profile/sessions',
         'DELETE api/profile/sessions/{sessionId}',

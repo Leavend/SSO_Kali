@@ -7,10 +7,12 @@ import SecurityAuditLogCard from '@/components/organisms/SecurityAuditLogCard.vu
 import SecurityMfaCard from '@/components/organisms/SecurityMfaCard.vue'
 import SecurityPasswordSection from '@/components/organisms/SecurityPasswordSection.vue'
 import SecurityRiskCard from '@/components/organisms/SecurityRiskCard.vue'
+import TrustedDevicesCard from '@/components/organisms/TrustedDevicesCard.vue'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useMfaEnrollment } from '@/composables/useMfaEnrollment'
 import { useChangePassword } from '@/composables/usePasswordLifecycle'
 import { useAsyncAction } from '@/composables/useAsyncAction'
+import { useTrustedDevices } from '@/composables/useTrustedDevices'
 import {
   knownLoginIpAddresses,
   oauthScopeTokens,
@@ -27,6 +29,7 @@ const load = useAsyncAction(() => profile.loadProfile())
 const auditLoad = useAsyncAction(() => profileApi.getAuditEvents(undefined, 10))
 const mfa = useMfaEnrollment()
 const password = useChangePassword()
+const trustedDevices = useTrustedDevices()
 
 const auditEvents = computed<readonly AuditEvent[]>(() => auditLoad.lastResult.value?.events ?? [])
 const knownLoginIps = computed<ReadonlySet<string>>(() => knownLoginIpAddresses(auditEvents.value))
@@ -51,10 +54,15 @@ onMounted(() => {
   if (!profile.profile) void load.run()
   void auditLoad.run()
   void mfa.fetchStatus()
+  void trustedDevices.load()
 })
 
 function updatePasswordField(field: keyof ChangePasswordPayload, value: string): void {
   password.updateField(field, value)
+}
+
+function updateTrustedDeviceLabel(deviceId: number, value: string): void {
+  trustedDevices.updateLabel(deviceId, value)
 }
 </script>
 
@@ -99,6 +107,17 @@ function updatePasswordField(field: keyof ChangePasswordPayload, value: string):
       :roles="userRoles"
       :permissions="userPermissions"
       :scopes="userScopes"
+    />
+
+    <TrustedDevicesCard
+      :devices="trustedDevices.devices.value"
+      :labels="trustedDevices.labels"
+      :pending="trustedDevices.pending.value"
+      :mutating-id="trustedDevices.mutatingId.value"
+      :error="trustedDevices.error.value"
+      @update:label="updateTrustedDeviceLabel"
+      @rename="trustedDevices.rename"
+      @revoke="trustedDevices.revoke"
     />
 
     <SecurityAuditLogCard

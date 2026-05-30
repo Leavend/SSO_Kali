@@ -60,6 +60,19 @@ vi.mock('@/services/profile.api', () => ({
       changed_at: '2026-05-20T19:00:00Z',
       other_sessions_revoked: true,
     }),
+    getTrustedDevices: vi.fn().mockResolvedValue([
+      {
+        id: 10,
+        label: 'Laptop kerja',
+        fingerprint: 'abc123def456',
+        trusted_at: '2026-05-18T10:00:00Z',
+        last_seen_at: '2026-05-20T18:42:00Z',
+        ip_address: '103.88.12.10',
+        user_agent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Chrome/124.0',
+      },
+    ]),
+    renameTrustedDevice: vi.fn().mockResolvedValue({ device: { id: 10, label: 'Laptop utama' } }),
+    revokeTrustedDevice: vi.fn().mockResolvedValue({ device_id: 10, revoked: true }),
   },
 }))
 
@@ -148,6 +161,26 @@ describe('SecurityPage', () => {
     expect(wrapper.text()).toContain('SSO Portal')
     expect(wrapper.text()).toContain('Belum Diverifikasi')
     expect(wrapper.text()).toContain('Mengakhiri sesi aktif dari perangkat lain')
+  })
+
+  it('renders trusted devices with rename and revoke actions', async () => {
+    const { profileApi } = await import('@/services/profile.api')
+    const wrapper = await mountSecurityPage()
+
+    expect(wrapper.text()).toContain('Perangkat Tepercaya')
+    expect(wrapper.text()).toContain('Laptop kerja')
+    expect(wrapper.text()).toContain('abc123def456')
+
+    await wrapper.find('input[aria-label="Nama perangkat Laptop kerja"]').setValue('Laptop utama')
+    await wrapper.findAll('button').find((button) => button.text().includes('Simpan Nama'))?.trigger('click')
+    await flushPromises()
+
+    expect(profileApi.renameTrustedDevice).toHaveBeenCalledWith(10, { label: 'Laptop utama' })
+
+    await wrapper.findAll('button').find((button) => button.text().includes('Cabut'))?.trigger('click')
+    await flushPromises()
+
+    expect(profileApi.revokeTrustedDevice).toHaveBeenCalledWith(10)
   })
 
   it('highlights risky audit events from foreign IPs with readable labels and standard timestamps', async () => {
