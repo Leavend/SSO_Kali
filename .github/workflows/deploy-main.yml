@@ -172,10 +172,11 @@ jobs:
           ssh_with_retry() {
             local attempt
             for attempt in 1 2 3 4 5; do
-              if ssh -i ~/.ssh/deploy_key -p "${VPS_SSH_PORT}" \
+              if timeout 120s ssh -i ~/.ssh/deploy_key -p "${VPS_SSH_PORT}" \
                 -o BatchMode=yes \
                 -o ConnectTimeout=45 \
                 -o ConnectionAttempts=3 \
+                -o RequestTTY=no \
                 -o StrictHostKeyChecking=accept-new \
                 -o ServerAliveInterval=10 \
                 -o ServerAliveCountMax=3 \
@@ -191,7 +192,7 @@ jobs:
           rsync_with_retry() {
             local attempt
             for attempt in 1 2 3 4 5; do
-              if rsync -az -e "ssh -i ~/.ssh/deploy_key -p ${VPS_SSH_PORT} -o BatchMode=yes -o ConnectTimeout=45 -o ConnectionAttempts=3 -o StrictHostKeyChecking=accept-new -o ServerAliveInterval=10 -o ServerAliveCountMax=3" "$@"; then
+              if timeout 180s rsync -az -e "ssh -i ~/.ssh/deploy_key -p ${VPS_SSH_PORT} -o BatchMode=yes -o ConnectTimeout=45 -o ConnectionAttempts=3 -o RequestTTY=no -o StrictHostKeyChecking=accept-new -o ServerAliveInterval=10 -o ServerAliveCountMax=3" "$@"; then
                 return 0
               fi
               echo "rsync attempt ${attempt} failed; retrying in 10s..." >&2
