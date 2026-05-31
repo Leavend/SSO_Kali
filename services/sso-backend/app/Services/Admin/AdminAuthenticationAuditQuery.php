@@ -6,6 +6,7 @@ namespace App\Services\Admin;
 
 use App\Models\AuthenticationAuditEvent;
 use Illuminate\Contracts\Pagination\CursorPaginator;
+use Illuminate\Support\Carbon;
 
 final class AdminAuthenticationAuditQuery
 {
@@ -28,11 +29,11 @@ final class AdminAuthenticationAuditQuery
         }
 
         if (is_string($filters['from'] ?? null) && $filters['from'] !== '') {
-            $query->where('occurred_at', '>=', $filters['from']);
+            $query->where('occurred_at', '>=', Carbon::parse($filters['from']));
         }
 
         if (is_string($filters['to'] ?? null) && $filters['to'] !== '') {
-            $query->where('occurred_at', '<=', $filters['to']);
+            $query->where('occurred_at', '<=', Carbon::parse($filters['to']));
         }
 
         return $query->cursorPaginate(
