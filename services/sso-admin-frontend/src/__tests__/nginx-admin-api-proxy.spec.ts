@@ -30,7 +30,29 @@ describe('admin nginx backend proxy contract', () => {
     expect(nginxConfig).toContain('proxy_set_header Cookie $http_cookie;')
     expect(nginxConfig).toContain('proxy_set_header X-Request-Id $admin_proxy_request_id;')
   })
+
+  it('keeps backend session cookies host-only when passed through the admin origin', () => {
+    const apiAdminLocation = locationBlock('/api/admin/')
+    const apiAuthLocation = locationBlock('/api/auth/')
+
+    for (const block of [apiAdminLocation, apiAuthLocation]) {
+      expect(block).toContain('proxy_pass_header Set-Cookie;')
+      expect(block).toContain('proxy_cookie_domain off;')
+      expect(block).not.toContain('Domain=.timeh.my.id')
+    }
+  })
 })
+
+function locationBlock(path: string): string {
+  const pattern = new RegExp(`location ${escapeRegExp(path)} \\{(?<block>[\\s\\S]*?)\\n  \\}`, 'u')
+  const match = pattern.exec(nginxConfig)
+  expect(match?.groups?.block).toBeDefined()
+  return match?.groups?.block ?? ''
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')
+}
 
 function adminSourceFiles(): string {
   return readSourceFiles(sourceRoot).join('\n')
