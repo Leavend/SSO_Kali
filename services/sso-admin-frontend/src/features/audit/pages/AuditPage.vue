@@ -3,7 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
 import { useSessionStore } from '@/stores/session.store'
 import { useAuditStore } from '../stores/audit.store'
-import type { AuditExportFilters, ComplianceEvidencePackFilters } from '../types'
+import type { AuditExportFilters, ComplianceEvidencePackFilters, RetentionStatusItem } from '../types'
 
 const store = useAuditStore()
 const session = useSessionStore()
@@ -118,8 +118,20 @@ const hasAuditEvidence = computed(
     store.events.length > 0 ||
     store.authenticationEvents.length > 0 ||
     store.dataSubjectRequests.length > 0 ||
-    store.integrity !== null,
+    store.integrity !== null ||
+    store.retentionStatus !== null,
 )
+
+function retentionWindowLabel(item: RetentionStatusItem): string {
+  if (item.window.days !== undefined) return `${item.window.days} hari`
+  if (item.window.hours !== undefined) return `${item.window.hours} jam`
+  if (item.window.seconds !== undefined) return `${item.window.seconds} detik`
+  return 'No window evidence'
+}
+
+function retentionNumber(value: number | null | undefined): string {
+  return value === null || value === undefined ? 'No evidence' : String(value)
+}
 
 onMounted(() => {
   if (store.status === 'idle') void store.load()
@@ -285,6 +297,48 @@ onMounted(() => {
             <dd>{{ store.integrity?.latest_event_hash ?? 'No evidence' }}</dd>
           </div>
         </dl>
+      </section>
+
+      <section class="detail-section" aria-labelledby="retention-title">
+        <h2 id="retention-title">Retention status</h2>
+        <p class="page-summary">
+          Ringkasan window retensi, jadwal prune, kandidat prune, dan run terakhir untuk evidence
+          pack compliance.
+        </p>
+        <div class="audit-list">
+          <div
+            v-for="item in store.retentionStatus?.items ?? []"
+            :key="item.category"
+            class="state-card"
+          >
+            <strong>{{ item.label }}</strong>
+            <dl class="inline-evidence">
+              <div>
+                <dt>Window</dt>
+                <dd>{{ retentionWindowLabel(item) }}</dd>
+              </div>
+              <div>
+                <dt>Schedule</dt>
+                <dd>{{ item.schedule ?? 'No schedule evidence' }}</dd>
+              </div>
+              <div>
+                <dt>Last pruned</dt>
+                <dd>{{ item.last_pruned_at ?? 'Belum ada run evidence' }}</dd>
+              </div>
+              <div>
+                <dt>Pruned rows</dt>
+                <dd>{{ retentionNumber(item.last_pruned_count) }}</dd>
+              </div>
+              <div>
+                <dt>Candidate rows</dt>
+                <dd>{{ retentionNumber(item.candidate_count) }}</dd>
+              </div>
+            </dl>
+          </div>
+        </div>
+        <p v-if="(store.retentionStatus?.items.length ?? 0) === 0" class="muted">
+          Retention status belum tersedia.
+        </p>
       </section>
 
       <section class="detail-section" aria-labelledby="audit-search-title">

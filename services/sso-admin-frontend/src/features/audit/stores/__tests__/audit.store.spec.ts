@@ -9,6 +9,7 @@ import type {
   AuthenticationAuditEvent,
   AuditIntegrity,
   DataSubjectRequest,
+  RetentionStatus,
 } from '../../types'
 
 vi.mock('../../services/audit.api', () => ({
@@ -17,6 +18,7 @@ vi.mock('../../services/audit.api', () => ({
       vi.fn<() => Promise<{ events: readonly AdminAuditEvent[]; pagination?: unknown }>>(),
     showEvent: vi.fn<(eventId: string) => Promise<{ event: AdminAuditEvent }>>(),
     getIntegrity: vi.fn<() => Promise<{ integrity: AuditIntegrity }>>(),
+    getRetentionStatus: vi.fn<() => Promise<{ retention: RetentionStatus }>>(),
     exportEvents: vi.fn<() => Promise<{ blob: Blob; filename: string | null }>>(),
     generateEvidencePack: vi.fn<() => Promise<{ blob: Blob; filename: string | null }>>(),
     listDataSubjectRequests: vi.fn<() => Promise<{ requests: readonly DataSubjectRequest[] }>>(),
@@ -85,12 +87,29 @@ const dsr: DataSubjectRequest = {
   sla_due_at: '2026-06-26T00:00:00Z',
 }
 
+const retentionStatus: RetentionStatus = {
+  generated_at: '2026-05-31T00:00:00Z',
+  items: [
+    {
+      category: 'authentication_audit_events',
+      label: 'Authentication audit events',
+      window: { days: 90 },
+      cutoff: '2026-03-02T00:00:00Z',
+      schedule: 'daily',
+      candidate_count: 3,
+      last_pruned_at: '2026-05-31T00:10:00Z',
+      last_pruned_count: 12,
+    },
+  ],
+}
+
 describe('useAuditStore', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.mocked(auditApi.listEvents).mockReset()
     vi.mocked(auditApi.showEvent).mockReset()
     vi.mocked(auditApi.getIntegrity).mockReset()
+    vi.mocked(auditApi.getRetentionStatus).mockReset()
     vi.mocked(auditApi.exportEvents).mockReset()
     vi.mocked(auditApi.generateEvidencePack).mockReset()
     vi.mocked(auditApi.listDataSubjectRequests).mockReset()
@@ -107,6 +126,7 @@ describe('useAuditStore', () => {
     vi.mocked(auditApi.getIntegrity).mockResolvedValue({
       integrity: { verified: true, checked_events: 1 },
     })
+    vi.mocked(auditApi.getRetentionStatus).mockResolvedValue({ retention: retentionStatus })
     vi.mocked(auditApi.listDataSubjectRequests).mockResolvedValue({ requests: [dsr] })
     vi.mocked(auditApi.listAuthenticationEvents).mockResolvedValue({ events: [authEvent] })
     const store = useAuditStore()
@@ -116,6 +136,7 @@ describe('useAuditStore', () => {
     expect(store.status).toBe('success')
     expect(store.events).toEqual([event])
     expect(store.integrity?.verified).toBe(true)
+    expect(store.retentionStatus).toEqual(retentionStatus)
     expect(store.dataSubjectRequests).toEqual([dsr])
     expect(store.authenticationEvents).toEqual([authEvent])
     expect(store.requestId).toBe('req-audit-1')

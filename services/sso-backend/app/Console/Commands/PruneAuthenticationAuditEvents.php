@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Services\Audit\AuthenticationAuditRetentionPolicy;
+use App\Services\Admin\AdminRetentionRunMetadata;
 use Illuminate\Console\Command;
 
 final class PruneAuthenticationAuditEvents extends Command
@@ -15,7 +16,10 @@ final class PruneAuthenticationAuditEvents extends Command
 
     protected $description = 'Prune central authentication audit events beyond the configured retention window';
 
-    public function handle(AuthenticationAuditRetentionPolicy $retention): int
+    public function handle(
+        AuthenticationAuditRetentionPolicy $retention,
+        AdminRetentionRunMetadata $runs,
+    ): int
     {
         $limit = $this->limit();
         $report = $retention->report();
@@ -31,6 +35,7 @@ final class PruneAuthenticationAuditEvents extends Command
         }
 
         $count = $retention->prune(limit: $limit);
+        $runs->record('authentication_audit_events', $count);
 
         $this->info("Pruned {$count} authentication audit event row(s).");
 

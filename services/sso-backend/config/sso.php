@@ -64,6 +64,7 @@ return [
     ],
     'audit' => [
         'authentication_retention_days' => (int) env('SSO_AUTHENTICATION_AUDIT_RETENTION_DAYS', 400),
+        'admin_retention_days' => (int) env('SSO_ADMIN_AUDIT_RETENTION_DAYS', 730),
     ],
     'auth' => [
         'max_login_attempts' => (int) env('SSO_AUTH_MAX_LOGIN_ATTEMPTS', 5),

@@ -56,6 +56,32 @@ export type AuditIntegrityResponse = {
   readonly integrity: AuditIntegrity
 }
 
+export type RetentionWindow = {
+  readonly days?: number
+  readonly hours?: number
+  readonly seconds?: number
+}
+
+export type RetentionStatusItem = {
+  readonly category: string
+  readonly label: string
+  readonly window: RetentionWindow
+  readonly cutoff?: string | null
+  readonly schedule?: string | null
+  readonly candidate_count?: number | null
+  readonly last_pruned_at?: string | null
+  readonly last_pruned_count?: number | null
+}
+
+export type RetentionStatus = {
+  readonly generated_at?: string | null
+  readonly items: readonly RetentionStatusItem[]
+}
+
+export type RetentionStatusResponse = {
+  readonly retention: RetentionStatus
+}
+
 export type AuditEventFilters = {
   readonly limit?: number
   readonly cursor?: string

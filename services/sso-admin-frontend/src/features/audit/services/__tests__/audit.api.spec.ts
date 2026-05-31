@@ -18,6 +18,7 @@ describe('auditApi', () => {
     await auditApi.listEvents({ outcome: 'denied', limit: 25 })
     await auditApi.showEvent('AUD01')
     await auditApi.getIntegrity()
+    await auditApi.getRetentionStatus()
     await auditApi.listDataSubjectRequests({ status: 'submitted' })
     await auditApi.listAuthenticationEvents({
       event_type: 'refresh_token_reuse_detected',
@@ -36,16 +37,17 @@ describe('auditApi', () => {
     )
     expect(apiClient.get).toHaveBeenNthCalledWith(2, '/api/admin/audit/events/AUD01')
     expect(apiClient.get).toHaveBeenNthCalledWith(3, '/api/admin/audit/integrity')
+    expect(apiClient.get).toHaveBeenNthCalledWith(4, '/api/admin/audit/retention')
     expect(apiClient.get).toHaveBeenNthCalledWith(
-      4,
+      5,
       '/api/admin/data-subject-requests?status=submitted',
     )
     expect(apiClient.get).toHaveBeenNthCalledWith(
-      5,
+      6,
       '/api/admin/audit/authentication-events?event_type=refresh_token_reuse_detected&limit=10',
     )
     expect(apiClient.get).toHaveBeenNthCalledWith(
-      6,
+      7,
       '/api/admin/audit/authentication-events/AUTH01',
     )
     expect(apiClient.post).toHaveBeenNthCalledWith(

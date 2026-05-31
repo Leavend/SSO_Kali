@@ -91,6 +91,22 @@ const dsr = {
   sla_due_at: '2026-06-26T00:00:00Z',
 }
 
+const retention = {
+  generated_at: '2026-05-31T00:00:00Z',
+  items: [
+    {
+      category: 'authentication_audit_events',
+      label: 'Authentication audit events',
+      window: { days: 90 },
+      cutoff: '2026-03-02T00:00:00Z',
+      schedule: 'daily',
+      candidate_count: 3,
+      last_pruned_at: '2026-05-31T00:10:00Z',
+      last_pruned_count: 12,
+    },
+  ],
+}
+
 test('renders audit compliance evidence and DSR queue', async ({ page }) => {
   await page.route('**/api/admin/me', async (route) => {
     await route.fulfill({ contentType: 'application/json', body: JSON.stringify(principal) })
@@ -116,6 +132,13 @@ test('renders audit compliance evidence and DSR queue', async ({ page }) => {
       body: JSON.stringify({ integrity: { verified: true, checked_events: 1 } }),
     })
   })
+  await page.route('**/api/admin/audit/retention', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      headers: { 'x-request-id': 'req-audit-e2e' },
+      body: JSON.stringify({ retention }),
+    })
+  })
   await page.route('**/api/admin/data-subject-requests*', async (route) => {
     await route.fulfill({
       contentType: 'application/json',
@@ -131,6 +154,8 @@ test('renders audit compliance evidence and DSR queue', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Audit Compliance' })).toBeVisible()
   await expect(page.getByText('AUD01')).toBeVisible()
   await expect(page.getByText('Integrity verified')).toBeVisible()
+  await expect(page.getByText('Retention status')).toBeVisible()
+  await expect(page.getByText('Authentication audit events')).toBeVisible()
   await expect(page.getByText('01HX7S8Y9ZABCDEF1234567890')).toBeVisible()
   await expect(page.getByText('Security notification evidence')).toBeVisible()
   await expect(
@@ -177,6 +202,13 @@ test('shows safe audit error with request evidence', async ({ page }) => {
       contentType: 'application/json',
       headers: { 'x-request-id': 'req-audit-fail' },
       body: JSON.stringify({ integrity: {} }),
+    })
+  })
+  await page.route('**/api/admin/audit/retention', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      headers: { 'x-request-id': 'req-audit-fail' },
+      body: JSON.stringify({ retention: { generated_at: null, items: [] } }),
     })
   })
   await page.route('**/api/admin/data-subject-requests*', async (route) => {

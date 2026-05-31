@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\AuditTrailExportController;
 use App\Http\Controllers\Admin\AuthenticationAuditController;
 use App\Http\Controllers\Admin\ClientController;
 use App\Http\Controllers\Admin\ClientIntegrationController;
+use App\Http\Controllers\Admin\ComplianceEvidencePackController;
 use App\Http\Controllers\Admin\DashboardSummaryController;
 use App\Http\Controllers\Admin\DataSubjectRequestAdminController;
 use App\Http\Controllers\Admin\ExternalIdentityProviderController;
@@ -14,6 +15,7 @@ use App\Http\Controllers\Admin\ExternalIdentityProviderMappingPreviewController;
 use App\Http\Controllers\Admin\IpAccessRuleController;
 use App\Http\Controllers\Admin\OidcFoundationController;
 use App\Http\Controllers\Admin\PrincipalController;
+use App\Http\Controllers\Admin\RetentionStatusController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SecurityPolicyController;
 use App\Http\Controllers\Admin\SessionController;
@@ -101,6 +103,7 @@ Route::middleware([AdminGuard::class, EnsureAdminMfaEnrolled::class])->prefix('a
         Route::get('/audit/events/{eventId}', [AuditTrailController::class, 'show'])
             ->where('eventId', '[A-Z0-9]+');
         Route::get('/audit/integrity', [AuditTrailController::class, 'integrity']);
+        Route::get('/audit/retention', RetentionStatusController::class);
     });
 
     Route::middleware([
@@ -129,6 +132,7 @@ Route::middleware([AdminGuard::class, EnsureAdminMfaEnrolled::class])->prefix('a
         EnsureAdminMfaAssurance::class,
     ])->group(function (): void {
         Route::get('/audit/export', AuditTrailExportController::class);
+        Route::get('/compliance/evidence-pack', ComplianceEvidencePackController::class);
     });
 
     Route::middleware([

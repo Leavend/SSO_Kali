@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Models\AdminAuditEvent;
+use App\Services\Admin\AdminRetentionRunMetadata;
 use Illuminate\Console\Command;
 
 final class PruneAdminAuditEventsCommand extends Command
@@ -22,7 +23,7 @@ final class PruneAdminAuditEventsCommand extends Command
     /** @var string */
     protected $description = 'Prune admin_audit_events older than the configured retention horizon (immutable-by-default chain).';
 
-    public function handle(): int
+    public function handle(AdminRetentionRunMetadata $runs): int
     {
         $retentionDays = (int) $this->option('retention-days');
         if ($retentionDays < self::MIN_RETENTION_DAYS) {
@@ -58,6 +59,7 @@ final class PruneAdminAuditEventsCommand extends Command
         AdminAuditEvent::withPruneAllowed(function () use ($candidates): void {
             $candidates->get()->each(static fn (AdminAuditEvent $event) => $event->delete());
         });
+        $runs->record('admin_audit_events', $count);
 
         $this->info(sprintf(
             'Pruned %d admin_audit_events older than %s.',

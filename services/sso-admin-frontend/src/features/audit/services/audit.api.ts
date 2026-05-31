@@ -14,6 +14,7 @@ import type {
   DataSubjectRequestFilters,
   DataSubjectRequestListResponse,
   DataSubjectReviewPayload,
+  RetentionStatusResponse,
 } from '../types'
 
 export const auditApi = {
@@ -25,6 +26,9 @@ export const auditApi = {
   },
   getIntegrity(): Promise<AuditIntegrityResponse> {
     return apiClient.get<AuditIntegrityResponse>('/api/admin/audit/integrity')
+  },
+  getRetentionStatus(): Promise<RetentionStatusResponse> {
+    return apiClient.get<RetentionStatusResponse>('/api/admin/audit/retention')
   },
   exportEvents(filters: AuditExportFilters): Promise<BlobResponse> {
     return apiClient.getBlob(withQuery('/api/admin/audit/export', filters))

@@ -11,6 +11,7 @@ vi.mock('../../services/audit.api', () => ({
     listEvents: vi.fn<() => Promise<unknown>>(),
     showEvent: vi.fn<() => Promise<unknown>>(),
     getIntegrity: vi.fn<() => Promise<unknown>>(),
+    getRetentionStatus: vi.fn<() => Promise<unknown>>(),
     exportEvents: vi.fn<() => Promise<unknown>>(),
     generateEvidencePack: vi.fn<() => Promise<unknown>>(),
     listDataSubjectRequests: vi.fn<() => Promise<unknown>>(),
@@ -73,6 +74,22 @@ const dsr: DataSubjectRequest = {
   sla_due_at: '2026-06-26T00:00:00Z',
 }
 
+const retentionStatus = {
+  generated_at: '2026-05-31T00:00:00Z',
+  items: [
+    {
+      category: 'authentication_audit_events',
+      label: 'Authentication audit events',
+      window: { days: 90 },
+      cutoff: '2026-03-02T00:00:00Z',
+      schedule: 'daily',
+      candidate_count: 3,
+      last_pruned_at: '2026-05-31T00:10:00Z',
+      last_pruned_count: 12,
+    },
+  ],
+}
+
 function seedPrincipal(capabilities: Record<string, boolean>): void {
   useSessionStore().setPrincipal({
     subject_id: 'admin-1',
@@ -115,6 +132,7 @@ describe('AuditPage', () => {
     store.status = 'success'
     store.events = [event]
     store.integrity = { verified: true, checked_events: 1 }
+    store.retentionStatus = retentionStatus
     store.dataSubjectRequests = [dsr]
     store.authenticationEvents = [authEvent]
     store.selectedAuthenticationEventId = 'AUTH01'
@@ -126,6 +144,12 @@ describe('AuditPage', () => {
     expect(wrapper.text()).toContain('AUD01')
     expect(wrapper.text()).toContain('admin.user.lock')
     expect(wrapper.text()).toContain('Integrity verified')
+    expect(wrapper.text()).toContain('Retention status')
+    expect(wrapper.text()).toContain('Authentication audit events')
+    expect(wrapper.text()).toContain('90 hari')
+    expect(wrapper.text()).toContain('2026-05-31T00:10:00Z')
+    expect(wrapper.text()).toContain('12')
+    expect(wrapper.text()).toContain('3')
     expect(wrapper.text()).toContain('01HX7S8Y9ZABCDEF1234567890')
     expect(wrapper.text()).toContain('Security notification evidence')
     expect(wrapper.text()).toContain('refresh_token_reuse_detected')

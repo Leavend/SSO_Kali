@@ -13,6 +13,7 @@ import type {
   AuthenticationAuditEventFilters,
   ComplianceEvidencePackFilters,
   DataSubjectRequest,
+  RetentionStatus,
 } from '../types'
 
 export type AuditStatus = 'idle' | 'loading' | 'success' | 'unauthenticated' | 'forbidden' | 'error'
@@ -27,6 +28,7 @@ export const useAuditStore = defineStore('admin-audit', () => {
   const selectedEventId = ref<string | null>(null)
   const selectedEventDetail = ref<AdminAuditEvent | null>(null)
   const integrity = ref<AuditIntegrity | null>(null)
+  const retentionStatus = ref<RetentionStatus | null>(null)
   const dataSubjectRequests = ref<readonly DataSubjectRequest[]>([])
   const authenticationEvents = ref<readonly AuthenticationAuditEvent[]>([])
   const authenticationEventFilters = ref<AuthenticationAuditEventFilters>({ limit: 25 })
@@ -56,10 +58,17 @@ export const useAuditStore = defineStore('admin-audit', () => {
     errorMessage.value = null
 
     try {
-      const [eventResponse, integrityResponse, dsrResponse, authenticationEventResponse] =
+      const [
+        eventResponse,
+        integrityResponse,
+        retentionResponse,
+        dsrResponse,
+        authenticationEventResponse,
+      ] =
         await Promise.all([
           auditApi.listEvents(eventFilters.value),
           auditApi.getIntegrity(),
+          auditApi.getRetentionStatus(),
           auditApi.listDataSubjectRequests({ status: 'submitted' }),
           auditApi.listAuthenticationEvents(authenticationEventFilters.value),
         ])
@@ -67,6 +76,7 @@ export const useAuditStore = defineStore('admin-audit', () => {
       eventPagination.value = eventResponse.pagination ?? null
       selectedEventId.value = eventResponse.events[0]?.event_id ?? null
       integrity.value = integrityResponse.integrity
+      retentionStatus.value = retentionResponse.retention
       dataSubjectRequests.value = dsrResponse.requests
       authenticationEvents.value = authenticationEventResponse.events
       authenticationEventPagination.value = authenticationEventResponse.pagination ?? null
@@ -79,6 +89,7 @@ export const useAuditStore = defineStore('admin-audit', () => {
       selectedEventId.value = null
       selectedEventDetail.value = null
       integrity.value = null
+      retentionStatus.value = null
       dataSubjectRequests.value = []
       authenticationEvents.value = []
       authenticationEventPagination.value = null
@@ -334,6 +345,7 @@ export const useAuditStore = defineStore('admin-audit', () => {
     selectedEvent,
     selectedEventDetail,
     integrity,
+    retentionStatus,
     dataSubjectRequests,
     authenticationEvents,
     authenticationEventFilters,
