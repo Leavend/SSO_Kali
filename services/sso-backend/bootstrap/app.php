@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Exceptions\SafeOidcExceptionRenderer;
 use App\Http\Middleware\ApplyNoStoreToSensitiveResponses;
+use App\Http\Middleware\ApplySecurityHeaders;
 use App\Http\Middleware\AssertSsoSessionCookiePolicy;
 use App\Http\Middleware\EnsureRequestId;
 use App\Http\Middleware\LogForwardedHeaderMismatch;
@@ -54,6 +55,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->group('oidc-stateless', [
             EnsureRequestId::class,
             LogForwardedHeaderMismatch::class,
+            ApplySecurityHeaders::class,
             ApplyNoStoreToSensitiveResponses::class,
             TrackCpuPerformance::class,
         ]);
@@ -66,6 +68,7 @@ return Application::configure(basePath: dirname(__DIR__))
             AssertSsoSessionCookiePolicy::class,
             EnsureRequestId::class,
             LogForwardedHeaderMismatch::class,
+            ApplySecurityHeaders::class,
             ApplyNoStoreToSensitiveResponses::class,
             TrackCpuPerformance::class,
         ]);
