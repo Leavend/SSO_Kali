@@ -91,7 +91,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   const response = await sendRequest(path, options)
   if (response.status === 204) return undefined as T
 
-  return (await response.json()) as T
+  return (await jsonPayloadFromSuccess(response)) as T
 }
 
 async function requestBlob(path: string, options: RequestOptions = {}): Promise<BlobResponse> {
@@ -123,6 +123,34 @@ async function apiErrorFromResponse(response: Response): Promise<ApiError> {
   const requestId = response.headers.get('X-Request-Id') ?? lastRequestId
 
   return new ApiError(response.status, message, code, payload, requestId)
+}
+
+async function jsonPayloadFromSuccess(response: Response): Promise<unknown> {
+  if (!isJsonResponse(response)) throw invalidUpstreamResponse(response)
+
+  try {
+    return await response.json()
+  } catch {
+    throw invalidUpstreamResponse(response)
+  }
+}
+
+function isJsonResponse(response: Response): boolean {
+  const contentType = response.headers.get('Content-Type')
+  if (!contentType) return false
+
+  const mimeType = contentType.split(';', 1)[0]?.trim().toLowerCase()
+  return mimeType === 'application/json' || mimeType?.endsWith('+json') === true
+}
+
+function invalidUpstreamResponse(response: Response): ApiError {
+  return new ApiError(
+    502,
+    'Admin API returned a successful response that was not valid JSON.',
+    'invalid_upstream_response',
+    null,
+    response.headers.get('X-Request-Id') ?? lastRequestId,
+  )
 }
 
 async function responsePayload(response: Response): Promise<unknown> {

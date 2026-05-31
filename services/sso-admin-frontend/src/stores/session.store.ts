@@ -11,6 +11,7 @@ export type SessionEnsureResult =
   | 'forbidden'
   | 'mfa_enrollment_required'
   | 'step_up_required'
+  | 'api_unreachable'
   | 'error'
 
 export const useSessionStore = defineStore('admin-session', () => {
@@ -54,6 +55,7 @@ export const useSessionStore = defineStore('admin-session', () => {
 
       if (error instanceof ApiError) {
         if (error.code === 'mfa_enrollment_required') return 'mfa_enrollment_required'
+        if (error.code === 'invalid_upstream_response') return 'api_unreachable'
         if (requiresStepUp(error)) return 'step_up_required'
         if (error.status === 401) return 'unauthenticated'
         if (error.status === 403) return 'forbidden'

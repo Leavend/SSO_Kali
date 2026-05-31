@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { resolveAdminGuard } from './guards'
+import AdminApiUnreachableView from '@/views/AdminApiUnreachableView.vue'
 import ForbiddenView from '@/views/ForbiddenView.vue'
 import AdminErrorView from '@/views/AdminErrorView.vue'
 import AdminMfaRequiredView from '@/views/AdminMfaRequiredView.vue'
@@ -105,6 +106,11 @@ const router = createRouter({
       path: '/admin-error',
       name: 'admin.error',
       component: AdminErrorView,
+    },
+    {
+      path: '/admin-api-unreachable',
+      name: 'admin.api-unreachable',
+      component: AdminApiUnreachableView,
     },
   ],
 })

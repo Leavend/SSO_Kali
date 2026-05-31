@@ -104,6 +104,21 @@ describe('useSessionStore', () => {
     await expect(session.ensureSession()).resolves.toBe('forbidden')
   })
 
+  it('returns api_unreachable when the bootstrap endpoint returns an invalid upstream response', async () => {
+    vi.mocked(authApi.getPrincipal).mockRejectedValue(
+      new ApiError(
+        502,
+        'Admin API returned a successful response that was not valid JSON.',
+        'invalid_upstream_response',
+      ),
+    )
+
+    const session = useSessionStore()
+
+    await expect(session.ensureSession()).resolves.toBe('api_unreachable')
+    expect(session.isAuthenticated).toBe(false)
+  })
+
   it('returns error without collapsing network failures into unauthenticated state', async () => {
     vi.mocked(authApi.getPrincipal).mockRejectedValue(new Error('network down'))
 

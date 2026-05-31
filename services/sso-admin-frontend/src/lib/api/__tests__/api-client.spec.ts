@@ -2,10 +2,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ApiError, apiClient, getLastRequestId } from '../api-client'
 
 function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
+  const headers = { 'Content-Type': 'application/json', ...init.headers }
+
   return new Response(JSON.stringify(body), {
-    status: 200,
-    headers: { 'Content-Type': 'application/json', ...init.headers },
     ...init,
+    status: init.status ?? 200,
+    headers,
   })
 }
 
@@ -66,6 +68,48 @@ describe('apiClient request evidence', () => {
     await apiClient.get('/api/admin/me')
 
     expect(getLastRequestId()).toBe('req-response-1')
+  })
+
+  it('rejects successful non-JSON API responses as invalid upstream responses', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn<typeof fetch>().mockResolvedValue(
+        new Response('<!doctype html><title>Admin SPA</title>', {
+          status: 200,
+          headers: {
+            'Content-Type': 'text/html; charset=utf-8',
+            'X-Request-Id': 'req-html-200',
+          },
+        }),
+      ),
+    )
+
+    await expect(apiClient.get('/api/admin/me')).rejects.toMatchObject({
+      status: 502,
+      code: 'invalid_upstream_response',
+      requestId: 'req-html-200',
+    } satisfies Partial<ApiError>)
+  })
+
+  it('rejects successful malformed JSON API responses as invalid upstream responses', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn<typeof fetch>().mockResolvedValue(
+        new Response('{invalid', {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Request-Id': 'req-json-invalid',
+          },
+        }),
+      ),
+    )
+
+    await expect(apiClient.get('/api/admin/me')).rejects.toMatchObject({
+      status: 502,
+      code: 'invalid_upstream_response',
+      requestId: 'req-json-invalid',
+    } satisfies Partial<ApiError>)
   })
 
   it('attaches response X-Request-Id to ApiError without requiring raw backend copy', async () => {

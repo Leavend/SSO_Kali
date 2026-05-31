@@ -164,6 +164,14 @@ describe('resolveAdminGuard', () => {
     await expect(resolveAdminGuard(route())).resolves.toEqual({ name: 'admin.error' })
   })
 
+  it('routes invalid upstream bootstrap responses to the API unreachable view', async () => {
+    vi.mocked(authApi.getPrincipal).mockRejectedValue(
+      new ApiError(502, 'Invalid upstream response', 'invalid_upstream_response'),
+    )
+
+    await expect(resolveAdminGuard(route())).resolves.toEqual({ name: 'admin.api-unreachable' })
+  })
+
   it('routes admins without enrolled MFA to the MFA required view', async () => {
     vi.mocked(authApi.getPrincipal).mockRejectedValue(
       new ApiError(403, 'MFA enrollment required', 'mfa_enrollment_required'),
