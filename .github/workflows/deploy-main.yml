@@ -374,6 +374,16 @@ jobs:
             cat "$headers_file" >&2
             exit 1
           fi
+          if grep -qi '<!doctype html\|<html' "$body_file"; then
+            echo 'expected /api/admin/me JSON body, got HTML:' >&2
+            head -c 400 "$body_file" >&2 || true
+            exit 1
+          fi
+          if ! grep -q '"error"[[:space:]]*:[[:space:]]*"unauthorized"' "$body_file"; then
+            echo 'expected /api/admin/me anonymous body to contain error=unauthorized, got:' >&2
+            head -c 400 "$body_file" >&2 || true
+            exit 1
+          fi
 
       - name: Run OIDC Backend production smoke
         if: ${{ vars.RUN_FR004_PRODUCTION_SMOKE == 'true' }}

@@ -3,6 +3,7 @@ import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 const nginxConfig = readFileSync(resolve(process.cwd(), 'nginx.conf'), 'utf8')
+const deployWorkflow = readFileSync(resolve(process.cwd(), '../../.github/workflows/deploy-main.yml'), 'utf8')
 const sourceRoot = resolve(process.cwd(), 'src')
 
 describe('admin nginx backend proxy contract', () => {
@@ -40,6 +41,14 @@ describe('admin nginx backend proxy contract', () => {
       expect(block).toContain('proxy_cookie_domain off;')
       expect(block).not.toContain('Domain=.timeh.my.id')
     }
+  })
+
+  it('keeps the deploy smoke strict enough to catch SPA fallback responses', () => {
+    expect(deployWorkflow).toContain('/api/admin/me')
+    expect(deployWorkflow).toContain('expected anonymous /api/admin/me to return 401 JSON')
+    expect(deployWorkflow).toContain('^content-type: application/json')
+    expect(deployWorkflow).toContain('<!doctype html\\|<html')
+    expect(deployWorkflow).toContain('"error"[[:space:]]*:[[:space:]]*"unauthorized"')
   })
 })
 
