@@ -47,7 +47,7 @@ final class ComplianceEvidencePackController
             return response()->stream(static fn (): null => null, Response::HTTP_INTERNAL_SERVER_ERROR);
         }
 
-        $zip = new ZipArchive();
+        $zip = new ZipArchive;
         $zip->open($archive, ZipArchive::OVERWRITE);
         $zip->addFromString('evidence-pack.json', $this->json($payload));
         $zip->close();

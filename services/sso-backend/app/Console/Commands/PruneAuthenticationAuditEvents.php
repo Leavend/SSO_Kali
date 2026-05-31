@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
-use App\Services\Audit\AuthenticationAuditRetentionPolicy;
 use App\Services\Admin\AdminRetentionRunMetadata;
+use App\Services\Audit\AuthenticationAuditRetentionPolicy;
 use Illuminate\Console\Command;
 
 final class PruneAuthenticationAuditEvents extends Command
@@ -19,8 +19,7 @@ final class PruneAuthenticationAuditEvents extends Command
     public function handle(
         AuthenticationAuditRetentionPolicy $retention,
         AdminRetentionRunMetadata $runs,
-    ): int
-    {
+    ): int {
         $limit = $this->limit();
         $report = $retention->report();
 
