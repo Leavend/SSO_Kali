@@ -358,6 +358,22 @@ jobs:
             curl -fsS --max-time 20 "${admin_url%/}/healthz" >/dev/null
           fi
           curl -fsS --max-time 20 "${admin_url%/}/oidc-foundation" >/dev/null
+          headers_file="$(mktemp)"
+          body_file="$(mktemp)"
+          status="$(curl -sS --max-time 20 -o "$body_file" -D "$headers_file" -w '%{http_code}' \
+            -H 'Accept: application/json' \
+            "${admin_url%/}/api/admin/me")"
+          if [ "$status" != "401" ]; then
+            echo "expected anonymous /api/admin/me to return 401 JSON, got HTTP $status" >&2
+            cat "$headers_file" >&2
+            head -c 400 "$body_file" >&2 || true
+            exit 1
+          fi
+          if ! grep -qi '^content-type: application/json' "$headers_file"; then
+            echo 'expected /api/admin/me content-type application/json, got:' >&2
+            cat "$headers_file" >&2
+            exit 1
+          fi
 
       - name: Run OIDC Backend production smoke
         if: ${{ vars.RUN_FR004_PRODUCTION_SMOKE == 'true' }}
