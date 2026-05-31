@@ -17,11 +17,17 @@ const principal = {
     permissions: {
       view_admin_panel: true,
       manage_sessions: false,
-      permissions: ['admin.dashboard.view', 'admin.clients.read', 'admin.clients.write'],
+      permissions: [
+        'admin.dashboard.view',
+        'admin.clients.read',
+        'admin.clients.write',
+        'admin.sessions.terminate',
+      ],
       capabilities: {
         'admin.dashboard.view': true,
         'admin.clients.read': true,
         'admin.clients.write': true,
+        'admin.sessions.terminate': true,
       },
       menus: [
         {

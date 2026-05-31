@@ -17,10 +17,15 @@ const principal = {
     permissions: {
       view_admin_panel: true,
       manage_sessions: false,
-      permissions: ['admin.dashboard.view', 'admin.external-idps.read'],
+      permissions: [
+        'admin.dashboard.view',
+        'admin.external-idps.read',
+        'admin.external-idps.write',
+      ],
       capabilities: {
         'admin.dashboard.view': true,
         'admin.external-idps.read': true,
+        'admin.external-idps.write': true,
       },
       menus: [
         {
@@ -93,7 +98,7 @@ test('renders external IdP provider and mapping evidence', async ({ page }) => {
 
   await expect(page.getByRole('navigation', { name: 'Modul admin' })).toContainText('External IdPs')
   await expect(page.getByRole('heading', { name: 'External IdPs' })).toBeVisible()
-  const providerList = page.getByRole('heading', { name: 'Provider list' }).locator('..')
+  const providerList = page.getByLabel('Daftar External IdP')
   await expect(providerList).toContainText('Google Workspace')
   await expect(providerList).toContainText('healthy')
   await expect(page.getByText('safe to link: true')).toBeVisible()
@@ -124,7 +129,8 @@ test('shows safe step-up copy for provider disable', async ({ page }) => {
   })
 
   await page.goto('/external-idps')
-  await page.getByRole('button', { name: 'Disable provider' }).click()
+  await page.getByLabel('Enabled').uncheck()
+  await page.getByRole('button', { name: 'Save changes' }).click()
 
   await expect(page.getByText('fresh-auth atau MFA assurance')).toBeVisible()
   await expect(page.getByText('req-idp-step')).toBeVisible()

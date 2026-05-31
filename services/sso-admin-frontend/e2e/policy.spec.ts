@@ -17,10 +17,16 @@ const principal = {
     permissions: {
       view_admin_panel: true,
       manage_sessions: false,
-      permissions: ['admin.dashboard.view', 'admin.security-policy.read', 'admin.roles.read'],
+      permissions: [
+        'admin.dashboard.view',
+        'admin.security-policy.read',
+        'admin.security-policy.activate',
+        'admin.roles.read',
+      ],
       capabilities: {
         'admin.dashboard.view': true,
         'admin.security-policy.read': true,
+        'admin.security-policy.activate': true,
         'admin.roles.read': true,
       },
       menus: [
@@ -140,6 +146,7 @@ test('shows safe step-up copy for high-risk policy action', async ({ page }) => 
 
   await page.goto('/policy')
   await page.getByRole('button', { name: 'Activate' }).click()
+  await page.getByTestId('confirm-dialog-confirm').click()
 
   await expect(page.getByText('fresh-auth atau MFA assurance')).toBeVisible()
   await expect(page.getByText('req-policy-step')).toBeVisible()

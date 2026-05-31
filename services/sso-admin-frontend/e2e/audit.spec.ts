@@ -137,7 +137,7 @@ test('renders audit compliance evidence and DSR queue', async ({ page }) => {
     page.getByRole('button', { name: /AUTH01 refresh_token_reuse_detected/u }),
   ).toBeVisible()
   await expect(page.getByText('Suspicious login challenge matrix')).toBeVisible()
-  await expect(page.getByText('Unknown ACR policy')).toBeVisible()
+  await expect(page.getByText('Unknown ACR values are treated as no requirement')).toBeVisible()
   await expect(page.getByText('Portal/backend observable evidence')).toBeVisible()
   await expect(page.getByText('Consent revocation audit viewer')).toBeVisible()
   await expect(page.getByText('Legacy portal session fallback sunset')).toBeVisible()

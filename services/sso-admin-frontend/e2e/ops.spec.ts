@@ -63,7 +63,7 @@ test('renders ops readiness and evidence placeholders', async ({ page }) => {
 
   await expect(page.getByRole('navigation', { name: 'Modul admin' })).toContainText('Ops')
   await expect(page.getByRole('heading', { name: 'Ops Evidence', exact: true })).toBeVisible()
-  await expect(page.getByText('sso-backend')).toBeVisible()
+  await expect(page.getByText('sso-backend', { exact: true })).toBeVisible()
   await expect(page.getByText('ready')).toBeVisible()
   await expect(page.getByText('JWKS rotation drill')).toBeVisible()
   await expect(page.getByText('SIEM sink verification')).toBeVisible()

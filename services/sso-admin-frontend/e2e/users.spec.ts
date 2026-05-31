@@ -88,6 +88,7 @@ test('renders user lifecycle console and safe reset evidence', async ({ page }) 
   await expect(page.getByText('req-users-e2e')).toBeVisible()
 
   await page.getByRole('button', { name: 'Issue reset link' }).click()
+  await page.getByTestId('confirm-dialog-confirm').click()
   await expect(
     page.getByText(
       'Password reset dikirim melalui channel aman backend. Gunakan audit evidence untuk pelacakan.',
@@ -120,6 +121,7 @@ test('shows safe step-up copy for lifecycle action failures', async ({ page }) =
 
   await page.goto('/users')
   await page.getByRole('button', { name: 'Lock', exact: true }).click()
+  await page.getByTestId('confirm-dialog-confirm').click()
 
   await expect(page.getByText('fresh-auth atau MFA assurance')).toBeVisible()
   await expect(page.getByText('req-step-up-e2e')).toBeVisible()
