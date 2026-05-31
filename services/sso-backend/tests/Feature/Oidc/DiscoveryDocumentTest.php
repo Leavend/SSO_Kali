@@ -78,6 +78,31 @@ it('includes recommended fields for enhanced client support', function (): void 
         ->assertJsonPath('claims_supported', fn ($value) => in_array('sub', $value, true));
 });
 
+it('advertises supported user claims and UI locales without drifting from runtime claims', function (): void {
+    /** @var TestCase $this */
+    $response = $this->getJson('/.well-known/openid-configuration')
+        ->assertOk()
+        ->assertJsonPath('ui_locales_supported', ['id', 'en']);
+
+    $metadata = $response->json();
+    $claims = $metadata['claims_supported'] ?? [];
+
+    expect($claims)
+        ->toBeArray()
+        ->toContain('sub')
+        ->toContain('name')
+        ->toContain('given_name')
+        ->toContain('family_name')
+        ->toContain('email')
+        ->toContain('email_verified')
+        ->toContain('roles')
+        ->toContain('permissions')
+        ->toContain('auth_time')
+        ->toContain('acr')
+        ->toContain('amr')
+        ->not->toContain('refresh_token');
+});
+
 it('includes PKCE support', function (): void {
     /** @var TestCase $this */
     $this->getJson('/.well-known/openid-configuration')

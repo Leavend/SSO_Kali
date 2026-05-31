@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Oidc;
 
 use App\Exceptions\InvalidOidcConfigurationException;
+use App\Support\Oidc\OidcScope;
 use Illuminate\Support\Facades\Cache;
 
 final class OidcCatalog
@@ -67,7 +68,8 @@ final class OidcCatalog
             // per RFC 8414 §2 + RFC 7636.
             'token_endpoint_auth_methods_supported' => ['client_secret_basic', 'client_secret_post', 'none'],
             'code_challenge_methods_supported' => ['S256'],
-            'claims_supported' => ['sub', 'iss', 'aud', 'exp', 'iat', 'auth_time', 'email', 'email_verified', 'name'],
+            'claims_supported' => $this->claimsSupported(),
+            'ui_locales_supported' => ['id', 'en'],
             // FR-021: advertised ACR values. Unknown requested values are
             // handled permissively (compat policy) — the OP treats them as
             // "no requirement" rather than rejecting the request. See
@@ -99,6 +101,23 @@ final class OidcCatalog
             'alg' => config('sso.signing.alg'),
             'scopes' => config('sso.default_scopes'),
         ], JSON_THROW_ON_ERROR));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function claimsSupported(): array
+    {
+        $protocolClaims = ['sub', 'iss', 'aud', 'exp', 'iat', 'nbf', 'auth_time', 'amr', 'acr', 'azp'];
+        $scopeClaims = array_merge(...array_map(
+            static fn (array $scope): array => $scope['claims'],
+            array_values(OidcScope::catalog()),
+        ));
+
+        return array_values(array_unique(array_filter(
+            [...$protocolClaims, ...$scopeClaims],
+            static fn (string $claim): bool => $claim !== 'refresh_token',
+        )));
     }
 
     private function requiredString(string $key): string
