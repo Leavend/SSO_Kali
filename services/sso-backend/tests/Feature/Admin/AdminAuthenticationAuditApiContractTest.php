@@ -45,6 +45,13 @@ it('lists filters and paginates central authentication audit events safely', fun
         'context' => ['token_hash' => hash('sha256', 'token-85'), 'token_type_hint' => 'refresh_token'],
         'occurred_at' => now()->subDays(2),
     ]);
+    authenticationAuditRecord('consent_decision', 'succeeded', [
+        'subject_id' => 'subject-consent-85',
+        'client_id' => 'app-a',
+        'request_id' => 'req-auth-audit-consent-85',
+        'context' => ['decision' => 'revoke', 'consent_action' => 'revoke'],
+        'occurred_at' => now()->subMinutes(10),
+    ]);
 
     $response = $this->getJson('/admin/api/audit/authentication-events?'.http_build_query([
         'event_type' => 'login_succeeded',
@@ -81,6 +88,17 @@ it('lists filters and paginates central authentication audit events safely', fun
     ]), authenticationAuditHeaders($admin))
         ->assertOk()
         ->assertJsonCount(1, 'events');
+
+    $this->getJson('/admin/api/audit/authentication-events?'.http_build_query([
+        'event_type' => 'consent_decision',
+        'client_id' => 'app-a',
+        'subject_id' => 'subject-consent-85',
+        'consent_action' => 'revoke',
+    ]), authenticationAuditHeaders($admin))
+        ->assertOk()
+        ->assertJsonCount(1, 'events')
+        ->assertJsonPath('events.0.event_type', 'consent_decision')
+        ->assertJsonPath('events.0.context.decision', 'revoke');
 });
 
 it('shows one central authentication audit event and returns not found for unknown event ids', function (): void {

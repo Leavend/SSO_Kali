@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\AdminAuditEvent;
+use App\Models\AuthenticationAuditEvent;
 use App\Models\User;
 use App\Services\Oidc\AccessTokenGuard;
 use App\Services\Oidc\BackChannelSessionRegistry;
@@ -81,6 +82,19 @@ it('allows users to revoke one connected app without revoking other clients', fu
         ->and($context['request_id'])->toBe('req-issue56-revoke')
         ->and(json_encode($context, JSON_THROW_ON_ERROR))->not->toContain('rt_')
         ->and(json_encode($context, JSON_THROW_ON_ERROR))->not->toContain('Bearer');
+
+    $authEvent = AuthenticationAuditEvent::query()
+        ->where('event_type', 'consent_decision')
+        ->where('client_id', 'app-a')
+        ->latest('id')
+        ->firstOrFail();
+
+    expect($authEvent->outcome)->toBe('succeeded')
+        ->and($authEvent->subject_id)->toBe('issue56-subject')
+        ->and($authEvent->request_id)->toBe('req-issue56-revoke')
+        ->and($authEvent->context['decision'] ?? null)->toBe('revoke')
+        ->and($authEvent->context['consent_action'] ?? null)->toBe('revoke')
+        ->and($authEvent->context['revoked_refresh_tokens'] ?? null)->toBe(2);
 });
 
 it('lists public RP sessions even when no offline refresh token exists', function (): void {

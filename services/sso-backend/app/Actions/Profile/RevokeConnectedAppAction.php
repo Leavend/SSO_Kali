@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Actions\Profile;
 
+use App\Actions\Audit\RecordAuthenticationAuditEventAction;
 use App\Services\Admin\AdminAuditEventStore;
 use App\Services\Oidc\AccessTokenRevocationStore;
 use App\Services\Oidc\ConsentService;
 use App\Services\Oidc\RefreshTokenStore;
 use App\Services\Profile\ProfilePrincipalException;
 use App\Services\Profile\ProfilePrincipalResolver;
+use App\Support\Audit\AuthenticationAuditRecord;
 use App\Support\Responses\OidcErrorResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -22,6 +24,7 @@ final class RevokeConnectedAppAction
         private readonly AccessTokenRevocationStore $accessTokens,
         private readonly ConsentService $consents,
         private readonly AdminAuditEventStore $audits,
+        private readonly RecordAuthenticationAuditEventAction $authenticationAudits,
     ) {}
 
     public function handle(Request $request, string $clientId): JsonResponse
@@ -37,6 +40,20 @@ final class RevokeConnectedAppAction
         $this->accessTokens->revokeSubjectClient((string) $claims['sub'], $clientId);
         $this->consents->revoke((string) $claims['sub'], $clientId);
         $this->audit($request, $claims, $clientId, count($revoked));
+        $this->authenticationAudits->execute(AuthenticationAuditRecord::consentDecision(
+            outcome: 'succeeded',
+            subjectId: (string) $claims['sub'],
+            clientId: $clientId,
+            sessionId: is_string($claims['sid'] ?? null) ? $claims['sid'] : null,
+            ipAddress: $request->ip(),
+            userAgent: $request->userAgent(),
+            requestId: $request->headers->get('X-Request-Id'),
+            context: [
+                'decision' => 'revoke',
+                'consent_action' => 'revoke',
+                'revoked_refresh_tokens' => count($revoked),
+            ],
+        ));
 
         return response()->json([
             'client_id' => $clientId,

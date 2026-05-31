@@ -22,6 +22,12 @@ vi.mock('../../services/audit.api', () => ({
   },
 }))
 
+const routeState = vi.hoisted(() => ({ query: {} as Record<string, unknown> }))
+
+vi.mock('vue-router', () => ({
+  useRoute: () => routeState,
+}))
+
 const event: AdminAuditEvent = {
   event_id: 'AUD01',
   action: 'admin.user.lock',
@@ -124,6 +130,7 @@ function seedFullAccessPrincipal(): void {
 describe('AuditPage', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    routeState.query = {}
     seedFullAccessPrincipal()
   })
 
@@ -224,8 +231,65 @@ describe('AuditPage', () => {
     expect(wrapper.text()).toContain('Taxonomy')
     expect(wrapper.text()).toContain('Admin subject')
     expect(wrapper.text()).toContain('Subject ID')
+    expect(wrapper.text()).toContain('Client ID')
     expect(wrapper.text()).toContain('Search')
     expect(wrapper.text()).toContain('Reset')
+  })
+
+  it('applies the consent quick filter to authentication audit and revoke audit events', async () => {
+    const store = useAuditStore()
+    store.status = 'success'
+    store.events = [event]
+    store.authenticationEvents = [authEvent]
+    store.integrity = { verified: true, checked_events: 1 }
+    const searchEventsSpy = vi.spyOn(store, 'searchEvents').mockResolvedValue()
+    const searchAuthSpy = vi.spyOn(store, 'searchAuthenticationEvents').mockResolvedValue()
+
+    const wrapper = mount(AuditPage)
+
+    await wrapper.find('input[name="audit-search-subject-id"]').setValue('sub_target')
+    await wrapper.find('input[name="audit-search-client-id"]').setValue('prototype-app-a')
+    await wrapper.find('button.consent-filter-revoke-button').trigger('click')
+
+    expect(searchEventsSpy).toHaveBeenCalledWith({
+      action: 'profile.connected_app.revoke',
+      taxonomy: 'profile.connected_app_revoked',
+    })
+    expect(searchAuthSpy).toHaveBeenCalledWith({
+      event_type: 'consent_decision',
+      consent_action: 'revoke',
+      outcome: 'succeeded',
+      subject_id: 'sub_target',
+      client_id: 'prototype-app-a',
+    })
+  })
+
+  it('applies consent audit route query from client or user detail links', async () => {
+    routeState.query = {
+      consent: '1',
+      subject_id: 'sub_query',
+      client_id: 'client-query',
+      consent_action: 'deny',
+    }
+    const store = useAuditStore()
+    store.status = 'success'
+    store.events = [event]
+    store.authenticationEvents = [authEvent]
+    store.integrity = { verified: true, checked_events: 1 }
+    const searchEventsSpy = vi.spyOn(store, 'searchEvents').mockResolvedValue()
+    const searchAuthSpy = vi.spyOn(store, 'searchAuthenticationEvents').mockResolvedValue()
+
+    mount(AuditPage)
+    await Promise.resolve()
+
+    expect(searchEventsSpy).toHaveBeenCalledWith({ admin_subject_id: 'sub_query' })
+    expect(searchAuthSpy).toHaveBeenCalledWith({
+      event_type: 'consent_decision',
+      consent_action: 'deny',
+      outcome: 'failed',
+      subject_id: 'sub_query',
+      client_id: 'client-query',
+    })
   })
 
   it('submits audit and authentication search filters', async () => {
@@ -246,6 +310,7 @@ describe('AuditPage', () => {
     await wrapper.find('input[name="audit-search-taxonomy"]').setValue('user_lifecycle')
     await wrapper.find('input[name="audit-search-admin-subject-id"]').setValue('admin-1')
     await wrapper.find('input[name="audit-search-subject-id"]').setValue('sub_target')
+    await wrapper.find('input[name="audit-search-client-id"]').setValue('prototype-app-a')
     await wrapper.find('input[name="audit-search-from"]').setValue('2026-05-01')
     await wrapper.find('input[name="audit-search-to"]').setValue('2026-05-30')
     await wrapper.find('button.audit-search-button').trigger('click')
@@ -262,6 +327,7 @@ describe('AuditPage', () => {
       request_id: 'req-auth-event-1',
       session_id: 'sid-123',
       subject_id: 'sub_target',
+      client_id: 'prototype-app-a',
       outcome: 'failed',
       from: '2026-05-01',
       to: '2026-05-30',

@@ -272,7 +272,18 @@ const confirmDescription = computed<string>(() => {
             <h2>{{ store.selectedUser.display_name ?? store.selectedUser.email }}</h2>
             <p>{{ store.selectedUser.subject_id }}</p>
           </div>
-          <span class="status-pill">{{ store.selectedUser.status ?? 'unknown' }}</span>
+          <div class="action-row compact-actions">
+            <RouterLink
+              class="primary-action"
+              :to="{
+                name: 'admin.audit',
+                query: { consent: '1', subject_id: store.selectedUser.subject_id },
+              }"
+            >
+              Consent trail
+            </RouterLink>
+            <span class="status-pill">{{ store.selectedUser.status ?? 'unknown' }}</span>
+          </div>
         </header>
 
         <dl class="detail-grid">

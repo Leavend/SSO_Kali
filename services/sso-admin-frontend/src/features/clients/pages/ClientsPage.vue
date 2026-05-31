@@ -318,7 +318,18 @@ async function rotateSecret(): Promise<void> {
             <h2>{{ store.selectedClient.display_name ?? store.selectedClient.client_id }}</h2>
             <p>{{ store.selectedClient.client_id }}</p>
           </div>
-          <span class="status-pill">{{ store.selectedClient.status ?? 'unknown' }}</span>
+          <div class="action-row compact-actions">
+            <RouterLink
+              class="primary-action"
+              :to="{
+                name: 'admin.audit',
+                query: { consent: '1', client_id: store.selectedClient.client_id },
+              }"
+            >
+              Consent trail
+            </RouterLink>
+            <span class="status-pill">{{ store.selectedClient.status ?? 'unknown' }}</span>
+          </div>
         </header>
 
         <dl class="detail-grid">

@@ -143,6 +143,7 @@ export type AuthenticationAuditEventFilters = {
   readonly session_id?: string
   readonly request_id?: string
   readonly error_code?: string
+  readonly consent_action?: 'allow' | 'deny' | 'revoke'
   readonly from?: string
   readonly to?: string
 }

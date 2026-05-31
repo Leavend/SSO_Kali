@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
 import { useSessionStore } from '@/stores/session.store'
 import { useAuditStore } from '../stores/audit.store'
@@ -7,6 +8,7 @@ import type { AuditExportFilters, ComplianceEvidencePackFilters, RetentionStatus
 
 const store = useAuditStore()
 const session = useSessionStore()
+const route = useRoute()
 const canExportAudit = computed(() => session.hasPermission('admin.audit.export'))
 const canGenerateEvidencePack = computed(() => session.hasPermission('admin.audit.export'))
 const canReviewDsr = computed(() => session.hasPermission('admin.dsr.review'))
@@ -45,8 +47,10 @@ const searchOutcome = ref('')
 const searchTaxonomy = ref('')
 const searchAdminSubjectId = ref('')
 const searchSubjectId = ref('')
+const searchClientId = ref('')
 const searchFrom = ref('')
 const searchTo = ref('')
+const selectedConsentAction = ref<'all' | 'allow' | 'deny' | 'revoke'>('all')
 
 function filled(value: string): string | undefined {
   const trimmed = value.trim()
@@ -69,6 +73,7 @@ async function submitSearch(): Promise<void> {
       ...(filled(searchRequestId.value) && { request_id: filled(searchRequestId.value) }),
       ...(filled(searchSessionId.value) && { session_id: filled(searchSessionId.value) }),
       ...(filled(searchSubjectId.value) && { subject_id: filled(searchSubjectId.value) }),
+      ...(filled(searchClientId.value) && { client_id: filled(searchClientId.value) }),
       ...(filled(searchOutcome.value) && { outcome: filled(searchOutcome.value) }),
       ...(searchFrom.value && { from: searchFrom.value }),
       ...(searchTo.value && { to: searchTo.value }),
@@ -84,9 +89,53 @@ async function resetSearch(): Promise<void> {
   searchTaxonomy.value = ''
   searchAdminSubjectId.value = ''
   searchSubjectId.value = ''
+  searchClientId.value = ''
+  selectedConsentAction.value = 'all'
   searchFrom.value = ''
   searchTo.value = ''
   await Promise.all([store.searchEvents({}), store.searchAuthenticationEvents({})])
+}
+
+async function applyConsentFilter(action: 'all' | 'allow' | 'deny' | 'revoke' = 'all'): Promise<void> {
+  selectedConsentAction.value = action
+  searchAction.value = action === 'revoke' ? 'profile.connected_app.revoke' : ''
+  searchTaxonomy.value = action === 'revoke' ? 'profile.connected_app_revoked' : ''
+  searchOutcome.value = action === 'allow' || action === 'revoke' ? 'succeeded' : action === 'deny' ? 'failed' : ''
+  await Promise.all([
+    store.searchEvents({
+      ...(action === 'revoke' && { action: 'profile.connected_app.revoke' }),
+      ...(action === 'revoke' && { taxonomy: 'profile.connected_app_revoked' }),
+      ...(filled(searchAdminSubjectId.value) && {
+        admin_subject_id: filled(searchAdminSubjectId.value),
+      }),
+      ...(searchFrom.value && { from: searchFrom.value }),
+      ...(searchTo.value && { to: searchTo.value }),
+    }),
+    store.searchAuthenticationEvents({
+      event_type: 'consent_decision',
+      ...(action !== 'all' && { consent_action: action }),
+      ...(action === 'allow' || action === 'revoke' ? { outcome: 'succeeded' } : {}),
+      ...(action === 'deny' ? { outcome: 'failed' } : {}),
+      ...(filled(searchSubjectId.value) && { subject_id: filled(searchSubjectId.value) }),
+      ...(filled(searchClientId.value) && { client_id: filled(searchClientId.value) }),
+      ...(searchFrom.value && { from: searchFrom.value }),
+      ...(searchTo.value && { to: searchTo.value }),
+    }),
+  ])
+}
+
+function queryValue(value: unknown): string {
+  return Array.isArray(value) ? String(value[0] ?? '') : String(value ?? '')
+}
+
+async function applyQueryConsentFilter(): Promise<boolean> {
+  if (route.query.consent !== '1') return false
+  searchSubjectId.value = queryValue(route.query.subject_id)
+  searchAdminSubjectId.value = queryValue(route.query.subject_id)
+  searchClientId.value = queryValue(route.query.client_id)
+  const action = queryValue(route.query.consent_action)
+  await applyConsentFilter(action === 'allow' || action === 'deny' || action === 'revoke' ? action : 'all')
+  return true
 }
 
 async function submitExport(): Promise<void> {
@@ -134,7 +183,9 @@ function retentionNumber(value: number | null | undefined): string {
 }
 
 onMounted(() => {
-  if (store.status === 'idle') void store.load()
+  void applyQueryConsentFilter().then((handled) => {
+    if (!handled && store.status === 'idle') void store.load()
+  })
 })
 </script>
 
@@ -381,6 +432,10 @@ onMounted(() => {
             <input v-model="searchSubjectId" name="audit-search-subject-id" autocomplete="off" />
           </label>
           <label class="reason-field">
+            Client ID
+            <input v-model="searchClientId" name="audit-search-client-id" autocomplete="off" />
+          </label>
+          <label class="reason-field">
             From
             <input v-model="searchFrom" name="audit-search-from" type="date" />
           </label>
@@ -395,6 +450,48 @@ onMounted(() => {
           </button>
           <button class="danger-action audit-reset-button" type="button" @click="resetSearch">
             Reset
+          </button>
+        </div>
+      </section>
+
+      <section class="detail-section" aria-labelledby="consent-events-title">
+        <h2 id="consent-events-title">Consent events</h2>
+        <p class="page-summary">
+          Filter cepat consent allow, deny, dan revoke berdasarkan subject atau client untuk
+          investigasi consent trail.
+        </p>
+        <div class="action-row compact-actions">
+          <button
+            class="primary-action consent-filter-all-button"
+            :class="{ 'status-pill': selectedConsentAction === 'all' }"
+            type="button"
+            @click="applyConsentFilter('all')"
+          >
+            Semua consent
+          </button>
+          <button
+            class="primary-action consent-filter-allow-button"
+            :class="{ 'status-pill': selectedConsentAction === 'allow' }"
+            type="button"
+            @click="applyConsentFilter('allow')"
+          >
+            Allow
+          </button>
+          <button
+            class="primary-action consent-filter-deny-button"
+            :class="{ 'status-pill': selectedConsentAction === 'deny' }"
+            type="button"
+            @click="applyConsentFilter('deny')"
+          >
+            Deny
+          </button>
+          <button
+            class="primary-action consent-filter-revoke-button"
+            :class="{ 'status-pill': selectedConsentAction === 'revoke' }"
+            type="button"
+            @click="applyConsentFilter('revoke')"
+          >
+            Revoke
           </button>
         </div>
       </section>

@@ -28,6 +28,10 @@ final class AdminAuthenticationAuditQuery
             }
         }
 
+        if (is_string($filters['consent_action'] ?? null) && $filters['consent_action'] !== '') {
+            $query->where('context->decision', $filters['consent_action']);
+        }
+
         if (is_string($filters['from'] ?? null) && $filters['from'] !== '') {
             $query->where('occurred_at', '>=', Carbon::parse($filters['from']));
         }

@@ -29,6 +29,7 @@ final class ListAuthenticationAuditEventsRequest extends FormRequest
             'session_id' => ['sometimes', 'string', 'max:160'],
             'request_id' => ['sometimes', 'string', 'max:160'],
             'error_code' => ['sometimes', 'string', 'max:160'],
+            'consent_action' => ['sometimes', 'string', Rule::in(['allow', 'deny', 'revoke'])],
             'from' => ['sometimes', 'date'],
             'to' => ['sometimes', 'date', 'after_or_equal:from'],
         ];
