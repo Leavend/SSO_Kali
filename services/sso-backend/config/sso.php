@@ -72,6 +72,10 @@ return [
         'password_max_age_days' => (int) env('SSO_AUTH_PASSWORD_MAX_AGE_DAYS', 90),
         'password_reset_ttl_minutes' => (int) env('SSO_AUTH_PASSWORD_RESET_TTL_MINUTES', 30),
     ],
+    'password' => [
+        'breach_check' => (bool) env('SSO_PASSWORD_BREACH_CHECK', true),
+        'breach_check_timeout_seconds' => (int) env('SSO_PASSWORD_BREACH_CHECK_TIMEOUT_SECONDS', 5),
+    ],
     'seed' => [
         'admin_email' => env('SSO_ADMIN_EMAIL', 'admin@example.test'),
         'admin_password' => env('SSO_ADMIN_PASSWORD', 'change-me-admin-password'),

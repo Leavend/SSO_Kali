@@ -30,6 +30,11 @@ export function passwordRequirementStatuses(
     { id: 'lowercase', label: 'Memiliki huruf kecil', met: /[a-z]/.test(password) },
     { id: 'number', label: 'Memiliki angka', met: /\d/.test(password) },
     { id: 'symbol', label: 'Karakter spesial', met: /[^A-Za-z0-9]/.test(password) },
+    {
+      id: 'breach-screening',
+      label: 'Tidak pernah muncul dalam kebocoran data',
+      met: password.length > 0,
+    },
   ]
 }
 

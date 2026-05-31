@@ -143,7 +143,7 @@ describe('SecurityPage', () => {
     await revealButtons[1]?.trigger('click')
 
     expect(newPasswordInput.attributes('type')).toBe('text')
-    expect(wrapper.find('[data-testid="password-strength-label"]').text()).toContain('Kuat · 5/5')
+    expect(wrapper.find('[data-testid="password-strength-label"]').text()).toContain('Kuat · 6/6')
     expect(wrapper.text()).toContain('Minimal 12 karakter')
     expect(wrapper.text()).toContain('Karakter spesial')
     expect(wrapper.text()).toContain('* Semua kolom wajib diisi')

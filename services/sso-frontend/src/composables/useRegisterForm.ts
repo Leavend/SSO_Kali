@@ -60,7 +60,8 @@ const HEADLINES: Readonly<Record<RegisterStepId, string>> = {
 
 const TAGLINES: Readonly<Record<RegisterStepId, string>> = {
   email: 'Buat akun untuk mengakses semua aplikasi internal dengan satu identitas.',
-  password: 'Minimal 12 karakter dengan huruf besar, huruf kecil, angka, dan karakter spesial.',
+  password:
+    'Minimal 12 karakter dengan huruf besar, huruf kecil, angka, karakter spesial, dan tidak pernah muncul dalam kebocoran data.',
   confirm: 'Konfirmasi password dan masukkan nama lengkapmu.',
 }
 

@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Auth;
 
 use App\Models\User;
+use App\Rules\StrongPassword;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rules\Password;
 
 final class RegisterController
 {
@@ -19,7 +19,7 @@ final class RegisterController
         $validator = Validator::make($request->only(['name', 'email', 'password', 'password_confirmation']), [
             'name' => ['required', 'string', 'min:2', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'string', Password::min(8), 'confirmed'],
+            'password' => ['required', 'string', new StrongPassword, 'confirmed'],
         ]);
 
         if ($validator->fails()) {

@@ -36,5 +36,6 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <env name="SSO_PASSWORD_BREACH_CHECK" value="false"/>
     </php>
 </phpunit>

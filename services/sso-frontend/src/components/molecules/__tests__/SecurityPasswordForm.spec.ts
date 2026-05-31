@@ -32,7 +32,7 @@ describe('SecurityPasswordForm', () => {
     const strengthBar = wrapper.find('[data-testid="password-strength-bar"]')
 
     expect(revealButtons).toHaveLength(3)
-    expect(wrapper.find('[data-testid="password-strength-label"]').text()).toContain('Kuat · 5/5')
+    expect(wrapper.find('[data-testid="password-strength-label"]').text()).toContain('Kuat · 6/6')
     expect(wrapper.text()).toContain('Minimal 12 karakter')
     expect(wrapper.text()).toContain('Karakter spesial')
     expect(wrapper.text()).toContain('* Semua kolom wajib diisi')
@@ -46,7 +46,7 @@ describe('SecurityPasswordForm', () => {
     const wrapper = mountForm(false, '')
 
     expect(wrapper.find('[data-testid="password-strength-label"]').text()).toContain(
-      'Mulai mengetik untuk melihat kekuatan password · 0/5',
+      'Mulai mengetik untuk melihat kekuatan password · 0/6',
     )
   })
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Rules;
 
+use App\Services\Security\BreachedPasswordVerifier;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Translation\PotentiallyTranslatedString;
@@ -18,6 +19,7 @@ use Illuminate\Translation\PotentiallyTranslatedString;
  * - At least 1 digit
  * - At least 1 special character
  * - Maximum 128 characters
+ * - Must not appear in known public breach corpora when screening is enabled
  */
 final class StrongPassword implements ValidationRule
 {
@@ -64,6 +66,12 @@ final class StrongPassword implements ValidationRule
 
         if (! preg_match('/[^A-Za-z0-9]/', $value)) {
             $fail('Password harus mengandung minimal 1 karakter spesial.');
+
+            return;
+        }
+
+        if (app(BreachedPasswordVerifier::class)->isBreached($value)) {
+            $fail('Password ini pernah muncul dalam kebocoran data; pilih yang lain.');
         }
     }
 }

@@ -37,6 +37,11 @@ const strengthBarClass = computed<string>(() => {
   return 'bg-muted-foreground/30'
 })
 
+const strengthLabel = computed<string>(
+  () =>
+    `${props.strengthSummary.label} · ${props.strengthSummary.score}/${props.strengthSummary.items.length}`,
+)
+
 function updateField(field: keyof ChangePasswordPayload, value: string): void {
   emit('update:field', field, value)
 }
@@ -93,7 +98,7 @@ function handleCancel(): void {
       <div class="flex items-center justify-between gap-3">
         <span class="text-xs font-medium text-[var(--text-primary)]">Kekuatan password</span>
         <span data-testid="password-strength-label" class="text-xs font-semibold">
-          {{ props.strengthSummary.label }} · {{ props.strengthSummary.score }}/5
+          {{ strengthLabel }}
         </span>
       </div>
       <div

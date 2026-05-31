@@ -18,6 +18,8 @@ const ERROR_TRANSLATIONS: Readonly<Record<string, string>> = {
   'The password field is required.': 'Password wajib diisi.',
   'The password field confirmation does not match.': 'Konfirmasi password tidak cocok.',
   'The password confirmation does not match.': 'Konfirmasi password tidak cocok.',
+  'Password ini pernah muncul dalam kebocoran data; pilih yang lain.':
+    'Password ini pernah muncul dalam kebocoran data; pilih yang lain.',
   'The route api/auth/register could not be found.':
     'Fitur pendaftaran belum tersedia. Hubungi administrator.',
   'Not Found': 'Fitur pendaftaran belum tersedia. Hubungi administrator.',
@@ -35,7 +37,7 @@ export function translateRegisterViolation(message: string): string {
   const known = ERROR_TRANSLATIONS[message]
   if (known) return known
   if (PASSWORD_MIN_LENGTH_PATTERN.test(message)) {
-    return 'Password belum memenuhi kebijakan keamanan (minimal 12 karakter, huruf besar, huruf kecil, angka, dan karakter spesial).'
+    return 'Password belum memenuhi kebijakan keamanan (minimal 12 karakter, huruf besar, huruf kecil, angka, karakter spesial, dan tidak pernah muncul dalam kebocoran data).'
   }
   return 'Data tidak valid.'
 }
