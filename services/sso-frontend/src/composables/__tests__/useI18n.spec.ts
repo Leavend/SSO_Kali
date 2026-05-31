@@ -1,7 +1,25 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { useI18n } from '../useI18n'
 
 describe('useI18n', () => {
+  afterEach(() => {
+    window.localStorage.removeItem('dev-sso-locale')
+    useI18n().setLocale('id')
+    vi.unstubAllGlobals()
+  })
+
+  it('defaults to Indonesian even when browser locale is English', async () => {
+    vi.resetModules()
+    vi.stubGlobal('navigator', { language: 'en-US' })
+    window.localStorage.removeItem('dev-sso-locale')
+
+    const { useI18n: useFreshI18n } = await import('../useI18n')
+    const { locale, t } = useFreshI18n()
+
+    expect(locale.value).toBe('id')
+    expect(t('auth.login.title')).toBe('Masuk ke akunmu')
+  })
+
   it('resolves simple dot-notation key', () => {
     const { setLocale, t } = useI18n()
     setLocale('id')

@@ -9,7 +9,8 @@
  *   - Interpolasi: `t('portal.footer', { year: 2026 })`
  *   - Fallback ke key bila tidak ditemukan (dev-friendly).
  *
- * Locale aktif di-set via `<html lang>` dan bisa di-switch runtime.
+ * Locale aktif di-set dari preferensi tersimpan atau default produk (`id`),
+ * lalu disinkronkan ke `<html lang>` dan bisa di-switch runtime.
  */
 
 import { computed, ref, type ComputedRef } from 'vue'
@@ -91,10 +92,7 @@ function detectInitialLocale(): SupportedLocale {
   const stored = readStoredLocale()
   if (stored) return stored
 
-  const documentLocale = readDocumentLocale()
-  if (documentLocale) return documentLocale
-
-  return readNavigatorLocale() ?? DEFAULT_LOCALE
+  return DEFAULT_LOCALE
 }
 
 function normalizeLocale(value: string | null | undefined): SupportedLocale | null {
@@ -110,16 +108,6 @@ function readStoredLocale(): SupportedLocale | null {
   } catch {
     return null
   }
-}
-
-function readDocumentLocale(): SupportedLocale | null {
-  if (typeof document === 'undefined') return null
-  return normalizeLocale(document.documentElement.getAttribute('lang'))
-}
-
-function readNavigatorLocale(): SupportedLocale | null {
-  if (typeof navigator === 'undefined') return null
-  return normalizeLocale(navigator.language)
 }
 
 function syncDocumentLocale(locale: SupportedLocale): void {
