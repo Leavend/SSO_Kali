@@ -88,6 +88,7 @@
     "status_419": "The security session expired. Reload the page and try again.",
     "status_422": "The submitted data is invalid.",
     "status_429": "Too many attempts. Wait a moment before trying again.",
+    "rate_limit_retry_after": "Too many attempts. Try again in {seconds} seconds.",
     "status_5xx": "The SSO service is unavailable. Try again later.",
     "status_generic": "Request failed with status {status}.",
     "network_error": "Unable to reach the SSO server.",

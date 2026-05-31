@@ -88,9 +88,22 @@ describe('password lifecycle composables', () => {
     expect(reset.success.value).toContain('Jika email terdaftar')
   })
 
-  it('confirms password reset with safe 419/429 copy from ApiError', async () => {
+  it('requests password reset with retry-after cooldown copy for 429', async () => {
+    vi.mocked(authApi.requestPasswordReset).mockRejectedValue(
+      new ApiError(429, 'SQLSTATE throttle trace', 'too_many_attempts', [], 'http', 30),
+    )
+    const reset = usePasswordResetRequest()
+    reset.form.email = 'user@example.test'
+
+    await reset.submit()
+
+    expect(reset.error.value).toBe('Terlalu banyak percobaan. Coba lagi dalam 30 detik.')
+    expect(reset.error.value).not.toContain('SQLSTATE')
+  })
+
+  it('confirms password reset with retry-after cooldown copy for 429', async () => {
     vi.mocked(authApi.confirmPasswordReset).mockRejectedValue(
-      new ApiError(429, 'Terlalu banyak permintaan. Coba lagi nanti.', 'too_many_attempts'),
+      new ApiError(429, 'SQLSTATE throttle trace', 'too_many_attempts', [], 'http', 90),
     )
     const reset = usePasswordResetConfirm('reset-token')
     reset.form.email = 'user@example.test'
@@ -99,7 +112,7 @@ describe('password lifecycle composables', () => {
 
     await reset.submit()
 
-    expect(reset.error.value).toBe('Terlalu banyak permintaan. Coba lagi nanti.')
+    expect(reset.error.value).toBe('Terlalu banyak percobaan. Coba lagi dalam 90 detik.')
     expect(reset.error.value).not.toContain('SQLSTATE')
   })
 })

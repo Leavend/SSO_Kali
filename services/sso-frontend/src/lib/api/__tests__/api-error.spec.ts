@@ -134,6 +134,18 @@ describe('ApiError.fromResponse', () => {
     expect(error.status).toBe(419)
     expect(error.message).toBe('Sesi keamanan kedaluwarsa. Muat ulang halaman lalu coba lagi.')
   })
+
+  it('exposes Retry-After as retryAfter and retryAfterSeconds', async () => {
+    const response = new Response(JSON.stringify({ message: 'Too many attempts.' }), {
+      status: 429,
+      headers: { 'content-type': 'application/json', 'retry-after': '25' },
+    })
+
+    const error = await ApiError.fromResponse(response)
+
+    expect(error.retryAfterSeconds).toBe(25)
+    expect(error.retryAfter).toBe(25)
+  })
 })
 
 describe('ApiError factories for transport failures', () => {

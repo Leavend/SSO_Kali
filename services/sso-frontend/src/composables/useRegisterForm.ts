@@ -23,6 +23,7 @@ import { presentSafeError } from '@/lib/api/safe-error-presenter'
 import { passwordStrengthHints } from '@/lib/auth/password-policy'
 import { translateRegisterViolation } from '@/lib/auth/register-violations'
 import { useAuthSteps, type UseAuthStepsApi } from '@/composables/useAuthSteps'
+import { useRateLimitNotice } from '@/composables/useRateLimitNotice'
 
 export type RegisterStepId = 'email' | 'password' | 'confirm'
 
@@ -67,6 +68,7 @@ const TAGLINES: Readonly<Record<RegisterStepId, string>> = {
 
 export function useRegisterForm(): UseRegisterFormReturn {
   const router = useRouter()
+  const rateLimitNotice = useRateLimitNotice()
 
   const form = reactive<RegisterForm>({
     name: '',
@@ -149,6 +151,11 @@ export function useRegisterForm(): UseRegisterFormReturn {
       return
     }
     if (error instanceof ApiError) {
+      const rateLimit = rateLimitNotice.fromError(error)
+      if (rateLimit) {
+        bannerError.value = rateLimit.message
+        return
+      }
       bannerError.value = presentSafeError(
         error,
         'Gagal mendaftarkan akun. Coba lagi beberapa saat.',

@@ -88,6 +88,7 @@
     "status_419": "Sesi keamanan kedaluwarsa. Muat ulang halaman lalu coba lagi.",
     "status_422": "Data yang dikirim tidak valid.",
     "status_429": "Terlalu banyak percobaan. Tunggu sebentar sebelum mencoba lagi.",
+    "rate_limit_retry_after": "Terlalu banyak percobaan. Coba lagi dalam {seconds} detik.",
     "status_5xx": "Layanan SSO sedang tidak tersedia. Coba lagi nanti.",
     "status_generic": "Permintaan gagal dengan status {status}.",
     "network_error": "Tidak dapat menghubungi server SSO.",

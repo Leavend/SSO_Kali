@@ -1,6 +1,7 @@
 import { ref, type Ref } from 'vue'
 import { passwordStrengthHints, validatePasswordFields } from '@/lib/auth/password-policy'
 import { presentSafeError, validationErrors } from '@/lib/api/safe-error-presenter'
+import { useRateLimitNotice } from '@/composables/useRateLimitNotice'
 
 export type PasswordFieldErrors = Record<string, string>
 
@@ -39,6 +40,7 @@ export function usePasswordActionState(): PasswordActionState {
   const pending = ref(false)
   const success = ref<string | null>(null)
   const error = ref<string | null>(null)
+  const rateLimitNotice = useRateLimitNotice()
 
   async function run(
     fn: () => Promise<void>,
@@ -53,7 +55,8 @@ export function usePasswordActionState(): PasswordActionState {
       await fn()
     } catch (caught) {
       fields.value = validationErrors(caught)
-      error.value = presentSafeError(caught, fallback).message
+      error.value =
+        rateLimitNotice.fromError(caught)?.message ?? presentSafeError(caught, fallback).message
     } finally {
       pending.value = false
     }

@@ -34,6 +34,7 @@ export class ApiError extends Error {
   readonly violations: readonly ApiViolation[]
   readonly kind: ApiErrorKind
   readonly retryAfterSeconds: number | null
+  readonly retryAfter: number | null
   readonly errorRef: string | null
   readonly requestId: string | null
 
@@ -54,6 +55,7 @@ export class ApiError extends Error {
     this.violations = violations
     this.kind = kind
     this.retryAfterSeconds = retryAfterSeconds
+    this.retryAfter = retryAfterSeconds
     this.errorRef = errorRef
     this.requestId = requestId
   }
