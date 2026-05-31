@@ -96,7 +96,7 @@ final class LocalTokenService
         $accessClaims = $this->claims->accessTokenClaims($user, $context, (string) Str::uuid());
         $accessToken = $this->keys->sign($accessClaims);
         $idToken = $this->keys->sign(
-            $this->claims->idTokenClaims($user, $context, (string) Str::uuid()),
+            $this->claims->idTokenClaims($user, $context, (string) Str::uuid(), $this->accessTokenHash($accessToken)),
         );
 
         $this->revocations->track(
@@ -111,6 +111,21 @@ final class LocalTokenService
             'access_token' => $accessToken,
             'id_token' => $idToken,
         ];
+    }
+
+    private function accessTokenHash(string $accessToken): string
+    {
+        $algorithm = (string) config('sso.signing.alg', 'ES256');
+        $hashAlgorithm = match (true) {
+            str_ends_with($algorithm, '384') => 'sha384',
+            str_ends_with($algorithm, '512') => 'sha512',
+            default => 'sha256',
+        };
+
+        $digest = hash($hashAlgorithm, $accessToken, true);
+        $leftHalf = substr($digest, 0, intdiv(strlen($digest), 2));
+
+        return rtrim(strtr(base64_encode($leftHalf), '+/', '-_'), '=');
     }
 
     /**

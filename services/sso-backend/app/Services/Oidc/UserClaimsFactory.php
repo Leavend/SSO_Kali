@@ -43,7 +43,7 @@ final class UserClaimsFactory
      * @param  array<string, mixed>  $context
      * @return array<string, mixed>
      */
-    public function idTokenClaims(User $user, array $context, string $jti): array
+    public function idTokenClaims(User $user, array $context, string $jti, ?string $accessTokenHash = null): array
     {
         $scope = (string) ($context['scope'] ?? 'openid');
         $timestamps = $this->timestamps((int) config('sso.ttl.id_token_minutes', 15));
@@ -57,6 +57,7 @@ final class UserClaimsFactory
             'jti' => $jti,
             'sid' => $context['session_id'],
             'nonce' => $context['nonce'] ?? null,
+            'at_hash' => $accessTokenHash,
             ...$this->sharedClaims($user, ScopeSet::fromString($scope)),
             ...$this->assuranceClaims($context, $timestamps['iat']),
             ...$timestamps,

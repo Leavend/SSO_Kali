@@ -100,6 +100,7 @@ it('advertises supported user claims and UI locales without drifting from runtim
         ->toContain('auth_time')
         ->toContain('acr')
         ->toContain('amr')
+        ->toContain('at_hash')
         ->not->toContain('refresh_token');
 });
 

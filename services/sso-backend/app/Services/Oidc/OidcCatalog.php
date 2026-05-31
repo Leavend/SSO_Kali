@@ -108,7 +108,7 @@ final class OidcCatalog
      */
     private function claimsSupported(): array
     {
-        $protocolClaims = ['sub', 'iss', 'aud', 'exp', 'iat', 'nbf', 'auth_time', 'amr', 'acr', 'azp'];
+        $protocolClaims = ['sub', 'iss', 'aud', 'exp', 'iat', 'nbf', 'auth_time', 'amr', 'acr', 'azp', 'at_hash'];
         $scopeClaims = array_merge(...array_map(
             static fn (array $scope): array => $scope['claims'],
             array_values(OidcScope::catalog()),

@@ -65,7 +65,7 @@ it('includes required OIDC access token claims', function (): void {
 
 it('includes required OIDC id token claims', function (): void {
     $factory = new UserClaimsFactory;
-    $claims = $factory->idTokenClaims(makeUser(), baseContext(), 'jti-002');
+    $claims = $factory->idTokenClaims(makeUser(), baseContext(), 'jti-002', 'access-token-hash');
 
     expect($claims)
         ->toHaveKey('iss', 'https://sso.example.com')
@@ -75,7 +75,8 @@ it('includes required OIDC id token claims', function (): void {
         ->toHaveKey('token_use', 'id')
         ->toHaveKey('jti', 'jti-002')
         ->toHaveKey('sid', 'sid-001')
-        ->toHaveKey('nonce', 'nonce-xyz');
+        ->toHaveKey('nonce', 'nonce-xyz')
+        ->toHaveKey('at_hash', 'access-token-hash');
 });
 
 it('omits nonce from id_token when not provided in context', function (): void {

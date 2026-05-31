@@ -20,7 +20,7 @@ use Illuminate\Support\Str;
  * has a single, machine-checked source of truth:
  *
  *   1. Core claims (`iss`, `aud`, `sub`, `iat`, `exp`, `nonce`, `sid`,
- *      `azp`, `nbf`, `jti`) appear on every ID token.
+ *      `azp`, `at_hash`, `nbf`, `jti`) appear on every ID token.
  *   2. Profile, email, roles, and permission claims appear only when
  *      the corresponding scope is granted.
  *   3. `auth_time`, `amr`, and `acr` reflect MFA / step-up assurance.
@@ -62,6 +62,7 @@ it(
         expect($idClaims['iss'] ?? null)->toBe('https://api-sso.timeh.my.id')
             ->and($idClaims['aud'] ?? null)->toBe('app-a')
             ->and($idClaims['azp'] ?? null)->toBe('app-a')
+            ->and($idClaims['at_hash'] ?? null)->toBe(issue30AtHash($tokens['access_token']))
             ->and($idClaims['sub'] ?? null)->toBeString()->not->toBe('')
             ->and($idClaims['sid'] ?? null)->toBeString()->not->toBe('')
             ->and($idClaims['nonce'] ?? null)->toBe($tokens['nonce'])
@@ -128,6 +129,23 @@ it('reflects MFA/step-up assurance in auth_time, amr, and acr claims', function 
     expect($idClaims['amr'] ?? [])->toEqualCanonicalizing(['pwd', 'mfa'])
         ->and($idClaims['acr'] ?? null)->toBe('urn:sso:loa:mfa')
         ->and($idClaims['auth_time'] ?? null)->toBe($authTime);
+});
+
+it('keeps aud azp and at_hash consistent on refresh-issued ID tokens', function (): void {
+    $tokens = issue30Tokens('app-a', 'https://sso.timeh.my.id/app-a/auth/callback', 'openid profile offline_access');
+
+    $refreshResponse = test()->postJson('/token', [
+        'grant_type' => 'refresh_token',
+        'client_id' => 'app-a',
+        'refresh_token' => $tokens['refresh_token'],
+    ])->assertOk();
+
+    $accessToken = (string) $refreshResponse->json('access_token');
+    $idClaims = app(SigningKeyService::class)->decode((string) $refreshResponse->json('id_token'));
+
+    expect($idClaims['aud'] ?? null)->toBe('app-a')
+        ->and($idClaims['azp'] ?? null)->toBe('app-a')
+        ->and($idClaims['at_hash'] ?? null)->toBe(issue30AtHash($accessToken));
 });
 
 it('signs the ID token with an alg and kid that match the JWKS document', function (): void {
@@ -209,6 +227,21 @@ function issue30Tokens(
         'refresh_token' => (string) $tokenResponse->json('refresh_token'),
         'nonce' => $nonce,
     ];
+}
+
+function issue30AtHash(string $accessToken): string
+{
+    $algorithm = (string) config('sso.signing.alg', 'ES256');
+    $hashAlgorithm = match (true) {
+        str_ends_with($algorithm, '384') => 'sha384',
+        str_ends_with($algorithm, '512') => 'sha512',
+        default => 'sha256',
+    };
+
+    $digest = hash($hashAlgorithm, $accessToken, true);
+    $leftHalf = substr($digest, 0, intdiv(strlen($digest), 2));
+
+    return rtrim(strtr(base64_encode($leftHalf), '+/', '-_'), '=');
 }
 
 /**
