@@ -10,7 +10,23 @@ it('optimizes health as an edge static operational route', function (): void {
         ->toContain('return 200')
         ->toContain('"edge":"nginx"')
         ->toContain('Cache-Control "no-store"')
+        ->toContain('Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"')
+        ->toContain('Content-Security-Policy "default-src \'none\'; frame-ancestors \'none\'; base-uri \'none\'; form-action \'self\'"')
+        ->toContain('X-Frame-Options "DENY"')
+        ->toContain('X-Content-Type-Options "nosniff"')
         ->not->toContain('proxy_pass');
+});
+
+it('keeps static edge liveness protected by security headers', function (): void {
+    $config = operationalRouteOptimizationContents('../../deploy/nginx/nginx-sso-backend-edge.conf');
+    $block = operationalRouteBlock($config, 'location = /up');
+
+    expect($block)
+        ->toContain('return 200')
+        ->toContain('Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"')
+        ->toContain('Content-Security-Policy "default-src \'none\'; frame-ancestors \'none\'; base-uri \'none\'; form-action \'self\'"')
+        ->toContain('X-Frame-Options "DENY"')
+        ->toContain('X-Content-Type-Options "nosniff"');
 });
 
 it('microcaches readiness to absorb dependency-check bursts', function (): void {
@@ -66,9 +82,25 @@ it('ships an active VPS apply script for live nginx optimization', function (): 
         ->toContain('--mode audit|apply')
         ->toContain('api-sso.timeh.my.id.conf')
         ->toContain('sso_operational_routes')
+        ->toContain('edge_security_headers')
+        ->toContain('Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"')
         ->toContain('nginx -t')
         ->toContain('systemctl reload nginx')
         ->toContain('pre-op-route-optimization');
+});
+
+it('documents production security header layer ownership and verification', function (): void {
+    $document = operationalRouteOptimizationContents('../../docs/security/security-header-layers.md');
+    $checklist = operationalRouteOptimizationContents('../../docs/security/sso-backend-production-checklist.md');
+
+    expect($document)
+        ->toContain('Backend API `api-sso.timeh.my.id`')
+        ->toContain('Static edge routes such as `/up` and `/health` must set headers themselves')
+        ->toContain('curl -fsSI https://api-sso.timeh.my.id/health');
+
+    expect($checklist)
+        ->toContain('docs/security/security-header-layers.md')
+        ->toContain('strict-transport-security|content-security-policy');
 });
 
 function operationalRouteOptimizationContents(string $relativePath): string

@@ -45,6 +45,7 @@ follow_up_issue:
 - [ ] TLS certificate is valid for `api-sso.timeh.my.id`.
 - [ ] HTTP redirects to HTTPS.
 - [ ] HSTS is enabled after HTTPS is confirmed stable.
+- [ ] Public backend edge responses include HSTS/CSP/security headers from the documented header layer contract.
 - [ ] Nginx config validates before reload.
 - [ ] Edge forwards `X-Forwarded-Proto` and `X-Request-Id`.
 
@@ -53,9 +54,13 @@ Evidence commands:
 ```bash
 curl -I http://api-sso.timeh.my.id/up
 curl -I https://api-sso.timeh.my.id/up
+curl -fsSI https://api-sso.timeh.my.id/health | grep -Ei 'strict-transport-security|content-security-policy|x-frame-options|x-content-type-options|referrer-policy'
+curl -fsSI https://api-sso.timeh.my.id/.well-known/openid-configuration | grep -Ei 'strict-transport-security|content-security-policy|x-frame-options|x-content-type-options|referrer-policy'
 curl -isS https://api-sso.timeh.my.id/health -H 'X-Request-Id: security-check-001' | grep -i 'x-request-id'
 sudo nginx -t
 ```
+
+Header ownership is documented in `docs/security/security-header-layers.md`.
 
 ## Laravel / Runtime Configuration
 

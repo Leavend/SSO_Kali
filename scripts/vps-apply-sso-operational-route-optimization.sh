@@ -106,17 +106,26 @@ proxy_common = f'''{indent}    include {snippet};
 {indent}    proxy_buffer_size 16k;
 {indent}    proxy_buffers 16 16k;'''
 
+edge_security_headers = f'''{indent}    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+{indent}    add_header Content-Security-Policy "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'" always;
+{indent}    add_header X-Content-Type-Options "nosniff" always;
+{indent}    add_header X-Frame-Options "DENY" always;
+{indent}    add_header Referrer-Policy "no-referrer" always;
+{indent}    add_header Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()" always;'''
+
 locations = {
     '/up': f'''{indent}location = /up {{
 {indent}    access_log off;
 {indent}    default_type text/plain;
 {indent}    add_header Cache-Control "no-store" always;
+{edge_security_headers}
 {indent}    return 200 "ok\\n";
 {indent}}}''',
     '/health': f'''{indent}location = /health {{
 {indent}    access_log off;
 {indent}    default_type application/json;
 {indent}    add_header Cache-Control "no-store" always;
+{edge_security_headers}
 {indent}    return 200 '{{"service":"sso-backend","healthy":true,"edge":"nginx"}}\\n';
 {indent}}}''',
     '/ready': f'''{indent}location = /ready {{
