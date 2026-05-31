@@ -2,6 +2,7 @@ import type { IncomingMessage } from 'node:http'
 import { refreshPortalSession, sessionNeedsRefresh } from './session-refresh.js'
 import type { PortalSession } from './session.js'
 import { readSession, replaceSession, sessionCookieForId } from './session.js'
+import { resolveBffRequestId } from './proxy-headers.js'
 
 export type ResolvedSsoSession = {
   readonly session: PortalSession
@@ -16,7 +17,9 @@ export async function resolveSsoSession(
   if (!sessionId || !session) return null
   if (!sessionNeedsRefresh(session)) return { session, cookies: [] }
 
-  const refreshed = await refreshPortalSession(session)
+  const refreshed = await refreshPortalSession(session, {
+    requestId: resolveBffRequestId(request.headers),
+  })
   await replaceSession(sessionId, refreshed)
   return { session: refreshed, cookies: [sessionCookieForId(sessionId, refreshed)] }
 }

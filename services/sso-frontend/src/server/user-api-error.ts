@@ -2,18 +2,21 @@ export class UserApiError extends Error {
   readonly status: number
   readonly code: string | null
   readonly violations: readonly string[]
+  readonly requestId: string | null
 
   constructor(
     status: number,
     message: string,
     code: string | null = null,
     violations: readonly string[] = [],
+    requestId: string | null = null,
   ) {
     super(message)
     this.name = 'UserApiError'
     this.status = status
     this.code = code
     this.violations = violations
+    this.requestId = requestId
   }
 }
 
@@ -25,6 +28,7 @@ export async function buildUserApiError(response: Response): Promise<UserApiErro
     message,
     payload?.code ?? null,
     payload?.violations ?? [],
+    payload?.requestId ?? response.headers.get('x-request-id'),
   )
 }
 
@@ -48,6 +52,7 @@ type ResponsePayload = {
   readonly code: string | null
   readonly message: string | null
   readonly violations: readonly string[]
+  readonly requestId: string | null
 }
 
 async function responsePayload(response: Response): Promise<ResponsePayload | null> {
@@ -73,6 +78,7 @@ function payloadMessage(payload: unknown): ResponsePayload | null {
           ? payload.error
           : null,
     violations: stringList(payload, 'violations'),
+    requestId: hasString(payload, 'request_id') ? payload.request_id : null,
   }
 }
 
@@ -100,7 +106,7 @@ function hasUserApiShape(error: unknown): error is UserApiError {
 
 async function textPayload(response: Response): Promise<ResponsePayload | null> {
   const text = (await response.text()).trim()
-  return text.length > 0 ? { code: null, message: text, violations: [] } : null
+  return text.length > 0 ? { code: null, message: text, violations: [], requestId: null } : null
 }
 
 function fallbackMessage(status: number): string {

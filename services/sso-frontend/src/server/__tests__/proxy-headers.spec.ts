@@ -73,6 +73,16 @@ describe('buildProxyResponseHeaders', () => {
 })
 
 describe('buildProxyRequestHeaders', () => {
+  it('generates a BFF request id when the browser did not provide one', () => {
+    const forwarded = buildProxyRequestHeaders({
+      cookie: '__Host-sso_session=abc-123',
+    })
+
+    expect(forwarded.get('x-request-id')).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u,
+    )
+  })
+
   it('forwards the cookie header so the upstream sees the SSO session cookie', () => {
     const forwarded = buildProxyRequestHeaders({
       cookie: '__Host-sso_session=abc-123; XSRF-TOKEN=tok',

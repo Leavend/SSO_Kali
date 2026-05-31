@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import type { IncomingHttpHeaders } from 'node:http'
 import type { HeaderValue } from './response.js'
 
@@ -20,6 +21,8 @@ const HOP_BY_HOP_RESPONSE_HEADERS = new Set(['transfer-encoding', 'content-lengt
  * re-derived by `fetch` once it has streamed the request body.
  */
 const HOP_BY_HOP_REQUEST_HEADERS = new Set(['host', 'connection', 'content-length'])
+const REQUEST_ID_HEADER = 'x-request-id'
+const MAX_REQUEST_ID_LENGTH = 128
 
 /**
  * Build the upstream `Headers` object for a proxied request.
@@ -27,7 +30,10 @@ const HOP_BY_HOP_REQUEST_HEADERS = new Set(['host', 'connection', 'content-lengt
  * Strips hop-by-hop headers but otherwise preserves every value the
  * client sent (multi-valued headers included).
  */
-export function buildProxyRequestHeaders(headers: IncomingHttpHeaders): Headers {
+export function buildProxyRequestHeaders(
+  headers: IncomingHttpHeaders,
+  requestId = resolveBffRequestId(headers),
+): Headers {
   const forwarded = new Headers()
 
   for (const [name, value] of Object.entries(headers)) {
@@ -39,7 +45,15 @@ export function buildProxyRequestHeaders(headers: IncomingHttpHeaders): Headers 
     }
   }
 
+  forwarded.set('X-Request-Id', requestId)
+
   return forwarded
+}
+
+export function resolveBffRequestId(headers: IncomingHttpHeaders): string {
+  const requestId = normalizeRequestId(headerValue(headers, REQUEST_ID_HEADER)) ?? randomUUID()
+  headers[REQUEST_ID_HEADER] = requestId
+  return requestId
 }
 
 /**
@@ -74,6 +88,21 @@ function readSetCookies(headers: Headers): readonly string[] {
 
   const raw = headers.get('set-cookie')
   return raw ? splitSetCookie(raw) : []
+}
+
+function headerValue(headers: IncomingHttpHeaders, header: string): string | null {
+  for (const [name, value] of Object.entries(headers)) {
+    if (name.toLowerCase() !== header) continue
+    return Array.isArray(value) ? (value[0] ?? null) : (value ?? null)
+  }
+
+  return null
+}
+
+function normalizeRequestId(value: string | null): string | null {
+  const normalized = value?.trim()
+  if (!normalized) return null
+  return normalized.slice(0, MAX_REQUEST_ID_LENGTH)
 }
 
 /**

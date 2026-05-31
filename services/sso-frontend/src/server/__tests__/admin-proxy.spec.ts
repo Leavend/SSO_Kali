@@ -70,6 +70,21 @@ describe('buildAdminApiRequest', () => {
     expect(headers.get('x-request-id')).toBe('req-admin-1')
   })
 
+  it('generates a backend correlation id when the inbound admin request has none', () => {
+    const request = buildAdminApiRequest({
+      internalBaseUrl: 'https://backend.internal/',
+      pathname: '/api/admin/me',
+      search: '',
+      method: 'GET',
+      headers: {},
+      session: portalSession(),
+    })
+
+    expect(requestHeaders(request).get('x-request-id')).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u,
+    )
+  })
+
   it('rejects paths outside the admin BFF namespace', () => {
     expect(() =>
       buildAdminApiRequest({

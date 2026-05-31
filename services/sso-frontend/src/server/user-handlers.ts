@@ -18,6 +18,7 @@ import type { PortalSession } from './session.js'
 import type { AppResponse } from './response.js'
 import type { HeaderValue } from './response.js'
 import { json, redirect } from './response.js'
+import { resolveBffRequestId } from './proxy-headers.js'
 
 type RouteContext = {
   readonly request: IncomingMessage
@@ -36,34 +37,36 @@ export async function handleUserApi(context: RouteContext): Promise<AppResponse>
   if (!resolved) return await unauthenticatedResponse()
 
   const session = resolved.session
-  const headers = sessionHeaders(resolved)
+  const requestId = resolveBffRequestId(context.request.headers)
+  const headers = { ...sessionHeaders(resolved), 'x-request-id': requestId }
+  const backendContext = { requestId }
 
   try {
     const pathname = context.requestUrl.pathname
     const method = context.request.method ?? 'GET'
 
     if (pathname === '/api/me/profile' && method === 'GET') {
-      return json(200, await fetchProfile(session), headers)
+      return json(200, await fetchProfile(session, backendContext), headers)
     }
 
     if (pathname === '/api/me/profile' && method === 'PATCH') {
-      return updateProfileEndpoint(context.request, session, headers)
+      return updateProfileEndpoint(context.request, session, headers, backendContext)
     }
 
     if (pathname === '/api/me/connected-apps' && method === 'GET') {
-      return json(200, { connected_apps: await fetchConnectedApps(session) }, headers)
+      return json(200, { connected_apps: await fetchConnectedApps(session, backendContext) }, headers)
     }
 
     if (pathname.startsWith('/api/me/connected-apps/') && method === 'DELETE') {
-      return revokeConnectedAppEndpoint(session, pathname, headers)
+      return revokeConnectedAppEndpoint(session, pathname, headers, backendContext)
     }
 
     if (pathname === '/api/me/sessions' && method === 'GET') {
-      return json(200, { sessions: await fetchMySessions(session) }, headers)
+      return json(200, { sessions: await fetchMySessions(session, backendContext) }, headers)
     }
 
     if (pathname.startsWith('/api/me/sessions/') && method === 'DELETE') {
-      return revokeMySessionEndpoint(session, pathname, headers)
+      return revokeMySessionEndpoint(session, pathname, headers, backendContext)
     }
 
     return json(404, { error: 'not_found', message: 'Endpoint not found.' }, headers)
@@ -84,6 +87,7 @@ async function updateProfileEndpoint(
   request: IncomingMessage,
   session: PortalSession,
   headers: Record<string, HeaderValue>,
+  backendContext: { readonly requestId: string },
 ): Promise<AppResponse> {
   const body = await readJsonBody(request)
   if (!body)
@@ -95,19 +99,20 @@ async function updateProfileEndpoint(
     ...(typeof body.family_name === 'string' ? { family_name: body.family_name } : {}),
   }
 
-  return json(200, await updateProfile(session, payload), headers)
+  return json(200, await updateProfile(session, payload, backendContext), headers)
 }
 
 async function revokeConnectedAppEndpoint(
   session: PortalSession,
   pathname: string,
   headers: Record<string, HeaderValue>,
+  backendContext: { readonly requestId: string },
 ): Promise<AppResponse> {
   const clientId = decodeURIComponent(pathname.slice('/api/me/connected-apps/'.length))
   if (!clientId)
     return json(400, { error: 'invalid_request', message: 'Client id is required.' }, headers)
 
-  await revokeConnectedApp(session, clientId)
+  await revokeConnectedApp(session, clientId, backendContext)
   return json(200, { status: 'revoked', client_id: clientId }, headers)
 }
 
@@ -115,12 +120,13 @@ async function revokeMySessionEndpoint(
   session: PortalSession,
   pathname: string,
   headers: Record<string, HeaderValue>,
+  backendContext: { readonly requestId: string },
 ): Promise<AppResponse> {
   const sessionId = decodeURIComponent(pathname.slice('/api/me/sessions/'.length))
   if (!sessionId)
     return json(400, { error: 'invalid_request', message: 'Session id is required.' }, headers)
 
-  await revokeMySession(session, sessionId)
+  await revokeMySession(session, sessionId, backendContext)
   return json(200, { status: 'revoked', session_id: sessionId }, headers)
 }
 
@@ -163,13 +169,17 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 async function userErrorResponse(error: unknown): Promise<AppResponse> {
   if (isUserApiError(error)) {
+    const headers: Record<string, HeaderValue> = error.requestId
+      ? { 'x-request-id': error.requestId }
+      : {}
     if (error.status === 401) {
       return json(error.status, userErrorPayload(error, REAUTH_REQUIRED_ROUTE), {
+        ...headers,
         'set-cookie': await clearSessionCookie(),
       })
     }
 
-    return json(error.status, userErrorPayload(error))
+    return json(error.status, userErrorPayload(error), headers)
   }
 
   console.error(error)
@@ -181,6 +191,7 @@ function userErrorPayload(
     readonly code: string | null
     readonly message: string
     readonly violations: readonly string[]
+    readonly requestId?: string | null
   },
   redirectTo?: string,
 ): {
@@ -192,6 +203,7 @@ function userErrorPayload(
   const base = {
     error: error.code ?? 'sso_api_error',
     message: error.message,
+    ...(error.requestId ? { request_id: error.requestId } : {}),
   }
   const withRedirect = redirectTo ? { ...base, redirectTo } : base
 

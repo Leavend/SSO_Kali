@@ -40,6 +40,7 @@ import {
   generateNonce,
   generateState,
 } from './pkce.js'
+import { resolveBffRequestId } from './proxy-headers.js'
 
 const jwksByUrl = new Map<string, ReturnType<typeof createRemoteJWKSet>>()
 
@@ -132,13 +133,14 @@ export async function handleCallbackSession(request: IncomingMessage): Promise<A
 
 export async function handleLogout(request: IncomingMessage): Promise<AppResponse> {
   const config = getConfig()
+  const requestId = resolveBffRequestId(request.headers)
   const rawSession = await readSession(request)
-  const session = rawSession ? await refreshSessionForLogout(rawSession) : null
+  const session = rawSession ? await refreshSessionForLogout(rawSession, requestId) : null
   const refreshToken = session?.refreshToken ?? rawSession?.refreshToken
   const revocations: Array<Promise<void>> = []
 
-  if (session) revocations.push(revokeSession(config.internalLogoutUrl, session.accessToken))
-  if (refreshToken) revocations.push(revokeRefreshToken(config, refreshToken))
+  if (session) revocations.push(revokeSession(config.internalLogoutUrl, session.accessToken, requestId))
+  if (refreshToken) revocations.push(revokeRefreshToken(config, refreshToken, requestId))
   if (revocations.length > 0) await Promise.allSettled(revocations)
 
   return redirect(new URL('/', config.appBaseUrl).toString(), [
@@ -162,7 +164,9 @@ export async function handleRefresh(request: IncomingMessage): Promise<AppRespon
   try {
     if (!sessionNeedsRefresh(session)) return refreshResponse(sessionId, session)
 
-    const refreshedSession = await refreshPortalSession(session)
+    const refreshedSession = await refreshPortalSession(session, {
+      requestId: resolveBffRequestId(request.headers),
+    })
     await replaceSession(sessionId, refreshedSession)
 
     return refreshResponse(sessionId, refreshedSession)
@@ -193,11 +197,14 @@ function refreshResponse(sessionId: string, session: PortalSession): AppResponse
   )
 }
 
-async function refreshSessionForLogout(session: PortalSession): Promise<PortalSession | null> {
+async function refreshSessionForLogout(
+  session: PortalSession,
+  requestId: string,
+): Promise<PortalSession | null> {
   if (!sessionNeedsRefresh(session, 30)) return session
 
   try {
-    return await refreshPortalSession(session)
+    return await refreshPortalSession(session, { requestId })
   } catch (error) {
     console.error(
       'Token refresh before logout failed:',
@@ -277,10 +284,11 @@ async function completeCallbackSession(
 
   try {
     const discovery = await fetchValidatedDiscoveryMetadata()
-    const tokens = await exchangeCode(discovery, code, tx.codeVerifier)
+    const requestId = resolveBffRequestId(request.headers)
+    const tokens = await exchangeCode(discovery, code, tx.codeVerifier, requestId)
     const claims = await verifyIdToken(tokens.id_token, tx.nonce, discovery)
     verifiedSubjectId = claims.sub
-    const principal = await fetchPrincipalWithAccessToken(tokens.access_token)
+    const principal = await fetchPrincipalWithAccessToken(tokens.access_token, { requestId })
 
     if (principal.subjectId !== claims.sub) {
       throw new Error('Portal principal subject does not match the verified ID token subject.')
@@ -309,11 +317,15 @@ async function exchangeCode(
   discovery: DiscoveryMetadata,
   code: string,
   codeVerifier: string,
+  requestId: string,
 ): Promise<TokenSet> {
   const config = getConfig()
   const res = await fetch(discovery.token_endpoint, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'X-Request-Id': requestId,
+    },
     body: new URLSearchParams({
       grant_type: 'authorization_code',
       client_id: config.clientId,
@@ -387,18 +399,29 @@ async function verifyIdToken(
   return { sub, exp }
 }
 
-async function revokeSession(logoutUrl: string, accessToken: string): Promise<void> {
+async function revokeSession(
+  logoutUrl: string,
+  accessToken: string,
+  requestId: string,
+): Promise<void> {
   await fetch(logoutUrl, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${accessToken}` },
+    headers: { Authorization: `Bearer ${accessToken}`, 'X-Request-Id': requestId },
     signal: AbortSignal.timeout(5_000),
   })
 }
 
-async function revokeRefreshToken(config: PortalConfig, refreshToken: string): Promise<void> {
+async function revokeRefreshToken(
+  config: PortalConfig,
+  refreshToken: string,
+  requestId: string,
+): Promise<void> {
   await fetch(config.internalRevocationUrl, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'X-Request-Id': requestId,
+    },
     body: new URLSearchParams({
       client_id: config.clientId,
       token: refreshToken,

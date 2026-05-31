@@ -1,6 +1,6 @@
 import type { IncomingHttpHeaders, IncomingMessage } from 'node:http'
 import { getConfig } from './config.js'
-import { buildProxyResponseHeaders } from './proxy-headers.js'
+import { buildProxyResponseHeaders, resolveBffRequestId } from './proxy-headers.js'
 import type { AppResponse } from './response.js'
 import { json } from './response.js'
 import type { PortalSession } from './session.js'
@@ -188,6 +188,7 @@ function buildAdminApiHeaders(headers: IncomingHttpHeaders, accessToken: string)
 
   forwarded.set('Accept', 'application/json')
   forwarded.set('Authorization', `Bearer ${accessToken}`)
+  forwarded.set('X-Request-Id', resolveBffRequestId(headers))
 
   return forwarded
 }

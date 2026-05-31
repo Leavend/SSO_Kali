@@ -11,6 +11,9 @@ import { getConfig } from './config.js'
 import { buildUserApiError } from './user-api-error.js'
 
 type AccessToken = string
+export type BackendRequestContext = {
+  readonly requestId: string
+}
 
 type UserInfoResponse = {
   readonly sub: string
@@ -26,53 +29,74 @@ type UserInfoResponse = {
   readonly last_login_at?: string | null
 }
 
-export async function fetchPrincipalWithAccessToken(accessToken: string): Promise<SsoPrincipal> {
-  const userinfo = await userinfoFetch<UserInfoResponse>(accessToken)
+export async function fetchPrincipalWithAccessToken(
+  accessToken: string,
+  context?: BackendRequestContext,
+): Promise<SsoPrincipal> {
+  const userinfo = await userinfoFetch<UserInfoResponse>(accessToken, context)
 
   return principalFromUserInfo(userinfo)
 }
 
-export async function fetchProfile(session: PortalSession): Promise<UserProfile> {
-  return profileFetch<UserProfile>('/', session.accessToken)
+export async function fetchProfile(
+  session: PortalSession,
+  context: BackendRequestContext,
+): Promise<UserProfile> {
+  return profileFetch<UserProfile>('/', session.accessToken, context)
 }
 
 export async function updateProfile(
   session: PortalSession,
   payload: ProfileUpdatePayload,
+  context: BackendRequestContext,
 ): Promise<UserProfile> {
-  return profileFetch<UserProfile>('/', session.accessToken, {
+  return profileFetch<UserProfile>('/', session.accessToken, context, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   })
 }
 
-export async function fetchConnectedApps(session: PortalSession): Promise<readonly ConnectedApp[]> {
+export async function fetchConnectedApps(
+  session: PortalSession,
+  context: BackendRequestContext,
+): Promise<readonly ConnectedApp[]> {
   const data = await profileFetch<{ connected_apps: ConnectedApp[] }>(
     '/connected-apps',
     session.accessToken,
+    context,
   )
   return data.connected_apps
 }
 
-export async function revokeConnectedApp(session: PortalSession, clientId: string): Promise<void> {
-  await profileFetch(`/connected-apps/${encodeURIComponent(clientId)}`, session.accessToken, {
+export async function revokeConnectedApp(
+  session: PortalSession,
+  clientId: string,
+  context: BackendRequestContext,
+): Promise<void> {
+  await profileFetch(`/connected-apps/${encodeURIComponent(clientId)}`, session.accessToken, context, {
     method: 'DELETE',
   })
 }
 
 export async function fetchMySessions(
   session: PortalSession,
+  context: BackendRequestContext,
 ): Promise<readonly UserSessionSummary[]> {
   const data = await profileFetch<{ sessions: UserSessionSummary[] }>(
     '/sessions',
     session.accessToken,
+    context,
   )
   return data.sessions
 }
 
-export async function revokeMySession(session: PortalSession, sessionId: string): Promise<void> {
-  await profileFetch(`/sessions/${encodeURIComponent(sessionId)}`, session.accessToken, {
+export async function revokeMySession(
+  session: PortalSession,
+  sessionId: string,
+  context: BackendRequestContext,
+): Promise<void> {
+  await profileFetch(`/sessions/${encodeURIComponent(sessionId)}`, session.accessToken, context, {
     method: 'DELETE',
   })
 }
@@ -80,6 +104,7 @@ export async function revokeMySession(session: PortalSession, sessionId: string)
 async function profileFetch<T>(
   path: string,
   accessToken: AccessToken,
+  context: BackendRequestContext,
   init?: RequestInit,
 ): Promise<T> {
   const config = getConfig()
@@ -89,6 +114,7 @@ async function profileFetch<T>(
     headers: {
       Authorization: `Bearer ${accessToken}`,
       Accept: 'application/json',
+      'X-Request-Id': context.requestId,
       ...init?.headers,
     },
   })
@@ -98,12 +124,13 @@ async function profileFetch<T>(
   return res.json() as Promise<T>
 }
 
-async function userinfoFetch<T>(accessToken: AccessToken): Promise<T> {
+async function userinfoFetch<T>(accessToken: AccessToken, context?: BackendRequestContext): Promise<T> {
   const config = getConfig()
   const res = await fetch(`${config.issuer}/userinfo`, {
     headers: {
       Authorization: `Bearer ${accessToken}`,
       Accept: 'application/json',
+      ...(context ? { 'X-Request-Id': context.requestId } : {}),
     },
   })
 

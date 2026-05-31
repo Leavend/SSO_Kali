@@ -2,6 +2,10 @@ import { getConfig } from './config.js'
 import type { PortalSession } from './session.js'
 import { isSessionExpired, unixTime } from './session.js'
 
+export type RefreshRequestContext = {
+  readonly requestId: string
+}
+
 type RefreshTokenSet = {
   readonly access_token: string
   readonly refresh_token?: string
@@ -12,8 +16,11 @@ export function sessionNeedsRefresh(session: PortalSession, bufferSeconds = 180)
   return isSessionExpired(session.expiresAt, bufferSeconds)
 }
 
-export async function refreshPortalSession(session: PortalSession): Promise<PortalSession> {
-  const tokens = await requestRefreshTokens(session.refreshToken)
+export async function refreshPortalSession(
+  session: PortalSession,
+  context?: RefreshRequestContext,
+): Promise<PortalSession> {
+  const tokens = await requestRefreshTokens(session.refreshToken, context)
   const refreshedAt = unixTime()
 
   return {
@@ -25,11 +32,17 @@ export async function refreshPortalSession(session: PortalSession): Promise<Port
   }
 }
 
-async function requestRefreshTokens(refreshToken: string): Promise<RefreshTokenSet> {
+async function requestRefreshTokens(
+  refreshToken: string,
+  context?: RefreshRequestContext,
+): Promise<RefreshTokenSet> {
   const config = getConfig()
   const res = await fetch(config.tokenUrl, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      ...(context ? { 'X-Request-Id': context.requestId } : {}),
+    },
     body: new URLSearchParams({
       grant_type: 'refresh_token',
       client_id: config.clientId,
