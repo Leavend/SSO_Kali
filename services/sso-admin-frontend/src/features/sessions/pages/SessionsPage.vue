@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
 import { useSessionStore } from '@/stores/session.store'
 import { useSessionsStore } from '../stores/sessions.store'
@@ -7,10 +8,31 @@ import { useSessionsStore } from '../stores/sessions.store'
 const store = useSessionsStore()
 const session = useSessionStore()
 const canTerminateSessions = computed(() => session.hasPermission('admin.sessions.terminate'))
+const pendingRevokeSessionId = ref<string | null>(null)
 
 onMounted(() => {
   if (store.status === 'idle') void store.load()
 })
+
+function requestRevokeSession(sessionId: string): void {
+  pendingRevokeSessionId.value = sessionId
+}
+
+function cancelRevokeSession(): void {
+  pendingRevokeSessionId.value = null
+}
+
+async function confirmRevokeSession(): Promise<void> {
+  const sessionId = pendingRevokeSessionId.value
+  pendingRevokeSessionId.value = null
+  if (sessionId) await store.revokeSession(sessionId)
+}
+
+const confirmDescription = computed<string>(() =>
+  pendingRevokeSessionId.value
+    ? `This will terminate admin session ${pendingRevokeSessionId.value}.`
+    : 'Review the impact before continuing.',
+)
 </script>
 
 <template>
@@ -69,7 +91,7 @@ onMounted(() => {
                 v-if="canTerminateSessions"
                 class="revoke-button danger-action"
                 type="button"
-                @click="store.revokeSession(session.session_id)"
+                @click="requestRevokeSession(session.session_id)"
               >
                 Revoke
               </button>
@@ -87,5 +109,15 @@ onMounted(() => {
 
       <EvidenceContextPanel title="Sessions evidence" :request-id="store.requestId" />
     </div>
+
+    <ConfirmDialog
+      :open="pendingRevokeSessionId !== null"
+      title="Revoke admin session?"
+      :description="confirmDescription"
+      confirm-label="Revoke"
+      cancel-label="Cancel"
+      @confirm="confirmRevokeSession"
+      @cancel="cancelRevokeSession"
+    />
   </section>
 </template>

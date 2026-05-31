@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
 import { useSessionStore } from '@/stores/session.store'
 import { usePolicyStore } from '../stores/policy.store'
@@ -26,6 +27,11 @@ const createRoleDescription = ref('')
 const editingRoleSlug = ref<string | null>(null)
 const editRoleName = ref('')
 const editRoleDescription = ref('')
+type DestructiveAction =
+  | { readonly type: 'activate_policy'; readonly version: number }
+  | { readonly type: 'rollback_policy'; readonly version: number }
+  | { readonly type: 'delete_role'; readonly roleSlug: string }
+const pendingAction = ref<DestructiveAction | null>(null)
 
 const hasPolicyEvidence = computed(
   () => store.policies.length > 0 || store.roles.length > 0 || store.permissions.length > 0,
@@ -90,9 +96,49 @@ async function submitEditRole(): Promise<void> {
   if (store.actionStatus === 'success') cancelEditRole()
 }
 
-async function handleDeleteRole(roleSlug: string): Promise<void> {
-  await store.deleteRole(roleSlug)
+function requestActivatePolicy(version: number): void {
+  pendingAction.value = { type: 'activate_policy', version }
 }
+
+function requestRollbackPolicy(version: number): void {
+  pendingAction.value = { type: 'rollback_policy', version }
+}
+
+function requestDeleteRole(roleSlug: string): void {
+  pendingAction.value = { type: 'delete_role', roleSlug }
+}
+
+function cancelDestructiveAction(): void {
+  pendingAction.value = null
+}
+
+async function confirmDestructiveAction(): Promise<void> {
+  const action = pendingAction.value
+  pendingAction.value = null
+  if (action?.type === 'activate_policy') await store.activatePolicy(action.version, reason.value)
+  if (action?.type === 'rollback_policy') await store.rollbackPolicy(action.version, reason.value)
+  if (action?.type === 'delete_role') await store.deleteRole(action.roleSlug)
+}
+
+const confirmTitle = computed<string>(() => {
+  if (pendingAction.value?.type === 'activate_policy') return 'Activate policy version?'
+  if (pendingAction.value?.type === 'rollback_policy') return 'Rollback policy version?'
+  if (pendingAction.value?.type === 'delete_role') return 'Delete admin role?'
+  return 'Confirm admin action?'
+})
+
+const confirmDescription = computed<string>(() => {
+  if (pendingAction.value?.type === 'activate_policy') {
+    return `This will activate ${category.value} policy version ${pendingAction.value.version}.`
+  }
+  if (pendingAction.value?.type === 'rollback_policy') {
+    return `This will roll back ${category.value} policy to version ${pendingAction.value.version}.`
+  }
+  if (pendingAction.value?.type === 'delete_role') {
+    return `This will delete role ${pendingAction.value.roleSlug}. Existing assignments may change.`
+  }
+  return 'Review the impact before continuing.'
+})
 </script>
 
 <template>
@@ -168,16 +214,16 @@ async function handleDeleteRole(roleSlug: string): Promise<void> {
           <pre class="policy-json">{{ JSON.stringify(policy.payload, null, 2) }}</pre>
           <div v-if="canActivateSecurityPolicy" class="action-row compact-actions">
             <button
-              class="primary-action"
+              class="policy-activate-button primary-action"
               type="button"
-              @click="store.activatePolicy(policy.version, reason)"
+              @click="requestActivatePolicy(policy.version)"
             >
               Activate
             </button>
             <button
-              class="danger-action"
+              class="policy-rollback-button danger-action"
               type="button"
-              @click="store.rollbackPolicy(policy.version, reason)"
+              @click="requestRollbackPolicy(policy.version)"
             >
               Rollback
             </button>
@@ -260,7 +306,7 @@ async function handleDeleteRole(roleSlug: string): Promise<void> {
                 class="danger-action"
                 type="button"
                 :aria-label="`Delete role ${role.slug}`"
-                @click="handleDeleteRole(role.slug)"
+                @click="requestDeleteRole(role.slug)"
               >
                 Delete
               </button>
@@ -284,5 +330,15 @@ async function handleDeleteRole(roleSlug: string): Promise<void> {
     </div>
 
     <EvidenceContextPanel title="Policy evidence" :request-id="store.requestId" />
+
+    <ConfirmDialog
+      :open="pendingAction !== null"
+      :title="confirmTitle"
+      :description="confirmDescription"
+      confirm-label="Continue"
+      cancel-label="Cancel"
+      @confirm="confirmDestructiveAction"
+      @cancel="cancelDestructiveAction"
+    />
   </section>
 </template>

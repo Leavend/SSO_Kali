@@ -139,7 +139,25 @@ describe('SessionsPage', () => {
     const wrapper = mount(SessionsPage)
     await wrapper.find('button.revoke-button').trigger('click')
 
+    expect(revokeSpy).not.toHaveBeenCalled()
+    expect(wrapper.text()).toContain('Konfirmasi aksi admin')
+
+    await wrapper.find('[data-testid="confirm-dialog-confirm"]').trigger('click')
+
     expect(revokeSpy).toHaveBeenCalledWith('sess-001')
+  })
+
+  it('does not revoke a session when confirmation is cancelled', async () => {
+    const store = useSessionsStore()
+    store.sessions = [session1]
+    store.status = 'success'
+    const revokeSpy = vi.spyOn(store, 'revokeSession')
+
+    const wrapper = mount(SessionsPage)
+    await wrapper.find('button.revoke-button').trigger('click')
+    await wrapper.find('[data-testid="confirm-dialog-cancel"]').trigger('click')
+
+    expect(revokeSpy).not.toHaveBeenCalled()
   })
 
   it('shows step_up_required message when actionStatus is step_up_required', () => {

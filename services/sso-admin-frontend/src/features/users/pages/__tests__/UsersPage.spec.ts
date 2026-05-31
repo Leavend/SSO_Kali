@@ -191,7 +191,44 @@ describe('UsersPage', () => {
     expect(wrapper.text()).toContain('Revoke User Sessions')
     await wrapper.find('button.revoke-user-sessions-button').trigger('click')
 
+    expect(revokeSpy).not.toHaveBeenCalled()
+    expect(wrapper.text()).toContain('Konfirmasi aksi admin')
+
+    await wrapper.find('[data-testid="confirm-dialog-confirm"]').trigger('click')
+
     expect(revokeSpy).toHaveBeenCalledWith('sub_admin')
+  })
+
+  it('does not lock a user before destructive action confirmation and cancel is no-op', async () => {
+    const store = useUsersStore()
+    store.status = 'success'
+    store.users = [user]
+    store.selectedSubjectId = 'sub_admin'
+    const lockSpy = vi.spyOn(store, 'lockSelected')
+
+    const wrapper = mount(UsersPage)
+
+    await wrapper.find('button.lifecycle-lock-button').trigger('click')
+    expect(lockSpy).not.toHaveBeenCalled()
+
+    await wrapper.find('[data-testid="confirm-dialog-cancel"]').trigger('click')
+    expect(lockSpy).not.toHaveBeenCalled()
+  })
+
+  it('calls reset MFA only after destructive action confirmation', async () => {
+    const store = useUsersStore()
+    store.status = 'success'
+    store.users = [user]
+    store.selectedSubjectId = 'sub_admin'
+    const resetSpy = vi.spyOn(store, 'resetMfaSelected')
+
+    const wrapper = mount(UsersPage)
+
+    await wrapper.find('button.lifecycle-reset-mfa-button').trigger('click')
+    expect(resetSpy).not.toHaveBeenCalled()
+
+    await wrapper.find('[data-testid="confirm-dialog-confirm"]').trigger('click')
+    expect(resetSpy).toHaveBeenCalledWith('Admin review')
   })
 
   it('renders sync profile form with pre-filled fields and calls store.syncProfileSelected', async () => {

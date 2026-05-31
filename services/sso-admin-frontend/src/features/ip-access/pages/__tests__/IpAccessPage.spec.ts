@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { useSessionStore } from '@/stores/session.store'
@@ -125,5 +125,34 @@ describe('IpAccessPage', () => {
 
     expect(wrapper.text()).not.toContain('Tambah aturan IP')
     expect(wrapper.text()).not.toContain('Hapus')
+  })
+
+  it('does not delete an IP rule before confirmation and cancel is no-op', async () => {
+    const store = useIpAccessStore()
+    store.status = 'success'
+    store.rules = [rule]
+    const deleteSpy = vi.spyOn(store, 'destroy')
+
+    const wrapper = mount(IpAccessPage)
+
+    await wrapper.find('button.ip-rule-delete-button').trigger('click')
+    expect(deleteSpy).not.toHaveBeenCalled()
+
+    await wrapper.find('[data-testid="confirm-dialog-cancel"]').trigger('click')
+    expect(deleteSpy).not.toHaveBeenCalled()
+  })
+
+  it('deletes an IP rule after confirmation', async () => {
+    const store = useIpAccessStore()
+    store.status = 'success'
+    store.rules = [rule]
+    const deleteSpy = vi.spyOn(store, 'destroy')
+
+    const wrapper = mount(IpAccessPage)
+
+    await wrapper.find('button.ip-rule-delete-button').trigger('click')
+    await wrapper.find('[data-testid="confirm-dialog-confirm"]').trigger('click')
+
+    expect(deleteSpy).toHaveBeenCalledWith(1)
   })
 })

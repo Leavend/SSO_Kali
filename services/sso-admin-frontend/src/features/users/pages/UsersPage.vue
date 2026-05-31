@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
 import { useSessionStore } from '@/stores/session.store'
 import { useUsersStore } from '../stores/users.store'
@@ -14,6 +15,13 @@ const canLockUsers = computed(() => session.hasPermission('admin.users.lock'))
 const canTerminateSessions = computed(() => session.hasPermission('admin.sessions.terminate'))
 const reason = ref('Admin review')
 const showCreateForm = ref(false)
+type DestructiveAction =
+  | 'lock'
+  | 'deactivate'
+  | 'reset_mfa'
+  | 'issue_password_reset'
+  | 'revoke_user_sessions'
+const pendingAction = ref<DestructiveAction | null>(null)
 
 const createEmail = ref('')
 const createDisplayName = ref('')
@@ -93,6 +101,49 @@ async function submitCreateUser(): Promise<void> {
     showCreateForm.value = false
   }
 }
+
+function requestDestructiveAction(action: DestructiveAction): void {
+  pendingAction.value = action
+}
+
+function cancelDestructiveAction(): void {
+  pendingAction.value = null
+}
+
+async function confirmDestructiveAction(): Promise<void> {
+  const action = pendingAction.value
+  pendingAction.value = null
+  if (action === 'lock') await store.lockSelected(reason.value)
+  if (action === 'deactivate') await store.deactivateSelected(reason.value)
+  if (action === 'reset_mfa') await store.resetMfaSelected(reason.value)
+  if (action === 'issue_password_reset') await store.issuePasswordResetSelected()
+  if (action === 'revoke_user_sessions' && store.selectedUser) {
+    await sessionsStore.revokeUserSessions(store.selectedUser.subject_id)
+  }
+}
+
+const confirmTitle = computed<string>(() => {
+  if (pendingAction.value === 'lock') return 'Lock user?'
+  if (pendingAction.value === 'deactivate') return 'Deactivate user?'
+  if (pendingAction.value === 'reset_mfa') return 'Reset user MFA?'
+  if (pendingAction.value === 'issue_password_reset') return 'Issue password reset?'
+  if (pendingAction.value === 'revoke_user_sessions') return 'Revoke all user sessions?'
+  return 'Confirm admin action?'
+})
+
+const confirmDescription = computed<string>(() => {
+  const target = store.selectedUser?.email ?? store.selectedUser?.subject_id ?? 'selected user'
+  if (pendingAction.value === 'lock') return `This will lock ${target} and may block sign-in.`
+  if (pendingAction.value === 'deactivate') return `This will deactivate ${target}.`
+  if (pendingAction.value === 'reset_mfa') return `This will remove MFA assurance for ${target}.`
+  if (pendingAction.value === 'issue_password_reset') {
+    return `This will issue a backend password reset workflow for ${target}.`
+  }
+  if (pendingAction.value === 'revoke_user_sessions') {
+    return `This will terminate ${store.sessions.length} active session evidence item(s) for ${target}.`
+  }
+  return 'Review the impact before continuing.'
+})
 </script>
 
 <template>
@@ -308,7 +359,7 @@ async function submitCreateUser(): Promise<void> {
             v-if="canTerminateSessions"
             class="revoke-user-sessions-button danger-action"
             type="button"
-            @click="sessionsStore.revokeUserSessions(store.selectedUser.subject_id)"
+            @click="requestDestructiveAction('revoke_user_sessions')"
           >
             Revoke User Sessions
           </button>
@@ -321,22 +372,22 @@ async function submitCreateUser(): Promise<void> {
             <input v-model="reason" autocomplete="off" />
           </label>
           <div class="action-row compact-actions">
-            <button v-if="canLockUsers" class="danger-action" type="button" @click="store.lockSelected(reason)">
+            <button v-if="canLockUsers" class="lifecycle-lock-button danger-action" type="button" @click="requestDestructiveAction('lock')">
               Lock
             </button>
             <button v-if="canLockUsers" class="primary-action" type="button" @click="store.unlockSelected(reason)">
               Unlock
             </button>
-            <button v-if="canWriteUsers" class="danger-action" type="button" @click="store.deactivateSelected(reason)">
+            <button v-if="canWriteUsers" class="danger-action" type="button" @click="requestDestructiveAction('deactivate')">
               Deactivate
             </button>
             <button v-if="canWriteUsers" class="primary-action" type="button" @click="store.reactivateSelected">
               Reactivate
             </button>
-            <button v-if="canWriteUsers" class="danger-action" type="button" @click="store.resetMfaSelected(reason)">
+            <button v-if="canWriteUsers" class="lifecycle-reset-mfa-button danger-action" type="button" @click="requestDestructiveAction('reset_mfa')">
               Reset MFA
             </button>
-            <button v-if="canWriteUsers" class="danger-action" type="button" @click="store.issuePasswordResetSelected">
+            <button v-if="canWriteUsers" class="danger-action" type="button" @click="requestDestructiveAction('issue_password_reset')">
               Issue reset link
             </button>
           </div>
@@ -366,6 +417,16 @@ async function submitCreateUser(): Promise<void> {
       v-if="!store.selectedUser"
       title="Users evidence"
       :request-id="store.requestId"
+    />
+
+    <ConfirmDialog
+      :open="pendingAction !== null"
+      :title="confirmTitle"
+      :description="confirmDescription"
+      confirm-label="Continue"
+      cancel-label="Cancel"
+      @confirm="confirmDestructiveAction"
+      @cancel="cancelDestructiveAction"
     />
   </section>
 </template>

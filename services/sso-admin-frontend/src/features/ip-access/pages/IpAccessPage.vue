@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
 import { useSessionStore } from '@/stores/session.store'
 import { useIpAccessStore } from '../stores/ip-access.store'
@@ -13,6 +14,7 @@ const cidr = ref('')
 const mode = ref<'allow' | 'block'>('block')
 const reason = ref('')
 const expiresAt = ref('')
+const pendingDeleteRuleId = ref<number | null>(null)
 
 async function submitCreate(): Promise<void> {
   const payload: IpAccessRuleCreatePayload = {
@@ -30,6 +32,27 @@ async function submitCreate(): Promise<void> {
 
 onMounted(() => {
   if (store.status === 'idle') void store.load()
+})
+
+function requestDeleteRule(ruleId: number): void {
+  pendingDeleteRuleId.value = ruleId
+}
+
+function cancelDeleteRule(): void {
+  pendingDeleteRuleId.value = null
+}
+
+async function confirmDeleteRule(): Promise<void> {
+  const ruleId = pendingDeleteRuleId.value
+  pendingDeleteRuleId.value = null
+  if (ruleId !== null) await store.destroy(ruleId)
+}
+
+const confirmDescription = computed<string>(() => {
+  const rule = store.rules.find((item) => item.id === pendingDeleteRuleId.value)
+  return rule
+    ? `This will remove ${rule.mode} rule ${rule.cidr} from admin IP access control.`
+    : 'Review the impact before continuing.'
 })
 </script>
 
@@ -122,8 +145,8 @@ onMounted(() => {
           <button
             v-if="canWriteAccess"
             type="button"
-            class="danger-action"
-            @click="store.destroy(rule.id)"
+            class="ip-rule-delete-button danger-action"
+            @click="requestDeleteRule(rule.id)"
           >
             Hapus
           </button>
@@ -140,5 +163,15 @@ onMounted(() => {
     </p>
 
     <EvidenceContextPanel title="IP access evidence" :request-id="store.requestId" />
+
+    <ConfirmDialog
+      :open="pendingDeleteRuleId !== null"
+      title="Delete IP access rule?"
+      :description="confirmDescription"
+      confirm-label="Delete"
+      cancel-label="Cancel"
+      @confirm="confirmDeleteRule"
+      @cancel="cancelDeleteRule"
+    />
   </section>
 </template>

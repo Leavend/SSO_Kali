@@ -192,4 +192,55 @@ describe('PolicyPage', () => {
     expect(wrapper.text()).not.toContain('Delete')
   })
 
+  it('does not activate policy before confirmation and cancel is no-op', async () => {
+    const store = usePolicyStore()
+    store.status = 'success'
+    store.policies = [policy]
+    store.roles = [role]
+    store.permissions = role.permissions
+    const activateSpy = vi.spyOn(store, 'activatePolicy')
+
+    const wrapper = mount(PolicyPage)
+
+    await wrapper.find('button.policy-activate-button').trigger('click')
+    expect(activateSpy).not.toHaveBeenCalled()
+
+    await wrapper.find('[data-testid="confirm-dialog-cancel"]').trigger('click')
+    expect(activateSpy).not.toHaveBeenCalled()
+  })
+
+  it('rolls back policy only after confirmation', async () => {
+    const store = usePolicyStore()
+    store.status = 'success'
+    store.policies = [policy]
+    store.roles = [role]
+    store.permissions = role.permissions
+    const rollbackSpy = vi.spyOn(store, 'rollbackPolicy')
+
+    const wrapper = mount(PolicyPage)
+
+    await wrapper.find('button.policy-rollback-button').trigger('click')
+    await wrapper.find('[data-testid="confirm-dialog-confirm"]').trigger('click')
+
+    expect(rollbackSpy).toHaveBeenCalledWith(1, 'Security governance update')
+  })
+
+  it('deletes a role only after confirmation', async () => {
+    const store = usePolicyStore()
+    store.status = 'success'
+    store.policies = [policy]
+    store.roles = [{ ...role, is_system: false }]
+    store.permissions = role.permissions
+    const deleteSpy = vi.spyOn(store, 'deleteRole')
+
+    const wrapper = mount(PolicyPage)
+
+    await wrapper.find('button[aria-label="Delete role auditor"]').trigger('click')
+    expect(deleteSpy).not.toHaveBeenCalled()
+
+    await wrapper.find('[data-testid="confirm-dialog-confirm"]').trigger('click')
+
+    expect(deleteSpy).toHaveBeenCalledWith('auditor')
+  })
+
 })

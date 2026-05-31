@@ -779,6 +779,40 @@ select {
   border-color: rgb(239 68 68 / 28%);
 }
 
+.confirm-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgb(2 6 23 / 72%);
+}
+
+.confirm-dialog {
+  width: min(460px, 100%);
+  padding: 24px;
+  color: #e2e8f0;
+  border: 1px solid rgb(239 68 68 / 30%);
+  border-radius: 18px;
+  background: #0f172a;
+  box-shadow: 0 24px 80px rgb(0 0 0 / 38%);
+}
+
+.confirm-dialog:focus {
+  outline: 2px solid rgb(20 184 166 / 72%);
+  outline-offset: 3px;
+}
+
+.confirm-dialog h2 {
+  margin: 8px 0;
+  color: #f8fafc;
+}
+
+.confirm-dialog p {
+  color: #cbd5e1;
+}
+
 @media (max-width: 760px) {
   .admin-shell {
     padding: 28px 16px;
