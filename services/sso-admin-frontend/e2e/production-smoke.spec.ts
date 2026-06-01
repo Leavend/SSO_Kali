@@ -119,3 +119,29 @@ test('stubbed OIDC admin session reaches dashboard with principal evidence', asy
   await expect(page.getByText(/access_token|refresh_token|id_token|Bearer/u)).toHaveCount(0)
   expect(principalRequests).toBeGreaterThan(0)
 })
+
+test('legacy /home path is handled by the admin SPA catch-all instead of rendering blank', async ({
+  page,
+}) => {
+  await page.route('**/api/admin/me', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(authenticatedPrincipal),
+    })
+  })
+  await page.route('**/api/admin/dashboard/summary', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: { 'x-request-id': 'req-home-catch-all' },
+      body: JSON.stringify(authenticatedDashboardSummary),
+    })
+  })
+
+  await page.goto('/home')
+
+  await expect(page).toHaveURL(/\/dashboard$/u)
+  await expect(page.getByRole('heading', { name: 'Admin Dashboard' })).toBeVisible()
+  await expect(page.getByText('req-home-catch-all')).toBeVisible()
+})
