@@ -122,7 +122,9 @@ function staticHeaders(asset: {
   readonly immutable: boolean
 }): Record<string, string> {
   return {
-    'cache-control': asset.immutable ? 'public, max-age=31536000, immutable' : 'no-cache',
+    'cache-control': asset.immutable
+      ? 'public, max-age=31536000, immutable'
+      : 'no-store, no-cache, private, max-age=0',
     'content-type': contentType(asset.path),
     'permissions-policy': 'camera=(), microphone=(), geolocation=()',
     'referrer-policy': 'same-origin',

@@ -358,6 +358,31 @@ jobs:
             admin_url="http://admin-sso.timeh.my.id"
             curl -fsS --max-time 20 "${admin_url%/}/healthz" >/dev/null
           fi
+          root_headers_file="$(mktemp)"
+          root_body_file="$(mktemp)"
+          root_status="$(curl -sS --max-time 20 -o "$root_body_file" -D "$root_headers_file" -w '%{http_code}' \
+            "${admin_url%/}/")"
+          if [ "$root_status" != "200" ]; then
+            echo "expected / to be served by admin SPA fallback, got HTTP $root_status" >&2
+            cat "$root_headers_file" >&2
+            head -c 400 "$root_body_file" >&2 || true
+            exit 1
+          fi
+          if grep -qi '^location: .*oauth/v2/authorize\|^location: .*callbacks/upstream\|^location: .*client_id=&' "$root_headers_file"; then
+            echo 'expected / not to redirect to upstream edge auth or stale browser-cache target.' >&2
+            cat "$root_headers_file" >&2
+            exit 1
+          fi
+          if ! grep -qi '^content-type: text/html' "$root_headers_file"; then
+            echo 'expected / content-type text/html, got:' >&2
+            cat "$root_headers_file" >&2
+            exit 1
+          fi
+          if ! grep -qi '^cache-control: .*no-store' "$root_headers_file"; then
+            echo 'expected / cache-control no-store, got:' >&2
+            cat "$root_headers_file" >&2
+            exit 1
+          fi
           curl -fsS --max-time 20 "${admin_url%/}/oidc-foundation" >/dev/null
           home_headers_file="$(mktemp)"
           home_body_file="$(mktemp)"

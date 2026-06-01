@@ -43,6 +43,14 @@ describe('admin BFF serving contract', () => {
     expect(deployWorkflow).toContain('"error"[[:space:]]*:[[:space:]]*"no_session"')
   })
 
+  it('prevents stale browser redirect caches from being refreshed by the admin HTML shell', () => {
+    expect(serverSource).toContain('public, max-age=31536000, immutable')
+    expect(serverSource).toContain('no-store, no-cache, private, max-age=0')
+    expect(deployWorkflow).toContain('expected / to be served by admin SPA fallback')
+    expect(deployWorkflow).toContain('expected / cache-control no-store')
+    expect(deployWorkflow).toContain('expected / not to redirect to upstream edge auth or stale browser-cache target')
+  })
+
   it('documents that admin API auth is bearer-only through the BFF, not shared portal cookies', () => {
     expect(adminReadme).toContain('bearer-only')
     expect(adminReadme).toContain('AdminGuard')

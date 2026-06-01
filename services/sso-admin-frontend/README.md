@@ -26,6 +26,17 @@ host-only, `Secure`, `Path=/`, tanpa atribut `Domain`; mengubahnya menjadi
 admin API. Solusi benar untuk admin standalone adalah token broker BFF dengan
 cookie opaque `__Host-sso-admin-session` yang scoped ke host admin.
 
+## Browser Cache Recovery
+
+Jika hanya browser tertentu masih membuka redirect lama ke
+`/oauth/v2/authorize?client_id=`, bersihkan cache dan cookies untuk
+`admin-sso.timeh.my.id`, lalu akses entry point canonical:
+`https://admin-sso.timeh.my.id/`.
+
+Admin BFF menyajikan HTML shell dengan `Cache-Control: no-store`; deploy smoke
+juga memverifikasi `/` dan `/auth/login?return_to=/dashboard` tidak pernah
+mengarah ke upstream edge auth atau redirect lama dengan `client_id=` kosong.
+
 ## Project Setup
 
 ```bash
