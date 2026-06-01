@@ -386,6 +386,16 @@ jobs:
             exit 1
           fi
 
+      - name: Run authenticated admin production smoke
+        if: ${{ vars.RUN_SSO_ADMIN_AUTHENTICATED_SMOKE == 'true' }}
+        shell: bash
+        env:
+          SSO_ADMIN_FRONTEND_URL: ${{ vars.SSO_ADMIN_FRONTEND_URL || 'https://admin-sso.timeh.my.id' }}
+          SSO_ADMIN_SMOKE_COOKIE_HEADER: ${{ secrets.SSO_ADMIN_SMOKE_COOKIE_HEADER }}
+          SSO_ADMIN_SMOKE_EXPECTED_EMAIL: ${{ vars.SSO_ADMIN_SMOKE_EXPECTED_EMAIL || '' }}
+        run: |
+          scripts/sso-admin-authenticated-production-smoke.sh
+
       - name: Run OIDC Backend production smoke
         if: ${{ vars.RUN_FR004_PRODUCTION_SMOKE == 'true' }}
         shell: bash
