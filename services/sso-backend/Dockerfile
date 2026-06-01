@@ -31,7 +31,8 @@ RUN apk upgrade --no-cache \
         pdo_pgsql \
         pcntl \
         redis \
-        opcache
+        opcache \
+    && apk upgrade --no-cache libxml2
 
 RUN { \
     echo 'expose_php=0'; \
