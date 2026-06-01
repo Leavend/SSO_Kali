@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
+import UiDataList, { type UiDataListRow } from '@/components/ui/UiDataList.vue'
+import UiEmptyState from '@/components/ui/UiEmptyState.vue'
+import UiFormField from '@/components/ui/UiFormField.vue'
+import UiInput from '@/components/ui/UiInput.vue'
+import UiSkeleton from '@/components/ui/UiSkeleton.vue'
+import UiStatusView from '@/components/ui/UiStatusView.vue'
+import UiTextarea from '@/components/ui/UiTextarea.vue'
 import { useSessionStore } from '@/stores/session.store'
 import { useClientsStore } from '../stores/clients.store'
 
@@ -35,6 +42,19 @@ const uriValidationMessage = computed(() => uriValidationMessages.value.join(' '
 const knownScopeLabels = new Set(['openid', 'profile', 'email', 'offline_access'])
 const scopeParityWarnings = computed(() =>
   (store.selectedClient?.allowed_scopes ?? []).filter((scope) => !knownScopeLabels.has(scope)),
+)
+const clientColumns = [
+  { key: 'name', label: 'Client' },
+  { key: 'client_id', label: 'Client ID' },
+  { key: 'status', label: 'Status' },
+] as const
+const clientRows = computed<readonly UiDataListRow[]>(() =>
+  store.clients.map((client) => ({
+    id: client.client_id,
+    name: client.display_name ?? client.client_id,
+    client_id: client.client_id,
+    status: client.status ?? 'unknown',
+  })),
 )
 
 onMounted(() => {
@@ -218,32 +238,39 @@ async function rotateSecret(): Promise<void> {
       </p>
     </div>
 
-    <div v-if="store.status === 'loading'" class="state-card" role="status">
-      Memuat OAuth clients...
-    </div>
+    <UiSkeleton v-if="store.status === 'loading'" label="Memuat OAuth clients" />
 
-    <div
+    <UiStatusView
       v-else-if="store.status === 'forbidden'"
-      class="state-card state-card--danger"
-      role="alert"
-    >
-      <h2>Akses OAuth clients ditolak</h2>
-      <p>{{ store.errorMessage }}</p>
-    </div>
+      tone="forbidden"
+      eyebrow="Client Management"
+      title="Akses OAuth clients ditolak"
+      :description="store.errorMessage ?? 'Kamu tidak memiliki izin untuk melihat OAuth clients.'"
+      :request-id="store.requestId ?? undefined"
+      :standalone="false"
+    />
 
-    <div
+    <UiStatusView
       v-else-if="store.status === 'unauthenticated'"
-      class="state-card state-card--danger"
-      role="alert"
-    >
-      <h2>Sesi admin berakhir</h2>
-      <p>{{ store.errorMessage }}</p>
-    </div>
+      tone="error"
+      eyebrow="Session"
+      title="Sesi admin berakhir"
+      :description="store.errorMessage ?? 'Login ulang dari portal untuk melanjutkan.'"
+      :request-id="store.requestId ?? undefined"
+      :standalone="false"
+    />
 
-    <div v-else-if="store.status === 'error'" class="state-card state-card--danger" role="alert">
-      <h2>OAuth clients belum bisa dimuat</h2>
-      <p>{{ store.errorMessage }}</p>
-    </div>
+    <UiStatusView
+      v-else-if="store.status === 'error'"
+      tone="api"
+      eyebrow="Admin API"
+      title="OAuth clients belum bisa dimuat"
+      :description="
+        store.errorMessage ?? 'Coba muat ulang atau gunakan correlation ID untuk investigasi.'
+      "
+      :request-id="store.requestId ?? undefined"
+      :standalone="false"
+    />
 
     <div v-else class="clients-layout">
       <aside class="clients-list" aria-label="Daftar OAuth clients">
@@ -254,61 +281,73 @@ async function rotateSecret(): Promise<void> {
           @submit.prevent="createClient"
         >
           <h2 id="create-client-title">Create OAuth client</h2>
-          <label>
-            Client ID
-            <input v-model="createForm.client_id" name="client_id" autocomplete="off" />
-          </label>
-          <label>
-            Display name
-            <input
+          <UiFormField id="client_id" label="Client ID" required>
+            <UiInput
+              id="client_id"
+              v-model="createForm.client_id"
+              name="client_id"
+              autocomplete="off"
+            />
+          </UiFormField>
+          <UiFormField id="create_display_name" label="Display name" required>
+            <UiInput
+              id="create_display_name"
               v-model="createForm.display_name"
               name="create_display_name"
               autocomplete="off"
             />
-          </label>
-          <label>
-            Owner email
-            <input
+          </UiFormField>
+          <UiFormField id="create_owner_email" label="Owner email" required>
+            <UiInput
+              id="create_owner_email"
               v-model="createForm.owner_email"
               name="create_owner_email"
               autocomplete="email"
             />
-          </label>
-          <label>
-            Redirect URI
-            <input
+          </UiFormField>
+          <UiFormField id="create_redirect_uri" label="Redirect URI" required>
+            <UiInput
+              id="create_redirect_uri"
               v-model="createForm.redirect_uri"
               name="create_redirect_uri"
               autocomplete="url"
             />
-          </label>
-          <label>
-            Logout URL
-            <input
+          </UiFormField>
+          <UiFormField id="create_backchannel_logout_uri" label="Logout URL">
+            <UiInput
+              id="create_backchannel_logout_uri"
               v-model="createForm.backchannel_logout_uri"
               name="create_backchannel_logout_uri"
               autocomplete="url"
             />
-          </label>
+          </UiFormField>
           <button class="primary-action" type="submit">Create client</button>
         </form>
 
-        <button
-          v-for="client in store.clients"
-          :key="client.client_id"
-          class="client-list-item"
-          :class="{ 'client-list-item--active': client.client_id === store.selectedClientId }"
-          type="button"
-          @click="selectClient(client.client_id)"
-        >
-          <strong>{{ client.display_name ?? client.client_id }}</strong>
-          <span>{{ client.client_id }}</span>
-          <small>{{ client.status ?? 'unknown' }}</small>
-        </button>
+        <UiEmptyState
+          v-if="store.clients.length === 0"
+          title="Belum ada OAuth client untuk ditampilkan."
+          description="Buat client baru untuk mulai mengelola redirect URI dan scope evidence."
+        />
 
-        <p v-if="store.clients.length === 0" class="muted">
-          Belum ada OAuth client untuk ditampilkan.
-        </p>
+        <UiDataList
+          v-else
+          caption="Daftar OAuth clients"
+          :columns="clientColumns"
+          :rows="clientRows"
+        >
+          <template #actions="{ row }">
+            <button
+              class="secondary-action"
+              :aria-current="row.id === store.selectedClientId ? 'true' : undefined"
+              :aria-label="`View ${row.name}`"
+              type="button"
+              @click="selectClient(row.id)"
+            >
+              View
+            </button>
+          </template>
+        </UiDataList>
       </aside>
 
       <article v-if="store.selectedClient" class="client-detail">
@@ -378,26 +417,30 @@ async function rotateSecret(): Promise<void> {
             <p v-if="uriValidationMessage" class="action-message" role="alert">
               {{ uriValidationMessage }}
             </p>
-            <label>
-              Redirect URIs
-              <textarea v-model="form.redirect_uris" name="redirect_uris" rows="4" />
-            </label>
-            <label>
-              Post Logout Redirect URIs
-              <textarea
+            <UiFormField id="redirect_uris" label="Redirect URIs">
+              <UiTextarea
+                id="redirect_uris"
+                v-model="form.redirect_uris"
+                name="redirect_uris"
+                :rows="4"
+              />
+            </UiFormField>
+            <UiFormField id="post_logout_redirect_uris" label="Post Logout Redirect URIs">
+              <UiTextarea
+                id="post_logout_redirect_uris"
                 v-model="form.post_logout_redirect_uris"
                 name="post_logout_redirect_uris"
-                rows="4"
+                :rows="4"
               />
-            </label>
-            <label>
-              Backchannel logout URI
-              <input
+            </UiFormField>
+            <UiFormField id="backchannel_logout_uri" label="Backchannel logout URI">
+              <UiInput
+                id="backchannel_logout_uri"
                 v-model="form.backchannel_logout_uri"
                 name="backchannel_logout_uri"
                 autocomplete="url"
               />
-            </label>
+            </UiFormField>
             <button class="primary-action" type="submit">Simpan URI policy</button>
           </form>
         </section>
@@ -431,7 +474,11 @@ async function rotateSecret(): Promise<void> {
           </form>
         </section>
 
-        <section v-if="canManageClientLifecycle" class="detail-section detail-section--danger" aria-labelledby="lifecycle-title">
+        <section
+          v-if="canManageClientLifecycle"
+          class="detail-section detail-section--danger"
+          aria-labelledby="lifecycle-title"
+        >
           <h3 id="lifecycle-title">Client lifecycle</h3>
           <p>
             Impact summary: disable blocks new authorization and may revoke active tokens.
@@ -472,7 +519,11 @@ async function rotateSecret(): Promise<void> {
           </button>
         </section>
 
-        <section v-if="canWriteClients" class="detail-section detail-section--danger" aria-labelledby="secret-title">
+        <section
+          v-if="canWriteClients"
+          class="detail-section detail-section--danger"
+          aria-labelledby="secret-title"
+        >
           <h3 id="secret-title">Client secret</h3>
           <p>Rotasi secret hanya menampilkan plaintext satu kali. Salin lalu hapus dari layar.</p>
           <button class="danger-action" type="button" @click="rotateSecret">Rotate secret</button>

@@ -58,8 +58,8 @@ function seedPrincipal(capabilities: Record<string, boolean>): void {
 
 function seedFullAccessPrincipal(): void {
   seedPrincipal({
-      'admin.clients.write': true,
-      'admin.sessions.terminate': true,
+    'admin.clients.write': true,
+    'admin.sessions.terminate': true,
   })
 }
 
@@ -315,6 +315,29 @@ describe('ClientsPage', () => {
     const wrapper = mount(ClientsPage)
 
     expect(wrapper.text()).toContain('Belum ada OAuth client untuk ditampilkan.')
+    expect(wrapper.find('.ui-empty-state').exists()).toBe(true)
+  })
+
+  it('uses shared loading, status, data, and form primitives', async () => {
+    const store = useClientsStore()
+    store.status = 'loading'
+
+    const wrapper = mount(ClientsPage)
+
+    expect(wrapper.find('.ui-skeleton').exists()).toBe(true)
+
+    store.status = 'forbidden'
+    store.errorMessage = 'Kamu tidak memiliki izin untuk melihat OAuth clients.'
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('.ui-status-view').exists()).toBe(true)
+
+    store.status = 'success'
+    store.clients = [client]
+    store.selectedClientId = 'prototype-app-a'
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('.ui-data-list').exists()).toBe(true)
+    expect(wrapper.find('.ui-form-field').exists()).toBe(true)
+    expect(wrapper.find('.ui-control').exists()).toBe(true)
   })
 
   it('hides client write and lifecycle actions for read-only principals', () => {
@@ -351,5 +374,4 @@ describe('ClientsPage', () => {
     expect(wrapper.text()).not.toContain('Disable client')
     expect(wrapper.text()).not.toContain('Decommission client')
   })
-
 })

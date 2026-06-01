@@ -2,9 +2,19 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
+import UiDataList, { type UiDataListRow } from '@/components/ui/UiDataList.vue'
+import UiEmptyState from '@/components/ui/UiEmptyState.vue'
+import UiFormField from '@/components/ui/UiFormField.vue'
+import UiInput from '@/components/ui/UiInput.vue'
+import UiSkeleton from '@/components/ui/UiSkeleton.vue'
+import UiStatusView from '@/components/ui/UiStatusView.vue'
 import { useSessionStore } from '@/stores/session.store'
 import { useAuditStore } from '../stores/audit.store'
-import type { AuditExportFilters, ComplianceEvidencePackFilters, RetentionStatusItem } from '../types'
+import type {
+  AuditExportFilters,
+  ComplianceEvidencePackFilters,
+  RetentionStatusItem,
+} from '../types'
 
 const store = useAuditStore()
 const session = useSessionStore()
@@ -96,11 +106,14 @@ async function resetSearch(): Promise<void> {
   await Promise.all([store.searchEvents({}), store.searchAuthenticationEvents({})])
 }
 
-async function applyConsentFilter(action: 'all' | 'allow' | 'deny' | 'revoke' = 'all'): Promise<void> {
+async function applyConsentFilter(
+  action: 'all' | 'allow' | 'deny' | 'revoke' = 'all',
+): Promise<void> {
   selectedConsentAction.value = action
   searchAction.value = action === 'revoke' ? 'profile.connected_app.revoke' : ''
   searchTaxonomy.value = action === 'revoke' ? 'profile.connected_app_revoked' : ''
-  searchOutcome.value = action === 'allow' || action === 'revoke' ? 'succeeded' : action === 'deny' ? 'failed' : ''
+  searchOutcome.value =
+    action === 'allow' || action === 'revoke' ? 'succeeded' : action === 'deny' ? 'failed' : ''
   await Promise.all([
     store.searchEvents({
       ...(action === 'revoke' && { action: 'profile.connected_app.revoke' }),
@@ -134,7 +147,9 @@ async function applyQueryConsentFilter(): Promise<boolean> {
   searchAdminSubjectId.value = queryValue(route.query.subject_id)
   searchClientId.value = queryValue(route.query.client_id)
   const action = queryValue(route.query.consent_action)
-  await applyConsentFilter(action === 'allow' || action === 'deny' || action === 'revoke' ? action : 'all')
+  await applyConsentFilter(
+    action === 'allow' || action === 'deny' || action === 'revoke' ? action : 'all',
+  )
   return true
 }
 
@@ -170,6 +185,36 @@ const hasAuditEvidence = computed(
     store.integrity !== null ||
     store.retentionStatus !== null,
 )
+const auditEventColumns = [
+  { key: 'event_id', label: 'Event ID' },
+  { key: 'action', label: 'Action' },
+  { key: 'outcome', label: 'Outcome' },
+  { key: 'taxonomy', label: 'Taxonomy' },
+] as const
+const authenticationEventColumns = [
+  { key: 'event_id', label: 'Event ID' },
+  { key: 'event_type', label: 'Event type' },
+  { key: 'outcome', label: 'Outcome' },
+  { key: 'request_id', label: 'Request ID' },
+] as const
+const auditEventRows = computed<readonly UiDataListRow[]>(() =>
+  store.events.map((event) => ({
+    id: event.event_id,
+    event_id: event.event_id,
+    action: event.action,
+    outcome: event.outcome,
+    taxonomy: event.taxonomy ?? 'taxonomy unknown',
+  })),
+)
+const authenticationEventRows = computed<readonly UiDataListRow[]>(() =>
+  store.authenticationEvents.map((event) => ({
+    id: event.event_id,
+    event_id: event.event_id,
+    event_type: event.event_type,
+    outcome: event.outcome,
+    request_id: event.request?.request_id ?? 'no request evidence',
+  })),
+)
 
 function retentionWindowLabel(item: RetentionStatusItem): string {
   if (item.window.days !== undefined) return `${item.window.days} hari`
@@ -197,35 +242,47 @@ onMounted(() => {
       <p class="page-summary">Audit trail, integrity hash-chain, dan DSR evidence queue.</p>
     </div>
 
-    <div v-if="store.status === 'loading'" class="state-card" role="status">Memuat audit...</div>
+    <UiSkeleton v-if="store.status === 'loading'" label="Memuat audit" />
 
-    <div
+    <UiStatusView
       v-else-if="store.status === 'forbidden'"
-      class="state-card state-card--danger"
-      role="alert"
-    >
-      <h2>Akses audit ditolak</h2>
-      <p>{{ store.errorMessage }}</p>
-    </div>
+      tone="forbidden"
+      eyebrow="Compliance Evidence"
+      title="Akses audit ditolak"
+      :description="
+        store.errorMessage ?? 'Kamu tidak memiliki izin untuk melihat audit compliance.'
+      "
+      :request-id="store.requestId ?? undefined"
+      :standalone="false"
+    />
 
-    <div
+    <UiStatusView
       v-else-if="store.status === 'unauthenticated'"
-      class="state-card state-card--danger"
-      role="alert"
-    >
-      <h2>Sesi admin berakhir</h2>
-      <p>{{ store.errorMessage }}</p>
-    </div>
+      tone="error"
+      eyebrow="Session"
+      title="Sesi admin berakhir"
+      :description="store.errorMessage ?? 'Login ulang dari portal untuk melanjutkan.'"
+      :request-id="store.requestId ?? undefined"
+      :standalone="false"
+    />
 
-    <div v-else-if="store.status === 'error'" class="state-card state-card--danger" role="alert">
-      <h2>Audit compliance belum bisa dimuat</h2>
-      <p>{{ store.errorMessage }}</p>
-    </div>
+    <UiStatusView
+      v-else-if="store.status === 'error'"
+      tone="api"
+      eyebrow="Admin API"
+      title="Audit compliance belum bisa dimuat"
+      :description="
+        store.errorMessage ?? 'Coba muat ulang atau gunakan correlation ID untuk investigasi.'
+      "
+      :request-id="store.requestId ?? undefined"
+      :standalone="false"
+    />
 
-    <div v-else-if="!hasAuditEvidence" class="state-card" role="status">
-      <h2>Evidence audit belum tersedia</h2>
-      <p>Belum ada evidence audit untuk ditampilkan.</p>
-    </div>
+    <UiEmptyState
+      v-else-if="!hasAuditEvidence"
+      title="Evidence audit belum tersedia"
+      description="Belum ada evidence audit untuk ditampilkan. Jalankan search atau tunggu event backend tercatat."
+    />
 
     <div v-else class="audit-layout">
       <section v-if="canExportAudit" class="detail-section" aria-labelledby="export-title">
@@ -246,22 +303,28 @@ onMounted(() => {
           </label>
         </fieldset>
         <div class="export-filters">
-          <label class="reason-field">
-            From
-            <input v-model="exportFrom" name="export-from" type="date" />
-          </label>
-          <label class="reason-field">
-            To
-            <input v-model="exportTo" name="export-to" type="date" />
-          </label>
-          <label class="reason-field">
-            Action
-            <input v-model="exportAction" name="export-action" autocomplete="off" />
-          </label>
-          <label class="reason-field">
-            Outcome
-            <input v-model="exportOutcome" name="export-outcome" autocomplete="off" />
-          </label>
+          <UiFormField id="export-from" label="From">
+            <UiInput id="export-from" v-model="exportFrom" name="export-from" type="date" />
+          </UiFormField>
+          <UiFormField id="export-to" label="To">
+            <UiInput id="export-to" v-model="exportTo" name="export-to" type="date" />
+          </UiFormField>
+          <UiFormField id="export-action" label="Action">
+            <UiInput
+              id="export-action"
+              v-model="exportAction"
+              name="export-action"
+              autocomplete="off"
+            />
+          </UiFormField>
+          <UiFormField id="export-outcome" label="Outcome">
+            <UiInput
+              id="export-outcome"
+              v-model="exportOutcome"
+              name="export-outcome"
+              autocomplete="off"
+            />
+          </UiFormField>
         </div>
         <button
           class="primary-action audit-export-button"
@@ -300,22 +363,25 @@ onMounted(() => {
           </label>
         </fieldset>
         <div class="export-filters">
-          <label class="reason-field">
-            From
-            <input v-model="packFrom" name="evidence-pack-from" type="date" />
-          </label>
-          <label class="reason-field">
-            To
-            <input v-model="packTo" name="evidence-pack-to" type="date" />
-          </label>
-          <label class="reason-field">
-            Correlation ID / insiden
-            <input
+          <UiFormField id="evidence-pack-from" label="From">
+            <UiInput
+              id="evidence-pack-from"
+              v-model="packFrom"
+              name="evidence-pack-from"
+              type="date"
+            />
+          </UiFormField>
+          <UiFormField id="evidence-pack-to" label="To">
+            <UiInput id="evidence-pack-to" v-model="packTo" name="evidence-pack-to" type="date" />
+          </UiFormField>
+          <UiFormField id="evidence-pack-correlation-id" label="Correlation ID / insiden">
+            <UiInput
+              id="evidence-pack-correlation-id"
               v-model="packCorrelationId"
               name="evidence-pack-correlation-id"
               autocomplete="off"
             />
-          </label>
+          </UiFormField>
         </div>
         <p v-if="!canSubmitEvidencePack" class="muted">
           Isi rentang tanggal (From + To) atau correlation ID untuk mengaktifkan generate.
@@ -399,50 +465,81 @@ onMounted(() => {
           atau rentang tanggal.
         </p>
         <div class="export-filters">
-          <label class="reason-field">
-            Correlation / request ID
-            <input v-model="searchRequestId" name="audit-search-request-id" autocomplete="off" />
-          </label>
-          <label class="reason-field">
-            SID
-            <input v-model="searchSessionId" name="audit-search-session-id" autocomplete="off" />
-          </label>
-          <label class="reason-field">
-            Action
-            <input v-model="searchAction" name="audit-search-action" autocomplete="off" />
-          </label>
-          <label class="reason-field">
-            Outcome
-            <input v-model="searchOutcome" name="audit-search-outcome" autocomplete="off" />
-          </label>
-          <label class="reason-field">
-            Taxonomy
-            <input v-model="searchTaxonomy" name="audit-search-taxonomy" autocomplete="off" />
-          </label>
-          <label class="reason-field">
-            Admin subject
-            <input
+          <UiFormField id="audit-search-request-id" label="Correlation / request ID">
+            <UiInput
+              id="audit-search-request-id"
+              v-model="searchRequestId"
+              name="audit-search-request-id"
+              autocomplete="off"
+            />
+          </UiFormField>
+          <UiFormField id="audit-search-session-id" label="SID">
+            <UiInput
+              id="audit-search-session-id"
+              v-model="searchSessionId"
+              name="audit-search-session-id"
+              autocomplete="off"
+            />
+          </UiFormField>
+          <UiFormField id="audit-search-action" label="Action">
+            <UiInput
+              id="audit-search-action"
+              v-model="searchAction"
+              name="audit-search-action"
+              autocomplete="off"
+            />
+          </UiFormField>
+          <UiFormField id="audit-search-outcome" label="Outcome">
+            <UiInput
+              id="audit-search-outcome"
+              v-model="searchOutcome"
+              name="audit-search-outcome"
+              autocomplete="off"
+            />
+          </UiFormField>
+          <UiFormField id="audit-search-taxonomy" label="Taxonomy">
+            <UiInput
+              id="audit-search-taxonomy"
+              v-model="searchTaxonomy"
+              name="audit-search-taxonomy"
+              autocomplete="off"
+            />
+          </UiFormField>
+          <UiFormField id="audit-search-admin-subject-id" label="Admin subject">
+            <UiInput
+              id="audit-search-admin-subject-id"
               v-model="searchAdminSubjectId"
               name="audit-search-admin-subject-id"
               autocomplete="off"
             />
-          </label>
-          <label class="reason-field">
-            Subject ID
-            <input v-model="searchSubjectId" name="audit-search-subject-id" autocomplete="off" />
-          </label>
-          <label class="reason-field">
-            Client ID
-            <input v-model="searchClientId" name="audit-search-client-id" autocomplete="off" />
-          </label>
-          <label class="reason-field">
-            From
-            <input v-model="searchFrom" name="audit-search-from" type="date" />
-          </label>
-          <label class="reason-field">
-            To
-            <input v-model="searchTo" name="audit-search-to" type="date" />
-          </label>
+          </UiFormField>
+          <UiFormField id="audit-search-subject-id" label="Subject ID">
+            <UiInput
+              id="audit-search-subject-id"
+              v-model="searchSubjectId"
+              name="audit-search-subject-id"
+              autocomplete="off"
+            />
+          </UiFormField>
+          <UiFormField id="audit-search-client-id" label="Client ID">
+            <UiInput
+              id="audit-search-client-id"
+              v-model="searchClientId"
+              name="audit-search-client-id"
+              autocomplete="off"
+            />
+          </UiFormField>
+          <UiFormField id="audit-search-from" label="From">
+            <UiInput
+              id="audit-search-from"
+              v-model="searchFrom"
+              name="audit-search-from"
+              type="date"
+            />
+          </UiFormField>
+          <UiFormField id="audit-search-to" label="To">
+            <UiInput id="audit-search-to" v-model="searchTo" name="audit-search-to" type="date" />
+          </UiFormField>
         </div>
         <div class="action-row compact-actions">
           <button class="primary-action audit-search-button" type="button" @click="submitSearch">
@@ -498,20 +595,23 @@ onMounted(() => {
 
       <section class="detail-section" aria-labelledby="events-title">
         <h2 id="events-title">Audit events</h2>
-        <div class="audit-list">
-          <button
-            v-for="event in store.events"
-            :key="event.event_id"
-            class="user-list-item"
-            :class="{ 'user-list-item--active': event.event_id === store.selectedEventId }"
-            type="button"
-            @click="store.selectEvent(event.event_id)"
-          >
-            <strong>{{ event.event_id }}</strong>
-            <span>{{ event.action }}</span>
-            <small>{{ event.outcome }} · {{ event.taxonomy ?? 'taxonomy unknown' }}</small>
-          </button>
-        </div>
+        <UiDataList
+          caption="Admin event table"
+          :columns="auditEventColumns"
+          :rows="auditEventRows"
+        >
+          <template #actions="{ row }">
+            <button
+              class="secondary-action"
+              :aria-current="row.id === store.selectedEventId ? 'true' : undefined"
+              :aria-label="`View ${row.event_id} ${row.action}`"
+              type="button"
+              @click="store.selectEvent(row.id)"
+            >
+              View
+            </button>
+          </template>
+        </UiDataList>
         <p v-if="store.events.length === 0" class="muted">Belum ada audit event.</p>
         <button
           v-if="store.eventPagination?.has_more && store.eventPagination?.next_cursor"
@@ -560,24 +660,23 @@ onMounted(() => {
 
       <section class="detail-section" aria-labelledby="security-evidence-title">
         <h2 id="security-evidence-title">Security notification evidence</h2>
-        <div class="audit-list">
-          <button
-            v-for="event in store.authenticationEvents"
-            :key="event.event_id"
-            class="user-list-item"
-            :class="{
-              'user-list-item--active': event.event_id === store.selectedAuthenticationEventId,
-            }"
-            type="button"
-            @click="store.selectAuthenticationEvent(event.event_id)"
-          >
-            <strong>{{ event.event_id }}</strong>
-            <span>{{ event.event_type }}</span>
-            <small
-              >{{ event.outcome }} · {{ event.request?.request_id ?? 'no request evidence' }}</small
+        <UiDataList
+          caption="Authentication event table"
+          :columns="authenticationEventColumns"
+          :rows="authenticationEventRows"
+        >
+          <template #actions="{ row }">
+            <button
+              class="secondary-action"
+              :aria-current="row.id === store.selectedAuthenticationEventId ? 'true' : undefined"
+              :aria-label="`View ${row.event_id} ${row.event_type}`"
+              type="button"
+              @click="store.selectAuthenticationEvent(row.id)"
             >
-          </button>
-        </div>
+              View
+            </button>
+          </template>
+        </UiDataList>
         <p v-if="store.authenticationEvents.length === 0" class="muted">
           Belum ada security notification evidence.
         </p>

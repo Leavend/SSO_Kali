@@ -68,9 +68,9 @@ function seedPrincipal(capabilities: Record<string, boolean>): void {
 
 function seedFullAccessPrincipal(): void {
   seedPrincipal({
-      'admin.users.write': true,
-      'admin.users.lock': true,
-      'admin.sessions.terminate': true,
+    'admin.users.write': true,
+    'admin.users.lock': true,
+    'admin.sessions.terminate': true,
   })
 }
 
@@ -155,6 +155,30 @@ describe('UsersPage', () => {
     const wrapper = mount(UsersPage)
 
     expect(wrapper.text()).toContain('Belum ada user untuk ditampilkan.')
+    expect(wrapper.find('.ui-empty-state').exists()).toBe(true)
+  })
+
+  it('uses shared loading, status, data, and form primitives', async () => {
+    const store = useUsersStore()
+    store.status = 'loading'
+
+    const wrapper = mount(UsersPage)
+
+    expect(wrapper.find('.ui-skeleton').exists()).toBe(true)
+
+    store.status = 'forbidden'
+    store.errorMessage = 'Kamu tidak memiliki izin untuk melihat users admin.'
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('.ui-status-view').exists()).toBe(true)
+
+    store.status = 'success'
+    store.users = [user]
+    store.selectedSubjectId = 'sub_admin'
+    await wrapper.vm.$nextTick()
+    await wrapper.find('button.create-user-toggle').trigger('click')
+    expect(wrapper.find('.ui-data-list').exists()).toBe(true)
+    expect(wrapper.find('.ui-form-field').exists()).toBe(true)
+    expect(wrapper.find('.ui-control').exists()).toBe(true)
   })
 
   it('renders create user form with email, display_name, role inputs', async () => {
@@ -313,5 +337,4 @@ describe('UsersPage', () => {
     expect(wrapper.text()).not.toContain('Sync Profile')
     expect(wrapper.text()).not.toContain('Deactivate')
   })
-
 })

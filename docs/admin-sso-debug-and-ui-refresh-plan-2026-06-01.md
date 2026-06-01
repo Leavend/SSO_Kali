@@ -171,13 +171,19 @@ Karena request tidak pernah sampai ke backend, **tidak ada respons 401/403** yan
 - `AdminShellLayout`: sidebar permission-aware (sudah ada `menus.visible`), topbar, breadcrumb, responsif, blok principal + logout. Active-state & ikon lucide.
 
 ### FASE 4 — Refresh halaman per fitur (incremental, satu per PR)
+**Status 2026-06-01:** batch high-traffic selesai untuk `dashboard`, `users`, `clients`, `audit`, dan `sessions`. Dashboard/sessions sudah memakai primitive fondasi; users/clients/audit dimigrasikan ke `UiSkeleton`, `UiStatusView`, `UiEmptyState`, `UiDataList`, dan primitive form tanpa mengubah store/permission/step-up/correlation evidence. Sisa lower-traffic (`policy`, `ip-access`, `external-idps`, `sso-error-templates`, `oidc-foundation`, `ops`) tetap dikerjakan incremental per PR berikutnya.
+
 Urutan disarankan (tinggi → rendah traffic/nilai): `dashboard` → `users` → `clients` → `audit` → `sessions` → `policy` → `ip-access` → `external-idps` → `sso-error-templates` → `oidc-foundation` → `ops`.
 - Tiap halaman: pakai primitif Fase 2, tabel/skeleton/empty-state, pertahankan logika store/permission/step-up yang sudah ada (jangan regresikan NG/DG/XG/RG).
 
 ### FASE 5 — Polish state & feedback (ISS-U2, U6)
+**Status 2026-06-01:** selesai untuk state/feedback global dan dipakai ulang di batch high-traffic. Error/forbidden/API state memakai `UiStatusView`, loading memakai skeleton, empty state memakai icon/copy/CTA slot, dan action feedback tetap aman terhadap duplikasi request ID yang diuji E2E.
+
 - Redesign `AdminErrorView`/`ForbiddenView`/`AdminMfaRequiredView`/step-up; toasts; loading/empty seragam; correlation ID rapi.
 
 ### FASE 6 — a11y, dark mode, QA visual (ISS-U7)
+**Status 2026-06-01:** selesai untuk fondasi dan regression gate. Shell memiliki skip-link/landmark/theme toggle; primitive baru memakai label/focus-ring/role yang konsisten; dark token tetap aktif; E2E memverifikasi navigasi, forbidden/error, step-up, dan evidence flow setelah refresh high-traffic.
+
 - Dark mode + token; audit kontras WCAG AA; keyboard/landmark/skip-link; visual regression ringan (Playwright screenshot opsional); i18n alignment bila diputuskan.
 
 ---

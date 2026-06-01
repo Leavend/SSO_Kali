@@ -212,6 +212,30 @@ describe('AuditPage', () => {
     const wrapper = mount(AuditPage)
 
     expect(wrapper.text()).toContain('Belum ada evidence audit untuk ditampilkan.')
+    expect(wrapper.find('.ui-empty-state').exists()).toBe(true)
+  })
+
+  it('uses shared loading, status, data, and form primitives', async () => {
+    const store = useAuditStore()
+    store.status = 'loading'
+
+    const wrapper = mount(AuditPage)
+
+    expect(wrapper.find('.ui-skeleton').exists()).toBe(true)
+
+    store.status = 'forbidden'
+    store.errorMessage = 'Kamu tidak memiliki izin untuk melihat audit compliance.'
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('.ui-status-view').exists()).toBe(true)
+
+    store.status = 'success'
+    store.events = [event]
+    store.authenticationEvents = [authEvent]
+    store.integrity = { verified: true, checked_events: 1 }
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('.ui-data-list').exists()).toBe(true)
+    expect(wrapper.find('.ui-form-field').exists()).toBe(true)
+    expect(wrapper.find('.ui-control').exists()).toBe(true)
   })
 
   it('renders audit search controls for incident correlation', () => {

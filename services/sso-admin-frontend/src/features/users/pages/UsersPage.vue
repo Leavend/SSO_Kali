@@ -2,6 +2,14 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
+import UiDataList, { type UiDataListRow } from '@/components/ui/UiDataList.vue'
+import UiEmptyState from '@/components/ui/UiEmptyState.vue'
+import UiFormField from '@/components/ui/UiFormField.vue'
+import UiInput from '@/components/ui/UiInput.vue'
+import UiSelect from '@/components/ui/UiSelect.vue'
+import UiSkeleton from '@/components/ui/UiSkeleton.vue'
+import UiStatusView from '@/components/ui/UiStatusView.vue'
+import UiSwitch from '@/components/ui/UiSwitch.vue'
 import { useSessionStore } from '@/stores/session.store'
 import { useUsersStore } from '../stores/users.store'
 import { useSessionsStore } from '@/features/sessions/stores/sessions.store'
@@ -35,6 +43,23 @@ const syncEmail = ref('')
 const syncDisplayName = ref('')
 const syncGivenName = ref('')
 const syncFamilyName = ref('')
+const createRoleOptions = [
+  { value: 'user', label: 'user' },
+  { value: 'admin', label: 'admin' },
+] as const
+const userColumns = [
+  { key: 'name', label: 'User' },
+  { key: 'email', label: 'Email' },
+  { key: 'status', label: 'Status' },
+] as const
+const userRows = computed<readonly UiDataListRow[]>(() =>
+  store.users.map((user) => ({
+    id: user.subject_id,
+    name: user.display_name ?? user.email,
+    email: user.email,
+    status: user.status ?? 'unknown',
+  })),
+)
 
 watch(
   () => store.selectedUser,
@@ -156,47 +181,61 @@ const confirmDescription = computed<string>(() => {
       </p>
     </div>
 
-    <div v-if="store.status === 'loading'" class="state-card" role="status">Memuat users...</div>
+    <UiSkeleton v-if="store.status === 'loading'" label="Memuat users" />
 
-    <div
+    <UiStatusView
       v-else-if="store.status === 'forbidden'"
-      class="state-card state-card--danger"
-      role="alert"
-    >
-      <h2>Akses users ditolak</h2>
-      <p>{{ store.errorMessage }}</p>
-    </div>
+      tone="forbidden"
+      eyebrow="User Lifecycle"
+      title="Akses users ditolak"
+      :description="store.errorMessage ?? 'Kamu tidak memiliki izin untuk melihat users admin.'"
+      :request-id="store.requestId ?? undefined"
+      :standalone="false"
+    />
 
-    <div
+    <UiStatusView
       v-else-if="store.status === 'unauthenticated'"
-      class="state-card state-card--danger"
-      role="alert"
-    >
-      <h2>Sesi admin berakhir</h2>
-      <p>{{ store.errorMessage }}</p>
-    </div>
+      tone="error"
+      eyebrow="Session"
+      title="Sesi admin berakhir"
+      :description="store.errorMessage ?? 'Login ulang dari portal untuk melanjutkan.'"
+      :request-id="store.requestId ?? undefined"
+      :standalone="false"
+    />
 
-    <div v-else-if="store.status === 'error'" class="state-card state-card--danger" role="alert">
-      <h2>Users admin belum bisa dimuat</h2>
-      <p>{{ store.errorMessage }}</p>
-    </div>
+    <UiStatusView
+      v-else-if="store.status === 'error'"
+      tone="api"
+      eyebrow="Admin API"
+      title="Users admin belum bisa dimuat"
+      :description="
+        store.errorMessage ?? 'Coba muat ulang atau gunakan correlation ID untuk investigasi.'
+      "
+      :request-id="store.requestId ?? undefined"
+      :standalone="false"
+    />
 
     <div v-else class="users-layout">
       <aside class="users-list" aria-label="Daftar users admin">
-        <button
-          v-for="user in store.users"
-          :key="user.subject_id"
-          class="user-list-item"
-          :class="{ 'user-list-item--active': user.subject_id === store.selectedSubjectId }"
-          type="button"
-          @click="selectUser(user.subject_id)"
-        >
-          <strong>{{ user.display_name ?? user.email }}</strong>
-          <span>{{ user.email }}</span>
-          <small>{{ user.status ?? 'unknown' }}</small>
-        </button>
+        <UiEmptyState
+          v-if="store.users.length === 0"
+          title="Belum ada user untuk ditampilkan."
+          description="Buat user baru atau periksa filter dan permission admin."
+        />
 
-        <p v-if="store.users.length === 0" class="muted">Belum ada user untuk ditampilkan.</p>
+        <UiDataList v-else caption="Daftar users admin" :columns="userColumns" :rows="userRows">
+          <template #actions="{ row }">
+            <button
+              class="secondary-action"
+              :aria-current="row.id === store.selectedSubjectId ? 'true' : undefined"
+              :aria-label="`View ${row.name}`"
+              type="button"
+              @click="selectUser(row.id)"
+            >
+              View
+            </button>
+          </template>
+        </UiDataList>
 
         <button
           v-if="canWriteUsers"
@@ -209,42 +248,56 @@ const confirmDescription = computed<string>(() => {
 
         <div v-if="canWriteUsers && showCreateForm" class="create-user-form">
           <h3>Create User</h3>
-          <label class="reason-field">
-            Email
-            <input v-model="createEmail" name="create-email" autocomplete="off" />
-          </label>
-          <label class="reason-field">
-            Display name
-            <input v-model="createDisplayName" name="create-display-name" autocomplete="off" />
-          </label>
-          <label class="reason-field">
-            Given name
-            <input v-model="createGivenName" name="create-given-name" autocomplete="off" />
-          </label>
-          <label class="reason-field">
-            Family name
-            <input v-model="createFamilyName" name="create-family-name" autocomplete="off" />
-          </label>
-          <label class="reason-field">
-            Role
-            <select v-model="createRole" name="create-role">
-              <option value="user">user</option>
-              <option value="admin">admin</option>
-            </select>
-          </label>
-          <label class="reason-field">
-            Password (optional)
-            <input
+          <UiFormField id="create-email" label="Email" required>
+            <UiInput
+              id="create-email"
+              v-model="createEmail"
+              name="create-email"
+              autocomplete="off"
+            />
+          </UiFormField>
+          <UiFormField id="create-display-name" label="Display name" required>
+            <UiInput
+              id="create-display-name"
+              v-model="createDisplayName"
+              name="create-display-name"
+              autocomplete="off"
+            />
+          </UiFormField>
+          <UiFormField id="create-given-name" label="Given name">
+            <UiInput
+              id="create-given-name"
+              v-model="createGivenName"
+              name="create-given-name"
+              autocomplete="off"
+            />
+          </UiFormField>
+          <UiFormField id="create-family-name" label="Family name">
+            <UiInput
+              id="create-family-name"
+              v-model="createFamilyName"
+              name="create-family-name"
+              autocomplete="off"
+            />
+          </UiFormField>
+          <UiFormField id="create-role" label="Role" required>
+            <UiSelect
+              id="create-role"
+              v-model="createRole"
+              name="create-role"
+              :options="createRoleOptions"
+            />
+          </UiFormField>
+          <UiFormField id="create-password" label="Password (optional)">
+            <UiInput
+              id="create-password"
               v-model="createPassword"
               name="create-password"
               type="password"
               autocomplete="off"
             />
-          </label>
-          <label class="checkbox-row">
-            <input v-model="createLocalAccountEnabled" type="checkbox" />
-            Local account enabled
-          </label>
+          </UiFormField>
+          <UiSwitch v-model="createLocalAccountEnabled" label="Local account enabled" />
           <button
             class="primary-action"
             type="button"
@@ -376,29 +429,63 @@ const confirmDescription = computed<string>(() => {
           </button>
         </section>
 
-        <section v-if="canLockUsers || canWriteUsers" class="detail-section detail-section--danger" aria-labelledby="actions-title">
+        <section
+          v-if="canLockUsers || canWriteUsers"
+          class="detail-section detail-section--danger"
+          aria-labelledby="actions-title"
+        >
           <h3 id="actions-title">Lifecycle actions</h3>
           <label class="reason-field">
             Reason
             <input v-model="reason" autocomplete="off" />
           </label>
           <div class="action-row compact-actions">
-            <button v-if="canLockUsers" class="lifecycle-lock-button danger-action" type="button" @click="requestDestructiveAction('lock')">
+            <button
+              v-if="canLockUsers"
+              class="lifecycle-lock-button danger-action"
+              type="button"
+              @click="requestDestructiveAction('lock')"
+            >
               Lock
             </button>
-            <button v-if="canLockUsers" class="primary-action" type="button" @click="store.unlockSelected(reason)">
+            <button
+              v-if="canLockUsers"
+              class="primary-action"
+              type="button"
+              @click="store.unlockSelected(reason)"
+            >
               Unlock
             </button>
-            <button v-if="canWriteUsers" class="danger-action" type="button" @click="requestDestructiveAction('deactivate')">
+            <button
+              v-if="canWriteUsers"
+              class="danger-action"
+              type="button"
+              @click="requestDestructiveAction('deactivate')"
+            >
               Deactivate
             </button>
-            <button v-if="canWriteUsers" class="primary-action" type="button" @click="store.reactivateSelected">
+            <button
+              v-if="canWriteUsers"
+              class="primary-action"
+              type="button"
+              @click="store.reactivateSelected"
+            >
               Reactivate
             </button>
-            <button v-if="canWriteUsers" class="lifecycle-reset-mfa-button danger-action" type="button" @click="requestDestructiveAction('reset_mfa')">
+            <button
+              v-if="canWriteUsers"
+              class="lifecycle-reset-mfa-button danger-action"
+              type="button"
+              @click="requestDestructiveAction('reset_mfa')"
+            >
               Reset MFA
             </button>
-            <button v-if="canWriteUsers" class="danger-action" type="button" @click="requestDestructiveAction('issue_password_reset')">
+            <button
+              v-if="canWriteUsers"
+              class="danger-action"
+              type="button"
+              @click="requestDestructiveAction('issue_password_reset')"
+            >
               Issue reset link
             </button>
           </div>
