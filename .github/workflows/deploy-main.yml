@@ -379,6 +379,36 @@ jobs:
             cat "$home_headers_file" >&2
             exit 1
           fi
+          login_headers_file="$(mktemp)"
+          login_body_file="$(mktemp)"
+          login_status="$(curl -sS --max-time 20 -o "$login_body_file" -D "$login_headers_file" -w '%{http_code}' \
+            "${admin_url%/}/auth/login?return_to=/dashboard")"
+          if [ "$login_status" != "302" ]; then
+            echo "expected /auth/login to redirect through admin BFF, got HTTP $login_status" >&2
+            cat "$login_headers_file" >&2
+            head -c 400 "$login_body_file" >&2 || true
+            exit 1
+          fi
+          if grep -qi '^location: .*oauth/v2/authorize\|^location: .*callbacks/upstream\|^location: .*client_id=&' "$login_headers_file"; then
+            echo 'expected /auth/login not to redirect through edge auth middleware.' >&2
+            cat "$login_headers_file" >&2
+            exit 1
+          fi
+          if ! grep -qi '^location: .*api-sso\.timeh\.my\.id/authorize' "$login_headers_file"; then
+            echo 'expected /auth/login Location to use Laravel SSO /authorize endpoint.' >&2
+            cat "$login_headers_file" >&2
+            exit 1
+          fi
+          if ! grep -qi '^location: .*client_id=sso-admin-panel' "$login_headers_file"; then
+            echo 'expected /auth/login Location to include sso-admin-panel client_id.' >&2
+            cat "$login_headers_file" >&2
+            exit 1
+          fi
+          if ! grep -qi '^location: .*redirect_uri=.*admin-sso\.timeh\.my\.id%2Fauth%2Fcallback' "$login_headers_file"; then
+            echo 'expected /auth/login Location to return to admin BFF callback.' >&2
+            cat "$login_headers_file" >&2
+            exit 1
+          fi
           headers_file="$(mktemp)"
           body_file="$(mktemp)"
           status="$(curl -sS --max-time 20 -o "$body_file" -D "$headers_file" -w '%{http_code}' \

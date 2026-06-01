@@ -42,6 +42,37 @@ require_command() {
   command -v "$1" >/dev/null 2>&1 || die "Missing required command: $1"
 }
 
+assert_no_edge_auth_middleware() {
+  local config_root="${NGINX_CONFIG_ROOT:-/etc/nginx}"
+  local candidate_files=()
+  local file
+  local matches
+
+  if [[ ! -d "$config_root" ]]; then
+    warn "Nginx config root not found: $config_root"
+    return 0
+  fi
+
+  while IFS= read -r file; do
+    candidate_files+=("$file")
+  done < <(grep -RIlF "$ADMIN_DOMAIN" "$config_root" 2>/dev/null || true)
+
+  if [[ " ${candidate_files[*]} " != *" $SITE_AVAILABLE "* && -f "$SITE_AVAILABLE" ]]; then
+    candidate_files+=("$SITE_AVAILABLE")
+  fi
+
+  if [[ "${#candidate_files[@]}" -eq 0 ]]; then
+    warn "No Nginx config file references $ADMIN_DOMAIN yet"
+    return 0
+  fi
+
+  matches="$(grep -nE 'auth_request|oauth2-proxy|forwardAuth|ForwardAuth|callbacks/upstream|oauth/v2/authorize|zitadel' "${candidate_files[@]}" 2>/dev/null || true)"
+  if [[ -n "$matches" ]]; then
+    printf '%s\n' "$matches" >&2
+    die "Edge auth middleware found for $ADMIN_DOMAIN. Admin BFF owns auth; remove auth_request/ForwardAuth/oauth2-proxy from the admin host route."
+  fi
+}
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --mode)
@@ -73,6 +104,7 @@ else
 fi
 
 if [[ "$MODE" == "audit" ]]; then
+  assert_no_edge_auth_middleware
   exit 0
 fi
 
@@ -171,5 +203,6 @@ fi
 
 ln -sfn "$SITE_AVAILABLE" "$SITE_ENABLED"
 nginx -t
+assert_no_edge_auth_middleware
 systemctl reload nginx
 log "Admin frontend route applied for $ADMIN_DOMAIN"
