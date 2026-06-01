@@ -10,6 +10,10 @@ const deployWorkflow = readFileSync(
   resolve(process.cwd(), '../../.github/workflows/deploy-main.yml'),
   'utf8',
 )
+const productionSmokeE2e = readFileSync(
+  resolve(process.cwd(), 'e2e/production-smoke.spec.ts'),
+  'utf8',
+)
 const serverSource = readFileSync(resolve(process.cwd(), 'src/server/index.ts'), 'utf8')
 const proxySource = readFileSync(resolve(process.cwd(), 'src/server/admin-proxy.ts'), 'utf8')
 
@@ -49,6 +53,17 @@ describe('admin BFF serving contract', () => {
     expect(deployWorkflow).toContain('expected / to be served by admin SPA fallback')
     expect(deployWorkflow).toContain('expected / cache-control no-store')
     expect(deployWorkflow).toContain('expected / not to redirect to upstream edge auth or stale browser-cache target')
+  })
+
+  it('locks redirect diagnostic coverage for legacy home and authenticated dashboard access', () => {
+    expect(deployWorkflow).toContain('/home')
+    expect(deployWorkflow).toContain('expected /home to be served by admin SPA fallback')
+    expect(deployWorkflow).toContain('expected /home body to be the admin SPA index shell')
+    expect(deployWorkflow).toContain('expected /home not to redirect to upstream edge auth')
+    expect(productionSmokeE2e).toContain(
+      'stubbed OIDC admin session reaches dashboard with principal evidence',
+    )
+    expect(productionSmokeE2e).toContain('legacy /home path is handled by the admin SPA catch-all')
   })
 
   it('documents that admin API auth is bearer-only through the BFF, not shared portal cookies', () => {

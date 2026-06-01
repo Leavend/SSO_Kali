@@ -404,6 +404,11 @@ jobs:
             cat "$home_headers_file" >&2
             exit 1
           fi
+          if ! grep -qi '<div id="app"' "$home_body_file"; then
+            echo 'expected /home body to be the admin SPA index shell, got:' >&2
+            head -c 400 "$home_body_file" >&2 || true
+            exit 1
+          fi
           login_headers_file="$(mktemp)"
           login_body_file="$(mktemp)"
           login_status="$(curl -sS --max-time 20 -o "$login_body_file" -D "$login_headers_file" -w '%{http_code}' \
