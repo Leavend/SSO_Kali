@@ -94,9 +94,10 @@ Karena request tidak pernah sampai ke backend, **tidak ada respons 401/403** yan
 ### Bagian B — Refresh UI & Peningkatan UX (setelah blocker beres)
 
 #### ISS-U1 · Tidak ada design system / inkonsistensi dengan portal 🟠 Medium
-- **Bukti:** tanpa Tailwind/Reka UI/cva/lucide; `main.css` 852 baris hand-rolled. Portal sudah Tailwind 4 + Reka UI.
+- **Status 2026-06-01:** selesai untuk fondasi awal (`feat(admin-ui): add design system foundation`, commit `9700f78`). Tailwind 4, Reka UI, `cva`, `clsx`/`tailwind-merge`, `lucide-vue-next`, `tw-animate-css`, token Inter/Outfit, `cn()`, dan primitive awal sudah masuk; migrasi page dilakukan incremental di ISS-U2–U7.
+- **Bukti awal:** sebelumnya tanpa Tailwind/Reka UI/cva/lucide; `main.css` 852 baris hand-rolled. Portal sudah Tailwind 4 + Reka UI.
 - **Issue:**
-  - [ ] Adopsi fondasi: Tailwind 4 + Reka UI + `cva` + `clsx`/`tailwind-merge` + `lucide-vue-next`, selaras token portal (warna, radius, shadow, tipografi Inter/Outfit).
+  - [x] Adopsi fondasi: Tailwind 4 + Reka UI + `cva` + `clsx`/`tailwind-merge` + `lucide-vue-next`, selaras token portal (warna, radius, shadow, tipografi Inter/Outfit).
 
 #### ISS-U2 · State loading/empty/error/forbidden hanya teks polos 🟠 Medium
 - **Bukti:** "Memuat users...", panel `state-card` teks; `AdminErrorView`/`ForbiddenView` minim.
