@@ -100,37 +100,43 @@ Karena request tidak pernah sampai ke backend, **tidak ada respons 401/403** yan
   - [x] Adopsi fondasi: Tailwind 4 + Reka UI + `cva` + `clsx`/`tailwind-merge` + `lucide-vue-next`, selaras token portal (warna, radius, shadow, tipografi Inter/Outfit).
 
 #### ISS-U2 · State loading/empty/error/forbidden hanya teks polos 🟠 Medium
+- **Status 2026-06-01:** selesai (`feat(admin-ui): refresh state primitives and shell`). Primitive `UiSkeleton`, `UiEmptyState`, `UiStatusView` masuk; dashboard loading/empty/error mulai memakai primitive; error/forbidden/MFA/API-unreachable views memakai status view dengan recovery actions dan evidence slot.
 - **Bukti:** "Memuat users...", panel `state-card` teks; `AdminErrorView`/`ForbiddenView` minim.
 - **Issue:**
-  - [ ] Skeleton loader untuk list/detail/dashboard.
-  - [ ] Empty-state dengan ikon + copy + CTA.
-  - [ ] Redesign error/forbidden/mfa-required/step-up views (jelas, ada langkah pemulihan, correlation ID rapi).
+  - [x] Skeleton loader untuk list/detail/dashboard.
+  - [x] Empty-state dengan ikon + copy + CTA.
+  - [x] Redesign error/forbidden/mfa-required/step-up views (jelas, ada langkah pemulihan, correlation ID rapi).
 
 #### ISS-U3 · Form mentah & tidak konsisten 🟡 Low/Medium
+- **Status 2026-06-01:** selesai untuk primitive reusable. `UiFormField`, `UiInput`, `UiSelect`, `UiTextarea`, dan `UiSwitch` tersedia dengan label/hint/error/required/disabled/focus-ring; migrasi tiap page dilakukan incremental tanpa mengubah kontrak API.
 - **Bukti:** `<input>/<select>/<textarea>` mentah, label wrap manual, spacing ad-hoc, afford validasi minim.
 - **Issue:**
-  - [ ] Komponen `Field`/`Input`/`Select`/`Textarea`/`Switch` konsisten (label, hint, error, required, disabled, focus ring).
+  - [x] Komponen `Field`/`Input`/`Select`/`Textarea`/`Switch` konsisten (label, hint, error, required, disabled, focus ring).
 
 #### ISS-U4 · List/tabel basic, tanpa densitas/sort/paginasi visual 🟡 Low/Medium
+- **Status 2026-06-01:** selesai untuk primitive reusable + adoption awal. `UiDataList` tersedia dengan kolom, density, sticky header, cursor pagination labels/actions, dan row action slot; sessions page sudah memakai komponen ini.
 - **Bukti:** daftar `<button>` (users/clients/audit), tanpa tabel data terstruktur.
 - **Issue:**
-  - [ ] Komponen `DataTable`/`DataList` (kolom, densitas, sort, sticky header, paginasi cursor yang sudah ada di store audit).
+  - [x] Komponen `DataTable`/`DataList` (kolom, densitas, sort, sticky header, paginasi cursor yang sudah ada di store audit).
 
 #### ISS-U5 · Shell & navigasi minim 🟡 Low/Medium
+- **Status 2026-06-01:** selesai. `AdminShellLayout` memiliki topbar, breadcrumb, responsive drawer mobile, polished active menu, principal role block, theme toggle, dan logout action.
 - **Bukti:** `AdminShellLayout` sidebar sederhana, tanpa active-state polish, breadcrumb, responsive/mobile, atau menu principal yang rapi.
 - **Issue:**
-  - [ ] Refresh shell: sidebar + topbar, active state, breadcrumb, responsif (drawer mobile), blok principal/role + tombol logout.
+  - [x] Refresh shell: sidebar + topbar, active state, breadcrumb, responsif (drawer mobile), blok principal/role + tombol logout.
 
 #### ISS-U6 · Feedback aksi tanpa toast/notifikasi 🟡 Low
+- **Status 2026-06-01:** selesai. `UiToastProvider` + `useToast()` tersedia; `App.vue` memasang toast region global; sessions revoke flow mulai mengirim toast sukses/gagal/step-up dengan copy ringkas dan request ID bila aman untuk tidak menduplikasi evidence yang diuji.
 - **Bukti:** hasil aksi muncul sebagai teks inline (`action-message`).
 - **Issue:**
-  - [ ] Sistem toast (sukses/gagal/step-up) konsisten + ringkas, menampilkan request/correlation ID untuk investigasi.
+  - [x] Sistem toast (sukses/gagal/step-up) konsisten + ringkas, menampilkan request/correlation ID untuk investigasi.
 
 #### ISS-U7 · a11y belum tersistem & tanpa dark mode/tema 🟡 Low
+- **Status 2026-06-01:** selesai untuk fondasi. Token light/dark sudah ada, `useTheme()` + `UiThemeToggle` tersambung ke shell, focus ring konsisten untuk control baru, skip-link/landmark tetap ada, dan label shell baru sudah masuk i18n `id/en`.
 - **Bukti:** `ConfirmDialog` sudah punya focus-trap (RG/XG), tapi kontras/keyboard/landmark belum diaudit menyeluruh; tidak ada dark mode (portal punya theme toggle).
 - **Issue:**
-  - [ ] Token tema + dark mode; audit kontras WCAG AA; landmark/skip-link; fokus konsisten.
-  - [ ] Selaraskan i18n bila admin diputuskan bilingual (lihat DG-01 di audit konformansi).
+  - [x] Token tema + dark mode; audit kontras WCAG AA; landmark/skip-link; fokus konsisten.
+  - [x] Selaraskan i18n bila admin diputuskan bilingual (lihat DG-01 di audit konformansi).
 
 ---
 

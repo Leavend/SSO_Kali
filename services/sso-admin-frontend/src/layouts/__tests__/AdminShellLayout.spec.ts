@@ -74,4 +74,24 @@ describe('AdminShellLayout', () => {
     expect(wrapper.text()).toContain('admin@example.com')
     expect(wrapper.text()).not.toMatch(/accessToken|refreshToken|idToken|Bearer/i)
   })
+
+  it('renders refreshed shell landmarks topbar breadcrumb and logout action', () => {
+    const wrapper = mount(AdminShellLayout, {
+      global: {
+        stubs: {
+          RouterLink: { template: '<a :href="to"><slot /></a>', props: ['to'] },
+          RouterView: true,
+        },
+      },
+    })
+
+    expect(wrapper.find('[data-testid="admin-topbar"]').exists()).toBe(true)
+    expect(wrapper.get('[aria-label="Breadcrumb"]').text()).toContain('Control Plane')
+    expect(
+      wrapper.get('[data-testid="admin-mobile-menu-toggle"]').attributes('aria-expanded'),
+    ).toBe('false')
+    expect(wrapper.get('[data-testid="admin-logout-action"]').attributes('href')).toContain(
+      '/logout',
+    )
+  })
 })

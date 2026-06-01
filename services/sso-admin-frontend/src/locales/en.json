@@ -4,6 +4,10 @@
     "sidebar_label": "Admin navigation",
     "module_label": "Admin modules",
     "principal_label": "Active admin principal",
+    "breadcrumb_label": "Breadcrumb",
+    "open_navigation": "Open navigation",
+    "close_navigation": "Close navigation",
+    "logout": "Logout",
     "brand_eyebrow": "SSO Admin",
     "brand_title": "Control Plane",
     "forbidden": {

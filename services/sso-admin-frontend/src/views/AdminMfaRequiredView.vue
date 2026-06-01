@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import UiStatusView from '@/components/ui/UiStatusView.vue'
 import { getAdminEnvironment } from '@/config/adminEnvironment'
 import { useI18n } from '@/composables/useI18n'
 
@@ -56,25 +57,14 @@ function normalizeReturnPath(): string {
 </script>
 
 <template>
-  <main class="admin-shell">
-    <section class="admin-shell__panel">
-      <div class="hero-card">
-        <span class="eyebrow">{{ eyebrow }}</span>
-        <h1>{{ title }}</h1>
-        <p>{{ description }}</p>
-        <div class="action-row" aria-label="Admin MFA required actions">
-          <a
-            data-testid="admin-mfa-primary-action"
-            class="button button--primary"
-            :href="primaryHref"
-          >
-            {{ primaryLabel }}
-          </a>
-          <a class="button button--secondary" :href="portalHomeHref">
-            {{ t('admin.mfa_required.secondary_action') }}
-          </a>
-        </div>
-      </div>
-    </section>
-  </main>
+  <UiStatusView tone="step_up" :eyebrow="eyebrow" :title="title" :description="description">
+    <template #actions>
+      <a data-testid="admin-mfa-primary-action" class="button button--primary" :href="primaryHref">
+        {{ primaryLabel }}
+      </a>
+      <a class="button button--secondary" :href="portalHomeHref">
+        {{ t('admin.mfa_required.secondary_action') }}
+      </a>
+    </template>
+  </UiStatusView>
 </template>

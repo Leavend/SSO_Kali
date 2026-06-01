@@ -4,6 +4,10 @@
     "sidebar_label": "Navigasi admin",
     "module_label": "Modul admin",
     "principal_label": "Principal admin aktif",
+    "breadcrumb_label": "Breadcrumb",
+    "open_navigation": "Buka navigasi",
+    "close_navigation": "Tutup navigasi",
+    "logout": "Keluar",
     "brand_eyebrow": "SSO Admin",
     "brand_title": "Control Plane",
     "forbidden": {

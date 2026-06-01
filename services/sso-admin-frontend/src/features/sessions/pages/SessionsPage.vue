@@ -1,18 +1,70 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
+import UiDataList, { type UiDataListRow } from '@/components/ui/UiDataList.vue'
+import { useToast } from '@/components/ui/useToast'
 import { useSessionStore } from '@/stores/session.store'
 import { useSessionsStore } from '../stores/sessions.store'
 
 const store = useSessionsStore()
 const session = useSessionStore()
+const { pushToast } = useToast()
 const canTerminateSessions = computed(() => session.hasPermission('admin.sessions.terminate'))
 const pendingRevokeSessionId = ref<string | null>(null)
+const sessionRows = computed<readonly UiDataListRow[]>(() =>
+  store.sessions.map((adminSession) => ({
+    id: adminSession.session_id,
+    session_id: adminSession.session_id,
+    client_id: adminSession.client_id,
+    user_display_name: adminSession.user_display_name,
+    ip_address: adminSession.ip_address,
+  })),
+)
+
+const sessionColumns = [
+  { key: 'session_id', label: 'Session ID' },
+  { key: 'client_id', label: 'Client' },
+  { key: 'user_display_name', label: 'User' },
+  { key: 'ip_address', label: 'IP' },
+] as const
 
 onMounted(() => {
   if (store.status === 'idle') void store.load()
 })
+
+watch(
+  () => store.actionStatus,
+  (status) => {
+    if (status === 'success') {
+      pushToast({
+        tone: 'success',
+        title: 'Session revoked',
+        description: 'Admin session termination completed.',
+        requestId: store.requestId ?? undefined,
+      })
+      return
+    }
+
+    if (status === 'step_up_required') {
+      pushToast({
+        tone: 'step_up',
+        title: 'Fresh auth required',
+        description: store.errorMessage ?? 'Re-authenticate before retrying this action.',
+      })
+      return
+    }
+
+    if (status === 'error') {
+      pushToast({
+        tone: 'error',
+        title: 'Session operation failed',
+        description: store.errorMessage ?? 'Retry after checking admin API health.',
+        requestId: store.requestId ?? undefined,
+      })
+    }
+  },
+)
 
 function requestRevokeSession(sessionId: string): void {
   pendingRevokeSessionId.value = sessionId
@@ -71,34 +123,18 @@ const confirmDescription = computed<string>(() =>
     </div>
 
     <div v-else>
-      <table class="sessions-table">
-        <thead>
-          <tr>
-            <th>Session ID</th>
-            <th>Client</th>
-            <th>User</th>
-            <th>IP</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="session in store.sessions" :key="session.session_id">
-            <td>{{ session.session_id }}</td>
-            <td>{{ session.client_id }}</td>
-            <td>{{ session.user_display_name }}</td>
-            <td>{{ session.ip_address }}</td>
-            <td>
-              <button
-                v-if="canTerminateSessions"
-                class="revoke-button danger-action"
-                type="button"
-                @click="requestRevokeSession(session.session_id)"
-              >
-                Revoke
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <UiDataList caption="Admin sessions" :columns="sessionColumns" :rows="sessionRows">
+        <template #actions="{ row }">
+          <button
+            v-if="canTerminateSessions"
+            class="revoke-button danger-action"
+            type="button"
+            @click="requestRevokeSession(row.id)"
+          >
+            Revoke
+          </button>
+        </template>
+      </UiDataList>
 
       <p v-if="store.actionStatus === 'step_up_required'" class="action-message" role="alert">
         {{ store.errorMessage }}

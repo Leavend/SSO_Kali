@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
+import UiEmptyState from '@/components/ui/UiEmptyState.vue'
+import UiSkeleton from '@/components/ui/UiSkeleton.vue'
+import UiStatusView from '@/components/ui/UiStatusView.vue'
 import { useDashboardStore } from '../stores/dashboard.store'
 import type { DashboardCounterGroup } from '../types'
 
@@ -54,34 +57,50 @@ function label(value: string): string {
       </dl>
     </header>
 
-    <section
+    <UiSkeleton
       v-if="dashboard.status === 'loading' || dashboard.status === 'idle'"
-      class="oidc-panel"
-      aria-live="polite"
+      :rows="6"
+      label="Memuat dashboard admin"
+    />
+
+    <UiStatusView
+      v-else-if="dashboard.status === 'forbidden'"
+      tone="forbidden"
+      eyebrow="Dashboard"
+      title="Akses dashboard ditolak"
+      :description="dashboard.errorMessage ?? 'Backend menolak akses dashboard admin.'"
+      :standalone="false"
+    />
+
+    <UiStatusView
+      v-else-if="dashboard.status === 'unauthenticated'"
+      tone="step_up"
+      eyebrow="Sesi admin"
+      title="Sesi admin berakhir"
+      :description="dashboard.errorMessage ?? 'Sesi admin tidak lagi valid.'"
+      :standalone="false"
+    />
+
+    <UiStatusView
+      v-else-if="dashboard.status === 'error'"
+      tone="error"
+      eyebrow="Dashboard"
+      title="Dashboard admin belum bisa dimuat"
+      :description="dashboard.errorMessage ?? 'Admin API belum bisa memuat summary dashboard.'"
+      :standalone="false"
+    />
+
+    <UiEmptyState
+      v-else-if="!hasCounterValues"
+      title="Dashboard belum memiliki evidence"
+      description="Belum ada ringkasan dashboard untuk ditampilkan. Refresh data atau cek permission backend bila kondisi ini tidak sesuai."
     >
-      <h2>Memuat dashboard admin</h2>
-      <p>Mengambil governance summary dari admin API.</p>
-    </section>
-
-    <section v-else-if="dashboard.status === 'forbidden'" class="oidc-panel" role="alert">
-      <h2>Akses dashboard ditolak</h2>
-      <p>{{ dashboard.errorMessage }}</p>
-    </section>
-
-    <section v-else-if="dashboard.status === 'unauthenticated'" class="oidc-panel" role="alert">
-      <h2>Sesi admin berakhir</h2>
-      <p>{{ dashboard.errorMessage }}</p>
-    </section>
-
-    <section v-else-if="dashboard.status === 'error'" class="oidc-panel" role="alert">
-      <h2>Dashboard admin belum bisa dimuat</h2>
-      <p>{{ dashboard.errorMessage }}</p>
-    </section>
-
-    <section v-else-if="!hasCounterValues" class="oidc-panel" role="status">
-      <h2>Dashboard belum memiliki evidence</h2>
-      <p>Belum ada ringkasan dashboard untuk ditampilkan.</p>
-    </section>
+      <template #action>
+        <button class="secondary-action" type="button" @click="void dashboard.load()">
+          Refresh
+        </button>
+      </template>
+    </UiEmptyState>
 
     <section v-else class="dashboard-grid" aria-label="Ringkasan dashboard admin">
       <article v-for="card in cards" :key="card.title" class="dashboard-card">
