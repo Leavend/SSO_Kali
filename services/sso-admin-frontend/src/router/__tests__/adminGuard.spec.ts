@@ -87,13 +87,13 @@ describe('resolveAdminGuard', () => {
     expect(authApi.getPrincipal).not.toHaveBeenCalled()
   })
 
-  it('redirects unauthenticated visitors to the SSO portal login with admin return path', async () => {
+  it('redirects unauthenticated visitors to the same-origin admin BFF login', async () => {
     vi.mocked(authApi.getPrincipal).mockRejectedValue(new ApiError(401, 'No active SSO session.'))
 
     await expect(resolveAdminGuard(route({ fullPath: '/' }))).resolves.toBe(false)
 
     expect(window.location.assign).toHaveBeenCalledWith(
-      'https://dev-sso.timeh.my.id/?redirect=%2F__vue-preview%2F',
+      'https://sso.test/auth/login?return_to=%2F__vue-preview%2F',
     )
   })
 
@@ -154,7 +154,7 @@ describe('resolveAdminGuard', () => {
     ).resolves.toBe(false)
 
     expect(window.location.assign).toHaveBeenCalledWith(
-      'https://dev-sso.timeh.my.id/?redirect=%2F__vue-preview%2Foidc-foundation',
+      'https://sso.test/auth/login?return_to=%2F__vue-preview%2Foidc-foundation',
     )
   })
 

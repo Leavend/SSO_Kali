@@ -112,6 +112,10 @@ const router = createRouter({
       name: 'admin.api-unreachable',
       component: AdminApiUnreachableView,
     },
+    {
+      path: '/:pathMatch(.*)*',
+      redirect: '/dashboard',
+    },
   ],
 })
 

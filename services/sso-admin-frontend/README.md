@@ -1,15 +1,15 @@
 # Dev-SSO Admin Frontend
 
-Parallel admin frontend untuk migrasi bertahap dari `services/sso-frontend`
-tanpa mengganggu trafik production.
+Dedicated Admin SSO frontend dengan Node BFF token-broker. Browser tetap hanya
+memegang cookie opaque httpOnly; access token disimpan server-side dan hanya
+di-inject oleh BFF saat proxy ke backend admin API.
 
 ## Guardrails
 
-- Service ini berjalan sebagai canary di path `/__vue-preview`.
-- Jangan pindahkan token exchange ke browser.
-- Callback, refresh token, dan session cookie tetap server-side sampai BFF
-  Laravel siap.
-- Next.js admin lama tetap menjadi fallback rollback sampai cutover resmi.
+- Jangan pindahkan token exchange atau access token ke browser.
+- `/auth/*` berjalan di BFF admin dengan OIDC Authorization Code + PKCE.
+- `/api/admin/*` wajib lewat BFF admin; BFF inject `Authorization: Bearer`.
+- Cookie sesi BFF memakai `__Host-sso-admin-session`, host-only, httpOnly.
 
 ## Project Setup
 
@@ -30,11 +30,10 @@ npm run type-check
 npm run lint
 npm run test:unit
 npm run build
+npm run test:e2e
 ```
 
-## Docker Preview
+## Runtime
 
-```bash
-docker build -t sso-admin-frontend:local .
-docker run --rm -p 4173:8080 sso-admin-frontend:local
-```
+Production image build/deploy dilakukan lewat GitHub workflows. Jangan jalankan
+local Docker build untuk service ini.

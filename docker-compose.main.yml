@@ -39,6 +39,8 @@ x-sso-backend-env: &sso-backend-env
   OIDC_AUTH_REQUEST_TTL: ${OIDC_AUTH_REQUEST_TTL:-300}
   OIDC_AUTHORIZATION_CODE_TTL: ${OIDC_AUTHORIZATION_CODE_TTL:-60}
   ADMIN_PANEL_CLIENT_ID: ${ADMIN_PANEL_CLIENT_ID:-sso-admin-panel}
+  ADMIN_PANEL_REDIRECT_URI: ${SSO_ADMIN_FRONTEND_URL:-https://admin-sso.timeh.my.id}/auth/callback
+  ADMIN_PANEL_POST_LOGOUT_REDIRECT_URI: ${SSO_ADMIN_FRONTEND_URL:-https://admin-sso.timeh.my.id}
   ADMIN_PANEL_ADMIN_EMAIL: ${ADMIN_PANEL_ADMIN_EMAIL:-admin@example.com}
   ADMIN_PANEL_SESSION_MANAGEMENT_ROLES: ${ADMIN_PANEL_SESSION_MANAGEMENT_ROLES:-admin}
   ADMIN_PANEL_REQUIRE_MFA: ${ADMIN_PANEL_REQUIRE_MFA:-false}
@@ -75,6 +77,19 @@ x-sso-frontend-env: &sso-frontend-env
   SSO_FRONTEND_SERVER_NAME: ${SSO_FRONTEND_SERVER_NAME:-_}
   SSO_CSP_CONNECT_SRC: ${SSO_CSP_CONNECT_SRC:-https://api-sso.timeh.my.id}
   VITE_ADMIN_FRONTEND_ORIGIN: ${SSO_ADMIN_FRONTEND_URL:-https://admin-sso.timeh.my.id}
+
+x-sso-admin-frontend-env: &sso-admin-frontend-env
+  PORT: 8080
+  VITE_ADMIN_BASE_URL: ${SSO_ADMIN_FRONTEND_URL:-https://admin-sso.timeh.my.id}
+  VITE_PUBLIC_BASE_PATH: /
+  VITE_SSO_BASE_URL: ${SSO_BASE_URL:-https://api-sso.timeh.my.id}
+  ADMIN_OIDC_CLIENT_ID: ${ADMIN_PANEL_CLIENT_ID:-sso-admin-panel}
+  ADMIN_OIDC_SCOPE: ${ADMIN_OIDC_SCOPE:-openid profile email offline_access roles permissions}
+  SSO_INTERNAL_BASE_URL: ${SSO_INTERNAL_BASE_URL:-http://sso-backend:8000}
+  SSO_INTERNAL_TOKEN_URL: ${SSO_INTERNAL_TOKEN_URL:-http://sso-backend:8000/token}
+  SSO_INTERNAL_JWKS_URL: ${SSO_INTERNAL_JWKS_URL:-http://sso-backend:8000/jwks}
+  SSO_ADMIN_SESSION_REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/5
+  SESSION_ENCRYPTION_SECRET: ${SESSION_ENCRYPTION_SECRET:?SESSION_ENCRYPTION_SECRET is required}
 
 services:
   postgres:
@@ -224,11 +239,14 @@ services:
     container_name: ${SSO_ADMIN_FRONTEND_CONTAINER:-sso-admin-frontend-prod}
     restart: unless-stopped
     init: true
+    environment: *sso-admin-frontend-env
     depends_on:
       sso-backend:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:8080/healthz >/dev/null"]
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:8080/healthz', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))\""]
       interval: 30s
       timeout: 10s
       retries: 8
@@ -237,8 +255,8 @@ services:
       - ${SSO_ADMIN_FRONTEND_BIND:-127.0.0.1:3091}:8080
     networks:
       - sso-main
-    mem_limit: 128m
-    cpus: "0.10"
+    mem_limit: 256m
+    cpus: "0.20"
 
 networks:
   sso-main:

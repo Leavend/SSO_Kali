@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import UiStatusView from '@/components/ui/UiStatusView.vue'
+import { getAdminEnvironment } from '@/config/adminEnvironment'
+
+const portalHomeHref = new URL('/home', getAdminEnvironment().ssoBaseUrl).toString()
 </script>
 
 <template>
@@ -11,7 +14,7 @@ import UiStatusView from '@/components/ui/UiStatusView.vue'
   >
     <template #actions>
       <a class="button button--primary" href="/">Muat ulang</a>
-      <a class="button button--secondary" href="/home">Kembali ke Portal SSO</a>
+      <a class="button button--secondary" :href="portalHomeHref">Kembali ke Portal SSO</a>
     </template>
   </UiStatusView>
 </template>

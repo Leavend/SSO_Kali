@@ -42,11 +42,10 @@ function routePermissions(to: RouteLocationNormalized): readonly string[] {
 }
 
 function buildLoginUrl(fullPath: string): string {
-  const env = getAdminEnvironment()
-  const publicBase = normalizeBasePath(env.publicBasePath)
+  const publicBase = normalizeBasePath(getAdminEnvironment().publicBasePath)
   const returnPath = `${publicBase}${fullPath.replace(/^\//u, '')}`
-  const url = new URL('/', env.ssoBaseUrl)
-  url.searchParams.set('redirect', returnPath)
+  const url = new URL('/auth/login', window.location.origin)
+  url.searchParams.set('return_to', returnPath)
   return url.toString()
 }
 

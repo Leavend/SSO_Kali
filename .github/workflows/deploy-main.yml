@@ -380,8 +380,8 @@ jobs:
             head -c 400 "$body_file" >&2 || true
             exit 1
           fi
-          if ! grep -q '"error"[[:space:]]*:[[:space:]]*"unauthorized"' "$body_file"; then
-            echo 'expected /api/admin/me anonymous body to contain error=unauthorized, got:' >&2
+          if ! grep -q '"error"[[:space:]]*:[[:space:]]*"no_session"' "$body_file"; then
+            echo 'expected /api/admin/me anonymous body to contain error=no_session, got:' >&2
             head -c 400 "$body_file" >&2 || true
             exit 1
           fi

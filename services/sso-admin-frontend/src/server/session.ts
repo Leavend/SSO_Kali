@@ -1,0 +1,174 @@
+import type { IncomingMessage } from 'node:http'
+import type { PortalSessionView, SsoPrincipal } from '../shared/user.js'
+import { getConfig } from './config.js'
+import {
+  SSO_PORTAL_SESSION_COOKIE,
+  SSO_PORTAL_TX_COOKIE,
+  expiredHostCookieOptions,
+  hostCookieOptions,
+  readCookie,
+  serializeCookie,
+} from './cookies.js'
+import { decryptSession, encryptSession } from './session-crypto.js'
+import {
+  createSessionRecord,
+  deleteSessionRecord,
+  readSessionRecord,
+  replaceSessionRecord,
+} from './session-store.js'
+
+export type PortalSession = PortalSessionView & {
+  readonly accessToken: string
+  readonly idToken: string
+  readonly refreshToken: string
+  readonly sub: string
+  readonly displayName: string
+  readonly issuedAt: number
+  readonly absoluteExpiresAt: number
+  readonly lastRefreshedAt: number
+}
+
+export type AuthTransaction = {
+  readonly state: string
+  readonly nonce: string
+  readonly codeVerifier: string
+  readonly returnTo?: string
+}
+
+export async function getSession(request: IncomingMessage): Promise<PortalSession | null> {
+  const session = await readSession(request)
+  if (!session || isSessionExpired(session.expiresAt)) return null
+
+  return session
+}
+
+export async function readSession(request: IncomingMessage): Promise<PortalSession | null> {
+  const sessionId = readSessionId(request)
+  if (!sessionId) return null
+
+  return readSessionRecord(sessionId)
+}
+
+export async function sessionCookie(session: PortalSession): Promise<string> {
+  return sessionCookieForId(await createSessionRecord(session), session)
+}
+
+export function sessionCookieForId(sessionId: string, session: PortalSession): string {
+  return serializeCookie(
+    SSO_PORTAL_SESSION_COOKIE,
+    sessionId,
+    hostCookieOptions(sessionCookieMaxAge(session)),
+  )
+}
+
+export async function replaceSession(sessionId: string, session: PortalSession): Promise<void> {
+  await replaceSessionRecord(sessionId, session)
+}
+
+export async function clearSessionCookie(request?: IncomingMessage): Promise<readonly string[]> {
+  const sessionId = request ? readSessionId(request) : null
+  if (sessionId) await deleteSessionRecord(sessionId)
+
+  return [
+    serializeCookie(SSO_PORTAL_SESSION_COOKIE, '', expiredHostCookieOptions()),
+    // Clear stale admin BFF session cookie variants from browsers.
+    serializeCookie('__Host-sso-admin-session-legacy', '', expiredHostCookieOptions()),
+  ]
+}
+
+export function transactionCookie(tx: AuthTransaction): string {
+  return serializeCookie(
+    SSO_PORTAL_TX_COOKIE,
+    encryptSession(JSON.stringify(tx)),
+    hostCookieOptions(300),
+  )
+}
+
+export function clearTransactionCookie(): string {
+  return serializeCookie(SSO_PORTAL_TX_COOKIE, '', expiredHostCookieOptions())
+}
+
+export function pullTransaction(request: IncomingMessage): AuthTransaction | null {
+  const raw = readCookie(request, SSO_PORTAL_TX_COOKIE)
+  if (!raw) return null
+
+  try {
+    const decrypted = decryptSession(raw)
+    if (!decrypted) return null
+
+    return JSON.parse(decrypted) as AuthTransaction
+  } catch {
+    return null
+  }
+}
+
+export function sessionFromBootstrap(
+  tokens: {
+    readonly accessToken: string
+    readonly idToken: string
+    readonly refreshToken: string
+    readonly expiresAt: number
+  },
+  principal: SsoPrincipal,
+): PortalSession {
+  const issuedAt = unixTime()
+
+  return {
+    accessToken: tokens.accessToken,
+    idToken: tokens.idToken,
+    refreshToken: tokens.refreshToken,
+    sub: principal.subjectId,
+    subject: principal.subjectId,
+    email: principal.email,
+    displayName: principal.displayName,
+    role: principal.role,
+    expiresAt: tokens.expiresAt,
+    authTime: principal.authContext.auth_time,
+    amr: [...principal.authContext.amr],
+    acr: principal.authContext.acr,
+    lastLoginAt: principal.lastLoginAt,
+    issuedAt,
+    absoluteExpiresAt: issuedAt + getConfig().sessionAbsoluteTtlSeconds,
+    lastRefreshedAt: issuedAt,
+  }
+}
+
+export function publicSession(session: PortalSession): PortalSessionView {
+  return {
+    subject: session.sub,
+    email: session.email,
+    displayName: session.displayName,
+    role: session.role,
+    expiresAt: session.expiresAt,
+    authTime: session.authTime,
+    amr: session.amr,
+    acr: session.acr,
+    lastLoginAt: session.lastLoginAt,
+  }
+}
+
+export function isSessionExpired(expiresAt: number, bufferSeconds = 30): boolean {
+  return expiresAt < unixTime() + bufferSeconds
+}
+
+export function isSessionAbsoluteExpired(session: PortalSession): boolean {
+  return session.absoluteExpiresAt <= unixTime()
+}
+
+export function unixTime(): number {
+  return Math.floor(Date.now() / 1000)
+}
+
+function readSessionId(request: IncomingMessage): string | null {
+  const value = readCookie(request, SSO_PORTAL_SESSION_COOKIE)
+  return isOpaqueSessionId(value) ? value : null
+}
+
+function isOpaqueSessionId(value: string | null): value is string {
+  return Boolean(value && /^[A-Za-z0-9_-]{43,}$/u.test(value))
+}
+
+function sessionCookieMaxAge(session: PortalSession): number {
+  const absoluteRemaining = Math.max(0, session.absoluteExpiresAt - unixTime())
+  return Math.min(getConfig().sessionIdleTtlSeconds, absoluteRemaining)
+}
