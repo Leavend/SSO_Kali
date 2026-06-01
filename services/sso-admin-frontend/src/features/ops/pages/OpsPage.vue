@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
+import UiEmptyState from '@/components/ui/UiEmptyState.vue'
+import UiSkeleton from '@/components/ui/UiSkeleton.vue'
+import UiStatusView from '@/components/ui/UiStatusView.vue'
 import { useOpsStore } from '../stores/ops.store'
 import { OPS_DRILLS, runbookHref } from '../drills'
 
@@ -25,37 +28,45 @@ onMounted(() => {
       </p>
     </div>
 
-    <div v-if="store.status === 'loading'" class="state-card" role="status">
-      Memuat ops evidence...
-    </div>
+    <UiSkeleton v-if="store.status === 'loading'" label="Memuat ops evidence" />
 
-    <div
+    <UiStatusView
       v-else-if="store.status === 'forbidden'"
-      class="state-card state-card--danger"
-      role="alert"
-    >
-      <h2>Akses ops evidence ditolak</h2>
-      <p>{{ store.errorMessage }}</p>
-    </div>
+      tone="forbidden"
+      eyebrow="Operations"
+      title="Akses ops evidence ditolak"
+      :description="store.errorMessage ?? 'Kamu tidak memiliki izin untuk melihat ops evidence.'"
+      :request-id="store.requestId ?? undefined"
+      :standalone="false"
+    />
 
-    <div
+    <UiStatusView
       v-else-if="store.status === 'unauthenticated'"
-      class="state-card state-card--danger"
-      role="alert"
-    >
-      <h2>Sesi admin berakhir</h2>
-      <p>{{ store.errorMessage }}</p>
-    </div>
+      tone="error"
+      eyebrow="Session"
+      title="Sesi admin berakhir"
+      :description="store.errorMessage ?? 'Login ulang dari portal untuk melanjutkan.'"
+      :request-id="store.requestId ?? undefined"
+      :standalone="false"
+    />
 
-    <div v-else-if="store.status === 'error'" class="state-card state-card--danger" role="alert">
-      <h2>Ops evidence belum bisa dimuat</h2>
-      <p>{{ store.errorMessage }}</p>
-    </div>
+    <UiStatusView
+      v-else-if="store.status === 'error'"
+      tone="api"
+      eyebrow="Admin API"
+      title="Ops evidence belum bisa dimuat"
+      :description="
+        store.errorMessage ?? 'Coba muat ulang atau gunakan correlation ID untuk investigasi.'
+      "
+      :request-id="store.requestId ?? undefined"
+      :standalone="false"
+    />
 
-    <div v-else-if="!hasOpsEvidence" class="state-card" role="status">
-      <h2>Evidence operasional belum tersedia</h2>
-      <p>Belum ada evidence operasional untuk ditampilkan.</p>
-    </div>
+    <UiEmptyState
+      v-else-if="!hasOpsEvidence"
+      title="Evidence operasional belum tersedia"
+      description="Belum ada evidence operasional untuk ditampilkan."
+    />
 
     <div v-else class="ops-layout">
       <section class="detail-section" aria-labelledby="readiness-title">

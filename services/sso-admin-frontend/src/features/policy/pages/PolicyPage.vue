@@ -2,6 +2,14 @@
 import { computed, onMounted, ref } from 'vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
+import UiDataList, { type UiDataListRow } from '@/components/ui/UiDataList.vue'
+import UiEmptyState from '@/components/ui/UiEmptyState.vue'
+import UiFormField from '@/components/ui/UiFormField.vue'
+import UiInput from '@/components/ui/UiInput.vue'
+import UiSelect from '@/components/ui/UiSelect.vue'
+import UiSkeleton from '@/components/ui/UiSkeleton.vue'
+import UiStatusView from '@/components/ui/UiStatusView.vue'
+import UiTextarea from '@/components/ui/UiTextarea.vue'
 import { useSessionStore } from '@/stores/session.store'
 import { usePolicyStore } from '../stores/policy.store'
 
@@ -35,6 +43,24 @@ const pendingAction = ref<DestructiveAction | null>(null)
 
 const hasPolicyEvidence = computed(
   () => store.policies.length > 0 || store.roles.length > 0 || store.permissions.length > 0,
+)
+const categoryOptions = [
+  { value: 'password', label: 'password' },
+  { value: 'mfa', label: 'mfa' },
+  { value: 'session', label: 'session' },
+  { value: 'lockout', label: 'lockout' },
+  { value: 'legal_hold', label: 'legal_hold' },
+] as const
+const permissionColumns = [
+  { key: 'slug', label: 'Permission' },
+  { key: 'category', label: 'Category' },
+] as const
+const permissionRows = computed<readonly UiDataListRow[]>(() =>
+  store.permissions.map((permission) => ({
+    id: permission.slug,
+    slug: permission.slug,
+    category: permission.category ?? 'uncategorized',
+  })),
 )
 
 onMounted(() => {
@@ -151,61 +177,80 @@ const confirmDescription = computed<string>(() => {
       </p>
     </div>
 
-    <div v-if="store.status === 'loading'" class="state-card" role="status">Memuat policy...</div>
+    <UiSkeleton v-if="store.status === 'loading'" label="Memuat policy" />
 
-    <div
+    <UiStatusView
       v-else-if="store.status === 'forbidden'"
-      class="state-card state-card--danger"
-      role="alert"
-    >
-      <h2>Akses policy ditolak</h2>
-      <p>{{ store.errorMessage }}</p>
-    </div>
+      tone="forbidden"
+      eyebrow="Security Governance"
+      title="Akses policy ditolak"
+      :description="
+        store.errorMessage ?? 'Kamu tidak memiliki izin untuk melihat policy/RBAC admin.'
+      "
+      :request-id="store.requestId ?? undefined"
+      :standalone="false"
+    />
 
-    <div
+    <UiStatusView
       v-else-if="store.status === 'unauthenticated'"
-      class="state-card state-card--danger"
-      role="alert"
-    >
-      <h2>Sesi admin berakhir</h2>
-      <p>{{ store.errorMessage }}</p>
-    </div>
+      tone="error"
+      eyebrow="Session"
+      title="Sesi admin berakhir"
+      :description="store.errorMessage ?? 'Login ulang dari portal untuk melanjutkan.'"
+      :request-id="store.requestId ?? undefined"
+      :standalone="false"
+    />
 
-    <div v-else-if="store.status === 'error'" class="state-card state-card--danger" role="alert">
-      <h2>Policy/RBAC admin belum bisa dimuat</h2>
-      <p>{{ store.errorMessage }}</p>
-    </div>
+    <UiStatusView
+      v-else-if="store.status === 'error'"
+      tone="api"
+      eyebrow="Admin API"
+      title="Policy/RBAC admin belum bisa dimuat"
+      :description="
+        store.errorMessage ?? 'Coba muat ulang atau gunakan correlation ID untuk investigasi.'
+      "
+      :request-id="store.requestId ?? undefined"
+      :standalone="false"
+    />
 
-    <div v-else-if="!hasPolicyEvidence" class="state-card" role="status">
-      <h2>Policy/RBAC evidence belum tersedia</h2>
-      <p>Belum ada policy atau RBAC evidence untuk ditampilkan.</p>
-    </div>
+    <UiEmptyState
+      v-else-if="!hasPolicyEvidence"
+      title="Policy/RBAC evidence belum tersedia"
+      description="Belum ada policy atau RBAC evidence untuk ditampilkan."
+    />
 
     <div v-else class="policy-layout">
       <section class="detail-section" aria-labelledby="policy-versions-title">
         <h2 id="policy-versions-title">Security policy versions</h2>
         <div class="action-row compact-actions">
-          <label class="reason-field">
-            Category
-            <select v-model="category" @change="changeCategory">
-              <option value="password">password</option>
-              <option value="mfa">mfa</option>
-              <option value="session">session</option>
-              <option value="lockout">lockout</option>
-              <option value="legal_hold">legal_hold</option>
-            </select>
-          </label>
-          <label class="reason-field">
-            Reason
-            <input v-model="reason" autocomplete="off" />
-          </label>
+          <UiFormField id="policy-category" label="Category">
+            <UiSelect
+              id="policy-category"
+              v-model="category"
+              :options="categoryOptions"
+              @change="changeCategory"
+            />
+          </UiFormField>
+          <UiFormField id="policy-reason" label="Reason">
+            <UiInput id="policy-reason" v-model="reason" autocomplete="off" />
+          </UiFormField>
         </div>
 
-        <label v-if="canWriteSecurityPolicy" class="reason-field">
-          Draft payload JSON
-          <textarea v-model="draftPayload" rows="4" />
-        </label>
-        <button v-if="canWriteSecurityPolicy" class="primary-action" type="button" @click="proposeDraft">Create draft</button>
+        <UiFormField
+          v-if="canWriteSecurityPolicy"
+          id="policy-draft-payload"
+          label="Draft payload JSON"
+        >
+          <UiTextarea id="policy-draft-payload" v-model="draftPayload" :rows="4" />
+        </UiFormField>
+        <button
+          v-if="canWriteSecurityPolicy"
+          class="primary-action"
+          type="button"
+          @click="proposeDraft"
+        >
+          Create draft
+        </button>
 
         <div v-for="policy in store.policies" :key="policy.id" class="state-card">
           <strong>{{ policy.category }} version {{ policy.version }}</strong>
@@ -245,18 +290,30 @@ const confirmDescription = computed<string>(() => {
 
         <div v-if="canWriteRoles && showCreateRoleForm" class="create-role-form">
           <h3>Create Role</h3>
-          <label class="reason-field">
-            Name
-            <input v-model="createRoleName" name="create-role-name" autocomplete="off" />
-          </label>
-          <label class="reason-field">
-            Slug
-            <input v-model="createRoleSlug" name="create-role-slug" autocomplete="off" />
-          </label>
-          <label class="reason-field">
-            Description
-            <textarea v-model="createRoleDescription" name="create-role-description" rows="2" />
-          </label>
+          <UiFormField id="create-role-name" label="Name" required>
+            <UiInput
+              id="create-role-name"
+              v-model="createRoleName"
+              name="create-role-name"
+              autocomplete="off"
+            />
+          </UiFormField>
+          <UiFormField id="create-role-slug" label="Slug">
+            <UiInput
+              id="create-role-slug"
+              v-model="createRoleSlug"
+              name="create-role-slug"
+              autocomplete="off"
+            />
+          </UiFormField>
+          <UiFormField id="create-role-description" label="Description">
+            <UiTextarea
+              id="create-role-description"
+              v-model="createRoleDescription"
+              name="create-role-description"
+              :rows="2"
+            />
+          </UiFormField>
           <button
             class="primary-action"
             type="button"
@@ -275,14 +332,20 @@ const confirmDescription = computed<string>(() => {
 
         <div v-for="role in store.roles" :key="role.slug" class="state-card">
           <template v-if="editingRoleSlug === role.slug">
-            <label class="reason-field">
-              Name
-              <input v-model="editRoleName" autocomplete="off" />
-            </label>
-            <label class="reason-field">
-              Description
-              <textarea v-model="editRoleDescription" rows="2" />
-            </label>
+            <UiFormField :id="`edit-role-name-${role.slug}`" label="Name" required>
+              <UiInput
+                :id="`edit-role-name-${role.slug}`"
+                v-model="editRoleName"
+                autocomplete="off"
+              />
+            </UiFormField>
+            <UiFormField :id="`edit-role-description-${role.slug}`" label="Description">
+              <UiTextarea
+                :id="`edit-role-description-${role.slug}`"
+                v-model="editRoleDescription"
+                :rows="2"
+              />
+            </UiFormField>
             <div class="action-row compact-actions">
               <button class="primary-action" type="button" @click="submitEditRole">Save</button>
               <button class="secondary-action" type="button" @click="cancelEditRole">Cancel</button>
@@ -298,7 +361,12 @@ const confirmDescription = computed<string>(() => {
               </li>
             </ul>
             <div class="action-row compact-actions">
-              <button v-if="canWriteRoles" class="primary-action" type="button" @click="startEditRole(role)">
+              <button
+                v-if="canWriteRoles"
+                class="primary-action"
+                type="button"
+                @click="startEditRole(role)"
+              >
                 Edit
               </button>
               <button
@@ -318,11 +386,12 @@ const confirmDescription = computed<string>(() => {
 
       <section class="detail-section" aria-labelledby="permissions-title">
         <h2 id="permissions-title">Permission catalog</h2>
-        <ul>
-          <li v-for="permission in store.permissions" :key="permission.slug">
-            {{ permission.slug }} — {{ permission.category ?? 'uncategorized' }}
-          </li>
-        </ul>
+        <UiDataList
+          v-if="store.permissions.length > 0"
+          caption="Permission catalog"
+          :columns="permissionColumns"
+          :rows="permissionRows"
+        />
         <p v-if="store.permissions.length === 0" class="muted">Belum ada permission evidence.</p>
       </section>
 

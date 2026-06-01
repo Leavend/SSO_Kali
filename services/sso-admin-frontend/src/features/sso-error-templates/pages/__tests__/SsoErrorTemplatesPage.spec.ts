@@ -53,7 +53,7 @@ function seedPrincipal(capabilities: Record<string, boolean>): void {
 
 function seedFullAccessPrincipal(): void {
   seedPrincipal({
-      'admin.sso-error-templates.write': true,
+    'admin.sso-error-templates.write': true,
   })
 }
 
@@ -85,6 +85,7 @@ describe('SsoErrorTemplatesPage', () => {
     const wrapper = mount(SsoErrorTemplatesPage)
 
     expect(wrapper.text()).toContain('Memuat SSO error templates')
+    expect(wrapper.find('.ui-skeleton').exists()).toBe(true)
   })
 
   it('renders forbidden state with safe copy', () => {
@@ -96,6 +97,7 @@ describe('SsoErrorTemplatesPage', () => {
 
     expect(wrapper.text()).toContain('Akses ditolak')
     expect(wrapper.text()).toContain('Kamu tidak memiliki izin untuk melihat SSO error templates.')
+    expect(wrapper.find('.ui-status-view').exists()).toBe(true)
   })
 
   it('renders unauthenticated state', () => {
@@ -106,6 +108,7 @@ describe('SsoErrorTemplatesPage', () => {
     const wrapper = mount(SsoErrorTemplatesPage)
 
     expect(wrapper.text()).toContain('Sesi admin berakhir')
+    expect(wrapper.find('.ui-status-view').exists()).toBe(true)
   })
 
   it('renders error state', () => {
@@ -117,6 +120,23 @@ describe('SsoErrorTemplatesPage', () => {
 
     expect(wrapper.text()).toContain('SSO error templates belum bisa dimuat')
     expect(wrapper.text()).toContain('req-err')
+    expect(wrapper.find('.ui-status-view').exists()).toBe(true)
+  })
+
+  it('uses shared form primitives while editing a template', async () => {
+    const store = useSsoErrorTemplatesStore()
+    store.templates = [template]
+    store.status = 'success'
+
+    const wrapper = mount(SsoErrorTemplatesPage)
+    const card = wrapper
+      .findAll('.state-card')
+      .find((node) => node.text().includes('session_expired'))
+    const editButton = card!.findAll('button').find((btn) => btn.text() === 'Edit')
+    await editButton!.trigger('click')
+
+    expect(card!.find('.ui-form-field').exists()).toBe(true)
+    expect(card!.find('.ui-control').exists()).toBe(true)
   })
 
   it('shows default badge for an un-customized error code', () => {
@@ -200,5 +220,4 @@ describe('SsoErrorTemplatesPage', () => {
     expect(wrapper.text()).not.toContain('Reset')
     expect(wrapper.text()).not.toContain('Save')
   })
-
 })

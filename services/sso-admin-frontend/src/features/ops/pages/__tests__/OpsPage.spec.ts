@@ -75,6 +75,22 @@ describe('OpsPage', () => {
     const wrapper = mount(OpsPage)
 
     expect(wrapper.text()).toContain('Belum ada evidence operasional untuk ditampilkan.')
+    expect(wrapper.find('.ui-empty-state').exists()).toBe(true)
+  })
+
+  it('uses shared loading and status primitives', async () => {
+    const store = useOpsStore()
+    store.status = 'loading'
+
+    const wrapper = mount(OpsPage)
+
+    expect(wrapper.find('.ui-skeleton').exists()).toBe(true)
+
+    store.status = 'forbidden'
+    store.errorMessage = 'Kamu tidak memiliki izin untuk melihat ops evidence.'
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.find('.ui-status-view').exists()).toBe(true)
   })
 
   it('renders a runbook link and system of record for every drill, not a confusing placeholder', () => {

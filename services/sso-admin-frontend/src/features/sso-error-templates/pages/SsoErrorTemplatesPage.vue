@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
+import UiEmptyState from '@/components/ui/UiEmptyState.vue'
+import UiFormField from '@/components/ui/UiFormField.vue'
+import UiInput from '@/components/ui/UiInput.vue'
+import UiSkeleton from '@/components/ui/UiSkeleton.vue'
+import UiStatusView from '@/components/ui/UiStatusView.vue'
+import UiSwitch from '@/components/ui/UiSwitch.vue'
+import UiTextarea from '@/components/ui/UiTextarea.vue'
 import { useSessionStore } from '@/stores/session.store'
 import { useSsoErrorTemplatesStore } from '../stores/sso-error-templates.store'
 import type { SsoErrorTemplate, UpsertSsoErrorTemplatePayload } from '../types'
@@ -25,7 +32,17 @@ const errorCodes = [
 ]
 
 const editingCode = ref<string | null>(null)
-const draft = ref<Partial<UpsertSsoErrorTemplatePayload>>({})
+const defaultDraft = (): UpsertSsoErrorTemplatePayload => ({
+  locale: 'id',
+  title: '',
+  message: '',
+  action_label: '',
+  action_url: null,
+  retry_allowed: false,
+  alternative_login_allowed: false,
+  is_enabled: false,
+})
+const draft = ref<UpsertSsoErrorTemplatePayload>(defaultDraft())
 
 const hasEvidence = computed(() => store.templates.length > 0)
 
@@ -49,7 +66,7 @@ function startEdit(template: SsoErrorTemplate): void {
 
 function cancelEdit(): void {
   editingCode.value = null
-  draft.value = {}
+  draft.value = defaultDraft()
 }
 
 async function saveTemplate(errorCode: string): Promise<void> {
@@ -65,7 +82,7 @@ async function saveTemplate(errorCode: string): Promise<void> {
     is_enabled: draft.value.is_enabled ?? false,
   })
   editingCode.value = null
-  draft.value = {}
+  draft.value = defaultDraft()
 }
 
 async function handleReset(errorCode: string, locale?: string): Promise<void> {
@@ -88,75 +105,86 @@ function templateFor(code: string): SsoErrorTemplate | undefined {
       </p>
     </div>
 
-    <div v-if="store.status === 'loading'" class="state-card" role="status">
-      Memuat SSO error templates...
-    </div>
+    <UiSkeleton v-if="store.status === 'loading'" label="Memuat SSO error templates" />
 
-    <div
+    <UiStatusView
       v-else-if="store.status === 'forbidden'"
-      class="state-card state-card--danger"
-      role="alert"
-    >
-      <h2>Akses ditolak</h2>
-      <p>{{ store.errorMessage }}</p>
-    </div>
+      tone="forbidden"
+      eyebrow="Security Governance"
+      title="Akses ditolak"
+      :description="
+        store.errorMessage ?? 'Kamu tidak memiliki izin untuk melihat SSO error templates.'
+      "
+      :request-id="store.requestId ?? undefined"
+      :standalone="false"
+    />
 
-    <div
+    <UiStatusView
       v-else-if="store.status === 'unauthenticated'"
-      class="state-card state-card--danger"
-      role="alert"
-    >
-      <h2>Sesi admin berakhir</h2>
-      <p>{{ store.errorMessage }}</p>
-    </div>
+      tone="error"
+      eyebrow="Session"
+      title="Sesi admin berakhir"
+      :description="store.errorMessage ?? 'Login ulang dari portal untuk melanjutkan.'"
+      :request-id="store.requestId ?? undefined"
+      :standalone="false"
+    />
 
-    <div v-else-if="store.status === 'error'" class="state-card state-card--danger" role="alert">
-      <h2>SSO error templates belum bisa dimuat</h2>
-      <p>{{ store.errorMessage }}</p>
-    </div>
+    <UiStatusView
+      v-else-if="store.status === 'error'"
+      tone="api"
+      eyebrow="Admin API"
+      title="SSO error templates belum bisa dimuat"
+      :description="
+        store.errorMessage ?? 'Coba muat ulang atau gunakan correlation ID untuk investigasi.'
+      "
+      :request-id="store.requestId ?? undefined"
+      :standalone="false"
+    />
 
-    <div v-else-if="!hasEvidence" class="state-card" role="status">
-      <h2>Belum ada SSO error templates</h2>
-      <p>Katalog SSO error belum termuat.</p>
-    </div>
+    <UiEmptyState
+      v-else-if="!hasEvidence"
+      title="Belum ada SSO error templates"
+      description="Katalog SSO error belum termuat."
+    />
 
     <div v-else class="policy-layout">
       <section class="detail-section" aria-label="SSO error template catalog">
         <div v-for="code in errorCodes" :key="code" class="state-card">
           <template v-if="editingCode === code">
             <div class="edit-form">
-              <label class="reason-field">
-                Title
-                <input v-model="draft.title" autocomplete="off" />
-              </label>
-              <label class="reason-field">
-                Message
-                <textarea v-model="draft.message" rows="3" />
-              </label>
-              <label class="reason-field">
-                Action label
-                <input v-model="draft.action_label" autocomplete="off" />
-              </label>
-              <label class="reason-field">
-                Action URL
-                <input v-model="draft.action_url" autocomplete="off" />
-              </label>
+              <UiFormField :id="`template-title-${code}`" label="Title">
+                <UiInput :id="`template-title-${code}`" v-model="draft.title" autocomplete="off" />
+              </UiFormField>
+              <UiFormField :id="`template-message-${code}`" label="Message">
+                <UiTextarea :id="`template-message-${code}`" v-model="draft.message" :rows="3" />
+              </UiFormField>
+              <UiFormField :id="`template-action-label-${code}`" label="Action label">
+                <UiInput
+                  :id="`template-action-label-${code}`"
+                  v-model="draft.action_label"
+                  autocomplete="off"
+                />
+              </UiFormField>
+              <UiFormField :id="`template-action-url-${code}`" label="Action URL">
+                <input
+                  :id="`template-action-url-${code}`"
+                  v-model="draft.action_url"
+                  class="ui-control"
+                  autocomplete="off"
+                />
+              </UiFormField>
               <div class="checkbox-row">
-                <label>
-                  <input v-model="draft.retry_allowed" type="checkbox" />
-                  Retry allowed
-                </label>
-                <label>
-                  <input v-model="draft.alternative_login_allowed" type="checkbox" />
-                  Alternative login
-                </label>
-                <label>
-                  <input v-model="draft.is_enabled" type="checkbox" />
-                  Enabled
-                </label>
+                <UiSwitch v-model="draft.retry_allowed" label="Retry allowed" />
+                <UiSwitch v-model="draft.alternative_login_allowed" label="Alternative login" />
+                <UiSwitch v-model="draft.is_enabled" label="Enabled" />
               </div>
               <div class="action-row compact-actions">
-                <button v-if="canWriteSsoErrorTemplates" class="primary-action" type="button" @click="saveTemplate(code)">
+                <button
+                  v-if="canWriteSsoErrorTemplates"
+                  class="primary-action"
+                  type="button"
+                  @click="saveTemplate(code)"
+                >
                   Save
                 </button>
                 <button class="secondary-action" type="button" @click="cancelEdit()">Cancel</button>

@@ -141,5 +141,14 @@ describe('OidcFoundationPage', () => {
 
     expect(wrapper.text()).toContain('Kamu tidak memiliki izin untuk melihat OIDC Foundation.')
     expect(wrapper.text()).not.toContain('Request failed with status 403')
+    expect(wrapper.find('.ui-status-view').exists()).toBe(true)
+  })
+
+  it('uses shared skeleton while loading', () => {
+    vi.mocked(oidcFoundationApi.getSnapshot).mockImplementation(() => new Promise(() => {}))
+
+    const wrapper = mount(OidcFoundationPage)
+
+    expect(wrapper.find('.ui-skeleton').exists()).toBe(true)
   })
 })

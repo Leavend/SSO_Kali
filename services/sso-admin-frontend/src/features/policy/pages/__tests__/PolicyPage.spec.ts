@@ -73,10 +73,10 @@ function seedPrincipal(capabilities: Record<string, boolean>): void {
 
 function seedFullAccessPrincipal(): void {
   seedPrincipal({
-      'admin.security-policy.write': true,
-      'admin.security-policy.activate': true,
-      'admin.roles.write': true,
-      'admin.sessions.terminate': true,
+    'admin.security-policy.write': true,
+    'admin.security-policy.activate': true,
+    'admin.roles.write': true,
+    'admin.sessions.terminate': true,
   })
 }
 
@@ -128,6 +128,30 @@ describe('PolicyPage', () => {
     const wrapper = mount(PolicyPage)
 
     expect(wrapper.text()).toContain('Belum ada policy atau RBAC evidence untuk ditampilkan.')
+    expect(wrapper.find('.ui-empty-state').exists()).toBe(true)
+  })
+
+  it('uses shared state, table, and form primitives', async () => {
+    const store = usePolicyStore()
+    store.status = 'loading'
+
+    const wrapper = mount(PolicyPage)
+
+    expect(wrapper.find('.ui-skeleton').exists()).toBe(true)
+
+    store.status = 'forbidden'
+    store.errorMessage = 'Kamu tidak memiliki izin untuk melihat policy/RBAC admin.'
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('.ui-status-view').exists()).toBe(true)
+
+    store.status = 'success'
+    store.policies = [policy]
+    store.roles = [role]
+    store.permissions = role.permissions
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('.ui-data-list').exists()).toBe(true)
+    expect(wrapper.find('.ui-form-field').exists()).toBe(true)
+    expect(wrapper.find('.ui-control').exists()).toBe(true)
   })
 
   it('renders create role form with name, slug, description inputs', async () => {
@@ -242,5 +266,4 @@ describe('PolicyPage', () => {
 
     expect(deleteSpy).toHaveBeenCalledWith('auditor')
   })
-
 })

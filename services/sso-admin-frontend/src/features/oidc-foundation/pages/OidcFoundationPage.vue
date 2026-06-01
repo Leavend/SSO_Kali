@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
+import UiSkeleton from '@/components/ui/UiSkeleton.vue'
+import UiStatusView from '@/components/ui/UiStatusView.vue'
 import AvailabilityEvidencePanel from '../components/AvailabilityEvidencePanel.vue'
 import CatalogPanel from '../components/CatalogPanel.vue'
 import DiscoveryMetadataPanel from '../components/DiscoveryMetadataPanel.vue'
 import EndpointConsistencyPanel from '../components/EndpointConsistencyPanel.vue'
 import JwksStatusPanel from '../components/JwksStatusPanel.vue'
 import OidcFoundationOverview from '../components/OidcFoundationOverview.vue'
-import OidcFoundationState from '../components/OidcFoundationState.vue'
 import { useOidcFoundationStore } from '../stores/oidcFoundation.store'
 
 const oidcFoundation = useOidcFoundationStore()
@@ -28,22 +29,35 @@ onMounted(() => {
         </p>
       </header>
 
-      <OidcFoundationState
+      <UiSkeleton
         v-if="oidcFoundation.status === 'loading' || oidcFoundation.status === 'idle'"
-        title="Memuat OIDC Foundation"
-        message="Mengambil metadata dan operational evidence dari admin API."
+        label="Memuat OIDC Foundation"
       />
-      <OidcFoundationState
+      <UiStatusView
         v-else-if="oidcFoundation.status === 'forbidden'"
+        tone="forbidden"
+        eyebrow="OIDC Foundation"
         title="Akses OIDC Foundation ditolak"
-        :message="
+        :description="
           oidcFoundation.errorMessage ?? 'Kamu tidak memiliki izin untuk melihat OIDC Foundation.'
         "
+        :standalone="false"
       />
-      <OidcFoundationState
+      <UiStatusView
+        v-else-if="oidcFoundation.status === 'unauthenticated'"
+        tone="error"
+        eyebrow="Session"
+        title="Sesi admin berakhir"
+        :description="oidcFoundation.errorMessage ?? 'Login ulang dari portal untuk melanjutkan.'"
+        :standalone="false"
+      />
+      <UiStatusView
         v-else-if="oidcFoundation.status === 'error'"
+        tone="api"
+        eyebrow="Admin API"
         title="OIDC Foundation belum bisa dimuat"
-        :message="oidcFoundation.errorMessage ?? 'Coba lagi beberapa saat lagi.'"
+        :description="oidcFoundation.errorMessage ?? 'Coba lagi beberapa saat lagi.'"
+        :standalone="false"
       />
       <template v-else-if="oidcFoundation.snapshot">
         <OidcFoundationOverview :snapshot="oidcFoundation.snapshot" />

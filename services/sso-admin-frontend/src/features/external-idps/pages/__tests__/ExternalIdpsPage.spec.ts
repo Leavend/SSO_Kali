@@ -64,8 +64,8 @@ function seedPrincipal(capabilities: Record<string, boolean>): void {
 
 function seedFullAccessPrincipal(): void {
   seedPrincipal({
-      'admin.external-idps.write': true,
-      'admin.sessions.terminate': true,
+    'admin.external-idps.write': true,
+    'admin.sessions.terminate': true,
   })
 }
 
@@ -121,7 +121,30 @@ describe('ExternalIdpsPage', () => {
     const wrapper = mount(ExternalIdpsPage)
 
     expect(wrapper.text()).toContain('Belum ada provider eksternal untuk ditampilkan.')
+    expect(wrapper.find('.ui-empty-state').exists()).toBe(true)
     expect(wrapper.find('button.create-idp-toggle').exists()).toBe(true)
+  })
+
+  it('uses shared state, table, and form primitives', async () => {
+    const store = useExternalIdpsStore()
+    store.status = 'loading'
+
+    const wrapper = mount(ExternalIdpsPage)
+
+    expect(wrapper.find('.ui-skeleton').exists()).toBe(true)
+
+    store.status = 'forbidden'
+    store.errorMessage = 'Kamu tidak memiliki izin untuk melihat External IdP admin.'
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('.ui-status-view').exists()).toBe(true)
+
+    store.status = 'success'
+    store.providers = [provider]
+    store.selectedProviderKey = 'google'
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('.ui-data-list').exists()).toBe(true)
+    expect(wrapper.find('.ui-form-field').exists()).toBe(true)
+    expect(wrapper.find('.ui-control').exists()).toBe(true)
   })
 
   it('shows Add External IdP form with required inputs on toggle', async () => {
@@ -265,5 +288,4 @@ describe('ExternalIdpsPage', () => {
     expect(wrapper.text()).toContain('Preview mapping')
     expect(wrapper.text()).not.toContain('Delete Provider')
   })
-
 })

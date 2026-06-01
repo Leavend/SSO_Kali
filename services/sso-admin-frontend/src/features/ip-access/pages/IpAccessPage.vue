@@ -2,6 +2,13 @@
 import { computed, onMounted, ref } from 'vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
+import UiDataList, { type UiDataListRow } from '@/components/ui/UiDataList.vue'
+import UiEmptyState from '@/components/ui/UiEmptyState.vue'
+import UiFormField from '@/components/ui/UiFormField.vue'
+import UiInput from '@/components/ui/UiInput.vue'
+import UiSelect from '@/components/ui/UiSelect.vue'
+import UiSkeleton from '@/components/ui/UiSkeleton.vue'
+import UiStatusView from '@/components/ui/UiStatusView.vue'
 import { useSessionStore } from '@/stores/session.store'
 import { useIpAccessStore } from '../stores/ip-access.store'
 import type { IpAccessRuleCreatePayload } from '../types'
@@ -15,6 +22,25 @@ const mode = ref<'allow' | 'block'>('block')
 const reason = ref('')
 const expiresAt = ref('')
 const pendingDeleteRuleId = ref<number | null>(null)
+const modeOptions = [
+  { value: 'allow', label: 'Allow' },
+  { value: 'block', label: 'Block' },
+] as const
+const ruleColumns = [
+  { key: 'cidr', label: 'CIDR' },
+  { key: 'mode', label: 'Mode' },
+  { key: 'reason', label: 'Reason' },
+  { key: 'created_at', label: 'Created' },
+] as const
+const ruleRows = computed<readonly UiDataListRow[]>(() =>
+  store.rules.map((rule) => ({
+    id: String(rule.id),
+    cidr: rule.cidr,
+    mode: rule.mode,
+    reason: rule.reason ?? 'No reason evidence',
+    created_at: rule.created_at ?? 'No timestamp',
+  })),
+)
 
 async function submitCreate(): Promise<void> {
   const payload: IpAccessRuleCreatePayload = {
@@ -64,37 +90,45 @@ const confirmDescription = computed<string>(() => {
       <p class="page-summary">Manage IP allow/blocklist rules untuk akses ke SSO admin.</p>
     </div>
 
-    <div v-if="store.status === 'loading'" class="state-card" role="status">
-      Memuat IP access rules...
-    </div>
+    <UiSkeleton v-if="store.status === 'loading'" label="Memuat IP access rules" />
 
-    <div
+    <UiStatusView
       v-else-if="store.status === 'forbidden'"
-      class="state-card state-card--danger"
-      role="alert"
-    >
-      <h2>Akses IP access rules ditolak</h2>
-      <p>{{ store.errorMessage }}</p>
-    </div>
+      tone="forbidden"
+      eyebrow="Security"
+      title="Akses IP access rules ditolak"
+      :description="store.errorMessage ?? 'Kamu tidak memiliki izin untuk melihat IP access rules.'"
+      :request-id="store.requestId ?? undefined"
+      :standalone="false"
+    />
 
-    <div
+    <UiStatusView
       v-else-if="store.status === 'unauthenticated'"
-      class="state-card state-card--danger"
-      role="alert"
-    >
-      <h2>Sesi admin berakhir</h2>
-      <p>{{ store.errorMessage }}</p>
-    </div>
+      tone="error"
+      eyebrow="Session"
+      title="Sesi admin berakhir"
+      :description="store.errorMessage ?? 'Login ulang dari portal untuk melanjutkan.'"
+      :request-id="store.requestId ?? undefined"
+      :standalone="false"
+    />
 
-    <div v-else-if="store.status === 'error'" class="state-card state-card--danger" role="alert">
-      <h2>IP access rules belum bisa dimuat</h2>
-      <p>{{ store.errorMessage }}</p>
-    </div>
+    <UiStatusView
+      v-else-if="store.status === 'error'"
+      tone="api"
+      eyebrow="Admin API"
+      title="IP access rules belum bisa dimuat"
+      :description="
+        store.errorMessage ?? 'Coba muat ulang atau gunakan correlation ID untuk investigasi.'
+      "
+      :request-id="store.requestId ?? undefined"
+      :standalone="false"
+    />
 
-    <div v-else-if="store.rules.length === 0" class="state-card" role="status">
-      <h2>IP access rules belum tersedia</h2>
-      <p>Belum ada aturan IP access.</p>
-    </div>
+    <UiEmptyState
+      v-else-if="store.rules.length === 0"
+      title="IP access rules belum tersedia"
+      description="Belum ada aturan IP access. Tambahkan CIDR allow/block saat permission tersedia."
+    />
 
     <div v-else class="ip-access-layout">
       <section v-if="canWriteAccess" class="detail-section" aria-labelledby="create-title">
@@ -103,25 +137,24 @@ const confirmDescription = computed<string>(() => {
           Tambah aturan allow/block untuk CIDR tertentu. Perubahan diaudit.
         </p>
         <div class="export-filters">
-          <label class="reason-field">
-            CIDR
-            <input v-model="cidr" name="ip-cidr" autocomplete="off" placeholder="203.0.113.0/24" />
-          </label>
-          <label class="reason-field">
-            Mode
-            <select v-model="mode" name="ip-mode">
-              <option value="allow">Allow</option>
-              <option value="block">Block</option>
-            </select>
-          </label>
-          <label class="reason-field">
-            Reason
-            <input v-model="reason" name="ip-reason" autocomplete="off" />
-          </label>
-          <label class="reason-field">
-            Expires at
-            <input v-model="expiresAt" name="ip-expires-at" type="date" />
-          </label>
+          <UiFormField id="ip-cidr" label="CIDR" required>
+            <UiInput
+              id="ip-cidr"
+              v-model="cidr"
+              name="ip-cidr"
+              autocomplete="off"
+              placeholder="203.0.113.0/24"
+            />
+          </UiFormField>
+          <UiFormField id="ip-mode" label="Mode" required>
+            <UiSelect id="ip-mode" v-model="mode" name="ip-mode" :options="modeOptions" />
+          </UiFormField>
+          <UiFormField id="ip-reason" label="Reason" required>
+            <UiInput id="ip-reason" v-model="reason" name="ip-reason" autocomplete="off" />
+          </UiFormField>
+          <UiFormField id="ip-expires-at" label="Expires at">
+            <UiInput id="ip-expires-at" v-model="expiresAt" name="ip-expires-at" type="date" />
+          </UiFormField>
         </div>
         <button
           class="primary-action"
@@ -134,23 +167,18 @@ const confirmDescription = computed<string>(() => {
       </section>
       <section class="detail-section" aria-labelledby="rules-title">
         <h2 id="rules-title">Rules</h2>
-        <div v-for="rule in store.rules" :key="rule.id" class="state-card">
-          <strong>{{ rule.cidr }}</strong>
-          <span :class="rule.mode === 'block' ? 'status-pill--danger' : 'status-pill'">{{
-            rule.mode
-          }}</span>
-          <p v-if="rule.reason">{{ rule.reason }}</p>
-          <p v-if="rule.expires_at" class="muted">Expires: {{ rule.expires_at }}</p>
-          <p class="muted">Created: {{ rule.created_at ?? 'No timestamp' }}</p>
-          <button
-            v-if="canWriteAccess"
-            type="button"
-            class="ip-rule-delete-button danger-action"
-            @click="requestDeleteRule(rule.id)"
-          >
-            Hapus
-          </button>
-        </div>
+        <UiDataList caption="IP access rules" :columns="ruleColumns" :rows="ruleRows">
+          <template #actions="{ row }">
+            <button
+              v-if="canWriteAccess"
+              type="button"
+              class="ip-rule-delete-button danger-action"
+              @click="requestDeleteRule(Number(row.id))"
+            >
+              Hapus
+            </button>
+          </template>
+        </UiDataList>
       </section>
 
       <div v-if="store.actionStatus === 'step_up_required'" class="action-message" role="alert">

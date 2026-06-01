@@ -100,6 +100,28 @@ describe('IpAccessPage', () => {
     const wrapper = mount(IpAccessPage)
 
     expect(wrapper.text()).toContain('Belum ada aturan IP access.')
+    expect(wrapper.find('.ui-empty-state').exists()).toBe(true)
+  })
+
+  it('uses shared state, table, and form primitives', async () => {
+    const store = useIpAccessStore()
+    store.status = 'loading'
+
+    const wrapper = mount(IpAccessPage)
+
+    expect(wrapper.find('.ui-skeleton').exists()).toBe(true)
+
+    store.status = 'forbidden'
+    store.errorMessage = 'Kamu tidak memiliki izin untuk melihat IP access rules.'
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('.ui-status-view').exists()).toBe(true)
+
+    store.status = 'success'
+    store.rules = [rule]
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('.ui-data-list').exists()).toBe(true)
+    expect(wrapper.find('.ui-form-field').exists()).toBe(true)
+    expect(wrapper.find('.ui-control').exists()).toBe(true)
   })
 
   it('renders re-authentication prompt when action requires step-up', () => {

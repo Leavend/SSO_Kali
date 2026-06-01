@@ -1,6 +1,14 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
+import UiDataList, { type UiDataListRow } from '@/components/ui/UiDataList.vue'
+import UiEmptyState from '@/components/ui/UiEmptyState.vue'
+import UiFormField from '@/components/ui/UiFormField.vue'
+import UiInput from '@/components/ui/UiInput.vue'
+import UiSkeleton from '@/components/ui/UiSkeleton.vue'
+import UiStatusView from '@/components/ui/UiStatusView.vue'
+import UiSwitch from '@/components/ui/UiSwitch.vue'
+import UiTextarea from '@/components/ui/UiTextarea.vue'
 import { useSessionStore } from '@/stores/session.store'
 import { useExternalIdpsStore } from '../stores/external-idps.store'
 import type { ExternalIdpCreatePayload, ExternalIdpUpdatePayload } from '../types'
@@ -10,6 +18,19 @@ const session = useSessionStore()
 const canWriteExternalIdps = computed(() => session.hasPermission('admin.external-idps.write'))
 const canDeleteExternalIdps = computed(
   () => canWriteExternalIdps.value && session.hasPermission('admin.sessions.terminate'),
+)
+const providerColumns = [
+  { key: 'name', label: 'Provider' },
+  { key: 'provider_key', label: 'Key' },
+  { key: 'status', label: 'Status' },
+] as const
+const providerRows = computed<readonly UiDataListRow[]>(() =>
+  store.providers.map((provider) => ({
+    id: provider.provider_key,
+    name: provider.display_name,
+    provider_key: provider.provider_key,
+    status: `${provider.enabled ? 'enabled' : 'disabled'} · ${provider.health_status ?? 'unknown'}`,
+  })),
 )
 
 // ─── Mapping preview ──────────────────────────────────────────────────────────
@@ -159,52 +180,69 @@ onMounted(() => {
       </p>
     </div>
 
-    <div v-if="store.status === 'loading'" class="state-card" role="status">Memuat provider...</div>
+    <UiSkeleton v-if="store.status === 'loading'" label="Memuat provider" />
 
-    <div
+    <UiStatusView
       v-else-if="store.status === 'forbidden'"
-      class="state-card state-card--danger"
-      role="alert"
-    >
-      <h2>Akses External IdP ditolak</h2>
-      <p>{{ store.errorMessage }}</p>
-    </div>
+      tone="forbidden"
+      eyebrow="Federation"
+      title="Akses External IdP ditolak"
+      :description="
+        store.errorMessage ?? 'Kamu tidak memiliki izin untuk melihat External IdP admin.'
+      "
+      :request-id="store.requestId ?? undefined"
+      :standalone="false"
+    />
 
-    <div
+    <UiStatusView
       v-else-if="store.status === 'unauthenticated'"
-      class="state-card state-card--danger"
-      role="alert"
-    >
-      <h2>Sesi admin berakhir</h2>
-      <p>{{ store.errorMessage }}</p>
-    </div>
+      tone="error"
+      eyebrow="Session"
+      title="Sesi admin berakhir"
+      :description="store.errorMessage ?? 'Login ulang dari portal untuk melanjutkan.'"
+      :request-id="store.requestId ?? undefined"
+      :standalone="false"
+    />
 
-    <div v-else-if="store.status === 'error'" class="state-card state-card--danger" role="alert">
-      <h2>External IdP admin belum bisa dimuat</h2>
-      <p>{{ store.errorMessage }}</p>
-    </div>
+    <UiStatusView
+      v-else-if="store.status === 'error'"
+      tone="api"
+      eyebrow="Admin API"
+      title="External IdP admin belum bisa dimuat"
+      :description="
+        store.errorMessage ?? 'Coba muat ulang atau gunakan correlation ID untuk investigasi.'
+      "
+      :request-id="store.requestId ?? undefined"
+      :standalone="false"
+    />
 
     <div v-else class="idp-layout">
       <!-- ─── Provider list sidebar ─────────────────────────────────────── -->
       <aside class="idp-list" aria-label="Daftar External IdP">
-        <button
-          v-for="p in store.providers"
-          :key="p.provider_key"
-          class="idp-list-item"
-          :class="{ 'idp-list-item--active': p.provider_key === store.selectedProviderKey }"
-          type="button"
-          @click="store.selectProvider(p.provider_key)"
-        >
-          <strong>{{ p.display_name }}</strong>
-          <span>{{ p.provider_key }}</span>
-          <small
-            >{{ p.enabled ? 'enabled' : 'disabled' }} · {{ p.health_status ?? 'unknown' }}</small
-          >
-        </button>
+        <UiEmptyState
+          v-if="store.providers.length === 0"
+          title="Belum ada provider eksternal untuk ditampilkan."
+          description="Tambahkan provider eksternal untuk mengelola health, mapping, dan failover."
+        />
 
-        <p v-if="store.providers.length === 0" class="muted">
-          Belum ada provider eksternal untuk ditampilkan.
-        </p>
+        <UiDataList
+          v-else
+          caption="Daftar External IdP"
+          :columns="providerColumns"
+          :rows="providerRows"
+        >
+          <template #actions="{ row }">
+            <button
+              class="secondary-action"
+              :aria-current="row.id === store.selectedProviderKey ? 'true' : undefined"
+              :aria-label="`View ${row.name}`"
+              type="button"
+              @click="store.selectProvider(row.id)"
+            >
+              View
+            </button>
+          </template>
+        </UiDataList>
 
         <button
           v-if="canWriteExternalIdps"
@@ -217,55 +255,82 @@ onMounted(() => {
 
         <div v-if="canWriteExternalIdps && showCreateForm" class="create-idp-form">
           <h3>Add External IdP</h3>
-          <label class="reason-field">
-            Provider key
-            <input v-model="createProviderKey" name="create-provider-key" autocomplete="off" />
-          </label>
-          <label class="reason-field">
-            Display name
-            <input v-model="createDisplayName" name="create-display-name" autocomplete="off" />
-          </label>
-          <label class="reason-field">
-            Issuer URL
-            <input v-model="createIssuer" name="create-issuer" autocomplete="off" />
-          </label>
-          <label class="reason-field">
-            Metadata URL
-            <input v-model="createMetadataUrl" name="create-metadata-url" autocomplete="off" />
-          </label>
-          <label class="reason-field">
-            Client ID
-            <input v-model="createClientId" name="create-client-id" autocomplete="off" />
-          </label>
-          <label class="reason-field">
-            Client secret
-            <input
+          <UiFormField id="create-provider-key" label="Provider key" required>
+            <UiInput
+              id="create-provider-key"
+              v-model="createProviderKey"
+              name="create-provider-key"
+              autocomplete="off"
+            />
+          </UiFormField>
+          <UiFormField id="create-display-name" label="Display name" required>
+            <UiInput
+              id="create-display-name"
+              v-model="createDisplayName"
+              name="create-display-name"
+              autocomplete="off"
+            />
+          </UiFormField>
+          <UiFormField id="create-issuer" label="Issuer URL" required>
+            <UiInput
+              id="create-issuer"
+              v-model="createIssuer"
+              name="create-issuer"
+              autocomplete="off"
+            />
+          </UiFormField>
+          <UiFormField id="create-metadata-url" label="Metadata URL" required>
+            <UiInput
+              id="create-metadata-url"
+              v-model="createMetadataUrl"
+              name="create-metadata-url"
+              autocomplete="off"
+            />
+          </UiFormField>
+          <UiFormField id="create-client-id" label="Client ID" required>
+            <UiInput
+              id="create-client-id"
+              v-model="createClientId"
+              name="create-client-id"
+              autocomplete="off"
+            />
+          </UiFormField>
+          <UiFormField id="create-client-secret" label="Client secret">
+            <UiInput
+              id="create-client-secret"
               v-model="createClientSecret"
               name="create-client-secret"
               type="password"
               autocomplete="off"
             />
-          </label>
-          <label class="reason-field">
-            Allowed algorithms (comma-separated)
-            <input v-model="createAlgorithms" name="create-algorithms" autocomplete="off" />
-          </label>
-          <label class="reason-field">
-            Scopes (comma-separated)
-            <input v-model="createScopes" name="create-scopes" autocomplete="off" />
-          </label>
-          <label class="reason-field">
-            Priority
-            <input v-model.number="createPriority" name="create-priority" type="number" />
-          </label>
-          <label class="checkbox-row">
-            <input v-model="createEnabled" type="checkbox" />
-            Enabled
-          </label>
-          <label class="checkbox-row">
-            <input v-model="createIsBackup" type="checkbox" />
-            Backup failover
-          </label>
+          </UiFormField>
+          <UiFormField id="create-algorithms" label="Allowed algorithms (comma-separated)">
+            <UiInput
+              id="create-algorithms"
+              v-model="createAlgorithms"
+              name="create-algorithms"
+              autocomplete="off"
+            />
+          </UiFormField>
+          <UiFormField id="create-scopes" label="Scopes (comma-separated)">
+            <UiInput
+              id="create-scopes"
+              v-model="createScopes"
+              name="create-scopes"
+              autocomplete="off"
+            />
+          </UiFormField>
+          <UiFormField id="create-priority" label="Priority">
+            <input
+              id="create-priority"
+              v-model.number="createPriority"
+              class="ui-control"
+              name="create-priority"
+              type="number"
+            />
+          </UiFormField>
+          <UiSwitch v-model="createEnabled" label="Enabled" />
+          <UiSwitch v-model="createIsBackup" label="Backup failover" />
           <button
             class="primary-action create-idp-submit"
             type="button"
@@ -349,57 +414,72 @@ onMounted(() => {
         </div>
 
         <!-- ─── Edit form ─────────────────────────────────────────────── -->
-        <section v-if="canWriteExternalIdps" class="detail-section" aria-labelledby="edit-idp-title">
+        <section
+          v-if="canWriteExternalIdps"
+          class="detail-section"
+          aria-labelledby="edit-idp-title"
+        >
           <h3 id="edit-idp-title">Edit Provider</h3>
-          <label class="reason-field">
-            Display name
-            <input v-model="editDisplayName" name="edit-display-name" autocomplete="off" />
-          </label>
-          <label class="reason-field">
-            Metadata URL
-            <input v-model="editMetadataUrl" name="edit-metadata-url" autocomplete="off" />
-          </label>
-          <label class="reason-field">
-            Client ID
-            <input v-model="editClientId" name="edit-client-id" autocomplete="off" />
-          </label>
-          <label class="reason-field">
-            Client secret (kosong = tetap pakai yang ada)
-            <input
+          <UiFormField id="edit-display-name" label="Display name">
+            <UiInput
+              id="edit-display-name"
+              v-model="editDisplayName"
+              name="edit-display-name"
+              autocomplete="off"
+            />
+          </UiFormField>
+          <UiFormField id="edit-metadata-url" label="Metadata URL">
+            <UiInput
+              id="edit-metadata-url"
+              v-model="editMetadataUrl"
+              name="edit-metadata-url"
+              autocomplete="off"
+            />
+          </UiFormField>
+          <UiFormField id="edit-client-id" label="Client ID">
+            <UiInput
+              id="edit-client-id"
+              v-model="editClientId"
+              name="edit-client-id"
+              autocomplete="off"
+            />
+          </UiFormField>
+          <UiFormField
+            id="edit-client-secret"
+            label="Client secret (kosong = tetap pakai yang ada)"
+          >
+            <UiInput
+              id="edit-client-secret"
               v-model="editClientSecret"
               name="edit-client-secret"
               type="password"
               autocomplete="off"
             />
-          </label>
-          <label class="reason-field">
-            Allowed algorithms (comma-separated)
-            <input v-model="editAlgorithms" name="edit-algorithms" autocomplete="off" />
-          </label>
-          <label class="reason-field">
-            Scopes (comma-separated)
-            <input v-model="editScopes" name="edit-scopes" autocomplete="off" />
-          </label>
-          <label class="reason-field">
-            Priority
-            <input v-model.number="editPriority" name="edit-priority" type="number" />
-          </label>
-          <label class="checkbox-row">
-            <input v-model="editEnabled" type="checkbox" />
-            Enabled
-          </label>
-          <label class="checkbox-row">
-            <input v-model="editIsBackup" type="checkbox" />
-            Backup failover
-          </label>
-          <label class="checkbox-row">
-            <input v-model="editTlsValidation" type="checkbox" />
-            TLS validation
-          </label>
-          <label class="checkbox-row">
-            <input v-model="editSigValidation" type="checkbox" />
-            Signature validation
-          </label>
+          </UiFormField>
+          <UiFormField id="edit-algorithms" label="Allowed algorithms (comma-separated)">
+            <UiInput
+              id="edit-algorithms"
+              v-model="editAlgorithms"
+              name="edit-algorithms"
+              autocomplete="off"
+            />
+          </UiFormField>
+          <UiFormField id="edit-scopes" label="Scopes (comma-separated)">
+            <UiInput id="edit-scopes" v-model="editScopes" name="edit-scopes" autocomplete="off" />
+          </UiFormField>
+          <UiFormField id="edit-priority" label="Priority">
+            <input
+              id="edit-priority"
+              v-model.number="editPriority"
+              class="ui-control"
+              name="edit-priority"
+              type="number"
+            />
+          </UiFormField>
+          <UiSwitch v-model="editEnabled" label="Enabled" />
+          <UiSwitch v-model="editIsBackup" label="Backup failover" />
+          <UiSwitch v-model="editTlsValidation" label="TLS validation" />
+          <UiSwitch v-model="editSigValidation" label="Signature validation" />
           <button
             class="primary-action edit-idp-submit"
             type="button"
@@ -411,16 +491,24 @@ onMounted(() => {
         </section>
 
         <!-- ─── Delete section ────────────────────────────────────────── -->
-        <section v-if="canDeleteExternalIdps" class="detail-section detail-section--danger" aria-labelledby="delete-idp-title">
+        <section
+          v-if="canDeleteExternalIdps"
+          class="detail-section detail-section--danger"
+          aria-labelledby="delete-idp-title"
+        >
           <h3 id="delete-idp-title">Delete Provider</h3>
           <p class="muted">
             Untuk menghapus provider, ketik
             <code>{{ store.selectedProvider.provider_key }}</code> untuk konfirmasi.
           </p>
-          <label class="reason-field">
-            Konfirmasi provider key
-            <input v-model="deleteConfirmKey" name="delete-confirm-key" autocomplete="off" />
-          </label>
+          <UiFormField id="delete-confirm-key" label="Konfirmasi provider key">
+            <UiInput
+              id="delete-confirm-key"
+              v-model="deleteConfirmKey"
+              name="delete-confirm-key"
+              autocomplete="off"
+            />
+          </UiFormField>
           <button
             class="danger-action delete-idp-button"
             type="button"
@@ -443,12 +531,15 @@ onMounted(() => {
       </article>
 
       <!-- ─── Mapping preview ───────────────────────────────────────────── -->
-      <section v-if="canWriteExternalIdps" class="detail-section" aria-labelledby="idp-mapping-title">
+      <section
+        v-if="canWriteExternalIdps"
+        class="detail-section"
+        aria-labelledby="idp-mapping-title"
+      >
         <h2 id="idp-mapping-title">Mapping preview</h2>
-        <label class="reason-field">
-          Sample claims JSON
-          <textarea v-model="mappingClaims" rows="4" />
-        </label>
+        <UiFormField id="mapping-claims" label="Sample claims JSON">
+          <UiTextarea id="mapping-claims" v-model="mappingClaims" :rows="4" />
+        </UiFormField>
         <button class="primary-action" type="button" @click="previewMapping">
           Preview mapping
         </button>

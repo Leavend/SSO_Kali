@@ -89,7 +89,10 @@ test('lists creates and deletes IP access rules with confirmation', async ({ pag
   await expect(page.getByText('198.51.100.0/24')).toBeVisible()
   await expect(page.getByText('req-ip-create')).toBeVisible()
 
-  await page.locator('.state-card').filter({ hasText: '203.0.113.0/24' }).getByRole('button', { name: 'Hapus' }).click()
+  await page
+    .getByRole('row', { name: /203\.0\.113\.0\/24/u })
+    .getByRole('button', { name: 'Hapus' })
+    .click()
   await expect(page.getByRole('dialog', { name: 'Delete IP access rule?' })).toContainText(
     '203.0.113.0/24',
   )
