@@ -129,9 +129,7 @@ describe('SsoErrorTemplatesPage', () => {
     store.status = 'success'
 
     const wrapper = mount(SsoErrorTemplatesPage)
-    const card = wrapper
-      .findAll('.state-card')
-      .find((node) => node.text().includes('session_expired'))
+    const card = wrapper.findAll('.ui-card').find((node) => node.text().includes('session_expired'))
     const editButton = card!.findAll('button').find((btn) => btn.text() === 'Edit')
     await editButton!.trigger('click')
 
@@ -172,9 +170,7 @@ describe('SsoErrorTemplatesPage', () => {
 
     const wrapper = mount(SsoErrorTemplatesPage)
 
-    const card = wrapper
-      .findAll('.state-card')
-      .find((node) => node.text().includes('session_expired'))
+    const card = wrapper.findAll('.ui-card').find((node) => node.text().includes('session_expired'))
     expect(card).toBeTruthy()
 
     const editButton = card!.findAll('button').find((btn) => btn.text() === 'Edit')
@@ -199,9 +195,7 @@ describe('SsoErrorTemplatesPage', () => {
 
     const wrapper = mount(SsoErrorTemplatesPage)
 
-    const card = wrapper
-      .findAll('.state-card')
-      .find((node) => node.text().includes('session_expired'))
+    const card = wrapper.findAll('.ui-card').find((node) => node.text().includes('session_expired'))
     const resetButton = card!.findAll('button').find((btn) => btn.text() === 'Reset')
     await resetButton!.trigger('click')
 

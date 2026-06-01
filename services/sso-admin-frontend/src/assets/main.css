@@ -579,7 +579,7 @@ select {
   font-weight: 800;
 }
 
-.status-pill {
+.ui-badge {
   display: inline-flex;
   padding: 6px 10px;
   color: #ccfbf1;
@@ -785,7 +785,7 @@ select {
 .audit-list,
 .client-detail,
 .user-detail,
-.state-card,
+.ui-card,
 .request-evidence {
   padding: 20px;
   border: 1px solid rgb(148 163 184 / 16%);
@@ -916,9 +916,7 @@ select {
   background: rgb(15 23 42 / 82%);
 }
 
-.primary-action,
-.secondary-action,
-.danger-action,
+.ui-action,
 .secret-reveal button {
   min-height: 42px;
   padding: 0 14px;
@@ -929,11 +927,11 @@ select {
   cursor: pointer;
 }
 
-.primary-action {
+.ui-action--primary {
   background: #4f46e5;
 }
 
-.secondary-action {
+.ui-action--secondary {
   color: #dbeafe;
   border: 1px solid rgb(148 163 184 / 22%);
   background: rgb(30 41 59 / 62%);
@@ -956,11 +954,11 @@ select {
   margin-top: 14px;
 }
 
-.action-message {
+.ui-action-message {
   color: #fde68a;
 }
 
-.danger-action,
+.ui-action--danger,
 .secret-reveal button {
   background: #dc2626;
 }
@@ -989,7 +987,7 @@ select {
   white-space: pre-wrap;
 }
 
-.state-card--danger {
+.ui-card--danger {
   border-color: rgb(239 68 68 / 28%);
 }
 

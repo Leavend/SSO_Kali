@@ -233,11 +233,11 @@ test('renders OAuth client console, evidence panel, and one-time client secret f
   await page.locator('textarea[name="client_disable_reason"]').fill('incident response')
   await page.getByRole('button', { name: 'Disable client' }).click()
   await expect(page.getByText('req-disable-e2e')).toBeVisible()
-  await expect(page.locator('.status-pill')).toContainText('disabled')
+  await expect(page.locator('.ui-badge')).toContainText('disabled')
   await page.locator('input[name="decommission_confirmation"]').fill('prototype-app-a')
   await page.getByRole('button', { name: 'Decommission client' }).click()
   await expect(page.getByText('req-decommission-e2e')).toBeVisible()
-  await expect(page.locator('.status-pill')).toContainText('decommissioned')
+  await expect(page.locator('.ui-badge')).toContainText('decommissioned')
 
   await page.getByRole('button', { name: 'Rotate secret' }).click()
   await expect(page.getByText('once-secret-e2e')).toBeVisible()

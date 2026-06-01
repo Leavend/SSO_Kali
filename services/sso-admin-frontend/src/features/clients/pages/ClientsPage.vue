@@ -321,7 +321,7 @@ async function rotateSecret(): Promise<void> {
               autocomplete="url"
             />
           </UiFormField>
-          <button class="primary-action" type="submit">Create client</button>
+          <button class="ui-action ui-action--primary" type="submit">Create client</button>
         </form>
 
         <UiEmptyState
@@ -338,7 +338,7 @@ async function rotateSecret(): Promise<void> {
         >
           <template #actions="{ row }">
             <button
-              class="secondary-action"
+              class="ui-action ui-action--secondary"
               :aria-current="row.id === store.selectedClientId ? 'true' : undefined"
               :aria-label="`View ${row.name}`"
               type="button"
@@ -359,7 +359,7 @@ async function rotateSecret(): Promise<void> {
           </div>
           <div class="action-row compact-actions">
             <RouterLink
-              class="primary-action"
+              class="ui-action ui-action--primary"
               :to="{
                 name: 'admin.audit',
                 query: { consent: '1', client_id: store.selectedClient.client_id },
@@ -367,7 +367,7 @@ async function rotateSecret(): Promise<void> {
             >
               Consent trail
             </RouterLink>
-            <span class="status-pill">{{ store.selectedClient.status ?? 'unknown' }}</span>
+            <span class="ui-badge">{{ store.selectedClient.status ?? 'unknown' }}</span>
           </div>
         </header>
 
@@ -414,7 +414,7 @@ async function rotateSecret(): Promise<void> {
         <section v-if="canWriteClients" class="detail-section" aria-labelledby="uri-policy-title">
           <h3 id="uri-policy-title">URI policy</h3>
           <form class="client-form" data-test="uri-policy-form" @submit.prevent="saveUriPolicy">
-            <p v-if="uriValidationMessage" class="action-message" role="alert">
+            <p v-if="uriValidationMessage" class="ui-action-message" role="alert">
               {{ uriValidationMessage }}
             </p>
             <UiFormField id="redirect_uris" label="Redirect URIs">
@@ -441,13 +441,13 @@ async function rotateSecret(): Promise<void> {
                 autocomplete="url"
               />
             </UiFormField>
-            <button class="primary-action" type="submit">Simpan URI policy</button>
+            <button class="ui-action ui-action--primary" type="submit">Simpan URI policy</button>
           </form>
         </section>
 
         <section v-if="canWriteClients" class="detail-section" aria-labelledby="scope-policy-title">
           <h3 id="scope-policy-title">Scope & consent policy</h3>
-          <p v-if="scopeParityWarnings.length > 0" class="action-message" role="status">
+          <p v-if="scopeParityWarnings.length > 0" class="ui-action-message" role="status">
             Scope label parity warning: {{ scopeParityWarnings.join(', ') }}
           </p>
           <form class="client-form" data-test="scope-policy-form" @submit.prevent="saveScopePolicy">
@@ -455,7 +455,7 @@ async function rotateSecret(): Promise<void> {
               Allowed scopes
               <textarea v-model="form.allowed_scopes" name="allowed_scopes" rows="4" />
             </label>
-            <button class="primary-action" type="submit">Simpan scope policy</button>
+            <button class="ui-action ui-action--primary" type="submit">Simpan scope policy</button>
           </form>
         </section>
 
@@ -470,7 +470,7 @@ async function rotateSecret(): Promise<void> {
               Owner email
               <input v-model="form.owner_email" name="owner_email" autocomplete="email" />
             </label>
-            <button class="primary-action" type="submit">Simpan metadata</button>
+            <button class="ui-action ui-action--primary" type="submit">Simpan metadata</button>
           </form>
         </section>
 
@@ -484,7 +484,9 @@ async function rotateSecret(): Promise<void> {
             Impact summary: disable blocks new authorization and may revoke active tokens.
             Decommission retires client configuration and clears redirect evidence.
           </p>
-          <p v-if="lifecycleMessage" class="action-message" role="alert">{{ lifecycleMessage }}</p>
+          <p v-if="lifecycleMessage" class="ui-action-message" role="alert">
+            {{ lifecycleMessage }}
+          </p>
           <label>
             Disable reason
             <textarea
@@ -494,7 +496,7 @@ async function rotateSecret(): Promise<void> {
             />
           </label>
           <button
-            class="danger-action"
+            class="ui-action ui-action--danger"
             data-test="disable-client"
             type="button"
             @click="disableClient"
@@ -510,7 +512,7 @@ async function rotateSecret(): Promise<void> {
             />
           </label>
           <button
-            class="danger-action"
+            class="ui-action ui-action--danger"
             data-test="decommission-client"
             type="button"
             @click="decommissionClient"
@@ -526,7 +528,9 @@ async function rotateSecret(): Promise<void> {
         >
           <h3 id="secret-title">Client secret</h3>
           <p>Rotasi secret hanya menampilkan plaintext satu kali. Salin lalu hapus dari layar.</p>
-          <button class="danger-action" type="button" @click="rotateSecret">Rotate secret</button>
+          <button class="ui-action ui-action--danger" type="button" @click="rotateSecret">
+            Rotate secret
+          </button>
           <div v-if="store.rotationSecret" class="secret-reveal" role="status">
             <strong>Secret baru untuk {{ store.rotationClientId }}</strong>
             <code>{{ store.rotationSecret }}</code>
@@ -541,7 +545,7 @@ async function rotateSecret(): Promise<void> {
         </section>
       </article>
 
-      <section v-else class="state-card" role="status">
+      <section v-else class="ui-card" role="status">
         <h2>Belum ada detail client</h2>
         <p>Pilih atau buat OAuth client untuk melihat governance evidence.</p>
       </section>

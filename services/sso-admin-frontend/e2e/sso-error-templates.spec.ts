@@ -98,7 +98,7 @@ test('lists edits and resets SSO error templates', async ({ page }) => {
   await expect(page.getByText('Permintaan tidak valid')).toBeVisible()
   await expect(page.getByText('req-templates-list')).toBeVisible()
 
-  const invalidRequestCard = page.locator('.state-card').filter({ hasText: 'invalid_request' }).first()
+  const invalidRequestCard = page.locator('.ui-card').filter({ hasText: 'invalid_request' }).first()
   await invalidRequestCard.getByRole('button', { name: 'Edit' }).click()
   await page.getByLabel('Title').fill('Permintaan SSO ditolak')
   await page.getByLabel('Message').fill('Hubungi admin bila masalah berulang.')
@@ -108,7 +108,12 @@ test('lists edits and resets SSO error templates', async ({ page }) => {
   await expect(page.getByText('Permintaan SSO ditolak')).toBeVisible()
   await expect(page.getByText('req-template-save')).toBeVisible()
 
-  await page.locator('.state-card').filter({ hasText: 'invalid_request' }).first().getByRole('button', { name: 'Reset' }).click()
+  await page
+    .locator('.ui-card')
+    .filter({ hasText: 'invalid_request' })
+    .first()
+    .getByRole('button', { name: 'Reset' })
+    .click()
   await expect(page.getByText('Default invalid request')).toBeVisible()
   await expect(page.getByText('req-template-reset')).toBeVisible()
   await expect(page.getByText(/Bearer|refreshToken|SQLSTATE/u)).toHaveCount(0)
@@ -122,7 +127,10 @@ test('hides SSO error template write controls without write permission', async (
     })
   })
   await page.route('**/api/admin/sso-error-templates', async (route) => {
-    await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ templates: [template] }) })
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ templates: [template] }),
+    })
   })
 
   await page.goto('/sso-error-templates')
@@ -132,7 +140,9 @@ test('hides SSO error template write controls without write permission', async (
   await expect(page.getByRole('button', { name: 'Reset' })).toHaveCount(0)
 })
 
-test('blocks SSO error templates route without security policy read permission', async ({ page }) => {
+test('blocks SSO error templates route without security policy read permission', async ({
+  page,
+}) => {
   await page.route('**/api/admin/me', async (route) => {
     await route.fulfill({
       contentType: 'application/json',
@@ -142,11 +152,15 @@ test('blocks SSO error templates route without security policy read permission',
 
   await page.goto('/sso-error-templates')
 
-  await expect(page.getByRole('heading', { name: 'Akun ini belum memiliki akses admin.' })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: 'Akun ini belum memiliki akses admin.' }),
+  ).toBeVisible()
   await expect(page.getByRole('navigation', { name: 'Modul admin' })).toHaveCount(0)
 })
 
-test('shows safe step-up copy when saving SSO error template needs fresh auth', async ({ page }) => {
+test('shows safe step-up copy when saving SSO error template needs fresh auth', async ({
+  page,
+}) => {
   await page.route('**/api/admin/me', async (route) => {
     await route.fulfill({
       contentType: 'application/json',
@@ -156,7 +170,10 @@ test('shows safe step-up copy when saving SSO error template needs fresh auth', 
     })
   })
   await page.route('**/api/admin/sso-error-templates', async (route) => {
-    await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ templates: [template] }) })
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ templates: [template] }),
+    })
   })
   await page.route('**/api/admin/sso-error-templates/invalid_request', async (route) => {
     await route.fulfill({
@@ -168,7 +185,7 @@ test('shows safe step-up copy when saving SSO error template needs fresh auth', 
   })
 
   await page.goto('/sso-error-templates')
-  const invalidRequestCard = page.locator('.state-card').filter({ hasText: 'invalid_request' }).first()
+  const invalidRequestCard = page.locator('.ui-card').filter({ hasText: 'invalid_request' }).first()
   await invalidRequestCard.getByRole('button', { name: 'Edit' }).click()
   await page.getByLabel('Title').fill('Permintaan SSO ditolak')
   await page.getByRole('button', { name: 'Save' }).click()

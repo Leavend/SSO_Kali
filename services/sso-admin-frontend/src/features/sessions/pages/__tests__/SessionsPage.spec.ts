@@ -62,7 +62,7 @@ function seedPrincipal(capabilities: Record<string, boolean>): void {
 
 function seedFullAccessPrincipal(): void {
   seedPrincipal({
-      'admin.sessions.terminate': true,
+    'admin.sessions.terminate': true,
   })
 }
 
@@ -203,5 +203,4 @@ describe('SessionsPage', () => {
 
     expect(wrapper.findAll('button.revoke-button')).toHaveLength(0)
   })
-
 })

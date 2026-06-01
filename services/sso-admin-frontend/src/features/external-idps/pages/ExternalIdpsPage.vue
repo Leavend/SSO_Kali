@@ -233,7 +233,7 @@ onMounted(() => {
         >
           <template #actions="{ row }">
             <button
-              class="secondary-action"
+              class="ui-action ui-action--secondary"
               :aria-current="row.id === store.selectedProviderKey ? 'true' : undefined"
               :aria-label="`View ${row.name}`"
               type="button"
@@ -246,7 +246,7 @@ onMounted(() => {
 
         <button
           v-if="canWriteExternalIdps"
-          class="primary-action create-idp-toggle"
+          class="ui-action ui-action--primary create-idp-toggle"
           type="button"
           @click="showCreateForm = !showCreateForm"
         >
@@ -332,17 +332,17 @@ onMounted(() => {
           <UiSwitch v-model="createEnabled" label="Enabled" />
           <UiSwitch v-model="createIsBackup" label="Backup failover" />
           <button
-            class="primary-action create-idp-submit"
+            class="ui-action ui-action--primary create-idp-submit"
             type="button"
             :disabled="store.actionStatus === 'loading'"
             @click="submitCreateProvider"
           >
             {{ store.actionStatus === 'loading' ? 'Creating...' : 'Create' }}
           </button>
-          <p v-if="store.actionStatus === 'error'" class="action-message">
+          <p v-if="store.actionStatus === 'error'" class="ui-action-message">
             {{ store.errorMessage }}
           </p>
-          <p v-if="store.actionStatus === 'step_up_required'" class="action-message">
+          <p v-if="store.actionStatus === 'step_up_required'" class="ui-action-message">
             {{ store.errorMessage }}
           </p>
         </div>
@@ -356,7 +356,7 @@ onMounted(() => {
             <h2>{{ store.selectedProvider.display_name }}</h2>
             <p>{{ store.selectedProvider.issuer }}</p>
           </div>
-          <span class="status-pill">{{
+          <span class="ui-badge">{{
             store.selectedProvider.enabled ? 'enabled' : 'disabled'
           }}</span>
         </header>
@@ -400,10 +400,7 @@ onMounted(() => {
           </div>
         </dl>
 
-        <div
-          v-if="store.selectedProvider.consecutive_failures"
-          class="state-card state-card--danger"
-        >
+        <div v-if="store.selectedProvider.consecutive_failures" class="ui-card ui-card--danger">
           <p>consecutive_failures: {{ store.selectedProvider.consecutive_failures }}</p>
           <p v-if="store.selectedProvider.breaker_tripped_at">
             breaker_tripped_at: {{ store.selectedProvider.breaker_tripped_at }}
@@ -481,7 +478,7 @@ onMounted(() => {
           <UiSwitch v-model="editTlsValidation" label="TLS validation" />
           <UiSwitch v-model="editSigValidation" label="Signature validation" />
           <button
-            class="primary-action edit-idp-submit"
+            class="ui-action ui-action--primary edit-idp-submit"
             type="button"
             :disabled="store.actionStatus === 'loading'"
             @click="submitEditProvider"
@@ -510,7 +507,7 @@ onMounted(() => {
             />
           </UiFormField>
           <button
-            class="danger-action delete-idp-button"
+            class="ui-action ui-action--danger delete-idp-button"
             type="button"
             :disabled="!canDelete || store.actionStatus === 'loading'"
             @click="submitDeleteProvider"
@@ -519,7 +516,7 @@ onMounted(() => {
           </button>
         </section>
 
-        <p v-if="store.errorMessage && store.actionStatus !== 'idle'" class="action-message">
+        <p v-if="store.errorMessage && store.actionStatus !== 'idle'" class="ui-action-message">
           {{ store.errorMessage }}
         </p>
 
@@ -540,10 +537,10 @@ onMounted(() => {
         <UiFormField id="mapping-claims" label="Sample claims JSON">
           <UiTextarea id="mapping-claims" v-model="mappingClaims" :rows="4" />
         </UiFormField>
-        <button class="primary-action" type="button" @click="previewMapping">
+        <button class="ui-action ui-action--primary" type="button" @click="previewMapping">
           Preview mapping
         </button>
-        <div v-if="store.mappingPreview" class="state-card">
+        <div v-if="store.mappingPreview" class="ui-card">
           <p>safe to link: {{ store.mappingPreview.safe_to_link }}</p>
           <p>missing_email_strategy: {{ store.mappingPreview.missing_email_strategy }}</p>
           <div v-if="store.mappingPreview.mapped">
@@ -557,11 +554,7 @@ onMounted(() => {
             </li>
           </ul>
           <ul v-if="store.mappingPreview.errors.length > 0">
-            <li
-              v-for="error in store.mappingPreview.errors"
-              :key="error"
-              class="state-card--danger"
-            >
+            <li v-for="error in store.mappingPreview.errors" :key="error" class="ui-card--danger">
               {{ error }}
             </li>
           </ul>

@@ -149,38 +149,38 @@ function cancel(): void {
 
 <template>
   <div v-if="open" ref="backdropRef" class="confirm-dialog-backdrop" @click.self="cancel">
-      <section
-        ref="dialogRef"
-        class="confirm-dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="confirm-dialog-title"
-        aria-describedby="confirm-dialog-description"
-        tabindex="-1"
-        @keydown.esc="cancel"
-        @keydown.tab="trapFocus"
-      >
-        <p class="eyebrow">Konfirmasi aksi admin</p>
-        <h2 id="confirm-dialog-title">{{ title }}</h2>
-        <p id="confirm-dialog-description">{{ description }}</p>
-        <div class="action-row compact-actions">
-          <button
-            data-testid="confirm-dialog-cancel"
-            class="secondary-action"
-            type="button"
-            @click="cancel"
-          >
-            {{ cancelLabel }}
-          </button>
-          <button
-            data-testid="confirm-dialog-confirm"
-            :class="danger ? 'danger-action' : 'primary-action'"
-            type="button"
-            @click="confirm"
-          >
-            {{ confirmLabel }}
-          </button>
-        </div>
-      </section>
+    <section
+      ref="dialogRef"
+      class="confirm-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="confirm-dialog-title"
+      aria-describedby="confirm-dialog-description"
+      tabindex="-1"
+      @keydown.esc="cancel"
+      @keydown.tab="trapFocus"
+    >
+      <p class="eyebrow">Konfirmasi aksi admin</p>
+      <h2 id="confirm-dialog-title">{{ title }}</h2>
+      <p id="confirm-dialog-description">{{ description }}</p>
+      <div class="action-row compact-actions">
+        <button
+          data-testid="confirm-dialog-cancel"
+          class="ui-action ui-action--secondary"
+          type="button"
+          @click="cancel"
+        >
+          {{ cancelLabel }}
+        </button>
+        <button
+          data-testid="confirm-dialog-confirm"
+          :class="danger ? 'ui-action ui-action--danger' : 'ui-action ui-action--primary'"
+          type="button"
+          @click="confirm"
+        >
+          {{ confirmLabel }}
+        </button>
+      </div>
+    </section>
   </div>
 </template>

@@ -46,7 +46,13 @@ function principal(permissions: readonly string[]) {
 
 test('lists creates and deletes IP access rules with confirmation', async ({ page }) => {
   let deleteCalled = false
-  const createdRule = { ...rule, id: 42, cidr: '198.51.100.0/24', reason: 'Allow partner office', mode: 'allow' }
+  const createdRule = {
+    ...rule,
+    id: 42,
+    cidr: '198.51.100.0/24',
+    reason: 'Allow partner office',
+    mode: 'allow',
+  }
 
   await page.route('**/api/admin/me', async (route) => {
     await route.fulfill({
@@ -111,7 +117,10 @@ test('hides write controls when admin has read-only IP access permission', async
     })
   })
   await page.route('**/api/admin/ip-access-rules', async (route) => {
-    await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ rules: [rule] }) })
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ rules: [rule] }),
+    })
   })
 
   await page.goto('/ip-access')
@@ -131,7 +140,9 @@ test('blocks IP access route without read permission', async ({ page }) => {
 
   await page.goto('/ip-access')
 
-  await expect(page.getByRole('heading', { name: 'Akun ini belum memiliki akses admin.' })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: 'Akun ini belum memiliki akses admin.' }),
+  ).toBeVisible()
   await expect(page.getByRole('navigation', { name: 'Modul admin' })).toHaveCount(0)
 })
 
@@ -153,7 +164,10 @@ test('shows safe step-up copy when creating IP access rule needs fresh auth', as
       return
     }
 
-    await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ rules: [rule] }) })
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ rules: [rule] }),
+    })
   })
 
   await page.goto('/ip-access')

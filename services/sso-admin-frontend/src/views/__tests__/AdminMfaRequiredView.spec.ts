@@ -8,9 +8,9 @@ describe('AdminMfaRequiredView', () => {
 
     expect(wrapper.text()).toContain('Admin MFA required')
     expect(wrapper.text()).toContain('Enroll MFA')
-    expect(wrapper.get('[data-testid="admin-mfa-primary-action"]').attributes('href')).toBe(
-      'https://dev-sso.timeh.my.id/security/mfa',
-    )
+    expect(
+      wrapper.get('[data-testid="admin-mfa-ui-action ui-action--primary"]').attributes('href'),
+    ).toBe('https://dev-sso.timeh.my.id/security/mfa')
     expect(wrapper.text()).not.toMatch(/accessToken|refreshToken|idToken|Bearer/i)
   })
 
@@ -19,8 +19,8 @@ describe('AdminMfaRequiredView', () => {
 
     expect(wrapper.text()).toContain('Re-verification required')
     expect(wrapper.text()).toContain('Verify again')
-    expect(wrapper.get('[data-testid="admin-mfa-primary-action"]').attributes('href')).toBe(
-      'https://dev-sso.timeh.my.id/?redirect=%2F__vue-preview%2F',
-    )
+    expect(
+      wrapper.get('[data-testid="admin-mfa-ui-action ui-action--primary"]').attributes('href'),
+    ).toBe('https://dev-sso.timeh.my.id/?redirect=%2F__vue-preview%2F')
   })
 })

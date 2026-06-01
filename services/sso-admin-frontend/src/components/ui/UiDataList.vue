@@ -70,10 +70,20 @@ const emit = defineEmits<{ (event: 'next'): void; (event: 'previous'): void }>()
       class="ui-data-list__pagination"
       aria-label="Cursor pagination"
     >
-      <button v-if="previousLabel" class="secondary-action" type="button" @click="emit('previous')">
+      <button
+        v-if="previousLabel"
+        class="ui-action ui-action--secondary"
+        type="button"
+        @click="emit('previous')"
+      >
         {{ previousLabel }}
       </button>
-      <button v-if="nextLabel" class="secondary-action" type="button" @click="emit('next')">
+      <button
+        v-if="nextLabel"
+        class="ui-action ui-action--secondary"
+        type="button"
+        @click="emit('next')"
+      >
         {{ nextLabel }}
       </button>
     </div>

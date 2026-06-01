@@ -226,7 +226,7 @@ const confirmDescription = computed<string>(() => {
         <UiDataList v-else caption="Daftar users admin" :columns="userColumns" :rows="userRows">
           <template #actions="{ row }">
             <button
-              class="secondary-action"
+              class="ui-action ui-action--secondary"
               :aria-current="row.id === store.selectedSubjectId ? 'true' : undefined"
               :aria-label="`View ${row.name}`"
               type="button"
@@ -239,7 +239,7 @@ const confirmDescription = computed<string>(() => {
 
         <button
           v-if="canWriteUsers"
-          class="primary-action create-user-toggle"
+          class="ui-action ui-action--primary create-user-toggle"
           type="button"
           @click="showCreateForm = !showCreateForm"
         >
@@ -299,7 +299,7 @@ const confirmDescription = computed<string>(() => {
           </UiFormField>
           <UiSwitch v-model="createLocalAccountEnabled" label="Local account enabled" />
           <button
-            class="primary-action"
+            class="ui-action ui-action--primary"
             type="button"
             :disabled="store.actionStatus === 'loading'"
             @click="submitCreateUser"
@@ -308,11 +308,11 @@ const confirmDescription = computed<string>(() => {
           </button>
           <p
             v-if="store.actionStatus === 'step_up_required' && store.selectedSubjectId === null"
-            class="action-message"
+            class="ui-action-message"
           >
             {{ store.errorMessage }}
           </p>
-          <p v-if="store.actionStatus === 'error'" class="action-message">
+          <p v-if="store.actionStatus === 'error'" class="ui-action-message">
             {{ store.errorMessage }}
           </p>
         </div>
@@ -327,7 +327,7 @@ const confirmDescription = computed<string>(() => {
           </div>
           <div class="action-row compact-actions">
             <RouterLink
-              class="primary-action"
+              class="ui-action ui-action--primary"
               :to="{
                 name: 'admin.audit',
                 query: { consent: '1', subject_id: store.selectedUser.subject_id },
@@ -335,7 +335,7 @@ const confirmDescription = computed<string>(() => {
             >
               Consent trail
             </RouterLink>
-            <span class="status-pill">{{ store.selectedUser.status ?? 'unknown' }}</span>
+            <span class="ui-badge">{{ store.selectedUser.status ?? 'unknown' }}</span>
           </div>
         </header>
 
@@ -382,7 +382,7 @@ const confirmDescription = computed<string>(() => {
             </label>
             <div class="action-row compact-actions">
               <button
-                class="sync-profile-button primary-action"
+                class="sync-profile-button ui-action ui-action--primary"
                 type="button"
                 :disabled="store.actionStatus === 'loading'"
                 @click="submitSyncProfile"
@@ -421,7 +421,7 @@ const confirmDescription = computed<string>(() => {
           <p v-if="store.sessions.length === 0" class="muted">Tidak ada session evidence.</p>
           <button
             v-if="canTerminateSessions"
-            class="revoke-user-sessions-button danger-action"
+            class="revoke-user-sessions-button ui-action ui-action--danger"
             type="button"
             @click="requestDestructiveAction('revoke_user_sessions')"
           >
@@ -442,7 +442,7 @@ const confirmDescription = computed<string>(() => {
           <div class="action-row compact-actions">
             <button
               v-if="canLockUsers"
-              class="lifecycle-lock-button danger-action"
+              class="lifecycle-lock-button ui-action ui-action--danger"
               type="button"
               @click="requestDestructiveAction('lock')"
             >
@@ -450,7 +450,7 @@ const confirmDescription = computed<string>(() => {
             </button>
             <button
               v-if="canLockUsers"
-              class="primary-action"
+              class="ui-action ui-action--primary"
               type="button"
               @click="store.unlockSelected(reason)"
             >
@@ -458,7 +458,7 @@ const confirmDescription = computed<string>(() => {
             </button>
             <button
               v-if="canWriteUsers"
-              class="danger-action"
+              class="ui-action ui-action--danger"
               type="button"
               @click="requestDestructiveAction('deactivate')"
             >
@@ -466,7 +466,7 @@ const confirmDescription = computed<string>(() => {
             </button>
             <button
               v-if="canWriteUsers"
-              class="primary-action"
+              class="ui-action ui-action--primary"
               type="button"
               @click="store.reactivateSelected"
             >
@@ -474,7 +474,7 @@ const confirmDescription = computed<string>(() => {
             </button>
             <button
               v-if="canWriteUsers"
-              class="lifecycle-reset-mfa-button danger-action"
+              class="lifecycle-reset-mfa-button ui-action ui-action--danger"
               type="button"
               @click="requestDestructiveAction('reset_mfa')"
             >
@@ -482,17 +482,17 @@ const confirmDescription = computed<string>(() => {
             </button>
             <button
               v-if="canWriteUsers"
-              class="danger-action"
+              class="ui-action ui-action--danger"
               type="button"
               @click="requestDestructiveAction('issue_password_reset')"
             >
               Issue reset link
             </button>
           </div>
-          <p v-if="store.errorMessage" class="action-message">{{ store.errorMessage }}</p>
+          <p v-if="store.errorMessage" class="ui-action-message">{{ store.errorMessage }}</p>
           <p
             v-if="store.passwordResetToken || store.auditEventId"
-            class="action-message"
+            class="ui-action-message"
             role="status"
           >
             Password reset dikirim melalui channel aman backend. Gunakan audit evidence untuk

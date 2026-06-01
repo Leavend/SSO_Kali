@@ -66,8 +66,10 @@ describe('ConfirmDialog', () => {
   it('keeps Tab focus inside the dialog actions', async () => {
     const { host, wrapper } = await openDialog()
     const dialog = wrapper.find('[role="dialog"]')
-    const cancel = wrapper.find('[data-testid="confirm-dialog-cancel"]').element as HTMLButtonElement
-    const confirm = wrapper.find('[data-testid="confirm-dialog-confirm"]').element as HTMLButtonElement
+    const cancel = wrapper.find('[data-testid="confirm-dialog-cancel"]')
+      .element as HTMLButtonElement
+    const confirm = wrapper.find('[data-testid="confirm-dialog-confirm"]')
+      .element as HTMLButtonElement
 
     confirm.focus()
     await dialog.trigger('keydown', { key: 'Tab' })

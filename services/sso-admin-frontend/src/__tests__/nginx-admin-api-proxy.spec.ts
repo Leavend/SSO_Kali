@@ -3,7 +3,10 @@ import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 const nginxConfig = readFileSync(resolve(process.cwd(), 'nginx.conf'), 'utf8')
-const deployWorkflow = readFileSync(resolve(process.cwd(), '../../.github/workflows/deploy-main.yml'), 'utf8')
+const deployWorkflow = readFileSync(
+  resolve(process.cwd(), '../../.github/workflows/deploy-main.yml'),
+  'utf8',
+)
 const servingDecision = readFileSync(
   resolve(process.cwd(), '../../docs/decisions/admin-sso-serving-architecture-2026-06-01.md'),
   'utf8',
@@ -56,8 +59,12 @@ describe('admin nginx backend proxy contract', () => {
   })
 
   it('records the serving decision instead of silently flipping admin-sso to the portal BFF', () => {
-    expect(servingDecision).toContain('Keep `admin-sso.timeh.my.id` on the standalone admin frontend')
-    expect(servingDecision).toContain('Do not route the whole admin host through the portal BFF yet')
+    expect(servingDecision).toContain(
+      'Keep `admin-sso.timeh.my.id` on the standalone admin frontend',
+    )
+    expect(servingDecision).toContain(
+      'Do not route the whole admin host through the portal BFF yet',
+    )
     expect(servingDecision).toContain('full `/api/admin/*` route parity')
   })
 })

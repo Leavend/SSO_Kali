@@ -28,7 +28,8 @@ export function useI18n(): UseI18nReturn {
   const locale = computed<SupportedLocale>(() => activeLocale.value)
 
   function t(key: string, params?: Record<string, unknown>): string {
-    const template = resolveKey(locales[locale.value], key) ?? resolveKey(locales[DEFAULT_LOCALE], key)
+    const template =
+      resolveKey(locales[locale.value], key) ?? resolveKey(locales[DEFAULT_LOCALE], key)
     if (!template) return key
 
     return params ? interpolate(template, params) : template

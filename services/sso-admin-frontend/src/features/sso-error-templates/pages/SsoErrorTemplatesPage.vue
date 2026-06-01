@@ -149,7 +149,7 @@ function templateFor(code: string): SsoErrorTemplate | undefined {
 
     <div v-else class="policy-layout">
       <section class="detail-section" aria-label="SSO error template catalog">
-        <div v-for="code in errorCodes" :key="code" class="state-card">
+        <div v-for="code in errorCodes" :key="code" class="ui-card">
           <template v-if="editingCode === code">
             <div class="edit-form">
               <UiFormField :id="`template-title-${code}`" label="Title">
@@ -181,13 +181,15 @@ function templateFor(code: string): SsoErrorTemplate | undefined {
               <div class="action-row compact-actions">
                 <button
                   v-if="canWriteSsoErrorTemplates"
-                  class="primary-action"
+                  class="ui-action ui-action--primary"
                   type="button"
                   @click="saveTemplate(code)"
                 >
                   Save
                 </button>
-                <button class="secondary-action" type="button" @click="cancelEdit()">Cancel</button>
+                <button class="ui-action ui-action--secondary" type="button" @click="cancelEdit()">
+                  Cancel
+                </button>
               </div>
             </div>
           </template>
@@ -212,7 +214,7 @@ function templateFor(code: string): SsoErrorTemplate | undefined {
             <p v-else class="muted">Default catalog entry (belum di-customize).</p>
             <div v-if="canWriteSsoErrorTemplates" class="action-row compact-actions">
               <button
-                class="primary-action"
+                class="ui-action ui-action--primary"
                 type="button"
                 @click="
                   startEdit(
@@ -232,13 +234,15 @@ function templateFor(code: string): SsoErrorTemplate | undefined {
               >
                 Edit
               </button>
-              <button class="danger-action" type="button" @click="handleReset(code)">Reset</button>
+              <button class="ui-action ui-action--danger" type="button" @click="handleReset(code)">
+                Reset
+              </button>
             </div>
           </template>
         </div>
         <p
           v-if="store.actionStatus === 'error' || store.actionStatus === 'step_up_required'"
-          class="action-message"
+          class="ui-action-message"
           role="alert"
         >
           {{ store.errorMessage }}

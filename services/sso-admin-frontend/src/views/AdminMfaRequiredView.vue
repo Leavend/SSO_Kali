@@ -59,7 +59,11 @@ function normalizeReturnPath(): string {
 <template>
   <UiStatusView tone="step_up" :eyebrow="eyebrow" :title="title" :description="description">
     <template #actions>
-      <a data-testid="admin-mfa-primary-action" class="button button--primary" :href="primaryHref">
+      <a
+        data-testid="admin-mfa-ui-action ui-action--primary"
+        class="button button--primary"
+        :href="primaryHref"
+      >
         {{ primaryLabel }}
       </a>
       <a class="button button--secondary" :href="portalHomeHref">

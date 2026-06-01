@@ -245,28 +245,28 @@ const confirmDescription = computed<string>(() => {
         </UiFormField>
         <button
           v-if="canWriteSecurityPolicy"
-          class="primary-action"
+          class="ui-action ui-action--primary"
           type="button"
           @click="proposeDraft"
         >
           Create draft
         </button>
 
-        <div v-for="policy in store.policies" :key="policy.id" class="state-card">
+        <div v-for="policy in store.policies" :key="policy.id" class="ui-card">
           <strong>{{ policy.category }} version {{ policy.version }}</strong>
           <p>{{ policy.status }} · effective {{ policy.effective_at ?? 'not active' }}</p>
           <p>Actor: {{ policy.actor_subject_id ?? 'unknown' }}</p>
           <pre class="policy-json">{{ JSON.stringify(policy.payload, null, 2) }}</pre>
           <div v-if="canActivateSecurityPolicy" class="action-row compact-actions">
             <button
-              class="policy-activate-button primary-action"
+              class="policy-activate-button ui-action ui-action--primary"
               type="button"
               @click="requestActivatePolicy(policy.version)"
             >
               Activate
             </button>
             <button
-              class="policy-rollback-button danger-action"
+              class="policy-rollback-button ui-action ui-action--danger"
               type="button"
               @click="requestRollbackPolicy(policy.version)"
             >
@@ -281,7 +281,7 @@ const confirmDescription = computed<string>(() => {
         <h2 id="roles-title">Roles</h2>
         <button
           v-if="canWriteRoles"
-          class="primary-action create-role-toggle"
+          class="ui-action ui-action--primary create-role-toggle"
           type="button"
           @click="showCreateRoleForm = !showCreateRoleForm"
         >
@@ -315,22 +315,22 @@ const confirmDescription = computed<string>(() => {
             />
           </UiFormField>
           <button
-            class="primary-action"
+            class="ui-action ui-action--primary"
             type="button"
             :disabled="store.actionStatus === 'loading'"
             @click="submitCreateRole"
           >
             {{ store.actionStatus === 'loading' ? 'Creating...' : 'Create' }}
           </button>
-          <p v-if="store.actionStatus === 'step_up_required'" class="action-message">
+          <p v-if="store.actionStatus === 'step_up_required'" class="ui-action-message">
             {{ store.errorMessage }}
           </p>
-          <p v-if="store.actionStatus === 'error'" class="action-message">
+          <p v-if="store.actionStatus === 'error'" class="ui-action-message">
             {{ store.errorMessage }}
           </p>
         </div>
 
-        <div v-for="role in store.roles" :key="role.slug" class="state-card">
+        <div v-for="role in store.roles" :key="role.slug" class="ui-card">
           <template v-if="editingRoleSlug === role.slug">
             <UiFormField :id="`edit-role-name-${role.slug}`" label="Name" required>
               <UiInput
@@ -347,8 +347,12 @@ const confirmDescription = computed<string>(() => {
               />
             </UiFormField>
             <div class="action-row compact-actions">
-              <button class="primary-action" type="button" @click="submitEditRole">Save</button>
-              <button class="secondary-action" type="button" @click="cancelEditRole">Cancel</button>
+              <button class="ui-action ui-action--primary" type="button" @click="submitEditRole">
+                Save
+              </button>
+              <button class="ui-action ui-action--secondary" type="button" @click="cancelEditRole">
+                Cancel
+              </button>
             </div>
           </template>
           <template v-else>
@@ -363,7 +367,7 @@ const confirmDescription = computed<string>(() => {
             <div class="action-row compact-actions">
               <button
                 v-if="canWriteRoles"
-                class="primary-action"
+                class="ui-action ui-action--primary"
                 type="button"
                 @click="startEditRole(role)"
               >
@@ -371,7 +375,7 @@ const confirmDescription = computed<string>(() => {
               </button>
               <button
                 v-if="canDeleteRoles && !role.is_system"
-                class="danger-action"
+                class="ui-action ui-action--danger"
                 type="button"
                 :aria-label="`Delete role ${role.slug}`"
                 @click="requestDeleteRole(role.slug)"
@@ -395,7 +399,7 @@ const confirmDescription = computed<string>(() => {
         <p v-if="store.permissions.length === 0" class="muted">Belum ada permission evidence.</p>
       </section>
 
-      <p v-if="store.errorMessage" class="action-message">{{ store.errorMessage }}</p>
+      <p v-if="store.errorMessage" class="ui-action-message">{{ store.errorMessage }}</p>
     </div>
 
     <EvidenceContextPanel title="Policy evidence" :request-id="store.requestId" />

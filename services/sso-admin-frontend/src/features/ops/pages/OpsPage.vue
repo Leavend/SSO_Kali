@@ -71,7 +71,7 @@ onMounted(() => {
     <div v-else class="ops-layout">
       <section class="detail-section" aria-labelledby="readiness-title">
         <h2 id="readiness-title">Health & readiness</h2>
-        <div v-if="store.readiness" class="state-card">
+        <div v-if="store.readiness" class="ui-card">
           <strong>{{ store.readiness.service }}</strong>
           <p>{{ store.readiness.ready ? 'ready' : 'degraded' }}</p>
           <p>database: {{ store.readiness.checks.database }}</p>
@@ -90,7 +90,7 @@ onMounted(() => {
           kartu menautkan system-of-record dan runbook resmi untuk menjalankan dan mengumpulkan
           evidence.
         </p>
-        <div v-for="drill in OPS_DRILLS" :key="drill.key" class="state-card">
+        <div v-for="drill in OPS_DRILLS" :key="drill.key" class="ui-card">
           <strong>{{ drill.title }}</strong>
           <p>{{ drill.summary }}</p>
           <p class="muted">System of record: {{ drill.systemOfRecord }}</p>

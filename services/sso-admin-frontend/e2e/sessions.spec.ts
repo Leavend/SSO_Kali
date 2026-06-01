@@ -99,7 +99,9 @@ test('blocks sessions route without terminate permission', async ({ page }) => {
 
   await page.goto('/sessions')
 
-  await expect(page.getByRole('heading', { name: 'Akun ini belum memiliki akses admin.' })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: 'Akun ini belum memiliki akses admin.' }),
+  ).toBeVisible()
   await expect(page.getByRole('navigation', { name: 'Modul admin' })).toHaveCount(0)
 })
 
@@ -111,7 +113,10 @@ test('shows safe step-up copy when session revoke needs fresh auth', async ({ pa
     })
   })
   await page.route('**/api/admin/sessions', async (route) => {
-    await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ sessions: [session] }) })
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ sessions: [session] }),
+    })
   })
   await page.route('**/api/admin/sessions/admin-session-1', async (route) => {
     await route.fulfill({

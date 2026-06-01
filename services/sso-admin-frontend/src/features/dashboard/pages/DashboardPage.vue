@@ -96,7 +96,7 @@ function label(value: string): string {
       description="Belum ada ringkasan dashboard untuk ditampilkan. Refresh data atau cek permission backend bila kondisi ini tidak sesuai."
     >
       <template #action>
-        <button class="secondary-action" type="button" @click="void dashboard.load()">
+        <button class="ui-action ui-action--secondary" type="button" @click="void dashboard.load()">
           Refresh
         </button>
       </template>

@@ -9,11 +9,11 @@ const props = defineProps<{
 const stateConfig = computed(() => {
   switch (props.state) {
     case 'ready':
-      return { label: 'Ready', className: 'status-pill--ready' }
+      return { label: 'Ready', className: 'ui-badge--ready' }
     case 'guarded':
-      return { label: 'Guarded', className: 'status-pill--guarded' }
+      return { label: 'Guarded', className: 'ui-badge--guarded' }
     case 'pending':
-      return { label: 'Pending', className: 'status-pill--pending' }
+      return { label: 'Pending', className: 'ui-badge--pending' }
     default:
       return { label: props.state, className: '' }
   }
@@ -21,21 +21,21 @@ const stateConfig = computed(() => {
 </script>
 
 <template>
-  <span class="status-pill" :class="stateConfig.className">{{ stateConfig.label }}</span>
+  <span class="ui-badge" :class="stateConfig.className">{{ stateConfig.label }}</span>
 </template>
 
 <style scoped>
-.status-pill--ready {
+.ui-badge--ready {
   color: #ccfbf1;
   background: rgb(20 184 166 / 14%);
 }
 
-.status-pill--guarded {
+.ui-badge--guarded {
   color: #fef3c7;
   background: rgb(245 158 11 / 14%);
 }
 
-.status-pill--pending {
+.ui-badge--pending {
   color: #e0e7ff;
   background: rgb(99 102 241 / 14%);
 }

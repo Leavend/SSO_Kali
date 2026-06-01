@@ -93,32 +93,28 @@ const confirmDescription = computed<string>(() =>
       <h1 id="sessions-title">Sessions</h1>
     </div>
 
-    <div v-if="store.status === 'loading'" class="state-card" role="status">Memuat sessions...</div>
+    <div v-if="store.status === 'loading'" class="ui-card" role="status">Memuat sessions...</div>
 
-    <div
-      v-else-if="store.status === 'forbidden'"
-      class="state-card state-card--danger"
-      role="alert"
-    >
+    <div v-else-if="store.status === 'forbidden'" class="ui-card ui-card--danger" role="alert">
       <h2>Akses sessions ditolak</h2>
       <p>{{ store.errorMessage }}</p>
     </div>
 
     <div
       v-else-if="store.status === 'unauthenticated'"
-      class="state-card state-card--danger"
+      class="ui-card ui-card--danger"
       role="alert"
     >
       <h2>Sesi admin berakhir</h2>
       <p>{{ store.errorMessage }}</p>
     </div>
 
-    <div v-else-if="store.status === 'error'" class="state-card state-card--danger" role="alert">
+    <div v-else-if="store.status === 'error'" class="ui-card ui-card--danger" role="alert">
       <h2>Sessions admin belum bisa dimuat</h2>
       <p>{{ store.errorMessage }}</p>
     </div>
 
-    <div v-else-if="store.sessions.length === 0" class="state-card" role="status">
+    <div v-else-if="store.sessions.length === 0" class="ui-card" role="status">
       <p>Belum ada sesi yang dapat ditampilkan.</p>
     </div>
 
@@ -127,7 +123,7 @@ const confirmDescription = computed<string>(() =>
         <template #actions="{ row }">
           <button
             v-if="canTerminateSessions"
-            class="revoke-button danger-action"
+            class="revoke-button ui-action ui-action--danger"
             type="button"
             @click="requestRevokeSession(row.id)"
           >
@@ -136,10 +132,10 @@ const confirmDescription = computed<string>(() =>
         </template>
       </UiDataList>
 
-      <p v-if="store.actionStatus === 'step_up_required'" class="action-message" role="alert">
+      <p v-if="store.actionStatus === 'step_up_required'" class="ui-action-message" role="alert">
         {{ store.errorMessage }}
       </p>
-      <p v-if="store.actionStatus === 'error'" class="action-message" role="alert">
+      <p v-if="store.actionStatus === 'error'" class="ui-action-message" role="alert">
         {{ store.errorMessage }}
       </p>
 

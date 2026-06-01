@@ -327,14 +327,14 @@ onMounted(() => {
           </UiFormField>
         </div>
         <button
-          class="primary-action audit-export-button"
+          class="ui-action ui-action--primary audit-export-button"
           type="button"
           :disabled="store.actionStatus === 'loading'"
           @click="submitExport"
         >
           {{ store.actionStatus === 'loading' ? 'Exporting...' : 'Export' }}
         </button>
-        <p v-if="store.actionStatus === 'step_up_required'" class="action-message" role="alert">
+        <p v-if="store.actionStatus === 'step_up_required'" class="ui-action-message" role="alert">
           {{ store.errorMessage }}
         </p>
       </section>
@@ -387,21 +387,21 @@ onMounted(() => {
           Isi rentang tanggal (From + To) atau correlation ID untuk mengaktifkan generate.
         </p>
         <button
-          class="primary-action compliance-evidence-pack-button"
+          class="ui-action ui-action--primary compliance-evidence-pack-button"
           type="button"
           :disabled="store.actionStatus === 'loading' || !canSubmitEvidencePack"
           @click="submitEvidencePack"
         >
           {{ store.actionStatus === 'loading' ? 'Generating...' : 'Generate evidence pack' }}
         </button>
-        <p v-if="store.actionStatus === 'step_up_required'" class="action-message" role="alert">
+        <p v-if="store.actionStatus === 'step_up_required'" class="ui-action-message" role="alert">
           {{ store.errorMessage }}
         </p>
       </section>
 
       <section class="detail-section" aria-labelledby="integrity-title">
         <h2 id="integrity-title">Integrity evidence</h2>
-        <p class="status-pill">
+        <p class="ui-badge">
           {{ store.integrity?.verified ? 'Integrity verified' : 'Integrity needs review' }}
         </p>
         <dl class="inline-evidence">
@@ -426,7 +426,7 @@ onMounted(() => {
           <div
             v-for="item in store.retentionStatus?.items ?? []"
             :key="item.category"
-            class="state-card"
+            class="ui-card"
           >
             <strong>{{ item.label }}</strong>
             <dl class="inline-evidence">
@@ -542,10 +542,18 @@ onMounted(() => {
           </UiFormField>
         </div>
         <div class="action-row compact-actions">
-          <button class="primary-action audit-search-button" type="button" @click="submitSearch">
+          <button
+            class="ui-action ui-action--primary audit-search-button"
+            type="button"
+            @click="submitSearch"
+          >
             Search
           </button>
-          <button class="danger-action audit-reset-button" type="button" @click="resetSearch">
+          <button
+            class="ui-action ui-action--danger audit-reset-button"
+            type="button"
+            @click="resetSearch"
+          >
             Reset
           </button>
         </div>
@@ -559,32 +567,32 @@ onMounted(() => {
         </p>
         <div class="action-row compact-actions">
           <button
-            class="primary-action consent-filter-all-button"
-            :class="{ 'status-pill': selectedConsentAction === 'all' }"
+            class="ui-action ui-action--primary consent-filter-all-button"
+            :class="{ 'ui-badge': selectedConsentAction === 'all' }"
             type="button"
             @click="applyConsentFilter('all')"
           >
             Semua consent
           </button>
           <button
-            class="primary-action consent-filter-allow-button"
-            :class="{ 'status-pill': selectedConsentAction === 'allow' }"
+            class="ui-action ui-action--primary consent-filter-allow-button"
+            :class="{ 'ui-badge': selectedConsentAction === 'allow' }"
             type="button"
             @click="applyConsentFilter('allow')"
           >
             Allow
           </button>
           <button
-            class="primary-action consent-filter-deny-button"
-            :class="{ 'status-pill': selectedConsentAction === 'deny' }"
+            class="ui-action ui-action--primary consent-filter-deny-button"
+            :class="{ 'ui-badge': selectedConsentAction === 'deny' }"
             type="button"
             @click="applyConsentFilter('deny')"
           >
             Deny
           </button>
           <button
-            class="primary-action consent-filter-revoke-button"
-            :class="{ 'status-pill': selectedConsentAction === 'revoke' }"
+            class="ui-action ui-action--primary consent-filter-revoke-button"
+            :class="{ 'ui-badge': selectedConsentAction === 'revoke' }"
             type="button"
             @click="applyConsentFilter('revoke')"
           >
@@ -595,14 +603,10 @@ onMounted(() => {
 
       <section class="detail-section" aria-labelledby="events-title">
         <h2 id="events-title">Audit events</h2>
-        <UiDataList
-          caption="Admin event table"
-          :columns="auditEventColumns"
-          :rows="auditEventRows"
-        >
+        <UiDataList caption="Admin event table" :columns="auditEventColumns" :rows="auditEventRows">
           <template #actions="{ row }">
             <button
-              class="secondary-action"
+              class="ui-action ui-action--secondary"
               :aria-current="row.id === store.selectedEventId ? 'true' : undefined"
               :aria-label="`View ${row.event_id} ${row.action}`"
               type="button"
@@ -615,7 +619,7 @@ onMounted(() => {
         <p v-if="store.events.length === 0" class="muted">Belum ada audit event.</p>
         <button
           v-if="store.eventPagination?.has_more && store.eventPagination?.next_cursor"
-          class="primary-action audit-load-more-button"
+          class="ui-action ui-action--primary audit-load-more-button"
           type="button"
           @click="store.loadMoreEvents"
         >
@@ -667,7 +671,7 @@ onMounted(() => {
         >
           <template #actions="{ row }">
             <button
-              class="secondary-action"
+              class="ui-action ui-action--secondary"
               :aria-current="row.id === store.selectedAuthenticationEventId ? 'true' : undefined"
               :aria-label="`View ${row.event_id} ${row.event_type}`"
               type="button"
@@ -685,7 +689,7 @@ onMounted(() => {
             store.authenticationEventPagination?.has_more &&
             store.authenticationEventPagination?.next_cursor
           "
-          class="primary-action authentication-load-more-button"
+          class="ui-action ui-action--primary authentication-load-more-button"
           type="button"
           @click="store.loadMoreAuthenticationEvents"
         >
@@ -719,7 +723,7 @@ onMounted(() => {
 
       <section class="detail-section" aria-labelledby="challenge-title">
         <h2 id="challenge-title">Suspicious login challenge matrix</h2>
-        <div class="state-card">
+        <div class="ui-card">
           <strong>Risk challenge evidence</strong>
           <p>
             Backend auth audit events show login challenge outcomes, MFA-required states, and
@@ -730,7 +734,7 @@ onMounted(() => {
 
       <section class="detail-section" aria-labelledby="acr-title">
         <h2 id="acr-title">ACR permissive policy (NG-03)</h2>
-        <div class="state-card">
+        <div class="ui-card">
           <strong>Accepted policy — permissive compat mode</strong>
           <p>
             Unknown ACR values are treated as no requirement (permissive) per accepted policy
@@ -743,30 +747,30 @@ onMounted(() => {
 
       <section class="detail-section" aria-labelledby="portal-observable-title">
         <h2 id="portal-observable-title">Portal/backend observable evidence</h2>
-        <div class="state-card">
+        <div class="ui-card">
           <strong>Consent revocation audit viewer</strong>
           <p>Consent allow, deny, and revoke events are reviewed through the audit event feed.</p>
         </div>
-        <div class="state-card">
+        <div class="ui-card">
           <strong>Legacy portal session fallback sunset</strong>
           <p>
             Fallback usage stays an ops-tracked evidence item until backend emits a dedicated
             signal.
           </p>
         </div>
-        <div class="state-card">
+        <div class="ui-card">
           <strong>Token lifetime production guard</strong>
           <p>
             Production token/session lifetime guard evidence remains backend-owned and deploy-gated.
           </p>
         </div>
-        <div class="state-card">
+        <div class="ui-card">
           <strong>Session / logout evidence console</strong>
           <p>
             SID propagation, RP sessions, and front/back-channel logout outcomes use audit evidence.
           </p>
         </div>
-        <div class="state-card">
+        <div class="ui-card">
           <strong>Safe error regression review</strong>
           <p>
             Admin evidence pages show request IDs and safe copy instead of raw backend/OIDC errors.
@@ -780,32 +784,28 @@ onMounted(() => {
           Review notes
           <input v-model="reviewNotes" autocomplete="off" />
         </label>
-        <div
-          v-for="request in store.dataSubjectRequests"
-          :key="request.request_id"
-          class="state-card"
-        >
+        <div v-for="request in store.dataSubjectRequests" :key="request.request_id" class="ui-card">
           <strong>{{ request.request_id }}</strong>
           <p>{{ request.type }} · {{ request.status }} · {{ request.subject_id }}</p>
           <p>SLA due: {{ request.sla_due_at ?? 'No SLA evidence' }}</p>
           <div v-if="canReviewDsr" class="action-row compact-actions">
             <button
               type="button"
-              class="primary-action"
+              class="ui-action ui-action--primary"
               @click="store.reviewRequest(request.request_id, 'approved', reviewNotes)"
             >
               Approve
             </button>
             <button
               type="button"
-              class="danger-action"
+              class="ui-action ui-action--danger"
               @click="store.reviewRequest(request.request_id, 'rejected', reviewNotes)"
             >
               Reject
             </button>
             <button
               type="button"
-              class="primary-action"
+              class="ui-action ui-action--primary"
               @click="store.fulfillRequest(request.request_id, true)"
             >
               Dry-run fulfill
@@ -815,7 +815,7 @@ onMounted(() => {
         <p v-if="store.dataSubjectRequests.length === 0" class="muted">Tidak ada DSR submitted.</p>
       </section>
 
-      <p v-if="store.errorMessage" class="action-message">{{ store.errorMessage }}</p>
+      <p v-if="store.errorMessage" class="ui-action-message">{{ store.errorMessage }}</p>
     </div>
 
     <EvidenceContextPanel

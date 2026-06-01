@@ -157,7 +157,7 @@ const confirmDescription = computed<string>(() => {
           </UiFormField>
         </div>
         <button
-          class="primary-action"
+          class="ui-action ui-action--primary"
           type="button"
           :disabled="store.actionStatus === 'loading'"
           @click="submitCreate"
@@ -172,7 +172,7 @@ const confirmDescription = computed<string>(() => {
             <button
               v-if="canWriteAccess"
               type="button"
-              class="ip-rule-delete-button danger-action"
+              class="ip-rule-delete-button ui-action ui-action--danger"
               @click="requestDeleteRule(Number(row.id))"
             >
               Hapus
@@ -181,12 +181,12 @@ const confirmDescription = computed<string>(() => {
         </UiDataList>
       </section>
 
-      <div v-if="store.actionStatus === 'step_up_required'" class="action-message" role="alert">
+      <div v-if="store.actionStatus === 'step_up_required'" class="ui-action-message" role="alert">
         {{ store.errorMessage }}
       </div>
     </div>
 
-    <p v-if="store.errorMessage && store.status === 'success'" class="action-message">
+    <p v-if="store.errorMessage && store.status === 'success'" class="ui-action-message">
       {{ store.errorMessage }}
     </p>
 

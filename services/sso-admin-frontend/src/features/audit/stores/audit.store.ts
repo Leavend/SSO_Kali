@@ -64,14 +64,13 @@ export const useAuditStore = defineStore('admin-audit', () => {
         retentionResponse,
         dsrResponse,
         authenticationEventResponse,
-      ] =
-        await Promise.all([
-          auditApi.listEvents(eventFilters.value),
-          auditApi.getIntegrity(),
-          auditApi.getRetentionStatus(),
-          auditApi.listDataSubjectRequests({ status: 'submitted' }),
-          auditApi.listAuthenticationEvents(authenticationEventFilters.value),
-        ])
+      ] = await Promise.all([
+        auditApi.listEvents(eventFilters.value),
+        auditApi.getIntegrity(),
+        auditApi.getRetentionStatus(),
+        auditApi.listDataSubjectRequests({ status: 'submitted' }),
+        auditApi.listAuthenticationEvents(authenticationEventFilters.value),
+      ])
       events.value = eventResponse.events
       eventPagination.value = eventResponse.pagination ?? null
       selectedEventId.value = eventResponse.events[0]?.event_id ?? null
