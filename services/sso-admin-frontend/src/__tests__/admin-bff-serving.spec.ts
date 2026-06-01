@@ -3,6 +3,8 @@ import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 const dockerfile = readFileSync(resolve(process.cwd(), 'Dockerfile'), 'utf8')
+const adminReadme = readFileSync(resolve(process.cwd(), 'README.md'), 'utf8')
+const backendReadme = readFileSync(resolve(process.cwd(), '../sso-backend/README.md'), 'utf8')
 const compose = readFileSync(resolve(process.cwd(), '../../docker-compose.main.yml'), 'utf8')
 const deployWorkflow = readFileSync(
   resolve(process.cwd(), '../../.github/workflows/deploy-main.yml'),
@@ -39,5 +41,16 @@ describe('admin BFF serving contract', () => {
     expect(deployWorkflow).toContain('^content-type: application/json')
     expect(deployWorkflow).toContain('<!doctype html\\|<html')
     expect(deployWorkflow).toContain('"error"[[:space:]]*:[[:space:]]*"no_session"')
+  })
+
+  it('documents that admin API auth is bearer-only through the BFF, not shared portal cookies', () => {
+    expect(adminReadme).toContain('bearer-only')
+    expect(adminReadme).toContain('AdminGuard')
+    expect(adminReadme).toContain('Domain=.timeh.my.id')
+    expect(adminReadme).toContain('__Host-sso-admin-session')
+    expect(backendReadme).toContain('/admin/api/*')
+    expect(backendReadme).toContain('Authorization: Bearer <access_token>')
+    expect(backendReadme).toContain('__Host-sso_session')
+    expect(backendReadme).toContain('still would not satisfy `AdminGuard`')
   })
 })

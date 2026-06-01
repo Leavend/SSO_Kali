@@ -1,3 +1,26 @@
+# Dev-SSO Backend
+
+Laravel backend for OIDC, user portal APIs, and admin control-plane APIs.
+
+## Admin API Auth Contract
+
+Routes under `/admin/api/*` are bearer-only resource-server endpoints. They are
+protected by `App\Http\Middleware\AdminGuard`, which authenticates only
+`Authorization: Bearer <access_token>` and does not resolve portal cookies.
+
+The standalone admin frontend must access these routes through its Node BFF at
+`admin-sso.timeh.my.id`. The BFF owns the OIDC Authorization Code + PKCE flow,
+stores tokens server-side, exposes only an opaque `__Host-sso-admin-session`
+cookie to the browser, and injects the Bearer token when proxying to
+`/admin/api/*`.
+
+Do not broaden portal cookies for admin access. `__Host-sso_session` and
+framework session cookies intentionally omit `Domain`, making them host-only.
+Changing them to `Domain=.timeh.my.id` would weaken subdomain isolation and
+still would not satisfy `AdminGuard`, because admin authorization is token based.
+
+---
+
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
 <p align="center">
