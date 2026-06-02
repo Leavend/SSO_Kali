@@ -32,6 +32,8 @@ env:
   IMAGE_PREFIX: ghcr.io/leavend/sso-kali
   VPS_PROJECT_DIR: ${{ secrets.VPS_PROJECT_DIR || '/opt/sso-backend-prod' }}
   VPS_SSH_PORT: ${{ secrets.VPS_SSH_PORT || '22' }}
+  VPS_SSH_ATTEMPTS: ${{ vars.VPS_SSH_ATTEMPTS || '3' }}
+  VPS_SSH_COMMAND_TIMEOUT: ${{ vars.VPS_SSH_COMMAND_TIMEOUT || '45' }}
   COMPOSE_PROJECT_NAME: sso-backend-prod
 
 jobs:
@@ -171,11 +173,11 @@ jobs:
 
           ssh_with_retry() {
             local attempt
-            for attempt in 1 2 3 4 5; do
-              if timeout 120s ssh -i ~/.ssh/deploy_key -p "${VPS_SSH_PORT}" \
+            for attempt in $(seq 1 "${VPS_SSH_ATTEMPTS}"); do
+              if timeout "${VPS_SSH_COMMAND_TIMEOUT}s" ssh -i ~/.ssh/deploy_key -p "${VPS_SSH_PORT}" \
                 -o BatchMode=yes \
-                -o ConnectTimeout=45 \
-                -o ConnectionAttempts=3 \
+                -o ConnectTimeout=15 \
+                -o ConnectionAttempts=1 \
                 -o RequestTTY=no \
                 -o StrictHostKeyChecking=accept-new \
                 -o ServerAliveInterval=10 \
@@ -191,8 +193,8 @@ jobs:
 
           rsync_with_retry() {
             local attempt
-            for attempt in 1 2 3 4 5; do
-              if timeout 180s rsync -az -e "ssh -i ~/.ssh/deploy_key -p ${VPS_SSH_PORT} -o BatchMode=yes -o ConnectTimeout=45 -o ConnectionAttempts=3 -o RequestTTY=no -o StrictHostKeyChecking=accept-new -o ServerAliveInterval=10 -o ServerAliveCountMax=3" "$@"; then
+            for attempt in $(seq 1 "${VPS_SSH_ATTEMPTS}"); do
+              if timeout "${VPS_SSH_COMMAND_TIMEOUT}s" rsync -az -e "ssh -i ~/.ssh/deploy_key -p ${VPS_SSH_PORT} -o BatchMode=yes -o ConnectTimeout=15 -o ConnectionAttempts=1 -o RequestTTY=no -o StrictHostKeyChecking=accept-new -o ServerAliveInterval=10 -o ServerAliveCountMax=3" "$@"; then
                 return 0
               fi
               echo "rsync attempt ${attempt} failed; retrying in 10s..." >&2
@@ -203,6 +205,7 @@ jobs:
           EOF
 
       - name: Prepare remote directories
+        id: prepare_remote
         shell: bash
         run: |
           source /tmp/sso-backend-ssh-helpers.sh
@@ -294,7 +297,7 @@ jobs:
              bash '${{ env.VPS_PROJECT_DIR }}/scripts/vps-deploy-main.sh'"
 
       - name: Cleanup VPS GHCR credentials
-        if: always()
+        if: ${{ always() && steps.prepare_remote.outcome == 'success' }}
         shell: bash
         run: |
           source /tmp/sso-backend-ssh-helpers.sh
