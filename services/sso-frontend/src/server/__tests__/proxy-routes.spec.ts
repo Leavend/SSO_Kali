@@ -9,6 +9,10 @@ describe('portal BFF proxy route inventory', () => {
     expect(shouldProxyPortalPath('/connect/logout/frontchannel')).toBe(true)
   })
 
+  it('proxies SSO completion so logged-in portal users can finish admin authorize requests', () => {
+    expect(shouldProxyPortalPath('/connect/sso-complete')).toBe(true)
+  })
+
   it('keeps bearer-only admin APIs out of the raw browser proxy route list', () => {
     expect(shouldProxyPortalPath('/admin/api/me')).toBe(false)
     expect(shouldProxyPortalPath('/admin/api/oidc-foundation')).toBe(false)

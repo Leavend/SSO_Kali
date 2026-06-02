@@ -5,6 +5,7 @@ export function shouldProxyPortalPath(pathname: string): boolean {
     pathname === '/api/profile' ||
     pathname.startsWith('/api/profile/') ||
     pathname === '/connect/consent' ||
+    pathname === '/connect/sso-complete' ||
     pathname === '/connect/logout' ||
     pathname.startsWith('/connect/logout/') ||
     pathname === '/introspect' ||
