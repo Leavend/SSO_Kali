@@ -4,13 +4,10 @@ declare(strict_types=1);
 
 namespace App\Services\Oidc;
 
-use App\Support\Crypto\UpstreamTokenEncryptor;
 use Carbon\CarbonImmutable;
 
 final class RefreshTokenIssuePayloadFactory
 {
-    public function __construct(private readonly UpstreamTokenEncryptor $encryptor) {}
-
     /**
      * @param  list<string>  $amr
      * @return array<string, mixed>
@@ -20,7 +17,6 @@ final class RefreshTokenIssuePayloadFactory
         string $clientId,
         string $scope,
         string $sessionId,
-        ?string $upstreamRefreshToken,
         int $authTime,
         array $amr,
         ?string $acr,
@@ -42,17 +38,12 @@ final class RefreshTokenIssuePayloadFactory
             'auth_time' => CarbonImmutable::createFromTimestamp($authTime),
             'amr' => $amr === [] ? null : json_encode($amr, JSON_THROW_ON_ERROR),
             'acr' => $acr,
-            'upstream_refresh_token' => $this->encrypt($upstreamRefreshToken),
+            'upstream_refresh_token' => null,
             'expires_at' => now()->addDays((int) config('sso.ttl.refresh_token_days', 30)),
             'replaced_by_token_id' => null,
             'revoked_at' => null,
             'created_at' => now(),
             'updated_at' => now(),
         ];
-    }
-
-    private function encrypt(?string $value): ?string
-    {
-        return $value === null ? null : $this->encryptor->encrypt($value);
     }
 }

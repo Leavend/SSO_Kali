@@ -10,24 +10,15 @@ final class SsoEngineConfig
 {
     public function usesNative(): bool
     {
-        return $this->engine() === 'native';
-    }
-
-    public function usesUpstream(): bool
-    {
-        return $this->engine() === 'upstream';
+        return true;
     }
 
     public function assertStartupConfiguration(): void
     {
         $engine = $this->engine();
 
-        if (! in_array($engine, ['native', 'upstream'], true)) {
-            throw new RuntimeException('SSO_ENGINE must be either native or upstream.');
-        }
-
-        if ($engine === 'upstream' && trim((string) config('sso.upstream_oidc.client_id', '')) === '') {
-            throw new RuntimeException('SSO_ENGINE=upstream requires sso.upstream_oidc.client_id / OIDC_UPSTREAM_CLIENT_ID.');
+        if ($engine !== 'native') {
+            throw new RuntimeException('SSO_ENGINE must be native. Upstream OIDC broker mode has been removed.');
         }
     }
 

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Services\Oidc;
 
 use App\Support\Oidc\DownstreamClient;
-use App\Support\Oidc\Pkce;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -19,8 +18,6 @@ final class AuthorizationRequestContextFactory
     /** @return array<string, mixed> */
     public function make(Request $request, DownstreamClient $client): array
     {
-        $upstreamVerifier = Pkce::generateVerifier();
-
         return [
             'client_id' => $client->clientId,
             'redirect_uri' => (string) $request->query('redirect_uri', ''),
@@ -32,10 +29,8 @@ final class AuthorizationRequestContextFactory
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
             'device_fingerprint' => $request->header('X-Device-Fingerprint'),
-            'upstream_code_verifier' => $upstreamVerifier,
-            'upstream_code_challenge' => Pkce::challengeFrom($upstreamVerifier),
-            'prompt' => $this->assurance->upstreamPromptFor($client, $this->prompt($request)),
-            'max_age' => $this->assurance->upstreamMaxAgeFor($client),
+            'prompt' => $this->assurance->promptFor($client, $this->prompt($request)),
+            'max_age' => $this->assurance->maxAgeFor($client),
             'login_hint' => $request->query('login_hint'),
             'access_type' => $this->accessType($request),
         ];

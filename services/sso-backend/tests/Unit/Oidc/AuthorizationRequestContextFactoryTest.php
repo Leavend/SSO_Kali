@@ -6,7 +6,7 @@ use App\Services\Oidc\AuthorizationRequestContextFactory;
 use App\Support\Oidc\DownstreamClient;
 use Illuminate\Http\Request;
 
-it('normalizes authorization request context and upstream PKCE material', function (): void {
+it('normalizes authorization request context for native login', function (): void {
     $request = Request::create('/authorize', 'GET', [
         'client_id' => 'context-app',
         'redirect_uri' => 'https://client.example.test/callback',
@@ -25,8 +25,7 @@ it('normalizes authorization request context and upstream PKCE material', functi
         ->and($context['scope'])->toBe('openid profile')
         ->and($context['prompt'])->toBe('login')
         ->and($context['access_type'])->toBe('online')
-        ->and($context['upstream_code_verifier'])->toBeString()
-        ->and($context['upstream_code_challenge'])->toBeString();
+        ->and($context)->not->toHaveKeys(['upstream_code_verifier', 'upstream_code_challenge']);
 });
 
 function authContextClient(): DownstreamClient

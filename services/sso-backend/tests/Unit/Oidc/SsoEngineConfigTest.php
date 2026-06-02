@@ -4,27 +4,24 @@ declare(strict_types=1);
 
 use App\Support\Oidc\SsoEngineConfig;
 
-it('accepts native engine without upstream client configuration', function (): void {
+it('accepts native engine as the only supported runtime', function (): void {
     config()->set('sso.engine', 'native');
-    config()->set('sso.upstream_oidc.client_id', '');
 
     app(SsoEngineConfig::class)->assertStartupConfiguration();
 
-    expect(app(SsoEngineConfig::class)->usesNative())->toBeTrue()
-        ->and(app(SsoEngineConfig::class)->usesUpstream())->toBeFalse();
+    expect(app(SsoEngineConfig::class)->usesNative())->toBeTrue();
 });
 
-it('fails fast when upstream engine has no upstream client id', function (): void {
+it('rejects upstream engine because the broker path has been removed', function (): void {
     config()->set('sso.engine', 'upstream');
-    config()->set('sso.upstream_oidc.client_id', '');
 
     expect(fn () => app(SsoEngineConfig::class)->assertStartupConfiguration())
-        ->toThrow(RuntimeException::class, 'SSO_ENGINE=upstream requires sso.upstream_oidc.client_id');
+        ->toThrow(RuntimeException::class, 'SSO_ENGINE must be native. Upstream OIDC broker mode has been removed.');
 });
 
 it('rejects unknown engine names instead of silently falling back', function (): void {
     config()->set('sso.engine', 'zitadel');
 
     expect(fn () => app(SsoEngineConfig::class)->assertStartupConfiguration())
-        ->toThrow(RuntimeException::class, 'SSO_ENGINE must be either native or upstream.');
+        ->toThrow(RuntimeException::class, 'SSO_ENGINE must be native. Upstream OIDC broker mode has been removed.');
 });

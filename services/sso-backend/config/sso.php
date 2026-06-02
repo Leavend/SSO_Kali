@@ -88,19 +88,10 @@ return [
         'backchannel_backoff_seconds' => $csv(env('OIDC_BACKCHANNEL_LOGOUT_BACKOFF_SECONDS', '10,30,90')),
         'backchannel_require_https' => (bool) env('OIDC_BACKCHANNEL_LOGOUT_REQUIRE_HTTPS', true),
     ],
-    'upstream_token_key' => env('UPSTREAM_TOKEN_KEY', ''),
     'default_scopes' => [
         'openid',
         'profile',
         'email',
-    ],
-    'upstream_oidc' => [
-        'public_issuer' => env('OIDC_UPSTREAM_PUBLIC_ISSUER', env('SSO_ISSUER', env('APP_URL', 'http://localhost:8200'))),
-        'internal_issuer' => env('OIDC_UPSTREAM_INTERNAL_ISSUER', env('SSO_ISSUER', env('APP_URL', 'http://localhost:8200'))),
-        'client_id' => env('OIDC_UPSTREAM_CLIENT_ID', ''),
-        'client_secret' => env('OIDC_UPSTREAM_CLIENT_SECRET', ''),
-        'redirect_uri' => env('OIDC_UPSTREAM_REDIRECT_URI', env('APP_URL', 'http://localhost:8200').'/callbacks/upstream'),
-        'scope' => env('OIDC_UPSTREAM_SCOPE', 'openid profile email offline_access'),
     ],
     'session' => [
         'cookie' => env('SSO_SESSION_COOKIE', '__Host-sso_session'),
@@ -123,7 +114,6 @@ return [
     'jwt' => [
         'clock_skew_seconds' => (int) env('JWT_CLOCK_SKEW_SECONDS', 60),
         'local_allowed_algs' => $csv(env('JWT_LOCAL_ALLOWED_ALGS', env('OIDC_SIGNING_ALG', 'ES256'))),
-        'upstream_allowed_algs' => $csv(env('JWT_UPSTREAM_ALLOWED_ALGS', 'RS256')),
     ],
     'jwks' => [
         'cache_ttl_seconds' => (int) env('JWT_JWKS_CACHE_TTL_SECONDS', 300),

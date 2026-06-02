@@ -33,7 +33,6 @@ use Illuminate\Support\Str;
 /**
  * FR-014: Authenticate user with local credentials (email + password).
  *
- * This is a parallel auth path alongside upstream OIDC.
  * On success: creates session context, issues authorization code, returns redirect URI.
  * On failure: returns error with remaining attempts info.
  */

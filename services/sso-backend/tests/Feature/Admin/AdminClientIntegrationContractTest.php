@@ -210,7 +210,6 @@ it('disables active dynamic clients as a rollback mechanism', function (): void 
         'server-portal',
         'openid profile',
         'sid-rollback',
-        null,
         now()->timestamp,
     );
 

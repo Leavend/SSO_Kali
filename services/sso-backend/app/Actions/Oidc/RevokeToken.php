@@ -11,7 +11,6 @@ use App\Services\Oidc\OidcIncidentAuditLogger;
 use App\Services\Oidc\RefreshTokenStore;
 use App\Services\Oidc\SigningKeyService;
 use App\Services\Oidc\TokenClientAuthenticationResolver;
-use App\Services\Oidc\Upstream\UpstreamOidcClient;
 use App\Support\Audit\AuthenticationAuditRecord;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -25,7 +24,6 @@ final class RevokeToken
         private readonly RefreshTokenStore $refreshTokens,
         private readonly SigningKeyService $keys,
         private readonly AccessTokenRevocationStore $revocations,
-        private readonly UpstreamOidcClient $upstream,
         private readonly OidcIncidentAuditLogger $incidents,
         private readonly RecordAuthenticationAuditEventAction $audits,
         private readonly TokenClientAuthenticationResolver $clientAuthentication,
@@ -101,16 +99,6 @@ final class RevokeToken
         }
 
         $this->refreshTokens->revoke((string) $record['refresh_token_id']);
-
-        try {
-            is_string($record['upstream_refresh_token'] ?? null)
-                && $this->upstream->revoke((string) $record['upstream_refresh_token'], 'refresh_token');
-        } catch (Throwable $exception) {
-            Log::warning('[UPSTREAM_REVOCATION_FAILED]', [
-                'error' => $exception->getMessage(),
-                'client_id' => $clientId,
-            ]);
-        }
 
         return [
             'revoked' => true,

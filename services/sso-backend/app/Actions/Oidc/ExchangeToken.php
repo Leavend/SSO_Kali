@@ -16,18 +16,14 @@ use App\Services\Oidc\LocalTokenService;
 use App\Services\Oidc\OidcIncidentAuditLogger;
 use App\Services\Oidc\RefreshTokenStore;
 use App\Services\Oidc\TokenClientAuthenticationResolver;
-use App\Services\Oidc\Upstream\UpstreamOidcClient;
-use App\Services\Oidc\UserProfileSynchronizer;
 use App\Support\Audit\AuthenticationAuditRecord;
 use App\Support\Oidc\DownstreamClient;
 use App\Support\Oidc\Pkce;
 use App\Support\Oidc\ScopeSet;
-use App\Support\Oidc\SsoEngineConfig;
 use App\Support\Responses\OidcErrorResponse;
 use App\Support\SsoErrors\SsoErrorContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Throwable;
 
 final class ExchangeToken
 {
@@ -37,12 +33,9 @@ final class ExchangeToken
         private readonly AuthorizationCodeStore $codes,
         private readonly RefreshTokenStore $refreshTokens,
         private readonly LocalTokenService $tokens,
-        private readonly UpstreamOidcClient $upstream,
-        private readonly UserProfileSynchronizer $profiles,
         private readonly OidcIncidentAuditLogger $incidents,
         private readonly RecordAuthenticationAuditEventAction $audits,
         private readonly RecordSsoErrorAction $ssoErrors,
-        private readonly SsoEngineConfig $engine,
     ) {}
 
     public function handle(Request $request): JsonResponse
@@ -176,16 +169,14 @@ final class ExchangeToken
         $context = $this->refreshContext($record);
 
         try {
-            if ($this->engine->usesNative() || ! is_string($record['upstream_refresh_token'] ?? null)) {
-                $response = $this->tokens->rotate($record, $context);
-                $this->recordTokenLifecycle($request, 'token_refreshed', 'succeeded', null, $record, [
-                    'grant_type' => 'refresh_token',
-                    'refresh_token_rotated' => true,
-                    'scope' => $response['scope'] ?? $record['scope'] ?? null,
-                ]);
+            $response = $this->tokens->rotate($record, $context);
+            $this->recordTokenLifecycle($request, 'token_refreshed', 'succeeded', null, $record, [
+                'grant_type' => 'refresh_token',
+                'refresh_token_rotated' => true,
+                'scope' => $response['scope'] ?? $record['scope'] ?? null,
+            ]);
 
-                return response()->json($response);
-            }
+            return response()->json($response);
         } catch (RefreshTokenRotationConflict $conflict) {
             return $this->tokenError(
                 $request,
@@ -196,59 +187,6 @@ final class ExchangeToken
                 ['client_id' => (string) $record['client_id']],
             );
         }
-
-        try {
-            $upstream = $this->upstreamRefreshContext($request, $record, $context);
-        } catch (RefreshTokenRotationConflict $conflict) {
-            return $this->tokenError(
-                $request,
-                'refresh_token_rotation_conflict',
-                'invalid_grant',
-                'The refresh token is invalid.',
-                400,
-                ['client_id' => (string) $record['client_id']],
-            );
-        }
-
-        return $upstream ?? $this->tokenError($request, 'upstream_refresh_failed', 'invalid_grant', 'The upstream refresh token is no longer valid.', 400, [
-            'client_id' => (string) $record['client_id'],
-        ]);
-    }
-
-    /**
-     * @param  array<string, mixed>  $record
-     * @param  array<string, mixed>  $context
-     */
-    private function upstreamRefreshContext(Request $request, array $record, array $context): ?JsonResponse
-    {
-        try {
-            $upstream = $this->upstream->token($this->refreshPayload((string) $record['upstream_refresh_token']));
-            $claims = $this->upstream->userInfo((string) $upstream['access_token']);
-        } catch (Throwable) {
-            return null;
-        }
-
-        $authContext = $this->refreshAuthContext($record);
-        $user = $this->profiles->sync($claims, [
-            ...$this->riskContext($request),
-            ...$authContext,
-        ]);
-
-        $response = $this->tokens->rotate($record, [
-            ...$context,
-            ...$authContext,
-            'subject_id' => $user->subject_id,
-            'upstream_refresh_token' => $upstream['refresh_token'] ?? $record['upstream_refresh_token'],
-        ]);
-
-        $this->recordTokenLifecycle($request, 'token_refreshed', 'succeeded', null, $record, [
-            'grant_type' => 'refresh_token',
-            'refresh_token_rotated' => true,
-            'upstream_refresh' => true,
-            'scope' => $response['scope'] ?? $record['scope'] ?? null,
-        ]);
-
-        return response()->json($response);
     }
 
     /**
@@ -265,7 +203,7 @@ final class ExchangeToken
             'auth_time' => $record['auth_time'] ?? null,
             'amr' => $record['amr'] ?? [],
             'acr' => $record['acr'] ?? null,
-            'upstream_refresh_token' => $record['upstream_refresh_token'],
+            'upstream_refresh_token' => null,
         ];
     }
 
@@ -287,44 +225,6 @@ final class ExchangeToken
         $intersection = array_values(array_intersect($original, $allowed));
 
         return ScopeSet::toString($intersection);
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    private function refreshPayload(string $refreshToken): array
-    {
-        return [
-            'grant_type' => 'refresh_token',
-            'client_id' => (string) config('sso.upstream_oidc.client_id'),
-            'client_secret' => (string) config('sso.upstream_oidc.client_secret'),
-            'refresh_token' => $refreshToken,
-        ];
-    }
-
-    /**
-     * @return array<string, string|null>
-     */
-    private function riskContext(Request $request): array
-    {
-        return [
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-            'device_fingerprint' => $request->header('X-Device-Fingerprint'),
-        ];
-    }
-
-    /**
-     * @param  array<string, mixed>  $record
-     * @return array<string, mixed>
-     */
-    private function refreshAuthContext(array $record): array
-    {
-        return [
-            'auth_time' => $record['auth_time'] ?? null,
-            'amr' => $record['amr'] ?? [],
-            'acr' => $record['acr'] ?? null,
-        ];
     }
 
     /**
@@ -364,7 +264,6 @@ final class ExchangeToken
             'scope' => $this->optionalString($context['scope'] ?? null),
             'refresh_token_issued' => $context['refresh_token_issued'] ?? null,
             'refresh_token_rotated' => $context['refresh_token_rotated'] ?? null,
-            'upstream_refresh' => $context['upstream_refresh'] ?? null,
         ], static fn (mixed $value): bool => $value !== null);
     }
 

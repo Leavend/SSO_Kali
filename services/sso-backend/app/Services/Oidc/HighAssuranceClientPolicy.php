@@ -14,13 +14,12 @@ final class HighAssuranceClientPolicy
      */
     private const VALID_PROMPTS = ['login', 'consent', 'select_account'];
 
-    public function upstreamPromptFor(DownstreamClient $client, ?string $requestedPrompt): ?string
+    public function promptFor(DownstreamClient $client, ?string $requestedPrompt): ?string
     {
         if ($this->requiresInteractiveLogin($client)) {
             return 'login';
         }
 
-        // Pass through valid OIDC prompt values (login, consent, select_account) to the upstream IdP
         if ($requestedPrompt !== null && in_array($requestedPrompt, self::VALID_PROMPTS, true)) {
             return $requestedPrompt;
         }
@@ -28,7 +27,7 @@ final class HighAssuranceClientPolicy
         return $requestedPrompt;
     }
 
-    public function upstreamMaxAgeFor(DownstreamClient $client): ?string
+    public function maxAgeFor(DownstreamClient $client): ?string
     {
         return $this->requiresInteractiveLogin($client) ? '0' : null;
     }

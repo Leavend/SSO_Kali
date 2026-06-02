@@ -24,7 +24,6 @@ final class RefreshTokenStore
         string $clientId,
         string $scope,
         string $sessionId,
-        ?string $upstreamRefreshToken,
         int $authTime,
         array $amr = [],
         ?string $acr = null,
@@ -41,7 +40,6 @@ final class RefreshTokenStore
             $clientId,
             $scope,
             $sessionId,
-            $upstreamRefreshToken,
             $authTime,
             $this->normalizeAmr($amr),
             $acr,
@@ -175,7 +173,6 @@ final class RefreshTokenStore
             clientId: (string) $record['client_id'],
             scope: (string) ($context['scope'] ?? $record['scope']),
             sessionId: (string) $record['session_id'],
-            upstreamRefreshToken: $this->replacementUpstreamToken($record, $context),
             authTime: $this->replacementAuthTime($record, $context),
             amr: $this->normalizeAmr($context['amr'] ?? $record['amr'] ?? []),
             acr: $this->replacementAcr($record, $context),
@@ -183,14 +180,6 @@ final class RefreshTokenStore
             familyCreatedAt: is_int($record['family_created_at'] ?? null) ? $record['family_created_at'] : null,
             tokenId: $replacementId,
         );
-    }
-
-    /** @param array<string, mixed> $record @param array<string, mixed> $context */
-    private function replacementUpstreamToken(array $record, array $context): ?string
-    {
-        return is_string($context['upstream_refresh_token'] ?? null)
-            ? $context['upstream_refresh_token']
-            : (is_string($record['upstream_refresh_token'] ?? null) ? $record['upstream_refresh_token'] : null);
     }
 
     /** @param array<string, mixed> $record @param array<string, mixed> $context */

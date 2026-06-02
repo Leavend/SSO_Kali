@@ -12,14 +12,11 @@ use App\Services\Oidc\BackChannelSessionRegistry;
 use App\Services\Oidc\LogicalSessionStore;
 use App\Services\Oidc\LogoutOutcomeMetrics;
 use App\Services\Oidc\RefreshTokenStore;
-use App\Services\Oidc\Upstream\UpstreamOidcClient;
 use App\Support\Responses\OidcErrorResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Log;
 use RuntimeException;
-use Throwable;
 
 final class PerformSingleSignOut
 {
@@ -30,7 +27,6 @@ final class PerformSingleSignOut
         private readonly BackChannelSessionRegistry $registry,
         private readonly BackChannelLogoutDispatcher $dispatcher,
         private readonly LogicalSessionStore $sessions,
-        private readonly UpstreamOidcClient $upstream,
         private readonly LogoutOutcomeMetrics $metrics,
         private readonly RecordLogoutAuditEventAction $audit,
     ) {}
@@ -87,7 +83,6 @@ final class PerformSingleSignOut
         $sessionIds = $this->sessionIds($sessionId, $subjectId, $records);
 
         $this->revokeAccessTokens($sessionIds);
-        $this->revokeUpstream($records);
 
         $notifications = $this->dispatchLogout($subjectId, $sessionIds, $requestId);
         $this->clearLocalSessions($subjectId, $sessionIds);
@@ -261,42 +256,6 @@ final class PerformSingleSignOut
             return $this->tokens->claimsFrom((string) $request->bearerToken());
         } catch (RuntimeException) {
             return [];
-        }
-    }
-
-    /**
-     * @param  list<array<string, mixed>>  $records
-     */
-    private function revokeUpstream(array $records): void
-    {
-        foreach ($this->upstreamTokens($records) as $refreshToken) {
-            $this->revokeUpstreamToken($refreshToken);
-        }
-    }
-
-    /**
-     * @param  list<array<string, mixed>>  $records
-     * @return list<string>
-     */
-    private function upstreamTokens(array $records): array
-    {
-        $tokens = [];
-
-        foreach ($records as $record) {
-            is_string($record['upstream_refresh_token'] ?? null) && $tokens[] = $record['upstream_refresh_token'];
-        }
-
-        return array_values(array_unique($tokens));
-    }
-
-    private function revokeUpstreamToken(string $refreshToken): void
-    {
-        try {
-            $this->upstream->revoke($refreshToken, 'refresh_token');
-        } catch (Throwable $exception) {
-            Log::warning('[UPSTREAM_REVOCATION_FAILED]', [
-                'error' => $exception->getMessage(),
-            ]);
         }
     }
 }

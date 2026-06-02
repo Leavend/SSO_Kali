@@ -52,7 +52,7 @@ it('forces re-auth when max_age=0 even with an active session', function (): voi
 
     // max_age=0 demands a fresh credential check. The response MUST NOT
     // be a redirect back to the relying party with a code; it must hand
-    // off to the upstream login flow (or local login UI). We verify by
+    // off to the local login UI. We verify by
     // ensuring the redirect, when present, does not include a code on
     // the registered redirect_uri.
     if ($response->isRedirect()) {

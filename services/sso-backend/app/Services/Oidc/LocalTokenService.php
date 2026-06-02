@@ -42,9 +42,6 @@ final class LocalTokenService
                 clientId: (string) $context['client_id'],
                 scope: (string) $context['scope'],
                 sessionId: (string) $context['session_id'],
-                upstreamRefreshToken: is_string($context['upstream_refresh_token'] ?? null)
-                    ? $context['upstream_refresh_token']
-                    : null,
                 authTime: $this->authTime($context),
                 amr: $this->amr($context),
                 acr: $this->acr($context),
@@ -165,8 +162,8 @@ final class LocalTokenService
 
     /**
      * OAuth 2.1 §3.1 — Refresh tokens SHOULD only be issued when the
-     * downstream client requests the offline_access scope and an upstream
-     * refresh token is available to maintain the token chain.
+     * downstream client requests the offline_access scope and the client is
+     * allowed to hold long-lived sessions.
      *
      * @param  array<string, mixed>  $context
      */

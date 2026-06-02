@@ -15,13 +15,9 @@ use App\Services\Oidc\BrowserAuthorizationSessionResolver;
 use App\Services\Oidc\ConsentService;
 use App\Services\Oidc\DownstreamClientRegistry;
 use App\Services\Oidc\OidcProfileMetrics;
-use App\Services\Oidc\Upstream\UpstreamOidcClient;
-use App\Services\Oidc\UpstreamAuthorizationParameters;
 use App\Support\Oidc\AuthorizationClientSession;
 use App\Support\Oidc\DownstreamClient;
 use App\Support\Oidc\ScopeSet;
-use App\Support\Oidc\SsoAuthFlowCookie;
-use App\Support\Oidc\SsoEngineConfig;
 use App\Support\Responses\OidcErrorResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -39,16 +35,12 @@ final class CreateAuthorizationRedirect
         private readonly AuthRequestStore $authRequests,
         private readonly AuthorizationCodeStore $codes,
         private readonly OidcProfileMetrics $metrics,
-        private readonly SsoAuthFlowCookie $authFlowCookie,
-        private readonly UpstreamOidcClient $upstream,
         private readonly ConsentService $consents,
         private readonly AuthorizationRequestValidator $validator,
         private readonly AuthorizationRequestContextFactory $contextFactory,
-        private readonly UpstreamAuthorizationParameters $upstreamParameters,
         private readonly AuthorizationRequestAuditRecorder $audits,
         private readonly AuthorizationSsoErrorReporter $ssoErrors,
         private readonly BrowserAuthorizationSessionResolver $browserSessions,
-        private readonly SsoEngineConfig $engine,
     ) {}
 
     public function handle(Request $request): JsonResponse|RedirectResponse
@@ -85,11 +77,8 @@ final class CreateAuthorizationRedirect
         if ($this->prompt($request) === 'none') {
             return $this->loginRequiredRedirect($request, $client, $context);
         }
-        if ($this->engine->usesNative()) {
-            return $this->nativeLoginRedirect($request, $client, $context);
-        }
 
-        return $this->upstreamRedirect($request, $client, $context);
+        return $this->nativeLoginRedirect($request, $client, $context);
     }
 
     /** @param array<string, mixed> $context */
@@ -109,22 +98,6 @@ final class CreateAuthorizationRedirect
         $this->ssoErrors->record(SsoErrorCode::LoginRequired, 'prompt_none_requires_login', 'The request requires user interaction, but prompt=none was requested.', $request, $context);
 
         return OidcErrorResponse::redirect((string) $context['redirect_uri'], 'login_required', 'Login is required to continue.', $this->optionalString($context['original_state'] ?? null));
-    }
-
-    /** @param array<string, mixed> $context */
-    private function upstreamRedirect(Request $request, DownstreamClient $client, array $context): RedirectResponse
-    {
-        $upstreamState = $this->authRequests->put($context);
-        if ($upstreamState === null) {
-            $this->audits->rejected($request, $client, 'temporarily_unavailable', $context);
-
-            return redirect()->away($this->ssoErrors->redirect(SsoErrorCode::TemporarilyUnavailable, 'auth_request_store_unavailable', 'The authentication session could not be started.', $request, $context, true, true));
-        }
-
-        $this->audits->accepted($request, $client, $context, 'upstream_redirect');
-
-        return redirect()->away($this->upstream->authorizationUrl($this->upstreamParameters->make($upstreamState, $context)))
-            ->withCookie($this->authFlowCookie->issue($context));
     }
 
     private function browserSessionRedirect(Request $request, AuthorizationClientSession $session): RedirectResponse

@@ -10,15 +10,6 @@ final class AuthContextFactory
      * @param  array<string, mixed>  $claims
      * @return array<string, mixed>
      */
-    public function fromUpstreamClaims(array $claims): array
-    {
-        return $this->normalized($claims, true);
-    }
-
-    /**
-     * @param  array<string, mixed>  $claims
-     * @return array<string, mixed>
-     */
     public function fromLocalClaims(array $claims): array
     {
         return $this->normalized($claims, false);
