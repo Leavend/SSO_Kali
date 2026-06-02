@@ -83,8 +83,21 @@ final class CreateAuthorizationRedirect
         if ($this->prompt($request) === 'none') {
             return $this->loginRequiredRedirect($request, $client, $context);
         }
+        if ($this->usesNativeEngine()) {
+            return $this->nativeLoginRedirect($request, $client, $context);
+        }
 
         return $this->upstreamRedirect($request, $client, $context);
+    }
+
+    /** @param array<string, mixed> $context */
+    private function nativeLoginRedirect(Request $request, DownstreamClient $client, array $context): RedirectResponse
+    {
+        $this->audits->accepted($request, $client, $context, 'native_login_redirect');
+
+        return redirect()->away($this->appendQuery((string) config('sso.login_url'), [
+            'return_to' => $request->fullUrl(),
+        ]));
     }
 
     /** @param array<string, mixed> $context prompt=none */
@@ -192,6 +205,17 @@ final class CreateAuthorizationRedirect
         }
 
         return in_array($prompt, ['login', 'consent', 'select_account', 'none'], true) ? $prompt : null;
+    }
+
+    private function usesNativeEngine(): bool
+    {
+        return strtolower((string) config('sso.engine', 'native')) !== 'upstream';
+    }
+
+    /** @param array<string, string> $query */
+    private function appendQuery(string $url, array $query): string
+    {
+        return $url.(str_contains($url, '?') ? '&' : '?').http_build_query($query);
     }
 
     private function optionalString(mixed $value): ?string

@@ -86,6 +86,23 @@ require_redirect_query() {
   log "$label redirect includes ${query_pattern}"
 }
 
+require_native_login_redirect() {
+  local label="$1" url="$2"
+  local headers location
+  headers="$(curl -ksSI --max-time "$TIMEOUT_SECONDS" "$url" || true)"
+  location="$(awk 'BEGIN{IGNORECASE=1} /^location:/ {sub(/^[Ll]ocation:[[:space:]]*/, ""); print; exit}' <<<"$headers" | tr -d '\r')"
+
+  [[ -n "$location" ]] || fail "$label did not return a redirect Location"
+  grep -Eq '^https://sso[.]timeh[.]my[.]id/login([?]|$)' <<<"$location" || fail "$label did not redirect to portal login"
+  grep -Eq '[?&]return_to=' <<<"$location" || fail "$label redirect missing return_to"
+
+  if grep -Eqi '/oauth/v2/authorize|/callbacks/upstream|client_id=&' <<<"$location"; then
+    fail "$label redirected through removed upstream Zitadel path or empty client_id"
+  fi
+  grep -Eq 'client_id(%3[Dd]|=)([^&]|%[0-9A-Fa-f]{2})+' <<<"$location" || fail "$label return_to missing client_id"
+  log "$label redirects to portal login with return_to"
+}
+
 require_json_error() {
   local label="$1" url="$2" expected_error="$3"
   local body code
@@ -114,8 +131,10 @@ require_status 'userinfo without bearer is protected' GET "$PUBLIC_BASE_URL/user
 
 pkce_query="code_challenge=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa&code_challenge_method=S256"
 prompt_none_url="$PUBLIC_BASE_URL/authorize?response_type=code&client_id=$OIDC_CLIENT_ID&redirect_uri=$OIDC_REDIRECT_URI&scope=openid%20profile&state=$STATE&nonce=$NONCE&prompt=none&$pkce_query"
+native_login_url="$PUBLIC_BASE_URL/authorize?response_type=code&client_id=$OIDC_CLIENT_ID&redirect_uri=$OIDC_REDIRECT_URI&scope=openid%20profile&state=$STATE&nonce=$NONCE&$pkce_query"
 invalid_prompt_url="$PUBLIC_BASE_URL/authorize?response_type=code&client_id=$OIDC_CLIENT_ID&redirect_uri=$OIDC_REDIRECT_URI&scope=openid&state=$STATE&nonce=$NONCE&prompt=unsupported&$pkce_query"
 
+require_native_login_redirect 'authorize native login' "$native_login_url"
 require_redirect_query 'authorize prompt=none' "$prompt_none_url" 'error=login_required'
 require_json_error 'authorize invalid prompt error=invalid_request' "$invalid_prompt_url" 'invalid_request'
 

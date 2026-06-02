@@ -13,6 +13,7 @@ OIDC discovery metadata
 JWKS publication
 /token and /revocation method hardening
 /userinfo bearer-token protection
+native authorize login redirects to portal login, not upstream Zitadel
 prompt=none non-interactive failure semantics
 invalid prompt rejection
 ```
@@ -52,6 +53,7 @@ jwks keys contract OK
 token endpoint rejects GET OK
 revocation endpoint rejects GET OK
 userinfo without bearer is protected OK
+authorize native login redirects to portal login with return_to
 authorize prompt=none redirect includes error=login_required
 authorize invalid prompt redirect includes error=invalid_request
 OIDC production smoke completed successfully without secrets or tokens
@@ -70,6 +72,9 @@ OIDC production smoke completed successfully without secrets or tokens
 - Discovery issuer mismatch: fix `SSO_ISSUER` / public base URL in `.env.prod`.
 - JWKS failure: inspect signing key config and metadata cache path.
 - `/userinfo` not protected: inspect bearer-token guard and route middleware.
+- Native authorize redirects to `/oauth/v2/authorize`, `/callbacks/upstream`, or
+  `client_id=&`: inspect `CreateAuthorizationRedirect` engine handling and SSO
+  client config before deploy.
 - `prompt=none` missing `login_required`: inspect authorization prompt handling.
 - Invalid prompt not rejected: inspect authorization request validation.
 - Network timeout: inspect DNS, Nginx reverse proxy, VPS firewall, or GitHub runner
