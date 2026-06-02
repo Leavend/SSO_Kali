@@ -114,7 +114,6 @@ function seedRevocableSession(string $sessionId, string $subjectId): void
         'auth_time' => now()->subMinutes(10),
         'amr' => json_encode(['pwd'], JSON_THROW_ON_ERROR),
         'acr' => 'urn:example:loa:2',
-        'upstream_refresh_token' => null,
         'expires_at' => now()->addDays(30),
         'replaced_by_token_id' => null,
         'revoked_at' => null,

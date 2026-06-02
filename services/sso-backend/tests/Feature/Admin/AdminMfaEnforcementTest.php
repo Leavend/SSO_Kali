@@ -77,7 +77,6 @@ it('returns 403 mfa_required for destructive admin actions without a verified se
         'auth_time' => now()->subMinute(),
         'amr' => json_encode(['pwd'], JSON_THROW_ON_ERROR),
         'acr' => 'urn:example:loa:2',
-        'upstream_refresh_token' => null,
         'expires_at' => now()->addDays(30),
         'replaced_by_token_id' => null,
         'revoked_at' => null,

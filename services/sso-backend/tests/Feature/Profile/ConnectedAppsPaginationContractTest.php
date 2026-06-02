@@ -147,7 +147,6 @@ function fr026MintTokens(User $user, string $clientId, string $sessionId): array
         'session_id' => $sessionId,
         'auth_time' => time(),
         'amr' => ['pwd'],
-        'upstream_refresh_token' => 'upstream-'.$clientId,
     ]);
 }
 

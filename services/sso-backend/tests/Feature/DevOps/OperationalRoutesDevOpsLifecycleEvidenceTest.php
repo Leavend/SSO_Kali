@@ -56,6 +56,25 @@ it('removes legacy zitadel edge routes from the production api host', function (
         ->not->toContain("'/oauth2/':");
 });
 
+it('removes upstream oidc broker storage and configuration leftovers', function (): void {
+    $root = dirname(base_path(), 2);
+
+    expect(is_dir($root.'/services/sso-backend/app/Services/Oidc/Upstream'))->toBeFalse();
+
+    foreach ([
+        'services/sso-backend/database/migrations/0001_01_01_000000_create_users_table.php',
+        'services/sso-backend/tests/Support/UnitOidcDatabase.php',
+        '.env.example',
+        'services/sso-backend/.env.example',
+    ] as $relativePath) {
+        $contents = devOpsLifecycleOperationalRoutesFile($relativePath);
+
+        expect($contents)
+            ->not->toContain('upstream_refresh_token')
+            ->not->toContain('OIDC_UPSTREAM_');
+    }
+});
+
 it('sheds hostile oauth write bursts at the nginx edge before upstream workers', function (): void {
     $script = devOpsLifecycleOperationalRoutesFile('scripts/vps-apply-sso-operational-route-optimization.sh');
 

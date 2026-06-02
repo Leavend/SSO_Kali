@@ -67,7 +67,6 @@ return new class extends Migration
             $table->string('secret_hash');
             $table->string('scope');
             $table->string('session_id');
-            $table->text('upstream_refresh_token')->nullable();
             $table->timestamp('expires_at');
             $table->string('replaced_by_token_id')->nullable();
             $table->timestamp('revoked_at')->nullable();

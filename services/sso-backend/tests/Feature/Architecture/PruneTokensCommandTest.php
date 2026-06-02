@@ -34,7 +34,6 @@ function seedRefreshTokenRow(string $tokenId, mixed $expiresAt, mixed $revokedAt
         'auth_time' => now()->subMinute(),
         'amr' => json_encode(['pwd'], JSON_THROW_ON_ERROR),
         'acr' => null,
-        'upstream_refresh_token' => null,
         'expires_at' => $expiresAt,
         'replaced_by_token_id' => null,
         'revoked_at' => $revokedAt,

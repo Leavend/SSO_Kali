@@ -149,7 +149,6 @@ function ensureRefreshTokensTable(): void
         $table->timestamp('auth_time')->nullable();
         $table->json('amr')->nullable();
         $table->string('acr')->nullable();
-        $table->text('upstream_refresh_token')->nullable();
         $table->timestamp('expires_at');
         $table->string('replaced_by_token_id')->nullable();
         $table->timestamp('revoked_at')->nullable();

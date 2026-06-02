@@ -68,7 +68,6 @@ it('atomically claims the row so a duplicate rotation against the same token rai
         'auth_time' => $resolved['record']['auth_time'],
         'amr' => $resolved['record']['amr'],
         'acr' => $resolved['record']['acr'],
-        'upstream_refresh_token' => null,
     ]);
 
     expect($first['refresh_token'])->toBeString()->not->toBe($tokens['refresh_token']);
@@ -82,7 +81,6 @@ it('atomically claims the row so a duplicate rotation against the same token rai
         'auth_time' => $resolved['record']['auth_time'],
         'amr' => $resolved['record']['amr'],
         'acr' => $resolved['record']['acr'],
-        'upstream_refresh_token' => null,
     ]))->toThrow(RefreshTokenRotationConflict::class);
 });
 

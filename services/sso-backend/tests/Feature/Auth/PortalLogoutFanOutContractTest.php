@@ -50,7 +50,6 @@ it('fans out portal /api/auth/logout to every registered RP back-channel session
         'auth_time' => now(),
         'amr' => null,
         'acr' => null,
-        'upstream_refresh_token' => null,
         'expires_at' => now()->addDays(30),
         'replaced_by_token_id' => null,
         'revoked_at' => null,

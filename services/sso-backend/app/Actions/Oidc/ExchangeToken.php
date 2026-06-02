@@ -203,7 +203,6 @@ final class ExchangeToken
             'auth_time' => $record['auth_time'] ?? null,
             'amr' => $record['amr'] ?? [],
             'acr' => $record['acr'] ?? null,
-            'upstream_refresh_token' => null,
         ];
     }
 

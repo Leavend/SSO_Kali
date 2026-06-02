@@ -22,7 +22,6 @@ final class RefreshTokenPayloadMapper
             'auth_time' => $this->authTime($record->auth_time),
             'amr' => $this->decodeAmr($record->amr),
             'acr' => is_string($record->acr) ? $record->acr : null,
-            'upstream_refresh_token' => null,
             'expires_at' => $record->expires_at,
         ];
     }

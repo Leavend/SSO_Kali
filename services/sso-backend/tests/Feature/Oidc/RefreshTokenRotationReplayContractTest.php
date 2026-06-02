@@ -7,7 +7,6 @@ use App\Models\User;
 use App\Services\Oidc\SigningKeyService;
 use App\Support\Security\ClientSecretHashPolicy;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 
 beforeEach(function (): void {
@@ -33,23 +32,6 @@ beforeEach(function (): void {
             'post_logout_redirect_uris' => ['https://sso.timeh.my.id/app-b'],
         ],
     ]);
-});
-
-it('uses local refresh rotation in native engine even when a legacy upstream token is present', function (): void {
-    Http::fake(fn (): never => throw new RuntimeException('Upstream OIDC must not be called in native engine.'));
-
-    $initial = issue51TokenSet('app-a', 'https://sso.timeh.my.id/app-a/auth/callback');
-    issue51AttachUpstreamRefreshToken($initial['refresh_token'], 'legacy-upstream-refresh-token');
-
-    $this->postJson('/token', [
-        'grant_type' => 'refresh_token',
-        'client_id' => 'app-a',
-        'refresh_token' => $initial['refresh_token'],
-    ])->assertOk()
-        ->assertJsonPath('token_type', 'Bearer')
-        ->assertJsonStructure(['access_token', 'id_token', 'refresh_token', 'expires_in']);
-
-    Http::assertNothingSent();
 });
 
 it('rotates refresh tokens and invalidates the previous token after each successful refresh', function (): void {
@@ -283,18 +265,6 @@ function issue51RefreshRecord(string $plainToken): object
     expect($record)->not->toBeNull();
 
     return $record;
-}
-
-function issue51AttachUpstreamRefreshToken(string $plainToken, string $upstreamRefreshToken): void
-{
-    [$tokenId] = issue51ParseRefreshToken($plainToken);
-
-    DB::table('refresh_token_rotations')
-        ->where('refresh_token_id', $tokenId)
-        ->update([
-            'upstream_refresh_token' => $upstreamRefreshToken,
-            'updated_at' => now(),
-        ]);
 }
 
 /**

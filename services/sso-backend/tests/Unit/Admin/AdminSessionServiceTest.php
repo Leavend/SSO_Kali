@@ -110,7 +110,6 @@ function seedRefreshToken(array $overrides): void
         'secret_hash' => 'hash',
         'scope' => 'openid profile email',
         'session_id' => 'session-1',
-        'upstream_refresh_token' => null,
         'expires_at' => now()->addDays(30),
         'replaced_by_token_id' => null,
         'revoked_at' => null,

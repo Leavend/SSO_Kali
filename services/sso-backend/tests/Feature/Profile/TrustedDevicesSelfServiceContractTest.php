@@ -150,7 +150,6 @@ function trustedDevicesAuthHeaders(User $user): array
         'session_id' => 'trusted-devices-session-'.$user->id,
         'auth_time' => time(),
         'amr' => ['pwd'],
-        'upstream_refresh_token' => 'upstream-trusted-devices-'.$user->id,
     ]);
 
     return ['Authorization' => 'Bearer '.$tokens['access_token']];

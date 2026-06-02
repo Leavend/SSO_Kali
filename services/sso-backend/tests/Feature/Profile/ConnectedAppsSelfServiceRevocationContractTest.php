@@ -39,7 +39,7 @@ it('lists connected apps without exposing token material', function (): void {
         ->assertJsonPath('connected_apps.1.display_name', 'Application B');
 
     foreach ($response->json('connected_apps') as $connectedApp) {
-        expect($connectedApp)->not->toHaveKeys(['refresh_token', 'access_token', 'secret', 'upstream_refresh_token']);
+        expect($connectedApp)->not->toHaveKeys(['refresh_token', 'access_token', 'secret']);
     }
 });
 
@@ -150,7 +150,6 @@ function issue56Tokens(User $user, string $clientId, string $sessionId): array
         'session_id' => $sessionId,
         'auth_time' => time(),
         'amr' => ['pwd'],
-        'upstream_refresh_token' => 'upstream-'.$clientId,
     ]);
 }
 
