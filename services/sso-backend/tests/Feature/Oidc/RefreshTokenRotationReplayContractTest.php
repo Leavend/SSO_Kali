@@ -5,8 +5,10 @@ declare(strict_types=1);
 use App\Models\SsoSession;
 use App\Models\User;
 use App\Services\Oidc\SigningKeyService;
+use App\Support\Crypto\UpstreamTokenEncryptor;
 use App\Support\Security\ClientSecretHashPolicy;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 
 beforeEach(function (): void {
@@ -14,6 +16,7 @@ beforeEach(function (): void {
     config()->set('app.url', 'https://api-sso.timeh.my.id');
     config()->set('sso.issuer', 'https://api-sso.timeh.my.id');
     config()->set('sso.base_url', 'https://api-sso.timeh.my.id');
+    config()->set('sso.engine', 'native');
     config()->set('sso.frontend_url', 'https://sso.timeh.my.id');
     config()->set('sso.resource_audience', 'sso-api');
     config()->set('sso.ttl.refresh_token_family_days', 90);
@@ -31,6 +34,42 @@ beforeEach(function (): void {
             'post_logout_redirect_uris' => ['https://sso.timeh.my.id/app-b'],
         ],
     ]);
+});
+
+it('uses local refresh rotation in native engine even when a legacy upstream token is present', function (): void {
+    Http::fake(fn (): never => throw new RuntimeException('Upstream OIDC must not be called in native engine.'));
+
+    $initial = issue51TokenSet('app-a', 'https://sso.timeh.my.id/app-a/auth/callback');
+    issue51AttachUpstreamRefreshToken($initial['refresh_token'], 'legacy-upstream-refresh-token');
+
+    $this->postJson('/token', [
+        'grant_type' => 'refresh_token',
+        'client_id' => 'app-a',
+        'refresh_token' => $initial['refresh_token'],
+    ])->assertOk()
+        ->assertJsonPath('token_type', 'Bearer')
+        ->assertJsonStructure(['access_token', 'id_token', 'refresh_token', 'expires_in']);
+
+    Http::assertNothingSent();
+});
+
+it('uses upstream refresh branch only when upstream engine is enabled', function (): void {
+    config()->set('sso.engine', 'upstream');
+    config()->set('sso.upstream_oidc.client_id', 'upstream-client');
+    config()->set('sso.upstream_oidc.client_secret', 'upstream-secret');
+    Http::fake(fn () => Http::response(['error' => 'upstream unavailable'], 503));
+
+    $initial = issue51TokenSet('app-a', 'https://sso.timeh.my.id/app-a/auth/callback');
+    issue51AttachUpstreamRefreshToken($initial['refresh_token'], 'legacy-upstream-refresh-token');
+
+    $this->postJson('/token', [
+        'grant_type' => 'refresh_token',
+        'client_id' => 'app-a',
+        'refresh_token' => $initial['refresh_token'],
+    ])->assertStatus(400)
+        ->assertJsonPath('error', 'invalid_grant');
+
+    Http::assertSentCount(2);
 });
 
 it('rotates refresh tokens and invalidates the previous token after each successful refresh', function (): void {
@@ -264,6 +303,18 @@ function issue51RefreshRecord(string $plainToken): object
     expect($record)->not->toBeNull();
 
     return $record;
+}
+
+function issue51AttachUpstreamRefreshToken(string $plainToken, string $upstreamRefreshToken): void
+{
+    [$tokenId] = issue51ParseRefreshToken($plainToken);
+
+    DB::table('refresh_token_rotations')
+        ->where('refresh_token_id', $tokenId)
+        ->update([
+            'upstream_refresh_token' => app(UpstreamTokenEncryptor::class)->encrypt($upstreamRefreshToken),
+            'updated_at' => now(),
+        ]);
 }
 
 /**

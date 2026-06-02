@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\Directory\DatabaseDirectoryUserProvider;
 use App\Services\Directory\DirectoryUserProvider;
 use App\Services\Oidc\DownstreamClientRegistry;
+use App\Support\Oidc\SsoEngineConfig;
 use App\Support\Security\AuthThrottleResponder;
 use App\Support\Security\SsoSessionCookiePolicy;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -27,9 +28,15 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        $this->assertSsoEngineConfiguration();
         $this->configurePassport();
         $this->assertSsoSessionCookiePolicy();
         $this->registerRateLimiters();
+    }
+
+    private function assertSsoEngineConfiguration(): void
+    {
+        app(SsoEngineConfig::class)->assertStartupConfiguration();
     }
 
     private function configurePassport(): void

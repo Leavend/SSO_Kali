@@ -21,6 +21,7 @@ use App\Support\Oidc\AuthorizationClientSession;
 use App\Support\Oidc\DownstreamClient;
 use App\Support\Oidc\ScopeSet;
 use App\Support\Oidc\SsoAuthFlowCookie;
+use App\Support\Oidc\SsoEngineConfig;
 use App\Support\Responses\OidcErrorResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -47,6 +48,7 @@ final class CreateAuthorizationRedirect
         private readonly AuthorizationRequestAuditRecorder $audits,
         private readonly AuthorizationSsoErrorReporter $ssoErrors,
         private readonly BrowserAuthorizationSessionResolver $browserSessions,
+        private readonly SsoEngineConfig $engine,
     ) {}
 
     public function handle(Request $request): JsonResponse|RedirectResponse
@@ -83,7 +85,7 @@ final class CreateAuthorizationRedirect
         if ($this->prompt($request) === 'none') {
             return $this->loginRequiredRedirect($request, $client, $context);
         }
-        if ($this->usesNativeEngine()) {
+        if ($this->engine->usesNative()) {
             return $this->nativeLoginRedirect($request, $client, $context);
         }
 
@@ -205,11 +207,6 @@ final class CreateAuthorizationRedirect
         }
 
         return in_array($prompt, ['login', 'consent', 'select_account', 'none'], true) ? $prompt : null;
-    }
-
-    private function usesNativeEngine(): bool
-    {
-        return strtolower((string) config('sso.engine', 'native')) !== 'upstream';
     }
 
     /** @param array<string, string> $query */

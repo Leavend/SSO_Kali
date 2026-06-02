@@ -22,6 +22,7 @@ use App\Support\Audit\AuthenticationAuditRecord;
 use App\Support\Oidc\DownstreamClient;
 use App\Support\Oidc\Pkce;
 use App\Support\Oidc\ScopeSet;
+use App\Support\Oidc\SsoEngineConfig;
 use App\Support\Responses\OidcErrorResponse;
 use App\Support\SsoErrors\SsoErrorContext;
 use Illuminate\Http\JsonResponse;
@@ -41,6 +42,7 @@ final class ExchangeToken
         private readonly OidcIncidentAuditLogger $incidents,
         private readonly RecordAuthenticationAuditEventAction $audits,
         private readonly RecordSsoErrorAction $ssoErrors,
+        private readonly SsoEngineConfig $engine,
     ) {}
 
     public function handle(Request $request): JsonResponse
@@ -174,7 +176,7 @@ final class ExchangeToken
         $context = $this->refreshContext($record);
 
         try {
-            if (! is_string($record['upstream_refresh_token'] ?? null)) {
+            if ($this->engine->usesNative() || ! is_string($record['upstream_refresh_token'] ?? null)) {
                 $response = $this->tokens->rotate($record, $context);
                 $this->recordTokenLifecycle($request, 'token_refreshed', 'succeeded', null, $record, [
                     'grant_type' => 'refresh_token',
