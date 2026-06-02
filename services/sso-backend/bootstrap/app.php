@@ -87,6 +87,7 @@ return Application::configure(basePath: dirname(__DIR__))
             // Back-channel / RP-session endpoints: called server-to-server,
             // never from a browser form.
             'connect/register-session',
+            'connect/sso-complete',
             'connect/logout',
             'connect/backchannel/admin-panel/logout',
             // Admin API: uses Bearer token auth, not session cookie.

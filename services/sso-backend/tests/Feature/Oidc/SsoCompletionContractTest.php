@@ -52,6 +52,13 @@ it('rejects sso completion without a valid portal sso session cookie', function 
         ->assertJsonPath('error', 'invalid_request');
 });
 
+it('keeps sso completion exempt from web csrf before cookie authentication', function (): void {
+    $this->withMiddleware()
+        ->postJson('/connect/sso-complete', ['auth_request_id' => 'csrf-smoke'])
+        ->assertUnauthorized()
+        ->assertJsonPath('error', 'invalid_request');
+});
+
 it('rejects sso completion for non admin users', function (): void {
     [, $sessionId] = ssoCompletionUser('sso-complete-user@example.test', 'user');
     $authRequestId = ssoCompletionPendingRequest();
