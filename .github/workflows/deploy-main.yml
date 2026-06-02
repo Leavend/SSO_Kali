@@ -427,8 +427,8 @@ jobs:
             cat "$login_headers_file" >&2
             exit 1
           fi
-          if ! grep -qi '^location: .*api-sso\.timeh\.my\.id/authorize' "$login_headers_file"; then
-            echo 'expected /auth/login Location to use Laravel SSO /authorize endpoint.' >&2
+          if ! grep -qi '^location: .*sso\.timeh\.my\.id/authorize' "$login_headers_file"; then
+            echo 'expected /auth/login Location to use portal-proxied SSO /authorize endpoint.' >&2
             cat "$login_headers_file" >&2
             exit 1
           fi
