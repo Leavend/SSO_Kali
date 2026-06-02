@@ -194,13 +194,16 @@ describe('useLoginForm', () => {
     expect(routerPushMock).toHaveBeenCalledWith('/home')
   })
 
-  it('submit() continues to authorize when BE returns continue_authorize', async () => {
+  it('submit() follows backend redirect continuation when present', async () => {
     const session = useSessionStore()
     vi.spyOn(session, 'login').mockResolvedValue({
       authenticated: true,
       user: { id: 1, subject_id: 's', email: 'x', display_name: 'x', roles: [] },
       session: { expires_at: '2099-12-31T00:00:00Z' },
-      next: { type: 'continue_authorize', auth_request_id: 'auth-req-123' },
+      next: {
+        type: 'redirect',
+        redirect_uri: 'https://admin-sso.test/auth/callback?code=code-123&state=state-123',
+      },
     })
 
     const login = useLoginForm()
@@ -209,7 +212,7 @@ describe('useLoginForm', () => {
     await login.submit()
 
     expect(windowAssignMock).toHaveBeenCalledWith(
-      'https://sso.test/authorize?auth_request_id=auth-req-123',
+      'https://admin-sso.test/auth/callback?code=code-123&state=state-123',
     )
     expect(routerPushMock).not.toHaveBeenCalled()
   })

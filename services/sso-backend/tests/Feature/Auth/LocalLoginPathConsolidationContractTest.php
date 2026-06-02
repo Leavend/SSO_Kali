@@ -5,6 +5,8 @@ declare(strict_types=1);
 use App\Models\MfaCredential;
 use App\Models\User;
 use App\Services\Auth\LoginAttemptThrottle;
+use App\Services\Oidc\AuthorizationCodeStore;
+use App\Services\Oidc\AuthRequestStore;
 use App\Services\Oidc\DownstreamClientRegistry;
 use Illuminate\Support\Facades\Hash;
 
@@ -112,6 +114,60 @@ it('stores a browser authorization session after successful api login and reuses
         ->not->toContain('https://sso.timeh.my.id/login');
 });
 
+it('completes a pending authorization request during successful api login', function (): void {
+    $authRequestId = app(AuthRequestStore::class)->put(localAuthRequestContext('state-login-continuation'));
+
+    $response = $this->postJson('/api/auth/login', [
+        'identifier' => 'consolidated@example.test',
+        'password' => 'CorrectPassword123!',
+        'auth_request_id' => $authRequestId,
+    ])->assertOk()
+        ->assertJsonPath('authenticated', true)
+        ->assertJsonPath('next.type', 'redirect');
+
+    $redirectUri = (string) $response->json('next.redirect_uri');
+    parse_str((string) parse_url($redirectUri, PHP_URL_QUERY), $query);
+    $payload = app(AuthorizationCodeStore::class)->pull((string) ($query['code'] ?? ''));
+
+    expect($redirectUri)
+        ->toStartWith('https://local-app.test/callback?code=')
+        ->toContain('state=state-login-continuation')
+        ->toContain('iss=')
+        ->and((string) ($query['code'] ?? ''))->not->toBe('')
+        ->and($payload)->toBeArray()
+        ->and($payload['client_id'] ?? null)->toBe('local-test-app')
+        ->and($payload['subject_id'] ?? null)->toBe('consolidated-user')
+        ->and(app(AuthRequestStore::class)->peek((string) $authRequestId))->toBeNull();
+});
+
+it('rejects api login continuation when auth_request_id is invalid', function (): void {
+    $this->postJson('/api/auth/login', [
+        'identifier' => 'consolidated@example.test',
+        'password' => 'CorrectPassword123!',
+        'auth_request_id' => 'missing-auth-request',
+    ])->assertStatus(400)
+        ->assertJsonPath('authenticated', false)
+        ->assertJsonPath('error', 'invalid_auth_request');
+});
+
+it('consumes api login authorization requests once', function (): void {
+    $authRequestId = app(AuthRequestStore::class)->put(localAuthRequestContext('state-once'));
+
+    $this->postJson('/api/auth/login', [
+        'identifier' => 'consolidated@example.test',
+        'password' => 'CorrectPassword123!',
+        'auth_request_id' => $authRequestId,
+    ])->assertOk()
+        ->assertJsonPath('next.type', 'redirect');
+
+    $this->postJson('/api/auth/login', [
+        'identifier' => 'consolidated@example.test',
+        'password' => 'CorrectPassword123!',
+        'auth_request_id' => $authRequestId,
+    ])->assertStatus(400)
+        ->assertJsonPath('error', 'invalid_auth_request');
+});
+
 it('does not store a browser authorization session after failed api login', function (): void {
     $this->postJson('/api/auth/login', [
         'identifier' => 'consolidated@example.test',
@@ -168,5 +224,22 @@ function localAuthorizeQuery(): array
         'code_challenge_method' => 'S256',
         'state' => 'state-local-consolidated',
         'nonce' => 'nonce-local-consolidated',
+    ];
+}
+
+/**
+ * @return array<string, mixed>
+ */
+function localAuthRequestContext(string $state): array
+{
+    return [
+        'client_id' => 'local-test-app',
+        'redirect_uri' => 'https://local-app.test/callback',
+        'response_type' => 'code',
+        'scope' => 'openid profile email',
+        'nonce' => 'nonce-local-continuation',
+        'original_state' => $state,
+        'downstream_code_challenge' => 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM',
+        'code_challenge_method' => 'S256',
     ];
 }

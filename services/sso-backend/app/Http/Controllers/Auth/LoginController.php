@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Auth;
 
+use App\Actions\Auth\CompleteLoginAuthorizationAction;
 use App\Actions\Auth\LoginSsoUserAction;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Models\MfaCredential;
@@ -18,6 +19,7 @@ final class LoginController
     public function __invoke(
         LoginRequest $request,
         LoginSsoUserAction $login,
+        CompleteLoginAuthorizationAction $authorizations,
         SsoSessionCookieFactory $cookies,
         MfaChallengeStore $challenges,
         SsoBrowserSession $browserSession,
@@ -92,13 +94,37 @@ final class LoginController
             ],
         );
 
+        $authRequestId = $this->optionalString($request->validated('auth_request_id'));
+        if ($authRequestId !== null) {
+            $completion = $authorizations->execute($authRequestId, $result->user, $result->session, $request);
+            if (! $completion->completed) {
+                $result->session->update(['revoked_at' => now()]);
+
+                return response()->json([
+                    'authenticated' => false,
+                    'error' => $completion->error,
+                    'message' => $completion->message,
+                ], $completion->status);
+            }
+
+            return response()->json([
+                'authenticated' => true,
+                'user' => $result->user->toArray(),
+                'session' => ['expires_at' => $result->session->expires_at->toIso8601String()],
+                'next' => [
+                    'type' => 'redirect',
+                    'redirect_uri' => $completion->redirectUri,
+                ],
+            ])->withCookie($cookies->make($result->session->session_id));
+        }
+
         return response()->json([
             'authenticated' => true,
             'user' => $result->user->toArray(),
             'session' => ['expires_at' => $result->session->expires_at->toIso8601String()],
             'next' => [
-                'type' => $request->validated('auth_request_id') !== null ? 'continue_authorize' : 'session',
-                'auth_request_id' => $request->validated('auth_request_id'),
+                'type' => 'session',
+                'auth_request_id' => null,
             ],
         ])->withCookie($cookies->make($result->session->session_id));
     }

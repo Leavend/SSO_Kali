@@ -56,4 +56,17 @@ describe('router guest session restore', () => {
     expect(router.currentRoute.value.name).toBe('auth.login')
     expect(router.currentRoute.value.query.auth_request_id).toBe('auth-req-admin')
   })
+
+  it('routes /login to the login page while preserving query parameters', async () => {
+    setActivePinia(createPinia())
+    vi.clearAllMocks()
+
+    await router.push('/login?auth_request_id=test123&client=sso-admin-panel')
+    await router.isReady()
+
+    expect(authApi.getSession).not.toHaveBeenCalled()
+    expect(router.currentRoute.value.name).toBe('auth.login')
+    expect(router.currentRoute.value.query.auth_request_id).toBe('test123')
+    expect(router.currentRoute.value.query.client).toBe('sso-admin-panel')
+  })
 })

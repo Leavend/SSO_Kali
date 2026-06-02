@@ -25,6 +25,7 @@ final class AuthorizationRequestContextFactory
             'nonce' => $request->query('nonce'),
             'original_state' => $request->query('state'),
             'downstream_code_challenge' => (string) $request->query('code_challenge'),
+            'code_challenge_method' => (string) $request->query('code_challenge_method'),
             'session_id' => (string) Str::uuid(),
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),

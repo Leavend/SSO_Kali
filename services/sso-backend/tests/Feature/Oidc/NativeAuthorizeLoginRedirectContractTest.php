@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\SsoSession;
 use App\Models\User;
+use App\Services\Oidc\AuthRequestStore;
 use App\Services\Oidc\DownstreamClientRegistry;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
@@ -70,17 +71,24 @@ it('redirects unauthenticated native authorize requests to portal login instead 
 
     $location = (string) $response->headers->get('Location');
     parse_str((string) parse_url($location, PHP_URL_QUERY), $loginQuery);
-    $returnTo = (string) ($loginQuery['return_to'] ?? '');
+    $authRequestId = (string) ($loginQuery['auth_request_id'] ?? '');
+    $context = app(AuthRequestStore::class)->pull($authRequestId);
 
     expect($location)->toStartWith('https://sso.timeh.my.id/login?')
         ->and($location)->not->toContain('/oauth/v2/authorize')
         ->and($location)->not->toContain('/callbacks/upstream')
         ->and($location)->not->toContain('client_id=&')
-        ->and((string) parse_url($returnTo, PHP_URL_PATH))->toBe('/authorize')
-        ->and($returnTo)->toContain('client_id=sso-admin-panel')
-        ->and($returnTo)->toContain('redirect_uri=https%3A%2F%2Fadmin-sso.timeh.my.id%2Fauth%2Fcallback')
-        ->and($returnTo)->not->toContain('/oauth/v2/authorize')
-        ->and($returnTo)->not->toContain('client_id=&');
+        ->and($location)->not->toContain('return_to=')
+        ->and($authRequestId)->not->toBe('')
+        ->and($authRequestId)->not->toContain('https://')
+        ->and($context)->toBeArray()
+        ->and($context['client_id'] ?? null)->toBe('sso-admin-panel')
+        ->and($context['redirect_uri'] ?? null)->toBe('https://admin-sso.timeh.my.id/auth/callback')
+        ->and($context['scope'] ?? null)->toBe('openid profile email offline_access roles permissions')
+        ->and($context['nonce'] ?? null)->toBe('nonce-admin-native-login')
+        ->and($context['original_state'] ?? null)->toBe('state-admin-native-login')
+        ->and($context['downstream_code_challenge'] ?? null)->toBe('E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM')
+        ->and($context['code_challenge_method'] ?? null)->toBe('S256');
 });
 
 /**

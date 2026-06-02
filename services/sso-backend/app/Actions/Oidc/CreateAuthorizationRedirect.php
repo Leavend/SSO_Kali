@@ -84,10 +84,22 @@ final class CreateAuthorizationRedirect
     /** @param array<string, mixed> $context */
     private function nativeLoginRedirect(Request $request, DownstreamClient $client, array $context): RedirectResponse
     {
+        $authRequestId = $this->authRequests->put($context);
+        if ($authRequestId === null) {
+            $this->audits->rejected($request, $client, 'temporarily_unavailable', $context);
+
+            return OidcErrorResponse::redirect(
+                (string) ($context['redirect_uri'] ?? config('sso.frontend_url')),
+                'temporarily_unavailable',
+                'Authorization state could not be stored. Please try again.',
+                $this->optionalString($context['original_state'] ?? null),
+            );
+        }
+
         $this->audits->accepted($request, $client, $context, 'native_login_redirect');
 
         return redirect()->away($this->appendQuery((string) config('sso.login_url'), [
-            'return_to' => $request->fullUrl(),
+            'auth_request_id' => $authRequestId,
         ]));
     }
 

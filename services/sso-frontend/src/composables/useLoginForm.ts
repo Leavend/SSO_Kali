@@ -144,8 +144,8 @@ export function useLoginForm(): UseLoginFormReturn {
       return
     }
 
-    if (response.next.type === 'continue_authorize' && response.next.auth_request_id) {
-      continueAuthorize(response.next.auth_request_id)
+    if (response.next.type === 'redirect') {
+      window.location.assign(response.next.redirect_uri)
       return
     }
 
@@ -254,12 +254,6 @@ export function useLoginForm(): UseLoginFormReturn {
     }
 
     await router.push(target)
-  }
-
-  function continueAuthorize(authRequestId: string): void {
-    const url = new URL('/authorize', window.location.origin)
-    url.searchParams.set('auth_request_id', authRequestId)
-    window.location.assign(url.toString())
   }
 
   return {

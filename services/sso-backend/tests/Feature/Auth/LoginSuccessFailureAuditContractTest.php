@@ -51,7 +51,6 @@ it('records a complete successful login audit contract with session correlation'
         ->postJson('/api/auth/login', [
             'identifier' => 'audit-success@example.test',
             'password' => 'correct-password',
-            'auth_request_id' => 'auth-req-success-79',
         ])->assertOk();
 
     $sessionId = (string) SsoSession::query()->where('subject_id', $user->subject_id)->value('session_id');
@@ -66,8 +65,8 @@ it('records a complete successful login audit contract with session correlation'
         ->and($event->user_agent)->toBe('Issue79AuditAgent/2.0')
         ->and($event->request_id)->toBe('req-login-success-79')
         ->and($event->error_code)->toBeNull()
-        ->and($event->context)->toMatchArray(['auth_request_id' => 'auth-req-success-79'])
         ->and($event->context['identifier_hash'] ?? null)->toBe(hash('sha256', 'audit-success@example.test'))
+        ->and($event->context)->not->toHaveKey('auth_request_id')
         ->and($encodedContext)->not->toContain('correct-password')
         ->and($encodedContext)->not->toContain('audit-success@example.test');
 });

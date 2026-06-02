@@ -14,10 +14,9 @@ export type SsoSession = {
   readonly expires_at: string
 }
 
-export type SsoLoginNext = {
-  readonly type: 'session' | 'continue_authorize'
-  readonly auth_request_id: string | null
-}
+export type SsoLoginNext =
+  | { readonly type: 'session'; readonly auth_request_id: null }
+  | { readonly type: 'redirect'; readonly redirect_uri: string }
 
 export type SsoLoginSuccess = {
   readonly authenticated: true

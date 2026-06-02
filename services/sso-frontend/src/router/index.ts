@@ -53,6 +53,10 @@ export const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: '/login',
+    redirect: (to) => ({ name: 'auth.login', query: to.query }),
+  },
+  {
     path: '/auth/register',
     name: 'auth.register',
     component: () => import('@/pages/auth/RegisterPage.vue'),
