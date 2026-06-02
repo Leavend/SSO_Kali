@@ -34,4 +34,26 @@ describe('router guest session restore', () => {
     expect(authApi.getSession).toHaveBeenCalled()
     expect(router.currentRoute.value.name).toBe('auth.login')
   })
+
+  it('keeps authenticated users on login route when auth_request_id is pending', async () => {
+    setActivePinia(createPinia())
+    vi.clearAllMocks()
+    vi.spyOn(authApi, 'getSession').mockResolvedValueOnce({
+      authenticated: true,
+      user: {
+        id: 1,
+        subject_id: 'user-uuid',
+        email: 'user@example.com',
+        display_name: 'User SSO',
+        roles: ['user'],
+      },
+    })
+
+    await router.push('/?auth_request_id=auth-req-admin')
+    await router.isReady()
+
+    expect(authApi.getSession).not.toHaveBeenCalled()
+    expect(router.currentRoute.value.name).toBe('auth.login')
+    expect(router.currentRoute.value.query.auth_request_id).toBe('auth-req-admin')
+  })
 })

@@ -14,7 +14,8 @@
  *   - Going back from step 2 wipes the password buffer for safety.
  */
 
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import { ArrowLeft, ArrowRight, AtSign, Lock } from 'lucide-vue-next'
 import SsoGlassButton from '@/components/atoms/SsoGlassButton.vue'
 import SsoGlassInput from '@/components/atoms/SsoGlassInput.vue'
@@ -23,13 +24,20 @@ import { useLoginForm } from '@/composables/useLoginForm'
 import { cn } from '@/lib/utils'
 import { useAuthSteps } from '@/composables/useAuthSteps'
 import { useI18n } from '@/composables/useI18n'
+import { useSessionStore } from '@/stores/session.store'
+import { useSsoCompletion } from '@/composables/useSsoCompletion'
 
 type LoginStepId = 'identifier' | 'password'
 
 const login = useLoginForm()
 const { t } = useI18n()
+const route = useRoute()
+const session = useSessionStore()
+const ssoCompletion = useSsoCompletion()
+const ssoCompletionPending = ref<boolean>(false)
 
 const isIdentifierValid = computed<boolean>(() => login.form.identifier.trim().length > 0)
+const showLoginForm = computed<boolean>(() => !ssoCompletionPending.value)
 
 const steps = useAuthSteps<LoginStepId>([
   {
@@ -73,6 +81,31 @@ function onSubmit(event: Event): void {
   }
   void login.submit()
 }
+
+onMounted(() => {
+  void completePendingAuthRequest()
+})
+
+async function completePendingAuthRequest(): Promise<void> {
+  const authRequestId = readAuthRequestId()
+  if (!authRequestId) return
+
+  ssoCompletionPending.value = true
+  try {
+    const sessionOk = session.isAuthenticated || (await session.ensureSession())
+    if (!sessionOk) return
+
+    const redirectUri = await ssoCompletion.complete(authRequestId)
+    if (redirectUri) window.location.assign(redirectUri)
+  } finally {
+    ssoCompletionPending.value = false
+  }
+}
+
+function readAuthRequestId(): string | null {
+  const value = route.query['auth_request_id']
+  return typeof value === 'string' && value.length > 0 ? value : null
+}
 </script>
 
 <template>
@@ -90,7 +123,21 @@ function onSubmit(event: Event): void {
       </p>
     </header>
 
-    <form class="flex w-full max-w-md flex-col items-stretch gap-4" novalidate @submit="onSubmit">
+    <div
+      v-if="ssoCompletionPending"
+      class="flex w-full max-w-md items-center justify-center rounded-2xl border border-border/60 bg-card/70 px-6 py-5 text-sm font-medium text-muted-foreground shadow-sm backdrop-blur"
+      role="status"
+      aria-live="polite"
+    >
+      {{ t('auth.callback.title_loading') }}
+    </div>
+
+    <form
+      v-if="showLoginForm"
+      class="flex w-full max-w-md flex-col items-stretch gap-4"
+      novalidate
+      @submit="onSubmit"
+    >
       <SsoAlertBanner
         v-if="login.bannerError.value"
         tone="error"

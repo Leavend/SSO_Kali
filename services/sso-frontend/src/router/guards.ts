@@ -15,6 +15,9 @@ export async function resolveAuthGuard(
     const promptParam = to.query.prompt as string | undefined
     if (promptParam === 'login') return true
 
+    const authRequestId = to.query.auth_request_id
+    if (typeof authRequestId === 'string' && authRequestId.length > 0) return true
+
     const ok = session.isAuthenticated || (await session.ensureSession())
     if (ok) return { name: 'portal.home' }
   }
