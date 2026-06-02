@@ -83,6 +83,7 @@ x-sso-admin-frontend-env: &sso-admin-frontend-env
   VITE_ADMIN_BASE_URL: ${SSO_ADMIN_FRONTEND_URL:-https://admin-sso.timeh.my.id}
   VITE_PUBLIC_BASE_PATH: /
   VITE_SSO_BASE_URL: ${SSO_BASE_URL:-https://api-sso.timeh.my.id}
+  ADMIN_OIDC_PUBLIC_ISSUER: ${SSO_FRONTEND_URL:-https://sso.timeh.my.id}
   ADMIN_OIDC_CLIENT_ID: ${ADMIN_PANEL_CLIENT_ID:-sso-admin-panel}
   ADMIN_OIDC_SCOPE: ${ADMIN_OIDC_SCOPE:-openid profile email offline_access roles permissions}
   SSO_INTERNAL_BASE_URL: ${SSO_INTERNAL_BASE_URL:-http://sso-backend:8000}

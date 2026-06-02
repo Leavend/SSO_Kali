@@ -34,6 +34,7 @@ describe('admin BFF serving contract', () => {
   it('wires production runtime env for admin OIDC and server-side sessions', () => {
     expect(compose).toContain('x-sso-admin-frontend-env: &sso-admin-frontend-env')
     expect(compose).toContain('ADMIN_OIDC_CLIENT_ID: ${ADMIN_PANEL_CLIENT_ID:-sso-admin-panel}')
+    expect(compose).toContain('ADMIN_OIDC_PUBLIC_ISSUER: ${SSO_FRONTEND_URL:-https://sso.timeh.my.id}')
     expect(compose).toContain('ADMIN_OIDC_SCOPE: ${ADMIN_OIDC_SCOPE:-openid profile email offline_access roles permissions}')
     expect(compose).toContain('SSO_ADMIN_SESSION_REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/5')
     expect(compose).toContain('ADMIN_PANEL_REDIRECT_URI: ${SSO_ADMIN_FRONTEND_URL:-https://admin-sso.timeh.my.id}/auth/callback')

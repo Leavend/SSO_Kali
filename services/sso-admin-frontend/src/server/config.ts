@@ -1,6 +1,7 @@
 export type PortalConfig = {
   readonly issuer: string
   readonly authorizeUrl: string
+  readonly publicAuthorizeUrl: string
   readonly tokenUrl: string
   readonly jwksUrl: string
   readonly logoutUrl: string
@@ -19,6 +20,7 @@ export type PortalConfig = {
 
 export function getConfig(): PortalConfig {
   const base = env('ADMIN_OIDC_ISSUER') ?? env('VITE_SSO_BASE_URL') ?? 'http://localhost:8200'
+  const publicBase = env('ADMIN_OIDC_PUBLIC_ISSUER') ?? base
   const appBase =
     env('VITE_ADMIN_BASE_URL') ?? env('ADMIN_APP_BASE_URL') ?? 'http://localhost:8080'
   const internalBase = env('SSO_INTERNAL_BASE_URL') ?? base
@@ -26,6 +28,7 @@ export function getConfig(): PortalConfig {
   return {
     issuer: base,
     authorizeUrl: `${base}/authorize`,
+    publicAuthorizeUrl: `${publicBase}/authorize`,
     tokenUrl: env('SSO_INTERNAL_TOKEN_URL') ?? `${internalBase}/token`,
     jwksUrl: env('SSO_INTERNAL_JWKS_URL') ?? `${internalBase}/jwks`,
     logoutUrl: `${base}/connect/logout`,

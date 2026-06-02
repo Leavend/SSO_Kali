@@ -21,6 +21,7 @@ describe('admin BFF auth flow', () => {
     vi.resetModules()
     vi.stubEnv('VITE_ADMIN_BASE_URL', 'https://admin-sso.example.test')
     vi.stubEnv('VITE_SSO_BASE_URL', 'https://api-sso.example.test')
+    vi.stubEnv('ADMIN_OIDC_PUBLIC_ISSUER', 'https://sso.example.test')
     vi.stubEnv('ADMIN_OIDC_CLIENT_ID', 'sso-admin-panel')
     vi.stubEnv('SESSION_ENCRYPTION_SECRET', 'test-admin-session-secret-32-bytes-long')
     vi.stubEnv('SSO_ADMIN_SESSION_REDIS_URL', '')
@@ -85,7 +86,7 @@ describe('admin BFF auth flow', () => {
     const cookieHeader = txCookie.split(';')[0]
 
     expect(login.status).toBe(302)
-    expect(location.origin).toBe('https://api-sso.example.test')
+    expect(location.origin).toBe('https://sso.example.test')
     expect(location.pathname).toBe('/authorize')
     expect(location.searchParams.get('client_id')).toBe('sso-admin-panel')
     expect(location.searchParams.get('redirect_uri')).toBe(

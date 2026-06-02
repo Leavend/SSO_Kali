@@ -45,6 +45,7 @@ import { resolveBffRequestId } from './proxy-headers.js'
 const jwksByUrl = new Map<string, ReturnType<typeof createRemoteJWKSet>>()
 
 export async function handleLogin(requestUrl: URL): Promise<AppResponse> {
+  const config = getConfig()
   const state = generateState()
   const nonce = generateNonce()
   const codeVerifier = generateCodeVerifier()
@@ -52,12 +53,12 @@ export async function handleLogin(requestUrl: URL): Promise<AppResponse> {
   const returnTo = normalizeReturnTo(requestUrl.searchParams.get('return_to'))
   const loginHint = requestUrl.searchParams.get('login_hint')
 
-  const discovery = await fetchValidatedDiscoveryMetadata()
+  await fetchValidatedDiscoveryMetadata()
   const location = buildAuthorizeUrl({
     state,
     nonce,
     codeChallenge,
-    authorizationEndpoint: discovery.authorization_endpoint,
+    authorizationEndpoint: config.publicAuthorizeUrl,
     ...(loginHint ? { loginHint } : {}),
   })
 

@@ -26,4 +26,21 @@ describe('admin BFF runtime config', () => {
     expect(cookies.SSO_PORTAL_TX_COOKIE).toBe('__Host-sso-admin-tx')
     expect(store.sessionStoreKey('opaque-id')).toBe('admin:sessions:opaque-id')
   })
+
+  it('keeps issuer validation on the API issuer while sending browser authorization through the portal proxy', async () => {
+    vi.resetModules()
+    vi.stubEnv('VITE_ADMIN_BASE_URL', 'https://admin-sso.example.test')
+    vi.stubEnv('VITE_SSO_BASE_URL', 'https://api-sso.example.test')
+    vi.stubEnv('ADMIN_OIDC_PUBLIC_ISSUER', 'https://sso.example.test')
+
+    const { getConfig } = await import('../config.js')
+
+    expect(getConfig()).toMatchObject({
+      issuer: 'https://api-sso.example.test',
+      authorizeUrl: 'https://api-sso.example.test/authorize',
+      publicAuthorizeUrl: 'https://sso.example.test/authorize',
+      tokenUrl: 'https://api-sso.example.test/token',
+      jwksUrl: 'https://api-sso.example.test/jwks',
+    })
+  })
 })
