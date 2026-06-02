@@ -8,6 +8,7 @@ use App\Http\Controllers\ExternalIdp\StartExternalIdpAuthenticationController;
 use App\Http\Controllers\Oidc\AuthorizeController;
 use App\Http\Controllers\Oidc\ConsentController;
 use App\Http\Controllers\Oidc\LocalLoginController;
+use App\Http\Controllers\Oidc\SsoCompleteController;
 use App\Http\Controllers\Resource\AuditController;
 use App\Http\Controllers\Resource\ChangePasswordController;
 use App\Http\Controllers\Resource\ProfileChangeController;
@@ -42,6 +43,7 @@ Route::post('/connect/consent', [ConsentController::class, 'decide'])->middlewar
 
 // --- Local Login (requires session to establish SSO session) ---
 Route::post('/connect/local-login', LocalLoginController::class)->middleware('throttle:oidc-token');
+Route::post('/connect/sso-complete', SsoCompleteController::class)->middleware('throttle:oidc-token');
 
 // --- Profile APIs (require authenticated session) ---
 Route::get('/api/profile', [ProfileController::class, 'show'])->middleware('throttle:profile-api');
