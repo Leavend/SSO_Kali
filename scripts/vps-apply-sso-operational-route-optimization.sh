@@ -22,6 +22,7 @@ Optimizes active VPS Nginx routes for:
   /_internal/queue-metrics
   /token and /oauth2/token method guards
   /revocation, /oauth2/revocation, and /oauth/revoke method guards
+  removed upstream OIDC broker paths (/oauth/v2/* and /callbacks/*)
 
 Modes:
   --mode audit  Show current active Nginx route/cache state.
@@ -58,7 +59,7 @@ if [[ ! -f "$API_SITE" ]]; then
 fi
 
 echo "[sso-op-routes] mode=$MODE site=$API_SITE cache_conf=$CACHE_CONF"
-grep -nE 'location = /(up|health|ready)|location = /_internal/(performance-metrics|queue-metrics)|sso_operational_routes|keepalive ' "$API_SITE" "$CACHE_CONF" 2>/dev/null || true
+grep -nE 'location (=|\^~) /(up|health|ready|oauth/v2|callbacks)|location = /_internal/(performance-metrics|queue-metrics)|sso_operational_routes|keepalive |127[.]0[.]0[.]1:8200' "$API_SITE" "$CACHE_CONF" 2>/dev/null || true
 
 if [[ "$MODE" == "audit" ]]; then
   echo "[sso-op-routes] audit complete. DevOps Lifecycle uses --mode apply during deploy."
@@ -193,6 +194,25 @@ oauth_method_guard_locations = {
 
 locations.update(oauth_method_guard_locations)
 
+legacy_zitadel_tombstones = {
+    '/oauth/v2/': f'''{indent}location ^~ /oauth/v2/ {{
+{indent}    access_log off;
+{indent}    default_type text/plain;
+{indent}    add_header Cache-Control "no-store" always;
+{indent}    add_header X-SSO-Route "removed_legacy_zitadel_route" always;
+{indent}    return 410 "removed upstream OIDC route\\n";
+{indent}}}''',
+    '/callbacks/': f'''{indent}location ^~ /callbacks/ {{
+{indent}    access_log off;
+{indent}    default_type text/plain;
+{indent}    add_header Cache-Control "no-store" always;
+{indent}    add_header X-SSO-Route "removed_legacy_zitadel_route" always;
+{indent}    return 410 "removed upstream OIDC route\\n";
+{indent}}}''',
+}
+
+locations.update(legacy_zitadel_tombstones)
+
 def auth_profile_method_guard_block(route: str, allowed_methods: str, allow_header: str) -> str:
     return f'''{indent}location = {route} {{
 {indent}    if ($request_method !~ ^({allowed_methods})$) {{
@@ -253,7 +273,8 @@ def find_location_end(contents: str, start: int) -> int:
     raise RuntimeError('location block has no closing brace')
 
 def replace_or_insert_location(contents: str, route: str, block: str) -> str:
-    match = re.search(rf'^\s*location\s+=\s+{re.escape(route)}\s*\{{', contents, re.MULTILINE)
+    modifier = r'\^~' if 'location ^~' in block else '='
+    match = re.search(rf'^\s*location\s+{modifier}\s+{re.escape(route)}\s*\{{', contents, re.MULTILINE)
     if match:
         end = find_location_end(contents, match.start())
         while end < len(contents) and contents[end] in ' \t\r\n':
@@ -269,6 +290,32 @@ def replace_or_insert_location(contents: str, route: str, block: str) -> str:
         raise RuntimeError('could not find server block ending brace')
 
     return contents[:server_end] + '\n' + block + '\n' + contents[server_end:]
+
+def remove_legacy_zitadel_edge_locations(contents: str) -> str:
+    legacy_routes = (
+        r'location\s+\^~\s+/callbacks/',
+        r'location\s+\^~\s+/oauth2/',
+        r'location\s+\^~\s+/oauth/v2/',
+    )
+
+    for pattern in legacy_routes:
+        while True:
+            match = re.search(rf'^\s*{pattern}\s*\{{', contents, re.MULTILINE)
+            if not match:
+                break
+
+            end = find_location_end(contents, match.start())
+            block = contents[match.start():end]
+            if '127.0.0.1:8200' not in block:
+                break
+
+            while end < len(contents) and contents[end] in ' \t\r\n':
+                end += 1
+            contents = contents[:match.start()] + contents[end:]
+
+    return contents
+
+text = remove_legacy_zitadel_edge_locations(text)
 
 for route, block in locations.items():
     text = replace_or_insert_location(text, route, block)

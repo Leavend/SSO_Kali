@@ -42,6 +42,20 @@ it('rejects invalid oauth token and revocation methods at the nginx edge', funct
         ->toContain('add_header Allow "POST, OPTIONS" always');
 });
 
+it('removes legacy zitadel edge routes from the production api host', function (): void {
+    $script = devOpsLifecycleOperationalRoutesFile('scripts/vps-apply-sso-operational-route-optimization.sh');
+
+    expect($script)
+        ->toContain('remove_legacy_zitadel_edge_locations')
+        ->toContain('legacy_zitadel_tombstones')
+        ->toContain('location ^~ /oauth/v2/')
+        ->toContain('location ^~ /callbacks/')
+        ->toContain('return 410 "removed upstream OIDC route\\\\n"')
+        ->toContain('127.0.0.1:8200')
+        ->toContain('removed_legacy_zitadel_route')
+        ->not->toContain("'/oauth2/':");
+});
+
 it('sheds hostile oauth write bursts at the nginx edge before upstream workers', function (): void {
     $script = devOpsLifecycleOperationalRoutesFile('scripts/vps-apply-sso-operational-route-optimization.sh');
 
