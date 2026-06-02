@@ -10,6 +10,7 @@ use App\Actions\Oidc\CompletePendingOidcAuthorization;
 use App\Models\SsoSession;
 use App\Models\User;
 use App\Services\Mfa\MfaChallengeStore;
+use App\Services\Oidc\SsoBrowserSession;
 use App\Services\Session\SsoSessionCookieFactory;
 use App\Support\Oidc\OidcContinuationOutcome;
 use Illuminate\Http\JsonResponse;
@@ -37,6 +38,7 @@ final class MfaChallengeController
         MfaChallengeStore $challenges,
         CompletePendingOidcAuthorization $completePending,
         SsoSessionCookieFactory $cookies,
+        SsoBrowserSession $browserSession,
     ): JsonResponse {
         $request->validate([
             'challenge_id' => ['required', 'string'],
@@ -82,6 +84,17 @@ final class MfaChallengeController
 
         // Create SSO session with MFA-verified amr
         $session = $this->createSession($user, $request);
+
+        $browserSession->remember(
+            request: $request,
+            subjectId: $user->subject_id,
+            sessionId: $session->session_id,
+            authContext: [
+                'auth_time' => time(),
+                'amr' => ['pwd', 'mfa'],
+                'acr' => 'urn:sso:loa:mfa',
+            ],
+        );
 
         // FR-019 / ISSUE-04+06: Persist MFA auth context for token claims
         $persistContext->execute(

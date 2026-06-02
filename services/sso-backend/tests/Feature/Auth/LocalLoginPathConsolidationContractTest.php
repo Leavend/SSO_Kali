@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\MfaCredential;
 use App\Models\User;
 use App\Services\Auth\LoginAttemptThrottle;
 use App\Services\Oidc\DownstreamClientRegistry;
@@ -92,6 +93,49 @@ it('returns a safe consistent password expiry response on every local password l
         ->assertJsonPath('error', 'password_expired');
 });
 
+it('stores a browser authorization session after successful api login and reuses it at authorize', function (): void {
+    $this->postJson('/api/auth/login', [
+        'identifier' => 'consolidated@example.test',
+        'password' => 'CorrectPassword123!',
+    ])->assertOk()
+        ->assertJsonPath('authenticated', true);
+
+    expect(session()->has('sso_browser_session'))->toBeTrue();
+
+    $response = $this->get('/authorize?'.http_build_query(localAuthorizeQuery()));
+
+    $response->assertRedirect();
+
+    expect((string) $response->headers->get('Location'))
+        ->toStartWith('https://local-app.test/callback?code=')
+        ->toContain('state=state-local-consolidated')
+        ->not->toContain('https://sso.timeh.my.id/login');
+});
+
+it('does not store a browser authorization session after failed api login', function (): void {
+    $this->postJson('/api/auth/login', [
+        'identifier' => 'consolidated@example.test',
+        'password' => 'wrong-password',
+    ])->assertUnauthorized()
+        ->assertJsonPath('authenticated', false);
+
+    expect(session()->has('sso_browser_session'))->toBeFalse();
+});
+
+it('does not store a browser authorization session while mfa challenge is pending', function (): void {
+    $user = User::query()->where('email', 'consolidated@example.test')->firstOrFail();
+    MfaCredential::factory()->totp()->verified()->create(['user_id' => $user->id]);
+
+    $this->postJson('/api/auth/login', [
+        'identifier' => 'consolidated@example.test',
+        'password' => 'CorrectPassword123!',
+    ])->assertOk()
+        ->assertJsonPath('authenticated', false)
+        ->assertJsonPath('mfa_required', true);
+
+    expect(session()->has('sso_browser_session'))->toBeFalse();
+});
+
 /**
  * @return array<string, string>
  */
@@ -107,5 +151,22 @@ function localLoginPayload(string $password): array
         'state' => 'state-local-consolidated',
         'nonce' => 'nonce-local-consolidated',
         'scope' => 'openid profile email',
+    ];
+}
+
+/**
+ * @return array<string, string>
+ */
+function localAuthorizeQuery(): array
+{
+    return [
+        'client_id' => 'local-test-app',
+        'redirect_uri' => 'https://local-app.test/callback',
+        'response_type' => 'code',
+        'scope' => 'openid profile email',
+        'code_challenge' => 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM',
+        'code_challenge_method' => 'S256',
+        'state' => 'state-local-consolidated',
+        'nonce' => 'nonce-local-consolidated',
     ];
 }

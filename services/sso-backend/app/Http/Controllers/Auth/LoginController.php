@@ -9,6 +9,7 @@ use App\Http\Requests\Auth\LoginRequest;
 use App\Models\MfaCredential;
 use App\Models\User;
 use App\Services\Mfa\MfaChallengeStore;
+use App\Services\Oidc\SsoBrowserSession;
 use App\Services\Session\SsoSessionCookieFactory;
 use Illuminate\Http\JsonResponse;
 
@@ -19,6 +20,7 @@ final class LoginController
         LoginSsoUserAction $login,
         SsoSessionCookieFactory $cookies,
         MfaChallengeStore $challenges,
+        SsoBrowserSession $browserSession,
     ): JsonResponse {
         $result = $login->execute(
             (string) $request->validated('identifier'),
@@ -78,6 +80,17 @@ final class LoginController
                 ],
             ]);
         }
+
+        $browserSession->remember(
+            request: $request,
+            subjectId: $result->user->subjectId,
+            sessionId: $result->session->session_id,
+            authContext: [
+                'auth_time' => time(),
+                'amr' => ['pwd'],
+                'acr' => 'urn:sso:loa:password',
+            ],
+        );
 
         return response()->json([
             'authenticated' => true,
