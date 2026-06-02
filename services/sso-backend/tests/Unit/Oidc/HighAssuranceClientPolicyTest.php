@@ -20,18 +20,18 @@ function makeClientWith(string $clientId): DownstreamClient
     );
 }
 
-it('forces prompt=login for the admin panel client', function (): void {
+it('does not force prompt login for the admin panel client', function (): void {
     $policy = new HighAssuranceClientPolicy;
     $result = $policy->promptFor(makeClientWith('sso-admin-panel'), null);
 
-    expect($result)->toBe('login');
+    expect($result)->toBeNull();
 });
 
-it('overrides any requested prompt for the admin panel client', function (): void {
+it('preserves requested prompt for the admin panel client', function (): void {
     $policy = new HighAssuranceClientPolicy;
     $result = $policy->promptFor(makeClientWith('sso-admin-panel'), 'none');
 
-    expect($result)->toBe('login');
+    expect($result)->toBe('none');
 });
 
 it('passes through the requested prompt for a normal client', function (): void {
@@ -48,11 +48,13 @@ it('returns null prompt for a normal client without a requested prompt', functio
     expect($result)->toBeNull();
 });
 
-it('returns max_age=0 for the admin panel client', function (): void {
+it('returns configured fresh-auth max_age for the admin panel client', function (): void {
+    config()->set('sso.admin.freshness.read_seconds', 28800);
+
     $policy = new HighAssuranceClientPolicy;
     $result = $policy->maxAgeFor(makeClientWith('sso-admin-panel'));
 
-    expect($result)->toBe('0');
+    expect($result)->toBe('28800');
 });
 
 it('returns null max_age for a normal client', function (): void {

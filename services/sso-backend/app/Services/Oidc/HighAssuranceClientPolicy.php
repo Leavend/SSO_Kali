@@ -10,16 +10,12 @@ final class HighAssuranceClientPolicy
 {
     /**
      * Valid OIDC prompt values per OpenID Connect Core §3.1.2.1.
-     * 'none' is intentionally excluded — the SSO always requires interactive login for high-assurance clients.
+     * The validator owns prompt=none acceptance and response semantics.
      */
     private const VALID_PROMPTS = ['login', 'consent', 'select_account'];
 
     public function promptFor(DownstreamClient $client, ?string $requestedPrompt): ?string
     {
-        if ($this->requiresInteractiveLogin($client)) {
-            return 'login';
-        }
-
         if ($requestedPrompt !== null && in_array($requestedPrompt, self::VALID_PROMPTS, true)) {
             return $requestedPrompt;
         }
@@ -29,10 +25,21 @@ final class HighAssuranceClientPolicy
 
     public function maxAgeFor(DownstreamClient $client): ?string
     {
-        return $this->requiresInteractiveLogin($client) ? '0' : null;
+        if (! $this->isAdminPanelClient($client)) {
+            return null;
+        }
+
+        $seconds = (int) config('sso.admin.freshness.read_seconds', 900);
+
+        return (string) max(1, $seconds);
     }
 
     public function requiresInteractiveLogin(DownstreamClient $client): bool
+    {
+        return false;
+    }
+
+    private function isAdminPanelClient(DownstreamClient $client): bool
     {
         return $client->clientId === $this->adminPanelClientId();
     }

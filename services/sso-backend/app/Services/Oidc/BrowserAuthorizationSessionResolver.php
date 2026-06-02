@@ -26,7 +26,7 @@ final class BrowserAuthorizationSessionResolver
         if ($browserContext === null || ! $this->lifecycleAllows($request, $client, $context, $browserContext)) {
             return null;
         }
-        if (! $this->canUse($request, $client, $browserContext)) {
+        if (! $this->canUse($request, $client, $context, $browserContext)) {
             return null;
         }
 
@@ -47,8 +47,8 @@ final class BrowserAuthorizationSessionResolver
         return false;
     }
 
-    /** @param array<string, mixed> $context */
-    private function canUse(Request $request, DownstreamClient $client, array $context): bool
+    /** @param array<string, mixed> $authorizationContext @param array<string, mixed> $browserContext */
+    private function canUse(Request $request, DownstreamClient $client, array $authorizationContext, array $browserContext): bool
     {
         if ($this->assurance->requiresInteractiveLogin($client)) {
             return false;
@@ -57,7 +57,7 @@ final class BrowserAuthorizationSessionResolver
             return false;
         }
 
-        return $this->acrSatisfied($request, $context) && $this->maxAgeIsFresh($request, $context);
+        return $this->acrSatisfied($request, $browserContext) && $this->maxAgeIsFresh($request, $authorizationContext, $browserContext);
     }
 
     /** @param array<string, mixed> $context */
@@ -71,15 +71,15 @@ final class BrowserAuthorizationSessionResolver
         return $this->acrEvaluator->satisfies($this->optionalString($context['acr'] ?? null), $requestedAcr);
     }
 
-    /** @param array<string, mixed> $context */
-    private function maxAgeIsFresh(Request $request, array $context): bool
+    /** @param array<string, mixed> $authorizationContext @param array<string, mixed> $browserContext */
+    private function maxAgeIsFresh(Request $request, array $authorizationContext, array $browserContext): bool
     {
-        $maxAge = $request->query('max_age');
+        $maxAge = $request->query('max_age', $authorizationContext['max_age'] ?? null);
         if (! is_string($maxAge) || ! ctype_digit($maxAge)) {
             return true;
         }
 
-        $authTime = is_int($context['auth_time'] ?? null) ? $context['auth_time'] : 0;
+        $authTime = is_int($browserContext['auth_time'] ?? null) ? $browserContext['auth_time'] : 0;
 
         return $maxAge !== '0' && $authTime > 0 && time() - $authTime <= (int) $maxAge;
     }
