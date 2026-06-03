@@ -28,7 +28,8 @@ final class UserSessionsService
             ->where('expires_at', '>', now())
             ->get();
 
-        $aggregated = $this->aggregateBySession($oauthSessions->merge($rpSessions));
+        $aggregated = collect($this->aggregateBySession($oauthSessions->merge($rpSessions)))
+            ->keyBy(fn (array $session): string => (string) $session['session_id']);
 
         $portalSessions = DB::table('sso_sessions')
             ->where('subject_id', $subjectId)
@@ -36,22 +37,15 @@ final class UserSessionsService
             ->where('expires_at', '>', now())
             ->orderByDesc('last_seen_at')
             ->get()
-            ->map(fn (object $row): array => [
-                'session_id' => $row->session_id,
-                'opened_at' => str_replace(' ', 'T', (string) $row->authenticated_at).'Z',
-                'last_used_at' => str_replace(' ', 'T', (string) $row->last_seen_at).'Z',
-                'expires_at' => str_replace(' ', 'T', (string) $row->expires_at).'Z',
-                'ip_address' => $row->ip_address,
-                'user_agent' => $row->user_agent,
-                'client_count' => 1,
-                'client_ids' => ['sso-portal'],
-                'client_display_names' => ['SSO Portal'],
-                'type' => 'portal',
-                'revoke_reason' => null,
-            ])
+            ->map(function (object $row) use ($aggregated): array {
+                $sessionId = (string) $row->session_id;
+                $linkedApps = $aggregated->pull($sessionId);
+
+                return $this->buildPortalSession($row, is_array($linkedApps) ? $linkedApps : null);
+            })
             ->all();
 
-        return array_merge($portalSessions, $aggregated);
+        return array_merge($portalSessions, $aggregated->values()->all());
     }
 
     public function belongsToSubject(string $subjectId, string $sessionId): bool
@@ -132,6 +126,37 @@ final class UserSessionsService
                 fn (string $clientId): string => $this->displayName($clientId),
                 $clientIds,
             ),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $linkedApps
+     * @return array<string, mixed>
+     */
+    private function buildPortalSession(object $row, ?array $linkedApps): array
+    {
+        $clientIds = collect(['sso-portal'])
+            ->merge($linkedApps['client_ids'] ?? [])
+            ->map(fn (mixed $value): string => (string) $value)
+            ->unique()
+            ->values()
+            ->all();
+
+        return [
+            'session_id' => $row->session_id,
+            'opened_at' => str_replace(' ', 'T', (string) $row->authenticated_at).'Z',
+            'last_used_at' => str_replace(' ', 'T', (string) $row->last_seen_at).'Z',
+            'expires_at' => str_replace(' ', 'T', (string) $row->expires_at).'Z',
+            'ip_address' => $row->ip_address,
+            'user_agent' => $row->user_agent,
+            'client_count' => count($clientIds),
+            'client_ids' => $clientIds,
+            'client_display_names' => array_map(
+                fn (string $clientId): string => $clientId === 'sso-portal' ? 'SSO Portal' : $this->displayName($clientId),
+                $clientIds,
+            ),
+            'type' => 'portal',
+            'revoke_reason' => null,
         ];
     }
 

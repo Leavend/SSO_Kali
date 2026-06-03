@@ -8,6 +8,7 @@ use App\Services\Oidc\AccessTokenGuard;
 use App\Services\Oidc\LocalTokenService;
 use App\Services\Oidc\RefreshTokenStore;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 beforeEach(function (): void {
     config()->set('sso.issuer', 'http://localhost');
@@ -46,6 +47,49 @@ describe('GET /api/profile/sessions', function (): void {
         $this->getJson('/api/profile/sessions')
             ->assertStatus(401)
             ->assertJsonPath('error', 'invalid_token');
+    });
+
+    it('merges app grants into their portal session instead of showing an unknown device', function (): void {
+        $user = uc32User();
+
+        DB::table('sso_sessions')->insert([
+            'session_id' => 'portal-admin-sid',
+            'user_id' => $user->id,
+            'subject_id' => $user->subject_id,
+            'ip_address' => '182.8.178.112',
+            'user_agent' => 'Chrome macOS',
+            'authenticated_at' => now()->subMinute(),
+            'last_seen_at' => now()->subMinute(),
+            'expires_at' => now()->addHours(8),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('oidc_rp_sessions')->insert([
+            'sid' => 'portal-admin-sid',
+            'subject_id' => $user->subject_id,
+            'client_id' => 'sso-admin-panel',
+            'backchannel_logout_uri' => null,
+            'frontchannel_logout_uri' => null,
+            'channels' => json_encode(['backchannel'], JSON_THROW_ON_ERROR),
+            'scope' => 'openid profile',
+            'created_at' => now(),
+            'last_seen_at' => now(),
+            'expires_at' => now()->addHours(8),
+            'revoked_at' => null,
+        ]);
+
+        $response = $this->getJson(
+            '/api/profile/sessions',
+            uc32AuthHeaders($user, 'app-a', 'portal-admin-sid'),
+        );
+
+        $response->assertOk()->assertJsonCount(1, 'sessions');
+
+        expect($response->json('sessions.0.type'))->toBe('portal')
+            ->and($response->json('sessions.0.ip_address'))->toBe('182.8.178.112')
+            ->and($response->json('sessions.0.client_ids'))->toContain('sso-admin-panel')
+            ->and($response->json('sessions.0.client_display_names'))->toContain('sso-admin-panel');
     });
 });
 

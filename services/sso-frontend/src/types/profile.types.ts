@@ -57,6 +57,7 @@ export type UserSessionSummary = {
   readonly client_count: number
   readonly client_ids: readonly string[]
   readonly client_display_names: readonly string[]
+  readonly type?: 'portal' | 'rp'
   /** Raw user-agent string from session creation (optional, backend may omit). */
   readonly user_agent?: string | null
   /** IP address observed when the session was opened. */

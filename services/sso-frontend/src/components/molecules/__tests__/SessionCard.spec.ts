@@ -33,6 +33,21 @@ const foreignSession: UserSessionSummary = {
   client_display_names: ['Mobile Companion With A Very Long Name'],
 }
 
+const appGrantSession: UserSessionSummary = {
+  session_id: 'rp-admin-panel',
+  user_agent: null,
+  ip_address: null,
+  location: null,
+  opened_at: '2026-05-20T16:30:00Z',
+  last_used_at: '2026-05-20T18:42:00Z',
+  expires_at: '2026-05-21T02:42:00Z',
+  is_current: false,
+  type: 'rp',
+  client_count: 1,
+  client_ids: ['sso-admin-panel'],
+  client_display_names: ['sso-admin-panel'],
+}
+
 describe('SessionCard', () => {
   it('shows current session details without a revoke action', () => {
     const wrapper = mount(SessionCard, {
@@ -110,5 +125,15 @@ describe('SessionCard', () => {
     expect(wrapper.text()).toContain('Tidak aktif')
 
     vi.useRealTimers()
+  })
+
+  it('labels RP app grants as applications instead of unknown devices', () => {
+    const wrapper = mount(SessionCard, {
+      props: { session: appGrantSession, pending: false, currentIp: '103.88.12.10' },
+    })
+
+    expect(wrapper.text()).toContain('Aplikasi: sso-admin-panel')
+    expect(wrapper.text()).not.toContain('Perangkat tidak dikenal')
+    expect(wrapper.classes()).not.toContain('border-error-700/40')
   })
 })

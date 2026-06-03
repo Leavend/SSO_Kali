@@ -4,38 +4,103 @@ declare(strict_types=1);
 
 namespace App\Services\Admin;
 
-use Illuminate\Support\Facades\Cache;
+use App\Support\Cache\ResilientCacheStore;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 final class AdminDashboardSummaryService
 {
     public const CACHE_TTL_SECONDS = 30;
 
-    public const CACHE_KEY = 'admin:dashboard:summary:v1';
+    public const CACHE_KEY = 'admin:dashboard:summary:v2';
+
+    public function __construct(private readonly ResilientCacheStore $cache) {}
 
     /**
      * @return array<string, mixed>
      */
     public function snapshot(): array
     {
-        return Cache::remember(self::CACHE_KEY, self::CACHE_TTL_SECONDS, function (): array {
-            return [
-                'generated_at' => now()->toIso8601String(),
-                'counters' => [
-                    'users' => $this->userCounters(),
-                    'sessions' => $this->sessionCounters(),
-                    'clients' => $this->clientCounters(),
-                    'audit' => $this->auditCounters(),
-                    'incidents' => $this->incidentCounters(),
-                    'data_subject_requests' => $this->dsrCounters(),
-                ],
-            ];
-        });
+        return $this->cache->remember(
+            self::CACHE_KEY,
+            self::CACHE_TTL_SECONDS,
+            fn (): array => $this->buildSnapshot(),
+        );
     }
 
     public function flush(): void
     {
-        Cache::forget(self::CACHE_KEY);
+        $this->cache->forget(self::CACHE_KEY);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildSnapshot(): array
+    {
+        $degraded = [];
+        $counters = [
+            'users' => $this->safeCounter('users', fn (): array => $this->userCounters(), [
+                'total' => null,
+                'active' => null,
+                'disabled' => null,
+                'locked' => null,
+            ], $degraded),
+            'sessions' => $this->safeCounter('sessions', fn (): array => $this->sessionCounters(), [
+                'portal_active' => null,
+                'rp_active' => null,
+            ], $degraded),
+            'clients' => $this->safeCounter('clients', fn (): array => $this->clientCounters(), [
+                'total' => null,
+                'active' => null,
+                'staged' => null,
+                'decommissioned' => null,
+            ], $degraded),
+            'audit' => $this->safeCounter('audit', fn (): array => $this->auditCounters(), [
+                'admin_last_24h' => null,
+                'auth_last_24h' => null,
+            ], $degraded),
+            'incidents' => $this->safeCounter('incidents', fn (): array => $this->incidentCounters(), [
+                'admin_denied_last_24h' => null,
+            ], $degraded),
+            'data_subject_requests' => $this->safeCounter('data_subject_requests', fn (): array => $this->dsrCounters(), [
+                'submitted' => null,
+                'approved' => null,
+                'rejected' => null,
+                'fulfilled' => null,
+                'on_hold' => null,
+            ], $degraded),
+        ];
+
+        return [
+            'generated_at' => now()->toIso8601String(),
+            'partial' => $degraded !== [],
+            'degraded' => $degraded,
+            'counters' => $counters,
+        ];
+    }
+
+    /**
+     * @param  callable(): array<string, int>  $resolver
+     * @param  array<string, int|null>  $fallback
+     * @param  list<string>  $degraded
+     * @return array<string, int|null>
+     */
+    private function safeCounter(string $name, callable $resolver, array $fallback, array &$degraded): array
+    {
+        try {
+            return $resolver();
+        } catch (Throwable $exception) {
+            $degraded[] = $name;
+            Log::warning('[ADMIN_DASHBOARD_COUNTER_DEGRADED]', [
+                'counter' => $name,
+                'exception' => $exception::class,
+                'message' => $exception->getMessage(),
+            ]);
+
+            return $fallback;
+        }
     }
 
     /**

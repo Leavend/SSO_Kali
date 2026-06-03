@@ -47,6 +47,57 @@ it('creates an HttpOnly SSO session cookie for valid credentials', function (): 
     expect(SsoSession::query()->where('subject_id', $user->subject_id)->whereNull('revoked_at')->exists())->toBeTrue();
 });
 
+it('reuses the active portal session for the same trusted device', function (): void {
+    $user = User::factory()->create([
+        'email' => 'reuse@example.test',
+        'password' => Hash::make('correct-password'),
+    ]);
+
+    $headers = [
+        'User-Agent' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) Chrome/124.0.0.0',
+        'X-Forwarded-For' => '182.8.178.112',
+    ];
+
+    $this->withHeaders($headers)->postJson('/api/auth/login', [
+        'identifier' => $user->email,
+        'password' => 'correct-password',
+    ])->assertOk();
+
+    $first = SsoSession::query()->where('subject_id', $user->subject_id)->firstOrFail();
+    $first->forceFill([
+        'authenticated_at' => now()->subHours(4),
+        'last_seen_at' => now()->subHours(4),
+        'expires_at' => now()->addHour(),
+    ])->save();
+
+    $this->withHeaders($headers)->postJson('/api/auth/login', [
+        'identifier' => $user->email,
+        'password' => 'correct-password',
+    ])->assertOk();
+
+    $first->refresh();
+
+    expect(SsoSession::query()->where('subject_id', $user->subject_id)->whereNull('revoked_at')->count())->toBe(1)
+        ->and($first->authenticated_at->greaterThan(now()->subMinute()))->toBeTrue()
+        ->and($first->last_seen_at?->greaterThan(now()->subMinute()))->toBeTrue();
+});
+
+it('keeps separate portal sessions for different trusted devices', function (): void {
+    $user = User::factory()->create([
+        'email' => 'devices@example.test',
+        'password' => Hash::make('correct-password'),
+    ]);
+
+    foreach (['Chrome macOS', 'Mobile Safari iOS'] as $agent) {
+        $this->withHeader('User-Agent', $agent)->postJson('/api/auth/login', [
+            'identifier' => $user->email,
+            'password' => 'correct-password',
+        ])->assertOk();
+    }
+
+    expect(SsoSession::query()->where('subject_id', $user->subject_id)->whereNull('revoked_at')->count())->toBe(2);
+});
+
 it('returns the current user from an active SSO session', function (): void {
     $user = User::factory()->create([
         'password' => Hash::make('correct-password'),

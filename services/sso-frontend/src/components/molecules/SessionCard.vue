@@ -34,14 +34,23 @@ const emit = defineEmits<Emits>()
 
 const parsed = computed(() => parseUserAgent(props.session.user_agent))
 const deviceLabel = computed<string>(() =>
-  sessionDeviceLabel(parsed.value, props.session.user_agent),
+  props.session.type === 'rp'
+    ? appGrantLabel(props.session.client_display_names)
+    : sessionDeviceLabel(parsed.value, props.session.user_agent),
 )
 const locationInfo = computed(() => sessionLocation(props.session, props.currentIp))
 const relativeLastUsed = computed<string>(() => relativeSessionTime(props.session.last_used_at))
 const isDormant = computed<boolean>(() => isDormantSession(props.session.last_used_at))
 const shouldHighlight = computed<boolean>(
-  () => locationInfo.value.isForeignIp || locationInfo.value.isUnknownIp,
+  () =>
+    props.session.type !== 'rp' &&
+    (locationInfo.value.isForeignIp || locationInfo.value.isUnknownIp),
 )
+
+function appGrantLabel(displayNames: readonly string[]): string {
+  const name = displayNames.find((value) => value.length > 0)
+  return name ? `Aplikasi: ${name}` : 'Aplikasi terhubung'
+}
 
 function handleRevoke(): void {
   if (props.session.is_current) return

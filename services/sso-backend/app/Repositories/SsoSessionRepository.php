@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\Directory\DirectoryUser;
 use App\Services\Profile\TrustedDevicesService;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 final class SsoSessionRepository
@@ -61,20 +62,44 @@ final class SsoSessionRepository
 
     private function create(int $userId, string $subjectId, ?string $ipAddress, ?string $userAgent): SsoSession
     {
-        $now = now();
-        $device = $this->devices->remember($userId, $subjectId, $ipAddress, $userAgent);
+        return DB::transaction(function () use ($userId, $subjectId, $ipAddress, $userAgent): SsoSession {
+            $now = now();
+            $expiresAt = $now->copy()->addMinutes((int) config('sso.session.ttl_minutes', 480));
+            $device = $this->devices->remember($userId, $subjectId, $ipAddress, $userAgent);
+            $active = SsoSession::query()
+                ->where('user_id', $userId)
+                ->where('trusted_device_id', $device->id)
+                ->whereNull('revoked_at')
+                ->where('expires_at', '>', $now)
+                ->orderByDesc('last_seen_at')
+                ->lockForUpdate()
+                ->first();
 
-        return SsoSession::query()->create([
-            'session_id' => (string) Str::uuid(),
-            'user_id' => $userId,
-            'subject_id' => $subjectId,
-            'ip_address' => $ipAddress,
-            'user_agent' => $userAgent,
-            'trusted_device_id' => $device->id,
-            'authenticated_at' => $now,
-            'last_seen_at' => $now,
-            'expires_at' => $now->copy()->addMinutes((int) config('sso.session.ttl_minutes', 480)),
-        ]);
+            if ($active instanceof SsoSession) {
+                $active->forceFill([
+                    'subject_id' => $subjectId,
+                    'ip_address' => $ipAddress,
+                    'user_agent' => $userAgent,
+                    'authenticated_at' => $now,
+                    'last_seen_at' => $now,
+                    'expires_at' => $expiresAt,
+                ])->save();
+
+                return $active;
+            }
+
+            return SsoSession::query()->create([
+                'session_id' => (string) Str::uuid(),
+                'user_id' => $userId,
+                'subject_id' => $subjectId,
+                'ip_address' => $ipAddress,
+                'user_agent' => $userAgent,
+                'trusted_device_id' => $device->id,
+                'authenticated_at' => $now,
+                'last_seen_at' => $now,
+                'expires_at' => $expiresAt,
+            ]);
+        });
     }
 
     public function touchLastSeen(SsoSession $session): void

@@ -6,9 +6,12 @@ use App\Models\AdminAuditEvent;
 use App\Models\DataSubjectRequest;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\Admin\AdminDashboardSummaryService;
 use App\Services\Oidc\LocalTokenService;
 use App\Support\Rbac\AdminPermission;
 use Database\Seeders\RbacSeeder;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Schema;
 
 beforeEach(function (): void {
     config()->set('sso.base_url', 'http://localhost');
@@ -108,6 +111,33 @@ it('exposes a permission-gated dashboard summary with bounded counters', functio
     foreach ($response->json('counters.users') as $value) {
         expect($value)->toBeInt();
     }
+});
+
+it('keeps dashboard summary available when cache storage fails', function (): void {
+    Cache::shouldReceive('get')->once()->andThrow(new RuntimeException('redis unavailable'));
+    Cache::shouldReceive('put')->once()->andReturnTrue();
+
+    $snapshot = app(AdminDashboardSummaryService::class)->snapshot();
+
+    expect($snapshot['partial'])->toBeFalse()
+        ->and($snapshot['counters']['users']['total'])->toBeInt()
+        ->and($snapshot['degraded'])->toBe([]);
+});
+
+it('returns a partial dashboard summary when one counter group fails', function (): void {
+    $admin = User::factory()->create(['subject_id' => 'admin_dashboard_partial', 'role' => 'admin']);
+
+    Schema::drop('data_subject_requests');
+
+    $response = $this->withToken(adminAccessTokenFor($admin))
+        ->getJson('/admin/api/dashboard/summary');
+
+    $response->assertOk()
+        ->assertJsonPath('partial', true)
+        ->assertJsonPath('counters.data_subject_requests.submitted', null);
+
+    expect($response->json('degraded'))->toContain('data_subject_requests')
+        ->and($response->json('counters.users.total'))->toBeInt();
 });
 
 it('locks and unlocks a managed user with audit and reason tracking', function (): void {
