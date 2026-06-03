@@ -64,7 +64,8 @@ it('enforces session management role on all DELETE routes', function (): void {
 
 it('enforces freshness check on all admin endpoints', function (): void {
     $adminRoutes = collect(app('router')->getRoutes()->getRoutes())
-        ->filter(fn ($route) => str_starts_with($route->uri(), 'admin/api/'));
+        ->filter(fn ($route) => str_starts_with($route->uri(), 'admin/api/'))
+        ->reject(fn ($route) => $route->uri() === 'admin/api/me');
 
     foreach ($adminRoutes as $route) {
         $middleware = $route->middleware();

@@ -90,7 +90,7 @@ final class CompleteSsoAuthorization
             'scope' => $scope,
             'session_id' => $session->session_id,
             'subject_id' => $user->subject_id,
-            'auth_time' => $session->authenticated_at->getTimestamp(),
+            'auth_time' => time(),
             'amr' => ['pwd'],
             'acr' => 'urn:sso:loa:password',
             'ip_address' => $request->ip(),

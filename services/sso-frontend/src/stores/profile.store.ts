@@ -14,10 +14,14 @@ import type {
   UserSessionSummary,
 } from '@/types/profile.types'
 
+type ProfileLoadStatus = 'loading' | 'success' | 'error'
+
 export const useProfileStore = defineStore('sso-profile', () => {
   const profile = ref<ProfilePortal | null>(null)
   const connectedApps = ref<readonly ConnectedApp[]>([])
   const sessions = ref<readonly UserSessionSummary[]>([])
+  const connectedAppsStatus = ref<ProfileLoadStatus>('loading')
+  const sessionsStatus = ref<ProfileLoadStatus>('loading')
 
   const scope = computed(() => profile.value?.authorization.scope ?? '')
   const roles = computed<readonly string[]>(() => profile.value?.authorization.roles ?? [])
@@ -41,10 +45,13 @@ export const useProfileStore = defineStore('sso-profile', () => {
   }
 
   async function loadConnectedApps(): Promise<void> {
+    connectedAppsStatus.value = 'loading'
     try {
       connectedApps.value = await profileApi.getConnectedApps()
+      connectedAppsStatus.value = 'success'
     } catch (error: unknown) {
       if (handleSessionExpiry(error)) return
+      connectedAppsStatus.value = 'error'
       throw error
     }
   }
@@ -60,10 +67,13 @@ export const useProfileStore = defineStore('sso-profile', () => {
   }
 
   async function loadSessions(): Promise<void> {
+    sessionsStatus.value = 'loading'
     try {
       sessions.value = await profileApi.getSessions()
+      sessionsStatus.value = 'success'
     } catch (error: unknown) {
       if (handleSessionExpiry(error)) return
+      sessionsStatus.value = 'error'
       throw error
     }
   }
@@ -99,12 +109,16 @@ export const useProfileStore = defineStore('sso-profile', () => {
     profile.value = null
     connectedApps.value = []
     sessions.value = []
+    connectedAppsStatus.value = 'loading'
+    sessionsStatus.value = 'loading'
   }
 
   return {
     profile,
     connectedApps,
     sessions,
+    connectedAppsStatus,
+    sessionsStatus,
     scope,
     roles,
     loadProfile,

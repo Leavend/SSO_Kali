@@ -11,6 +11,12 @@ const session = useSessionStore()
 const profile = useProfileStore()
 
 const welcome = computed<string>(() => session.displayName || 'Pengguna')
+const sessionsMetric = computed<string>(() =>
+  profile.sessionsStatus === 'success' ? String(profile.sessions.length) : '—',
+)
+const connectedAppsMetric = computed<string>(() =>
+  profile.connectedAppsStatus === 'success' ? String(profile.connectedApps.length) : '—',
+)
 
 const shortcuts = [
   {
@@ -57,20 +63,58 @@ onMounted(async (): Promise<void> => {
     <div class="grid gap-4 md:grid-cols-3">
       <Card data-testid="home-metric-card" class="overflow-hidden">
         <CardHeader>
-          <CardDescription>Sesi Aktif</CardDescription>
-          <CardTitle class="font-display text-3xl">{{ profile.sessions.length }}</CardTitle>
+          <CardDescription>Sesi perangkat & aplikasi</CardDescription>
+          <CardTitle
+            data-testid="home-sessions-metric"
+            class="font-display text-3xl"
+            :class="{ 'animate-pulse': profile.sessionsStatus === 'loading' }"
+          >
+            {{ sessionsMetric }}
+          </CardTitle>
         </CardHeader>
-        <CardContent class="text-xs text-[var(--text-secondary)]">
-          Sesi yang sedang aktif di perangkat dan aplikasi lain.
+        <CardContent class="space-y-3 text-xs text-[var(--text-secondary)]">
+          <p v-if="profile.sessionsStatus === 'error'" data-testid="home-sessions-error">
+            Gagal memuat sesi. Angka ini bukan indikator status login saat ini.
+          </p>
+          <p v-else>
+            Ringkasan sesi dari perangkat dan aplikasi; bukan indikator apakah kamu sedang login.
+          </p>
+          <Button
+            v-if="profile.sessionsStatus === 'error'"
+            data-testid="home-sessions-retry"
+            variant="outline"
+            size="sm"
+            @click="profile.loadSessions()"
+          >
+            Muat ulang
+          </Button>
         </CardContent>
       </Card>
       <Card data-testid="home-metric-card" class="overflow-hidden">
         <CardHeader>
           <CardDescription>Aplikasi Terhubung</CardDescription>
-          <CardTitle class="font-display text-3xl">{{ profile.connectedApps.length }}</CardTitle>
+          <CardTitle
+            data-testid="home-connected-apps-metric"
+            class="font-display text-3xl"
+            :class="{ 'animate-pulse': profile.connectedAppsStatus === 'loading' }"
+          >
+            {{ connectedAppsMetric }}
+          </CardTitle>
         </CardHeader>
-        <CardContent class="text-xs text-[var(--text-secondary)]">
-          Aplikasi yang pernah kamu otorisasi lewat SSO.
+        <CardContent class="space-y-3 text-xs text-[var(--text-secondary)]">
+          <p v-if="profile.connectedAppsStatus === 'error'" data-testid="home-connected-apps-error">
+            Gagal memuat aplikasi terhubung.
+          </p>
+          <p v-else>Aplikasi yang pernah kamu otorisasi lewat SSO.</p>
+          <Button
+            v-if="profile.connectedAppsStatus === 'error'"
+            data-testid="home-connected-apps-retry"
+            variant="outline"
+            size="sm"
+            @click="profile.loadConnectedApps()"
+          >
+            Muat ulang
+          </Button>
         </CardContent>
       </Card>
       <Card data-testid="home-metric-card" class="overflow-hidden">

@@ -52,6 +52,8 @@ export async function handleLogin(requestUrl: URL): Promise<AppResponse> {
   const codeChallenge = await generateCodeChallenge(codeVerifier)
   const returnTo = normalizeReturnTo(requestUrl.searchParams.get('return_to'))
   const loginHint = requestUrl.searchParams.get('login_hint')
+  const prompt = promptParam(requestUrl.searchParams.get('prompt'))
+  const maxAge = maxAgeParam(requestUrl.searchParams.get('max_age'))
 
   await fetchValidatedDiscoveryMetadata()
   const location = buildAuthorizeUrl({
@@ -60,6 +62,8 @@ export async function handleLogin(requestUrl: URL): Promise<AppResponse> {
     codeChallenge,
     authorizationEndpoint: config.publicAuthorizeUrl,
     ...(loginHint ? { loginHint } : {}),
+    ...(prompt ? { prompt } : {}),
+    ...(maxAge ? { maxAge } : {}),
   })
 
   return redirect(location, [
@@ -70,6 +74,14 @@ export async function handleLogin(requestUrl: URL): Promise<AppResponse> {
       ...(returnTo ? { returnTo } : {}),
     }),
   ])
+}
+
+function promptParam(value: string | null): string | null {
+  return value === 'login' ? value : null
+}
+
+function maxAgeParam(value: string | null): string | null {
+  return value !== null && /^\d+$/u.test(value) ? value : null
 }
 
 export async function handleCallback(

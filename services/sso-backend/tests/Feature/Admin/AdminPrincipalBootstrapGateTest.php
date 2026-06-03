@@ -69,6 +69,21 @@ it('returns the authenticated admin principal from /admin/api/me', function (): 
         ->and($event->outcome)->toBe('succeeded');
 });
 
+it('allows stale but valid admin tokens to bootstrap /admin/api/me', function (): void {
+    /** @var TestCase $this */
+    $authTime = now()->subMinutes(20)->timestamp;
+    $admin = User::factory()->create([
+        'subject_id' => 'stale-bootstrap-admin',
+        'subject_uuid' => 'stale-bootstrap-admin',
+        'role' => 'admin',
+    ]);
+
+    $this->withToken(adminPanelAccessToken($admin, $authTime))
+        ->getJson('/admin/api/me')
+        ->assertOk()
+        ->assertJsonPath('principal.auth_context.auth_time', $authTime);
+});
+
 it('returns 401 from /admin/api/me when the bearer token is missing', function (): void {
     /** @var TestCase $this */
     $this->getJson('/admin/api/me')

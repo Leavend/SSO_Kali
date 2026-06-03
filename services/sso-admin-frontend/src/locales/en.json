@@ -22,10 +22,10 @@
       "enrollment_title": "Enroll multi-factor authentication before opening admin.",
       "enrollment_description": "Admin accounts must have a verified second factor. Open the security portal, enroll MFA, then return to the admin frontend.",
       "enrollment_action": "Enroll MFA",
-      "step_up_eyebrow": "Re-verification required",
-      "step_up_title": "Your admin session needs fresh verification.",
-      "step_up_description": "The admin session is active, but freshness or MFA assurance is not enough to bootstrap the panel. Verify again through the SSO portal.",
-      "step_up_action": "Verify again",
+      "step_up_eyebrow": "Re-authentication required",
+      "step_up_title": "Your admin session needs to be refreshed.",
+      "step_up_description": "The admin session is active, but the authentication age is not fresh enough to open the panel. Sign in again through the SSO portal.",
+      "step_up_action": "Re-authenticate",
       "secondary_action": "Back to SSO Portal"
     }
   },

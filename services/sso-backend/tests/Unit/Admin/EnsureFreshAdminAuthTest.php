@@ -30,8 +30,7 @@ it('returns 401 when no admin context is present on write endpoint', function ()
     $response->assertStatus(401);
 });
 
-it('treats the middleware chain as defense-in-depth', function (): void {
-    // Validate the route actually has EnsureFreshAdminAuth middleware
+it('keeps bootstrap principal exempt from freshness middleware', function (): void {
     $routes = collect(app('router')->getRoutes()->getRoutes())
         ->filter(fn ($r) => $r->uri() === 'admin/api/me');
 
@@ -43,8 +42,8 @@ it('treats the middleware chain as defense-in-depth', function (): void {
             fn (string $m) => str_contains($m, 'EnsureFreshAdminAuth')
         );
 
-        expect($hasFreshAuth)->toBeTrue(
-            'admin/api/me should have EnsureFreshAdminAuth middleware'
+        expect($hasFreshAuth)->toBeFalse(
+            'admin/api/me should allow stale valid tokens to refresh principal state'
         );
     }
 });

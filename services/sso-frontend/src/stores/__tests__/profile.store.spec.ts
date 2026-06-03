@@ -76,6 +76,16 @@ describe('useProfileStore', () => {
     await store.loadConnectedApps()
 
     expect(store.connectedApps).toEqual([CONNECTED_APP_FIXTURE])
+    expect(store.connectedAppsStatus).toBe('success')
+  })
+
+  it('marks connected apps as error when loading fails', async () => {
+    vi.spyOn(profileApi, 'getConnectedApps').mockRejectedValue(new Error('network'))
+
+    const store = useProfileStore()
+
+    await expect(store.loadConnectedApps()).rejects.toThrow('network')
+    expect(store.connectedAppsStatus).toBe('error')
   })
 
   it('revokeConnectedApp refetches list after revoke', async () => {
@@ -106,9 +116,20 @@ describe('useProfileStore', () => {
     const store = useProfileStore()
     await store.loadSessions()
     expect(store.sessions).toHaveLength(1)
+    expect(store.sessionsStatus).toBe('success')
 
     await store.revokeSession('sess-1')
     expect(revokeSpy).toHaveBeenCalledWith('sess-1')
+    expect(store.sessions).toEqual([])
+  })
+
+  it('marks sessions as error when loading fails', async () => {
+    vi.spyOn(profileApi, 'getSessions').mockRejectedValue(new Error('network'))
+
+    const store = useProfileStore()
+
+    await expect(store.loadSessions()).rejects.toThrow('network')
+    expect(store.sessionsStatus).toBe('error')
     expect(store.sessions).toEqual([])
   })
 

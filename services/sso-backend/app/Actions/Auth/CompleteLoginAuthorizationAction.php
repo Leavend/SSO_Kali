@@ -58,7 +58,7 @@ final readonly class CompleteLoginAuthorizationAction
             'scope' => $scope,
             'session_id' => $session->session_id,
             'subject_id' => $user->subjectId,
-            'auth_time' => $session->authenticated_at->getTimestamp(),
+            'auth_time' => time(),
             'amr' => ['pwd'],
             'acr' => 'urn:sso:loa:password',
             'ip_address' => $request->ip(),

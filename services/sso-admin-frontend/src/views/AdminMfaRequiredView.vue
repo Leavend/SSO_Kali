@@ -45,8 +45,10 @@ function portalUrl(path: string): string {
 }
 
 function stepUpUrl(): string {
-  const url = new URL('/', env.ssoBaseUrl)
-  url.searchParams.set('redirect', normalizeReturnPath())
+  const url = new URL('/auth/login', window.location.origin)
+  url.searchParams.set('prompt', 'login')
+  url.searchParams.set('max_age', '0')
+  url.searchParams.set('return_to', normalizeReturnPath())
   return url.toString()
 }
 

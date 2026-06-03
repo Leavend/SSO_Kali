@@ -124,4 +124,37 @@ describe('admin BFF auth flow', () => {
       'Bearer server-side-access-token',
     )
   })
+
+  it('forwards step-up prompt and max age to the authorize request', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn<(input: string | URL) => Promise<Response>>(async (input) => {
+        if (input.toString().endsWith('/.well-known/openid-configuration')) {
+          return Response.json({
+            issuer: 'https://api-sso.example.test',
+            authorization_endpoint: 'https://api-sso.example.test/authorize',
+            token_endpoint: 'https://api-sso.example.test/token',
+            jwks_uri: 'https://api-sso.example.test/jwks',
+            response_types_supported: ['code'],
+            subject_types_supported: ['public'],
+            id_token_signing_alg_values_supported: ['RS256'],
+          })
+        }
+
+        return new Response('not found', { status: 404 })
+      }),
+    )
+
+    const { handleLogin } = await import('../auth-handlers.js')
+    const login = await handleLogin(
+      new URL(
+        'https://admin-sso.example.test/auth/login?return_to=/dashboard&prompt=login&max_age=0',
+      ),
+    )
+    const location = new URL(String(login.headers?.location))
+
+    expect(location.origin).toBe('https://sso.example.test')
+    expect(location.searchParams.get('prompt')).toBe('login')
+    expect(location.searchParams.get('max_age')).toBe('0')
+  })
 })

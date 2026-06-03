@@ -6,6 +6,7 @@ use App\Models\Role;
 use App\Models\SsoSession;
 use App\Models\User;
 use App\Services\Oidc\AuthRequestStore;
+use App\Services\Oidc\AuthorizationCodeStore;
 use App\Services\Oidc\DownstreamClientRegistry;
 use App\Support\Security\SsoSessionCookiePolicy;
 use Database\Seeders\RbacSeeder;
@@ -46,6 +47,12 @@ it('completes a pending admin authorization request with an active portal sso se
     expect($redirectUri)->toStartWith('https://admin-sso.timeh.my.id/auth/callback?code=')
         ->and($redirectUri)->toContain('state=state-sso-complete')
         ->and($redirectUri)->toContain('iss=https%3A%2F%2Fapi-sso.timeh.my.id');
+
+    parse_str((string) parse_url($redirectUri, PHP_URL_QUERY), $query);
+    $payload = app(AuthorizationCodeStore::class)->pull((string) ($query['code'] ?? ''));
+
+    expect($payload)->toBeArray()
+        ->and($payload['auth_time'])->toBeGreaterThanOrEqual(now()->subSeconds(2)->timestamp);
 });
 
 it('rejects sso completion without a valid portal sso session cookie', function (): void {

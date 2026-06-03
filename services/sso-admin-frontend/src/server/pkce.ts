@@ -24,6 +24,8 @@ export function buildAuthorizeUrl(params: {
   readonly nonce: string
   readonly codeChallenge: string
   readonly loginHint?: string
+  readonly prompt?: string
+  readonly maxAge?: string
   readonly authorizationEndpoint?: string
 }): string {
   const config = getConfig()
@@ -42,6 +44,14 @@ export function buildAuthorizeUrl(params: {
 
   if (params.loginHint) {
     url.searchParams.set('login_hint', params.loginHint)
+  }
+
+  if (params.prompt) {
+    url.searchParams.set('prompt', params.prompt)
+  }
+
+  if (params.maxAge) {
+    url.searchParams.set('max_age', params.maxAge)
   }
 
   return url.toString()

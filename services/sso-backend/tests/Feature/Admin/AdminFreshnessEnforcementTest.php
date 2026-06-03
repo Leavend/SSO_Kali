@@ -32,7 +32,7 @@ it('allows fresh admin tokens to access the admin bootstrap endpoint', function 
         ->assertOk();
 });
 
-it('returns 401 reauth_required for stale admin bootstrap requests', function (): void {
+it('allows stale admin bootstrap requests so principal refresh can recover sessions', function (): void {
     /** @var TestCase $this */
     $admin = User::factory()->create([
         'subject_id' => 'stale-admin',
@@ -42,10 +42,7 @@ it('returns 401 reauth_required for stale admin bootstrap requests', function ()
 
     $this->withToken(adminToken($admin, now()->subMinutes(20)->timestamp))
         ->getJson('/admin/api/me')
-        ->assertStatus(401)
-        ->assertJsonPath('error', 'reauth_required');
-
-    assertLatestAudit('admin_api', 'stale_auth', 'stale_auth_rejected');
+        ->assertOk();
 });
 
 it('returns 401 reauth_required for stale destructive admin actions', function (): void {

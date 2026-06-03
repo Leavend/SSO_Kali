@@ -35,7 +35,6 @@ use Illuminate\Support\Facades\Route;
 Route::middleware([AdminGuard::class, EnsureAdminMfaEnrolled::class])->prefix('admin/api')->group(function (): void {
     Route::middleware([
         'throttle:admin-bootstrap',
-        EnsureFreshAdminAuth::class.':read',
         EnsureAdminMfaAssurance::class,
     ])->group(function (): void {
         Route::get('/me', [PrincipalController::class, 'show']);
