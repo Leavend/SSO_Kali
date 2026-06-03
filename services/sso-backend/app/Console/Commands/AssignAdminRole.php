@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Console\Command;
 
@@ -30,8 +31,15 @@ final class AssignAdminRole extends Command
         $user = User::query()->where('email', $email)->first();
 
         if ($user instanceof User) {
+            $adminRole = Role::query()->where('slug', 'admin')->first();
+
             $user->role = 'admin';
             $user->save();
+
+            if ($adminRole instanceof Role) {
+                $user->roles()->syncWithoutDetaching([$adminRole->id]);
+            }
+
             $this->info("✓ Admin role assigned to {$user->email} (Subject ID: {$user->subject_id})");
         } else {
             $this->warn("User '{$email}' hasn't logged in yet.");
