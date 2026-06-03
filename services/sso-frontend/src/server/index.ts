@@ -13,10 +13,10 @@ import {
   handleRefresh,
 } from './auth-handlers.js'
 import { getConfig } from './config.js'
-import { buildProxyRequestHeaders, buildProxyResponseHeaders } from './proxy-headers.js'
 import type { AppResponse } from './response.js'
 import { html, methodNotAllowed, send, text } from './response.js'
 import { shouldProxyPortalPath } from './proxy-routes.js'
+import { proxyToSsoBackend } from './sso-backend-proxy.js'
 import { handleSession, handleUserApi, redirectForLegacyError } from './user-handlers.js'
 
 const clientDir = fileURLToPath(new URL('../../client/', import.meta.url))
@@ -75,26 +75,6 @@ async function route(request: IncomingMessage, requestUrl: URL): Promise<AppResp
   if (shouldProxyPortalPath(pathname)) return proxyToSsoBackend(request, requestUrl)
 
   return await redirectForLegacyError(requestUrl)
-}
-
-async function proxyToSsoBackend(request: IncomingMessage, requestUrl: URL): Promise<AppResponse> {
-  const target = `${trimTrailingSlash(getConfig().internalBaseUrl)}${requestUrl.pathname}${requestUrl.search}`
-  const response = await fetch(target, {
-    method: request.method,
-    headers: buildProxyRequestHeaders(request.headers),
-    body: request.method === 'GET' || request.method === 'HEAD' ? undefined : request,
-    duplex: 'half',
-  } as RequestInit & { duplex: 'half' })
-
-  return {
-    status: response.status,
-    headers: buildProxyResponseHeaders(response.headers),
-    body: Buffer.from(await response.arrayBuffer()),
-  }
-}
-
-function trimTrailingSlash(value: string): string {
-  return value.endsWith('/') ? value.slice(0, -1) : value
 }
 
 async function serveStatic(requestUrl: URL, response: ServerResponse): Promise<void> {
