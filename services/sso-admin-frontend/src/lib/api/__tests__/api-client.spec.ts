@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError, apiClient, getLastRequestId } from '../api-client'
 
 function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
@@ -12,6 +12,10 @@ function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
 }
 
 describe('apiClient request evidence', () => {
+  beforeEach(() => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+  })
+
   afterEach(() => {
     vi.unstubAllGlobals()
     vi.restoreAllMocks()
@@ -176,5 +180,40 @@ describe('apiClient request evidence', () => {
       code: 'fresh_auth_required',
       requestId: 'req-export-428',
     } satisfies Partial<ApiError>)
+  })
+
+  it('logs a decode-context diagnostic when response.json() fails with a decode-like error (ISS-U3)', async () => {
+    // Simulate what happens when the browser receives Content-Encoding: gzip on
+    // an already-decompressed body: response.json() throws an error whose message
+    // contains "decod" (ERR_CONTENT_DECODING_FAILED / "Failed to decode body").
+    // The ApiError must still use code `invalid_upstream_response` so the route
+    // guard works — but a console.error should surface "content-encoding" context
+    // to aid debugging without leaking raw error details to the UI.
+    const brokenJsonResponse = {
+      ok: true,
+      status: 200,
+      headers: new Headers({
+        'Content-Type': 'application/json',
+        'X-Request-Id': 'req-decode-err',
+      }),
+      json: async () => {
+        throw new TypeError('Failed to decode body as JSON: decoding error')
+      },
+    } as unknown as Response
+
+    vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockResolvedValue(brokenJsonResponse))
+
+    await expect(apiClient.get('/api/admin/me')).rejects.toMatchObject({
+      status: 502,
+      code: 'invalid_upstream_response',
+    } satisfies Partial<ApiError>)
+
+    // The decode error should be surfaced to the console for operator debugging
+    // without changing the UX route (invalid_upstream_response still triggers
+    // /admin-api-unreachable) and without leaking raw error details to the browser.
+    expect(vi.mocked(console.error)).toHaveBeenCalledWith(
+      expect.stringContaining('content-encoding'),
+      expect.any(Error),
+    )
   })
 })

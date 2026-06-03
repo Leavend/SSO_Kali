@@ -130,9 +130,26 @@ async function jsonPayloadFromSuccess(response: Response): Promise<unknown> {
 
   try {
     return await response.json()
-  } catch {
+  } catch (error) {
+    // When response.json() throws with a decode-related message the root cause
+    // is almost always a stale Content-Encoding header being forwarded by the
+    // BFF (the body is already decompressed by Node fetch, but the browser tries
+    // to decompress it again). Log the raw error for operator debugging so the
+    // cause is visible in server/DevTools logs without surfacing it to the UI.
+    if (isDecodeError(error)) {
+      console.error(
+        '[api-client] response.json() failed with a decode error — check that the BFF strips content-encoding before forwarding (ISS-U1/ISS-U2).',
+        error,
+      )
+    }
     throw invalidUpstreamResponse(response)
   }
+}
+
+function isDecodeError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false
+  const msg = error.message.toLowerCase()
+  return msg.includes('decod') || msg.includes('content')
 }
 
 function isJsonResponse(response: Response): boolean {

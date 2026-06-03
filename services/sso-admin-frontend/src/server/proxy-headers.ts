@@ -3,14 +3,26 @@ import type { IncomingHttpHeaders } from 'node:http'
 import type { HeaderValue } from './response.js'
 
 /**
- * Hop-by-hop headers excluded from proxy forwarding (RFC 7230 §6.1).
+ * Hop-by-hop + body-framing headers that MUST NOT be forwarded downstream.
  *
- * `transfer-encoding` and `content-length` describe the wire framing of
- * the upstream response and must be re-derived for the downstream socket.
- * `connection` controls the upstream socket lifetime and is meaningless
- * to clients of the BFF.
+ * `transfer-encoding` and `content-length` describe the wire framing of the
+ * upstream response and must be re-derived for the downstream socket.
+ * `connection` controls the upstream socket lifetime and is meaningless to
+ * clients of the BFF.
+ *
+ * `content-encoding` must also be stripped because Node `fetch()` (undici)
+ * automatically decompresses the response body when `.arrayBuffer()` is
+ * called. The body this BFF forwards to the browser is therefore already
+ * plain text/JSON — forwarding the upstream `Content-Encoding: gzip` would
+ * cause browsers to attempt a second gunzip on the plain body, producing
+ * `ERR_CONTENT_DECODING_FAILED` (see audit ISS-U1, 2026-06-03).
  */
-const HOP_BY_HOP_RESPONSE_HEADERS = new Set(['transfer-encoding', 'content-length', 'connection'])
+const HOP_BY_HOP_RESPONSE_HEADERS = new Set([
+  'transfer-encoding',
+  'content-length',
+  'content-encoding',
+  'connection',
+])
 
 /**
  * Hop-by-hop request headers excluded when forwarding the inbound request

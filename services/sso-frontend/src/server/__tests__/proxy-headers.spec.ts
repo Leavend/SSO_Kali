@@ -50,6 +50,23 @@ describe('buildProxyResponseHeaders', () => {
     expect(forwarded['content-type']).toBe('text/plain')
   })
 
+  it('strips content-encoding so browser does not attempt to gunzip already-decompressed body (ISS-U2)', () => {
+    // Node fetch (undici) auto-decompresses the upstream body, so the forwarded
+    // body is plain. Forwarding Content-Encoding: gzip causes browsers to reject
+    // the plain body with ERR_CONTENT_DECODING_FAILED (same root cause as ISS-U1
+    // in the admin BFF — latent on the portal BFF path too).
+    const headers = new Headers()
+    headers.set('content-encoding', 'gzip')
+    headers.set('content-type', 'application/json')
+    headers.set('x-request-id', 'req-portal-1')
+
+    const forwarded = buildProxyResponseHeaders(headers)
+
+    expect(forwarded).not.toHaveProperty('content-encoding')
+    expect(forwarded['content-type']).toBe('application/json')
+    expect(forwarded['x-request-id']).toBe('req-portal-1')
+  })
+
   it('falls back to splitting joined Set-Cookie when getSetCookie is unavailable', () => {
     const fakeHeaders = {
       getSetCookie: undefined,
