@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use App\Models\SsoSession;
 use App\Models\Role;
+use App\Models\SsoSession;
 use App\Models\User;
 use App\Services\Oidc\AuthRequestStore;
 use App\Services\Oidc\DownstreamClientRegistry;
