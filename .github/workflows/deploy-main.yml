@@ -32,8 +32,12 @@ env:
   IMAGE_PREFIX: ghcr.io/leavend/sso-kali
   VPS_PROJECT_DIR: ${{ secrets.VPS_PROJECT_DIR || '/opt/sso-backend-prod' }}
   VPS_SSH_PORT: ${{ secrets.VPS_SSH_PORT || '22' }}
-  VPS_SSH_ATTEMPTS: ${{ vars.VPS_SSH_ATTEMPTS || '3' }}
-  VPS_SSH_COMMAND_TIMEOUT: ${{ vars.VPS_SSH_COMMAND_TIMEOUT || '45' }}
+  # Increase default attempts significantly. The VPS firewall / fail2ban can
+  # block GitHub Actions runner IPs for several minutes; exponential backoff
+  # in the retry helper (20 → 40 → 80 → 120s capped) means 8 attempts can
+  # wait up to ~12 minutes total — well past any standard ban window.
+  VPS_SSH_ATTEMPTS: ${{ vars.VPS_SSH_ATTEMPTS || '8' }}
+  VPS_SSH_COMMAND_TIMEOUT: ${{ vars.VPS_SSH_COMMAND_TIMEOUT || '60' }}
   COMPOSE_PROJECT_NAME: sso-backend-prod
 
 jobs:
@@ -171,12 +175,15 @@ jobs:
           cat > /tmp/sso-backend-ssh-helpers.sh <<'EOF'
           set -euo pipefail
 
+          # Exponential backoff: 20 → 40 → 80 → 120s (capped). With 8 default
+          # attempts the helper can wait up to ~12 min total, which outlasts
+          # typical VPS firewall / fail2ban block windows.
           ssh_with_retry() {
-            local attempt
+            local attempt delay=20
             for attempt in $(seq 1 "${VPS_SSH_ATTEMPTS}"); do
               if timeout "${VPS_SSH_COMMAND_TIMEOUT}s" ssh -i ~/.ssh/deploy_key -p "${VPS_SSH_PORT}" \
                 -o BatchMode=yes \
-                -o ConnectTimeout=15 \
+                -o ConnectTimeout=20 \
                 -o ConnectionAttempts=1 \
                 -o RequestTTY=no \
                 -o StrictHostKeyChecking=accept-new \
@@ -185,24 +192,49 @@ jobs:
                 "$@"; then
                 return 0
               fi
-              echo "ssh attempt ${attempt} failed; retrying in 10s..." >&2
-              sleep 10
+              echo "ssh attempt ${attempt}/${VPS_SSH_ATTEMPTS} failed; retrying in ${delay}s..." >&2
+              sleep "$delay"
+              [ "$delay" -lt 120 ] && delay=$(( delay * 2 )) || true
             done
             return 1
           }
 
           rsync_with_retry() {
-            local attempt
+            local attempt delay=20
             for attempt in $(seq 1 "${VPS_SSH_ATTEMPTS}"); do
-              if timeout "${VPS_SSH_COMMAND_TIMEOUT}s" rsync -az -e "ssh -i ~/.ssh/deploy_key -p ${VPS_SSH_PORT} -o BatchMode=yes -o ConnectTimeout=15 -o ConnectionAttempts=1 -o RequestTTY=no -o StrictHostKeyChecking=accept-new -o ServerAliveInterval=10 -o ServerAliveCountMax=3" "$@"; then
+              if timeout "${VPS_SSH_COMMAND_TIMEOUT}s" rsync -az -e "ssh -i ~/.ssh/deploy_key -p ${VPS_SSH_PORT} -o BatchMode=yes -o ConnectTimeout=20 -o ConnectionAttempts=1 -o RequestTTY=no -o StrictHostKeyChecking=accept-new -o ServerAliveInterval=10 -o ServerAliveCountMax=3" "$@"; then
                 return 0
               fi
-              echo "rsync attempt ${attempt} failed; retrying in 10s..." >&2
-              sleep 10
+              echo "rsync attempt ${attempt}/${VPS_SSH_ATTEMPTS} failed; retrying in ${delay}s..." >&2
+              sleep "$delay"
+              [ "$delay" -lt 120 ] && delay=$(( delay * 2 )) || true
             done
             return 1
           }
           EOF
+
+      - name: Wait for VPS SSH port availability
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Probe port reachability with nc before the first real SSH attempt.
+          # nc does not attempt authentication so it cannot trigger fail2ban.
+          # Polls every 30s for up to 6 minutes (12 attempts). If the VPS
+          # firewall drops the runner IP due to a previous burst of CI runs,
+          # this gives the block time to expire before the first SSH auth.
+          host="${{ secrets.VPS_HOST }}"
+          port="${VPS_SSH_PORT}"
+          echo "Probing VPS port ${port} for SSH availability..."
+          for i in $(seq 1 12); do
+            if nc -z -w 5 "$host" "$port" 2>/dev/null; then
+              echo "VPS port ${port} is reachable (probe ${i}/12)."
+              exit 0
+            fi
+            echo "Port not yet reachable (probe ${i}/12); waiting 30s..."
+            sleep 30
+          done
+          echo "VPS port ${port} not reachable after 6 minutes." >&2
+          exit 1
 
       - name: Prepare remote directories
         id: prepare_remote
@@ -263,26 +295,19 @@ jobs:
           test -n "${GHCR_USERNAME}" || { echo "GHCR username is required" >&2; exit 1; }
           test -n "${GHCR_TOKEN}" || { echo "GHCR token is required" >&2; exit 1; }
 
-          for attempt in 1 2 3 4 5; do
-            if printf '%s' "${GHCR_TOKEN}" | ssh -i ~/.ssh/deploy_key -p "${{ env.VPS_SSH_PORT }}" \
-              -o BatchMode=yes \
-              -o ConnectTimeout=45 \
-              -o ConnectionAttempts=3 \
-              -o StrictHostKeyChecking=accept-new \
-              -o ServerAliveInterval=10 \
-              -o ServerAliveCountMax=3 \
-              "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
-              "set -euo pipefail
-               export DOCKER_CONFIG='/tmp/sso-backend-deploy/.docker'
-               mkdir -p \"\${DOCKER_CONFIG}\"
-               chmod 0700 \"\${DOCKER_CONFIG}\"
-               docker login '${{ env.REGISTRY }}' -u '${GHCR_USERNAME}' --password-stdin"; then
-              exit 0
-            fi
-            echo "ghcr login attempt ${attempt} failed; retrying in 10s..." >&2
-            sleep 10
-          done
-          exit 1
+          source /tmp/sso-backend-ssh-helpers.sh
+          # Pipe the token via a temp file to work within ssh_with_retry.
+          token_file="$(mktemp)"
+          printf '%s' "${GHCR_TOKEN}" > "$token_file"
+          chmod 600 "$token_file"
+          ssh_with_retry "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+            "set -euo pipefail
+             export DOCKER_CONFIG='/tmp/sso-backend-deploy/.docker'
+             mkdir -p \"\${DOCKER_CONFIG}\"
+             chmod 0700 \"\${DOCKER_CONFIG}\"
+             docker login '${{ env.REGISTRY }}' -u '${GHCR_USERNAME}' --password-stdin" \
+            < "$token_file"
+          rm -f "$token_file"
 
       - name: Execute deploy on VPS
         shell: bash
@@ -318,20 +343,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          source /tmp/sso-backend-ssh-helpers.sh
           route_log="$(mktemp)"
           admin_domain="${{ vars.SSO_ADMIN_DOMAIN || 'admin-sso.timeh.my.id' }}"
           admin_upstream="${{ vars.SSO_ADMIN_FRONTEND_INTERNAL_URL || 'http://127.0.0.1:3091' }}"
           certbot_email="${{ vars.CERTBOT_EMAIL || '' }}"
           skip_certbot="${{ vars.CERTBOT_EMAIL == '' && 'true' || 'false' }}"
-          if ! ssh -i ~/.ssh/deploy_key -p "${{ env.VPS_SSH_PORT }}" \
-            -o BatchMode=yes \
-            -o ConnectTimeout=45 \
-            -o ConnectionAttempts=3 \
-            -o StrictHostKeyChecking=accept-new \
-            -o ServerAliveInterval=10 \
-            -o ServerAliveCountMax=3 \
-            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
-            "sudo -n bash -s -- '$admin_domain' '$admin_upstream' '$certbot_email' '$skip_certbot' '${{ env.VPS_PROJECT_DIR }}'" >"$route_log" 2>&1 <<'REMOTE'
+          # Route apply script is idempotent; use ssh_with_retry to survive
+          # any transient connection blips late in the deployment sequence.
+          if ! ssh_with_retry "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+            "sudo -n bash -s -- '$admin_domain' '$admin_upstream' '$certbot_email' '$skip_certbot' '${{ env.VPS_PROJECT_DIR }}'" \
+            >"$route_log" 2>&1 <<'REMOTE'
           set -euxo pipefail
           admin_domain="$1"
           admin_upstream="$2"
