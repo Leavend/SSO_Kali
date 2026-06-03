@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { buildAdminApiRequest } from '../admin-proxy.js'
 import type { PortalSession } from '../session.js'
 
@@ -75,6 +75,67 @@ describe('admin BFF API proxy', () => {
     })
 
     expect(headers(request).get('Authorization')).toBe('Bearer access-token-admin')
+  })
+
+  it('forwards GET /api/admin/me for authenticated stale user-role sessions and updates the cached role', async () => {
+    const replaceSession = vi.fn<() => Promise<void>>(async () => undefined)
+    const staleSession: PortalSession = { ...session, role: 'user' }
+
+    vi.resetModules()
+    vi.doMock('../config.js', () => ({
+      getConfig: () => ({ internalBaseUrl: 'https://backend.internal' }),
+    }))
+    vi.doMock('../sso-session-resolver.js', () => ({
+      resolveSsoSession: async () => ({
+        sessionId: 'session-id',
+        session: staleSession,
+        cookies: [],
+      }),
+      sessionHeaders: () => ({ 'set-cookie': ['session-cookie'] }),
+    }))
+    vi.doMock('../session.js', async (importActual) => ({
+      ...(await importActual<typeof import('../session.js')>()),
+      replaceSession,
+    }))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        Response.json({
+          principal: { role: 'admin' },
+        }),
+      ),
+    )
+
+    const { handleAdminApiProxy } = await import('../admin-proxy.js')
+    const response = await handleAdminApiProxy({
+      request: { method: 'GET', headers: { 'x-request-id': 'req-me' } } as never,
+      requestUrl: new URL('https://admin-sso.example.test/api/admin/me'),
+    })
+
+    expect(response.status).toBe(200)
+    expect(replaceSession).toHaveBeenCalledWith('session-id', { ...staleSession, role: 'admin' })
+  })
+
+  it('keeps non-bootstrap admin APIs forbidden for stale user-role sessions', async () => {
+    const staleSession: PortalSession = { ...session, role: 'user' }
+
+    vi.resetModules()
+    vi.doMock('../sso-session-resolver.js', () => ({
+      resolveSsoSession: async () => ({
+        sessionId: 'session-id',
+        session: staleSession,
+        cookies: [],
+      }),
+      sessionHeaders: () => ({ 'set-cookie': ['session-cookie'] }),
+    }))
+
+    const { handleAdminApiProxy } = await import('../admin-proxy.js')
+    const response = await handleAdminApiProxy({
+      request: { method: 'GET', headers: {} } as never,
+      requestUrl: new URL('https://admin-sso.example.test/api/admin/dashboard/summary'),
+    })
+
+    expect(response.status).toBe(403)
   })
 })
 

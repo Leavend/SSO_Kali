@@ -1,6 +1,7 @@
 import { getConfig } from './config.js'
 import type { PortalSession } from './session.js'
 import { isSessionExpired, unixTime } from './session.js'
+import { fetchPrincipalWithAccessToken } from './user-api.js'
 
 export type RefreshRequestContext = {
   readonly requestId: string
@@ -22,6 +23,9 @@ export async function refreshPortalSession(
 ): Promise<PortalSession> {
   const tokens = await requestRefreshTokens(session.refreshToken, context)
   const refreshedAt = unixTime()
+  const principal = await fetchPrincipalWithAccessToken(tokens.access_token, context).catch(
+    () => null,
+  )
 
   return {
     ...session,
@@ -29,6 +33,7 @@ export async function refreshPortalSession(
     refreshToken: tokens.refresh_token ?? session.refreshToken,
     expiresAt: refreshedAt + tokens.expires_in,
     lastRefreshedAt: refreshedAt,
+    role: principal?.role ?? session.role,
   }
 }
 

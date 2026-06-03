@@ -14,6 +14,7 @@
       "eyebrow": "Akses Ditolak",
       "title": "Akun ini belum memiliki akses admin.",
       "description": "Kamu sudah login melalui portal SSO, tetapi role akun ini tidak diizinkan membuka admin frontend.",
+      "retry_login": "Coba Login Ulang",
       "back_to_portal": "Kembali ke Portal SSO"
     },
     "mfa_required": {

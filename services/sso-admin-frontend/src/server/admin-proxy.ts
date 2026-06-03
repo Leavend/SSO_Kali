@@ -4,7 +4,7 @@ import { buildProxyResponseHeaders, resolveBffRequestId } from './proxy-headers.
 import type { AppResponse } from './response.js'
 import { json } from './response.js'
 import type { PortalSession } from './session.js'
-import { clearSessionCookie } from './session.js'
+import { clearSessionCookie, replaceSession } from './session.js'
 import { resolveSsoSession, sessionHeaders } from './sso-session-resolver.js'
 import type { ResolvedSsoSession } from './sso-session-resolver.js'
 
@@ -117,7 +117,8 @@ export function buildAdminApiRequest(options: AdminApiRequestOptions): AdminApiR
   const method = options.method.toUpperCase()
   const routeKey = `${method} ${options.pathname}`
   if (!isAllowedAdminRoute(routeKey)) {
-    if (isAllowedAdminPath(options.pathname)) throw new Error('Admin API proxy method is not allowed.')
+    if (isAllowedAdminPath(options.pathname))
+      throw new Error('Admin API proxy method is not allowed.')
     throw new Error('Admin API proxy path is not allowed.')
   }
 
@@ -161,7 +162,7 @@ export async function handleAdminApiProxy(context: {
     )
   }
 
-  if (resolved.session.role !== 'admin') {
+  if (!isBootstrapPrincipalRequest(context) && resolved.session.role !== 'admin') {
     return json(
       403,
       { error: 'forbidden', message: 'Admin role is required to access this resource.' },
@@ -181,16 +182,67 @@ export async function handleAdminApiProxy(context: {
     })
 
     const response = await fetch(url, init)
+    const body = Buffer.from(await response.arrayBuffer())
+    if (response.ok && isBootstrapPrincipalRequest(context)) {
+      await refreshCachedRoleFromPrincipalResponse(resolved, body)
+    }
 
     return {
       status: response.status,
       headers: { ...buildProxyResponseHeaders(response.headers), ...sessionHeaders(resolved) },
-      body: Buffer.from(await response.arrayBuffer()),
+      body,
     }
   } catch (error) {
     console.error('Admin API proxy failed:', error instanceof Error ? error.message : error)
-    return json(502, { error: 'admin_proxy_failed', message: 'Admin API proxy failed.' }, sessionHeaders(resolved))
+    return json(
+      502,
+      { error: 'admin_proxy_failed', message: 'Admin API proxy failed.' },
+      sessionHeaders(resolved),
+    )
   }
+}
+
+function isBootstrapPrincipalRequest(context: {
+  readonly request: IncomingMessage
+  readonly requestUrl: URL
+}): boolean {
+  return (
+    context.requestUrl.pathname === '/api/admin/me' &&
+    (context.request.method ?? 'GET').toUpperCase() === 'GET'
+  )
+}
+
+async function refreshCachedRoleFromPrincipalResponse(
+  resolved: ResolvedSsoSession,
+  body: Buffer,
+): Promise<void> {
+  const role = roleFromPrincipalBody(body)
+  if (!role || role === resolved.session.role) return
+
+  await replaceSession(resolved.sessionId, { ...resolved.session, role }).catch(
+    (error: unknown) => {
+      console.error(
+        'Admin session role refresh failed:',
+        error instanceof Error ? error.message : error,
+      )
+    },
+  )
+}
+
+function roleFromPrincipalBody(body: Buffer): string | null {
+  try {
+    const data = JSON.parse(body.toString('utf8')) as unknown
+    if (!isRecord(data)) return null
+    const principal = data.principal
+    if (!isRecord(principal)) return null
+    return typeof principal.role === 'string' && principal.role !== '' ? principal.role : null
+  } catch {
+    return null
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
 }
 
 function buildAdminApiHeaders(headers: IncomingHttpHeaders, accessToken: string): Headers {
@@ -213,15 +265,20 @@ function buildAdminApiHeaders(headers: IncomingHttpHeaders, accessToken: string)
 }
 
 function isAllowedAdminRoute(routeKey: string): boolean {
-  return ALLOWED_ADMIN_ROUTES.has(routeKey) || ALLOWED_ADMIN_ROUTE_PATTERNS.some((pattern) => pattern.test(routeKey))
+  return (
+    ALLOWED_ADMIN_ROUTES.has(routeKey) ||
+    ALLOWED_ADMIN_ROUTE_PATTERNS.some((pattern) => pattern.test(routeKey))
+  )
 }
 
 function isAllowedAdminPath(pathname: string): boolean {
-  return isAllowedAdminRoute(`GET ${pathname}`) ||
+  return (
+    isAllowedAdminRoute(`GET ${pathname}`) ||
     isAllowedAdminRoute(`PATCH ${pathname}`) ||
     isAllowedAdminRoute(`POST ${pathname}`) ||
     isAllowedAdminRoute(`PUT ${pathname}`) ||
     isAllowedAdminRoute(`DELETE ${pathname}`)
+  )
 }
 
 function trimTrailingSlash(value: string): string {

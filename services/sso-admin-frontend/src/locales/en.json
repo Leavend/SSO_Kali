@@ -14,6 +14,7 @@
       "eyebrow": "Access Denied",
       "title": "This account does not have admin access.",
       "description": "You are signed in through the SSO portal, but this account role is not allowed to open the admin frontend.",
+      "retry_login": "Try Login Again",
       "back_to_portal": "Back to SSO Portal"
     },
     "mfa_required": {
