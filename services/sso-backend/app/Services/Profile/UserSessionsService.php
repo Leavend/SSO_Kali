@@ -135,9 +135,9 @@ final class UserSessionsService
      */
     private function buildPortalSession(object $row, ?array $linkedApps): array
     {
-        $clientIds = collect(['sso-portal'])
-            ->merge($linkedApps['client_ids'] ?? [])
+        $rpClientIds = collect($linkedApps['client_ids'] ?? [])
             ->map(fn (mixed $value): string => (string) $value)
+            ->filter(fn (string $id): bool => $id !== 'sso-portal')
             ->unique()
             ->values()
             ->all();
@@ -149,14 +149,16 @@ final class UserSessionsService
             'expires_at' => str_replace(' ', 'T', (string) $row->expires_at).'Z',
             'ip_address' => $row->ip_address,
             'user_agent' => $row->user_agent,
-            'client_count' => count($clientIds),
-            'client_ids' => $clientIds,
-            'client_display_names' => array_map(
-                fn (string $clientId): string => $clientId === 'sso-portal' ? 'SSO Portal' : $this->displayName($clientId),
-                $clientIds,
-            ),
             'type' => 'portal',
             'revoke_reason' => null,
+            'is_portal' => true,
+            'portal_display_name' => 'SSO Portal',
+            'client_count' => count($rpClientIds),
+            'client_ids' => $rpClientIds,
+            'client_display_names' => array_map(
+                fn (string $clientId): string => $this->displayName($clientId),
+                $rpClientIds,
+            ),
         ];
     }
 

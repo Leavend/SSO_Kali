@@ -136,4 +136,73 @@ describe('SessionCard', () => {
     expect(wrapper.text()).not.toContain('Perangkat tidak dikenal')
     expect(wrapper.classes()).not.toContain('border-error-700/40')
   })
+
+  describe('ISS-M2: portal sessions with is_portal flag', () => {
+    const portalOnlySession: UserSessionSummary = {
+      session_id: 'portal-sid-1',
+      user_agent:
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/537.36 Chrome/124.0.0.0 Safari/537.36',
+      ip_address: '103.88.12.10',
+      location: 'Jakarta',
+      opened_at: '2026-06-01T10:00:00Z',
+      last_used_at: '2026-06-01T12:00:00Z',
+      expires_at: '2026-06-01T20:00:00Z',
+      is_current: false,
+      type: 'portal',
+      is_portal: true,
+      portal_display_name: 'SSO Portal',
+      // No RPs linked — portal-only session
+      client_count: 0,
+      client_ids: [],
+      client_display_names: [],
+    }
+
+    const portalWithRpSession: UserSessionSummary = {
+      ...portalOnlySession,
+      session_id: 'portal-sid-2',
+      client_count: 1,
+      client_ids: ['sso-admin-panel'],
+      client_display_names: ['sso-admin-panel'],
+    }
+
+    it('shows "Portal" badge (not "0 aplikasi") for portal-only session', () => {
+      const wrapper = mount(SessionCard, {
+        props: { session: portalOnlySession, pending: false, currentIp: '103.88.12.10' },
+      })
+
+      expect(wrapper.text()).toContain('Portal')
+      expect(wrapper.text()).not.toContain('0 aplikasi')
+    })
+
+    it('shows "Portal + 1 aplikasi" badge when RP is also linked', () => {
+      const wrapper = mount(SessionCard, {
+        props: { session: portalWithRpSession, pending: false, currentIp: '103.88.12.10' },
+      })
+
+      expect(wrapper.text()).toContain('Portal + 1 aplikasi')
+      expect(wrapper.text()).not.toContain('SSO Portal,')
+    })
+
+    it('shows portal_display_name in client list without "sso-portal" app entry', () => {
+      const wrapper = mount(SessionCard, {
+        props: { session: portalWithRpSession, pending: false, currentIp: '103.88.12.10' },
+      })
+
+      const clientsEl = wrapper.find('[data-testid="session-card-clients"]')
+      expect(clientsEl.text()).toContain('SSO Portal')
+      expect(clientsEl.text()).toContain('sso-admin-panel')
+      // sso-portal should not appear as a raw client_id entry
+      expect(clientsEl.text()).not.toContain('sso-portal,')
+    })
+
+    it('non-portal sessions still show raw client_count label', () => {
+      const wrapper = mount(SessionCard, {
+        props: { session: appGrantSession, pending: false, currentIp: '103.88.12.10' },
+      })
+
+      expect(wrapper.text()).toContain('1 aplikasi')
+      expect(wrapper.text()).not.toContain('Portal')
+    })
+  })
 })
+

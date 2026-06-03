@@ -66,6 +66,8 @@ export type UserSessionSummary = {
   readonly location?: string | null
   /** Whether this is the current browser session. */
   readonly is_current?: boolean
+  readonly is_portal?: boolean
+  readonly portal_display_name?: string | null
 }
 
 export type TrustedDeviceSummary = {

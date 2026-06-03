@@ -91,6 +91,59 @@ describe('GET /api/profile/sessions', function (): void {
             ->and($response->json('sessions.0.client_ids'))->toContain('sso-admin-panel')
             ->and($response->json('sessions.0.client_display_names'))->toContain('sso-admin-panel');
     });
+
+    it('ISS-M2: portal session excludes sso-portal from client_count and exposes is_portal flag', function (): void {
+        $user = uc32User();
+
+        DB::table('sso_sessions')->insert([
+            'session_id' => 'iss-m2-portal-sid',
+            'user_id' => $user->id,
+            'subject_id' => $user->subject_id,
+            'ip_address' => '10.0.0.1',
+            'user_agent' => 'Chrome macOS',
+            'authenticated_at' => now()->subMinute(),
+            'last_seen_at' => now()->subMinute(),
+            'expires_at' => now()->addHours(8),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        // Insert one RP session linked to same SID
+        DB::table('oidc_rp_sessions')->insert([
+            'sid' => 'iss-m2-portal-sid',
+            'subject_id' => $user->subject_id,
+            'client_id' => 'sso-admin-panel',
+            'backchannel_logout_uri' => null,
+            'frontchannel_logout_uri' => null,
+            'channels' => json_encode(['backchannel'], JSON_THROW_ON_ERROR),
+            'scope' => 'openid profile',
+            'created_at' => now(),
+            'last_seen_at' => now(),
+            'expires_at' => now()->addHours(8),
+            'revoked_at' => null,
+        ]);
+
+        $response = $this->getJson(
+            '/api/profile/sessions',
+            uc32AuthHeaders($user, 'app-a', 'iss-m2-portal-sid'),
+        );
+
+        $response->assertOk()->assertJsonCount(1, 'sessions');
+
+        $session = $response->json('sessions.0');
+
+        // The UI renders portal presence separately from RP applications.
+        expect($session['is_portal'])->toBeTrue();
+        expect($session['portal_display_name'])->toBe('SSO Portal');
+
+        // sso-portal must not appear as a connected application.
+        expect($session['client_ids'])->not->toContain('sso-portal');
+        expect($session['client_display_names'])->not->toContain('SSO Portal');
+
+        // Only the RPs (app-a and sso-admin-panel) are counted
+        expect($session['client_count'])->toBe(2);
+        expect($session['client_ids'])->toEqualCanonicalizing(['app-a', 'sso-admin-panel']);
+    });
 });
 
 describe('DELETE /api/profile/sessions/{sessionId} — UC-27', function (): void {

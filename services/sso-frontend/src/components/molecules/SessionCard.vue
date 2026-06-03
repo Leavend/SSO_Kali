@@ -47,6 +47,16 @@ const shouldHighlight = computed<boolean>(
     (locationInfo.value.isForeignIp || locationInfo.value.isUnknownIp),
 )
 
+const isPortalSession = computed<boolean>(() => props.session.is_portal === true)
+
+const appCountLabel = computed<string>(() => {
+  const count = props.session.client_count
+  if (isPortalSession.value) {
+    return count === 0 ? 'Portal' : `Portal + ${count} aplikasi`
+  }
+  return `${count} aplikasi`
+})
+
 function appGrantLabel(displayNames: readonly string[]): string {
   const name = displayNames.find((value) => value.length > 0)
   return name ? `Aplikasi: ${name}` : 'Aplikasi terhubung'
@@ -91,12 +101,21 @@ function handleRevoke(): void {
           Tidak aktif
         </Badge>
         <Badge variant="secondary" class="text-[10px]">
-          {{ props.session.client_count }} aplikasi
+          {{ appCountLabel }}
         </Badge>
       </div>
 
       <p data-testid="session-card-clients" class="text-muted-foreground truncate text-xs">
-        {{ props.session.client_display_names.join(', ') || '—' }}
+        <template v-if="isPortalSession">
+          <span v-if="props.session.portal_display_name">{{ props.session.portal_display_name }}</span>
+          <span v-if="props.session.client_display_names.length > 0">
+            {{ props.session.portal_display_name ? ' + ' : '' }}{{ props.session.client_display_names.join(', ') }}
+          </span>
+          <span v-if="!props.session.portal_display_name && props.session.client_display_names.length === 0">—</span>
+        </template>
+        <template v-else>
+          {{ props.session.client_display_names.join(', ') || '—' }}
+        </template>
       </p>
 
       <div class="grid gap-2 text-xs sm:grid-cols-2 lg:grid-cols-4">

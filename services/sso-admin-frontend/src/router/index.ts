@@ -83,6 +83,24 @@ const router = createRouter({
           component: () => import('@/features/ops/pages/OpsPage.vue'),
           meta: { requiresAdmin: true, permissions: ['admin.dashboard.view'] },
         },
+        {
+          path: 'roles',
+          name: 'admin.roles',
+          component: () => import('@/features/roles/pages/RolesPage.vue'),
+          meta: { requiresAdmin: true, permissions: ['admin.roles.read'] },
+        },
+        {
+          path: 'authentication-audit',
+          name: 'admin.authentication-audit',
+          component: () => import('@/features/authentication-audit/pages/AuthenticationAuditPage.vue'),
+          meta: { requiresAdmin: true, permissions: ['admin.authentication-audit.read'] },
+        },
+        {
+          path: 'profile',
+          name: 'admin.profile',
+          component: () => import('@/features/profile/pages/AdminProfilePage.vue'),
+          meta: { requiresAdmin: true, permissions: ['profile.read'] },
+        },
       ],
     },
     {
