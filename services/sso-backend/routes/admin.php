@@ -43,7 +43,6 @@ Route::middleware([AdminGuard::class, EnsureAdminMfaEnrolled::class])->prefix('a
     // Read endpoints — 60 req/min per admin
     Route::middleware([
         'throttle:admin-read',
-        EnsureFreshAdminAuth::class.':read',
         EnsureAdminMfaAssurance::class,
     ])->group(function (): void {
         Route::get('/users', [UserController::class, 'index']);
@@ -63,7 +62,6 @@ Route::middleware([AdminGuard::class, EnsureAdminMfaEnrolled::class])->prefix('a
     Route::middleware([
         'throttle:admin-read',
         RequireAdminPermission::class.':'.AdminPermission::EXTERNAL_IDPS_READ,
-        EnsureFreshAdminAuth::class.':read',
         EnsureAdminMfaAssurance::class,
     ])->group(function (): void {
         Route::get('/external-idps', [ExternalIdentityProviderController::class, 'index']);
@@ -73,7 +71,6 @@ Route::middleware([AdminGuard::class, EnsureAdminMfaEnrolled::class])->prefix('a
     Route::middleware([
         'throttle:admin-read',
         RequireAdminPermission::class.':'.AdminPermission::AUTHENTICATION_AUDIT_READ,
-        EnsureFreshAdminAuth::class.':read',
         EnsureAdminMfaAssurance::class,
     ])->group(function (): void {
         Route::get('/audit/authentication-events', [AuthenticationAuditController::class, 'index']);
@@ -84,7 +81,6 @@ Route::middleware([AdminGuard::class, EnsureAdminMfaEnrolled::class])->prefix('a
     Route::middleware([
         'throttle:admin-read',
         RequireAdminPermission::class.':'.AdminPermission::SSO_ERROR_TEMPLATES_READ,
-        EnsureFreshAdminAuth::class.':read',
         EnsureAdminMfaAssurance::class,
     ])->group(function (): void {
         Route::get('/sso-error-templates', [SsoErrorTemplateController::class, 'index']);
@@ -95,7 +91,6 @@ Route::middleware([AdminGuard::class, EnsureAdminMfaEnrolled::class])->prefix('a
     Route::middleware([
         'throttle:admin-read',
         RequireAdminPermission::class.':'.AdminPermission::AUDIT_READ,
-        EnsureFreshAdminAuth::class.':read',
         EnsureAdminMfaAssurance::class,
     ])->group(function (): void {
         Route::get('/audit/events', [AuditTrailController::class, 'index']);
@@ -108,7 +103,6 @@ Route::middleware([AdminGuard::class, EnsureAdminMfaEnrolled::class])->prefix('a
     Route::middleware([
         'throttle:admin-read',
         RequireAdminPermission::class.':'.AdminPermission::DASHBOARD_VIEW,
-        EnsureFreshAdminAuth::class.':read',
         EnsureAdminMfaAssurance::class,
     ])->group(function (): void {
         Route::get('/dashboard/summary', DashboardSummaryController::class);
@@ -118,7 +112,6 @@ Route::middleware([AdminGuard::class, EnsureAdminMfaEnrolled::class])->prefix('a
     Route::middleware([
         'throttle:admin-read',
         RequireAdminPermission::class.':'.AdminPermission::DATA_SUBJECT_REQUESTS_READ,
-        EnsureFreshAdminAuth::class.':read',
         EnsureAdminMfaAssurance::class,
     ])->group(function (): void {
         Route::get('/data-subject-requests', [DataSubjectRequestAdminController::class, 'index']);
@@ -161,7 +154,6 @@ Route::middleware([AdminGuard::class, EnsureAdminMfaEnrolled::class])->prefix('a
     Route::middleware([
         'throttle:admin-read',
         RequireAdminPermission::class.':'.AdminPermission::SECURITY_POLICY_READ,
-        EnsureFreshAdminAuth::class.':read',
         EnsureAdminMfaAssurance::class,
     ])->group(function (): void {
         Route::get('/security-policies/{category}', [SecurityPolicyController::class, 'index'])
@@ -195,7 +187,6 @@ Route::middleware([AdminGuard::class, EnsureAdminMfaEnrolled::class])->prefix('a
     Route::middleware([
         'throttle:admin-read',
         RequireAdminPermission::class.':'.AdminPermission::IP_ACCESS_READ,
-        EnsureFreshAdminAuth::class.':read',
         EnsureAdminMfaAssurance::class,
     ])->group(function (): void {
         Route::get('/ip-access-rules', [IpAccessRuleController::class, 'index']);
@@ -216,7 +207,6 @@ Route::middleware([AdminGuard::class, EnsureAdminMfaEnrolled::class])->prefix('a
     Route::middleware([
         'throttle:admin-read',
         RequireAdminPermission::class.':'.AdminPermission::ROLES_READ,
-        EnsureFreshAdminAuth::class.':read',
         EnsureAdminMfaAssurance::class,
     ])->group(function (): void {
         Route::get('/roles', [RoleController::class, 'index']);

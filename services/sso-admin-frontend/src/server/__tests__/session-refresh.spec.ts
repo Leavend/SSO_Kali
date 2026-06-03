@@ -32,10 +32,12 @@ describe('admin BFF session refresh', () => {
   })
 
   it('refreshes the cached session role from userinfo after token refresh', async () => {
+    const calls: Array<{ readonly url: string; readonly init?: RequestInit }> = []
     vi.stubGlobal(
       'fetch',
-      vi.fn(async (input: string | URL) => {
+      vi.fn(async (input: string | URL, init?: RequestInit) => {
         const url = input.toString()
+        calls.push({ url, init })
         if (url === 'https://api-sso.example.test/token') {
           return Response.json({ access_token: 'new-access-token', expires_in: 3600 })
         }
@@ -51,6 +53,8 @@ describe('admin BFF session refresh', () => {
 
     expect(refreshed.accessToken).toBe('new-access-token')
     expect(refreshed.role).toBe('admin')
+    expect(new Headers(calls[0]?.init?.headers).get('accept-encoding')).toBe('identity')
+    expect(new Headers(calls[1]?.init?.headers).get('accept-encoding')).toBe('identity')
   })
 
   it('keeps the cached session role when userinfo refresh fails', async () => {

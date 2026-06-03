@@ -120,9 +120,11 @@ describe('admin BFF auth flow', () => {
     expect(String(tokenRequest?.body)).toContain(
       'redirect_uri=https%3A%2F%2Fadmin-sso.example.test%2Fauth%2Fcallback',
     )
+    expect(new Headers(tokenRequest?.headers).get('accept-encoding')).toBe('identity')
     expect((userinfoRequest?.headers as Record<string, string> | undefined)?.Authorization).toBe(
       'Bearer server-side-access-token',
     )
+    expect(new Headers(userinfoRequest?.headers).get('accept-encoding')).toBe('identity')
   })
 
   it('forwards step-up prompt and max age to the authorize request', async () => {

@@ -82,7 +82,10 @@ export async function fetchDiscovery(discoveryUrl: string): Promise<DiscoveryMet
 }
 
 async function performFetch(url: string, previous: CacheEntry | null): Promise<CacheEntry> {
-  const headers: Record<string, string> = { Accept: 'application/json' }
+  const headers: Record<string, string> = {
+    Accept: 'application/json',
+    'Accept-Encoding': 'identity',
+  }
   if (previous?.etag) {
     headers['If-None-Match'] = previous.etag
   }

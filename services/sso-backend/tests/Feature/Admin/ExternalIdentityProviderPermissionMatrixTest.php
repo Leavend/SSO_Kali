@@ -48,7 +48,6 @@ it('locks external idp admin routes to read write step-up and mfa policy', funct
 
     expect($routes)->toContain('AdminPermission::EXTERNAL_IDPS_READ')
         ->and($routes)->toContain('AdminPermission::EXTERNAL_IDPS_WRITE')
-        ->and($routes)->toContain("EnsureFreshAdminAuth::class.':read'")
         ->and($routes)->toContain("EnsureFreshAdminAuth::class.':step_up'")
         ->and($routes)->toContain('EnsureAdminMfaAssurance::class')
         ->and($routes)->toContain("Route::get('/external-idps'")

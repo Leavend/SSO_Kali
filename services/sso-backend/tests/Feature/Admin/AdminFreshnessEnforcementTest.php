@@ -45,6 +45,45 @@ it('allows stale admin bootstrap requests so principal refresh can recover sessi
         ->assertOk();
 });
 
+it('allows stale admin tokens to access routine read endpoints', function (): void {
+    /** @var TestCase $this */
+    $admin = User::factory()->create([
+        'subject_id' => 'stale-read-admin',
+        'subject_uuid' => 'stale-read-admin',
+        'role' => 'admin',
+    ]);
+
+    User::factory()->create([
+        'subject_id' => 'read-target-user',
+        'subject_uuid' => 'read-target-user',
+        'role' => 'user',
+    ]);
+
+    $this->withToken(adminToken($admin, now()->subMinutes(30)->timestamp))
+        ->getJson('/admin/api/users')
+        ->assertOk();
+});
+
+it('returns 401 reauth_required for stale privileged write actions', function (): void {
+    /** @var TestCase $this */
+    $admin = User::factory()->create([
+        'subject_id' => 'stale-write-admin',
+        'subject_uuid' => 'stale-write-admin',
+        'role' => 'admin',
+    ]);
+
+    User::factory()->create([
+        'subject_id' => 'write-target-user',
+        'subject_uuid' => 'write-target-user',
+        'role' => 'user',
+    ]);
+
+    $this->withToken(adminToken($admin, now()->subMinutes(30)->timestamp))
+        ->postJson('/admin/api/users/write-target-user/lock')
+        ->assertStatus(401)
+        ->assertJsonPath('error', 'reauth_required');
+});
+
 it('returns 401 reauth_required for stale destructive admin actions', function (): void {
     /** @var TestCase $this */
     $admin = User::factory()->create([

@@ -48,6 +48,7 @@ describe('user API backend correlation', () => {
     const calls = fetchMock.mock.calls as unknown as Array<[string, RequestInit]>
     const init = calls[0][1]
     expect(new Headers(init.headers).get('x-request-id')).toBe('bff-req-123')
+    expect(new Headers(init.headers).get('accept-encoding')).toBe('identity')
   })
 
   it('keeps backend request id on API errors for support references', async () => {

@@ -127,12 +127,23 @@ describe('buildProxyRequestHeaders', () => {
       host: 'sso.timeh.my.id',
       connection: 'keep-alive',
       'content-length': '42',
+      'accept-encoding': 'gzip, deflate, br, zstd',
       'x-request-id': 'req-1',
     })
 
     expect(forwarded.get('host')).toBeNull()
     expect(forwarded.get('connection')).toBeNull()
     expect(forwarded.get('content-length')).toBeNull()
+    expect(forwarded.get('accept-encoding')).toBe('identity')
     expect(forwarded.get('x-request-id')).toBe('req-1')
+  })
+
+  it('forces identity encoding so Caddy cannot return zstd bodies to the BFF', () => {
+    const forwarded = buildProxyRequestHeaders({
+      'accept-encoding': 'gzip, deflate, br, zstd',
+      'x-request-id': 'req-zstd',
+    })
+
+    expect(forwarded.get('accept-encoding')).toBe('identity')
   })
 })

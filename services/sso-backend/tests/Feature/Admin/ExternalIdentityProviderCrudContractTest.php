@@ -168,7 +168,6 @@ it('keeps admin route contracts locked to explicit external idp permissions', fu
         ->and(AdminPermission::all())->toContain(AdminPermission::EXTERNAL_IDPS_WRITE)
         ->and($routes)->toContain('AdminPermission::EXTERNAL_IDPS_READ')
         ->and($routes)->toContain('AdminPermission::EXTERNAL_IDPS_WRITE')
-        ->and($routes)->toContain("EnsureFreshAdminAuth::class.':read'")
         ->and($routes)->toContain("EnsureFreshAdminAuth::class.':step_up'")
         ->and($routes)->toContain('EnsureAdminMfaAssurance::class')
         ->and($routes)->toContain("Route::get('/external-idps'")

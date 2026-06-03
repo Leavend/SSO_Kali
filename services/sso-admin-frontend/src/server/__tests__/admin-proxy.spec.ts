@@ -35,6 +35,7 @@ describe('admin BFF API proxy', () => {
     expect(request.url).toBe('https://backend.internal/admin/api/users/sub_admin/lock')
     expect(headers(request).get('Authorization')).toBe('Bearer access-token-admin')
     expect(headers(request).get('Accept')).toBe('application/json')
+    expect(headers(request).get('Accept-Encoding')).toBe('identity')
     expect(headers(request).get('X-Request-Id')).toBe('req-1')
   })
 

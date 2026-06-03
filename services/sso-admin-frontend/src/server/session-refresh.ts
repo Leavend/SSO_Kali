@@ -46,6 +46,7 @@ async function requestRefreshTokens(
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
+      'Accept-Encoding': 'identity',
       ...(context ? { 'X-Request-Id': context.requestId } : {}),
     },
     body: new URLSearchParams({

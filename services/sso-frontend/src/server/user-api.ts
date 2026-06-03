@@ -114,6 +114,7 @@ async function profileFetch<T>(
     headers: {
       Authorization: `Bearer ${accessToken}`,
       Accept: 'application/json',
+      'Accept-Encoding': 'identity',
       'X-Request-Id': context.requestId,
       ...init?.headers,
     },
@@ -130,6 +131,7 @@ async function userinfoFetch<T>(accessToken: AccessToken, context?: BackendReque
     headers: {
       Authorization: `Bearer ${accessToken}`,
       Accept: 'application/json',
+      'Accept-Encoding': 'identity',
       ...(context ? { 'X-Request-Id': context.requestId } : {}),
     },
   })

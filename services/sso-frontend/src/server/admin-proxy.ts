@@ -187,6 +187,7 @@ function buildAdminApiHeaders(headers: IncomingHttpHeaders, accessToken: string)
   }
 
   forwarded.set('Accept', 'application/json')
+  forwarded.set('Accept-Encoding', 'identity')
   forwarded.set('Authorization', `Bearer ${accessToken}`)
   forwarded.set('X-Request-Id', resolveBffRequestId(headers))
 

@@ -10,12 +10,10 @@ import type { HeaderValue } from './response.js'
  * `connection` controls the upstream socket lifetime and is meaningless to
  * clients of the BFF.
  *
- * `content-encoding` must also be stripped because Node `fetch()` (undici)
- * automatically decompresses the response body when `.arrayBuffer()` is
- * called. The body this BFF forwards to the browser is therefore already
- * plain text/JSON — forwarding the upstream `Content-Encoding: gzip` would
- * cause browsers to attempt a second gunzip on the plain body, producing
- * `ERR_CONTENT_DECODING_FAILED` (see audit ISS-U1, 2026-06-03).
+ * Upstream requests are forced to `Accept-Encoding: identity`, so this should
+ * normally be a no-op. It remains a response-side guard because Node `fetch()`
+ * can transparently decompress encodings it supports; forwarding a stale
+ * `Content-Encoding` header would make browsers decode the plain body again.
  */
 const HOP_BY_HOP_RESPONSE_HEADERS = new Set([
   'transfer-encoding',
@@ -29,10 +27,17 @@ const HOP_BY_HOP_RESPONSE_HEADERS = new Set([
  * to the upstream backend.
  *
  * `host` is rewritten by the runtime when the request leaves this process,
- * `connection` controls the inbound socket only, and `content-length` is
- * re-derived by `fetch` once it has streamed the request body.
+ * `connection` controls the inbound socket only, `content-length` is re-derived
+ * by `fetch`, and browser `accept-encoding` must not leak upstream. The BFF
+ * cannot safely proxy every encoding Caddy may choose (notably zstd), so it
+ * requests identity bodies from the backend and forwards plain JSON.
  */
-const HOP_BY_HOP_REQUEST_HEADERS = new Set(['host', 'connection', 'content-length'])
+const HOP_BY_HOP_REQUEST_HEADERS = new Set([
+  'host',
+  'connection',
+  'content-length',
+  'accept-encoding',
+])
 const REQUEST_ID_HEADER = 'x-request-id'
 const MAX_REQUEST_ID_LENGTH = 128
 
@@ -49,7 +54,7 @@ export function buildProxyRequestHeaders(
   const forwarded = new Headers()
 
   for (const [name, value] of Object.entries(headers)) {
-    if (HOP_BY_HOP_REQUEST_HEADERS.has(name)) continue
+    if (HOP_BY_HOP_REQUEST_HEADERS.has(name.toLowerCase())) continue
     if (Array.isArray(value)) {
       for (const item of value) forwarded.append(name, item)
     } else if (typeof value === 'string') {
@@ -57,6 +62,7 @@ export function buildProxyRequestHeaders(
     }
   }
 
+  forwarded.set('Accept-Encoding', 'identity')
   forwarded.set('X-Request-Id', requestId)
 
   return forwarded

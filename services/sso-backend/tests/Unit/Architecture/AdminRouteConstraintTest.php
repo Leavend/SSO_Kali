@@ -62,19 +62,52 @@ it('enforces session management role on all DELETE routes', function (): void {
     }
 });
 
-it('enforces freshness check on all admin endpoints', function (): void {
-    $adminRoutes = collect(app('router')->getRoutes()->getRoutes())
+it('does not require fresh auth for routine admin read endpoints', function (): void {
+    $routineReadRoutes = collect(app('router')->getRoutes()->getRoutes())
         ->filter(fn ($route) => str_starts_with($route->uri(), 'admin/api/'))
-        ->reject(fn ($route) => $route->uri() === 'admin/api/me');
+        ->filter(fn ($route) => in_array('GET', $route->methods(), true))
+        ->reject(fn ($route) => in_array($route->uri(), [
+            'admin/api/audit/export',
+            'admin/api/compliance/evidence-pack',
+        ], true));
 
-    foreach ($adminRoutes as $route) {
+    expect($routineReadRoutes)->not->toBeEmpty();
+
+    foreach ($routineReadRoutes as $route) {
         $middleware = $route->middleware();
         $hasFresh = collect($middleware)->contains(
             fn (string $m) => str_contains($m, 'EnsureFreshAdminAuth')
         );
 
-        expect($hasFresh)->toBeTrue(
-            "Route [{$route->uri()}] missing EnsureFreshAdminAuth."
+        expect($hasFresh)->toBeFalse(
+            "Routine read route [{$route->uri()}] should not require fresh auth."
+        );
+    }
+});
+
+it('enforces step-up freshness on mutating and sensitive admin endpoints', function (): void {
+    $safePostReads = ['admin/api/client-integrations/contract'];
+
+    $sensitiveRoutes = collect(app('router')->getRoutes()->getRoutes())
+        ->filter(fn ($route) => str_starts_with($route->uri(), 'admin/api/'))
+        ->reject(fn ($route) => in_array($route->uri(), $safePostReads, true))
+        ->filter(
+            fn ($route) => ! in_array('GET', $route->methods(), true) || in_array($route->uri(), [
+                'admin/api/audit/export',
+                'admin/api/compliance/evidence-pack',
+            ], true)
+        );
+
+    expect($sensitiveRoutes)->not->toBeEmpty();
+
+    foreach ($sensitiveRoutes as $route) {
+        $middleware = $route->middleware();
+        $hasStepUp = collect($middleware)->contains(
+            fn (string $m) => str_contains($m, 'EnsureFreshAdminAuth:step_up')
+        );
+
+        expect($hasStepUp)->toBeTrue(
+            "Sensitive route [{$route->uri()}] missing step-up freshness."
         );
     }
 });

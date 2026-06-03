@@ -337,6 +337,7 @@ async function exchangeCode(
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
+      'Accept-Encoding': 'identity',
       'X-Request-Id': requestId,
     },
     body: new URLSearchParams({
@@ -419,7 +420,11 @@ async function revokeSession(
 ): Promise<void> {
   await fetch(logoutUrl, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${accessToken}`, 'X-Request-Id': requestId },
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Accept-Encoding': 'identity',
+      'X-Request-Id': requestId,
+    },
     signal: AbortSignal.timeout(5_000),
   })
 }
@@ -433,6 +438,7 @@ async function revokeRefreshToken(
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
+      'Accept-Encoding': 'identity',
       'X-Request-Id': requestId,
     },
     body: new URLSearchParams({
