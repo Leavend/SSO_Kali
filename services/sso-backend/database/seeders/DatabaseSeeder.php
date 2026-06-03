@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -23,7 +24,9 @@ class DatabaseSeeder extends Seeder
 
         $this->call(RbacSeeder::class);
 
-        User::query()->updateOrCreate(
+        $adminRole = Role::query()->where('slug', 'admin')->firstOrFail();
+
+        $adminUser = User::query()->updateOrCreate(
             ['email' => $email],
             [
                 'subject_id' => $subjectId,
@@ -35,6 +38,8 @@ class DatabaseSeeder extends Seeder
                 'email_verified_at' => now(),
             ],
         );
+
+        $adminUser->roles()->sync([$adminRole->id]);
 
         $this->seedDsrAutomationUser();
 

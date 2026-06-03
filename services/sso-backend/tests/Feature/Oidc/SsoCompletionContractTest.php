@@ -3,13 +3,17 @@
 declare(strict_types=1);
 
 use App\Models\SsoSession;
+use App\Models\Role;
 use App\Models\User;
 use App\Services\Oidc\AuthRequestStore;
 use App\Services\Oidc\DownstreamClientRegistry;
 use App\Support\Security\SsoSessionCookiePolicy;
+use Database\Seeders\RbacSeeder;
 use Illuminate\Support\Str;
 
 beforeEach(function (): void {
+    $this->seed(RbacSeeder::class);
+
     config()->set('app.url', 'https://api-sso.timeh.my.id');
     config()->set('sso.base_url', 'https://api-sso.timeh.my.id');
     config()->set('sso.issuer', 'https://api-sso.timeh.my.id');
@@ -69,6 +73,16 @@ it('rejects sso completion for non admin users', function (): void {
         ->assertJsonPath('error', 'access_denied');
 });
 
+it('rejects sso completion when a legacy admin column has no admin role pivot', function (): void {
+    [, $sessionId] = ssoCompletionUser('sso-complete-column-admin@example.test', 'admin', syncPivot: false);
+    $authRequestId = ssoCompletionPendingRequest();
+
+    $this->withHeader('Cookie', ssoCompletionCookieName().'='.$sessionId)
+        ->postJson('/connect/sso-complete', ['auth_request_id' => $authRequestId])
+        ->assertForbidden()
+        ->assertJsonPath('error', 'access_denied');
+});
+
 it('rejects sso completion when the portal session subject is no longer allowed', function (): void {
     [$user, $sessionId] = ssoCompletionUser('sso-complete-disabled@example.test', 'admin');
     $user->forceFill(['disabled_at' => now(), 'disabled_reason' => 'test'])->save();
@@ -91,9 +105,15 @@ it('requires fresh authentication before completing stale admin sessions', funct
 });
 
 /** @return array{0: User, 1: string} */
-function ssoCompletionUser(string $email, string $role, mixed $authenticatedAt = null): array
+function ssoCompletionUser(string $email, string $role, mixed $authenticatedAt = null, bool $syncPivot = true): array
 {
     $user = User::factory()->create(['email' => $email, 'role' => $role]);
+
+    if ($syncPivot) {
+        $roleModel = Role::query()->where('slug', $role)->firstOrFail();
+        $user->roles()->sync([$roleModel->id]);
+    }
+
     $sessionId = (string) Str::uuid();
 
     SsoSession::query()->create([

@@ -121,14 +121,18 @@ final class UserClaimsFactory
             return [];
         }
 
-        return [
-            'roles' => $user->roles()
-                ->orderBy('slug')
-                ->get()
-                ->map(fn (Role $role): string => $role->slug)
-                ->values()
-                ->all(),
-        ];
+        $roles = $user->roles()
+            ->orderBy('slug')
+            ->get()
+            ->map(fn (Role $role): string => $role->slug)
+            ->values()
+            ->all();
+
+        if ($roles === [] && $user->role !== '') {
+            $roles = [$user->role];
+        }
+
+        return ['roles' => $roles];
     }
 
     /**

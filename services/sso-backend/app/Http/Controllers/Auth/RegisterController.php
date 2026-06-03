@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Auth;
 
+use App\Models\Role;
 use App\Models\User;
 use App\Rules\StrongPassword;
 use Illuminate\Http\JsonResponse;
@@ -42,6 +43,11 @@ final class RegisterController
             'status' => 'active',
             'local_account_enabled' => true,
         ]);
+
+        $userRole = Role::query()->where('slug', 'user')->first();
+        if ($userRole instanceof Role) {
+            $user->roles()->syncWithoutDetaching([$userRole->id]);
+        }
 
         return response()->json([
             'message' => 'Akun berhasil dibuat.',

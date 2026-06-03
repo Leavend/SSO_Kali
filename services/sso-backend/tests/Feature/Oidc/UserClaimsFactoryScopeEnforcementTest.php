@@ -54,7 +54,33 @@ it('emits roles and permissions only when RBAC scopes are granted', function ():
         ->and($claims)->not->toHaveKeys(['name', 'email']);
 });
 
-function scopedClaimsUser(): User
+it('falls back to the legacy user role column when role pivot data is missing', function (): void {
+    $user = scopedClaimsUser(['role' => 'admin']);
+
+    $claims = app(UserClaimsFactory::class)->accessTokenClaims(
+        $user,
+        scopedClaimsContext('openid roles'),
+        'jti-role-column-fallback',
+    );
+
+    expect($claims['roles'])->toBe(['admin']);
+});
+
+it('uses role pivot claims as the authoritative source when pivot data exists', function (): void {
+    $user = scopedClaimsUser(['role' => 'admin']);
+    $role = Role::query()->where('slug', 'user')->firstOrFail();
+    $user->roles()->sync([$role->id]);
+
+    $claims = app(UserClaimsFactory::class)->accessTokenClaims(
+        $user,
+        scopedClaimsContext('openid roles'),
+        'jti-role-pivot-authority',
+    );
+
+    expect($claims['roles'])->toBe(['user']);
+});
+
+function scopedClaimsUser(array $overrides = []): User
 {
     return User::factory()->create([
         'subject_id' => 'scope-claim-subject',
@@ -63,6 +89,7 @@ function scopedClaimsUser(): User
         'family_name' => 'User',
         'email' => 'scope-user@example.test',
         'email_verified_at' => now(),
+        ...$overrides,
     ]);
 }
 

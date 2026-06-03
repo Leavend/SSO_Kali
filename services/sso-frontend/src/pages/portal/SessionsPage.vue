@@ -29,6 +29,10 @@ const sortedSessions = computed(() => [...profile.sessions].sort(compareSessions
 const sessions = computed(() => sortedSessions.value)
 const currentSession = computed(() => sessions.value.find((session) => session.is_current) ?? null)
 const otherSessions = computed(() => sessions.value.filter((session) => !session.is_current))
+const pendingSession = computed(
+  () => sessions.value.find((session) => session.session_id === revocation.pendingSessionId.value) ?? null,
+)
+const pendingDisconnectedApps = computed<number>(() => pendingSession.value?.client_count ?? 0)
 const currentIp = computed<string | null>(() => currentSession.value?.ip_address ?? null)
 const isEmpty = computed<boolean>(() => !load.pending.value && sessions.value.length === 0)
 const safeLoadError = computed<string | null>(() => safeError(load.error.value))
@@ -151,7 +155,7 @@ function compareSessions(
     <ConfirmDialog
       v-model:open="confirmSingleOpen"
       title="Akhiri sesi ini?"
-      description="Perangkat yang memakai sesi ini akan dipaksa logout dan harus autentikasi ulang."
+      :description="`Perangkat yang memakai sesi ini akan dipaksa logout dan ${pendingDisconnectedApps} koneksi aplikasi dari sesi ini akan terputus.`"
       confirm-label="Akhiri Sesi"
       destructive
       @confirm="revocation.confirmRevokeSession"

@@ -22,6 +22,7 @@ beforeEach(function (): void {
             'type' => 'public',
             'redirect_uris' => ['https://sso.timeh.my.id/app-a/auth/callback'],
             'post_logout_redirect_uris' => ['https://sso.timeh.my.id/app-a'],
+            'allowed_scopes' => ['openid', 'profile', 'email', 'offline_access', 'roles'],
         ],
         'app-b' => [
             'type' => 'confidential',
@@ -62,6 +63,15 @@ it('keeps userinfo profile email roles and permission claims scope-bound', funct
     foreach (['name', 'given_name', 'family_name', 'email', 'email_verified', 'roles', 'permissions'] as $claim) {
         $response->assertJsonMissingPath($claim);
     }
+});
+
+it('returns legacy column roles from userinfo when role pivot data is missing', function (): void {
+    $tokens = issue53TokenSet('openid roles', ['role' => 'admin']);
+
+    $this->withToken($tokens['access_token'])
+        ->getJson('/userinfo')
+        ->assertOk()
+        ->assertJsonPath('roles', ['admin']);
 });
 
 it('returns identical claims for GET and POST userinfo requests', function (): void {
@@ -120,9 +130,9 @@ it('rejects access tokens with invalid issuer audience and unknown client bindin
 /**
  * @return array{access_token: string, id_token: string, refresh_token: string}
  */
-function issue53TokenSet(string $scope): array
+function issue53TokenSet(string $scope, array $userOverrides = []): array
 {
-    [$user, $sessionId] = issue53BrowserSessionUser();
+    [$user, $sessionId] = issue53BrowserSessionUser($userOverrides);
     [$verifier, $challenge] = issue53PkcePair();
 
     $authorize = test()
@@ -209,9 +219,12 @@ function issue53AccessClaims(array $overrides = []): array
 /**
  * @return array{0: User, 1: string}
  */
-function issue53BrowserSessionUser(): array
+function issue53BrowserSessionUser(array $overrides = []): array
 {
-    $user = User::factory()->create(['email' => 'issue53-'.Str::random(16).'@example.test']);
+    $user = User::factory()->create([
+        'email' => 'issue53-'.Str::random(16).'@example.test',
+        ...$overrides,
+    ]);
     $sessionId = (string) Str::uuid();
 
     SsoSession::query()->create([

@@ -55,7 +55,8 @@ final class CompleteSsoAuthorization
             return OidcErrorResponse::json('invalid_request', 'A valid SSO session is required.', 401);
         }
 
-        if ($user->role !== 'admin') {
+        $roles = $user->roles()->pluck('slug')->all();
+        if (! in_array('admin', $roles, true)) {
             return OidcErrorResponse::json('access_denied', 'Admin role is required.', 403);
         }
 

@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
+import { nextTick } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
 import SessionsPage from '../SessionsPage.vue'
+import { profileApi } from '@/services/profile.api'
 import { useProfileStore } from '@/stores/profile.store'
 import type { UserSessionSummary } from '@/types/profile.types'
 
@@ -59,6 +61,7 @@ describe('SessionsPage', () => {
   function mountPageWithSessions(
     sessions: readonly UserSessionSummary[],
   ): ReturnType<typeof mount> {
+    vi.mocked(profileApi.getSessions).mockResolvedValue([...sessions])
     const profile = useProfileStore()
     profile.sessions = sessions
 
@@ -124,5 +127,16 @@ describe('SessionsPage', () => {
       'Tidak ada sesi aktif lainnya',
     )
     expect(wrapper.text()).toContain('Akun kamu hanya diakses dari perangkat ini')
+  })
+
+  it('warns that revoking one session disconnects applications from that session', async () => {
+    const wrapper = mountPageWithSessions([currentSession, otherSession])
+
+    await wrapper.find('[data-testid="session-revoke-button"]').trigger('click')
+    await nextTick()
+
+    expect(wrapper.find('[data-testid="confirm-dialog"]').text()).toContain(
+      '1 koneksi aplikasi dari sesi ini akan terputus',
+    )
   })
 })
