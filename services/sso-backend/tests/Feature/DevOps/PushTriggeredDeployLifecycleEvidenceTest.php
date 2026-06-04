@@ -21,10 +21,12 @@ it('keeps push-triggered deploy-main resilient to transient ssh keyscan failures
         ->and($content)->toContain('ConnectionAttempts=1')
         // Exponential backoff and per-step retry counts are documented as env defaults.
         ->and($content)->toContain("VPS_SSH_ATTEMPTS || '8'")
-        // Port availability probe before SSH attempts (non-blocking so SSH retries
-        // still run if the gate times out).
+        // Port availability probe before SSH attempts. The gate fails fast with
+        // operator guidance when the port stays unreachable (firewall/fail2ban),
+        // rather than burning the full SSH retry budget on a doomed connection.
+        // The wait window is configurable via VPS_SSH_PORT_WAIT_SECONDS.
         ->and($content)->toContain('Wait for VPS SSH port availability')
-        ->and($content)->toContain('continue-on-error: true')
+        ->and($content)->toContain('VPS_SSH_PORT_WAIT_SECONDS')
         // Host-key fetch is a single best-effort ssh-keyscan (no retry loop),
         // so the runner cannot self-trip the VPS SSH connection-rate limit.
         ->and($content)->toContain('ssh-keyscan -T 10')
