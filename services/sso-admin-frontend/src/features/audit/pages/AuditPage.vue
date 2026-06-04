@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { useI18n } from '@/composables/useI18n'
 import { useRoute } from 'vue-router'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
 import UiDataList, { type UiDataListRow } from '@/components/ui/UiDataList.vue'
@@ -19,6 +20,7 @@ import type {
 const store = useAuditStore()
 const session = useSessionStore()
 const route = useRoute()
+const { t } = useI18n()
 const canExportAudit = computed(() => session.hasPermission('admin.audit.export'))
 const canGenerateEvidencePack = computed(() => session.hasPermission('admin.audit.export'))
 const canReviewDsr = computed(() => session.hasPermission('admin.dsr.review'))
@@ -237,21 +239,19 @@ onMounted(() => {
 <template>
   <section class="audit-page" aria-labelledby="audit-title">
     <div class="page-heading">
-      <p class="eyebrow">Compliance Evidence</p>
-      <h1 id="audit-title">Audit Compliance</h1>
-      <p class="page-summary">Audit trail, integrity hash-chain, dan DSR evidence queue.</p>
+      <p class="eyebrow">{{ t('audit.eyebrow') }}</p>
+      <h1 id="audit-title">{{ t('audit.title') }}</h1>
+      <p class="page-summary">{{ t('audit.summary') }}</p>
     </div>
 
-    <UiSkeleton v-if="store.status === 'loading'" label="Memuat audit" />
+    <UiSkeleton v-if="store.status === 'loading'" :label="t('audit.loading')" />
 
     <UiStatusView
       v-else-if="store.status === 'forbidden'"
       tone="forbidden"
       eyebrow="Compliance Evidence"
-      title="Akses audit ditolak"
-      :description="
-        store.errorMessage ?? 'Kamu tidak memiliki izin untuk melihat audit compliance.'
-      "
+      :title="t('audit.forbidden_title')"
+      :description="store.errorMessage ?? t('common.forbidden_desc')"
       :request-id="store.requestId ?? undefined"
       :standalone="false"
     />
@@ -260,8 +260,8 @@ onMounted(() => {
       v-else-if="store.status === 'unauthenticated'"
       tone="error"
       eyebrow="Session"
-      title="Sesi admin berakhir"
-      :description="store.errorMessage ?? 'Login ulang dari portal untuk melanjutkan.'"
+      :title="t('common.session_expired_title')"
+      :description="store.errorMessage ?? t('common.session_expired_desc')"
       :request-id="store.requestId ?? undefined"
       :standalone="false"
     />
@@ -270,18 +270,16 @@ onMounted(() => {
       v-else-if="store.status === 'error'"
       tone="api"
       eyebrow="Admin API"
-      title="Audit compliance belum bisa dimuat"
-      :description="
-        store.errorMessage ?? 'Coba muat ulang atau gunakan correlation ID untuk investigasi.'
-      "
+      :title="t('audit.error_title')"
+      :description="store.errorMessage ?? t('common.error_loading_desc')"
       :request-id="store.requestId ?? undefined"
       :standalone="false"
     />
 
     <UiEmptyState
       v-else-if="!hasAuditEvidence"
-      title="Evidence audit belum tersedia"
-      description="Belum ada evidence audit untuk ditampilkan. Jalankan search atau tunggu event backend tercatat."
+      :title="t('audit.empty_title')"
+      :description="t('audit.empty_desc')"
     />
 
     <div v-else class="audit-layout">

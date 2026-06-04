@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
+import { useI18n } from '@/composables/useI18n'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
 import UiEmptyState from '@/components/ui/UiEmptyState.vue'
 import UiSkeleton from '@/components/ui/UiSkeleton.vue'
@@ -8,6 +9,7 @@ import { useOpsStore } from '../stores/ops.store'
 import { OPS_DRILLS, runbookHref } from '../drills'
 
 const store = useOpsStore()
+const { t } = useI18n()
 
 const queueCheck = computed(() => store.readiness?.checks.queue ?? null)
 const hasOpsEvidence = computed(() => store.readiness !== null)
@@ -20,22 +22,19 @@ onMounted(() => {
 <template>
   <section class="ops-page" aria-labelledby="ops-title">
     <div class="page-heading">
-      <p class="eyebrow">Operations</p>
-      <h1 id="ops-title">Ops Evidence</h1>
-      <p class="page-summary">
-        Readiness, operational drill evidence, dan compliance evidence references tanpa credential
-        telemetry di browser.
-      </p>
+      <p class="eyebrow">{{ t('ops.eyebrow') }}</p>
+      <h1 id="ops-title">{{ t('ops.title') }}</h1>
+      <p class="page-summary">{{ t('ops.summary') }}</p>
     </div>
 
-    <UiSkeleton v-if="store.status === 'loading'" label="Memuat ops evidence" />
+    <UiSkeleton v-if="store.status === 'loading'" :label="t('ops.loading')" />
 
     <UiStatusView
       v-else-if="store.status === 'forbidden'"
       tone="forbidden"
       eyebrow="Operations"
-      title="Akses ops evidence ditolak"
-      :description="store.errorMessage ?? 'Kamu tidak memiliki izin untuk melihat ops evidence.'"
+      :title="t('ops.forbidden_title')"
+      :description="store.errorMessage ?? t('common.forbidden_desc')"
       :request-id="store.requestId ?? undefined"
       :standalone="false"
     />
@@ -44,8 +43,8 @@ onMounted(() => {
       v-else-if="store.status === 'unauthenticated'"
       tone="error"
       eyebrow="Session"
-      title="Sesi admin berakhir"
-      :description="store.errorMessage ?? 'Login ulang dari portal untuk melanjutkan.'"
+      :title="t('common.session_expired_title')"
+      :description="store.errorMessage ?? t('common.session_expired_desc')"
       :request-id="store.requestId ?? undefined"
       :standalone="false"
     />
@@ -54,23 +53,21 @@ onMounted(() => {
       v-else-if="store.status === 'error'"
       tone="api"
       eyebrow="Admin API"
-      title="Ops evidence belum bisa dimuat"
-      :description="
-        store.errorMessage ?? 'Coba muat ulang atau gunakan correlation ID untuk investigasi.'
-      "
+      :title="t('ops.error_title')"
+      :description="store.errorMessage ?? t('common.error_loading_desc')"
       :request-id="store.requestId ?? undefined"
       :standalone="false"
     />
 
     <UiEmptyState
       v-else-if="!hasOpsEvidence"
-      title="Evidence operasional belum tersedia"
-      description="Belum ada evidence operasional untuk ditampilkan."
+      :title="t('ops.empty_title')"
+      :description="t('ops.empty_desc')"
     />
 
     <div v-else class="ops-layout">
       <section class="detail-section" aria-labelledby="readiness-title">
-        <h2 id="readiness-title">Health & readiness</h2>
+        <h2 id="readiness-title">{{ t('ops.readiness_title') }}</h2>
         <div v-if="store.readiness" class="ui-card">
           <strong>{{ store.readiness.service }}</strong>
           <p>{{ store.readiness.ready ? 'ready' : 'degraded' }}</p>
@@ -84,7 +81,7 @@ onMounted(() => {
       </section>
 
       <section class="detail-section" aria-labelledby="drills-title">
-        <h2 id="drills-title">Drill evidence</h2>
+        <h2 id="drills-title">{{ t('ops.drills_title') }}</h2>
         <p class="page-summary">
           Drill operasional dieksekusi lewat CI workflow dan runbook (bukan backend admin API). Tiap
           kartu menautkan system-of-record dan runbook resmi untuk menjalankan dan mengumpulkan

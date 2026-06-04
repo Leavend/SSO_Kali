@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { useI18n } from '@/composables/useI18n'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
 import UiDataList, { type UiDataListRow } from '@/components/ui/UiDataList.vue'
@@ -10,6 +11,7 @@ import { useSessionsStore } from '../stores/sessions.store'
 const store = useSessionsStore()
 const session = useSessionStore()
 const { pushToast } = useToast()
+const { t } = useI18n()
 const canTerminateSessions = computed(() => session.hasPermission('admin.sessions.terminate'))
 const pendingRevokeSessionId = ref<string | null>(null)
 const sessionRows = computed<readonly UiDataListRow[]>(() =>
@@ -22,12 +24,15 @@ const sessionRows = computed<readonly UiDataListRow[]>(() =>
   })),
 )
 
-const sessionColumns = [
-  { key: 'session_id', label: 'Session ID' },
-  { key: 'client_id', label: 'Client' },
-  { key: 'user_display_name', label: 'User' },
-  { key: 'ip_address', label: 'IP' },
-] as const
+const sessionColumns = computed(
+  () =>
+    [
+      { key: 'session_id', label: t('sessions.col_session_id') },
+      { key: 'client_id', label: t('sessions.col_client') },
+      { key: 'user_display_name', label: t('sessions.col_user') },
+      { key: 'ip_address', label: t('sessions.col_ip') },
+    ] as const,
+)
 
 onMounted(() => {
   if (store.status === 'idle') void store.load()
@@ -90,13 +95,15 @@ const confirmDescription = computed<string>(() =>
 <template>
   <section class="sessions-page" aria-labelledby="sessions-title">
     <div class="page-heading">
-      <h1 id="sessions-title">Sessions</h1>
+      <h1 id="sessions-title">{{ t('sessions.title') }}</h1>
     </div>
 
-    <div v-if="store.status === 'loading'" class="ui-card" role="status">Memuat sessions...</div>
+    <div v-if="store.status === 'loading'" class="ui-card" role="status">
+      {{ t('sessions.loading') }}
+    </div>
 
     <div v-else-if="store.status === 'forbidden'" class="ui-card ui-card--danger" role="alert">
-      <h2>Akses sessions ditolak</h2>
+      <h2>{{ t('sessions.forbidden_title') }}</h2>
       <p>{{ store.errorMessage }}</p>
     </div>
 
@@ -105,17 +112,17 @@ const confirmDescription = computed<string>(() =>
       class="ui-card ui-card--danger"
       role="alert"
     >
-      <h2>Sesi admin berakhir</h2>
+      <h2>{{ t('sessions.session_expired_title') }}</h2>
       <p>{{ store.errorMessage }}</p>
     </div>
 
     <div v-else-if="store.status === 'error'" class="ui-card ui-card--danger" role="alert">
-      <h2>Sessions admin belum bisa dimuat</h2>
+      <h2>{{ t('sessions.error_title') }}</h2>
       <p>{{ store.errorMessage }}</p>
     </div>
 
     <div v-else-if="store.sessions.length === 0" class="ui-card" role="status">
-      <p>Belum ada sesi yang dapat ditampilkan.</p>
+      <p>{{ t('sessions.empty') }}</p>
     </div>
 
     <div v-else>
@@ -127,7 +134,7 @@ const confirmDescription = computed<string>(() =>
             type="button"
             @click="requestRevokeSession(row.id)"
           >
-            Revoke
+            {{ t('sessions.btn_revoke') }}
           </button>
         </template>
       </UiDataList>

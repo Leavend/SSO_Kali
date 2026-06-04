@@ -61,7 +61,7 @@ describe('IpAccessPage', () => {
 
     const wrapper = mount(IpAccessPage)
 
-    expect(wrapper.text()).toContain('Akses IP access rules ditolak')
+    expect(wrapper.text()).toContain('IP access rules access denied')
     expect(wrapper.text()).not.toContain('Bearer')
     expect(wrapper.text()).not.toContain('SQLSTATE')
   })
@@ -73,7 +73,7 @@ describe('IpAccessPage', () => {
 
     const wrapper = mount(IpAccessPage)
 
-    expect(wrapper.text()).toContain('Sesi admin berakhir')
+    expect(wrapper.text()).toContain('Admin session expired')
     expect(wrapper.text()).not.toContain('Bearer')
     expect(wrapper.text()).not.toContain('SQLSTATE')
   })
@@ -87,7 +87,7 @@ describe('IpAccessPage', () => {
 
     const wrapper = mount(IpAccessPage)
 
-    expect(wrapper.text()).toContain('IP access rules belum bisa dimuat')
+    expect(wrapper.text()).toContain('IP access rules could not be loaded')
     expect(wrapper.text()).toContain('req-ip-fail')
     expect(wrapper.text()).not.toMatch(/Bearer|SQLSTATE/i)
   })
@@ -99,7 +99,7 @@ describe('IpAccessPage', () => {
 
     const wrapper = mount(IpAccessPage)
 
-    expect(wrapper.text()).toContain('Belum ada aturan IP access.')
+    expect(wrapper.text()).toContain('No IP access rules yet.')
     expect(wrapper.find('.ui-empty-state').exists()).toBe(true)
   })
 

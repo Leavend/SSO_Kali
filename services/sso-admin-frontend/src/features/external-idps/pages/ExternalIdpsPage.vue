@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { useI18n } from '@/composables/useI18n'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
 import UiDataList, { type UiDataListRow } from '@/components/ui/UiDataList.vue'
 import UiEmptyState from '@/components/ui/UiEmptyState.vue'
@@ -15,6 +16,7 @@ import type { ExternalIdpCreatePayload, ExternalIdpUpdatePayload } from '../type
 
 const store = useExternalIdpsStore()
 const session = useSessionStore()
+const { t } = useI18n()
 const canWriteExternalIdps = computed(() => session.hasPermission('admin.external-idps.write'))
 const canDeleteExternalIdps = computed(
   () => canWriteExternalIdps.value && session.hasPermission('admin.sessions.terminate'),
@@ -173,23 +175,19 @@ onMounted(() => {
 <template>
   <section class="external-idps-page" aria-labelledby="idp-title">
     <div class="page-heading">
-      <p class="eyebrow">Federation</p>
-      <h1 id="idp-title">External IdPs</h1>
-      <p class="page-summary">
-        Konfigurasi provider identitas eksternal, health, mapping, dan failover controls.
-      </p>
+      <p class="eyebrow">{{ t('external_idps.eyebrow') }}</p>
+      <h1 id="idp-title">{{ t('external_idps.title') }}</h1>
+      <p class="page-summary">{{ t('external_idps.summary') }}</p>
     </div>
 
-    <UiSkeleton v-if="store.status === 'loading'" label="Memuat provider" />
+    <UiSkeleton v-if="store.status === 'loading'" :label="t('external_idps.loading')" />
 
     <UiStatusView
       v-else-if="store.status === 'forbidden'"
       tone="forbidden"
       eyebrow="Federation"
-      title="Akses External IdP ditolak"
-      :description="
-        store.errorMessage ?? 'Kamu tidak memiliki izin untuk melihat External IdP admin.'
-      "
+      :title="t('external_idps.forbidden_title')"
+      :description="store.errorMessage ?? t('common.forbidden_desc')"
       :request-id="store.requestId ?? undefined"
       :standalone="false"
     />
@@ -198,8 +196,8 @@ onMounted(() => {
       v-else-if="store.status === 'unauthenticated'"
       tone="error"
       eyebrow="Session"
-      title="Sesi admin berakhir"
-      :description="store.errorMessage ?? 'Login ulang dari portal untuk melanjutkan.'"
+      :title="t('common.session_expired_title')"
+      :description="store.errorMessage ?? t('common.session_expired_desc')"
       :request-id="store.requestId ?? undefined"
       :standalone="false"
     />
@@ -208,10 +206,8 @@ onMounted(() => {
       v-else-if="store.status === 'error'"
       tone="api"
       eyebrow="Admin API"
-      title="External IdP admin belum bisa dimuat"
-      :description="
-        store.errorMessage ?? 'Coba muat ulang atau gunakan correlation ID untuk investigasi.'
-      "
+      :title="t('external_idps.error_title')"
+      :description="store.errorMessage ?? t('common.error_loading_desc')"
       :request-id="store.requestId ?? undefined"
       :standalone="false"
     />
@@ -221,8 +217,8 @@ onMounted(() => {
       <aside class="idp-list" aria-label="Daftar External IdP">
         <UiEmptyState
           v-if="store.providers.length === 0"
-          title="Belum ada provider eksternal untuk ditampilkan."
-          description="Tambahkan provider eksternal untuk mengelola health, mapping, dan failover."
+          :title="t('external_idps.empty_title')"
+          :description="t('external_idps.empty_desc')"
         />
 
         <UiDataList

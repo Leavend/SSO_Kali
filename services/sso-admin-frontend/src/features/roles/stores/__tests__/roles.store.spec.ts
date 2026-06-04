@@ -12,7 +12,11 @@ vi.mock('@/lib/api/api-client', async (importOriginal) => {
 
 const mockRolesResponse = {
   roles: [
-    { slug: 'admin', label: 'Administrator', permissions: ['admin.users.read', 'admin.roles.read'] },
+    {
+      slug: 'admin',
+      label: 'Administrator',
+      permissions: ['admin.users.read', 'admin.roles.read'],
+    },
     { slug: 'auditor', label: 'Auditor', permissions: ['admin.audit.read'] },
   ],
 }
@@ -81,9 +85,7 @@ describe('useRolesStore', () => {
     })
 
     it('sets forbidden status on 403', async () => {
-      vi.mocked(rolesApi.listRoles).mockRejectedValueOnce(
-        new ApiError(403, 'Forbidden', 'req-403'),
-      )
+      vi.mocked(rolesApi.listRoles).mockRejectedValueOnce(new ApiError(403, 'Forbidden', 'req-403'))
       vi.mocked(rolesApi.listPermissions).mockResolvedValueOnce(mockPermissionsResponse)
 
       const store = useRolesStore()

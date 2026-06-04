@@ -114,7 +114,7 @@ describe('PolicyPage', () => {
 
     const wrapper = mount(PolicyPage)
 
-    expect(wrapper.text()).toContain('Akses policy ditolak')
+    expect(wrapper.text()).toContain('Policy access denied')
     expect(wrapper.text()).not.toContain('SQLSTATE')
   })
 
@@ -127,7 +127,7 @@ describe('PolicyPage', () => {
 
     const wrapper = mount(PolicyPage)
 
-    expect(wrapper.text()).toContain('Belum ada policy atau RBAC evidence untuk ditampilkan.')
+    expect(wrapper.text()).toContain('No policy or RBAC evidence to display.')
     expect(wrapper.find('.ui-empty-state').exists()).toBe(true)
   })
 

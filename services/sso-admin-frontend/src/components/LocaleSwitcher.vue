@@ -1,20 +1,33 @@
 <script setup lang="ts">
-import { useI18n, type SupportedLocale } from '@/composables/useI18n'
+import { useI18n } from '@/composables/useI18n'
 
-const { availableLocales, locale, setLocale, t } = useI18n()
+const { locale, t, setLocale } = useI18n()
 
-function selectLocale(event: Event): void {
-  setLocale((event.target as HTMLSelectElement).value as SupportedLocale)
+function toggleLocale() {
+  const nextLocale = locale.value === 'id' ? 'en' : 'id'
+  setLocale(nextLocale)
+  if (
+    typeof window !== 'undefined' &&
+    window.location &&
+    typeof window.location.reload === 'function'
+  ) {
+    window.location.reload()
+  }
 }
 </script>
 
 <template>
-  <label class="admin-locale-switcher">
-    <span>{{ t('language.label') }}</span>
-    <select :aria-label="t('language.label')" :value="locale" @change="selectLocale">
-      <option v-for="item in availableLocales" :key="item" :value="item">
-        {{ t(`language.${item}`) }}
-      </option>
-    </select>
-  </label>
+  <button
+    class="admin-locale-switcher"
+    type="button"
+    :aria-label="t('language.label')"
+    @click="toggleLocale"
+  >
+    <div class="admin-locale-switcher__content">
+      <span class="admin-locale-label">{{ t('language.label') }}</span>
+      <span class="admin-locale-selected">
+        {{ locale.toUpperCase() }}
+      </span>
+    </div>
+  </button>
 </template>

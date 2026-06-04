@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { useI18n } from '@/composables/useI18n'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
 import UiDataList, { type UiDataListRow } from '@/components/ui/UiDataList.vue'
@@ -18,6 +19,7 @@ import type { CreateUserPayload, SyncProfilePayload } from '../types'
 const store = useUsersStore()
 const sessionsStore = useSessionsStore()
 const session = useSessionStore()
+const { t } = useI18n()
 const canWriteUsers = computed(() => session.hasPermission('admin.users.write'))
 const canLockUsers = computed(() => session.hasPermission('admin.users.lock'))
 const canTerminateSessions = computed(() => session.hasPermission('admin.sessions.terminate'))
@@ -174,21 +176,19 @@ const confirmDescription = computed<string>(() => {
 <template>
   <section class="users-page" aria-labelledby="users-title">
     <div class="page-heading">
-      <p class="eyebrow">User Lifecycle</p>
-      <h1 id="users-title">Users</h1>
-      <p class="page-summary">
-        Kelola status user, MFA support, reset lifecycle, dan evidence sesi.
-      </p>
+      <p class="eyebrow">{{ t('users.eyebrow') }}</p>
+      <h1 id="users-title">{{ t('users.title') }}</h1>
+      <p class="page-summary">{{ t('users.summary') }}</p>
     </div>
 
-    <UiSkeleton v-if="store.status === 'loading'" label="Memuat users" />
+    <UiSkeleton v-if="store.status === 'loading'" :label="t('users.loading')" />
 
     <UiStatusView
       v-else-if="store.status === 'forbidden'"
       tone="forbidden"
       eyebrow="User Lifecycle"
-      title="Akses users ditolak"
-      :description="store.errorMessage ?? 'Kamu tidak memiliki izin untuk melihat users admin.'"
+      :title="t('users.forbidden_title')"
+      :description="store.errorMessage ?? t('common.forbidden_desc')"
       :request-id="store.requestId ?? undefined"
       :standalone="false"
     />
@@ -197,8 +197,8 @@ const confirmDescription = computed<string>(() => {
       v-else-if="store.status === 'unauthenticated'"
       tone="error"
       eyebrow="Session"
-      title="Sesi admin berakhir"
-      :description="store.errorMessage ?? 'Login ulang dari portal untuk melanjutkan.'"
+      :title="t('common.session_expired_title')"
+      :description="store.errorMessage ?? t('common.session_expired_desc')"
       :request-id="store.requestId ?? undefined"
       :standalone="false"
     />
@@ -207,10 +207,8 @@ const confirmDescription = computed<string>(() => {
       v-else-if="store.status === 'error'"
       tone="api"
       eyebrow="Admin API"
-      title="Users admin belum bisa dimuat"
-      :description="
-        store.errorMessage ?? 'Coba muat ulang atau gunakan correlation ID untuk investigasi.'
-      "
+      :title="t('users.error_title')"
+      :description="store.errorMessage ?? t('common.error_loading_desc')"
       :request-id="store.requestId ?? undefined"
       :standalone="false"
     />
@@ -219,8 +217,8 @@ const confirmDescription = computed<string>(() => {
       <aside class="users-list" aria-label="Daftar users admin">
         <UiEmptyState
           v-if="store.users.length === 0"
-          title="Belum ada user untuk ditampilkan."
-          description="Buat user baru atau periksa filter dan permission admin."
+          :title="t('users.empty_title')"
+          :description="t('users.empty_desc')"
         />
 
         <UiDataList v-else caption="Daftar users admin" :columns="userColumns" :rows="userRows">

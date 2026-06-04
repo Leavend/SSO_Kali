@@ -183,7 +183,7 @@ describe('AuditPage', () => {
 
     const wrapper = mount(AuditPage)
 
-    expect(wrapper.text()).toContain('Akses audit ditolak')
+    expect(wrapper.text()).toContain('Audit access denied')
     expect(wrapper.text()).not.toContain('SQLSTATE')
   })
 
@@ -196,7 +196,7 @@ describe('AuditPage', () => {
 
     const wrapper = mount(AuditPage)
 
-    expect(wrapper.text()).toContain('Audit compliance belum bisa dimuat')
+    expect(wrapper.text()).toContain('Audit compliance could not be loaded')
     expect(wrapper.text()).toContain('req-audit-fail')
     expect(wrapper.text()).not.toMatch(/Bearer|SQLSTATE/i)
   })
@@ -211,7 +211,7 @@ describe('AuditPage', () => {
 
     const wrapper = mount(AuditPage)
 
-    expect(wrapper.text()).toContain('Belum ada evidence audit untuk ditampilkan.')
+    expect(wrapper.text()).toContain('No audit evidence to display.')
     expect(wrapper.find('.ui-empty-state').exists()).toBe(true)
   })
 

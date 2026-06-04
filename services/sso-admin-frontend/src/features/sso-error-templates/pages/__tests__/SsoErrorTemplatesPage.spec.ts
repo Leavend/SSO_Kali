@@ -84,7 +84,7 @@ describe('SsoErrorTemplatesPage', () => {
 
     const wrapper = mount(SsoErrorTemplatesPage)
 
-    expect(wrapper.text()).toContain('Memuat SSO error templates')
+    expect(wrapper.text()).toContain('Loading SSO error templates')
     expect(wrapper.find('.ui-skeleton').exists()).toBe(true)
   })
 
@@ -95,7 +95,7 @@ describe('SsoErrorTemplatesPage', () => {
 
     const wrapper = mount(SsoErrorTemplatesPage)
 
-    expect(wrapper.text()).toContain('Akses ditolak')
+    expect(wrapper.text()).toContain('Access denied')
     expect(wrapper.text()).toContain('Kamu tidak memiliki izin untuk melihat SSO error templates.')
     expect(wrapper.find('.ui-status-view').exists()).toBe(true)
   })
@@ -107,7 +107,7 @@ describe('SsoErrorTemplatesPage', () => {
 
     const wrapper = mount(SsoErrorTemplatesPage)
 
-    expect(wrapper.text()).toContain('Sesi admin berakhir')
+    expect(wrapper.text()).toContain('Admin session expired')
     expect(wrapper.find('.ui-status-view').exists()).toBe(true)
   })
 
@@ -118,7 +118,7 @@ describe('SsoErrorTemplatesPage', () => {
 
     const wrapper = mount(SsoErrorTemplatesPage)
 
-    expect(wrapper.text()).toContain('SSO error templates belum bisa dimuat')
+    expect(wrapper.text()).toContain('SSO error templates could not be loaded')
     expect(wrapper.text()).toContain('req-err')
     expect(wrapper.find('.ui-status-view').exists()).toBe(true)
   })

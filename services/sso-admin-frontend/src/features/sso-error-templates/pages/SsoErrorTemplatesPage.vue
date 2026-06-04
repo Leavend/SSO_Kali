@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { useI18n } from '@/composables/useI18n'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
 import UiEmptyState from '@/components/ui/UiEmptyState.vue'
 import UiFormField from '@/components/ui/UiFormField.vue'
@@ -14,6 +15,7 @@ import type { SsoErrorTemplate, UpsertSsoErrorTemplatePayload } from '../types'
 
 const store = useSsoErrorTemplatesStore()
 const session = useSessionStore()
+const { t } = useI18n()
 const canWriteSsoErrorTemplates = computed(() =>
   session.hasPermission('admin.sso-error-templates.write'),
 )
@@ -97,24 +99,19 @@ function templateFor(code: string): SsoErrorTemplate | undefined {
 <template>
   <section class="policy-page" aria-labelledby="sso-templates-title">
     <div class="page-heading">
-      <p class="eyebrow">Security Governance</p>
-      <h1 id="sso-templates-title">SSO Error Templates</h1>
-      <p class="page-summary">
-        Kustomisasi pesan error SSO per error code. Tampilan yang akan dilihat pengguna saat terjadi
-        error.
-      </p>
+      <p class="eyebrow">{{ t('sso_templates.eyebrow') }}</p>
+      <h1 id="sso-templates-title">{{ t('sso_templates.title') }}</h1>
+      <p class="page-summary">{{ t('sso_templates.summary') }}</p>
     </div>
 
-    <UiSkeleton v-if="store.status === 'loading'" label="Memuat SSO error templates" />
+    <UiSkeleton v-if="store.status === 'loading'" :label="t('sso_templates.loading')" />
 
     <UiStatusView
       v-else-if="store.status === 'forbidden'"
       tone="forbidden"
       eyebrow="Security Governance"
-      title="Akses ditolak"
-      :description="
-        store.errorMessage ?? 'Kamu tidak memiliki izin untuk melihat SSO error templates.'
-      "
+      :title="t('sso_templates.forbidden_title')"
+      :description="store.errorMessage ?? t('common.forbidden_desc')"
       :request-id="store.requestId ?? undefined"
       :standalone="false"
     />
@@ -123,8 +120,8 @@ function templateFor(code: string): SsoErrorTemplate | undefined {
       v-else-if="store.status === 'unauthenticated'"
       tone="error"
       eyebrow="Session"
-      title="Sesi admin berakhir"
-      :description="store.errorMessage ?? 'Login ulang dari portal untuk melanjutkan.'"
+      :title="t('common.session_expired_title')"
+      :description="store.errorMessage ?? t('common.session_expired_desc')"
       :request-id="store.requestId ?? undefined"
       :standalone="false"
     />
@@ -133,18 +130,16 @@ function templateFor(code: string): SsoErrorTemplate | undefined {
       v-else-if="store.status === 'error'"
       tone="api"
       eyebrow="Admin API"
-      title="SSO error templates belum bisa dimuat"
-      :description="
-        store.errorMessage ?? 'Coba muat ulang atau gunakan correlation ID untuk investigasi.'
-      "
+      :title="t('sso_templates.error_title')"
+      :description="store.errorMessage ?? t('common.error_loading_desc')"
       :request-id="store.requestId ?? undefined"
       :standalone="false"
     />
 
     <UiEmptyState
       v-else-if="!hasEvidence"
-      title="Belum ada SSO error templates"
-      description="Katalog SSO error belum termuat."
+      :title="t('sso_templates.empty_title')"
+      :description="t('sso_templates.empty_desc')"
     />
 
     <div v-else class="policy-layout">

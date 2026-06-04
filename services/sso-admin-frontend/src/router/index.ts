@@ -92,7 +92,8 @@ const router = createRouter({
         {
           path: 'authentication-audit',
           name: 'admin.authentication-audit',
-          component: () => import('@/features/authentication-audit/pages/AuthenticationAuditPage.vue'),
+          component: () =>
+            import('@/features/authentication-audit/pages/AuthenticationAuditPage.vue'),
           meta: { requiresAdmin: true, permissions: ['admin.authentication-audit.read'] },
         },
         {

@@ -63,7 +63,7 @@ describe('OpsPage', () => {
 
     const wrapper = mount(OpsPage)
 
-    expect(wrapper.text()).toContain('Akses ops evidence ditolak')
+    expect(wrapper.text()).toContain('Ops evidence access denied')
     expect(wrapper.text()).not.toContain('SQLSTATE')
   })
 
@@ -74,7 +74,7 @@ describe('OpsPage', () => {
 
     const wrapper = mount(OpsPage)
 
-    expect(wrapper.text()).toContain('Belum ada evidence operasional untuk ditampilkan.')
+    expect(wrapper.text()).toContain('No operational evidence to display.')
     expect(wrapper.find('.ui-empty-state').exists()).toBe(true)
   })
 

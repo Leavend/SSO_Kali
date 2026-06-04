@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { useI18n } from '@/composables/useI18n'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
 import UiDataList, { type UiDataListRow } from '@/components/ui/UiDataList.vue'
@@ -15,6 +16,7 @@ import type { IpAccessRuleCreatePayload } from '../types'
 
 const store = useIpAccessStore()
 const session = useSessionStore()
+const { t } = useI18n()
 const canWriteAccess = computed(() => session.hasPermission('admin.ip-access.write'))
 
 const cidr = ref('')
@@ -85,19 +87,19 @@ const confirmDescription = computed<string>(() => {
 <template>
   <section class="ip-access-page" aria-labelledby="ip-access-title">
     <div class="page-heading">
-      <p class="eyebrow">Security</p>
-      <h1 id="ip-access-title">IP Access Rules</h1>
-      <p class="page-summary">Manage IP allow/blocklist rules untuk akses ke SSO admin.</p>
+      <p class="eyebrow">{{ t('ip_access.eyebrow') }}</p>
+      <h1 id="ip-access-title">{{ t('ip_access.title') }}</h1>
+      <p class="page-summary">{{ t('ip_access.summary') }}</p>
     </div>
 
-    <UiSkeleton v-if="store.status === 'loading'" label="Memuat IP access rules" />
+    <UiSkeleton v-if="store.status === 'loading'" :label="t('ip_access.loading')" />
 
     <UiStatusView
       v-else-if="store.status === 'forbidden'"
       tone="forbidden"
       eyebrow="Security"
-      title="Akses IP access rules ditolak"
-      :description="store.errorMessage ?? 'Kamu tidak memiliki izin untuk melihat IP access rules.'"
+      :title="t('ip_access.forbidden_title')"
+      :description="store.errorMessage ?? t('common.forbidden_desc')"
       :request-id="store.requestId ?? undefined"
       :standalone="false"
     />
@@ -106,8 +108,8 @@ const confirmDescription = computed<string>(() => {
       v-else-if="store.status === 'unauthenticated'"
       tone="error"
       eyebrow="Session"
-      title="Sesi admin berakhir"
-      :description="store.errorMessage ?? 'Login ulang dari portal untuk melanjutkan.'"
+      :title="t('common.session_expired_title')"
+      :description="store.errorMessage ?? t('common.session_expired_desc')"
       :request-id="store.requestId ?? undefined"
       :standalone="false"
     />
@@ -116,18 +118,16 @@ const confirmDescription = computed<string>(() => {
       v-else-if="store.status === 'error'"
       tone="api"
       eyebrow="Admin API"
-      title="IP access rules belum bisa dimuat"
-      :description="
-        store.errorMessage ?? 'Coba muat ulang atau gunakan correlation ID untuk investigasi.'
-      "
+      :title="t('ip_access.error_title')"
+      :description="store.errorMessage ?? t('common.error_loading_desc')"
       :request-id="store.requestId ?? undefined"
       :standalone="false"
     />
 
     <UiEmptyState
       v-else-if="store.rules.length === 0"
-      title="IP access rules belum tersedia"
-      description="Belum ada aturan IP access. Tambahkan CIDR allow/block saat permission tersedia."
+      :title="t('ip_access.empty_title')"
+      :description="t('ip_access.empty_desc')"
     />
 
     <div v-else class="ip-access-layout">

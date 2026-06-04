@@ -8,6 +8,7 @@
 !.env.dev.example
 !**/.env.example
 .secrets/
+.superpowers/
 .idea
 .vscode
 .claude

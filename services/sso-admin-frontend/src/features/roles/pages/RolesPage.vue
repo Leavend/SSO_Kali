@@ -6,12 +6,14 @@
  */
 
 import { computed, onMounted } from 'vue'
+import { useI18n } from '@/composables/useI18n'
 import UiEmptyState from '@/components/ui/UiEmptyState.vue'
 import UiSkeleton from '@/components/ui/UiSkeleton.vue'
 import UiStatusView from '@/components/ui/UiStatusView.vue'
 import { useRolesStore } from '../stores/roles.store'
 
 const store = useRolesStore()
+const { t } = useI18n()
 
 const permissionsByGroup = computed<ReadonlyMap<string, readonly string[]>>(() => {
   const map = new Map<string, string[]>()
@@ -23,9 +25,7 @@ const permissionsByGroup = computed<ReadonlyMap<string, readonly string[]>>(() =
   return map
 })
 
-const hasData = computed<boolean>(
-  () => store.roles.length > 0 || store.permissions.length > 0,
-)
+const hasData = computed<boolean>(() => store.roles.length > 0 || store.permissions.length > 0)
 
 onMounted(() => {
   if (store.status === 'idle') void store.load()
@@ -35,22 +35,19 @@ onMounted(() => {
 <template>
   <section class="roles-page" aria-labelledby="roles-title">
     <div class="page-heading">
-      <p class="eyebrow">RBAC</p>
-      <h1 id="roles-title">Roles &amp; Permissions</h1>
-      <p class="page-summary">
-        Daftar role, permission matrix, dan assignee untuk setiap role admin.
-        Perubahan role memerlukan permission <code>admin.roles.write</code>.
-      </p>
+      <p class="eyebrow">{{ t('roles.eyebrow') }}</p>
+      <h1 id="roles-title">{{ t('roles.title') }}</h1>
+      <p class="page-summary">{{ t('roles.summary') }}</p>
     </div>
 
-    <UiSkeleton v-if="store.status === 'loading'" label="Memuat roles" />
+    <UiSkeleton v-if="store.status === 'loading'" :label="t('roles.loading')" />
 
     <UiStatusView
       v-else-if="store.status === 'forbidden'"
       tone="forbidden"
       eyebrow="RBAC"
-      title="Akses ditolak"
-      :description="store.errorMessage ?? 'Kamu tidak memiliki izin untuk melihat roles & permissions.'"
+      :title="t('roles.forbidden_title')"
+      :description="store.errorMessage ?? t('common.forbidden_desc')"
       :request-id="store.requestId ?? undefined"
       :standalone="false"
     />
@@ -59,8 +56,8 @@ onMounted(() => {
       v-else-if="store.status === 'unauthenticated'"
       tone="error"
       eyebrow="Session"
-      title="Sesi admin berakhir"
-      :description="store.errorMessage ?? 'Login ulang dari portal untuk melanjutkan.'"
+      :title="t('common.session_expired_title')"
+      :description="store.errorMessage ?? t('common.session_expired_desc')"
       :request-id="store.requestId ?? undefined"
       :standalone="false"
     />
@@ -69,25 +66,22 @@ onMounted(() => {
       v-else-if="store.status === 'error'"
       tone="api"
       eyebrow="Admin API"
-      title="Roles belum bisa dimuat"
-      :description="store.errorMessage ?? 'Coba muat ulang halaman ini.'"
+      :title="t('roles.error_title')"
+      :description="store.errorMessage ?? t('common.error_loading_desc')"
       :request-id="store.requestId ?? undefined"
       :standalone="false"
     />
 
     <UiEmptyState
       v-else-if="!hasData"
-      title="Belum ada data roles"
-      description="Tidak ada role atau permission yang ditemukan."
+      :title="t('roles.empty_title')"
+      :description="t('roles.empty_desc')"
     />
 
     <div v-else class="roles-layout">
       <section class="detail-section" aria-labelledby="roles-list-title">
-        <h2 id="roles-list-title">Daftar Role</h2>
-        <p class="page-summary">
-          Setiap role memiliki set permission yang dikonfigurasi di backend. Permission string
-          mengikuti kontrak backend — bukan nama ad-hoc frontend.
-        </p>
+        <h2 id="roles-list-title">{{ t('roles.list_title') }}</h2>
+        <p class="page-summary">{{ t('roles.matrix_desc') }}</p>
         <div class="roles-grid">
           <article
             v-for="role in store.roles"
@@ -108,11 +102,7 @@ onMounted(() => {
                 Permissions untuk role {{ role.label }}
               </h3>
               <ul class="roles-perm-list" aria-label="Permissions">
-                <li
-                  v-for="perm in role.permissions"
-                  :key="perm"
-                  class="roles-perm-item"
-                >
+                <li v-for="perm in role.permissions" :key="perm" class="roles-perm-item">
                   <code>{{ perm }}</code>
                 </li>
               </ul>
@@ -125,15 +115,9 @@ onMounted(() => {
       </section>
 
       <section class="detail-section" aria-labelledby="permissions-matrix-title">
-        <h2 id="permissions-matrix-title">Permission Matrix</h2>
-        <p class="page-summary">
-          Seluruh permission yang terdaftar di backend, dikelompokkan per domain.
-        </p>
-        <div
-          v-for="[group, perms] in permissionsByGroup"
-          :key="group"
-          class="roles-perm-group"
-        >
+        <h2 id="permissions-matrix-title">{{ t('roles.matrix_title') }}</h2>
+        <p class="page-summary">{{ t('roles.matrix_desc') }}</p>
+        <div v-for="[group, perms] in permissionsByGroup" :key="group" class="roles-perm-group">
           <h3 class="roles-perm-group__label">{{ group }}</h3>
           <ul class="roles-perm-list" :aria-label="`Permissions group ${group}`">
             <li v-for="perm in perms" :key="perm" class="roles-perm-item">

@@ -28,16 +28,26 @@ describe('admin BFF serving contract', () => {
 
   it('injects Authorization in the BFF and keeps browser token handling out of the SPA', () => {
     expect(proxySource).toContain("forwarded.set('Authorization', `Bearer ${accessToken}`)")
-    expect(proxySource).toContain("const ALLOWED_REQUEST_HEADERS = new Set(['accept', 'content-type', 'x-request-id'])")
+    expect(proxySource).toContain(
+      "const ALLOWED_REQUEST_HEADERS = new Set(['accept', 'content-type', 'x-request-id'])",
+    )
   })
 
   it('wires production runtime env for admin OIDC and server-side sessions', () => {
     expect(compose).toContain('x-sso-admin-frontend-env: &sso-admin-frontend-env')
     expect(compose).toContain('ADMIN_OIDC_CLIENT_ID: ${ADMIN_PANEL_CLIENT_ID:-sso-admin-panel}')
-    expect(compose).toContain('ADMIN_OIDC_PUBLIC_ISSUER: ${SSO_FRONTEND_URL:-https://sso.timeh.my.id}')
-    expect(compose).toContain('ADMIN_OIDC_SCOPE: ${ADMIN_OIDC_SCOPE:-openid profile email offline_access roles permissions}')
-    expect(compose).toContain('SSO_ADMIN_SESSION_REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/5')
-    expect(compose).toContain('ADMIN_PANEL_REDIRECT_URI: ${SSO_ADMIN_FRONTEND_URL:-https://admin-sso.timeh.my.id}/auth/callback')
+    expect(compose).toContain(
+      'ADMIN_OIDC_PUBLIC_ISSUER: ${SSO_FRONTEND_URL:-https://sso.timeh.my.id}',
+    )
+    expect(compose).toContain(
+      'ADMIN_OIDC_SCOPE: ${ADMIN_OIDC_SCOPE:-openid profile email offline_access roles permissions}',
+    )
+    expect(compose).toContain(
+      'SSO_ADMIN_SESSION_REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/5',
+    )
+    expect(compose).toContain(
+      'ADMIN_PANEL_REDIRECT_URI: ${SSO_ADMIN_FRONTEND_URL:-https://admin-sso.timeh.my.id}/auth/callback',
+    )
   })
 
   it('keeps anonymous production smoke strict enough to detect JSON BFF responses', () => {
@@ -53,7 +63,9 @@ describe('admin BFF serving contract', () => {
     expect(serverSource).toContain('no-store, no-cache, private, max-age=0')
     expect(deployWorkflow).toContain('expected / to be served by admin SPA fallback')
     expect(deployWorkflow).toContain('expected / cache-control no-store')
-    expect(deployWorkflow).toContain('expected / not to redirect to upstream edge auth or stale browser-cache target')
+    expect(deployWorkflow).toContain(
+      'expected / not to redirect to upstream edge auth or stale browser-cache target',
+    )
   })
 
   it('locks redirect diagnostic coverage for legacy home and authenticated dashboard access', () => {

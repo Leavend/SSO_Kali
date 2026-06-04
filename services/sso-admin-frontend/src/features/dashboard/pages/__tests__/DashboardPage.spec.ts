@@ -57,7 +57,7 @@ describe('DashboardPage', () => {
 
     const wrapper = mount(DashboardPage)
 
-    expect(wrapper.text()).toContain('Akses dashboard ditolak')
+    expect(wrapper.text()).toContain('Dashboard access denied')
     expect(wrapper.text()).not.toContain('SQLSTATE')
   })
 
@@ -70,7 +70,7 @@ describe('DashboardPage', () => {
 
     const wrapper = mount(DashboardPage)
 
-    expect(wrapper.text()).toContain('Dashboard admin belum bisa dimuat')
+    expect(wrapper.text()).toContain('Admin dashboard could not be loaded')
     expect(wrapper.text()).toContain('req-fail-1')
     expect(wrapper.text()).not.toMatch(/Bearer|refreshToken|SQLSTATE/i)
   })
@@ -92,6 +92,6 @@ describe('DashboardPage', () => {
 
     const wrapper = mount(DashboardPage)
 
-    expect(wrapper.text()).toContain('Belum ada ringkasan dashboard untuk ditampilkan.')
+    expect(wrapper.text()).toContain('No dashboard summary to display.')
   })
 })

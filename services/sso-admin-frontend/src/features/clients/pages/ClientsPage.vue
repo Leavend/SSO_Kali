@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useI18n } from '@/composables/useI18n'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
 import UiDataList, { type UiDataListRow } from '@/components/ui/UiDataList.vue'
 import UiEmptyState from '@/components/ui/UiEmptyState.vue'
@@ -13,6 +14,7 @@ import { useClientsStore } from '../stores/clients.store'
 
 const store = useClientsStore()
 const session = useSessionStore()
+const { t } = useI18n()
 const canWriteClients = computed(() => session.hasPermission('admin.clients.write'))
 const canManageClientLifecycle = computed(
   () => canWriteClients.value && session.hasPermission('admin.sessions.terminate'),
@@ -231,21 +233,19 @@ async function rotateSecret(): Promise<void> {
 <template>
   <section class="clients-page" aria-labelledby="clients-title">
     <div class="page-heading">
-      <p class="eyebrow">Client Management</p>
-      <h1 id="clients-title">OAuth Clients</h1>
-      <p class="page-summary">
-        Kelola metadata OIDC client, redirect URI evidence, dan rotasi secret aman.
-      </p>
+      <p class="eyebrow">{{ t('clients.eyebrow') }}</p>
+      <h1 id="clients-title">{{ t('clients.title') }}</h1>
+      <p class="page-summary">{{ t('clients.summary') }}</p>
     </div>
 
-    <UiSkeleton v-if="store.status === 'loading'" label="Memuat OAuth clients" />
+    <UiSkeleton v-if="store.status === 'loading'" :label="t('clients.loading')" />
 
     <UiStatusView
       v-else-if="store.status === 'forbidden'"
       tone="forbidden"
       eyebrow="Client Management"
-      title="Akses OAuth clients ditolak"
-      :description="store.errorMessage ?? 'Kamu tidak memiliki izin untuk melihat OAuth clients.'"
+      :title="t('clients.forbidden_title')"
+      :description="store.errorMessage ?? t('common.forbidden_desc')"
       :request-id="store.requestId ?? undefined"
       :standalone="false"
     />
@@ -254,8 +254,8 @@ async function rotateSecret(): Promise<void> {
       v-else-if="store.status === 'unauthenticated'"
       tone="error"
       eyebrow="Session"
-      title="Sesi admin berakhir"
-      :description="store.errorMessage ?? 'Login ulang dari portal untuk melanjutkan.'"
+      :title="t('common.session_expired_title')"
+      :description="store.errorMessage ?? t('common.session_expired_desc')"
       :request-id="store.requestId ?? undefined"
       :standalone="false"
     />
@@ -264,10 +264,8 @@ async function rotateSecret(): Promise<void> {
       v-else-if="store.status === 'error'"
       tone="api"
       eyebrow="Admin API"
-      title="OAuth clients belum bisa dimuat"
-      :description="
-        store.errorMessage ?? 'Coba muat ulang atau gunakan correlation ID untuk investigasi.'
-      "
+      :title="t('clients.error_title')"
+      :description="store.errorMessage ?? t('common.error_loading_desc')"
       :request-id="store.requestId ?? undefined"
       :standalone="false"
     />
@@ -326,8 +324,8 @@ async function rotateSecret(): Promise<void> {
 
         <UiEmptyState
           v-if="store.clients.length === 0"
-          title="Belum ada OAuth client untuk ditampilkan."
-          description="Buat client baru untuk mulai mengelola redirect URI dan scope evidence."
+          :title="t('clients.empty_title')"
+          :description="t('clients.empty_desc')"
         />
 
         <UiDataList

@@ -95,7 +95,7 @@ describe('SessionsPage', () => {
 
     const wrapper = mount(SessionsPage)
 
-    expect(wrapper.text()).toContain('Memuat sessions')
+    expect(wrapper.text()).toContain('Loading sessions')
   })
 
   it('renders forbidden state', () => {
@@ -105,7 +105,7 @@ describe('SessionsPage', () => {
 
     const wrapper = mount(SessionsPage)
 
-    expect(wrapper.text()).toContain('Akses sessions ditolak')
+    expect(wrapper.text()).toContain('Sessions access denied')
     expect(wrapper.text()).toContain('Kamu tidak memiliki izin.')
   })
 
@@ -116,7 +116,7 @@ describe('SessionsPage', () => {
 
     const wrapper = mount(SessionsPage)
 
-    expect(wrapper.text()).toContain('Belum ada sesi yang dapat ditampilkan.')
+    expect(wrapper.text()).toContain('No sessions to display.')
   })
 
   it('renders revoke button for each session row', () => {
@@ -179,7 +179,7 @@ describe('SessionsPage', () => {
 
     const wrapper = mount(SessionsPage)
 
-    expect(wrapper.text()).toContain('Sesi admin berakhir')
+    expect(wrapper.text()).toContain('Admin session expired')
   })
 
   it('renders error state', () => {
@@ -189,7 +189,7 @@ describe('SessionsPage', () => {
 
     const wrapper = mount(SessionsPage)
 
-    expect(wrapper.text()).toContain('Sessions admin belum bisa dimuat')
+    expect(wrapper.text()).toContain('Admin sessions could not be loaded')
     expect(wrapper.text()).toContain('Gunakan request ID req-123.')
   })
 

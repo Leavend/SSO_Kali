@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { useI18n } from '@/composables/useI18n'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
 import UiDataList, { type UiDataListRow } from '@/components/ui/UiDataList.vue'
@@ -15,6 +16,7 @@ import { usePolicyStore } from '../stores/policy.store'
 
 const store = usePolicyStore()
 const session = useSessionStore()
+const { t } = useI18n()
 const canWriteSecurityPolicy = computed(() => session.hasPermission('admin.security-policy.write'))
 const canActivateSecurityPolicy = computed(() =>
   session.hasPermission('admin.security-policy.activate'),
@@ -170,23 +172,19 @@ const confirmDescription = computed<string>(() => {
 <template>
   <section class="policy-page" aria-labelledby="policy-title">
     <div class="page-heading">
-      <p class="eyebrow">Security Governance</p>
-      <h1 id="policy-title">Policy & RBAC</h1>
-      <p class="page-summary">
-        Security policy versions, activation evidence, dan role permissions.
-      </p>
+      <p class="eyebrow">{{ t('policy.eyebrow') }}</p>
+      <h1 id="policy-title">{{ t('policy.title') }}</h1>
+      <p class="page-summary">{{ t('policy.summary') }}</p>
     </div>
 
-    <UiSkeleton v-if="store.status === 'loading'" label="Memuat policy" />
+    <UiSkeleton v-if="store.status === 'loading'" :label="t('policy.loading')" />
 
     <UiStatusView
       v-else-if="store.status === 'forbidden'"
       tone="forbidden"
-      eyebrow="Security Governance"
-      title="Akses policy ditolak"
-      :description="
-        store.errorMessage ?? 'Kamu tidak memiliki izin untuk melihat policy/RBAC admin.'
-      "
+      :eyebrow="t('policy.eyebrow')"
+      :title="t('policy.forbidden_title')"
+      :description="store.errorMessage ?? t('common.forbidden_desc')"
       :request-id="store.requestId ?? undefined"
       :standalone="false"
     />
@@ -195,8 +193,8 @@ const confirmDescription = computed<string>(() => {
       v-else-if="store.status === 'unauthenticated'"
       tone="error"
       eyebrow="Session"
-      title="Sesi admin berakhir"
-      :description="store.errorMessage ?? 'Login ulang dari portal untuk melanjutkan.'"
+      :title="t('common.session_expired_title')"
+      :description="store.errorMessage ?? t('common.session_expired_desc')"
       :request-id="store.requestId ?? undefined"
       :standalone="false"
     />
@@ -205,23 +203,21 @@ const confirmDescription = computed<string>(() => {
       v-else-if="store.status === 'error'"
       tone="api"
       eyebrow="Admin API"
-      title="Policy/RBAC admin belum bisa dimuat"
-      :description="
-        store.errorMessage ?? 'Coba muat ulang atau gunakan correlation ID untuk investigasi.'
-      "
+      :title="t('policy.error_title')"
+      :description="store.errorMessage ?? t('common.error_loading_desc')"
       :request-id="store.requestId ?? undefined"
       :standalone="false"
     />
 
     <UiEmptyState
       v-else-if="!hasPolicyEvidence"
-      title="Policy/RBAC evidence belum tersedia"
-      description="Belum ada policy atau RBAC evidence untuk ditampilkan."
+      :title="t('policy.empty_title')"
+      :description="t('policy.empty_desc')"
     />
 
     <div v-else class="policy-layout">
       <section class="detail-section" aria-labelledby="policy-versions-title">
-        <h2 id="policy-versions-title">Security policy versions</h2>
+        <h2 id="policy-versions-title">{{ t('policy.versions_title') }}</h2>
         <div class="action-row compact-actions">
           <UiFormField id="policy-category" label="Category">
             <UiSelect

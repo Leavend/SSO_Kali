@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
+import { useI18n } from '@/composables/useI18n'
 import UiSkeleton from '@/components/ui/UiSkeleton.vue'
 import UiStatusView from '@/components/ui/UiStatusView.vue'
 import AvailabilityEvidencePanel from '../components/AvailabilityEvidencePanel.vue'
@@ -11,6 +12,7 @@ import OidcFoundationOverview from '../components/OidcFoundationOverview.vue'
 import { useOidcFoundationStore } from '../stores/oidcFoundation.store'
 
 const oidcFoundation = useOidcFoundationStore()
+const { t } = useI18n()
 
 onMounted(() => {
   void oidcFoundation.load()
@@ -21,42 +23,37 @@ onMounted(() => {
   <section class="oidc-foundation-page">
     <div class="oidc-foundation-layout">
       <header class="hero-card oidc-hero">
-        <span class="eyebrow">OIDC Foundation</span>
-        <h1>Protocol Health dan Evidence FR-001–FR-005.</h1>
-        <p>
-          Read-only admin surface untuk Discovery, JWKS, availability, catalog, issuer, dan endpoint
-          consistency. Backend tetap menjadi source of truth.
-        </p>
+        <span class="eyebrow">{{ t('oidc.eyebrow') }}</span>
+        <h1>{{ t('oidc.title') }}</h1>
+        <p>{{ t('oidc.summary') }}</p>
       </header>
 
       <UiSkeleton
         v-if="oidcFoundation.status === 'loading' || oidcFoundation.status === 'idle'"
-        label="Memuat OIDC Foundation"
+        :label="t('oidc.loading')"
       />
       <UiStatusView
         v-else-if="oidcFoundation.status === 'forbidden'"
         tone="forbidden"
         eyebrow="OIDC Foundation"
-        title="Akses OIDC Foundation ditolak"
-        :description="
-          oidcFoundation.errorMessage ?? 'Kamu tidak memiliki izin untuk melihat OIDC Foundation.'
-        "
+        :title="t('oidc.forbidden_title')"
+        :description="oidcFoundation.errorMessage ?? t('common.forbidden_desc')"
         :standalone="false"
       />
       <UiStatusView
         v-else-if="oidcFoundation.status === 'unauthenticated'"
         tone="error"
         eyebrow="Session"
-        title="Sesi admin berakhir"
-        :description="oidcFoundation.errorMessage ?? 'Login ulang dari portal untuk melanjutkan.'"
+        :title="t('common.session_expired_title')"
+        :description="oidcFoundation.errorMessage ?? t('common.session_expired_desc')"
         :standalone="false"
       />
       <UiStatusView
         v-else-if="oidcFoundation.status === 'error'"
         tone="api"
         eyebrow="Admin API"
-        title="OIDC Foundation belum bisa dimuat"
-        :description="oidcFoundation.errorMessage ?? 'Coba lagi beberapa saat lagi.'"
+        :title="t('oidc.error_title')"
+        :description="oidcFoundation.errorMessage ?? t('common.error_loading_desc')"
         :standalone="false"
       />
       <template v-else-if="oidcFoundation.snapshot">

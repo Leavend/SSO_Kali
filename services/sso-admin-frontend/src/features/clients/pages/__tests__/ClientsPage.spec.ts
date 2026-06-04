@@ -284,7 +284,7 @@ describe('ClientsPage', () => {
 
     const wrapper = mount(ClientsPage)
 
-    expect(wrapper.text()).toContain('Akses OAuth clients ditolak')
+    expect(wrapper.text()).toContain('OAuth clients access denied')
     expect(wrapper.text()).not.toContain('SQLSTATE')
   })
 
@@ -314,7 +314,7 @@ describe('ClientsPage', () => {
 
     const wrapper = mount(ClientsPage)
 
-    expect(wrapper.text()).toContain('Belum ada OAuth client untuk ditampilkan.')
+    expect(wrapper.text()).toContain('No OAuth clients to display.')
     expect(wrapper.find('.ui-empty-state').exists()).toBe(true)
   })
 

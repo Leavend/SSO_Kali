@@ -74,9 +74,14 @@ export async function revokeConnectedApp(
   clientId: string,
   context: BackendRequestContext,
 ): Promise<void> {
-  await profileFetch(`/connected-apps/${encodeURIComponent(clientId)}`, session.accessToken, context, {
-    method: 'DELETE',
-  })
+  await profileFetch(
+    `/connected-apps/${encodeURIComponent(clientId)}`,
+    session.accessToken,
+    context,
+    {
+      method: 'DELETE',
+    },
+  )
 }
 
 export async function fetchMySessions(
@@ -125,7 +130,10 @@ async function profileFetch<T>(
   return res.json() as Promise<T>
 }
 
-async function userinfoFetch<T>(accessToken: AccessToken, context?: BackendRequestContext): Promise<T> {
+async function userinfoFetch<T>(
+  accessToken: AccessToken,
+  context?: BackendRequestContext,
+): Promise<T> {
   const config = getConfig()
   const res = await fetch(`${config.issuer}/userinfo`, {
     headers: {

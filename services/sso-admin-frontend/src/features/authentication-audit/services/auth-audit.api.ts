@@ -1,5 +1,9 @@
 import { apiClient } from '@/lib/api/api-client'
-import type { AuthAuditEventDetailResponse, AuthAuditFilters, AuthAuditListResponse } from '../types'
+import type {
+  AuthAuditEventDetailResponse,
+  AuthAuditFilters,
+  AuthAuditListResponse,
+} from '../types'
 
 function withQuery(path: string, query: Readonly<Record<string, unknown>>): string {
   const params = new URLSearchParams()

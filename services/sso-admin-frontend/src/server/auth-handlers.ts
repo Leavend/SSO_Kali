@@ -152,7 +152,8 @@ export async function handleLogout(request: IncomingMessage): Promise<AppRespons
   const refreshToken = session?.refreshToken ?? rawSession?.refreshToken
   const revocations: Array<Promise<void>> = []
 
-  if (session) revocations.push(revokeSession(config.internalLogoutUrl, session.accessToken, requestId))
+  if (session)
+    revocations.push(revokeSession(config.internalLogoutUrl, session.accessToken, requestId))
   if (refreshToken) revocations.push(revokeRefreshToken(config, refreshToken, requestId))
   if (revocations.length > 0) await Promise.allSettled(revocations)
 

@@ -107,7 +107,7 @@ describe('ExternalIdpsPage', () => {
 
     const wrapper = mount(ExternalIdpsPage)
 
-    expect(wrapper.text()).toContain('Akses External IdP ditolak')
+    expect(wrapper.text()).toContain('External IdP access denied')
     expect(wrapper.text()).not.toContain('SQLSTATE')
   })
 
@@ -120,7 +120,7 @@ describe('ExternalIdpsPage', () => {
 
     const wrapper = mount(ExternalIdpsPage)
 
-    expect(wrapper.text()).toContain('Belum ada provider eksternal untuk ditampilkan.')
+    expect(wrapper.text()).toContain('No external providers to display.')
     expect(wrapper.find('.ui-empty-state').exists()).toBe(true)
     expect(wrapper.find('button.create-idp-toggle').exists()).toBe(true)
   })

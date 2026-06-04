@@ -15,8 +15,10 @@ import UiSkeleton from '@/components/ui/UiSkeleton.vue'
 import UiStatusView from '@/components/ui/UiStatusView.vue'
 import { useAuthAuditStore } from '../stores/auth-audit.store'
 import type { AuthAuditFilters } from '../types'
+import { useI18n } from '@/composables/useI18n'
 
 const store = useAuthAuditStore()
+const { t } = useI18n()
 
 const searchSubjectId = ref('')
 const searchClientId = ref('')
@@ -34,12 +36,12 @@ function filled(value: string): string | undefined {
 
 const hasEvents = computed<boolean>(() => store.events.length > 0)
 
-const eventColumns = [
-  { key: 'event_id', label: 'Event ID' },
-  { key: 'event_type', label: 'Tipe' },
-  { key: 'outcome', label: 'Outcome' },
-  { key: 'request_id', label: 'Request ID' },
-] as const
+const eventColumns = computed(() => [
+  { key: 'event_id', label: t('auth_audit.col_event_id') },
+  { key: 'event_type', label: t('auth_audit.col_type') },
+  { key: 'outcome', label: t('auth_audit.col_outcome') },
+  { key: 'request_id', label: t('auth_audit.col_request_id') },
+])
 
 const eventRows = computed<readonly UiDataListRow[]>(() =>
   store.events.map((event) => ({
@@ -85,25 +87,21 @@ onMounted(() => {
 <template>
   <section class="authentication-audit-page" aria-labelledby="auth-audit-title">
     <div class="page-heading">
-      <p class="eyebrow">Keamanan</p>
-      <h1 id="auth-audit-title">Authentication Audit</h1>
+      <p class="eyebrow">{{ t('auth_audit.eyebrow') }}</p>
+      <h1 id="auth-audit-title">{{ t('auth_audit.title') }}</h1>
       <p class="page-summary">
-        Riwayat event autentikasi: login, logout, consent, MFA challenge, dan error autentikasi.
-        Berbeda dari Audit Trail (yang mencatat aksi admin); halaman ini mencatat aktivitas
-        autentikasi user. Permission: <code>admin.authentication-audit.read</code>.
+        {{ t('auth_audit.summary') }}
       </p>
     </div>
 
-    <UiSkeleton v-if="store.status === 'loading'" label="Memuat authentication audit" />
+    <UiSkeleton v-if="store.status === 'loading'" :label="t('auth_audit.loading')" />
 
     <UiStatusView
       v-else-if="store.status === 'forbidden'"
       tone="forbidden"
-      eyebrow="Authentication Audit"
-      title="Akses ditolak"
-      :description="
-        store.errorMessage ?? 'Kamu tidak memiliki izin untuk melihat authentication audit.'
-      "
+      :eyebrow="t('auth_audit.title')"
+      :title="t('auth_audit.forbidden_title')"
+      :description="store.errorMessage ?? t('admin.forbidden.description')"
       :request-id="store.requestId ?? undefined"
       :standalone="false"
     />
@@ -112,8 +110,8 @@ onMounted(() => {
       v-else-if="store.status === 'unauthenticated'"
       tone="error"
       eyebrow="Session"
-      title="Sesi admin berakhir"
-      :description="store.errorMessage ?? 'Login ulang dari portal untuk melanjutkan.'"
+      :title="t('auth_audit.session_expired_title')"
+      :description="store.errorMessage ?? t('auth_audit.session_expired_desc')"
       :request-id="store.requestId ?? undefined"
       :standalone="false"
     />
@@ -122,19 +120,17 @@ onMounted(() => {
       v-else-if="store.status === 'error'"
       tone="api"
       eyebrow="Admin API"
-      title="Authentication audit belum bisa dimuat"
-      :description="
-        store.errorMessage ?? 'Coba muat ulang atau gunakan request ID untuk investigasi.'
-      "
+      :title="t('auth_audit.error_loading_title')"
+      :description="store.errorMessage ?? t('auth_audit.error_loading_desc')"
       :request-id="store.requestId ?? undefined"
       :standalone="false"
     />
 
     <div v-else class="audit-layout">
       <section class="detail-section" aria-labelledby="auth-audit-search-title">
-        <h2 id="auth-audit-search-title">Filter Event</h2>
+        <h2 id="auth-audit-search-title">{{ t('auth_audit.filter_title') }}</h2>
         <div class="export-filters">
-          <UiFormField id="auth-audit-subject-id" label="Subject ID">
+          <UiFormField id="auth-audit-subject-id" :label="t('auth_audit.subject_id')">
             <UiInput
               id="auth-audit-subject-id"
               v-model="searchSubjectId"
@@ -142,7 +138,7 @@ onMounted(() => {
               autocomplete="off"
             />
           </UiFormField>
-          <UiFormField id="auth-audit-client-id" label="Client ID">
+          <UiFormField id="auth-audit-client-id" :label="t('auth_audit.client_id')">
             <UiInput
               id="auth-audit-client-id"
               v-model="searchClientId"
@@ -150,7 +146,7 @@ onMounted(() => {
               autocomplete="off"
             />
           </UiFormField>
-          <UiFormField id="auth-audit-session-id" label="Session ID">
+          <UiFormField id="auth-audit-session-id" :label="t('auth_audit.session_id')">
             <UiInput
               id="auth-audit-session-id"
               v-model="searchSessionId"
@@ -158,7 +154,7 @@ onMounted(() => {
               autocomplete="off"
             />
           </UiFormField>
-          <UiFormField id="auth-audit-request-id" label="Request ID">
+          <UiFormField id="auth-audit-request-id" :label="t('auth_audit.request_id')">
             <UiInput
               id="auth-audit-request-id"
               v-model="searchRequestId"
@@ -166,7 +162,7 @@ onMounted(() => {
               autocomplete="off"
             />
           </UiFormField>
-          <UiFormField id="auth-audit-event-type" label="Event Type">
+          <UiFormField id="auth-audit-event-type" :label="t('auth_audit.event_type')">
             <UiInput
               id="auth-audit-event-type"
               v-model="searchEventType"
@@ -174,7 +170,7 @@ onMounted(() => {
               autocomplete="off"
             />
           </UiFormField>
-          <UiFormField id="auth-audit-outcome" label="Outcome">
+          <UiFormField id="auth-audit-outcome" :label="t('auth_audit.outcome')">
             <UiInput
               id="auth-audit-outcome"
               v-model="searchOutcome"
@@ -182,15 +178,10 @@ onMounted(() => {
               autocomplete="off"
             />
           </UiFormField>
-          <UiFormField id="auth-audit-from" label="From">
-            <UiInput
-              id="auth-audit-from"
-              v-model="searchFrom"
-              name="auth-audit-from"
-              type="date"
-            />
+          <UiFormField id="auth-audit-from" :label="t('auth_audit.from')">
+            <UiInput id="auth-audit-from" v-model="searchFrom" name="auth-audit-from" type="date" />
           </UiFormField>
-          <UiFormField id="auth-audit-to" label="To">
+          <UiFormField id="auth-audit-to" :label="t('auth_audit.to')">
             <UiInput id="auth-audit-to" v-model="searchTo" name="auth-audit-to" type="date" />
           </UiFormField>
         </div>
@@ -200,28 +191,28 @@ onMounted(() => {
             type="button"
             @click="submitSearch"
           >
-            Filter
+            {{ t('auth_audit.btn_filter') }}
           </button>
           <button
             class="ui-action ui-action--danger auth-audit-reset-button"
             type="button"
             @click="resetSearch"
           >
-            Reset
+            {{ t('auth_audit.btn_reset') }}
           </button>
         </div>
       </section>
 
       <UiEmptyState
         v-if="!hasEvents"
-        title="Belum ada authentication event"
-        description="Gunakan filter di atas atau tunggu event autentikasi tercatat di backend."
+        :title="t('auth_audit.empty_title')"
+        :description="t('auth_audit.empty_description')"
       />
 
       <section v-else class="detail-section" aria-labelledby="auth-audit-events-title">
-        <h2 id="auth-audit-events-title">Authentication Events</h2>
+        <h2 id="auth-audit-events-title">{{ t('auth_audit.events_title') }}</h2>
         <UiDataList
-          caption="Authentication event table"
+          :caption="t('auth_audit.table_caption')"
           :columns="eventColumns"
           :rows="eventRows"
         >
@@ -233,7 +224,7 @@ onMounted(() => {
               type="button"
               @click="store.selectEvent(row.id)"
             >
-              View
+              {{ t('auth_audit.btn_view') }}
             </button>
           </template>
         </UiDataList>
@@ -244,7 +235,7 @@ onMounted(() => {
           type="button"
           @click="store.loadMore"
         >
-          Muat lebih banyak
+          {{ t('auth_audit.btn_load_more') }}
         </button>
       </section>
 
@@ -253,52 +244,50 @@ onMounted(() => {
         class="detail-section"
         aria-labelledby="auth-audit-detail-title"
       >
-        <h2 id="auth-audit-detail-title">Detail Event</h2>
+        <h2 id="auth-audit-detail-title">{{ t('auth_audit.detail_title') }}</h2>
         <dl class="detail-grid">
           <div>
-            <dt>Event ID</dt>
+            <dt>{{ t('auth_audit.col_event_id') }}</dt>
             <dd>{{ store.selectedEvent.event_id }}</dd>
           </div>
           <div>
-            <dt>Tipe</dt>
+            <dt>{{ t('auth_audit.col_type') }}</dt>
             <dd>{{ store.selectedEvent.event_type }}</dd>
           </div>
           <div>
-            <dt>Outcome</dt>
+            <dt>{{ t('auth_audit.col_outcome') }}</dt>
             <dd>{{ store.selectedEvent.outcome }}</dd>
           </div>
           <div>
-            <dt>Subject</dt>
+            <dt>{{ t('auth_audit.col_subject') }}</dt>
             <dd>
               {{
-                store.selectedEvent.subject?.email ??
-                store.selectedEvent.subject?.subject_id ??
-                '—'
+                store.selectedEvent.subject?.email ?? store.selectedEvent.subject?.subject_id ?? '—'
               }}
             </dd>
           </div>
           <div>
-            <dt>Client ID</dt>
+            <dt>{{ t('auth_audit.col_client_id') }}</dt>
             <dd>{{ store.selectedEvent.client_id ?? '—' }}</dd>
           </div>
           <div>
-            <dt>Session ID</dt>
+            <dt>{{ t('auth_audit.col_session_id') }}</dt>
             <dd>{{ store.selectedEvent.session_id ?? '—' }}</dd>
           </div>
           <div>
-            <dt>Request ID</dt>
+            <dt>{{ t('auth_audit.col_request_id') }}</dt>
             <dd>{{ store.selectedEvent.request?.request_id ?? '—' }}</dd>
           </div>
           <div>
-            <dt>IP Address</dt>
+            <dt>{{ t('auth_audit.col_ip_address') }}</dt>
             <dd>{{ store.selectedEvent.request?.ip_address ?? '—' }}</dd>
           </div>
           <div>
-            <dt>Error Code</dt>
+            <dt>{{ t('auth_audit.col_error_code') }}</dt>
             <dd>{{ store.selectedEvent.error_code ?? '—' }}</dd>
           </div>
           <div>
-            <dt>Occurred At</dt>
+            <dt>{{ t('auth_audit.col_occurred_at') }}</dt>
             <dd>{{ store.selectedEvent.occurred_at ?? '—' }}</dd>
           </div>
         </dl>

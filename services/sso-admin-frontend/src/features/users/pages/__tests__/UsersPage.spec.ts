@@ -112,7 +112,7 @@ describe('UsersPage', () => {
 
     const wrapper = mount(UsersPage)
 
-    expect(wrapper.text()).toContain('Akses users ditolak')
+    expect(wrapper.text()).toContain('User access denied')
     expect(wrapper.text()).not.toContain('SQLSTATE')
   })
 
@@ -154,7 +154,7 @@ describe('UsersPage', () => {
 
     const wrapper = mount(UsersPage)
 
-    expect(wrapper.text()).toContain('Belum ada user untuk ditampilkan.')
+    expect(wrapper.text()).toContain('No users to display.')
     expect(wrapper.find('.ui-empty-state').exists()).toBe(true)
   })
 

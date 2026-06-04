@@ -1,6 +1,17 @@
+import { handleMockRequest } from './mock-api-client'
+
 export type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'
 
 let lastRequestId: string | null = null
+
+export function isMockEnabled(): boolean {
+  if (typeof window === 'undefined') return false
+  return (
+    import.meta.env.VITE_MOCK_API === 'true' ||
+    window.location.search.includes('mock=true') ||
+    localStorage.getItem('mock_api') === 'true'
+  )
+}
 
 export class ApiError extends Error {
   constructor(
@@ -88,6 +99,20 @@ async function sendRequest(path: string, options: RequestOptions = {}): Promise<
 }
 
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  if (isMockEnabled()) {
+    await new Promise((resolve) => setTimeout(resolve, 300))
+    const res = handleMockRequest(options.method ?? 'GET', path, options.body)
+    if (res.status >= 400) {
+      throw new ApiError(
+        res.status,
+        res.data?.message || 'Mock Error',
+        null,
+        res.data,
+        'mock-req-id',
+      )
+    }
+    return res.data as T
+  }
   const response = await sendRequest(path, options)
   if (response.status === 204) return undefined as T
 
@@ -95,6 +120,24 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 }
 
 async function requestBlob(path: string, options: RequestOptions = {}): Promise<BlobResponse> {
+  if (isMockEnabled()) {
+    await new Promise((resolve) => setTimeout(resolve, 300))
+    const res = handleMockRequest(options.method ?? 'GET', path, options.body)
+    if (res.status >= 400) {
+      throw new ApiError(
+        res.status,
+        res.data?.message || 'Mock Error',
+        null,
+        res.data,
+        'mock-req-id',
+      )
+    }
+    const text = typeof res.data === 'string' ? res.data : JSON.stringify(res.data)
+    return {
+      blob: new Blob([text], { type: 'text/csv' }),
+      filename: 'export.csv',
+    }
+  }
   const response = await sendRequest(path, options)
   const blob = await response.blob()
 

@@ -92,16 +92,14 @@ describe('admin BFF auth flow', () => {
     expect(location.searchParams.get('redirect_uri')).toBe(
       'https://admin-sso.example.test/auth/callback',
     )
-    vi.mocked(jwtVerify).mockResolvedValueOnce(
-      {
-        payload: {
-          sub: 'admin-subject',
-          exp: 4_102_444_800,
-          nonce: location.searchParams.get('nonce'),
-        },
-        protectedHeader: { alg: 'RS256' },
-      } as unknown as Awaited<ReturnType<typeof jwtVerify>>,
-    )
+    vi.mocked(jwtVerify).mockResolvedValueOnce({
+      payload: {
+        sub: 'admin-subject',
+        exp: 4_102_444_800,
+        nonce: location.searchParams.get('nonce'),
+      },
+      protectedHeader: { alg: 'RS256' },
+    } as unknown as Awaited<ReturnType<typeof jwtVerify>>)
 
     const callback = await handleCallback(
       requestWithCookie(cookieHeader),
