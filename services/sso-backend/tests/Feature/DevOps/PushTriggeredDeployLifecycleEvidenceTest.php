@@ -25,7 +25,10 @@ it('keeps push-triggered deploy-main resilient to transient ssh keyscan failures
         // still run if the gate times out).
         ->and($content)->toContain('Wait for VPS SSH port availability')
         ->and($content)->toContain('continue-on-error: true')
-        ->and($content)->toContain('ssh-keyscan attempt ${attempt} failed')
+        // Host-key fetch is a single best-effort ssh-keyscan (no retry loop),
+        // so the runner cannot self-trip the VPS SSH connection-rate limit.
+        ->and($content)->toContain('ssh-keyscan -T 10')
+        ->and($content)->not->toContain('ssh-keyscan attempt ${attempt} failed')
         ->and($content)->toContain('StrictHostKeyChecking=accept-new')
         ->and($content)->toContain('VPS_SSH_KEY secret is required')
         ->and($content)->toContain('VPS_HOST secret is required')

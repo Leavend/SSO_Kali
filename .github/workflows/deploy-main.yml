@@ -155,20 +155,24 @@ jobs:
           touch ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
 
+          # Prefer an operator-pinned host key (set the VPS_SSH_KNOWN_HOSTS
+          # secret to `ssh-keyscan <host>` output) — most secure and zero
+          # extra connections to port 22.
           if [ -n "${VPS_SSH_KNOWN_HOSTS}" ]; then
             printf '%s\n' "${VPS_SSH_KNOWN_HOSTS}" >> ~/.ssh/known_hosts
             exit 0
           fi
 
-          for attempt in 1 2 3 4 5; do
-            if ssh-keyscan -T 10 -p "${{ env.VPS_SSH_PORT }}" -H "${VPS_HOST}" >> ~/.ssh/known_hosts 2>/dev/null; then
-              exit 0
-            fi
-            echo "ssh-keyscan attempt ${attempt} failed; retrying in 5s..."
-            sleep 5
-          done
-
-          echo "ssh-keyscan failed after retries; SSH will use StrictHostKeyChecking=accept-new." >&2
+          # Single, best-effort host-key fetch — deliberately NOT a retry loop.
+          # Repeated rapid connections to port 22 here (combined with the later
+          # nc readiness probe and the SSH deploy itself) can cross a VPS-side
+          # "ufw limit ssh" / fail2ban burst threshold and get the runner IP
+          # blocked mid-deploy — the observed root cause of the SSH timeouts.
+          # One attempt keeps the connection count low; on failure ssh_with_retry
+          # falls back to StrictHostKeyChecking=accept-new (TOFU) on the first
+          # real connection, the same security posture as before.
+          ssh-keyscan -T 10 -p "${{ env.VPS_SSH_PORT }}" -H "${VPS_HOST}" >> ~/.ssh/known_hosts 2>/dev/null \
+            || echo "ssh-keyscan returned no key; relying on StrictHostKeyChecking=accept-new on first SSH." >&2
 
 
       - name: Define SSH retry helpers
