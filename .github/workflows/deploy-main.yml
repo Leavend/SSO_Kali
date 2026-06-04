@@ -220,12 +220,16 @@ jobs:
           EOF
 
       - name: Wait for VPS SSH port availability
-        # Fail fast with clear operator guidance instead of silently waiting up to
-        # 20 minutes. SSH retry helpers still protect later transient failures,
-        # but an unreachable port here usually means firewall/fail2ban blockage.
+        # Poll the SSH port and fail with clear operator guidance once the wait
+        # window is exhausted. Default 600s (10 min) outlasts a typical fail2ban
+        # ban window so a transiently-blocked runner IP recovers without a manual
+        # re-run, while still failing fast (with the runner IP + unban hints)
+        # when the port is genuinely unreachable. Tune via the
+        # VPS_SSH_PORT_WAIT_SECONDS repo variable; stays within the 60 min job
+        # timeout alongside the SSH retry budget.
         shell: bash
         env:
-          VPS_SSH_PORT_WAIT_SECONDS: ${{ vars.VPS_SSH_PORT_WAIT_SECONDS || '180' }}
+          VPS_SSH_PORT_WAIT_SECONDS: ${{ vars.VPS_SSH_PORT_WAIT_SECONDS || '600' }}
         run: |
           set -euo pipefail
           host="${{ secrets.VPS_HOST }}"
