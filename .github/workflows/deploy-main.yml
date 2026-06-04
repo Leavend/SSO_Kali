@@ -220,32 +220,40 @@ jobs:
           EOF
 
       - name: Wait for VPS SSH port availability
-        # Non-blocking: warn if port is unreachable but let ssh_with_retry
-        # handle the actual connection attempts. This step gives fail2ban
-        # bans time to expire (polls every 30s for up to 20 min) while also
-        # logging the runner's outgoing IP to help manual unban if needed.
-        continue-on-error: true
+        # Fail fast with clear operator guidance instead of silently waiting up to
+        # 20 minutes. SSH retry helpers still protect later transient failures,
+        # but an unreachable port here usually means firewall/fail2ban blockage.
         shell: bash
+        env:
+          VPS_SSH_PORT_WAIT_SECONDS: ${{ vars.VPS_SSH_PORT_WAIT_SECONDS || '180' }}
         run: |
           set -euo pipefail
           host="${{ secrets.VPS_HOST }}"
           port="${VPS_SSH_PORT}"
+          wait_seconds="${VPS_SSH_PORT_WAIT_SECONDS}"
+          interval=10
           runner_ip="$(curl -fsS --max-time 5 https://api.ipify.org 2>/dev/null || echo 'unknown')"
+
           echo "Runner outgoing IP: ${runner_ip}"
-          echo "If the VPS blocks this run, an operator can unban via:"
-          echo "  sudo fail2ban-client unban ${runner_ip}"
-          echo "  sudo ufw delete deny from ${runner_ip}"
-          echo ""
-          echo "Probing VPS port ${port} for SSH availability (up to 20 min)..."
-          for i in $(seq 1 40); do
+          echo "Probing VPS port ${port} for SSH availability for up to ${wait_seconds}s..."
+
+          deadline=$((SECONDS + wait_seconds))
+          attempt=1
+          while [ "${SECONDS}" -lt "${deadline}" ]; do
             if nc -z -w 5 "$host" "$port" 2>/dev/null; then
-              echo "VPS port ${port} is reachable (probe ${i}/40)."
+              echo "VPS port ${port} is reachable (probe ${attempt})."
               exit 0
             fi
-            echo "Port not yet reachable (probe ${i}/40); waiting 30s..."
-            sleep 30
+            echo "Port not reachable (probe ${attempt}); retrying in ${interval}s..."
+            attempt=$((attempt + 1))
+            sleep "${interval}"
           done
-          echo "::warning::VPS port ${port} not reachable from runner IP ${runner_ip} after 20 min. Proceeding to SSH retry helper — it may succeed once the firewall block expires."
+
+          echo "::error::VPS SSH port ${port} is unreachable from runner IP ${runner_ip} after ${wait_seconds}s."
+          echo "If blocked by VPS firewall/fail2ban, unban runner IP manually:"
+          echo "  sudo fail2ban-client unban ${runner_ip}"
+          echo "  sudo ufw delete deny from ${runner_ip}"
+          exit 1
 
       - name: Prepare remote directories
         id: prepare_remote
