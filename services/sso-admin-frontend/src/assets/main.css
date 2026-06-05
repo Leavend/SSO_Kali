@@ -2329,6 +2329,19 @@ select {
   margin: 0 !important;
 }
 
+/* Dashboard evidence context panel — breathing room below grid */
+.dashboard-page > .detail-section {
+  margin-top: 32px;
+}
+
+.dashboard-page > .detail-section h3 {
+  margin-bottom: 8px;
+}
+
+.dashboard-page > .detail-section .inline-evidence {
+  margin-top: 4px;
+}
+
 /* Audit Premium Design Improvements */
 .audit-tabs-container {
   display: flex;
