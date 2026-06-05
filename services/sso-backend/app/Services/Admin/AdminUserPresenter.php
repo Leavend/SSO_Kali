@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Admin;
 
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
@@ -44,10 +45,11 @@ final class AdminUserPresenter
     public function user(User $user): array
     {
         $user->loadMissing('roles');
+
         return [
             ...$user->only($this->columns()),
             'roles' => $user->roles
-                ->map(fn (\App\Models\Role $role): array => $role->only(['slug', 'name', 'is_system']))
+                ->map(fn (Role $role): array => $role->only(['slug', 'name', 'is_system']))
                 ->sortBy('slug')
                 ->values()
                 ->all(),
