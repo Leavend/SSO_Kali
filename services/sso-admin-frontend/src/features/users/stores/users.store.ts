@@ -135,6 +135,36 @@ export const useUsersStore = defineStore('admin-users', () => {
     }
   }
 
+  async function assignRoles(subjectId: string, roleSlugs: readonly string[]): Promise<void> {
+    actionStatus.value = 'loading'
+    errorMessage.value = null
+    clearPasswordResetToken()
+
+    try {
+      const response = await usersApi.syncUserRoles(subjectId, roleSlugs)
+      if (response.user) upsertUser(response.user)
+      auditEventId.value = response.audit_event_id ?? null
+      requestId.value = getLastRequestId()
+      actionStatus.value = 'success'
+    } catch (error) {
+      if (error instanceof ApiError) {
+        if (error.status === 403) {
+          status.value = 'forbidden'
+          actionStatus.value = 'error'
+          errorMessage.value = 'Kamu tidak memiliki izin untuk mengubah role user.'
+          return
+        }
+        if (error.status === 401) {
+          status.value = 'unauthenticated'
+          actionStatus.value = 'error'
+          errorMessage.value = 'Sesi admin berakhir. Login ulang untuk melanjutkan.'
+          return
+        }
+      }
+      handleActionError(error)
+    }
+  }
+
   function clearPasswordResetToken(): void {
     passwordResetToken.value = null
     passwordResetExpiresAt.value = null
@@ -235,6 +265,7 @@ export const useUsersStore = defineStore('admin-users', () => {
     resetMfaSelected,
     issuePasswordResetSelected,
     syncProfileSelected,
+    assignRoles,
     clearPasswordResetToken,
   }
 })

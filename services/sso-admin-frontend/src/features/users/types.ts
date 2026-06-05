@@ -6,6 +6,7 @@ export type AdminUser = {
   readonly family_name?: string | null
   readonly display_name?: string | null
   readonly role?: string | null
+  readonly roles?: readonly { readonly slug: string; readonly name: string; readonly is_system: boolean }[]
   readonly status?: string | null
   readonly disabled_at?: string | null
   readonly disabled_reason?: string | null

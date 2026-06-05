@@ -243,7 +243,11 @@
     "group_credentials": "Kredensial & keamanan",
     "password_reset_evidence": "Password reset dikirim melalui channel aman backend. Gunakan audit evidence untuk pelacakan.",
     "select_user_title": "Tidak Ada Pengguna Terpilih",
-    "select_user_desc": "Pilih pengguna dari daftar bilah samping untuk memeriksa konteks identitas, sesi aktif, dan kontrol siklus hidup akun."
+    "select_user_desc": "Pilih pengguna dari daftar bilah samping untuk memeriksa konteks identitas, sesi aktif, dan kontrol siklus hidup akun.",
+    "assign_roles_title": "Tetapkan Peran",
+    "btn_save_roles": "Simpan Peran",
+    "roles_sync_success": "Peran pengguna berhasil disinkronkan.",
+    "roles_self_warn": "Anda memperbarui peran Anda sendiri. Silakan re-autentikasi/login kembali untuk menyegarkan token klaim Anda."
   },
   "clients": {
     "eyebrow": "Manajemen Klien",

@@ -43,7 +43,15 @@ final class AdminUserPresenter
      */
     public function user(User $user): array
     {
-        return $user->only($this->columns());
+        $user->loadMissing('roles');
+        return [
+            ...$user->only($this->columns()),
+            'roles' => $user->roles
+                ->map(fn (\App\Models\Role $role): array => $role->only(['slug', 'name', 'is_system']))
+                ->sortBy('slug')
+                ->values()
+                ->all(),
+        ];
     }
 
     /**

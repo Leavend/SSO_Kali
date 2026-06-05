@@ -22,6 +22,7 @@ vi.mock('../../services/users.api', () => ({
     issuePasswordReset: vi.fn<(subjectId: string) => Promise<UserMutationResponse>>(),
     resetMfa: vi.fn<(subjectId: string, payload: unknown) => Promise<UserMutationResponse>>(),
     syncProfile: vi.fn<(subjectId: string, payload: unknown) => Promise<UserMutationResponse>>(),
+    syncUserRoles: vi.fn<(subjectId: string, roleSlugs: readonly string[]) => Promise<UserMutationResponse>>(),
   },
 }))
 
@@ -57,6 +58,7 @@ describe('useUsersStore', () => {
     vi.mocked(usersApi.issuePasswordReset).mockReset()
     vi.mocked(usersApi.resetMfa).mockReset()
     vi.mocked(usersApi.syncProfile).mockReset()
+    vi.mocked(usersApi.syncUserRoles).mockReset()
     vi.mocked(getLastRequestId).mockReturnValue('req-users-1')
   })
 
@@ -268,6 +270,58 @@ describe('useUsersStore', () => {
       expect(store.errorMessage).toBe(
         'Aksi ini membutuhkan fresh-auth atau MFA assurance. Ulangi login admin lalu coba lagi.',
       )
+    })
+  })
+
+  describe('assignRoles', () => {
+    const roleSlugs = ['admin', 'auditor']
+
+    it('posts sync role payload and updates user', async () => {
+      const updatedUser: AdminUser = {
+        ...user,
+        roles: [
+          { slug: 'admin', name: 'Admin', is_system: true },
+          { slug: 'auditor', name: 'Auditor', is_system: false },
+        ],
+      }
+      vi.mocked(usersApi.syncUserRoles).mockResolvedValue({
+        user: updatedUser,
+        audit_event_id: 'AUD-ROLES-1',
+      })
+      const store = useUsersStore()
+      store.users = [user]
+      store.selectedSubjectId = 'sub_admin'
+
+      await store.assignRoles('sub_admin', roleSlugs)
+
+      expect(usersApi.syncUserRoles).toHaveBeenCalledWith('sub_admin', roleSlugs)
+      expect(store.selectedUser?.roles).toHaveLength(2)
+      expect(store.auditEventId).toBe('AUD-ROLES-1')
+      expect(store.actionStatus).toBe('success')
+    })
+
+    it('maps 403 to forbidden state', async () => {
+      vi.mocked(usersApi.syncUserRoles).mockRejectedValue(
+        new ApiError(403, 'permission missing', 'permission_required'),
+      )
+      const store = useUsersStore()
+
+      await store.assignRoles('sub_admin', roleSlugs)
+
+      expect(store.status).toBe('forbidden')
+      expect(store.actionStatus).toBe('error')
+    })
+
+    it('maps 401 to unauthenticated state', async () => {
+      vi.mocked(usersApi.syncUserRoles).mockRejectedValue(
+        new ApiError(401, 'unauthenticated', 'unauthenticated'),
+      )
+      const store = useUsersStore()
+
+      await store.assignRoles('sub_admin', roleSlugs)
+
+      expect(store.status).toBe('unauthenticated')
+      expect(store.actionStatus).toBe('error')
     })
   })
 })

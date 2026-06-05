@@ -15,6 +15,9 @@ import { buttonVariants } from '@/components/ui/button'
 import { useSessionStore } from '@/stores/session.store'
 import { useUsersStore } from '../stores/users.store'
 import { useSessionsStore } from '@/features/sessions/stores/sessions.store'
+import { useRolesStore } from '@/features/roles/stores/roles.store'
+import { useToast } from '@/components/ui/useToast'
+import { authApi } from '@/services/auth.api'
 import type { CreateUserPayload, SyncProfilePayload } from '../types'
 import {
   Mail,
@@ -40,16 +43,20 @@ import {
 
 const store = useUsersStore()
 const sessionsStore = useSessionsStore()
+const rolesStore = useRolesStore()
 const session = useSessionStore()
 const { t } = useI18n()
+const toast = useToast()
 
 const canWriteUsers = computed(() => session.hasPermission('admin.users.write'))
 const canLockUsers = computed(() => session.hasPermission('admin.users.lock'))
 const canTerminateSessions = computed(() => session.hasPermission('admin.sessions.terminate'))
+const canWriteRoles = computed(() => session.hasPermission('admin.roles.write'))
 
 const reason = ref('Admin review')
 const showCreateForm = ref(false)
 const createDialogRef = ref<HTMLElement | null>(null)
+const selectedRoles = ref<string[]>([])
 
 type DetailTab = 'overview' | 'security' | 'sessions' | 'lifecycle'
 const activeDetailTab = ref<DetailTab>('overview')
@@ -120,6 +127,7 @@ watch(
     syncDisplayName.value = user?.display_name ?? ''
     syncGivenName.value = user?.given_name ?? ''
     syncFamilyName.value = user?.family_name ?? ''
+    selectedRoles.value = user?.roles ? user.roles.map((r) => r.slug) : []
     activeDetailTab.value = 'overview'
   },
   { immediate: true },
@@ -127,6 +135,7 @@ watch(
 
 onMounted(() => {
   if (store.status === 'idle') void store.load()
+  if (rolesStore.status === 'idle') void rolesStore.load()
 })
 
 async function selectUser(subjectId: string): Promise<void> {
@@ -223,6 +232,36 @@ async function submitSyncProfile(): Promise<void> {
     ...(familyName && { family_name: familyName }),
   }
   await store.syncProfileSelected(payload)
+}
+
+async function submitAssignRoles(): Promise<void> {
+  if (!store.selectedUser) return
+  const subjectId = store.selectedUser.subject_id
+  await store.assignRoles(subjectId, selectedRoles.value)
+  if (store.actionStatus === 'success') {
+    await store.selectUser(subjectId)
+    if (subjectId === session.user?.subject_id) {
+      toast.pushToast({
+        tone: 'success',
+        title: t('users.roles_sync_success'),
+      })
+      toast.pushToast({
+        tone: 'info',
+        title: t('users.roles_self_warn'),
+      })
+      try {
+        const response = await authApi.getPrincipal()
+        session.setPrincipal(response.principal)
+      } catch (err) {
+        // ignore
+      }
+    } else {
+      toast.pushToast({
+        tone: 'success',
+        title: t('users.roles_sync_success'),
+      })
+    }
+  }
 }
 
 function requestDestructiveAction(action: DestructiveAction): void {
@@ -696,6 +735,48 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
                   store.actionStatus === 'loading'
                     ? t('common.syncing')
                     : t('users.btn_sync_profile')
+                }}
+              </UiButton>
+            </div>
+          </div>
+
+          <!-- Assign roles -->
+          <div v-if="canWriteRoles" class="user-detail-card mt-6">
+            <h3 class="user-detail-section-title mt-0">{{ t('users.assign_roles_title') }}</h3>
+            <div class="user-form-grid user-form-grid-1">
+              <div class="role-selection-grid">
+                <div
+                  v-for="role in rolesStore.roles"
+                  :key="role.slug"
+                  class="role-checkbox-item"
+                >
+                  <label :for="`role-${role.slug}`" class="role-checkbox-label">
+                    <input
+                      :id="`role-${role.slug}`"
+                      v-model="selectedRoles"
+                      type="checkbox"
+                      :value="role.slug"
+                      class="role-checkbox-input"
+                    />
+                    <span class="role-checkbox-custom"></span>
+                    <span class="role-checkbox-text">
+                      <span class="role-checkbox-name">{{ role.label || role.slug }}</span>
+                      <span class="role-checkbox-slug">{{ role.slug }}</span>
+                    </span>
+                  </label>
+                </div>
+              </div>
+            </div>
+            <div class="user-detail-card__actions">
+              <UiButton
+                class="save-roles-button"
+                :disabled="store.actionStatus === 'loading' || rolesStore.status === 'loading'"
+                @click="submitAssignRoles"
+              >
+                {{
+                  store.actionStatus === 'loading'
+                    ? t('common.saving')
+                    : t('users.btn_save_roles')
                 }}
               </UiButton>
             </div>

@@ -196,6 +196,16 @@ Kolom **UC Terkait** memakai ID use case baru agar requirement mudah ditelusuri 
 | FR-062 | Pesan Error Aman | Tinggi / MVP | TBD Repo Audit | UC-30, UC-63 |
 | FR-063 | Diagnostik Developer & Correlation ID | Sedang / MVP | TBD Repo Audit | UC-63, UC-82 |
 
+### K. Admin Experience & Client Onboarding
+
+| ID | Nama Functional Requirement | Prioritas/Fase | Status | UC Terkait |
+| --- | --- | --- | --- | --- |
+| FR-064 | Console Manajemen Role & Assign Role | Tinggi / MVP | ◻ Planned (backend siap, UI belum) | UC-56, UC-84, UC-85 |
+| FR-065 | Panduan Onboarding Client Web App | Tinggi / MVP | ◻ Planned | UC-03, UC-60, UC-86 |
+| FR-066 | Handoff Kredensial Client yang Aman | Sedang / MVP | ◻ Planned | UC-05, UC-61, UC-87 |
+
+> Catatan: FR-064–066 ditambahkan 2026-06-03 dari audit `admin-experience-and-client-onboarding-coverage-plan-2026-06-03.md`. FR-064 menutup gap UC-56 (backend `RoleController` + `SyncUserRolesAction` sudah ada, UI admin belum). FR-065 menjadikan panduan onboarding client sebagai deliverable resmi (sebelumnya hanya runbook dev/devops). FR-066 menambah penyerahan kredensial (one-time secret reveal + blok konfigurasi) di panel.
+
 ---
 
 ## 5. Daftar Use Case
@@ -286,7 +296,7 @@ Format dibuat ringkas sesuai kebutuhan pembaca user: **ID, Nama Use Case, Aktor 
 | UC-53 | Admin Buat User | A-02 | Tinggi / MVP |
 | UC-54 | Admin Ubah Data User | A-02 | Tinggi / MVP |
 | UC-55 | Admin Lock/Unlock User | A-02 | Tinggi / MVP |
-| UC-56 | Admin Assign Role | A-02 | Tinggi / MVP |
+| UC-56 | Admin Assign Role | A-02 | Tinggi / MVP — ⚠ Partial (backend siap, UI belum; lihat UC-84) |
 | UC-57 | Review Matriks RBAC | A-11 | Sedang / MVP |
 | UC-58 | Admin Lihat Audit Log | A-02 / A-11 | Tinggi / MVP |
 | UC-59 | Admin Export Audit Log | A-11 | Tinggi / MVP |
@@ -296,6 +306,10 @@ Format dibuat ringkas sesuai kebutuhan pembaca user: **ID, Nama Use Case, Aktor 
 | UC-63 | Investigasi Incident dengan Correlation ID/SID | A-11 | Tinggi / MVP |
 | UC-64 | Operator Kelola Key Rotation | A-10 | Tinggi / MVP |
 | UC-65 | Generate Compliance Evidence Pack | A-11 | Sedang / MVP |
+| UC-84 | Admin Assign/Revoke Role ke User via Panel | A-02 | Tinggi / MVP (realisasi UI UC-56) |
+| UC-85 | Admin Buat/Ubah Role & Edit Permission | A-02 | Tinggi / MVP |
+| UC-86 | App Owner Mengikuti Panduan Onboarding Client | A-03 / A-04 | Tinggi / MVP |
+| UC-87 | Admin Menyerahkan Kredensial Client (one-time secret reveal) | A-02 | Sedang / MVP |
 
 ### G. Security & Risk
 
@@ -443,6 +457,14 @@ Bagian ini membantu QA, BA, dan engineer melihat use case mana yang merealisasik
 | FR-061 | UX Error untuk User & Lokalisasi | UC-18, UC-21, UC-74 |
 | FR-062 | Pesan Error Aman | UC-30, UC-63 |
 | FR-063 | Diagnostik Developer & Correlation ID | UC-63, UC-82 |
+
+### K. Admin Experience & Client Onboarding
+
+| FR ID | Nama Requirement | Use Case Terkait |
+| --- | --- | --- |
+| FR-064 | Console Manajemen Role & Assign Role | UC-56, UC-84, UC-85 |
+| FR-065 | Panduan Onboarding Client Web App | UC-03, UC-60, UC-86 |
+| FR-066 | Handoff Kredensial Client yang Aman | UC-05, UC-61, UC-87 |
 
 ---
 

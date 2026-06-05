@@ -243,7 +243,11 @@
     "group_credentials": "Credentials & security",
     "password_reset_evidence": "Password reset dikirim melalui channel aman backend. Gunakan audit evidence untuk pelacakan.",
     "select_user_title": "No User Selected",
-    "select_user_desc": "Select a user from the sidebar list to inspect identity context, active sessions, and account lifecycle controls."
+    "select_user_desc": "Select a user from the sidebar list to inspect identity context, active sessions, and account lifecycle controls.",
+    "assign_roles_title": "Assign Roles",
+    "btn_save_roles": "Save Roles",
+    "roles_sync_success": "User roles synced successfully.",
+    "roles_self_warn": "You updated your own roles. Please re-authenticate/login again to refresh your token claims."
   },
   "clients": {
     "eyebrow": "Client Management",

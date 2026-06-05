@@ -4246,3 +4246,96 @@ button.user-card-item {
     text-align: center;
   }
 }
+
+/* Role Selection Grid Styles */
+.role-selection-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.role-checkbox-item {
+  position: relative;
+}
+
+.role-checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+}
+
+.role-checkbox-label:hover {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 2%, var(--card));
+}
+
+.role-checkbox-input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.role-checkbox-custom {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border);
+  border-radius: 6px;
+  background-color: var(--card);
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.role-checkbox-label:hover .role-checkbox-custom {
+  border-color: var(--primary);
+}
+
+.role-checkbox-input:checked + .role-checkbox-custom {
+  background-color: var(--primary);
+  border-color: var(--primary);
+}
+
+.role-checkbox-input:checked + .role-checkbox-custom::after {
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: 2px;
+  width: 5px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.role-checkbox-input:checked ~ .role-checkbox-text .role-checkbox-name {
+  color: var(--primary);
+}
+
+.role-checkbox-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.role-checkbox-name {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--foreground);
+  transition: color 0.2s ease;
+}
+
+.role-checkbox-slug {
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  color: var(--muted-foreground);
+}
