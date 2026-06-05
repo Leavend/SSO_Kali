@@ -132,7 +132,7 @@ function oidcBackend_aggregate_contracts(): array
         ],
         'client_onboarding' => [
             'tests/Feature/DevOps/ClientOnboardingEvidenceTest.php' => ['keeps the client onboarding guide aligned', 'docs/onboarding/client-web-app-onboarding.md'],
-            '../../docs/onboarding/client-web-app-onboarding.md' => ['Discovery URL', 'Authorization Code Flow + PKCE', 'Go-Live'],
+            '../../docs/onboarding/client-web-app-onboarding.md' => ['Discovery URL', 'Authorization Code + PKCE (Wajib)', 'Go-Live'],
         ],
     ];
 }
