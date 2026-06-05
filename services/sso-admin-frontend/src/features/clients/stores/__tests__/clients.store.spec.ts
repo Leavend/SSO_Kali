@@ -22,6 +22,12 @@ vi.mock('../../services/clients.api', () => ({
           clientId: string,
         ) => Promise<{ rotation: { client_id: string; plaintext_secret?: string } }>
       >(),
+    contract:
+      vi.fn<
+        (
+          payload: unknown,
+        ) => Promise<{ contract: Record<string, unknown> }>
+      >(),
   },
 }))
 
@@ -163,6 +169,64 @@ describe('useClientsStore', () => {
       owner_email: 'owner@example.test',
       provisioning: 'jit',
     })
+  })
+
+  it('creates confidential client and sets rotationSecret if secret is in response', async () => {
+    const createdClient: AdminClient = {
+      ...client,
+      client_id: 'conf-app',
+      display_name: 'Conf App',
+      type: 'confidential',
+      status: 'staged',
+    }
+    const responseWithSecret = {
+      registration: createdClient,
+      plaintext_secret: 'conf-secret-value-123',
+    }
+    vi.mocked(clientsApi.create).mockResolvedValue(responseWithSecret as any)
+    const store = useClientsStore()
+
+    await store.createClient({
+      app_name: 'Conf App',
+      client_id: 'conf-app',
+      environment: 'development',
+      client_type: 'confidential',
+      app_base_url: 'https://conf.example.test',
+      callback_path: '/callback',
+      logout_path: '/logout',
+      owner_email: 'owner@example.test',
+      provisioning: 'jit',
+    })
+
+    expect(store.rotationSecret).toBe('conf-secret-value-123')
+    expect(store.rotationClientId).toBe('conf-app')
+  })
+
+  it('creates public client and does not set rotationSecret', async () => {
+    const createdClient: AdminClient = {
+      ...client,
+      client_id: 'pub-app',
+      display_name: 'Pub App',
+      type: 'public',
+      status: 'staged',
+    }
+    vi.mocked(clientsApi.create).mockResolvedValue({ registration: createdClient })
+    const store = useClientsStore()
+
+    await store.createClient({
+      app_name: 'Pub App',
+      client_id: 'pub-app',
+      environment: 'development',
+      client_type: 'public',
+      app_base_url: 'https://pub.example.test',
+      callback_path: '/callback',
+      logout_path: '/logout',
+      owner_email: 'owner@example.test',
+      provisioning: 'jit',
+    })
+
+    expect(store.rotationSecret).toBeNull()
+    expect(store.rotationClientId).toBeNull()
   })
 
   it('updates client scope consent policy through the dedicated scope API', async () => {

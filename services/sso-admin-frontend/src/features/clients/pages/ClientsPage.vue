@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, reactive, ref, type Component } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref, watch, type Component } from 'vue'
 import { useI18n } from '@/composables/useI18n'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
 import UiButton from '@/components/ui/UiButton.vue'
@@ -10,8 +10,10 @@ import UiInput from '@/components/ui/UiInput.vue'
 import UiSkeleton from '@/components/ui/UiSkeleton.vue'
 import UiStatusView from '@/components/ui/UiStatusView.vue'
 import UiTextarea from '@/components/ui/UiTextarea.vue'
+import UiSelect from '@/components/ui/UiSelect.vue'
 import { useSessionStore } from '@/stores/session.store'
 import { useClientsStore } from '../stores/clients.store'
+import { clientsApi } from '../services/clients.api'
 import {
   Search,
   X,
@@ -23,6 +25,8 @@ import {
   ShieldAlert,
   Globe,
   AlertTriangle,
+  HelpCircle,
+  ShieldCheck,
 } from 'lucide-vue-next'
 
 const store = useClientsStore()
@@ -38,6 +42,7 @@ const createForm = reactive({
   owner_email: '',
   redirect_uri: '',
   backchannel_logout_uri: '',
+  client_type: 'public' as 'public' | 'confidential',
 })
 const lifecycleForm = reactive({
   disable_reason: '',
@@ -90,11 +95,25 @@ function avatarStyle(name: string): Record<string, string> {
   return { background: `linear-gradient(135deg, ${color.start}, ${color.end})` }
 }
 
-// Modal support
 const showCreateForm = ref(false)
 const createDialogRef = ref<HTMLElement | null>(null)
 const successMessage = ref<string | null>(null)
 const isSaving = ref(false)
+const copyFeedback = ref<string | null>(null)
+
+// Reveal-on-create contract state
+const showContract = ref(false)
+const contractEnvLines = ref<readonly string[]>([])
+const contractIssuer = ref<string | null>(null)
+const contractClientId = ref<string | null>(null)
+const contractRedirectUri = ref<string | null>(null)
+
+// Auto-reset client_type when dialog opens
+watch(showCreateForm, (isOpen) => {
+  if (isOpen) {
+    createForm.client_type = 'public'
+  }
+})
 
 function openCreateForm(): void {
   successMessage.value = null
@@ -112,6 +131,7 @@ function closeCreateForm(): void {
   createForm.owner_email = ''
   createForm.redirect_uri = ''
   createForm.backchannel_logout_uri = ''
+  createForm.client_type = 'public'
   uriValidationMessages.value = []
   store.errorMessage = null
 }
@@ -267,7 +287,7 @@ async function createClient(): Promise<void> {
       app_name: createForm.display_name,
       client_id: createForm.client_id,
       environment: 'development',
-      client_type: 'public',
+      client_type: createForm.client_type,
       app_base_url: originOf(redirectUri) ?? '',
       callback_path: pathOf(redirectUri),
       logout_path: pathOf(backchannelLogoutUri),
@@ -275,6 +295,10 @@ async function createClient(): Promise<void> {
       provisioning: 'jit',
     })
     if (!store.errorMessage) {
+      // Fetch contract config for display
+      if (store.selectedClient) {
+        await fetchContract(store.rotationSecret ? true : false)
+      }
       closeCreateForm()
       syncFormFromSelected()
       successMessage.value = 'Client berhasil dibuat.'
@@ -286,6 +310,72 @@ async function createClient(): Promise<void> {
     }
   } finally {
     isSaving.value = false
+  }
+}
+
+async function copyToClipboard(text: string): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(text)
+    copyFeedback.value = t('clients.copy_success')
+  } catch {
+    // Fallback: execCommand for older browsers
+    const textarea = document.createElement('textarea')
+    textarea.value = text
+    textarea.style.position = 'fixed'
+    textarea.style.opacity = '0'
+    document.body.appendChild(textarea)
+    textarea.select()
+    try {
+      document.execCommand('copy')
+      copyFeedback.value = t('clients.copy_success')
+    } catch {
+      copyFeedback.value = t('clients.copy_failed')
+    } finally {
+      document.body.removeChild(textarea)
+    }
+  }
+  setTimeout(() => {
+    if (copyFeedback.value === t('clients.copy_success') || copyFeedback.value === t('clients.copy_failed')) {
+      copyFeedback.value = null
+    }
+  }, 2500)
+}
+
+function copyAllConfig(): void {
+  if (!contractEnvLines.value.length) return
+  const text = [
+    contractEnvLines.value.join('\n'),
+    '',
+    `# ${contractIssuer.value ?? ''}`,
+  ].join('\n').trim()
+  void copyToClipboard(text)
+}
+
+async function fetchContract(hasSecret: boolean): Promise<void> {
+  if (!store.selectedClientId) return
+  try {
+    const displayName = store.selectedClient?.display_name ?? ''
+    const redirectUri = store.selectedClient?.redirect_uris[0] ?? ''
+    const response = await clientsApi.contract({
+      app_name: displayName,
+      client_id: store.selectedClientId,
+      environment: 'development',
+      client_type: hasSecret ? 'confidential' : 'public',
+      app_base_url: originOf(redirectUri) ?? '',
+      callback_path: pathOf(redirectUri),
+      logout_path: store.selectedClient?.backchannel_logout_uri
+        ? pathOf(store.selectedClient.backchannel_logout_uri)
+        : '',
+      owner_email: store.selectedClient?.owner_email ?? '',
+      provisioning: 'jit',
+    })
+    contractEnvLines.value = response.contract.env ?? []
+    contractIssuer.value = response.contract.issuer ?? null
+    contractClientId.value = response.contract.clientId ?? null
+    contractRedirectUri.value = response.contract.redirectUri ?? null
+    showContract.value = true
+  } catch {
+    // Contract is non-critical; silently ignore fetch errors
   }
 }
 
@@ -429,6 +519,9 @@ async function rotateSecret(): Promise<void> {
   try {
     await store.rotateSelectedSecret()
     if (!store.errorMessage) {
+      if (store.selectedClient) {
+        await fetchContract(true)
+      }
       successMessage.value = 'Client secret berhasil dirotasi.'
       setTimeout(() => {
         if (successMessage.value === 'Client secret berhasil dirotasi.') {
@@ -448,6 +541,16 @@ async function rotateSecret(): Promise<void> {
       <p class="eyebrow">{{ t('clients.eyebrow') }}</p>
       <h1 id="clients-title">{{ t('clients.title') }}</h1>
       <p class="page-summary">{{ t('clients.summary') }}</p>
+      <a
+        v-if="canWriteClients"
+        class="onboarding-link"
+        href="/docs/onboarding/client-web-app-onboarding.md"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <HelpCircle :size="14" />
+        {{ t('clients.onboarding_guide') }}
+      </a>
     </div>
 
     <UiSkeleton v-if="store.status === 'loading'" :label="t('clients.loading')" />
@@ -642,6 +745,17 @@ async function rotateSecret(): Promise<void> {
                   v-model="createForm.owner_email"
                   name="create_owner_email"
                   autocomplete="email"
+                />
+              </UiFormField>
+              <UiFormField id="create_client_type" :label="t('clients.label_client_type')" required>
+                <UiSelect
+                  id="create_client_type"
+                  v-model="createForm.client_type"
+                  name="client_type"
+                  :options="[
+                    { value: 'public', label: t('clients.type_public') },
+                    { value: 'confidential', label: t('clients.type_confidential') },
+                  ]"
                 />
               </UiFormField>
               <UiFormField
@@ -1009,8 +1123,35 @@ async function rotateSecret(): Promise<void> {
               </div>
               <p class="secret-reveal__warning">{{ t('clients.secret_reveal_warning') }}</p>
               <div class="secret-reveal__code-wrapper">
-                <code>{{ store.rotationSecret }}</code>
+                <code id="revealed-secret">{{ store.rotationSecret }}</code>
+                <button
+                  class="secret-reveal__copy-btn"
+                  type="button"
+                  :aria-label="t('clients.btn_copy_secret')"
+                  @click="copyToClipboard(store.rotationSecret!)"
+                >
+                  <ShieldCheck :size="14" />
+                  {{ t('clients.btn_copy_secret') }}
+                </button>
               </div>
+
+              <!-- Config contract block -->
+              <div v-if="showContract && contractEnvLines.length > 0" class="contract-block">
+                <h4 class="contract-block__title">{{ t('clients.config_block_title') }}</h4>
+                <pre class="contract-block__pre"><code>{{ contractEnvLines.join('\n') }}</code></pre>
+                <div class="user-detail-card__actions contract-block__actions">
+                  <UiButton
+                    variant="secondary"
+                    size="sm"
+                    type="button"
+                    @click="copyAllConfig"
+                  >
+                    <ShieldCheck :size="14" />
+                    {{ t('clients.btn_copy_all_config') }}
+                  </UiButton>
+                </div>
+              </div>
+
               <div class="user-detail-card__actions secret-reveal__actions">
                 <UiButton
                   variant="secondary"
@@ -1114,6 +1255,17 @@ async function rotateSecret(): Promise<void> {
           :description="t('clients.no_client_selected_desc')"
         />
       </section>
+    </div>
+
+    <!-- Copy feedback toast -->
+    <div
+      v-if="copyFeedback"
+      class="copy-toast"
+      role="status"
+      aria-live="polite"
+    >
+      <ShieldCheck :size="16" />
+      {{ copyFeedback }}
     </div>
 
     <EvidenceContextPanel

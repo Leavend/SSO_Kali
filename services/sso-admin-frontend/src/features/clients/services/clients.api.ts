@@ -3,6 +3,7 @@ import type {
   ClientCreatePayload,
   ClientCreateResponse,
   ClientDetailResponse,
+  ClientIntegrationContractResponse,
   ClientLifecyclePayload,
   ClientLifecycleResponse,
   ClientListResponse,
@@ -46,6 +47,12 @@ export const clientsApi = {
   rotateSecret(clientId: string): Promise<ClientSecretRotationResponse> {
     return apiClient.post<ClientSecretRotationResponse>(
       `/api/admin/clients/${clientId}/rotate-secret`,
+    )
+  },
+  contract(payload: ClientCreatePayload): Promise<ClientIntegrationContractResponse> {
+    return apiClient.post<ClientIntegrationContractResponse>(
+      '/api/admin/client-integrations/contract',
+      payload,
     )
   },
 }

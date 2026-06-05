@@ -85,3 +85,23 @@ export type ClientSecretRotation = {
 export type ClientSecretRotationResponse = {
   readonly rotation: ClientSecretRotation
 }
+
+export type ClientIntegrationContract = {
+  readonly clientId?: string
+  readonly displayName?: string
+  readonly redirectUri?: string
+  readonly backchannelLogoutUri?: string
+  readonly authorizeUrl?: string
+  readonly tokenUrl?: string
+  readonly userinfoUrl?: string
+  readonly issuer?: string
+  readonly scopes?: readonly string[]
+  readonly env?: readonly string[]
+  readonly provisioningSteps?: readonly string[]
+  readonly rolloutSteps?: readonly string[]
+  readonly findings?: readonly string[]
+}
+
+export type ClientIntegrationContractResponse = {
+  readonly contract: ClientIntegrationContract
+}

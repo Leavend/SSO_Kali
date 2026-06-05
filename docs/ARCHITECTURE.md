@@ -5,6 +5,8 @@
 - `docs/PRD_SSO.pdf`
 - `docs/PRD_SSO_02042026.pdf`
 - `docs/sso_rfc6749.txt.pdf`
+- `docs/onboarding/client-web-app-onboarding.md` (Panduan Onboarding Client Web App)
+
 
 ## Prinsip desain
 

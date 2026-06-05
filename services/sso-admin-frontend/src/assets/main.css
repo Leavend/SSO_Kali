@@ -3841,6 +3841,97 @@ button.user-card-item {
   margin-top: 12px;
 }
 
+.secret-reveal__copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 6px 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--foreground);
+  background: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+.secret-reveal__copy-btn:hover {
+  background: var(--accent);
+  border-color: var(--ring);
+}
+
+/* Contract config block */
+.contract-block {
+  background: color-mix(in srgb, var(--primary) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--primary) 18%, var(--border));
+  border-radius: 10px;
+  padding: 14px;
+  margin-top: 14px;
+}
+.contract-block__title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+  color: var(--foreground);
+}
+.contract-block__pre {
+  background: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  margin: 0 0 10px 0;
+  overflow-x: auto;
+}
+.contract-block__pre code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.78rem;
+  color: var(--foreground);
+  white-space: pre;
+}
+.contract-block__actions {
+  margin-top: 8px;
+}
+
+/* Onboarding guide link in page heading */
+.onboarding-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--primary);
+  text-decoration: none;
+  transition: opacity 0.2s;
+}
+.onboarding-link:hover {
+  opacity: 0.8;
+}
+
+/* Copy feedback toast */
+.copy-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: var(--foreground);
+  color: var(--background);
+  font-size: 0.82rem;
+  font-weight: 600;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  z-index: 9999;
+  animation: toast-in 0.25s ease-out;
+}
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 /* Client card id line uses mono (otherwise reuses .user-card-item styling). */
 .client-card-item .user-card-item__email {
   font-family: var(--font-mono);

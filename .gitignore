@@ -59,4 +59,6 @@ docs/*
 !docs/README.md
 !docs/ops/
 !docs/ops/evidence/
+!docs/onboarding/
+!docs/onboarding/**/*.md
 node_modules

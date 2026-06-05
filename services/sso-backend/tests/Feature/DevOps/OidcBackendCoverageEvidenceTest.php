@@ -130,6 +130,10 @@ function oidcBackend_aggregate_contracts(): array
             '../../scripts/sso-backend-oidc-production-smoke.sh' => ['prompt=none', '/userinfo', 'without secrets or tokens'],
             '../../docs/devops/sso-backend-oidc-production-smoke.md' => ['OIDC discovery metadata', 'Evidence to Retain', 'RUN_FR004_PRODUCTION_SMOKE=true'],
         ],
+        'client_onboarding' => [
+            'tests/Feature/DevOps/ClientOnboardingEvidenceTest.php' => ['keeps the client onboarding guide aligned', 'docs/onboarding/client-web-app-onboarding.md'],
+            '../../docs/onboarding/client-web-app-onboarding.md' => ['Discovery URL', 'Authorization Code Flow + PKCE', 'Go-Live'],
+        ],
     ];
 }
 
@@ -174,6 +178,7 @@ function oidcBackend_ci_tests(): array
         'ConsentFlowContractTest.php',
         'ConnectedAppsSelfServiceRevocationContractTest.php',
         'OidcProductionSmokeEvidenceTest.php',
+        'ClientOnboardingEvidenceTest.php',
         'TokenEndpointHardeningContractTest.php',
         'JwtValidationClaimContractTest.php',
         'RefreshTokenRotationReplayContractTest.php',

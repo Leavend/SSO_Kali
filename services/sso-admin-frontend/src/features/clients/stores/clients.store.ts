@@ -78,6 +78,19 @@ export const useClientsStore = defineStore('admin-clients', () => {
       const response = await clientsApi.create(payload)
       upsertClient(response.registration)
       selectedClientId.value = response.registration.client_id
+      
+      const secret = (response.registration as any).plaintext_secret ??
+                     (response.registration as any).client_secret ??
+                     (response.registration as any).secret ??
+                     (response as any).plaintext_secret ??
+                     (response as any).client_secret ??
+                     (response as any).secret
+                     
+      if (secret) {
+        rotationSecret.value = secret
+        rotationClientId.value = response.registration.client_id
+      }
+      
       requestId.value = getLastRequestId()
     } catch (error) {
       handleGenericError(error)
