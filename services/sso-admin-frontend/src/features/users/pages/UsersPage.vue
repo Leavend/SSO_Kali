@@ -254,7 +254,9 @@ async function submitAssignRoles(): Promise<void> {
       try {
         const result = await session.ensureSession(true)
         if (result === 'unauthenticated') {
-          window.location.assign(`/auth/login?return_to=${encodeURIComponent(window.location.pathname)}`)
+          window.location.assign(
+            `/auth/login?return_to=${encodeURIComponent(window.location.pathname)}`,
+          )
         } else if (result === 'step_up_required') {
           router.push({ name: 'admin.step-up-required' })
         } else if (result === 'forbidden') {
@@ -757,11 +759,7 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
             <h3 class="user-detail-section-title mt-0">{{ t('users.assign_roles_title') }}</h3>
             <div class="user-form-grid user-form-grid-1">
               <div class="role-selection-grid">
-                <div
-                  v-for="role in rolesStore.roles"
-                  :key="role.slug"
-                  class="role-checkbox-item"
-                >
+                <div v-for="role in rolesStore.roles" :key="role.slug" class="role-checkbox-item">
                   <label :for="`role-${role.slug}`" class="role-checkbox-label">
                     <input
                       :id="`role-${role.slug}`"
@@ -779,19 +777,25 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
                 </div>
               </div>
             </div>
-            <p v-if="selectedRoles.length === 0" class="text-xs text-danger mt-2" style="color: var(--destructive); margin-bottom: 0.5rem;">
+            <p
+              v-if="selectedRoles.length === 0"
+              class="text-xs text-danger mt-2"
+              style="color: var(--destructive); margin-bottom: 0.5rem"
+            >
               {{ t('users.roles_min_required') }}
             </p>
             <div class="user-detail-card__actions">
               <UiButton
                 class="save-roles-button"
-                :disabled="store.actionStatus === 'loading' || rolesStore.status === 'loading' || selectedRoles.length === 0"
+                :disabled="
+                  store.actionStatus === 'loading' ||
+                  rolesStore.status === 'loading' ||
+                  selectedRoles.length === 0
+                "
                 @click="submitAssignRoles"
               >
                 {{
-                  store.actionStatus === 'loading'
-                    ? t('common.saving')
-                    : t('users.btn_save_roles')
+                  store.actionStatus === 'loading' ? t('common.saving') : t('users.btn_save_roles')
                 }}
               </UiButton>
             </div>

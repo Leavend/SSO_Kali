@@ -123,10 +123,12 @@ describe('useRolesStore', () => {
 
   describe('actions', () => {
     it('createRole calls api and reloads roles', async () => {
-      vi.mocked(rolesApi.createRole).mockResolvedValueOnce({ role: { slug: 'custom', name: 'Custom', label: 'Custom', permissions: [] } })
+      vi.mocked(rolesApi.createRole).mockResolvedValueOnce({
+        role: { slug: 'custom', name: 'Custom', label: 'Custom', permissions: [] },
+      })
       vi.mocked(rolesApi.listRoles).mockResolvedValueOnce({ roles: [] })
       vi.mocked(rolesApi.listPermissions).mockResolvedValueOnce({ permissions: [] })
-      
+
       const store = useRolesStore()
       await store.createRole({ slug: 'custom', name: 'Custom' })
 
@@ -135,10 +137,12 @@ describe('useRolesStore', () => {
     })
 
     it('updateRole calls api and reloads roles', async () => {
-      vi.mocked(rolesApi.updateRole).mockResolvedValueOnce({ role: { slug: 'custom', name: 'Custom New', label: 'Custom New', permissions: [] } })
+      vi.mocked(rolesApi.updateRole).mockResolvedValueOnce({
+        role: { slug: 'custom', name: 'Custom New', label: 'Custom New', permissions: [] },
+      })
       vi.mocked(rolesApi.listRoles).mockResolvedValueOnce({ roles: [] })
       vi.mocked(rolesApi.listPermissions).mockResolvedValueOnce({ permissions: [] })
-      
+
       const store = useRolesStore()
       await store.updateRole('custom', { name: 'Custom New' })
 
@@ -150,7 +154,7 @@ describe('useRolesStore', () => {
       vi.mocked(rolesApi.deleteRole).mockResolvedValueOnce({ deleted: true, role_slug: 'custom' })
       vi.mocked(rolesApi.listRoles).mockResolvedValueOnce({ roles: [] })
       vi.mocked(rolesApi.listPermissions).mockResolvedValueOnce({ permissions: [] })
-      
+
       const store = useRolesStore()
       await store.deleteRole('custom')
 
@@ -159,10 +163,12 @@ describe('useRolesStore', () => {
     })
 
     it('syncRolePermissions calls api and reloads roles', async () => {
-      vi.mocked(rolesApi.syncRolePermissions).mockResolvedValueOnce({ role: { slug: 'custom', name: 'Custom', label: 'Custom', permissions: ['perm.a'] } })
+      vi.mocked(rolesApi.syncRolePermissions).mockResolvedValueOnce({
+        role: { slug: 'custom', name: 'Custom', label: 'Custom', permissions: ['perm.a'] },
+      })
       vi.mocked(rolesApi.listRoles).mockResolvedValueOnce({ roles: [] })
       vi.mocked(rolesApi.listPermissions).mockResolvedValueOnce({ permissions: [] })
-      
+
       const store = useRolesStore()
       await store.syncRolePermissions('custom', ['perm.a'])
 

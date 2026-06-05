@@ -160,7 +160,7 @@ describe('RolesPage', () => {
     const wrapper = mount(RolesPage)
 
     // Click Delete button by searching for button text
-    const deleteBtn = wrapper.findAll('button').find(b => b.text().includes('Delete'))!
+    const deleteBtn = wrapper.findAll('button').find((b) => b.text().includes('Delete'))!
     await deleteBtn.trigger('click')
 
     // Assert ConfirmDialog for delete is rendered
@@ -182,7 +182,9 @@ describe('RolesPage', () => {
     const wrapper = mount(RolesPage)
 
     // Click Manage Permissions button
-    const managePermsBtn = wrapper.findAll('button').find(b => b.text().includes('Manage Permissions'))!
+    const managePermsBtn = wrapper
+      .findAll('button')
+      .find((b) => b.text().includes('Manage Permissions'))!
     await managePermsBtn.trigger('click')
 
     // Toggle a checkbox in the modal

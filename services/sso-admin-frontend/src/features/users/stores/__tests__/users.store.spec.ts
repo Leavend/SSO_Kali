@@ -22,7 +22,8 @@ vi.mock('../../services/users.api', () => ({
     issuePasswordReset: vi.fn<(subjectId: string) => Promise<UserMutationResponse>>(),
     resetMfa: vi.fn<(subjectId: string, payload: unknown) => Promise<UserMutationResponse>>(),
     syncProfile: vi.fn<(subjectId: string, payload: unknown) => Promise<UserMutationResponse>>(),
-    syncUserRoles: vi.fn<(subjectId: string, roleSlugs: readonly string[]) => Promise<UserMutationResponse>>(),
+    syncUserRoles:
+      vi.fn<(subjectId: string, roleSlugs: readonly string[]) => Promise<UserMutationResponse>>(),
   },
 }))
 

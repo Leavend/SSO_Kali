@@ -100,7 +100,7 @@ const mappingClaims = ref('{"sub":"ext-user-123","email":"user@example.com"}')
 async function previewMapping(): Promise<void> {
   successMessage.value = null
   store.errorMessage = null
-  
+
   let parsed: Record<string, unknown>
   try {
     parsed = JSON.parse(mappingClaims.value) as Record<string, unknown>
@@ -175,7 +175,13 @@ async function submitCreateProvider(): Promise<void> {
   successMessage.value = null
   store.errorMessage = null
 
-  if (!createProviderKey.value.trim() || !createDisplayName.value.trim() || !createIssuer.value.trim() || !createMetadataUrl.value.trim() || !createClientId.value.trim()) {
+  if (
+    !createProviderKey.value.trim() ||
+    !createDisplayName.value.trim() ||
+    !createIssuer.value.trim() ||
+    !createMetadataUrl.value.trim() ||
+    !createClientId.value.trim()
+  ) {
     store.errorMessage = 'Semua field wajib diisi.'
     store.actionStatus = 'error'
     return
@@ -245,7 +251,7 @@ watch(
     editIsBackup.value = provider?.is_backup ?? false
     editTlsValidation.value = provider?.tls_validation_enabled ?? true
     editSigValidation.value = provider?.signature_validation_enabled ?? true
-    
+
     activeDetailTab.value = 'overview'
   },
   { immediate: true },
@@ -304,7 +310,7 @@ async function submitDeleteProvider(): Promise<void> {
   if (!canDelete.value) return
   successMessage.value = null
   store.errorMessage = null
-  
+
   isSaving.value = true
   try {
     await store.deleteSelected()
@@ -343,7 +349,6 @@ function avatarStyle(name: string): Record<string, string> {
   const color = palette[Math.abs(hash) % palette.length] ?? palette[0]!
   return { background: `linear-gradient(135deg, ${color.start}, ${color.end})` }
 }
-
 
 async function selectProvider(providerKey: string): Promise<void> {
   successMessage.value = null
@@ -416,7 +421,7 @@ onMounted(() => {
             id="search-providers"
             label="Cari Provider"
             class="clients-search"
-            style="margin-bottom: 16px;"
+            style="margin-bottom: 16px"
           >
             <div class="clients-search__control">
               <Search :size="16" class="clients-search__icon" aria-hidden="true" />
@@ -447,7 +452,9 @@ onMounted(() => {
                 :class="{
                   'user-card-item--active': provider.provider_key === store.selectedProviderKey,
                 }"
-                :aria-current="provider.provider_key === store.selectedProviderKey ? 'true' : undefined"
+                :aria-current="
+                  provider.provider_key === store.selectedProviderKey ? 'true' : undefined
+                "
                 @click="selectProvider(provider.provider_key)"
               >
                 <span
@@ -471,7 +478,9 @@ onMounted(() => {
                   </span>
                   <span class="user-card-item__email">{{ provider.provider_key }}</span>
                   <span class="user-card-item__meta">
-                    <span class="user-card-item__role">{{ provider.health_status ?? 'unknown' }}</span>
+                    <span class="user-card-item__role">{{
+                      provider.health_status ?? 'unknown'
+                    }}</span>
                   </span>
                 </span>
               </button>
@@ -524,7 +533,7 @@ onMounted(() => {
                 v-if="store.errorMessage && store.actionStatus === 'error'"
                 class="ui-action-message ui-action-message--error"
                 role="alert"
-                style="margin-bottom: 16px;"
+                style="margin-bottom: 16px"
               >
                 {{ store.errorMessage }}
               </p>
@@ -607,9 +616,9 @@ onMounted(() => {
               </div>
 
               <!-- Switches grouped into sub-actions -->
-              <div class="user-detail__sub-actions" style="margin-top: 20px;">
+              <div class="user-detail__sub-actions" style="margin-top: 20px">
                 <h4 class="user-detail__sub-actions-title">Initial State</h4>
-                <div class="user-form-grid user-form-grid-2" style="margin-top: 8px;">
+                <div class="user-form-grid user-form-grid-2" style="margin-top: 8px">
                   <UiSwitch v-model="createEnabled" label="Enabled" />
                   <UiSwitch v-model="createIsBackup" label="Backup failover" />
                 </div>
@@ -618,9 +627,7 @@ onMounted(() => {
           </div>
 
           <div class="client-modal-footer">
-            <UiButton variant="secondary" type="button" @click="closeCreateForm">
-              Cancel
-            </UiButton>
+            <UiButton variant="secondary" type="button" @click="closeCreateForm"> Cancel </UiButton>
             <UiButton
               variant="primary"
               type="button"
@@ -648,10 +655,18 @@ onMounted(() => {
         <header class="client-profile-hero">
           <div
             class="client-profile-hero__avatar"
-            :style="avatarStyle(store.selectedProvider.display_name ?? store.selectedProvider.provider_key)"
+            :style="
+              avatarStyle(
+                store.selectedProvider.display_name ?? store.selectedProvider.provider_key,
+              )
+            "
             aria-hidden="true"
           >
-            {{ avatarInitial(store.selectedProvider.display_name ?? store.selectedProvider.provider_key) }}
+            {{
+              avatarInitial(
+                store.selectedProvider.display_name ?? store.selectedProvider.provider_key,
+              )
+            }}
           </div>
           <div class="client-profile-hero__content">
             <div class="client-profile-hero__header-row">
@@ -694,13 +709,13 @@ onMounted(() => {
           v-if="store.errorMessage || successMessage"
           class="client-detail-status"
           aria-live="polite"
-          style="margin-bottom: 20px; width: 100%;"
+          style="margin-bottom: 20px; width: 100%"
         >
           <p
             v-if="store.errorMessage"
             class="ui-action-message ui-action-message--error"
             role="alert"
-            style="margin-bottom: 8px;"
+            style="margin-bottom: 8px"
           >
             {{ store.errorMessage }}
           </p>
@@ -724,15 +739,21 @@ onMounted(() => {
           <dl class="detail-grid">
             <div>
               <dt>client_id</dt>
-              <dd><code>{{ store.selectedProvider.client_id }}</code></dd>
+              <dd>
+                <code>{{ store.selectedProvider.client_id }}</code>
+              </dd>
             </div>
             <div>
               <dt>metadata_url</dt>
-              <dd><code>{{ store.selectedProvider.metadata_url }}</code></dd>
+              <dd>
+                <code>{{ store.selectedProvider.metadata_url }}</code>
+              </dd>
             </div>
             <div v-if="store.selectedProvider.jwks_uri">
               <dt>jwks_uri</dt>
-              <dd><code>{{ store.selectedProvider.jwks_uri }}</code></dd>
+              <dd>
+                <code>{{ store.selectedProvider.jwks_uri }}</code>
+              </dd>
             </div>
             <div>
               <dt>algorithms</dt>
@@ -756,7 +777,9 @@ onMounted(() => {
             </div>
             <div>
               <dt>signature_validation</dt>
-              <dd>{{ store.selectedProvider.signature_validation_enabled ? 'Active' : 'Disabled' }}</dd>
+              <dd>
+                {{ store.selectedProvider.signature_validation_enabled ? 'Active' : 'Disabled' }}
+              </dd>
             </div>
             <!-- Mapping status summary for testing & operator overview -->
             <div v-if="store.mappingPreview">
@@ -766,13 +789,22 @@ onMounted(() => {
           </dl>
 
           <!-- Circuit Breaker / Failure Info -->
-          <div v-if="store.selectedProvider.consecutive_failures" class="ui-card ui-card--danger" style="margin-top: 24px;">
-            <h4 style="font-weight: 800; margin-bottom: 8px; color: var(--destructive);">Circuit Breaker Alert</h4>
-            <p style="margin-bottom: 4px;">Consecutive Failures: <strong>{{ store.selectedProvider.consecutive_failures }}</strong></p>
-            <p v-if="store.selectedProvider.breaker_tripped_at" style="margin-bottom: 4px;">
+          <div
+            v-if="store.selectedProvider.consecutive_failures"
+            class="ui-card ui-card--danger"
+            style="margin-top: 24px"
+          >
+            <h4 style="font-weight: 800; margin-bottom: 8px; color: var(--destructive)">
+              Circuit Breaker Alert
+            </h4>
+            <p style="margin-bottom: 4px">
+              Consecutive Failures:
+              <strong>{{ store.selectedProvider.consecutive_failures }}</strong>
+            </p>
+            <p v-if="store.selectedProvider.breaker_tripped_at" style="margin-bottom: 4px">
               Breaker Tripped At: <strong>{{ store.selectedProvider.breaker_tripped_at }}</strong>
             </p>
-            <p v-if="store.selectedProvider.breaker_reason" style="margin: 0;">
+            <p v-if="store.selectedProvider.breaker_reason" style="margin: 0">
               Breaker Reason: <code>{{ store.selectedProvider.breaker_reason }}</code>
             </p>
           </div>
@@ -839,7 +871,12 @@ onMounted(() => {
                   />
                 </UiFormField>
                 <UiFormField id="edit-scopes" label="Scopes (comma-separated)">
-                  <UiInput id="edit-scopes" v-model="editScopes" name="edit-scopes" autocomplete="off" />
+                  <UiInput
+                    id="edit-scopes"
+                    v-model="editScopes"
+                    name="edit-scopes"
+                    autocomplete="off"
+                  />
                 </UiFormField>
                 <UiFormField id="edit-priority" label="Priority">
                   <input
@@ -853,9 +890,9 @@ onMounted(() => {
               </div>
 
               <!-- Switches grouped into sub-actions -->
-              <div class="user-detail__sub-actions" style="margin-top: 20px;">
+              <div class="user-detail__sub-actions" style="margin-top: 20px">
                 <h4 class="user-detail__sub-actions-title">Security & Protocol Features</h4>
-                <div class="user-form-grid user-form-grid-2" style="margin-top: 8px;">
+                <div class="user-form-grid user-form-grid-2" style="margin-top: 8px">
                   <UiSwitch v-model="editEnabled" label="Enabled" />
                   <UiSwitch v-model="editIsBackup" label="Backup failover" />
                   <UiSwitch v-model="editTlsValidation" label="TLS validation" />
@@ -863,7 +900,7 @@ onMounted(() => {
                 </div>
               </div>
 
-              <div class="user-detail-card__actions" style="margin-top: 24px;">
+              <div class="user-detail-card__actions" style="margin-top: 24px">
                 <UiButton
                   variant="primary"
                   type="button"
@@ -892,47 +929,94 @@ onMounted(() => {
             aria-labelledby="idp-mapping-title"
           >
             <h3 id="idp-mapping-title">Mapping preview</h3>
-            <p style="margin-bottom: 16px; color: var(--muted-foreground);">
+            <p style="margin-bottom: 16px; color: var(--muted-foreground)">
               Uji pemetaan klaim token dari OIDC provider eksternal ke skema SSO local.
             </p>
             <form class="client-form" @submit.prevent="previewMapping">
               <UiFormField id="mapping-claims" label="Sample claims JSON">
                 <UiTextarea id="mapping-claims" v-model="mappingClaims" :rows="4" />
               </UiFormField>
-              <div class="user-detail-card__actions" style="margin-top: 16px;">
+              <div class="user-detail-card__actions" style="margin-top: 16px">
                 <UiButton variant="primary" type="submit" :disabled="isSaving">
                   {{ isSaving ? 'Memproses...' : 'Preview mapping' }}
                 </UiButton>
               </div>
             </form>
 
-            <div v-if="store.mappingPreview" class="ui-card" style="margin-top: 24px; border: 1px solid var(--border); padding: 16px;">
-              <h4 style="font-weight: 800; margin-bottom: 12px;">Mapping Results</h4>
-              <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px;">
-                <p style="margin: 0;">Safe to link: <span class="ui-badge" :class="store.mappingPreview.safe_to_link ? 'badge--active' : 'badge--inactive'">{{ store.mappingPreview.safe_to_link ? 'Yes' : 'No' }}</span></p>
-                <p style="margin: 0;">Missing email strategy: <code>{{ store.mappingPreview.missing_email_strategy }}</code></p>
+            <div
+              v-if="store.mappingPreview"
+              class="ui-card"
+              style="margin-top: 24px; border: 1px solid var(--border); padding: 16px"
+            >
+              <h4 style="font-weight: 800; margin-bottom: 12px">Mapping Results</h4>
+              <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px">
+                <p style="margin: 0">
+                  Safe to link:
+                  <span
+                    class="ui-badge"
+                    :class="store.mappingPreview.safe_to_link ? 'badge--active' : 'badge--inactive'"
+                    >{{ store.mappingPreview.safe_to_link ? 'Yes' : 'No' }}</span
+                  >
+                </p>
+                <p style="margin: 0">
+                  Missing email strategy:
+                  <code>{{ store.mappingPreview.missing_email_strategy }}</code>
+                </p>
               </div>
-              
+
               <div v-if="store.mappingPreview.mapped">
-                <h5 style="font-size: 0.88rem; font-weight: 800; color: var(--muted-foreground); text-transform: uppercase; margin-bottom: 6px;">Mapped Claims</h5>
-                <pre class="policy-json" style="max-height: 250px; overflow-y: auto; background: var(--muted); border-radius: 8px; padding: 12px; font-family: monospace;">{{
-                  JSON.stringify(store.mappingPreview.mapped, null, 2)
-                }}</pre>
+                <h5
+                  style="
+                    font-size: 0.88rem;
+                    font-weight: 800;
+                    color: var(--muted-foreground);
+                    text-transform: uppercase;
+                    margin-bottom: 6px;
+                  "
+                >
+                  Mapped Claims
+                </h5>
+                <pre
+                  class="policy-json"
+                  style="
+                    max-height: 250px;
+                    overflow-y: auto;
+                    background: var(--muted);
+                    border-radius: 8px;
+                    padding: 12px;
+                    font-family: monospace;
+                  "
+                  >{{ JSON.stringify(store.mappingPreview.mapped, null, 2) }}</pre
+                >
               </div>
-              
-              <div v-if="store.mappingPreview.warnings.length > 0" style="margin-top: 16px;">
-                <h5 style="color: var(--warning); font-weight: 800; margin-bottom: 6px;">Warnings</h5>
-                <ul style="list-style-type: disc; padding-left: 20px;">
-                  <li v-for="warning in store.mappingPreview.warnings" :key="warning" class="muted" style="margin-bottom: 4px;">
+
+              <div v-if="store.mappingPreview.warnings.length > 0" style="margin-top: 16px">
+                <h5 style="color: var(--warning); font-weight: 800; margin-bottom: 6px">
+                  Warnings
+                </h5>
+                <ul style="list-style-type: disc; padding-left: 20px">
+                  <li
+                    v-for="warning in store.mappingPreview.warnings"
+                    :key="warning"
+                    class="muted"
+                    style="margin-bottom: 4px"
+                  >
                     {{ warning }}
                   </li>
                 </ul>
               </div>
-              
-              <div v-if="store.mappingPreview.errors.length > 0" style="margin-top: 16px;">
-                <h5 style="color: var(--destructive); font-weight: 800; margin-bottom: 6px;">Errors</h5>
-                <ul style="list-style-type: disc; padding-left: 20px;">
-                  <li v-for="error in store.mappingPreview.errors" :key="error" class="ui-card--danger" style="margin-bottom: 4px; padding: 4px 8px; border-radius: 4px;">
+
+              <div v-if="store.mappingPreview.errors.length > 0" style="margin-top: 16px">
+                <h5 style="color: var(--destructive); font-weight: 800; margin-bottom: 6px">
+                  Errors
+                </h5>
+                <ul style="list-style-type: disc; padding-left: 20px">
+                  <li
+                    v-for="error in store.mappingPreview.errors"
+                    :key="error"
+                    class="ui-card--danger"
+                    style="margin-bottom: 4px; padding: 4px 8px; border-radius: 4px"
+                  >
                     {{ error }}
                   </li>
                 </ul>
@@ -955,14 +1039,16 @@ onMounted(() => {
             aria-labelledby="delete-idp-title"
           >
             <h3 id="delete-idp-title">Delete Provider</h3>
-            <p style="margin-bottom: 16px;">
-              Tindakan destruktif: menghapus provider eksternal secara permanen. Tindakan ini tidak dapat dibatalkan.
+            <p style="margin-bottom: 16px">
+              Tindakan destruktif: menghapus provider eksternal secara permanen. Tindakan ini tidak
+              dapat dibatalkan.
             </p>
 
             <div class="user-detail__sub-actions">
               <h4 class="user-detail__sub-actions-title">Decommission Provider</h4>
-              <p class="user-detail-card__hint" style="margin-bottom: 8px;">
-                Untuk menghapus provider, ketik provider key <code>{{ store.selectedProvider.provider_key }}</code> di bawah untuk konfirmasi.
+              <p class="user-detail-card__hint" style="margin-bottom: 8px">
+                Untuk menghapus provider, ketik provider key
+                <code>{{ store.selectedProvider.provider_key }}</code> di bawah untuk konfirmasi.
               </p>
               <UiFormField id="delete-confirm-key" label="Konfirmasi provider key">
                 <UiInput
@@ -992,7 +1078,7 @@ onMounted(() => {
           title="Federation evidence"
           :request-id="store.requestId"
           :client-id="store.selectedProvider.client_id"
-          style="margin-top: 24px;"
+          style="margin-top: 24px"
         />
       </article>
 

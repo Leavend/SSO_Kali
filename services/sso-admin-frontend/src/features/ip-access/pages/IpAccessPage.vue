@@ -134,7 +134,11 @@ const confirmDescription = computed<string>(() => {
 
     <div v-else class="ip-access-layout">
       <!-- Left Column: Create Form Card -->
-      <section v-if="canWriteAccess" class="ip-access-card ip-access-form-section" aria-labelledby="create-title">
+      <section
+        v-if="canWriteAccess"
+        class="ip-access-card ip-access-form-section"
+        aria-labelledby="create-title"
+      >
         <h2 id="create-title" class="section-title">
           <PlusCircle :size="18" class="text-primary" aria-hidden="true" />
           <span>{{ t('ip_access.create_title') }}</span>
@@ -158,7 +162,13 @@ const confirmDescription = computed<string>(() => {
               <UiSelect id="ip-mode" v-model="mode" name="ip-mode" :options="modeOptions" />
             </UiFormField>
             <UiFormField id="ip-reason" :label="t('ip_access.label_reason')" required>
-              <UiInput id="ip-reason" v-model="reason" name="ip-reason" autocomplete="off" placeholder="Internal maintenance CIDR" />
+              <UiInput
+                id="ip-reason"
+                v-model="reason"
+                name="ip-reason"
+                autocomplete="off"
+                placeholder="Internal maintenance CIDR"
+              />
             </UiFormField>
             <UiFormField id="ip-expires-at" :label="t('ip_access.label_expires_at')">
               <UiInput id="ip-expires-at" v-model="expiresAt" name="ip-expires-at" type="date" />
@@ -171,7 +181,9 @@ const confirmDescription = computed<string>(() => {
             class="submit-btn"
             :disabled="store.actionStatus === 'loading'"
           >
-            {{ store.actionStatus === 'loading' ? t('common.creating') : t('ip_access.btn_add_rule') }}
+            {{
+              store.actionStatus === 'loading' ? t('common.creating') : t('ip_access.btn_add_rule')
+            }}
           </UiButton>
         </form>
       </section>

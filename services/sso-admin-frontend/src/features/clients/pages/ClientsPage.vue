@@ -335,7 +335,10 @@ async function copyToClipboard(text: string): Promise<void> {
     }
   }
   setTimeout(() => {
-    if (copyFeedback.value === t('clients.copy_success') || copyFeedback.value === t('clients.copy_failed')) {
+    if (
+      copyFeedback.value === t('clients.copy_success') ||
+      copyFeedback.value === t('clients.copy_failed')
+    ) {
       copyFeedback.value = null
     }
   }, 2500)
@@ -343,11 +346,9 @@ async function copyToClipboard(text: string): Promise<void> {
 
 function copyAllConfig(): void {
   if (!contractEnvLines.value.length) return
-  const text = [
-    contractEnvLines.value.join('\n'),
-    '',
-    `# ${contractIssuer.value ?? ''}`,
-  ].join('\n').trim()
+  const text = [contractEnvLines.value.join('\n'), '', `# ${contractIssuer.value ?? ''}`]
+    .join('\n')
+    .trim()
   void copyToClipboard(text)
 }
 
@@ -1138,14 +1139,11 @@ async function rotateSecret(): Promise<void> {
               <!-- Config contract block -->
               <div v-if="showContract && contractEnvLines.length > 0" class="contract-block">
                 <h4 class="contract-block__title">{{ t('clients.config_block_title') }}</h4>
-                <pre class="contract-block__pre"><code>{{ contractEnvLines.join('\n') }}</code></pre>
+                <pre
+                  class="contract-block__pre"
+                ><code>{{ contractEnvLines.join('\n') }}</code></pre>
                 <div class="user-detail-card__actions contract-block__actions">
-                  <UiButton
-                    variant="secondary"
-                    size="sm"
-                    type="button"
-                    @click="copyAllConfig"
-                  >
+                  <UiButton variant="secondary" size="sm" type="button" @click="copyAllConfig">
                     <ShieldCheck :size="14" />
                     {{ t('clients.btn_copy_all_config') }}
                   </UiButton>
@@ -1258,12 +1256,7 @@ async function rotateSecret(): Promise<void> {
     </div>
 
     <!-- Copy feedback toast -->
-    <div
-      v-if="copyFeedback"
-      class="copy-toast"
-      role="status"
-      aria-live="polite"
-    >
+    <div v-if="copyFeedback" class="copy-toast" role="status" aria-live="polite">
       <ShieldCheck :size="16" />
       {{ copyFeedback }}
     </div>

@@ -334,7 +334,11 @@ onMounted(() => {
                 >
                   <!-- Leading themed avatar/icon wrapper -->
                   <div class="event-card-item__avatar-wrapper">
-                    <div class="event-card-icon-container" :class="getOutcomeClass(event.outcome)" aria-hidden="true">
+                    <div
+                      class="event-card-icon-container"
+                      :class="getOutcomeClass(event.outcome)"
+                      aria-hidden="true"
+                    >
                       <component :is="getEventIcon(event.event_type, event.outcome)" :size="16" />
                     </div>
                   </div>
@@ -444,12 +448,18 @@ onMounted(() => {
             <div>
               <dt>{{ t('auth_audit.col_subject') }}</dt>
               <dd>
-                {{ store.selectedEvent.subject?.email ?? store.selectedEvent.subject?.subject_id ?? '—' }}
+                {{
+                  store.selectedEvent.subject?.email ??
+                  store.selectedEvent.subject?.subject_id ??
+                  '—'
+                }}
               </dd>
             </div>
             <div>
               <dt>Subject ID</dt>
-              <dd class="font-mono break-all">{{ store.selectedEvent.subject?.subject_id ?? '—' }}</dd>
+              <dd class="font-mono break-all">
+                {{ store.selectedEvent.subject?.subject_id ?? '—' }}
+              </dd>
             </div>
             <div>
               <dt>{{ t('auth_audit.col_client_id') }}</dt>
@@ -480,7 +490,9 @@ onMounted(() => {
           <dl class="detail-metadata-grid">
             <div>
               <dt>{{ t('auth_audit.col_request_id') }}</dt>
-              <dd class="font-mono break-all">{{ store.selectedEvent.request.request_id ?? '—' }}</dd>
+              <dd class="font-mono break-all">
+                {{ store.selectedEvent.request.request_id ?? '—' }}
+              </dd>
             </div>
             <div>
               <dt>{{ t('auth_audit.col_ip_address') }}</dt>
@@ -519,7 +531,8 @@ onMounted(() => {
           <div v-show="contextExpanded" class="context-content mt-2">
             <pre
               class="policy-json bg-muted p-3 rounded-lg text-xs font-mono overflow-auto max-h-60"
-            >{{ JSON.stringify(store.selectedEvent.context, null, 2) }}</pre>
+              >{{ JSON.stringify(store.selectedEvent.context, null, 2) }}</pre
+            >
           </div>
         </div>
 

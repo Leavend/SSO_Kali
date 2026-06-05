@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import { ApiError, getLastRequestId } from '@/lib/api/api-client'
+import { triggerStepUpReauth } from '@/lib/stepup/stepup'
 import { ipAccessApi } from '../services/ip-access.api'
 import type { IpAccessRule, IpAccessRuleCreatePayload } from '../types'
 
@@ -92,10 +93,17 @@ export const useIpAccessStore = defineStore('admin-ip-access', () => {
     requestId.value =
       error instanceof ApiError ? (error.requestId ?? getLastRequestId()) : getLastRequestId()
 
-    if (error instanceof ApiError && (error.status === 428 || error.status === 412)) {
+    if (
+      error instanceof ApiError &&
+      (error.code === 'reauth_required' ||
+        error.code === 'step_up_required' ||
+        error.status === 428 ||
+        error.status === 412)
+    ) {
       actionStatus.value = 'step_up_required'
       errorMessage.value =
         'Aksi ini membutuhkan fresh-auth atau MFA assurance. Ulangi login admin lalu coba lagi.'
+      triggerStepUpReauth()
       return
     }
 

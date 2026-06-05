@@ -1,6 +1,7 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { ApiError, getLastRequestId } from '@/lib/api/api-client'
+import { triggerStepUpReauth } from '@/lib/stepup/stepup'
 import { clientsApi } from '../services/clients.api'
 import type {
   AdminClient,
@@ -17,10 +18,12 @@ export type ClientsStatus =
   | 'forbidden'
   | 'error'
 export type ClientDetailStatus = 'idle' | 'loading' | 'success' | 'error'
+export type ClientActionStatus = 'idle' | 'loading' | 'success' | 'step_up_required' | 'error'
 
 export const useClientsStore = defineStore('admin-clients', () => {
   const status = ref<ClientsStatus>('idle')
   const detailStatus = ref<ClientDetailStatus>('idle')
+  const actionStatus = ref<ClientActionStatus>('idle')
   const clients = ref<readonly AdminClient[]>([])
   const selectedClientId = ref<string | null>(null)
   const errorMessage = ref<string | null>(null)
@@ -217,6 +220,20 @@ export const useClientsStore = defineStore('admin-clients', () => {
     requestId.value =
       error instanceof ApiError ? (error.requestId ?? getLastRequestId()) : getLastRequestId()
 
+    if (
+      error instanceof ApiError &&
+      (error.code === 'reauth_required' ||
+        error.code === 'step_up_required' ||
+        error.status === 428 ||
+        error.status === 412)
+    ) {
+      actionStatus.value = 'step_up_required'
+      errorMessage.value =
+        'Aksi OAuth client membutuhkan fresh-auth atau MFA assurance. Ulangi login admin lalu coba lagi.'
+      triggerStepUpReauth()
+      return
+    }
+
     if (error instanceof ApiError && error.status === 422) {
       errorMessage.value = requestId.value
         ? `Validasi OAuth client gagal. Periksa input lalu gunakan request ID ${requestId.value} untuk investigasi jika perlu.`
@@ -232,6 +249,7 @@ export const useClientsStore = defineStore('admin-clients', () => {
   return {
     status,
     detailStatus,
+    actionStatus,
     clients,
     selectedClientId,
     selectedClient,

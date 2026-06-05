@@ -91,7 +91,8 @@ async function submitCreateRole(): Promise<void> {
   const slugRegex = /^[a-z0-9_-]+$/
   if (!slugRegex.test(slug)) {
     store.actionStatus = 'error'
-    store.actionError = 'Slug hanya boleh berisi huruf kecil, angka, tanda hubung (-), dan garis bawah (_).'
+    store.actionError =
+      'Slug hanya boleh berisi huruf kecil, angka, tanda hubung (-), dan garis bawah (_).'
     return
   }
 
@@ -146,7 +147,7 @@ async function submitUpdateRole(): Promise<void> {
 function openPermissionsForm(role: AdminRole): void {
   activeRole.value = role
   selectedPermissions.value = (role.permissions || []).map((p: any) =>
-    p && typeof p === 'object' ? p.slug : p
+    p && typeof p === 'object' ? p.slug : p,
   )
   store.actionError = null
   store.actionStatus = 'idle'
@@ -200,7 +201,10 @@ onMounted(() => {
 
 <template>
   <section class="roles-page" aria-labelledby="roles-title">
-    <div class="page-heading" style="display: flex; justify-content: space-between; align-items: flex-start;">
+    <div
+      class="page-heading"
+      style="display: flex; justify-content: space-between; align-items: flex-start"
+    >
       <div>
         <p class="eyebrow">{{ t('roles.eyebrow') }}</p>
         <h1 id="roles-title">{{ t('roles.title') }}</h1>
@@ -304,11 +308,7 @@ onMounted(() => {
                 <Edit :size="14" />
                 <span>{{ t('roles.btn_edit') }}</span>
               </UiButton>
-              <UiButton
-                variant="secondary"
-                size="sm"
-                @click="openPermissionsForm(role)"
-              >
+              <UiButton variant="secondary" size="sm" @click="openPermissionsForm(role)">
                 <Settings :size="14" />
                 <span>{{ t('roles.btn_manage_permissions') }}</span>
               </UiButton>
@@ -370,7 +370,11 @@ onMounted(() => {
         </div>
 
         <form @submit.prevent="submitCreateRole">
-          <p v-if="store.actionStatus === 'error' && store.actionError" class="ui-action-message" role="alert">
+          <p
+            v-if="store.actionStatus === 'error' && store.actionError"
+            class="ui-action-message"
+            role="alert"
+          >
             {{ store.actionError }}
           </p>
 
@@ -409,7 +413,9 @@ onMounted(() => {
               {{ t('roles.btn_cancel') }}
             </UiButton>
             <UiButton type="submit" :disabled="store.actionStatus === 'loading'">
-              {{ store.actionStatus === 'loading' ? t('common.creating') : t('roles.btn_create_role') }}
+              {{
+                store.actionStatus === 'loading' ? t('common.creating') : t('roles.btn_create_role')
+              }}
             </UiButton>
           </div>
         </form>
@@ -443,26 +449,20 @@ onMounted(() => {
         </div>
 
         <form @submit.prevent="submitUpdateRole">
-          <p v-if="store.actionStatus === 'error' && store.actionError" class="ui-action-message" role="alert">
+          <p
+            v-if="store.actionStatus === 'error' && store.actionError"
+            class="ui-action-message"
+            role="alert"
+          >
             {{ store.actionError }}
           </p>
 
           <div class="user-form-grid">
             <UiFormField id="edit-slug" :label="t('roles.label_slug')">
-              <UiInput
-                id="edit-slug"
-                :model-value="activeRole.slug"
-                name="edit-slug"
-                disabled
-              />
+              <UiInput id="edit-slug" :model-value="activeRole.slug" name="edit-slug" disabled />
             </UiFormField>
             <UiFormField id="edit-name" :label="t('roles.label_name')" required>
-              <UiInput
-                id="edit-name"
-                v-model="editForm.name"
-                name="edit-name"
-                autocomplete="off"
-              />
+              <UiInput id="edit-name" v-model="editForm.name" name="edit-name" autocomplete="off" />
             </UiFormField>
             <UiFormField id="edit-description" :label="t('roles.label_description')">
               <UiTextarea
@@ -494,7 +494,7 @@ onMounted(() => {
     >
       <div
         class="user-modal-card"
-        style="max-width: 48rem;"
+        style="max-width: 48rem"
         role="dialog"
         aria-modal="true"
         aria-labelledby="permissions-title"
@@ -502,7 +502,9 @@ onMounted(() => {
         @keydown.esc="closePermissionsForm"
       >
         <div class="user-modal-header">
-          <h3 id="permissions-title">{{ t('roles.edit_permissions_title') }}: {{ activeRole.label }}</h3>
+          <h3 id="permissions-title">
+            {{ t('roles.edit_permissions_title') }}: {{ activeRole.label }}
+          </h3>
           <button
             class="user-modal-close"
             type="button"
@@ -514,13 +516,34 @@ onMounted(() => {
         </div>
 
         <form @submit.prevent="promptSyncPermissions">
-          <p v-if="store.actionStatus === 'error' && store.actionError" class="ui-action-message" role="alert">
+          <p
+            v-if="store.actionStatus === 'error' && store.actionError"
+            class="ui-action-message"
+            role="alert"
+          >
             {{ store.actionError }}
           </p>
 
-          <div class="user-form-grid user-form-grid-1" style="max-height: 60vh; overflow-y: auto; padding-right: 8px;">
-            <div v-for="[group, perms] in permissionsByGroup" :key="group" class="roles-perm-group" style="margin-bottom: 24px;">
-              <h4 class="font-bold text-sm text-foreground mb-3" style="border-bottom: 1px solid var(--border); padding-bottom: 4px; margin-bottom: 12px;">{{ group }}</h4>
+          <div
+            class="user-form-grid user-form-grid-1"
+            style="max-height: 60vh; overflow-y: auto; padding-right: 8px"
+          >
+            <div
+              v-for="[group, perms] in permissionsByGroup"
+              :key="group"
+              class="roles-perm-group"
+              style="margin-bottom: 24px"
+            >
+              <h4
+                class="font-bold text-sm text-foreground mb-3"
+                style="
+                  border-bottom: 1px solid var(--border);
+                  padding-bottom: 4px;
+                  margin-bottom: 12px;
+                "
+              >
+                {{ group }}
+              </h4>
               <div class="role-selection-grid">
                 <div v-for="perm in perms" :key="perm" class="role-checkbox-item">
                   <label :for="`perm-${perm}`" class="role-checkbox-label">
@@ -542,7 +565,7 @@ onMounted(() => {
             </div>
           </div>
 
-          <div class="user-modal-footer" style="margin-top: 16px;">
+          <div class="user-modal-footer" style="margin-top: 16px">
             <UiButton variant="secondary" type="button" @click="closePermissionsForm">
               {{ t('roles.btn_cancel') }}
             </UiButton>

@@ -1,16 +1,12 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import { ApiError, getLastRequestId } from '@/lib/api/api-client'
+import { triggerStepUpReauth } from '@/lib/stepup/stepup'
 import { rolesApi } from '../services/roles.api'
-import type {
-  AdminPermission,
-  AdminRole,
-  CreateRolePayload,
-  UpdateRolePayload,
-} from '../types'
+import type { AdminPermission, AdminRole, CreateRolePayload, UpdateRolePayload } from '../types'
 
 export type RolesStatus = 'idle' | 'loading' | 'success' | 'unauthenticated' | 'forbidden' | 'error'
-export type RolesActionStatus = 'idle' | 'loading' | 'success' | 'error'
+export type RolesActionStatus = 'idle' | 'loading' | 'success' | 'step_up_required' | 'error'
 
 export const useRolesStore = defineStore('admin-roles', () => {
   const status = ref<RolesStatus>('idle')
@@ -34,7 +30,7 @@ export const useRolesStore = defineStore('admin-roles', () => {
         ...r,
         label: r.label || r.name || r.slug || '',
         permissions: (r.permissions || []).map((p: any) =>
-          p && typeof p === 'object' && 'slug' in p ? p.slug : p
+          p && typeof p === 'object' && 'slug' in p ? p.slug : p,
         ),
       }))
       permissions.value = permissionsResponse.permissions
@@ -121,6 +117,20 @@ export const useRolesStore = defineStore('admin-roles', () => {
   }
 
   function handleActionError(error: unknown): void {
+    if (
+      error instanceof ApiError &&
+      (error.code === 'reauth_required' ||
+        error.code === 'step_up_required' ||
+        error.status === 428 ||
+        error.status === 412)
+    ) {
+      actionStatus.value = 'step_up_required'
+      actionError.value =
+        'Aksi roles membutuhkan fresh-auth atau MFA assurance. Ulangi login admin lalu coba lagi.'
+      triggerStepUpReauth()
+      return
+    }
+
     actionStatus.value = 'error'
     if (error instanceof ApiError) {
       actionError.value = error.message

@@ -465,7 +465,7 @@ describe('UsersPage', () => {
     expect(ensureSpy).toHaveBeenCalledWith(true)
 
     // Check warning toast
-    expect(toasts.value.some(t => t.title.includes('updated your own roles'))).toBe(true)
+    expect(toasts.value.some((t) => t.title.includes('updated your own roles'))).toBe(true)
   })
 
   it('displays a warning toast that changes take effect after relogin when assigning roles to another user', async () => {
@@ -514,6 +514,8 @@ describe('UsersPage', () => {
     expect(ensureSpy).not.toHaveBeenCalled()
 
     // Check warning toast for other user
-    expect(toasts.value.some(t => t.title.includes('will take effect after the user logs in again'))).toBe(true)
+    expect(
+      toasts.value.some((t) => t.title.includes('will take effect after the user logs in again')),
+    ).toBe(true)
   })
 })

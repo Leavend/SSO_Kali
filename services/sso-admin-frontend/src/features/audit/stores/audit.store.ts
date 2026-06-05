@@ -2,6 +2,7 @@ import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { ApiError, getLastRequestId } from '@/lib/api/api-client'
 import { triggerBlobDownload } from '@/lib/download/trigger-download'
+import { triggerStepUpReauth } from '@/lib/stepup/stepup'
 import { auditApi } from '../services/audit.api'
 import type {
   AdminAuditEvent,
@@ -321,10 +322,17 @@ export const useAuditStore = defineStore('admin-audit', () => {
     requestId.value =
       error instanceof ApiError ? (error.requestId ?? getLastRequestId()) : getLastRequestId()
 
-    if (error instanceof ApiError && (error.status === 428 || error.status === 412)) {
+    if (
+      error instanceof ApiError &&
+      (error.code === 'reauth_required' ||
+        error.code === 'step_up_required' ||
+        error.status === 428 ||
+        error.status === 412)
+    ) {
       actionStatus.value = 'step_up_required'
       errorMessage.value =
         'Aksi audit membutuhkan re-autentikasi (fresh-auth atau MFA assurance). Ulangi login admin lalu coba lagi.'
+      triggerStepUpReauth()
       return
     }
 

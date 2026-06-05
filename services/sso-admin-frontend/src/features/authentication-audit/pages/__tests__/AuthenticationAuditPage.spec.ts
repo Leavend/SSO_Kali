@@ -34,7 +34,7 @@ describe('AuthenticationAuditPage', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.clearAllMocks()
-    
+
     // Mock navigator.clipboard
     Object.assign(navigator, {
       clipboard: {
@@ -109,10 +109,10 @@ describe('AuthenticationAuditPage', () => {
 
     // Click collapse toggle button
     await wrapper.find('.filters-toggle-btn').trigger('click')
-    
+
     // Wait for the next tick to ensure Vue has updated the DOM
     await wrapper.vm.$nextTick()
-    
+
     expect(wrapper.find('.filters-content').attributes('style')).toContain('display: none')
   })
 

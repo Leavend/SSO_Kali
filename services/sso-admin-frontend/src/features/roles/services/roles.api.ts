@@ -21,16 +21,24 @@ export const rolesApi = {
   },
 
   updateRole(slug: string, payload: UpdateRolePayload): Promise<{ role: AdminRole }> {
-    return apiClient.patch<{ role: AdminRole }>(`/api/admin/roles/${encodeURIComponent(slug)}`, payload)
+    return apiClient.patch<{ role: AdminRole }>(
+      `/api/admin/roles/${encodeURIComponent(slug)}`,
+      payload,
+    )
   },
 
   deleteRole(slug: string): Promise<{ deleted: boolean; role_slug: string }> {
-    return apiClient.delete<{ deleted: boolean; role_slug: string }>(`/api/admin/roles/${encodeURIComponent(slug)}`)
+    return apiClient.delete<{ deleted: boolean; role_slug: string }>(
+      `/api/admin/roles/${encodeURIComponent(slug)}`,
+    )
   },
 
   syncRolePermissions(slug: string, permissionSlugs: string[]): Promise<{ role: AdminRole }> {
-    return apiClient.put<{ role: AdminRole }>(`/api/admin/roles/${encodeURIComponent(slug)}/permissions`, {
-      permission_slugs: permissionSlugs,
-    })
+    return apiClient.put<{ role: AdminRole }>(
+      `/api/admin/roles/${encodeURIComponent(slug)}/permissions`,
+      {
+        permission_slugs: permissionSlugs,
+      },
+    )
   },
 }
