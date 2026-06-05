@@ -246,7 +246,8 @@ async function handleMenuClick(menu: AdminPermissionMenu, index: number) {
           class="admin-nav__link"
           :class="{ 'admin-nav__link--active': currentIndex === index }"
           :to="menuPath(menu)"
-          :title="`Required: ${menu.required_permission}`"
+          :data-tooltip="translateMenuLabel(menu)"
+          :title="translateMenuLabel(menu)"
           @click.prevent="handleMenuClick(menu, index)"
         >
           <span class="admin-nav__label">

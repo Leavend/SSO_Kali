@@ -2050,6 +2050,39 @@ select {
   .admin-control-plane--collapsed .admin-nav__link {
     justify-content: center;
     padding: 12px;
+    position: relative;
+  }
+
+  .admin-control-plane--collapsed .admin-nav__link:hover::after,
+  .admin-control-plane--collapsed .admin-nav__link:focus-visible::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: calc(100% + 12px);
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--popover, #1e1e2e);
+    color: var(--foreground, #cdd6f4);
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 6px;
+    white-space: nowrap;
+    z-index: 1000;
+    pointer-events: none;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+    border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+    animation: tooltipFadeIn 0.15s ease-out;
+  }
+
+  @keyframes tooltipFadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-50%) translateX(-4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(-50%) translateX(0);
+    }
   }
 
   .admin-control-plane--collapsed .admin-nav__label {
