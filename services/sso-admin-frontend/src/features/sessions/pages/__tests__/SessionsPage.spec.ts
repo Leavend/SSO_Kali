@@ -203,4 +203,31 @@ describe('SessionsPage', () => {
 
     expect(wrapper.findAll('button.revoke-button')).toHaveLength(0)
   })
+
+  it('uses sessions-layout as the main layout container class', () => {
+    const store = useSessionsStore()
+    store.sessions = [session1]
+    store.status = 'success'
+
+    const wrapper = mount(SessionsPage)
+
+    expect(wrapper.find('.sessions-layout').exists()).toBe(true)
+    expect(wrapper.find('.clients-layout').exists()).toBe(false)
+  })
+
+  it('renders session cards as accessible li elements with separate select and revoke buttons', () => {
+    const store = useSessionsStore()
+    store.sessions = [session1, session2]
+    store.status = 'success'
+
+    const wrapper = mount(SessionsPage)
+
+    const cards = wrapper.findAll('li.session-card-item')
+    expect(cards).toHaveLength(2)
+    // The revoke button must NOT be nested inside the select button
+    const selectBtn = cards[0]!.find('button.session-card-item__select')
+    expect(selectBtn.exists()).toBe(true)
+    expect(selectBtn.find('button.revoke-button').exists()).toBe(false)
+    expect(cards[0]!.find('button.revoke-button').exists()).toBe(true)
+  })
 })

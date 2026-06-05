@@ -905,7 +905,10 @@ select {
 .policy-page,
 .policy-layout,
 .ops-page,
-.ops-layout {
+.ops-layout,
+.external-idps-page,
+.sessions-page,
+.sessions-layout {
   display: grid;
   gap: 18px;
 }
@@ -925,7 +928,8 @@ select {
 }
 
 .clients-layout,
-.users-layout {
+.users-layout,
+.sessions-layout {
   display: grid;
   /* minmax(0, 1fr) lets the detail column shrink below its content's min-content
      instead of blowing the grid out — keeps the panel inside its track. */
@@ -936,6 +940,7 @@ select {
 
 .clients-list,
 .users-list,
+.sessions-list,
 .audit-list,
 .client-detail,
 .user-detail,
@@ -950,6 +955,7 @@ select {
 
 .clients-list,
 .users-list,
+.sessions-list,
 .audit-list {
   display: grid;
   gap: 10px;
@@ -1824,6 +1830,7 @@ select {
   .oidc-card-grid,
   .clients-layout,
   .users-layout,
+  .sessions-layout,
   .roles-layout,
   .detail-grid {
     grid-template-columns: 1fr;
@@ -2416,7 +2423,7 @@ select {
 }
 
 .user-detail-section-title {
-  font-size: 1.1rem !important;
+  font-size: 1.15rem !important;
   font-weight: 800 !important;
   letter-spacing: -0.02em !important;
   margin-top: 24px !important;
@@ -3178,7 +3185,7 @@ button.user-card-item {
 .user-detail-empty {
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
   min-height: 400px;
   width: 100%;
@@ -3187,7 +3194,6 @@ button.user-card-item {
 }
 
 .user-detail-empty .ui-empty-state {
-  max-width: 520px;
   width: 100%;
 }
 
@@ -3249,7 +3255,10 @@ button.user-card-item {
   border-radius: 20px;
   background: var(--card);
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.03);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .roles-card:hover {
@@ -3323,7 +3332,9 @@ button.user-card-item {
   color: var(--primary);
   border: 1px solid color-mix(in srgb, var(--primary) 15%, transparent);
   border-radius: 8px;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .roles-perm-item code:hover {
@@ -3338,7 +3349,9 @@ button.user-card-item {
   padding: 24px;
   margin-bottom: 20px;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.03);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .roles-perm-group:hover {
@@ -3457,7 +3470,7 @@ button.user-card-item {
   background: var(--muted) !important;
   border-color: color-mix(in srgb, var(--border) 60%, var(--primary)) !important;
 }
-.clients-list .ui-data-list tr:has(button[aria-current="true"]) {
+.clients-list .ui-data-list tr:has(button[aria-current='true']) {
   background: color-mix(in srgb, var(--primary) 8%, transparent) !important;
   border-color: var(--primary) !important;
   box-shadow: 0 4px 15px rgba(99, 102, 241, 0.05) !important;
@@ -3521,7 +3534,9 @@ button.user-card-item {
   padding: 16px;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.2s ease, pointer-events 0.2s ease;
+  transition:
+    opacity 0.2s ease,
+    pointer-events 0.2s ease;
 }
 .client-modal-overlay--open {
   opacity: 1;
@@ -3773,12 +3788,429 @@ button.user-card-item {
   color: var(--foreground);
 }
 
+/* ─────────────────────────────────────────────────────────────────────────
+   Clients detail: tab panels, cross-tab status, danger sections, message
+   variants. Type scale harmonized to /dashboard (section title 1.15rem/800,
+   label 0.82rem/700) so headings/labels match across pages.
+   ───────────────────────────────────────────────────────────────────────── */
+.tab-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+/* Defensive: keep an inactive panel hidden even if toggled via the hidden
+   attribute (the page uses v-show, which already sets display:none inline). */
+.tab-panel[hidden] {
+  display: none;
+}
+
+.client-detail-status {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.detail-section--danger {
+  border-color: color-mix(in srgb, var(--destructive) 22%, var(--border));
+  background: color-mix(in srgb, var(--destructive) 4%, var(--card));
+}
+
+.detail-section__lead {
+  margin: 0 0 16px;
+  color: var(--muted-foreground);
+  font-size: 0.88rem;
+}
+
+/* Harmonize section titles + overview labels to the /dashboard scale. */
+.detail-section h3 {
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.detail-grid dt {
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.user-detail__sub-actions + .user-detail__sub-actions {
+  margin-top: 24px;
+}
+.secret-reveal__actions {
+  margin-top: 12px;
+}
+
+/* Client card id line uses mono (otherwise reuses .user-card-item styling). */
+.client-card-item .user-card-item__email {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+}
+
+/* Semantic message-box variants (replace the removed inline colors). */
+.ui-action-message--error {
+  color: var(--destructive);
+  background: color-mix(in srgb, var(--destructive) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--destructive) 15%, transparent);
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+.ui-action-message--success {
+  color: #059669;
+  background: color-mix(in srgb, #10b981 8%, transparent);
+  border: 1px solid color-mix(in srgb, #10b981 18%, transparent);
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+.dark .ui-action-message--success {
+  color: #34d399;
+}
+.ui-action-message--warning {
+  color: #b45309;
+  background: color-mix(in srgb, #f59e0b 10%, transparent);
+  border: 1px solid color-mix(in srgb, #f59e0b 22%, transparent);
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+.dark .ui-action-message--warning {
+  color: #fbbf24;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Sessions page — semantic sessions-* layout + session-card-item component.
+   Type scale matches /dashboard (section h3 = 1.15rem/800, dt = 0.82rem/700).
+   ───────────────────────────────────────────────────────────────────────── */
+
+/* Master-detail grid — identical to clients/users layout. */
+
+/* Full-width action status bar that spans both grid columns. */
+.sessions-status-bar {
+  grid-column: 1 / -1;
+  margin-bottom: 8px;
+  width: 100%;
+}
+
+/* Sidebar list */
+.sessions-list {
+  min-width: 0;
+  max-width: 320px;
+  width: 100%;
+  box-sizing: border-box;
+  grid-column: 1;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* Session card list (wraps session-card-item entries) */
+.sessions-list-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+
+/* ── Session card item ─────────────────────────────────────────────────── */
+/* Each <li> holds a select <button> + a sibling revoke <button>.
+   They are NEVER nested — both are direct children of the <li>. */
+.session-card-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.session-card-item:hover {
+  border-color: var(--primary);
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.06);
+}
+
+.session-card-item--active {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 8%, var(--card));
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.08);
+}
+
+.dark .session-card-item--active {
+  background: color-mix(in srgb, var(--primary) 12%, var(--card));
+}
+
+.session-card-item--active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--primary);
+}
+
+/* The clickable "select" button fills the card minus the revoke button. */
+.session-card-item__select {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 14px 14px 18px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  border-radius: 14px 0 0 14px;
+  transition: background 0.15s ease;
+}
+
+.session-card-item__select:hover {
+  background: color-mix(in srgb, var(--primary) 4%, transparent);
+}
+
+.session-card-item__select:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+  border-radius: 14px 0 0 14px;
+}
+
+/* Avatar — reuses /users gradient palette. */
+.session-card-item__avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  color: #fff;
+  font-weight: 800;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+}
+
+/* Content body (name + id + meta) */
+.session-card-item__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.session-card-item__name {
+  display: block;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--foreground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-bottom: 1px;
+}
+
+.session-card-item__id {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--muted-foreground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-bottom: 6px;
+}
+
+.session-card-item__meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.session-card-item__client {
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: var(--primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.session-card-item__ip {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--muted-foreground);
+}
+
+/* Revoke button — sibling to the select button inside the <li>. */
+.session-card-item__revoke {
+  flex-shrink: 0;
+  margin-right: 10px;
+  padding: 6px 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-family: inherit;
+  white-space: nowrap;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--destructive) 28%, transparent);
+  background: color-mix(in srgb, var(--destructive) 6%, transparent);
+  color: var(--destructive);
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.session-card-item__revoke:hover {
+  background: var(--destructive);
+  border-color: var(--destructive);
+  color: #fff;
+}
+
+.session-card-item__revoke:focus-visible {
+  outline: 2px solid var(--destructive);
+  outline-offset: 2px;
+}
+
+/* Session search (mirrors .clients-search) */
+.sessions-search {
+  width: 100%;
+  min-width: 0;
+}
+
+.sessions-search__control {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+}
+
+.sessions-search__icon {
+  position: absolute;
+  left: 12px;
+  color: var(--muted-foreground);
+  pointer-events: none;
+}
+
+.sessions-search__input {
+  width: 100%;
+  padding-left: 36px;
+  padding-right: 36px;
+}
+
+.sessions-search__clear {
+  position: absolute;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.sessions-search__clear:hover {
+  background: var(--accent);
+  color: var(--foreground);
+}
+
+/* Session detail panel */
+.session-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+  grid-column: 2;
+  min-width: 0;
+}
+
+.session-detail-empty {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  min-height: 400px;
+  width: 100%;
+  grid-column: 2;
+  min-width: 0;
+}
+
+.session-detail-empty .ui-empty-state {
+  width: 100%;
+}
+
+/* Mobile back button */
+.session-detail-back-bar {
+  display: none;
+  margin-bottom: 16px;
+}
+
+/* Sessions list create button (if ever added) */
+.sessions-list__create {
+  width: 100%;
+  margin-top: 16px;
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────────── */
+@media (max-width: 760px) {
+  .sessions-layout {
+    grid-template-columns: 1fr;
+  }
+
+  /* On mobile with a selection, hide the sidebar and show only the detail. */
+  .sessions-layout--has-selection .sessions-list {
+    display: none !important;
+  }
+
+  /* On mobile without a selection, hide the empty detail placeholder. */
+  .sessions-layout:not(.sessions-layout--has-selection) .session-detail-empty {
+    display: none !important;
+  }
+
+  .sessions-list {
+    max-width: none !important;
+    grid-column: auto !important;
+  }
+
+  .session-detail,
+  .session-detail-empty {
+    grid-column: auto !important;
+  }
+
+  .session-detail-back-bar {
+    display: block;
+  }
+}
+
 /* Media queries for Mobile responsiveness */
 @media (max-width: 760px) {
   .clients-layout {
     grid-template-columns: 1fr !important;
   }
-  
+
   .client-detail-back-bar {
     display: block;
     margin-bottom: 16px;
@@ -3814,4 +4246,3 @@ button.user-card-item {
     text-align: center;
   }
 }
-

@@ -11,12 +11,29 @@ import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
 import UiEmptyState from '@/components/ui/UiEmptyState.vue'
 import UiFormField from '@/components/ui/UiFormField.vue'
 import UiInput from '@/components/ui/UiInput.vue'
+import UiSelect from '@/components/ui/UiSelect.vue'
+import UiButton from '@/components/ui/UiButton.vue'
 import UiSkeleton from '@/components/ui/UiSkeleton.vue'
 import UiStatusView from '@/components/ui/UiStatusView.vue'
 import { useAuthAuditStore } from '../stores/auth-audit.store'
 import type { AuthAuditFilters } from '../types'
 import { useI18n } from '@/composables/useI18n'
-import { Search, ChevronLeft, ChevronDown, Copy, Check } from 'lucide-vue-next'
+import {
+  Search,
+  ChevronLeft,
+  ChevronDown,
+  Copy,
+  Check,
+  Shield,
+  ShieldCheck,
+  ShieldAlert,
+  LogIn,
+  LogOut,
+  Key,
+  FileCheck,
+  FileText,
+  Code,
+} from 'lucide-vue-next'
 
 const store = useAuthAuditStore()
 const { t } = useI18n()
@@ -76,6 +93,19 @@ function getOutcomeClass(outcome: string | null | undefined): string {
   if (lower === 'succeeded' || lower === 'success') return 'outcome--success'
   if (lower === 'failed' || lower === 'error' || lower === 'denied') return 'outcome--danger'
   return 'outcome--warning'
+}
+
+function getEventIcon(eventType: string, outcome: string | null | undefined) {
+  const isSuccess = outcome
+    ? outcome.toLowerCase() === 'succeeded' || outcome.toLowerCase() === 'success'
+    : false
+  const type = eventType.toLowerCase()
+
+  if (type.includes('login')) return isSuccess ? LogIn : ShieldAlert
+  if (type.includes('logout')) return LogOut
+  if (type.includes('mfa')) return Key
+  if (type.includes('consent')) return FileCheck
+  return isSuccess ? ShieldCheck : ShieldAlert
 }
 
 function filled(value: string): string | undefined {
@@ -230,11 +260,14 @@ onMounted(() => {
                 />
               </UiFormField>
               <UiFormField id="auth-audit-outcome" :label="t('auth_audit.outcome')">
-                <UiInput
+                <UiSelect
                   id="auth-audit-outcome"
                   v-model="searchOutcome"
-                  name="auth-audit-outcome"
-                  autocomplete="off"
+                  :options="[
+                    { value: '', label: 'Semua Hasil / All' },
+                    { value: 'succeeded', label: 'Success' },
+                    { value: 'failed', label: 'Failed' },
+                  ]"
                 />
               </UiFormField>
               <UiFormField id="auth-audit-from" :label="t('auth_audit.from')">
@@ -250,20 +283,22 @@ onMounted(() => {
               </UiFormField>
             </div>
             <div class="action-row compact-actions mt-4">
-              <button
-                class="ui-action ui-action--primary auth-audit-search-button flex-1"
+              <UiButton
+                variant="primary"
+                class="auth-audit-search-button flex-1"
                 type="button"
                 @click="submitSearch"
               >
                 {{ t('auth_audit.btn_filter') }}
-              </button>
-              <button
-                class="ui-action ui-action--secondary auth-audit-reset-button flex-1"
+              </UiButton>
+              <UiButton
+                variant="secondary"
+                class="auth-audit-reset-button flex-1"
                 type="button"
                 @click="resetSearch"
               >
                 {{ t('auth_audit.btn_reset') }}
-              </button>
+              </UiButton>
             </div>
           </div>
         </section>
@@ -297,12 +332,12 @@ onMounted(() => {
                   :aria-current="event.event_id === store.selectedEventId ? 'true' : undefined"
                   @click="store.selectEvent(event.event_id)"
                 >
-                  <!-- Color outcome indicator strip -->
-                  <span
-                    class="outcome-indicator-bar"
-                    :class="getOutcomeClass(event.outcome)"
-                    aria-hidden="true"
-                  ></span>
+                  <!-- Leading themed avatar/icon wrapper -->
+                  <div class="event-card-item__avatar-wrapper">
+                    <div class="event-card-icon-container" :class="getOutcomeClass(event.outcome)" aria-hidden="true">
+                      <component :is="getEventIcon(event.event_type, event.outcome)" :size="16" />
+                    </div>
+                  </div>
 
                   <span class="event-card-item__body">
                     <span class="event-card-item__header-row">
@@ -318,9 +353,9 @@ onMounted(() => {
                       <span class="event-card-item__time">{{ formatTime(event.occurred_at) }}</span>
                       <span
                         v-if="event.request?.request_id"
-                        class="event-card-item__req-id font-mono"
+                        class="event-card-item__req-id font-mono text-xs"
                       >
-                        {{ event.request.request_id.substring(0, 8) }}...
+                        {{ event.request.request_id.substring(0, 8) }}
                       </span>
                     </span>
                   </span>
@@ -328,14 +363,15 @@ onMounted(() => {
               </li>
             </ul>
 
-            <button
+            <UiButton
               v-if="store.pagination?.has_more && store.pagination?.next_cursor"
-              class="ui-action ui-action--secondary auth-audit-load-more-button w-full mt-4"
+              variant="secondary"
+              class="auth-audit-load-more-button w-full mt-4"
               type="button"
               @click="store.loadMore"
             >
               {{ t('auth_audit.btn_load_more') }}
-            </button>
+            </UiButton>
           </div>
         </section>
       </aside>
@@ -348,14 +384,15 @@ onMounted(() => {
       >
         <!-- Mobile back button to close selection -->
         <div class="auth-audit-detail-back-bar">
-          <button
-            class="ui-action ui-action--secondary flex items-center gap-2"
+          <UiButton
+            variant="secondary"
+            class="flex items-center gap-2"
             type="button"
             @click="store.selectedEventId = null"
           >
             <ChevronLeft :size="16" />
             {{ t('common.back_to_list') }}
-          </button>
+          </UiButton>
         </div>
 
         <header class="detail-header-card">
@@ -387,7 +424,10 @@ onMounted(() => {
         </header>
 
         <div class="detail-section">
-          <h3>Informasi Dasar</h3>
+          <h3 class="flex items-center gap-2">
+            <Shield :size="16" class="text-primary" />
+            <span>Informasi Dasar</span>
+          </h3>
           <dl class="detail-metadata-grid">
             <div>
               <dt>{{ t('auth_audit.col_type') }}</dt>
@@ -433,7 +473,10 @@ onMounted(() => {
         </div>
 
         <div v-if="store.selectedEvent.request" class="detail-section">
-          <h3>Informasi Request</h3>
+          <h3 class="flex items-center gap-2">
+            <FileText :size="16" class="text-primary" />
+            <span>Informasi Request</span>
+          </h3>
           <dl class="detail-metadata-grid">
             <div>
               <dt>{{ t('auth_audit.col_request_id') }}</dt>
@@ -465,7 +508,10 @@ onMounted(() => {
             :aria-expanded="contextExpanded"
             @click="toggleContext"
           >
-            <span>Context Data (Metadata)</span>
+            <span class="flex items-center gap-2">
+              <Code :size="16" class="text-primary" />
+              <span>Context Data (Metadata)</span>
+            </span>
             <span class="chevron-icon" :class="{ 'chevron-icon--rotated': contextExpanded }">
               <ChevronDown :size="16" />
             </span>
@@ -492,17 +538,27 @@ onMounted(() => {
         <UiEmptyState
           title="Tidak Ada Event Terpilih"
           description="Pilih salah satu event autentikasi dari daftar di samping untuk melihat rincian detail secara mendalam."
-        />
+        >
+          <template #icon>
+            <Shield :size="28" class="text-primary animate-pulse" />
+          </template>
+        </UiEmptyState>
       </section>
     </div>
   </section>
 </template>
 
 <style scoped>
+/* Page container */
+.authentication-audit-page {
+  display: grid;
+  gap: 18px;
+}
+
 /* Master layout wrapper */
 .auth-audit-layout {
   display: grid;
-  grid-template-columns: 360px minmax(0, 1fr);
+  grid-template-columns: 320px minmax(0, 1fr);
   align-items: start;
   gap: 24px;
 }
@@ -540,8 +596,15 @@ onMounted(() => {
   text-align: left;
 }
 
+.filters-toggle-btn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
 .filters-title {
   margin: 0;
+  font-family: var(--font-display);
   font-size: 1.1rem;
   font-weight: 700;
 }
@@ -559,13 +622,13 @@ onMounted(() => {
 /* Compact filter grid */
 .filters-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 12px;
 }
 
-@media (max-width: 360px) {
+@media (min-width: 480px) and (max-width: 760px) {
   .filters-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -612,35 +675,65 @@ onMounted(() => {
   box-shadow: 0 0 0 1px var(--primary);
 }
 
+.event-card-item:focus-within {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary);
+}
+
 .event-card-item__select {
   display: flex;
-  align-items: stretch;
+  align-items: center;
   width: 100%;
   background: none;
   border: none;
-  padding: 0;
+  padding: 12px 14px;
   cursor: pointer;
   text-align: left;
   color: inherit;
+  gap: 12px;
 }
 
-/* Color indicator strip on side of card */
-.outcome-indicator-bar {
-  width: 4px;
+.event-card-item__select:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+  border-radius: 16px;
+}
+
+/* Color indicator themed icons */
+.event-card-item__avatar-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
-  background-color: var(--muted-foreground);
 }
 
-.outcome-indicator-bar.outcome--success {
-  background-color: #22c55e;
+.event-card-icon-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: background-color 0.2s ease;
 }
 
-.outcome-indicator-bar.outcome--danger {
-  background-color: #ef4444;
+.event-card-icon-container.outcome--success {
+  background: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.2);
 }
 
-.outcome-indicator-bar.outcome--warning {
-  background-color: #f59e0b;
+.event-card-icon-container.outcome--danger {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.event-card-icon-container.outcome--warning {
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.2);
 }
 
 /* Body of card */
@@ -649,7 +742,6 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 14px;
   min-width: 0;
 }
 
@@ -781,6 +873,7 @@ onMounted(() => {
 
 .detail-title {
   margin: 0;
+  font-family: var(--font-display);
   font-size: 1.6rem;
   font-weight: 900;
   color: var(--foreground);
@@ -806,23 +899,27 @@ onMounted(() => {
 
 /* Copy button micro-interaction */
 .copy-btn {
-  background: none;
-  border: none;
-  padding: 4px;
+  background: var(--secondary);
+  border: 1px solid var(--border);
+  padding: 6px;
   cursor: pointer;
   color: var(--muted-foreground);
-  border-radius: 4px;
+  border-radius: 8px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition:
-    background-color 0.15s ease,
-    color 0.15s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .copy-btn:hover {
-  background-color: var(--secondary);
-  color: var(--foreground);
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+  border-color: var(--primary);
+  transform: scale(1.05);
+}
+
+.copy-btn:active {
+  transform: scale(0.95);
 }
 
 /* Detail sections inside pane */
@@ -831,10 +928,12 @@ onMounted(() => {
   border: 1px solid var(--border);
   border-radius: 16px;
   background: var(--muted);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 
 .detail-section h3 {
   margin: 0 0 14px 0;
+  font-family: var(--font-display);
   font-size: 1rem;
   font-weight: 800;
   color: var(--foreground);
@@ -872,6 +971,7 @@ onMounted(() => {
 }
 
 .detail-metadata-grid dd code {
+  font-family: var(--font-mono);
   background: var(--card);
   padding: 2px 6px;
   border-radius: 6px;
@@ -907,9 +1007,16 @@ onMounted(() => {
   padding: 0;
   cursor: pointer;
   color: var(--foreground);
+  font-family: var(--font-display);
   font-size: 1rem;
   font-weight: 800;
   text-align: left;
+}
+
+.context-toggle-btn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 4px;
+  border-radius: 4px;
 }
 
 .context-content {
@@ -963,4 +1070,3 @@ onMounted(() => {
   }
 }
 </style>
-

@@ -51,7 +51,7 @@ describe('IpAccessPage', () => {
     expect(wrapper.text()).toContain('10.0.0.0/8')
     expect(wrapper.text()).toContain('allow')
     expect(wrapper.text()).toContain('Internal range')
-    expect(wrapper.text()).toContain('Tambah aturan IP')
+    expect(wrapper.text()).toContain('Add IP Rule')
   })
 
   it('renders safe forbidden state', () => {
@@ -145,8 +145,8 @@ describe('IpAccessPage', () => {
 
     const wrapper = mount(IpAccessPage)
 
-    expect(wrapper.text()).not.toContain('Tambah aturan IP')
-    expect(wrapper.text()).not.toContain('Hapus')
+    expect(wrapper.text()).not.toContain('Add IP Rule')
+    expect(wrapper.text()).not.toContain('Delete')
   })
 
   it('does not delete an IP rule before confirmation and cancel is no-op', async () => {

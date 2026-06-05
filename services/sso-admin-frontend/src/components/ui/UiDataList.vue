@@ -56,7 +56,9 @@ const emit = defineEmits<{ (event: 'next'): void; (event: 'previous'): void }>()
               :key="column.key"
               :class="column.align === 'right' ? 'ui-data-list__cell--right' : undefined"
             >
-              {{ row[column.key] ?? '—' }}
+              <slot :name="`cell(${column.key})`" :row="row">
+                {{ row[column.key] ?? '—' }}
+              </slot>
             </td>
             <td v-if="$slots.actions" class="ui-data-list__cell--right">
               <slot name="actions" :row="row" />

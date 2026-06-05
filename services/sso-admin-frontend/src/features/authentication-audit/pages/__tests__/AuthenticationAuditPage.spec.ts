@@ -38,7 +38,7 @@ describe('AuthenticationAuditPage', () => {
     // Mock navigator.clipboard
     Object.assign(navigator, {
       clipboard: {
-        writeText: vi.fn().mockImplementation(() => Promise.resolve()),
+        writeText: vi.fn<() => Promise<void>>().mockImplementation(() => Promise.resolve()),
       },
     })
   })

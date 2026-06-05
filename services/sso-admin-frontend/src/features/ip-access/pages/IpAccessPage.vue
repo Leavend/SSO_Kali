@@ -10,9 +10,11 @@ import UiInput from '@/components/ui/UiInput.vue'
 import UiSelect from '@/components/ui/UiSelect.vue'
 import UiSkeleton from '@/components/ui/UiSkeleton.vue'
 import UiStatusView from '@/components/ui/UiStatusView.vue'
+import UiButton from '@/components/ui/UiButton.vue'
 import { useSessionStore } from '@/stores/session.store'
 import { useIpAccessStore } from '../stores/ip-access.store'
 import type { IpAccessRuleCreatePayload } from '../types'
+import { PlusCircle, ShieldAlert } from 'lucide-vue-next'
 
 const store = useIpAccessStore()
 const session = useSessionStore()
@@ -131,43 +133,64 @@ const confirmDescription = computed<string>(() => {
     />
 
     <div v-else class="ip-access-layout">
-      <section v-if="canWriteAccess" class="detail-section" aria-labelledby="create-title">
-        <h2 id="create-title">Tambah aturan IP</h2>
-        <p class="page-summary">
-          Tambah aturan allow/block untuk CIDR tertentu. Perubahan diaudit.
+      <!-- Left Column: Create Form Card -->
+      <section v-if="canWriteAccess" class="ip-access-card ip-access-form-section" aria-labelledby="create-title">
+        <h2 id="create-title" class="section-title">
+          <PlusCircle :size="18" class="text-primary" aria-hidden="true" />
+          <span>{{ t('ip_access.create_title') }}</span>
+        </h2>
+        <p class="section-desc">
+          {{ t('ip_access.create_desc') }}
         </p>
-        <div class="export-filters">
-          <UiFormField id="ip-cidr" label="CIDR" required>
-            <UiInput
-              id="ip-cidr"
-              v-model="cidr"
-              name="ip-cidr"
-              autocomplete="off"
-              placeholder="203.0.113.0/24"
-            />
-          </UiFormField>
-          <UiFormField id="ip-mode" label="Mode" required>
-            <UiSelect id="ip-mode" v-model="mode" name="ip-mode" :options="modeOptions" />
-          </UiFormField>
-          <UiFormField id="ip-reason" label="Reason" required>
-            <UiInput id="ip-reason" v-model="reason" name="ip-reason" autocomplete="off" />
-          </UiFormField>
-          <UiFormField id="ip-expires-at" label="Expires at">
-            <UiInput id="ip-expires-at" v-model="expiresAt" name="ip-expires-at" type="date" />
-          </UiFormField>
-        </div>
-        <button
-          class="ui-action ui-action--primary"
-          type="button"
-          :disabled="store.actionStatus === 'loading'"
-          @click="submitCreate"
-        >
-          {{ store.actionStatus === 'loading' ? 'Creating...' : 'Tambah aturan IP' }}
-        </button>
+
+        <form @submit.prevent="submitCreate" class="ip-rule-form">
+          <div class="form-fields">
+            <UiFormField id="ip-cidr" :label="t('ip_access.label_cidr')" required>
+              <UiInput
+                id="ip-cidr"
+                v-model="cidr"
+                name="ip-cidr"
+                autocomplete="off"
+                placeholder="203.0.113.0/24"
+              />
+            </UiFormField>
+            <UiFormField id="ip-mode" :label="t('ip_access.label_mode')" required>
+              <UiSelect id="ip-mode" v-model="mode" name="ip-mode" :options="modeOptions" />
+            </UiFormField>
+            <UiFormField id="ip-reason" :label="t('ip_access.label_reason')" required>
+              <UiInput id="ip-reason" v-model="reason" name="ip-reason" autocomplete="off" placeholder="Internal maintenance CIDR" />
+            </UiFormField>
+            <UiFormField id="ip-expires-at" :label="t('ip_access.label_expires_at')">
+              <UiInput id="ip-expires-at" v-model="expiresAt" name="ip-expires-at" type="date" />
+            </UiFormField>
+          </div>
+
+          <UiButton
+            type="submit"
+            variant="primary"
+            class="submit-btn"
+            :disabled="store.actionStatus === 'loading'"
+          >
+            {{ store.actionStatus === 'loading' ? t('common.creating') : t('ip_access.btn_add_rule') }}
+          </UiButton>
+        </form>
       </section>
-      <section class="detail-section" aria-labelledby="rules-title">
-        <h2 id="rules-title">Rules</h2>
+
+      <!-- Right Column: Rules List Card -->
+      <section class="ip-access-card ip-access-list-section" aria-labelledby="rules-title">
+        <h2 id="rules-title" class="section-title">
+          <ShieldAlert :size="18" class="text-primary" aria-hidden="true" />
+          <span>{{ t('ip_access.rules_title') }}</span>
+        </h2>
+
         <UiDataList caption="IP access rules" :columns="ruleColumns" :rows="ruleRows">
+          <!-- Custom render for Mode column using slot -->
+          <template #cell(mode)="{ row }">
+            <span :class="['ui-badge', row.mode === 'allow' ? 'badge--success' : 'badge--danger']">
+              {{ row.mode }}
+            </span>
+          </template>
+
           <template #actions="{ row }">
             <button
               v-if="canWriteAccess"
@@ -175,7 +198,7 @@ const confirmDescription = computed<string>(() => {
               class="ip-rule-delete-button ui-action ui-action--danger"
               @click="requestDeleteRule(Number(row.id))"
             >
-              Hapus
+              {{ t('ip_access.btn_delete') }}
             </button>
           </template>
         </UiDataList>
@@ -203,3 +226,90 @@ const confirmDescription = computed<string>(() => {
     />
   </section>
 </template>
+
+<style scoped>
+/* Page container gap spacing */
+.ip-access-page {
+  display: grid;
+  gap: 18px;
+}
+
+/* Master 2-column layout */
+.ip-access-layout {
+  display: grid;
+  grid-template-columns: 360px minmax(0, 1fr);
+  align-items: start;
+  gap: 24px;
+}
+
+/* Common Card styles */
+.ip-access-card {
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--card);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+}
+
+.section-title {
+  margin: 0 0 12px 0;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--foreground);
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-desc {
+  margin: 0 0 20px 0;
+  font-size: 0.88rem;
+  color: var(--muted-foreground);
+  line-height: 1.4;
+}
+
+.form-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.submit-btn {
+  width: 100%;
+  margin-top: 20px;
+}
+
+/* Badge specific adjustments inside data list */
+.ui-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 999px;
+  letter-spacing: 0.03em;
+}
+
+.badge--success {
+  background: color-mix(in srgb, var(--success, #10b981) 12%, transparent);
+  color: var(--success, #10b981);
+  border: 1px solid color-mix(in srgb, var(--success, #10b981) 20%, transparent);
+}
+
+.badge--danger {
+  background: color-mix(in srgb, var(--danger, #ef4444) 12%, transparent);
+  color: var(--danger, #ef4444);
+  border: 1px solid color-mix(in srgb, var(--danger, #ef4444) 20%, transparent);
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────────── */
+@media (max-width: 760px) {
+  .ip-access-layout {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

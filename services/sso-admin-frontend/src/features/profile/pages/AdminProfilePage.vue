@@ -6,14 +6,50 @@
  * No write actions on this page — read-only view.
  */
 
-import { onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useI18n } from '@/composables/useI18n'
 import UiSkeleton from '@/components/ui/UiSkeleton.vue'
 import UiStatusView from '@/components/ui/UiStatusView.vue'
+import UiButton from '@/components/ui/UiButton.vue'
 import { useAdminProfileStore } from '../stores/admin-profile.store'
+import { Copy, Check, Shield, User, Mail } from 'lucide-vue-next'
 
 const store = useAdminProfileStore()
 const { t } = useI18n()
+const copied = ref(false)
+
+async function copyToClipboard(text: string): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(text)
+    copied.value = true
+    setTimeout(() => {
+      copied.value = false
+    }, 2000)
+  } catch {
+    // Fail-safe
+  }
+}
+
+function avatarInitial(name: string): string {
+  return name ? name.charAt(0).toUpperCase() : 'A'
+}
+
+function avatarStyle(name: string): Record<string, string> {
+  const palette = [
+    { start: '#6366F1', end: '#4F46E5' },
+    { start: '#EC4899', end: '#DB2777' },
+    { start: '#10B981', end: '#059669' },
+    { start: '#F59E0B', end: '#D97706' },
+    { start: '#3B82F6', end: '#2563EB' },
+    { start: '#8B5CF6', end: '#7C3AED' },
+  ]
+  let hash = 0
+  for (let i = 0; i < name.length; i += 1) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  const color = palette[Math.abs(hash) % palette.length] ?? palette[0]!
+  return { background: `linear-gradient(135deg, ${color.start}, ${color.end})` }
+}
 
 onMounted(() => {
   if (store.status === 'idle') void store.load()
@@ -60,51 +96,335 @@ onMounted(() => {
       :standalone="false"
     />
 
-    <article
-      v-else-if="store.principal"
-      class="detail-section"
-      aria-labelledby="admin-profile-detail-title"
-    >
-      <h2 id="admin-profile-detail-title">{{ t('profile.detail_title') }}</h2>
-      <dl class="detail-grid">
-        <div>
-          <dt>{{ t('profile.label_subject_id') }}</dt>
-          <dd>{{ store.principal.subject_id }}</dd>
+    <div v-else-if="store.principal" class="admin-profile-layout">
+      <!-- Left Column: Identity card summary -->
+      <article class="profile-identity-card" aria-label="Identity Summary">
+        <div class="profile-avatar-wrapper">
+          <div
+            class="profile-avatar"
+            :style="avatarStyle(store.principal.display_name ?? store.principal.subject_id)"
+            aria-hidden="true"
+          >
+            {{ avatarInitial(store.principal.display_name ?? store.principal.subject_id) }}
+          </div>
+          <span class="profile-role-badge">
+            {{ store.principal.role }}
+          </span>
         </div>
-        <div>
-          <dt>{{ t('profile.label_email') }}</dt>
-          <dd>{{ store.principal.email ?? '—' }}</dd>
-        </div>
-        <div>
-          <dt>{{ t('profile.label_display_name') }}</dt>
-          <dd>{{ store.principal.display_name ?? '—' }}</dd>
-        </div>
-        <div>
-          <dt>{{ t('profile.label_given_name') }}</dt>
-          <dd>{{ store.principal.given_name ?? '—' }}</dd>
-        </div>
-        <div>
-          <dt>{{ t('profile.label_family_name') }}</dt>
-          <dd>{{ store.principal.family_name ?? '—' }}</dd>
-        </div>
-        <div>
-          <dt>{{ t('profile.label_role') }}</dt>
-          <dd>{{ store.principal.role ?? '—' }}</dd>
-        </div>
-      </dl>
 
-      <section
-        v-if="store.principal.permissions && store.principal.permissions.length > 0"
-        class="detail-section"
-        aria-labelledby="admin-profile-permissions-title"
-      >
-        <h2 id="admin-profile-permissions-title">{{ t('profile.permissions_title') }}</h2>
-        <ul class="roles-perm-list" aria-label="Daftar permission aktif">
-          <li v-for="perm in store.principal.permissions" :key="perm" class="roles-perm-item">
-            <code>{{ perm }}</code>
-          </li>
-        </ul>
-      </section>
-    </article>
+        <h2 class="profile-display-name">{{ store.principal.display_name ?? '—' }}</h2>
+        <p class="profile-email-sub flex items-center gap-1.5 justify-center">
+          <Mail :size="14" class="text-muted-foreground" aria-hidden="true" />
+          <span>{{ store.principal.email ?? '—' }}</span>
+        </p>
+
+        <hr class="profile-divider" />
+
+        <div class="profile-sec-info">
+          <span class="label">Subject ID:</span>
+          <div class="subject-id-row">
+            <code class="font-mono text-xs break-all">{{ store.principal.subject_id }}</code>
+            <button
+              class="copy-btn"
+              type="button"
+              :title="copied ? 'Copied' : 'Copy Subject ID'"
+              @click="copyToClipboard(store.principal.subject_id)"
+            >
+              <Check v-if="copied" :size="12" class="text-emerald-500 animate-scale-up" />
+              <Copy v-else :size="12" />
+            </button>
+          </div>
+        </div>
+      </article>
+
+      <!-- Right Column: Personal details + Permissions -->
+      <div class="profile-details-column">
+        <!-- Personal Details -->
+        <article class="profile-details-card" aria-labelledby="admin-profile-detail-title">
+          <h2 id="admin-profile-detail-title" class="section-title">
+            <User :size="18" class="text-primary" aria-hidden="true" />
+            <span>{{ t('profile.detail_title') }}</span>
+          </h2>
+
+          <dl class="detail-grid">
+            <div>
+              <dt>{{ t('profile.label_given_name') }}</dt>
+              <dd>{{ store.principal.given_name ?? '—' }}</dd>
+            </div>
+            <div>
+              <dt>{{ t('profile.label_family_name') }}</dt>
+              <dd>{{ store.principal.family_name ?? '—' }}</dd>
+            </div>
+            <div>
+              <dt>{{ t('profile.label_email') }}</dt>
+              <dd>{{ store.principal.email ?? '—' }}</dd>
+            </div>
+            <div>
+              <dt>{{ t('profile.label_role') }}</dt>
+              <dd>
+                <code class="font-semibold">{{ store.principal.role ?? '—' }}</code>
+              </dd>
+            </div>
+          </dl>
+        </article>
+
+        <!-- Permissions -->
+        <article
+          v-if="store.principal.permissions && store.principal.permissions.length > 0"
+          class="profile-details-card"
+          aria-labelledby="admin-profile-permissions-title"
+        >
+          <h2 id="admin-profile-permissions-title" class="section-title">
+            <Shield :size="18" class="text-primary" aria-hidden="true" />
+            <span>{{ t('profile.permissions_title') }}</span>
+          </h2>
+          <ul class="roles-perm-list" aria-label="Daftar permission aktif">
+            <li v-for="perm in store.principal.permissions" :key="perm" class="roles-perm-item">
+              <code>{{ perm }}</code>
+            </li>
+          </ul>
+        </article>
+      </div>
+    </div>
   </section>
 </template>
+
+<style scoped>
+/* Page container gap spacing */
+.admin-profile-page {
+  display: grid;
+  gap: 18px;
+}
+
+/* Master 2-column layout */
+.admin-profile-layout {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  align-items: start;
+  gap: 24px;
+}
+
+/* Left Column: Identity Summary Card */
+.profile-identity-card {
+  padding: 30px 24px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--card);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  min-width: 0;
+}
+
+.profile-avatar-wrapper {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.profile-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  color: #ffffff;
+  font-family: var(--font-display);
+  font-size: 2.2rem;
+  font-weight: 800;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+  border: 3px solid var(--card);
+}
+
+.profile-role-badge {
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 2px 10px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-radius: 999px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border: 1.5px solid var(--card);
+}
+
+.profile-display-name {
+  margin: 12px 0 4px 0;
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 900;
+  color: var(--foreground);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.profile-email-sub {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--muted-foreground);
+}
+
+.profile-divider {
+  width: 100%;
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: 20px 0;
+}
+
+.profile-sec-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.profile-sec-info .label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted-foreground);
+}
+
+.subject-id-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.subject-id-row code {
+  background: var(--muted);
+  border: 1px solid var(--border);
+  padding: 3px 8px;
+  border-radius: 6px;
+  color: var(--foreground);
+  max-width: 100%;
+}
+
+/* Copy button styling */
+.copy-btn {
+  background: var(--secondary);
+  border: 1px solid var(--border);
+  padding: 4px;
+  cursor: pointer;
+  color: var(--muted-foreground);
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+}
+
+.copy-btn:hover {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+  border-color: var(--primary);
+  transform: scale(1.05);
+}
+
+.copy-btn:active {
+  transform: scale(0.95);
+}
+
+/* Right Column Cards styling */
+.profile-details-column {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.profile-details-card {
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--card);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+}
+
+.section-title {
+  margin: 0 0 18px 0;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--foreground);
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Detail grid for personal information metadata */
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin: 0;
+}
+
+.detail-grid > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail-grid dt {
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted-foreground);
+}
+
+.detail-grid dd {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--foreground);
+}
+
+.detail-grid dd code {
+  font-family: var(--font-mono);
+  background: var(--muted);
+  border: 1px solid var(--border);
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-size: 0.84rem;
+}
+
+/* Animation */
+@keyframes scaleUp {
+  0% {
+    transform: scale(0.85);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-scale-up {
+  animation: scaleUp 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────────── */
+@media (max-width: 760px) {
+  .admin-profile-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

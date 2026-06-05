@@ -3,7 +3,7 @@ import { computed, nextTick, onMounted, reactive, ref, type Component } from 'vu
 import { useI18n } from '@/composables/useI18n'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
 import UiButton from '@/components/ui/UiButton.vue'
-import UiDataList, { type UiDataListRow } from '@/components/ui/UiDataList.vue'
+import { buttonVariants } from '@/components/ui/button'
 import UiEmptyState from '@/components/ui/UiEmptyState.vue'
 import UiFormField from '@/components/ui/UiFormField.vue'
 import UiInput from '@/components/ui/UiInput.vue'
@@ -22,7 +22,7 @@ import {
   Key,
   ShieldAlert,
   Globe,
-  AlertTriangle
+  AlertTriangle,
 } from 'lucide-vue-next'
 
 const store = useClientsStore()
@@ -58,30 +58,37 @@ const knownScopeLabels = new Set(['openid', 'profile', 'email', 'offline_access'
 const scopeParityWarnings = computed(() =>
   (store.selectedClient?.allowed_scopes ?? []).filter((scope) => !knownScopeLabels.has(scope)),
 )
-const clientColumns = [
-  { key: 'name', label: 'Client' },
-  { key: 'client_id', label: 'Client ID' },
-  { key: 'status', label: 'Status' },
-] as const
-
 const searchQuery = ref('')
 const filteredClients = computed(() => {
   const query = searchQuery.value.trim().toLowerCase()
   if (!query) return store.clients
-  return store.clients.filter((client) =>
-    (client.display_name ?? '').toLowerCase().includes(query) ||
-    client.client_id.toLowerCase().includes(query),
+  return store.clients.filter(
+    (client) =>
+      (client.display_name ?? '').toLowerCase().includes(query) ||
+      client.client_id.toLowerCase().includes(query),
   )
 })
 
-const clientRows = computed<readonly UiDataListRow[]>(() =>
-  filteredClients.value.map((client) => ({
-    id: client.client_id,
-    name: client.display_name ?? client.client_id,
-    client_id: client.client_id,
-    status: client.status ?? 'unknown',
-  })),
-)
+function avatarInitial(name: string): string {
+  return name.charAt(0).toUpperCase()
+}
+
+function avatarStyle(name: string): Record<string, string> {
+  const palette = [
+    { start: '#6366F1', end: '#4F46E5' },
+    { start: '#EC4899', end: '#DB2777' },
+    { start: '#10B981', end: '#059669' },
+    { start: '#F59E0B', end: '#D97706' },
+    { start: '#3B82F6', end: '#2563EB' },
+    { start: '#8B5CF6', end: '#7C3AED' },
+  ]
+  let hash = 0
+  for (let i = 0; i < name.length; i += 1) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  const color = palette[Math.abs(hash) % palette.length] ?? palette[0]!
+  return { background: `linear-gradient(135deg, ${color.start}, ${color.end})` }
+}
 
 // Modal support
 const showCreateForm = ref(false)
@@ -115,13 +122,15 @@ const activeDetailTab = ref<DetailTab>('overview')
 
 const detailTabs = computed<Array<{ key: DetailTab; label: string; icon: Component }>>(() => {
   const tabs: Array<{ key: DetailTab; label: string; icon: Component }> = [
-    { key: 'overview', label: 'Overview', icon: LayoutDashboard },
-    { key: 'uris', label: 'URIs & Redirects', icon: Globe },
-    { key: 'scopes', label: 'Scopes & Access', icon: Key },
-    { key: 'security', label: 'Security & Secrets', icon: ShieldAlert },
+    { key: 'overview', label: t('clients.tab_overview'), icon: LayoutDashboard },
+    { key: 'uris', label: t('clients.tab_uris'), icon: Globe },
+    { key: 'scopes', label: t('clients.tab_scopes'), icon: Key },
   ]
+  if (canWriteClients.value) {
+    tabs.push({ key: 'security', label: t('clients.tab_security'), icon: ShieldAlert })
+  }
   if (canManageClientLifecycle.value) {
-    tabs.push({ key: 'lifecycle', label: 'Lifecycle', icon: Settings })
+    tabs.push({ key: 'lifecycle', label: t('clients.tab_lifecycle'), icon: Settings })
   }
   return tabs
 })
@@ -479,7 +488,7 @@ async function rotateSecret(): Promise<void> {
       :class="{ 'clients-layout--has-selection': store.selectedClientId !== null }"
     >
       <!-- ─── Sidebar: searchable client list ───────────────────────────── -->
-      <aside class="clients-list" aria-label="Daftar OAuth clients">
+      <aside class="clients-list" :aria-label="t('clients.list_aria')">
         <UiEmptyState
           v-if="store.clients.length === 0"
           :title="t('clients.empty_title')"
@@ -487,13 +496,17 @@ async function rotateSecret(): Promise<void> {
         />
 
         <template v-else>
-          <UiFormField id="search-clients" label="Cari client" class="clients-search">
+          <UiFormField
+            id="search-clients"
+            :label="t('clients.search_label')"
+            class="clients-search"
+          >
             <div class="clients-search__control">
               <Search :size="16" class="clients-search__icon" aria-hidden="true" />
               <UiInput
                 id="search-clients"
                 v-model="searchQuery"
-                placeholder="Cari berdasarkan nama atau ID..."
+                :placeholder="t('clients.search_placeholder')"
                 autocomplete="off"
                 class="clients-search__input"
               />
@@ -501,7 +514,7 @@ async function rotateSecret(): Promise<void> {
                 v-if="searchQuery"
                 class="clients-search__clear"
                 type="button"
-                aria-label="Reset pencarian"
+                :aria-label="t('common.btn_reset')"
                 @click="searchQuery = ''"
               >
                 <X :size="14" />
@@ -509,23 +522,44 @@ async function rotateSecret(): Promise<void> {
             </div>
           </UiFormField>
 
-          <UiDataList
-            caption="Daftar OAuth clients"
-            :columns="clientColumns"
-            :rows="clientRows"
-          >
-            <template #actions="{ row }">
+          <ul class="user-cards-list" role="list">
+            <li v-for="client in filteredClients" :key="client.client_id">
               <button
-                class="ui-action ui-action--secondary"
-                :aria-current="row.id === store.selectedClientId ? 'true' : undefined"
-                :aria-label="`View ${row.name}`"
+                class="user-card-item client-card-item"
                 type="button"
-                @click="selectClient(row.id)"
+                :class="{
+                  'user-card-item--active': client.client_id === store.selectedClientId,
+                }"
+                :aria-current="client.client_id === store.selectedClientId ? 'true' : undefined"
+                @click="selectClient(client.client_id)"
               >
-                View
+                <span
+                  class="user-card-item__avatar"
+                  :style="avatarStyle(client.display_name ?? client.client_id)"
+                  aria-hidden="true"
+                >
+                  {{ avatarInitial(client.display_name ?? client.client_id) }}
+                </span>
+                <span class="user-card-item__content">
+                  <span class="user-card-item__name-row">
+                    <span class="user-card-item__name">
+                      {{ client.display_name ?? client.client_id }}
+                    </span>
+                    <span
+                      class="user-card-item__badge"
+                      :class="`badge--${client.status ?? 'active'}`"
+                    >
+                      {{ client.status ?? 'unknown' }}
+                    </span>
+                  </span>
+                  <span class="user-card-item__email">{{ client.client_id }}</span>
+                  <span class="user-card-item__meta">
+                    <span class="user-card-item__role">{{ client.type ?? 'public' }}</span>
+                  </span>
+                </span>
               </button>
-            </template>
-          </UiDataList>
+            </li>
+          </ul>
         </template>
 
         <UiButton
@@ -555,7 +589,7 @@ async function rotateSecret(): Promise<void> {
           @keydown.esc="closeCreateForm"
         >
           <div class="client-modal-header">
-            <h3 id="create-client-title">Create OAuth client</h3>
+            <h3 id="create-client-title">{{ t('clients.create_title') }}</h3>
             <button
               class="client-modal-close"
               type="button"
@@ -571,14 +605,18 @@ async function rotateSecret(): Promise<void> {
             aria-labelledby="create-client-title"
             @submit.prevent="createClient"
           >
-            <p v-if="store.errorMessage" class="ui-action-message" role="alert" style="color: var(--destructive); background: color-mix(in srgb, var(--destructive) 8%, transparent); padding: 10px 16px; border-radius: 8px; border: 1px solid color-mix(in srgb, var(--destructive) 15%, transparent); margin-bottom: 16px; font-size: 0.88rem; font-weight: 500;">
+            <p
+              v-if="store.errorMessage"
+              class="ui-action-message ui-action-message--error"
+              role="alert"
+            >
               {{ store.errorMessage }}
             </p>
             <p v-if="uriValidationMessage" class="ui-action-message" role="alert">
               {{ uriValidationMessage }}
             </p>
             <div class="user-form-grid">
-              <UiFormField id="create_client_id" label="Client ID" required>
+              <UiFormField id="create_client_id" :label="t('clients.label_client_id')" required>
                 <UiInput
                   id="create_client_id"
                   v-model="createForm.client_id"
@@ -586,7 +624,11 @@ async function rotateSecret(): Promise<void> {
                   autocomplete="off"
                 />
               </UiFormField>
-              <UiFormField id="create_display_name" label="Display name" required>
+              <UiFormField
+                id="create_display_name"
+                :label="t('clients.label_display_name')"
+                required
+              >
                 <UiInput
                   id="create_display_name"
                   v-model="createForm.display_name"
@@ -594,7 +636,7 @@ async function rotateSecret(): Promise<void> {
                   autocomplete="off"
                 />
               </UiFormField>
-              <UiFormField id="create_owner_email" label="Owner email" required>
+              <UiFormField id="create_owner_email" :label="t('clients.label_owner_email')" required>
                 <UiInput
                   id="create_owner_email"
                   v-model="createForm.owner_email"
@@ -602,7 +644,11 @@ async function rotateSecret(): Promise<void> {
                   autocomplete="email"
                 />
               </UiFormField>
-              <UiFormField id="create_redirect_uri" label="Redirect URI" required>
+              <UiFormField
+                id="create_redirect_uri"
+                :label="t('clients.label_redirect_uri')"
+                required
+              >
                 <UiInput
                   id="create_redirect_uri"
                   v-model="createForm.redirect_uri"
@@ -610,7 +656,10 @@ async function rotateSecret(): Promise<void> {
                   autocomplete="url"
                 />
               </UiFormField>
-              <UiFormField id="create_backchannel_logout_uri" label="Logout URL">
+              <UiFormField
+                id="create_backchannel_logout_uri"
+                :label="t('clients.label_logout_url')"
+              >
                 <UiInput
                   id="create_backchannel_logout_uri"
                   v-model="createForm.backchannel_logout_uri"
@@ -621,10 +670,10 @@ async function rotateSecret(): Promise<void> {
             </div>
             <div class="client-modal-footer">
               <UiButton variant="secondary" type="button" @click="closeCreateForm">
-                Cancel
+                {{ t('common.btn_cancel') }}
               </UiButton>
               <UiButton variant="primary" type="submit" :disabled="isSaving">
-                {{ isSaving ? 'Membuat...' : 'Create client' }}
+                {{ isSaving ? t('clients.btn_creating') : t('clients.btn_create_client') }}
               </UiButton>
             </div>
           </form>
@@ -643,32 +692,42 @@ async function rotateSecret(): Promise<void> {
 
         <!-- Hero -->
         <header class="client-profile-hero">
-          <div class="client-profile-hero__avatar" aria-hidden="true">
-            {{ store.selectedClient.display_name ? store.selectedClient.display_name.charAt(0).toUpperCase() : 'C' }}
+          <div
+            class="client-profile-hero__avatar"
+            :style="
+              avatarStyle(store.selectedClient.display_name ?? store.selectedClient.client_id)
+            "
+            aria-hidden="true"
+          >
+            {{ avatarInitial(store.selectedClient.display_name ?? store.selectedClient.client_id) }}
           </div>
           <div class="client-profile-hero__content">
             <div class="client-profile-hero__header-row">
               <h2>{{ store.selectedClient.display_name ?? store.selectedClient.client_id }}</h2>
-              <span class="ui-badge client-profile-hero__status-badge">{{ store.selectedClient.status ?? 'unknown' }}</span>
+              <span class="ui-badge client-profile-hero__status-badge">{{
+                store.selectedClient.status ?? 'unknown'
+              }}</span>
             </div>
-            <p class="client-profile-hero__env">{{ store.selectedClient.environment ?? 'environment unknown' }}</p>
+            <p class="client-profile-hero__env">
+              {{ store.selectedClient.environment ?? t('clients.val_unknown') }}
+            </p>
             <p class="client-profile-hero__client-id">{{ store.selectedClient.client_id }}</p>
           </div>
           <div class="client-profile-hero__actions">
             <RouterLink
-              class="ui-action ui-action--primary"
+              :class="buttonVariants({ variant: 'secondary' })"
               :to="{
                 name: 'admin.audit',
                 query: { consent: '1', client_id: store.selectedClient.client_id },
               }"
             >
-              Consent trail
+              {{ t('clients.btn_consent_trail') }}
             </RouterLink>
           </div>
         </header>
 
         <!-- Tabs Navigation -->
-        <nav class="client-detail-tabs" role="tablist" aria-label="Client detail sections">
+        <nav class="client-detail-tabs" role="tablist" :aria-label="t('clients.detail_tabs_label')">
           <button
             v-for="(tab, index) in detailTabs"
             :key="tab.key"
@@ -683,7 +742,7 @@ async function rotateSecret(): Promise<void> {
             @click="selectDetailTab(tab.key)"
             @keydown="onTabKeydown($event, index)"
           >
-            <component :is="tab.icon" :size="16" />
+            <component :is="tab.icon" :size="16" aria-hidden="true" />
             {{ tab.label }}
           </button>
         </nav>
@@ -693,12 +752,19 @@ async function rotateSecret(): Promise<void> {
           v-if="store.errorMessage || successMessage"
           class="client-detail-status"
           aria-live="polite"
-          style="margin-bottom: 20px; width: 100%;"
         >
-          <p v-if="store.errorMessage" class="ui-action-message" role="alert" style="color: var(--destructive); background: color-mix(in srgb, var(--destructive) 8%, transparent); padding: 10px 16px; border-radius: 8px; border: 1px solid color-mix(in srgb, var(--destructive) 15%, transparent); margin: 0 0 8px 0; font-size: 0.88rem; font-weight: 500;">
+          <p
+            v-if="store.errorMessage"
+            class="ui-action-message ui-action-message--error"
+            role="alert"
+          >
             {{ store.errorMessage }}
           </p>
-          <p v-if="successMessage" class="ui-action-message" role="status" style="color: #10b981; background: rgba(16, 185, 129, 0.08); padding: 10px 16px; border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.15); margin: 0; font-size: 0.88rem; font-weight: 500;">
+          <p
+            v-if="successMessage"
+            class="ui-action-message ui-action-message--success"
+            role="status"
+          >
             {{ successMessage }}
           </p>
         </div>
@@ -712,22 +778,28 @@ async function rotateSecret(): Promise<void> {
           aria-labelledby="client-tab-overview"
           class="tab-panel"
         >
-          <dl class="detail-grid" style="margin-bottom: 24px;">
+          <dl class="detail-grid">
             <div>
-              <dt>Type</dt>
-              <dd>{{ store.selectedClient.type ?? 'unknown' }}</dd>
+              <dt>{{ t('clients.ov_type') }}</dt>
+              <dd>{{ store.selectedClient.type ?? t('clients.val_unknown') }}</dd>
             </div>
             <div>
-              <dt>Owner</dt>
-              <dd>{{ store.selectedClient.owner_email ?? 'Belum diisi' }}</dd>
+              <dt>{{ t('clients.ov_owner') }}</dt>
+              <dd>{{ store.selectedClient.owner_email ?? t('clients.val_not_set') }}</dd>
             </div>
             <div>
-              <dt>Secret rotated</dt>
-              <dd>{{ store.selectedClient.secret_rotated_at ?? 'Belum ada evidence' }}</dd>
+              <dt>{{ t('clients.ov_secret_rotated') }}</dt>
+              <dd>{{ store.selectedClient.secret_rotated_at ?? t('clients.val_no_evidence') }}</dd>
             </div>
             <div>
-              <dt>Secret hash</dt>
-              <dd>{{ store.selectedClient.has_secret_hash ? 'Tersimpan' : 'Belum tersedia' }}</dd>
+              <dt>{{ t('clients.ov_secret_hash') }}</dt>
+              <dd>
+                {{
+                  store.selectedClient.has_secret_hash
+                    ? t('clients.val_stored')
+                    : t('clients.val_not_available')
+                }}
+              </dd>
             </div>
           </dl>
 
@@ -735,7 +807,7 @@ async function rotateSecret(): Promise<void> {
             <h3 id="metadata-title">{{ t('clients.metadata_title') }}</h3>
             <form class="client-form" @submit.prevent="saveMetadata">
               <div class="user-form-grid user-form-grid-2">
-                <UiFormField id="edit_display_name" label="Display name">
+                <UiFormField id="edit_display_name" :label="t('clients.label_display_name')">
                   <UiInput
                     id="edit_display_name"
                     v-model="form.display_name"
@@ -743,7 +815,7 @@ async function rotateSecret(): Promise<void> {
                     autocomplete="off"
                   />
                 </UiFormField>
-                <UiFormField id="edit_owner_email" label="Owner email">
+                <UiFormField id="edit_owner_email" :label="t('clients.label_owner_email')">
                   <UiInput
                     id="edit_owner_email"
                     v-model="form.owner_email"
@@ -754,7 +826,7 @@ async function rotateSecret(): Promise<void> {
               </div>
               <div class="user-detail-card__actions">
                 <UiButton variant="primary" type="submit" :disabled="isSaving">
-                  {{ isSaving ? 'Menyimpan...' : 'Simpan metadata' }}
+                  {{ isSaving ? t('clients.btn_saving') : t('clients.btn_save_metadata') }}
                 </UiButton>
               </div>
             </form>
@@ -769,41 +841,47 @@ async function rotateSecret(): Promise<void> {
           aria-labelledby="client-tab-uris"
           class="tab-panel"
         >
-          <div style="display: flex; flex-direction: column; gap: 24px; margin-bottom: 24px;">
-            <section class="detail-section" aria-labelledby="redirect-uris-title">
-              <h3 id="redirect-uris-title">Redirect URIs</h3>
-              <ul v-if="store.selectedClient.redirect_uris.length > 0">
-                <li v-for="uri in store.selectedClient.redirect_uris" :key="uri"><code>{{ uri }}</code></li>
-              </ul>
-              <p v-else class="text-muted">No redirect URIs configured.</p>
-            </section>
+          <section class="detail-section" aria-labelledby="redirect-uris-title">
+            <h3 id="redirect-uris-title">{{ t('clients.redirect_uris_title') }}</h3>
+            <ul v-if="store.selectedClient.redirect_uris.length > 0">
+              <li v-for="uri in store.selectedClient.redirect_uris" :key="uri">
+                <code>{{ uri }}</code>
+              </li>
+            </ul>
+            <p v-else class="text-muted">{{ t('clients.no_redirect_uris') }}</p>
+          </section>
 
-            <section class="detail-section" aria-labelledby="logout-uris-title">
-              <h3 id="logout-uris-title">Post Logout Redirect URIs</h3>
-              <ul v-if="(store.selectedClient.post_logout_redirect_uris ?? []).length > 0">
-                <li v-for="uri in store.selectedClient.post_logout_redirect_uris ?? []" :key="uri">
-                  <code>{{ uri }}</code>
-                </li>
-              </ul>
-              <p v-else class="text-muted">No post-logout redirect URIs configured.</p>
-            </section>
+          <section class="detail-section" aria-labelledby="logout-uris-title">
+            <h3 id="logout-uris-title">{{ t('clients.logout_uris_title') }}</h3>
+            <ul v-if="(store.selectedClient.post_logout_redirect_uris ?? []).length > 0">
+              <li v-for="uri in store.selectedClient.post_logout_redirect_uris ?? []" :key="uri">
+                <code>{{ uri }}</code>
+              </li>
+            </ul>
+            <p v-else class="text-muted">{{ t('clients.no_logout_uris') }}</p>
+          </section>
 
-            <section class="detail-section" aria-labelledby="backchannel-logout-uri-title">
-              <h3 id="backchannel-logout-uri-title">Backchannel logout URI</h3>
-              <p>
-                <code>{{ store.selectedClient.backchannel_logout_uri ?? 'Belum ada evidence' }}</code>
-              </p>
-            </section>
-          </div>
+          <section class="detail-section" aria-labelledby="backchannel-logout-uri-title">
+            <h3 id="backchannel-logout-uri-title">{{ t('clients.backchannel_uri_title') }}</h3>
+            <p>
+              <code>{{
+                store.selectedClient.backchannel_logout_uri ?? t('clients.val_no_evidence')
+              }}</code>
+            </p>
+          </section>
 
           <section v-if="canWriteClients" class="detail-section" aria-labelledby="uri-policy-title">
             <h3 id="uri-policy-title">{{ t('clients.uri_policy_title') }}</h3>
             <form class="client-form" data-test="uri-policy-form" @submit.prevent="saveUriPolicy">
-              <p v-if="uriValidationMessage" class="ui-action-message" role="alert">
+              <p
+                v-if="uriValidationMessage"
+                class="ui-action-message ui-action-message--error"
+                role="alert"
+              >
                 {{ uriValidationMessage }}
               </p>
               <div class="user-form-grid">
-                <UiFormField id="redirect_uris" label="Redirect URIs">
+                <UiFormField id="redirect_uris" :label="t('clients.label_redirect_uris')">
                   <UiTextarea
                     id="redirect_uris"
                     v-model="form.redirect_uris"
@@ -811,7 +889,10 @@ async function rotateSecret(): Promise<void> {
                     :rows="4"
                   />
                 </UiFormField>
-                <UiFormField id="post_logout_redirect_uris" label="Post Logout Redirect URIs">
+                <UiFormField
+                  id="post_logout_redirect_uris"
+                  :label="t('clients.label_post_logout_uris')"
+                >
                   <UiTextarea
                     id="post_logout_redirect_uris"
                     v-model="form.post_logout_redirect_uris"
@@ -819,7 +900,10 @@ async function rotateSecret(): Promise<void> {
                     :rows="4"
                   />
                 </UiFormField>
-                <UiFormField id="backchannel_logout_uri" label="Backchannel logout URI">
+                <UiFormField
+                  id="backchannel_logout_uri"
+                  :label="t('clients.label_backchannel_uri')"
+                >
                   <UiInput
                     id="backchannel_logout_uri"
                     v-model="form.backchannel_logout_uri"
@@ -830,7 +914,7 @@ async function rotateSecret(): Promise<void> {
               </div>
               <div class="user-detail-card__actions">
                 <UiButton variant="primary" type="submit" :disabled="isSaving">
-                  {{ isSaving ? 'Menyimpan...' : 'Simpan URI policy' }}
+                  {{ isSaving ? t('clients.btn_saving') : t('clients.btn_save_uri_policy') }}
                 </UiButton>
               </div>
             </form>
@@ -845,25 +929,41 @@ async function rotateSecret(): Promise<void> {
           aria-labelledby="client-tab-scopes"
           class="tab-panel"
         >
-          <section class="detail-section" style="margin-bottom: 24px;">
-            <h3>Allowed Scopes</h3>
-            <div class="scope-badges" v-if="(store.selectedClient.allowed_scopes ?? []).length > 0">
-              <span v-for="scope in store.selectedClient.allowed_scopes" :key="scope" class="scope-badge">
-                <Key :size="12" />
+          <section class="detail-section">
+            <h3>{{ t('clients.allowed_scopes_title') }}</h3>
+            <div v-if="(store.selectedClient.allowed_scopes ?? []).length > 0" class="scope-badges">
+              <span
+                v-for="scope in store.selectedClient.allowed_scopes"
+                :key="scope"
+                class="scope-badge"
+              >
+                <Key :size="12" aria-hidden="true" />
                 {{ scope }}
               </span>
             </div>
-            <p v-else class="text-muted">No scopes configured.</p>
+            <p v-else class="text-muted">{{ t('clients.no_scopes') }}</p>
           </section>
 
-          <section v-if="canWriteClients" class="detail-section" aria-labelledby="scope-policy-title">
+          <section
+            v-if="canWriteClients"
+            class="detail-section"
+            aria-labelledby="scope-policy-title"
+          >
             <h3 id="scope-policy-title">{{ t('clients.scope_policy_title') }}</h3>
-            <p v-if="scopeParityWarnings.length > 0" class="ui-action-message" role="status">
-              Scope label parity warning: {{ scopeParityWarnings.join(', ') }}
+            <p
+              v-if="scopeParityWarnings.length > 0"
+              class="ui-action-message ui-action-message--warning"
+              role="status"
+            >
+              {{ t('clients.scope_parity_warning') }} {{ scopeParityWarnings.join(', ') }}
             </p>
-            <form class="client-form" data-test="scope-policy-form" @submit.prevent="saveScopePolicy">
+            <form
+              class="client-form"
+              data-test="scope-policy-form"
+              @submit.prevent="saveScopePolicy"
+            >
               <div class="user-form-grid">
-                <UiFormField id="allowed_scopes" label="Allowed scopes">
+                <UiFormField id="allowed_scopes" :label="t('clients.label_allowed_scopes')">
                   <UiTextarea
                     id="allowed_scopes"
                     v-model="form.allowed_scopes"
@@ -874,7 +974,7 @@ async function rotateSecret(): Promise<void> {
               </div>
               <div class="user-detail-card__actions">
                 <UiButton variant="primary" type="submit" :disabled="isSaving">
-                  {{ isSaving ? 'Menyimpan...' : 'Simpan scope policy' }}
+                  {{ isSaving ? t('clients.btn_saving') : t('clients.btn_save_scope_policy') }}
                 </UiButton>
               </div>
             </form>
@@ -895,27 +995,23 @@ async function rotateSecret(): Promise<void> {
             aria-labelledby="secret-title"
           >
             <h3 id="secret-title">{{ t('clients.secret_title') }}</h3>
-            <p style="margin-bottom: 16px;">
-              Rotasi secret hanya menampilkan plaintext satu kali. Salin lalu hapus dari layar.
-            </p>
+            <p class="detail-section__lead">{{ t('clients.secret_hint') }}</p>
             <div class="user-detail-card__actions">
-              <UiButton variant="danger" type="button" @click="rotateSecret" :disabled="isSaving">
-                {{ isSaving ? 'Memproses...' : 'Rotate secret' }}
+              <UiButton variant="danger" type="button" :disabled="isSaving" @click="rotateSecret">
+                {{ isSaving ? t('clients.btn_processing') : t('clients.btn_rotate_secret') }}
               </UiButton>
             </div>
 
             <div v-if="store.rotationSecret" class="secret-reveal" role="status">
               <div class="secret-reveal__header">
-                <AlertTriangle :size="16" />
-                <strong>Secret baru untuk {{ store.rotationClientId }}</strong>
+                <AlertTriangle :size="16" aria-hidden="true" />
+                <strong>{{ t('clients.secret_reveal_title') }} {{ store.rotationClientId }}</strong>
               </div>
-              <p class="secret-reveal__warning">
-                Simpan secret ini dengan aman di key vault Anda. Secret ini tidak akan ditampilkan lagi setelah Anda menutup layar atau menekan tombol di bawah.
-              </p>
+              <p class="secret-reveal__warning">{{ t('clients.secret_reveal_warning') }}</p>
               <div class="secret-reveal__code-wrapper">
                 <code>{{ store.rotationSecret }}</code>
               </div>
-              <div class="user-detail-card__actions" style="margin-top: 12px;">
+              <div class="user-detail-card__actions secret-reveal__actions">
                 <UiButton
                   variant="secondary"
                   size="sm"
@@ -923,7 +1019,7 @@ async function rotateSecret(): Promise<void> {
                   type="button"
                   @click="store.clearRotationSecret"
                 >
-                  Hapus secret dari layar
+                  {{ t('clients.btn_clear_secret') }}
                 </UiButton>
               </div>
             </div>
@@ -944,27 +1040,26 @@ async function rotateSecret(): Promise<void> {
             aria-labelledby="lifecycle-title"
           >
             <h3 id="lifecycle-title">{{ t('clients.lifecycle_title') }}</h3>
-            <p style="margin-bottom: 16px;">
-              Impact summary: disable blocks new authorization and may revoke active tokens.
-              Decommission retires client configuration and clears redirect evidence.
-            </p>
-            <p v-if="lifecycleMessage" class="ui-action-message" role="alert" style="margin-bottom: 16px;">
+            <p class="detail-section__lead">{{ t('clients.lifecycle_impact') }}</p>
+            <p
+              v-if="lifecycleMessage"
+              class="ui-action-message ui-action-message--error"
+              role="alert"
+            >
               {{ lifecycleMessage }}
             </p>
 
             <!-- Sub-action 1: Disable client -->
             <div class="user-detail__sub-actions">
-              <h4 class="user-detail__sub-actions-title">Disable Client</h4>
-              <p class="user-detail-card__hint" style="margin-bottom: 8px;">
-                Menonaktifkan client akan memblokir request otorisasi baru dan dapat mencabut token aktif.
-              </p>
-              <UiFormField id="client_disable_reason" label="Disable reason">
+              <h4 class="user-detail__sub-actions-title">{{ t('clients.sub_disable_title') }}</h4>
+              <p class="user-detail-card__hint">{{ t('clients.disable_hint') }}</p>
+              <UiFormField id="client_disable_reason" :label="t('clients.label_disable_reason')">
                 <UiTextarea
                   id="client_disable_reason"
                   v-model="lifecycleForm.disable_reason"
                   name="client_disable_reason"
                   :rows="2"
-                  placeholder="Masukkan alasan penonaktifan client..."
+                  :placeholder="t('clients.disable_placeholder')"
                 />
               </UiFormField>
               <div class="user-detail-card__actions">
@@ -972,27 +1067,27 @@ async function rotateSecret(): Promise<void> {
                   variant="danger"
                   data-test="disable-client"
                   type="button"
-                  @click="disableClient"
                   :disabled="isSaving"
+                  @click="disableClient"
                 >
-                  {{ isSaving ? 'Memproses...' : 'Disable client' }}
+                  {{ isSaving ? t('clients.btn_processing') : t('clients.btn_disable_client') }}
                 </UiButton>
               </div>
             </div>
 
             <!-- Sub-action 2: Decommission client -->
-            <div class="user-detail__sub-actions" style="margin-top: 24px;">
-              <h4 class="user-detail__sub-actions-title">Decommission Client</h4>
-              <p class="user-detail-card__hint" style="margin-bottom: 8px;">
-                Tindakan destruktif: menghapus konfigurasi client secara permanen. Tindakan ini tidak dapat dibatalkan.
-              </p>
-              <UiFormField id="decommission_confirmation" label="Type client ID to decommission">
+            <div class="user-detail__sub-actions">
+              <h4 class="user-detail__sub-actions-title">
+                {{ t('clients.sub_decommission_title') }}
+              </h4>
+              <p class="user-detail-card__hint">{{ t('clients.decommission_hint') }}</p>
+              <UiFormField id="decommission_confirmation" :label="t('clients.label_decommission')">
                 <UiInput
                   id="decommission_confirmation"
                   v-model="lifecycleForm.decommission_confirmation"
                   name="decommission_confirmation"
                   autocomplete="off"
-                  placeholder="Ketik client ID untuk konfirmasi..."
+                  :placeholder="t('clients.decommission_placeholder')"
                 />
               </UiFormField>
               <div class="user-detail-card__actions">
@@ -1000,10 +1095,12 @@ async function rotateSecret(): Promise<void> {
                   variant="danger"
                   data-test="decommission-client"
                   type="button"
-                  @click="decommissionClient"
                   :disabled="isSaving"
+                  @click="decommissionClient"
                 >
-                  {{ isSaving ? 'Memproses...' : 'Decommission client' }}
+                  {{
+                    isSaving ? t('clients.btn_processing') : t('clients.btn_decommission_client')
+                  }}
                 </UiButton>
               </div>
             </div>

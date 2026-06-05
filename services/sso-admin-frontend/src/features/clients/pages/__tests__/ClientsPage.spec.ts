@@ -335,7 +335,8 @@ describe('ClientsPage', () => {
     store.clients = [client]
     store.selectedClientId = 'prototype-app-a'
     await wrapper.vm.$nextTick()
-    expect(wrapper.find('.ui-data-list').exists()).toBe(true)
+    // The searchable client list uses shared form primitives for filtering.
+    expect(wrapper.find('input#search-clients').exists()).toBe(true)
     expect(wrapper.find('.ui-form-field').exists()).toBe(true)
     expect(wrapper.find('.ui-control').exists()).toBe(true)
   })
@@ -373,5 +374,19 @@ describe('ClientsPage', () => {
     expect(wrapper.text()).toContain('Rotate secret')
     expect(wrapper.text()).not.toContain('Disable client')
     expect(wrapper.text()).not.toContain('Decommission client')
+  })
+
+  it('renders selectable client cards in the sidebar list', () => {
+    const store = useClientsStore()
+    store.status = 'success'
+    store.clients = [client]
+    store.selectedClientId = 'prototype-app-a'
+
+    const wrapper = mount(ClientsPage)
+
+    const cards = wrapper.findAll('button.client-card-item')
+    expect(cards).toHaveLength(1)
+    expect(cards[0]!.text()).toContain('Prototype App A')
+    expect(cards[0]!.attributes('aria-current')).toBe('true')
   })
 })
