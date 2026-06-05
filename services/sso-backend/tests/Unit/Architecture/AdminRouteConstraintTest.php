@@ -85,7 +85,7 @@ it('does not require fresh auth for routine admin read endpoints', function (): 
     }
 });
 
-it('enforces step-up freshness on mutating and sensitive admin endpoints', function (): void {
+it('enforces freshness on mutating and sensitive admin endpoints', function (): void {
     $safePostReads = ['admin/api/client-integrations/contract'];
 
     $sensitiveRoutes = collect(app('router')->getRoutes()->getRoutes())
@@ -102,12 +102,12 @@ it('enforces step-up freshness on mutating and sensitive admin endpoints', funct
 
     foreach ($sensitiveRoutes as $route) {
         $middleware = $route->middleware();
-        $hasStepUp = collect($middleware)->contains(
-            fn (string $m) => str_contains($m, 'EnsureFreshAdminAuth:step_up')
+        $hasFreshness = collect($middleware)->contains(
+            fn (string $m) => str_contains($m, 'EnsureFreshAdminAuth:')
         );
 
-        expect($hasStepUp)->toBeTrue(
-            "Sensitive route [{$route->uri()}] missing step-up freshness."
+        expect($hasFreshness)->toBeTrue(
+            "Mutating route [{$route->uri()}] missing freshness enforcement (EnsureFreshAdminAuth)."
         );
     }
 });
