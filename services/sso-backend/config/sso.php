@@ -161,7 +161,7 @@ return [
         ],
         'freshness' => [
             'read_seconds' => (int) env('ADMIN_PANEL_FRESH_AUTH_SECONDS', 900),
-            'step_up_seconds' => (int) env('ADMIN_PANEL_STEP_UP_AUTH_SECONDS', 300),
+            'step_up_seconds' => (int) env('ADMIN_PANEL_STEP_UP_AUTH_SECONDS', 900),
         ],
         'mfa' => [
             'enforced' => (bool) env('ADMIN_PANEL_REQUIRE_MFA', true),

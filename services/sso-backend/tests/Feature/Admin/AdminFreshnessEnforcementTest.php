@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\User;
+use App\Services\Admin\AdminFreshnessPolicy;
 use App\Services\Oidc\LocalTokenService;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -15,7 +16,7 @@ beforeEach(function (): void {
     config()->set('sso.signing.public_key_path', storage_path('app/testing/oidc/public.pem'));
     config()->set('sso.admin.session_management_roles', ['admin']);
     config()->set('sso.admin.freshness.read_seconds', 900);
-    config()->set('sso.admin.freshness.step_up_seconds', 300);
+    config()->set('sso.admin.freshness.step_up_seconds', 900);
     config()->set('sso.admin.mfa.enforced', false);
 });
 
@@ -79,7 +80,7 @@ it('returns 401 reauth_required for stale privileged write actions', function ()
     ]);
 
     $this->withToken(adminToken($admin, now()->subMinutes(30)->timestamp))
-        ->postJson('/admin/api/users/write-target-user/lock')
+        ->postJson('/admin/api/users/write-target-user/lock', ['reason' => 'audit-test'])
         ->assertStatus(401)
         ->assertJsonPath('error', 'reauth_required');
 });
@@ -94,7 +95,7 @@ it('returns 401 reauth_required for stale destructive admin actions', function (
 
     seedRevocableSession('session-step-up', 'subject-1001');
 
-    $this->withToken(adminToken($admin, now()->subMinutes(10)->timestamp))
+    $this->withToken(adminToken($admin, now()->subMinutes(20)->timestamp))
         ->deleteJson('/admin/api/sessions/session-step-up')
         ->assertStatus(401)
         ->assertJsonPath('error', 'reauth_required');
@@ -112,13 +113,71 @@ it('returns 401 reauth_required when revoke-all is attempted with a stale admin 
 
     seedRevocableSession('session-step-up-all', 'subject-2002');
 
-    $this->withToken(adminToken($admin, now()->subMinutes(10)->timestamp))
+    $this->withToken(adminToken($admin, now()->subMinutes(20)->timestamp))
         ->deleteJson('/admin/api/users/subject-2002/sessions')
         ->assertStatus(401)
         ->assertJsonPath('error', 'reauth_required')
         ->assertJsonPath('error_description', 'Fresh authentication is required for this resource.');
 
     assertLatestAudit('session_management', 'step_up_required', 'stale_auth_rejected');
+});
+
+it('allows fresh token to perform privileged write within step_up window', function (): void {
+    /** @var TestCase $this */
+    $admin = User::factory()->create([
+        'subject_id' => 'fresh-write-admin',
+        'subject_uuid' => 'fresh-write-admin',
+        'role' => 'admin',
+    ]);
+
+    User::factory()->create([
+        'subject_id' => 'fresh-write-target',
+        'subject_uuid' => 'fresh-write-target',
+        'role' => 'user',
+    ]);
+
+    // token with auth_time within step_up window (2 min old, window is 900s)
+    $this->withToken(adminToken($admin, now()->subMinutes(2)->timestamp))
+        ->postJson('/admin/api/users/fresh-write-target/lock', ['reason' => 'freshness-contract'])
+        ->assertOk();
+});
+
+it('accepts re-issued token with fresh auth_time for step-up flow', function (): void {
+    /** @var TestCase $this */
+    $admin = User::factory()->create([
+        'subject_id' => 'reissued-admin',
+        'subject_uuid' => 'reissued-admin',
+        'role' => 'admin',
+    ]);
+
+    User::factory()->create([
+        'subject_id' => 'reissued-target',
+        'subject_uuid' => 'reissued-target',
+        'role' => 'user',
+    ]);
+
+    // Simulate a stale token first
+    $this->withToken(adminToken($admin, now()->subMinutes(20)->timestamp))
+        ->postJson('/admin/api/users/reissued-target/lock', ['reason' => 'stale-attempt'])
+        ->assertStatus(401)
+        ->assertJsonPath('error', 'reauth_required');
+
+    // Re-issued token with auth_time = time() (simulates CompleteSsoAuthorization after prompt=login)
+    $this->withToken(adminToken($admin, now()->timestamp))
+        ->postJson('/admin/api/users/reissued-target/lock', ['reason' => 'freshness-contract'])
+        ->assertOk();
+});
+
+it('enforces step_up_seconds config value as the freshness window', function (): void {
+    /** @var TestCase $this */
+    config()->set('sso.admin.freshness.step_up_seconds', 900);
+
+    /** @var AdminFreshnessPolicy $policy */
+    $policy = app(AdminFreshnessPolicy::class);
+
+    expect($policy->window('step_up'))->toBe(900);
+    expect($policy->stale(time() - 600, 'step_up'))->toBeFalse();  // 10 min old < 900s window
+    expect($policy->stale(time() - 1200, 'step_up'))->toBeTrue();   // 20 min old > 900s window
 });
 
 function adminToken(User $user, int $authTime): string
