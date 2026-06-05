@@ -55,6 +55,9 @@ export type ClientCreatePayload = {
 
 export type ClientCreateResponse = {
   readonly registration: AdminClient
+  readonly plaintext_secret?: string
+  readonly client_secret?: string
+  readonly secret?: string
 }
 
 export type ClientScopeSyncPayload = {

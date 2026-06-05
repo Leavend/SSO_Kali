@@ -11,7 +11,14 @@ vi.mock('../../services/clients.api', () => ({
     show: vi.fn<(clientId: string) => Promise<{ client: AdminClient }>>(),
     registrations: vi.fn<() => Promise<{ registrations: readonly AdminClient[] }>>(),
     update: vi.fn<(clientId: string, payload: unknown) => Promise<{ client: AdminClient }>>(),
-    create: vi.fn<(payload: unknown) => Promise<{ registration: AdminClient }>>(),
+    create: vi.fn<
+      (payload: unknown) => Promise<{
+        registration: AdminClient
+        plaintext_secret?: string
+        client_secret?: string
+        secret?: string
+      }>
+    >(),
     syncScopes: vi.fn<(clientId: string, payload: unknown) => Promise<{ client: AdminClient }>>(),
     disable:
       vi.fn<(clientId: string, payload: unknown) => Promise<{ registration: AdminClient }>>(),
@@ -22,12 +29,7 @@ vi.mock('../../services/clients.api', () => ({
           clientId: string,
         ) => Promise<{ rotation: { client_id: string; plaintext_secret?: string } }>
       >(),
-    contract:
-      vi.fn<
-        (
-          payload: unknown,
-        ) => Promise<{ contract: Record<string, unknown> }>
-      >(),
+    contract: vi.fn<(payload: unknown) => Promise<{ contract: Record<string, unknown> }>>(),
   },
 }))
 
@@ -183,7 +185,7 @@ describe('useClientsStore', () => {
       registration: createdClient,
       plaintext_secret: 'conf-secret-value-123',
     }
-    vi.mocked(clientsApi.create).mockResolvedValue(responseWithSecret as any)
+    vi.mocked(clientsApi.create).mockResolvedValue(responseWithSecret)
     const store = useClientsStore()
 
     await store.createClient({
