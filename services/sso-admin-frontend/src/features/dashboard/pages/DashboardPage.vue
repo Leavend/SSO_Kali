@@ -47,8 +47,56 @@ function entries(counters: DashboardCounterGroup): readonly [string, number][] {
   return Object.entries(counters)
 }
 
-function label(value: string): string {
-  return value.replace(/_/gu, ' ')
+function cardTitle(title: string): string {
+  const map: Record<string, string> = {
+    Users: 'dashboard.counters.users.title',
+    Sessions: 'dashboard.counters.sessions.title',
+    Clients: 'dashboard.counters.clients.title',
+    Audit: 'dashboard.counters.audit.title',
+    Incidents: 'dashboard.counters.incidents.title',
+    DSR: 'dashboard.counters.data_subject_requests.title',
+  }
+  const path = map[title]
+  if (!path) return title
+  return t(path)
+}
+
+function counterLabel(title: string, key: string): string {
+  const map: Record<string, string> = {
+    Users: 'users',
+    Sessions: 'sessions',
+    Clients: 'clients',
+    Audit: 'audit',
+    Incidents: 'incidents',
+    DSR: 'data_subject_requests',
+  }
+  const group = map[title]
+  if (!group) return key.replace(/_/gu, ' ')
+
+  const path = `dashboard.counters.${group}.${key}`
+  const translation = t(path)
+  return translation === path ? key.replace(/_/gu, ' ') : translation
+}
+
+function counterTone(key: string, value: number): 'neutral' | 'success' | 'warning' | 'danger' {
+  if (value === 0) return 'neutral'
+  const k = key.toLowerCase()
+
+  if (
+    k.includes('denied') ||
+    k.includes('locked') ||
+    k.includes('rejected') ||
+    k.includes('disabled')
+  ) {
+    return 'danger'
+  }
+  if (k.includes('staged') || k.includes('hold')) {
+    return 'warning'
+  }
+  if (k.includes('active') || k.includes('fulfilled') || k.includes('approved')) {
+    return 'success'
+  }
+  return 'neutral'
 }
 </script>
 
@@ -127,12 +175,17 @@ function label(value: string): string {
               aria-hidden="true"
             />
           </div>
-          <h2>{{ card.title }}</h2>
+          <h2>{{ cardTitle(card.title) }}</h2>
         </div>
         <dl>
           <div v-for="[key, value] in entries(card.counters)" :key="key">
-            <dt>{{ label(key) }}</dt>
-            <dd>{{ value }}</dd>
+            <dt>{{ counterLabel(card.title, key) }}</dt>
+            <dd
+              class="dashboard-counter-value"
+              :class="`dashboard-counter-value--${counterTone(key, value)}`"
+            >
+              {{ value }}
+            </dd>
           </div>
         </dl>
       </article>

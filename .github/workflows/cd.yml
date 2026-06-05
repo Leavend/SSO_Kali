@@ -103,6 +103,20 @@ jobs:
             sleep 5
           done
 
+          # Enable SSH multiplexing to reuse a single Master connection across all deployment steps,
+          # completely avoiding connection rate limits, SSH timeouts, and ufw limit/fail2ban bans.
+          cat > ~/.ssh/config <<'EOF'
+          Host *
+            ControlMaster auto
+            ControlPath ~/.ssh/control-%r@%h:%p
+            ControlPersist 15m
+            StrictHostKeyChecking accept-new
+            ConnectTimeout 20
+            ServerAliveInterval 10
+            ServerAliveCountMax=3
+          EOF
+          chmod 600 ~/.ssh/config
+
       - name: Preflight SSH reachability
         run: |
           command -v nc >/dev/null 2>&1 || {

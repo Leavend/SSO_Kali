@@ -11,6 +11,7 @@ import UiEmptyState from '@/components/ui/UiEmptyState.vue'
 import UiSkeleton from '@/components/ui/UiSkeleton.vue'
 import UiStatusView from '@/components/ui/UiStatusView.vue'
 import { useRolesStore } from '../stores/roles.store'
+import { Shield, Key, Users } from 'lucide-vue-next'
 
 const store = useRolesStore()
 const { t } = useI18n()
@@ -80,7 +81,10 @@ onMounted(() => {
 
     <div v-else class="roles-layout">
       <section class="detail-section" aria-labelledby="roles-list-title">
-        <h2 id="roles-list-title">{{ t('roles.list_title') }}</h2>
+        <h2 id="roles-list-title">
+          <Shield :size="20" />
+          <span>{{ t('roles.list_title') }}</span>
+        </h2>
         <p class="page-summary">{{ t('roles.matrix_desc') }}</p>
         <div class="roles-grid">
           <article
@@ -92,12 +96,13 @@ onMounted(() => {
             <header class="roles-card__header">
               <strong class="roles-card__label">{{ role.label }}</strong>
               <code class="roles-card__slug">{{ role.slug }}</code>
-              <span v-if="role.user_count != null" class="ui-badge">
-                {{ role.user_count }} user
+              <span v-if="role.user_count != null" class="ui-badge roles-badge">
+                <Users :size="12" />
+                <span>{{ role.user_count }} {{ role.user_count === 1 ? 'user' : 'users' }}</span>
               </span>
             </header>
 
-            <section aria-labelledby="`perm-heading-${role.slug}`">
+            <section :aria-labelledby="`perm-heading-${role.slug}`">
               <h3 :id="`perm-heading-${role.slug}`" class="sr-only">
                 Permissions untuk role {{ role.label }}
               </h3>
@@ -107,7 +112,7 @@ onMounted(() => {
                 </li>
               </ul>
               <p v-if="role.permissions.length === 0" class="muted">
-                Role ini belum memiliki permission.
+                {{ t('roles.no_permissions') }}
               </p>
             </section>
           </article>
@@ -115,7 +120,10 @@ onMounted(() => {
       </section>
 
       <section class="detail-section" aria-labelledby="permissions-matrix-title">
-        <h2 id="permissions-matrix-title">{{ t('roles.matrix_title') }}</h2>
+        <h2 id="permissions-matrix-title">
+          <Key :size="20" />
+          <span>{{ t('roles.matrix_title') }}</span>
+        </h2>
         <p class="page-summary">{{ t('roles.matrix_desc') }}</p>
         <div v-for="[group, perms] in permissionsByGroup" :key="group" class="roles-perm-group">
           <h3 class="roles-perm-group__label">{{ group }}</h3>

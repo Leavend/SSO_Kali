@@ -2,11 +2,25 @@
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from '@/composables/useI18n'
 import { useRoute } from 'vue-router'
+import {
+  ClipboardList,
+  ShieldCheck,
+  Download,
+  History,
+  UserX,
+  FileSearch,
+  CheckCircle,
+  AlertTriangle,
+  AlertCircle,
+  Settings,
+  Key,
+} from 'lucide-vue-next'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
 import UiDataList, { type UiDataListRow } from '@/components/ui/UiDataList.vue'
 import UiEmptyState from '@/components/ui/UiEmptyState.vue'
 import UiFormField from '@/components/ui/UiFormField.vue'
 import UiInput from '@/components/ui/UiInput.vue'
+import UiButton from '@/components/ui/UiButton.vue'
 import UiSkeleton from '@/components/ui/UiSkeleton.vue'
 import UiStatusView from '@/components/ui/UiStatusView.vue'
 import { useSessionStore } from '@/stores/session.store'
@@ -21,6 +35,9 @@ const store = useAuditStore()
 const session = useSessionStore()
 const route = useRoute()
 const { t } = useI18n()
+
+const activeTab = ref<'logs' | 'security' | 'reports' | 'retention' | 'dsr'>('logs')
+
 const canExportAudit = computed(() => session.hasPermission('admin.audit.export'))
 const canGenerateEvidencePack = computed(() => session.hasPermission('admin.audit.export'))
 const canReviewDsr = computed(() => session.hasPermission('admin.dsr.review'))
@@ -152,6 +169,7 @@ async function applyQueryConsentFilter(): Promise<boolean> {
   await applyConsentFilter(
     action === 'allow' || action === 'deny' || action === 'revoke' ? action : 'all',
   )
+  activeTab.value = 'logs'
   return true
 }
 
@@ -282,540 +300,944 @@ onMounted(() => {
       :description="t('audit.empty_desc')"
     />
 
-    <div v-else class="audit-layout">
-      <section v-if="canExportAudit" class="detail-section" aria-labelledby="export-title">
-        <h2 id="export-title">Export Audit Trail</h2>
-        <p class="page-summary">
-          Export audit events terfilter ke CSV atau JSONL. Aksi privileged: backend meminta
-          re-autentikasi (step-up) dan permission AUDIT_EXPORT.
-        </p>
-        <fieldset class="export-format">
-          <legend>Format</legend>
-          <label class="checkbox-row">
-            <input v-model="exportFormat" type="radio" name="export-format" value="csv" />
-            CSV
-          </label>
-          <label class="checkbox-row">
-            <input v-model="exportFormat" type="radio" name="export-format" value="jsonl" />
-            JSONL
-          </label>
-        </fieldset>
-        <div class="export-filters">
-          <UiFormField id="export-from" label="From">
-            <UiInput id="export-from" v-model="exportFrom" name="export-from" type="date" />
-          </UiFormField>
-          <UiFormField id="export-to" label="To">
-            <UiInput id="export-to" v-model="exportTo" name="export-to" type="date" />
-          </UiFormField>
-          <UiFormField id="export-action" label="Action">
-            <UiInput
-              id="export-action"
-              v-model="exportAction"
-              name="export-action"
-              autocomplete="off"
-            />
-          </UiFormField>
-          <UiFormField id="export-outcome" label="Outcome">
-            <UiInput
-              id="export-outcome"
-              v-model="exportOutcome"
-              name="export-outcome"
-              autocomplete="off"
-            />
-          </UiFormField>
-        </div>
-        <button
-          class="ui-action ui-action--primary audit-export-button"
-          type="button"
-          :disabled="store.actionStatus === 'loading'"
-          @click="submitExport"
-        >
-          {{ store.actionStatus === 'loading' ? 'Exporting...' : 'Export' }}
-        </button>
-        <p v-if="store.actionStatus === 'step_up_required'" class="ui-action-message" role="alert">
-          {{ store.errorMessage }}
-        </p>
-      </section>
-
-      <section
-        v-if="canGenerateEvidencePack"
-        class="detail-section"
-        aria-labelledby="evidence-pack-title"
-      >
-        <h2 id="evidence-pack-title">Compliance Evidence Pack</h2>
-        <p class="page-summary">
-          Rakit paket bukti terkurasi (audit subset + integrity hash-chain + DSR terkait + retensi)
-          untuk satu rentang tanggal atau satu correlation ID insiden. Aksi privileged: backend
-          meminta re-autentikasi (step-up) dan permission AUDIT_EXPORT, lalu mencatat audit event
-          <code>evidence_pack_generated</code>.
-        </p>
-        <fieldset class="export-format">
-          <legend>Format paket</legend>
-          <label class="checkbox-row">
-            <input v-model="packFormat" type="radio" name="evidence-pack-format" value="zip" />
-            ZIP
-          </label>
-          <label class="checkbox-row">
-            <input v-model="packFormat" type="radio" name="evidence-pack-format" value="json" />
-            JSON
-          </label>
-        </fieldset>
-        <div class="export-filters">
-          <UiFormField id="evidence-pack-from" label="From">
-            <UiInput
-              id="evidence-pack-from"
-              v-model="packFrom"
-              name="evidence-pack-from"
-              type="date"
-            />
-          </UiFormField>
-          <UiFormField id="evidence-pack-to" label="To">
-            <UiInput id="evidence-pack-to" v-model="packTo" name="evidence-pack-to" type="date" />
-          </UiFormField>
-          <UiFormField id="evidence-pack-correlation-id" label="Correlation ID / insiden">
-            <UiInput
-              id="evidence-pack-correlation-id"
-              v-model="packCorrelationId"
-              name="evidence-pack-correlation-id"
-              autocomplete="off"
-            />
-          </UiFormField>
-        </div>
-        <p v-if="!canSubmitEvidencePack" class="muted">
-          Isi rentang tanggal (From + To) atau correlation ID untuk mengaktifkan generate.
-        </p>
-        <button
-          class="ui-action ui-action--primary compliance-evidence-pack-button"
-          type="button"
-          :disabled="store.actionStatus === 'loading' || !canSubmitEvidencePack"
-          @click="submitEvidencePack"
-        >
-          {{ store.actionStatus === 'loading' ? 'Generating...' : 'Generate evidence pack' }}
-        </button>
-        <p v-if="store.actionStatus === 'step_up_required'" class="ui-action-message" role="alert">
-          {{ store.errorMessage }}
-        </p>
-      </section>
-
-      <section class="detail-section" aria-labelledby="integrity-title">
-        <h2 id="integrity-title">Integrity evidence</h2>
-        <p class="ui-badge">
-          {{ store.integrity?.verified ? 'Integrity verified' : 'Integrity needs review' }}
-        </p>
-        <dl class="inline-evidence">
-          <div>
-            <dt>Checked events</dt>
-            <dd>{{ store.integrity?.checked_events ?? 'No evidence' }}</dd>
-          </div>
-          <div>
-            <dt>Latest hash</dt>
-            <dd>{{ store.integrity?.latest_event_hash ?? 'No evidence' }}</dd>
-          </div>
-        </dl>
-      </section>
-
-      <section class="detail-section" aria-labelledby="retention-title">
-        <h2 id="retention-title">Retention status</h2>
-        <p class="page-summary">
-          Ringkasan window retensi, jadwal prune, kandidat prune, dan run terakhir untuk evidence
-          pack compliance.
-        </p>
-        <div class="audit-list">
-          <div
-            v-for="item in store.retentionStatus?.items ?? []"
-            :key="item.category"
-            class="ui-card"
+    <div v-else class="space-y-6">
+      <!-- Horizontal Tab System -->
+      <div class="audit-tabs-container">
+        <nav class="audit-tabs" aria-label="Audit navigation tabs">
+          <button
+            class="audit-tab-btn"
+            :class="{ 'audit-tab-btn--active': activeTab === 'logs' }"
+            type="button"
+            @click="activeTab = 'logs'"
           >
-            <strong>{{ item.label }}</strong>
-            <dl class="inline-evidence">
+            <ClipboardList class="size-4" />
+            <span>{{ t('audit.tab_logs') }}</span>
+          </button>
+          <button
+            class="audit-tab-btn"
+            :class="{ 'audit-tab-btn--active': activeTab === 'security' }"
+            type="button"
+            @click="activeTab = 'security'"
+          >
+            <ShieldCheck class="size-4" />
+            <span>{{ t('audit.tab_security') }}</span>
+          </button>
+          <button
+            v-if="canExportAudit || canGenerateEvidencePack"
+            class="audit-tab-btn"
+            :class="{ 'audit-tab-btn--active': activeTab === 'reports' }"
+            type="button"
+            @click="activeTab = 'reports'"
+          >
+            <Download class="size-4" />
+            <span>{{ t('audit.tab_reports') }}</span>
+          </button>
+          <button
+            class="audit-tab-btn"
+            :class="{ 'audit-tab-btn--active': activeTab === 'retention' }"
+            type="button"
+            @click="activeTab = 'retention'"
+          >
+            <History class="size-4" />
+            <span>{{ t('audit.tab_retention') }}</span>
+          </button>
+          <button
+            v-if="canReviewDsr"
+            class="audit-tab-btn"
+            :class="{ 'audit-tab-btn--active': activeTab === 'dsr' }"
+            type="button"
+            @click="activeTab = 'dsr'"
+          >
+            <UserX class="size-4" />
+            <span>{{ t('audit.tab_dsr') }}</span>
+          </button>
+        </nav>
+      </div>
+
+      <!-- Tab Content Area (using v-show to keep elements accessible in test environments) -->
+      <div class="space-y-6">
+        <!-- Tab 1: Audit Logs -->
+        <div v-show="activeTab === 'logs'" class="space-y-6">
+          <!-- Search Form -->
+          <section class="ui-card space-y-4" aria-labelledby="audit-search-title">
+            <div class="flex items-start gap-3">
+              <FileSearch class="size-5 mt-1 text-primary" />
               <div>
-                <dt>Window</dt>
-                <dd>{{ retentionWindowLabel(item) }}</dd>
+                <h2 id="audit-search-title" class="text-base font-bold">
+                  {{ t('audit.search_title') }}
+                </h2>
+                <p class="text-sm text-muted-foreground leading-relaxed">
+                  {{ t('audit.search_desc') }}
+                </p>
               </div>
+            </div>
+
+            <div class="audit-grid audit-grid-3 mt-4">
+              <UiFormField id="audit-search-request-id" :label="t('audit.correlation_id')">
+                <UiInput
+                  id="audit-search-request-id"
+                  name="audit-search-request-id"
+                  v-model="searchRequestId"
+                  autocomplete="off"
+                />
+              </UiFormField>
+              <UiFormField id="audit-search-session-id" :label="t('audit.sid')">
+                <UiInput
+                  id="audit-search-session-id"
+                  name="audit-search-session-id"
+                  v-model="searchSessionId"
+                  autocomplete="off"
+                />
+              </UiFormField>
+              <UiFormField id="audit-search-action" :label="t('audit.action')">
+                <UiInput
+                  id="audit-search-action"
+                  name="audit-search-action"
+                  v-model="searchAction"
+                  autocomplete="off"
+                />
+              </UiFormField>
+              <UiFormField id="audit-search-outcome" :label="t('audit.outcome')">
+                <UiInput
+                  id="audit-search-outcome"
+                  name="audit-search-outcome"
+                  v-model="searchOutcome"
+                  autocomplete="off"
+                />
+              </UiFormField>
+              <UiFormField id="audit-search-taxonomy" :label="t('audit.taxonomy')">
+                <UiInput
+                  id="audit-search-taxonomy"
+                  name="audit-search-taxonomy"
+                  v-model="searchTaxonomy"
+                  autocomplete="off"
+                />
+              </UiFormField>
+              <UiFormField id="audit-search-admin-subject-id" :label="t('audit.admin_subject')">
+                <UiInput
+                  id="audit-search-admin-subject-id"
+                  name="audit-search-admin-subject-id"
+                  v-model="searchAdminSubjectId"
+                  autocomplete="off"
+                />
+              </UiFormField>
+              <UiFormField id="audit-search-subject-id" :label="t('audit.subject_id')">
+                <UiInput
+                  id="audit-search-subject-id"
+                  name="audit-search-subject-id"
+                  v-model="searchSubjectId"
+                  autocomplete="off"
+                />
+              </UiFormField>
+              <UiFormField id="audit-search-client-id" :label="t('audit.client_id')">
+                <UiInput
+                  id="audit-search-client-id"
+                  name="audit-search-client-id"
+                  v-model="searchClientId"
+                  autocomplete="off"
+                />
+              </UiFormField>
+              <UiFormField id="audit-search-from" :label="t('audit.from')">
+                <UiInput
+                  id="audit-search-from"
+                  name="audit-search-from"
+                  v-model="searchFrom"
+                  type="date"
+                />
+              </UiFormField>
+              <UiFormField id="audit-search-to" :label="t('audit.to')">
+                <UiInput
+                  id="audit-search-to"
+                  name="audit-search-to"
+                  v-model="searchTo"
+                  type="date"
+                />
+              </UiFormField>
+            </div>
+
+            <div class="flex gap-2 pt-2">
+              <UiButton variant="primary" class="audit-search-button" @click="submitSearch">
+                {{ t('audit.btn_search') }}
+              </UiButton>
+              <UiButton variant="secondary" class="audit-reset-button" @click="resetSearch">
+                {{ t('audit.btn_reset') }}
+              </UiButton>
+            </div>
+          </section>
+
+          <!-- Consent Event Filter Row -->
+          <section class="ui-card space-y-4" aria-labelledby="consent-events-title">
+            <div class="flex items-start gap-3">
+              <CheckCircle class="size-5 mt-1 text-primary" />
               <div>
-                <dt>Schedule</dt>
-                <dd>{{ item.schedule ?? 'No schedule evidence' }}</dd>
+                <h2 id="consent-events-title" class="text-base font-bold">
+                  {{ t('audit.consent_title') }}
+                </h2>
+                <p class="text-sm text-muted-foreground leading-relaxed">
+                  {{ t('audit.consent_desc') }}
+                </p>
               </div>
-              <div>
-                <dt>Last pruned</dt>
-                <dd>{{ item.last_pruned_at ?? 'Belum ada run evidence' }}</dd>
+            </div>
+
+            <div class="flex flex-wrap gap-2 mt-2">
+              <UiButton
+                :variant="selectedConsentAction === 'all' ? 'primary' : 'secondary'"
+                size="sm"
+                class="consent-filter-all-button"
+                @click="applyConsentFilter('all')"
+              >
+                {{ t('audit.btn_all_consent') }}
+              </UiButton>
+              <UiButton
+                :variant="selectedConsentAction === 'allow' ? 'primary' : 'secondary'"
+                size="sm"
+                class="consent-filter-allow-button"
+                @click="applyConsentFilter('allow')"
+              >
+                Allow
+              </UiButton>
+              <UiButton
+                :variant="selectedConsentAction === 'deny' ? 'primary' : 'secondary'"
+                size="sm"
+                class="consent-filter-deny-button"
+                @click="applyConsentFilter('deny')"
+              >
+                Deny
+              </UiButton>
+              <UiButton
+                :variant="selectedConsentAction === 'revoke' ? 'primary' : 'secondary'"
+                size="sm"
+                class="consent-filter-revoke-button"
+                @click="applyConsentFilter('revoke')"
+              >
+                Revoke
+              </UiButton>
+            </div>
+          </section>
+
+          <!-- Master-Detail Audit Events -->
+          <section class="audit-master-detail" aria-labelledby="events-title">
+            <!-- Table View -->
+            <div class="ui-card space-y-4">
+              <h2 id="events-title" class="text-base font-bold">{{ t('audit.events_title') }}</h2>
+              <div class="audit-table-wrapper">
+                <UiDataList
+                  caption="Admin event table"
+                  :columns="auditEventColumns"
+                  :rows="auditEventRows"
+                >
+                  <template #actions="{ row }">
+                    <UiButton
+                      variant="secondary"
+                      size="sm"
+                      :class="
+                        row.id === store.selectedEventId ? 'border-primary text-primary' : undefined
+                      "
+                      @click="store.selectEvent(row.id)"
+                    >
+                      View
+                    </UiButton>
+                  </template>
+                </UiDataList>
               </div>
-              <div>
-                <dt>Pruned rows</dt>
-                <dd>{{ retentionNumber(item.last_pruned_count) }}</dd>
+              <p v-if="store.events.length === 0" class="text-sm text-muted-foreground pt-2">
+                {{ t('audit.no_audit_events') }}
+              </p>
+              <div class="pt-2">
+                <UiButton
+                  v-if="store.eventPagination?.has_more && store.eventPagination?.next_cursor"
+                  variant="primary"
+                  class="audit-load-more-button"
+                  @click="store.loadMoreEvents"
+                >
+                  {{ t('audit.btn_load_more_audit') }}
+                </UiButton>
               </div>
-              <div>
-                <dt>Candidate rows</dt>
-                <dd>{{ retentionNumber(item.candidate_count) }}</dd>
+            </div>
+
+            <!-- Detail Pane -->
+            <div class="space-y-4">
+              <article v-if="store.selectedEvent" class="ui-card space-y-4">
+                <h2 class="text-base font-bold">Event detail</h2>
+                <div class="border-b border-border pb-2">
+                  <span
+                    class="audit-badge"
+                    :class="
+                      store.selectedEvent.outcome === 'succeeded'
+                        ? 'audit-badge--success'
+                        : 'audit-badge--danger'
+                    "
+                  >
+                    {{ store.selectedEvent.outcome }}
+                  </span>
+                </div>
+                <dl class="space-y-3">
+                  <div class="flex flex-col gap-1">
+                    <dt class="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+                      Actor
+                    </dt>
+                    <dd class="text-sm font-semibold break-anywhere">
+                      {{
+                        store.selectedEvent.actor?.email ??
+                        store.selectedEvent.actor?.subject_id ??
+                        'unknown'
+                      }}
+                    </dd>
+                  </div>
+                  <div class="flex flex-col gap-1 border-t border-border pt-2">
+                    <dt class="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+                      Request
+                    </dt>
+                    <dd class="text-sm break-anywhere bg-muted p-2 rounded-lg font-mono">
+                      <span class="font-bold text-primary mr-1">{{
+                        store.selectedEvent.request?.method ?? 'GET'
+                      }}</span>
+                      {{ store.selectedEvent.request?.path }}
+                    </dd>
+                  </div>
+                  <div class="flex flex-col gap-1 border-t border-border pt-2">
+                    <dt class="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+                      Reason
+                    </dt>
+                    <dd class="text-sm break-anywhere">
+                      {{ store.selectedEvent.reason ?? 'No reason evidence' }}
+                    </dd>
+                  </div>
+                  <div class="flex flex-col gap-1 border-t border-border pt-2">
+                    <dt class="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+                      Occurred at
+                    </dt>
+                    <dd class="text-sm font-mono">
+                      {{ store.selectedEvent.occurred_at ?? 'No timestamp' }}
+                    </dd>
+                  </div>
+                </dl>
+              </article>
+              <div
+                v-else
+                class="ui-card flex flex-col items-center justify-center py-16 text-center text-muted-foreground border-dashed"
+              >
+                <ClipboardList class="size-8 mb-2 opacity-40 text-primary animate-pulse" />
+                <p class="text-sm font-semibold text-muted-foreground">
+                  Pilih event untuk melihat detail secara mendalam.
+                </p>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- Tab 2: Security Notification -->
+        <div v-show="activeTab === 'security'" class="space-y-6">
+          <section class="audit-master-detail" aria-labelledby="security-evidence-title">
+            <!-- Table View -->
+            <div class="ui-card space-y-4">
+              <h2 id="security-evidence-title" class="text-base font-bold">
+                {{ t('audit.security_evidence_title') }}
+              </h2>
+              <div class="audit-table-wrapper">
+                <UiDataList
+                  caption="Authentication event table"
+                  :columns="authenticationEventColumns"
+                  :rows="authenticationEventRows"
+                >
+                  <template #actions="{ row }">
+                    <UiButton
+                      variant="secondary"
+                      size="sm"
+                      :class="
+                        row.id === store.selectedAuthenticationEventId
+                          ? 'border-primary text-primary'
+                          : undefined
+                      "
+                      @click="store.selectAuthenticationEvent(row.id)"
+                    >
+                      View
+                    </UiButton>
+                  </template>
+                </UiDataList>
+              </div>
+              <p
+                v-if="store.authenticationEvents.length === 0"
+                class="text-sm text-muted-foreground pt-2"
+              >
+                {{ t('audit.no_security_events') }}
+              </p>
+              <div class="pt-2">
+                <UiButton
+                  v-if="
+                    store.authenticationEventPagination?.has_more &&
+                    store.authenticationEventPagination?.next_cursor
+                  "
+                  variant="primary"
+                  class="authentication-load-more-button"
+                  @click="store.loadMoreAuthenticationEvents"
+                >
+                  {{ t('audit.btn_load_more_security') }}
+                </UiButton>
+              </div>
+            </div>
+
+            <!-- Detail Pane -->
+            <div class="space-y-4">
+              <article v-if="store.selectedAuthenticationEvent" class="ui-card space-y-4">
+                <h2 class="text-base font-bold">Security event detail</h2>
+                <div class="border-b border-border pb-2">
+                  <span
+                    class="audit-badge"
+                    :class="
+                      store.selectedAuthenticationEvent.outcome === 'succeeded'
+                        ? 'audit-badge--success'
+                        : 'audit-badge--danger'
+                    "
+                  >
+                    {{ store.selectedAuthenticationEvent.outcome }}
+                  </span>
+                </div>
+                <dl class="space-y-3">
+                  <div class="flex flex-col gap-1">
+                    <dt class="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+                      Subject
+                    </dt>
+                    <dd class="text-sm font-semibold break-anywhere">
+                      {{
+                        store.selectedAuthenticationEvent.subject?.email ??
+                        store.selectedAuthenticationEvent.subject?.subject_id ??
+                        'unknown'
+                      }}
+                    </dd>
+                  </div>
+                  <div class="flex flex-col gap-1 border-t border-border pt-2">
+                    <dt class="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+                      Client
+                    </dt>
+                    <dd class="text-sm break-anywhere font-semibold">
+                      {{ store.selectedAuthenticationEvent.client_id ?? 'No client evidence' }}
+                    </dd>
+                  </div>
+                  <div class="flex flex-col gap-1 border-t border-border pt-2">
+                    <dt class="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+                      Session ID (SID)
+                    </dt>
+                    <dd class="text-sm font-mono break-anywhere">
+                      {{ store.selectedAuthenticationEvent.session_id ?? 'No SID evidence' }}
+                    </dd>
+                  </div>
+                  <div
+                    class="flex flex-col gap-1 border-t border-border pt-2"
+                    v-if="store.selectedAuthenticationEvent.error_code"
+                  >
+                    <dt class="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+                      Error code
+                    </dt>
+                    <dd class="text-sm text-destructive font-semibold">
+                      {{ store.selectedAuthenticationEvent.error_code }}
+                    </dd>
+                  </div>
+                </dl>
+              </article>
+              <div
+                v-else
+                class="ui-card flex flex-col items-center justify-center py-16 text-center text-muted-foreground border-dashed"
+              >
+                <ShieldCheck class="size-8 mb-2 opacity-40 text-primary animate-pulse" />
+                <p class="text-sm font-semibold text-muted-foreground">
+                  Pilih event untuk melihat detail secara mendalam.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <!-- Security Policy Cards Grid -->
+          <div class="audit-grid audit-grid-2">
+            <!-- Suspicious Login Challenge Card -->
+            <section class="ui-card audit-card-premium space-y-3" aria-labelledby="challenge-title">
+              <div class="flex items-center gap-2">
+                <AlertTriangle class="size-5 text-amber-500" />
+                <h3 id="challenge-title" class="text-base font-bold">
+                  {{ t('audit.challenge_title') }}
+                </h3>
+              </div>
+              <p class="text-sm text-muted-foreground leading-relaxed">
+                {{ t('audit.risk_challenge_desc') }}
+              </p>
+            </section>
+
+            <!-- ACR Permissive Policy Card -->
+            <section class="ui-card audit-card-premium space-y-3" aria-labelledby="acr-title">
+              <div class="flex items-center gap-2">
+                <Key class="size-5 text-indigo-500" />
+                <h3 id="acr-title" class="text-base font-bold">{{ t('audit.acr_title') }}</h3>
+              </div>
+              <p class="text-sm text-muted-foreground leading-relaxed">
+                {{ t('audit.acr_policy_desc') }}
+              </p>
+            </section>
+          </div>
+
+          <!-- Observable evidence title -->
+          <div class="pt-4 border-t border-border">
+            <h3 class="text-base font-bold mb-4 flex items-center gap-2 text-primary">
+              <Settings class="size-5" />
+              {{ t('audit.portal_evidence_title') }}
+            </h3>
+            <div class="audit-grid audit-grid-3">
+              <!-- Consent revocation viewer -->
+              <div class="ui-card audit-card-premium space-y-2">
+                <h4 class="text-sm font-bold text-foreground">
+                  {{ t('audit.consent_revocation_title') }}
+                </h4>
+                <p class="text-xs text-muted-foreground leading-relaxed">
+                  {{ t('audit.consent_revocation_desc') }}
+                </p>
+              </div>
+              <!-- Legacy session sunset -->
+              <div class="ui-card audit-card-premium space-y-2">
+                <h4 class="text-sm font-bold text-foreground">
+                  {{ t('audit.legacy_fallback_title') }}
+                </h4>
+                <p class="text-xs text-muted-foreground leading-relaxed">
+                  {{ t('audit.legacy_fallback_desc') }}
+                </p>
+              </div>
+              <!-- Token lifetime production guard -->
+              <div class="ui-card audit-card-premium space-y-2">
+                <h4 class="text-sm font-bold text-foreground">
+                  {{ t('audit.token_lifetime_title') }}
+                </h4>
+                <p class="text-xs text-muted-foreground leading-relaxed">
+                  {{ t('audit.token_lifetime_desc') }}
+                </p>
+              </div>
+              <!-- Session / logout evidence console -->
+              <div class="ui-card audit-card-premium space-y-2">
+                <h4 class="text-sm font-bold text-foreground">
+                  {{ t('audit.session_logout_title') }}
+                </h4>
+                <p class="text-xs text-muted-foreground leading-relaxed">
+                  {{ t('audit.session_logout_desc') }}
+                </p>
+              </div>
+              <!-- Safe error regression review -->
+              <div class="ui-card audit-card-premium space-y-2">
+                <h4 class="text-sm font-bold text-foreground">{{ t('audit.safe_error_title') }}</h4>
+                <p class="text-xs text-muted-foreground leading-relaxed">
+                  {{ t('audit.safe_error_desc') }}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 3: Export & Evidence Pack -->
+        <div v-show="activeTab === 'reports'" class="audit-grid audit-grid-2">
+          <!-- Export Section -->
+          <section v-if="canExportAudit" class="ui-card space-y-4" aria-labelledby="export-title">
+            <div class="flex items-center gap-2">
+              <Download class="size-5 text-primary" />
+              <h2 id="export-title" class="text-lg font-bold">{{ t('audit.export_title') }}</h2>
+            </div>
+            <p class="text-sm text-muted-foreground leading-relaxed">
+              {{ t('audit.export_desc') }}
+            </p>
+
+            <fieldset class="border border-border rounded-xl p-4 bg-muted space-y-2">
+              <legend class="px-2 text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                {{ t('audit.format') }}
+              </legend>
+              <div class="flex gap-4">
+                <label class="flex items-center gap-2 text-sm font-semibold cursor-pointer">
+                  <input
+                    v-model="exportFormat"
+                    type="radio"
+                    name="export-format"
+                    value="csv"
+                    class="accent-primary"
+                  />
+                  <span>CSV</span>
+                </label>
+                <label class="flex items-center gap-2 text-sm font-semibold cursor-pointer">
+                  <input
+                    v-model="exportFormat"
+                    type="radio"
+                    name="export-format"
+                    value="jsonl"
+                    class="accent-primary"
+                  />
+                  <span>JSONL</span>
+                </label>
+              </div>
+            </fieldset>
+
+            <div class="audit-grid audit-grid-2">
+              <UiFormField id="export-from" :label="t('audit.from')">
+                <UiInput id="export-from" name="export-from" v-model="exportFrom" type="date" />
+              </UiFormField>
+              <UiFormField id="export-to" :label="t('audit.to')">
+                <UiInput id="export-to" name="export-to" v-model="exportTo" type="date" />
+              </UiFormField>
+              <UiFormField id="export-action" :label="t('audit.action')">
+                <UiInput
+                  id="export-action"
+                  name="export-action"
+                  v-model="exportAction"
+                  autocomplete="off"
+                />
+              </UiFormField>
+              <UiFormField id="export-outcome" :label="t('audit.outcome')">
+                <UiInput
+                  id="export-outcome"
+                  name="export-outcome"
+                  v-model="exportOutcome"
+                  autocomplete="off"
+                />
+              </UiFormField>
+            </div>
+
+            <div class="pt-2">
+              <UiButton
+                variant="primary"
+                class="audit-export-button"
+                :disabled="store.actionStatus === 'loading'"
+                @click="submitExport"
+              >
+                {{ store.actionStatus === 'loading' ? 'Exporting...' : t('audit.btn_export') }}
+              </UiButton>
+            </div>
+            <p
+              v-if="store.actionStatus === 'step_up_required'"
+              class="text-sm font-bold text-destructive"
+              role="alert"
+            >
+              {{ store.errorMessage }}
+            </p>
+          </section>
+
+          <!-- Evidence Pack Section -->
+          <section
+            v-if="canGenerateEvidencePack"
+            class="ui-card space-y-4"
+            aria-labelledby="evidence-pack-title"
+          >
+            <div class="flex items-center gap-2">
+              <ShieldCheck class="size-5 text-primary" />
+              <h2 id="evidence-pack-title" class="text-lg font-bold">
+                {{ t('audit.evidence_pack_title') }}
+              </h2>
+            </div>
+            <p class="text-sm text-muted-foreground leading-relaxed">
+              {{ t('audit.evidence_pack_desc') }}
+            </p>
+
+            <fieldset class="border border-border rounded-xl p-4 bg-muted space-y-2">
+              <legend class="px-2 text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                {{ t('audit.pack_format') }}
+              </legend>
+              <div class="flex gap-4">
+                <label class="flex items-center gap-2 text-sm font-semibold cursor-pointer">
+                  <input
+                    v-model="packFormat"
+                    type="radio"
+                    name="evidence-pack-format"
+                    value="zip"
+                    class="accent-primary"
+                  />
+                  <span>ZIP</span>
+                </label>
+                <label class="flex items-center gap-2 text-sm font-semibold cursor-pointer">
+                  <input
+                    v-model="packFormat"
+                    type="radio"
+                    name="evidence-pack-format"
+                    value="json"
+                    class="accent-primary"
+                  />
+                  <span>JSON</span>
+                </label>
+              </div>
+            </fieldset>
+
+            <div class="audit-grid audit-grid-2">
+              <UiFormField id="evidence-pack-from" :label="t('audit.from')">
+                <UiInput
+                  id="evidence-pack-from"
+                  name="evidence-pack-from"
+                  v-model="packFrom"
+                  type="date"
+                />
+              </UiFormField>
+              <UiFormField id="evidence-pack-to" :label="t('audit.to')">
+                <UiInput
+                  id="evidence-pack-to"
+                  name="evidence-pack-to"
+                  v-model="packTo"
+                  type="date"
+                />
+              </UiFormField>
+              <UiFormField
+                id="evidence-pack-correlation-id"
+                :label="t('audit.correlation_id_label')"
+                class="col-span-full"
+              >
+                <UiInput
+                  id="evidence-pack-correlation-id"
+                  name="evidence-pack-correlation-id"
+                  v-model="packCorrelationId"
+                  autocomplete="off"
+                />
+              </UiFormField>
+            </div>
+
+            <p
+              v-if="!canSubmitEvidencePack"
+              class="text-xs text-muted-foreground leading-relaxed italic bg-muted p-2 rounded-lg"
+            >
+              {{ t('audit.evidence_pack_hint') }}
+            </p>
+
+            <div class="pt-2">
+              <UiButton
+                variant="primary"
+                class="compliance-evidence-pack-button"
+                :disabled="store.actionStatus === 'loading' || !canSubmitEvidencePack"
+                @click="submitEvidencePack"
+              >
+                {{
+                  store.actionStatus === 'loading' ? 'Generating...' : t('audit.btn_generate_pack')
+                }}
+              </UiButton>
+            </div>
+            <p
+              v-if="store.actionStatus === 'step_up_required'"
+              class="text-sm font-bold text-destructive"
+              role="alert"
+            >
+              {{ store.errorMessage }}
+            </p>
+          </section>
+        </div>
+
+        <!-- Tab 4: Retention & Integrity -->
+        <div v-show="activeTab === 'retention'" class="space-y-6">
+          <!-- Integrity Card -->
+          <section class="ui-card space-y-4" aria-labelledby="integrity-title">
+            <div
+              class="flex items-center justify-between flex-wrap gap-4 border-b border-border pb-4"
+            >
+              <div class="flex items-center gap-3">
+                <ShieldCheck class="size-6 text-emerald-500" v-if="store.integrity?.verified" />
+                <AlertCircle class="size-6 text-amber-500" v-else />
+                <div>
+                  <h2 id="integrity-title" class="text-lg font-bold">
+                    {{ t('audit.integrity_title') }}
+                  </h2>
+                  <p class="text-sm text-muted-foreground">
+                    Verification status of audit trail security log chains.
+                  </p>
+                </div>
+              </div>
+              <span
+                class="audit-badge"
+                :class="store.integrity?.verified ? 'audit-badge--success' : 'audit-badge--danger'"
+              >
+                {{ store.integrity?.verified ? 'Integrity verified' : 'Integrity needs review' }}
+              </span>
+            </div>
+
+            <dl class="audit-grid audit-grid-2">
+              <div class="bg-muted p-4 rounded-xl border border-border flex flex-col gap-1">
+                <dt class="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                  {{ t('audit.checked_events') }}
+                </dt>
+                <dd class="text-2xl font-black text-foreground">
+                  {{ store.integrity?.checked_events ?? 'No evidence' }}
+                </dd>
+              </div>
+              <div class="bg-muted p-4 rounded-xl border border-border flex flex-col gap-1">
+                <dt class="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                  {{ t('audit.latest_hash') }}
+                </dt>
+                <dd class="text-sm font-mono text-foreground break-anywhere leading-relaxed pt-1">
+                  {{ store.integrity?.latest_event_hash ?? 'No evidence' }}
+                </dd>
               </div>
             </dl>
-          </div>
-        </div>
-        <p v-if="(store.retentionStatus?.items.length ?? 0) === 0" class="muted">
-          Retention status belum tersedia.
-        </p>
-      </section>
+          </section>
 
-      <section class="detail-section" aria-labelledby="audit-search-title">
-        <h2 id="audit-search-title">Cari audit event</h2>
-        <p class="page-summary">
-          Cari evidence berdasarkan correlation/request ID, SID, action, outcome, taxonomy, subject,
-          atau rentang tanggal.
-        </p>
-        <div class="export-filters">
-          <UiFormField id="audit-search-request-id" label="Correlation / request ID">
-            <UiInput
-              id="audit-search-request-id"
-              v-model="searchRequestId"
-              name="audit-search-request-id"
-              autocomplete="off"
-            />
-          </UiFormField>
-          <UiFormField id="audit-search-session-id" label="SID">
-            <UiInput
-              id="audit-search-session-id"
-              v-model="searchSessionId"
-              name="audit-search-session-id"
-              autocomplete="off"
-            />
-          </UiFormField>
-          <UiFormField id="audit-search-action" label="Action">
-            <UiInput
-              id="audit-search-action"
-              v-model="searchAction"
-              name="audit-search-action"
-              autocomplete="off"
-            />
-          </UiFormField>
-          <UiFormField id="audit-search-outcome" label="Outcome">
-            <UiInput
-              id="audit-search-outcome"
-              v-model="searchOutcome"
-              name="audit-search-outcome"
-              autocomplete="off"
-            />
-          </UiFormField>
-          <UiFormField id="audit-search-taxonomy" label="Taxonomy">
-            <UiInput
-              id="audit-search-taxonomy"
-              v-model="searchTaxonomy"
-              name="audit-search-taxonomy"
-              autocomplete="off"
-            />
-          </UiFormField>
-          <UiFormField id="audit-search-admin-subject-id" label="Admin subject">
-            <UiInput
-              id="audit-search-admin-subject-id"
-              v-model="searchAdminSubjectId"
-              name="audit-search-admin-subject-id"
-              autocomplete="off"
-            />
-          </UiFormField>
-          <UiFormField id="audit-search-subject-id" label="Subject ID">
-            <UiInput
-              id="audit-search-subject-id"
-              v-model="searchSubjectId"
-              name="audit-search-subject-id"
-              autocomplete="off"
-            />
-          </UiFormField>
-          <UiFormField id="audit-search-client-id" label="Client ID">
-            <UiInput
-              id="audit-search-client-id"
-              v-model="searchClientId"
-              name="audit-search-client-id"
-              autocomplete="off"
-            />
-          </UiFormField>
-          <UiFormField id="audit-search-from" label="From">
-            <UiInput
-              id="audit-search-from"
-              v-model="searchFrom"
-              name="audit-search-from"
-              type="date"
-            />
-          </UiFormField>
-          <UiFormField id="audit-search-to" label="To">
-            <UiInput id="audit-search-to" v-model="searchTo" name="audit-search-to" type="date" />
-          </UiFormField>
-        </div>
-        <div class="action-row compact-actions">
-          <button
-            class="ui-action ui-action--primary audit-search-button"
-            type="button"
-            @click="submitSearch"
-          >
-            Search
-          </button>
-          <button
-            class="ui-action ui-action--danger audit-reset-button"
-            type="button"
-            @click="resetSearch"
-          >
-            Reset
-          </button>
-        </div>
-      </section>
+          <!-- Retention Status -->
+          <section class="ui-card space-y-4" aria-labelledby="retention-title">
+            <div class="flex items-center gap-3">
+              <History class="size-5 text-primary" />
+              <div>
+                <h2 id="retention-title" class="text-lg font-bold">
+                  {{ t('audit.retention_title') }}
+                </h2>
+                <p class="text-sm text-muted-foreground">{{ t('audit.retention_desc') }}</p>
+              </div>
+            </div>
 
-      <section class="detail-section" aria-labelledby="consent-events-title">
-        <h2 id="consent-events-title">Consent events</h2>
-        <p class="page-summary">
-          Filter cepat consent allow, deny, dan revoke berdasarkan subject atau client untuk
-          investigasi consent trail.
-        </p>
-        <div class="action-row compact-actions">
-          <button
-            class="ui-action ui-action--primary consent-filter-all-button"
-            :class="{ 'ui-badge': selectedConsentAction === 'all' }"
-            type="button"
-            @click="applyConsentFilter('all')"
-          >
-            Semua consent
-          </button>
-          <button
-            class="ui-action ui-action--primary consent-filter-allow-button"
-            :class="{ 'ui-badge': selectedConsentAction === 'allow' }"
-            type="button"
-            @click="applyConsentFilter('allow')"
-          >
-            Allow
-          </button>
-          <button
-            class="ui-action ui-action--primary consent-filter-deny-button"
-            :class="{ 'ui-badge': selectedConsentAction === 'deny' }"
-            type="button"
-            @click="applyConsentFilter('deny')"
-          >
-            Deny
-          </button>
-          <button
-            class="ui-action ui-action--primary consent-filter-revoke-button"
-            :class="{ 'ui-badge': selectedConsentAction === 'revoke' }"
-            type="button"
-            @click="applyConsentFilter('revoke')"
-          >
-            Revoke
-          </button>
-        </div>
-      </section>
+            <div class="audit-grid audit-grid-3 pt-2">
+              <div
+                v-for="item in store.retentionStatus?.items ?? []"
+                :key="item.category"
+                class="bg-muted p-4 rounded-xl border border-border space-y-3 audit-card-premium"
+              >
+                <div class="border-b border-border pb-2">
+                  <strong class="text-sm font-bold text-foreground">{{ item.label }}</strong>
+                </div>
+                <dl class="space-y-2 text-xs font-semibold">
+                  <div class="flex justify-between items-center border-b border-border/50 pb-1">
+                    <dt class="text-muted-foreground">{{ t('audit.window') }}</dt>
+                    <dd class="text-foreground text-right">{{ retentionWindowLabel(item) }}</dd>
+                  </div>
+                  <div class="flex justify-between items-center border-b border-border/50 pb-1">
+                    <dt class="text-muted-foreground">{{ t('audit.schedule') }}</dt>
+                    <dd class="text-foreground text-right">{{ item.schedule ?? 'No schedule' }}</dd>
+                  </div>
+                  <div class="flex justify-between items-center border-b border-border/50 pb-1">
+                    <dt class="text-muted-foreground">{{ t('audit.last_pruned') }}</dt>
+                    <dd class="text-foreground text-right">
+                      {{ item.last_pruned_at ?? 'Belum ada run' }}
+                    </dd>
+                  </div>
+                  <div class="flex justify-between items-center border-b border-border/50 pb-1">
+                    <dt class="text-muted-foreground">{{ t('audit.pruned_rows') }}</dt>
+                    <dd
+                      class="text-foreground font-mono bg-secondary px-2 py-0.5 rounded text-right"
+                    >
+                      {{ retentionNumber(item.last_pruned_count) }}
+                    </dd>
+                  </div>
+                  <div class="flex justify-between items-center">
+                    <dt class="text-muted-foreground">{{ t('audit.candidate_rows') }}</dt>
+                    <dd
+                      class="text-foreground font-mono bg-secondary px-2 py-0.5 rounded text-right"
+                    >
+                      {{ retentionNumber(item.candidate_count) }}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+            </div>
 
-      <section class="detail-section" aria-labelledby="events-title">
-        <h2 id="events-title">Audit events</h2>
-        <UiDataList caption="Admin event table" :columns="auditEventColumns" :rows="auditEventRows">
-          <template #actions="{ row }">
-            <button
-              class="ui-action ui-action--secondary"
-              :aria-current="row.id === store.selectedEventId ? 'true' : undefined"
-              :aria-label="`View ${row.event_id} ${row.action}`"
-              type="button"
-              @click="store.selectEvent(row.id)"
+            <p
+              v-if="(store.retentionStatus?.items.length ?? 0) === 0"
+              class="text-sm text-muted-foreground pt-2 italic"
             >
-              View
-            </button>
-          </template>
-        </UiDataList>
-        <p v-if="store.events.length === 0" class="muted">Belum ada audit event.</p>
-        <button
-          v-if="store.eventPagination?.has_more && store.eventPagination?.next_cursor"
-          class="ui-action ui-action--primary audit-load-more-button"
-          type="button"
-          @click="store.loadMoreEvents"
-        >
-          Muat lebih banyak audit event
-        </button>
-      </section>
+              {{ t('audit.no_retention') }}
+            </p>
+          </section>
+        </div>
 
-      <article
-        v-if="store.selectedEvent"
-        class="detail-section"
-        aria-labelledby="event-detail-title"
+        <!-- Tab 5: DSR Queue -->
+        <div v-show="activeTab === 'dsr'" class="space-y-6">
+          <section class="ui-card space-y-6" aria-labelledby="dsr-title">
+            <div class="flex items-center gap-3">
+              <UserX class="size-5 text-primary" />
+              <div>
+                <h2 id="dsr-title" class="text-lg font-bold">{{ t('audit.dsr_title') }}</h2>
+                <p class="text-sm text-muted-foreground">
+                  Manage and audit Data Subject Requests (DSR) under compliance laws.
+                </p>
+              </div>
+            </div>
+
+            <!-- Notes Field -->
+            <div class="max-w-md" v-if="canReviewDsr">
+              <UiFormField id="dsr-review-notes" :label="t('audit.review_notes')">
+                <UiInput
+                  id="dsr-review-notes"
+                  name="dsr-review-notes"
+                  v-model="reviewNotes"
+                  autocomplete="off"
+                />
+              </UiFormField>
+            </div>
+
+            <!-- Requests List -->
+            <div class="audit-grid audit-grid-2 pt-2">
+              <div
+                v-for="request in store.dataSubjectRequests"
+                :key="request.request_id"
+                class="bg-muted p-5 rounded-xl border border-border space-y-4 audit-card-premium"
+              >
+                <div
+                  class="flex justify-between items-center flex-wrap gap-2 border-b border-border pb-2"
+                >
+                  <strong class="text-sm font-bold text-foreground break-anywhere">{{
+                    request.request_id
+                  }}</strong>
+                  <span class="audit-badge audit-badge--info">
+                    {{ request.type }}
+                  </span>
+                </div>
+                <div class="space-y-2 text-xs font-semibold">
+                  <div class="flex justify-between">
+                    <span class="text-muted-foreground">Status:</span>
+                    <span class="text-foreground capitalize">{{ request.status }}</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-muted-foreground">Subject ID:</span>
+                    <span class="text-foreground font-mono break-anywhere">{{
+                      request.subject_id
+                    }}</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-muted-foreground">{{ t('audit.sla_due') }}:</span>
+                    <span class="text-foreground font-mono">{{
+                      request.sla_due_at ?? 'No SLA evidence'
+                    }}</span>
+                  </div>
+                </div>
+
+                <div
+                  v-if="canReviewDsr"
+                  class="flex flex-wrap gap-2 pt-2 border-t border-border/50"
+                >
+                  <UiButton
+                    variant="primary"
+                    size="sm"
+                    @click="store.reviewRequest(request.request_id, 'approved', reviewNotes)"
+                  >
+                    {{ t('audit.approve') }}
+                  </UiButton>
+                  <UiButton
+                    variant="danger"
+                    size="sm"
+                    @click="store.reviewRequest(request.request_id, 'rejected', reviewNotes)"
+                  >
+                    {{ t('audit.reject') }}
+                  </UiButton>
+                  <UiButton
+                    variant="secondary"
+                    size="sm"
+                    @click="store.fulfillRequest(request.request_id, true)"
+                  >
+                    {{ t('audit.dry_run_fulfill') }}
+                  </UiButton>
+                </div>
+              </div>
+            </div>
+
+            <p
+              v-if="store.dataSubjectRequests.length === 0"
+              class="text-sm text-muted-foreground italic"
+            >
+              {{ t('audit.no_dsr') }}
+            </p>
+          </section>
+        </div>
+      </div>
+
+      <p
+        v-if="store.errorMessage"
+        class="text-sm font-bold text-destructive bg-destructive/10 p-3 rounded-lg mt-6"
+        role="alert"
       >
-        <h2 id="event-detail-title">Event detail</h2>
-        <dl class="detail-grid">
-          <div>
-            <dt>Actor</dt>
-            <dd>
-              {{
-                store.selectedEvent.actor?.email ??
-                store.selectedEvent.actor?.subject_id ??
-                'unknown'
-              }}
-            </dd>
-          </div>
-          <div>
-            <dt>Request</dt>
-            <dd>
-              {{ store.selectedEvent.request?.method ?? 'GET' }}
-              {{ store.selectedEvent.request?.path }}
-            </dd>
-          </div>
-          <div>
-            <dt>Reason</dt>
-            <dd>{{ store.selectedEvent.reason ?? 'No reason evidence' }}</dd>
-          </div>
-          <div>
-            <dt>Occurred at</dt>
-            <dd>{{ store.selectedEvent.occurred_at ?? 'No timestamp' }}</dd>
-          </div>
-        </dl>
-      </article>
-
-      <section class="detail-section" aria-labelledby="security-evidence-title">
-        <h2 id="security-evidence-title">Security notification evidence</h2>
-        <UiDataList
-          caption="Authentication event table"
-          :columns="authenticationEventColumns"
-          :rows="authenticationEventRows"
-        >
-          <template #actions="{ row }">
-            <button
-              class="ui-action ui-action--secondary"
-              :aria-current="row.id === store.selectedAuthenticationEventId ? 'true' : undefined"
-              :aria-label="`View ${row.event_id} ${row.event_type}`"
-              type="button"
-              @click="store.selectAuthenticationEvent(row.id)"
-            >
-              View
-            </button>
-          </template>
-        </UiDataList>
-        <p v-if="store.authenticationEvents.length === 0" class="muted">
-          Belum ada security notification evidence.
-        </p>
-        <button
-          v-if="
-            store.authenticationEventPagination?.has_more &&
-            store.authenticationEventPagination?.next_cursor
-          "
-          class="ui-action ui-action--primary authentication-load-more-button"
-          type="button"
-          @click="store.loadMoreAuthenticationEvents"
-        >
-          Muat lebih banyak security notification evidence
-        </button>
-        <dl v-if="store.selectedAuthenticationEvent" class="detail-grid">
-          <div>
-            <dt>Subject</dt>
-            <dd>
-              {{
-                store.selectedAuthenticationEvent.subject?.email ??
-                store.selectedAuthenticationEvent.subject?.subject_id ??
-                'unknown'
-              }}
-            </dd>
-          </div>
-          <div>
-            <dt>Client</dt>
-            <dd>{{ store.selectedAuthenticationEvent.client_id ?? 'No client evidence' }}</dd>
-          </div>
-          <div>
-            <dt>Session</dt>
-            <dd>{{ store.selectedAuthenticationEvent.session_id ?? 'No SID evidence' }}</dd>
-          </div>
-          <div>
-            <dt>Error code</dt>
-            <dd>{{ store.selectedAuthenticationEvent.error_code ?? 'No error evidence' }}</dd>
-          </div>
-        </dl>
-      </section>
-
-      <section class="detail-section" aria-labelledby="challenge-title">
-        <h2 id="challenge-title">Suspicious login challenge matrix</h2>
-        <div class="ui-card">
-          <strong>Risk challenge evidence</strong>
-          <p>
-            Backend auth audit events show login challenge outcomes, MFA-required states, and
-            notification dispatch evidence when recorded.
-          </p>
-        </div>
-      </section>
-
-      <section class="detail-section" aria-labelledby="acr-title">
-        <h2 id="acr-title">ACR permissive policy (NG-03)</h2>
-        <div class="ui-card">
-          <strong>Accepted policy — permissive compat mode</strong>
-          <p>
-            Unknown ACR values are treated as no requirement (permissive) per accepted policy
-            NG-03/FR-021. RPs requesting unrecognised assurance levels receive password-level flow
-            rather than an error. Supported ACR values are advertised in
-            <code>acr_values_supported</code> in the Discovery document.
-          </p>
-        </div>
-      </section>
-
-      <section class="detail-section" aria-labelledby="portal-observable-title">
-        <h2 id="portal-observable-title">Portal/backend observable evidence</h2>
-        <div class="ui-card">
-          <strong>Consent revocation audit viewer</strong>
-          <p>Consent allow, deny, and revoke events are reviewed through the audit event feed.</p>
-        </div>
-        <div class="ui-card">
-          <strong>Legacy portal session fallback sunset</strong>
-          <p>
-            Fallback usage stays an ops-tracked evidence item until backend emits a dedicated
-            signal.
-          </p>
-        </div>
-        <div class="ui-card">
-          <strong>Token lifetime production guard</strong>
-          <p>
-            Production token/session lifetime guard evidence remains backend-owned and deploy-gated.
-          </p>
-        </div>
-        <div class="ui-card">
-          <strong>Session / logout evidence console</strong>
-          <p>
-            SID propagation, RP sessions, and front/back-channel logout outcomes use audit evidence.
-          </p>
-        </div>
-        <div class="ui-card">
-          <strong>Safe error regression review</strong>
-          <p>
-            Admin evidence pages show request IDs and safe copy instead of raw backend/OIDC errors.
-          </p>
-        </div>
-      </section>
-
-      <section class="detail-section" aria-labelledby="dsr-title">
-        <h2 id="dsr-title">DSR queue</h2>
-        <label v-if="canReviewDsr" class="reason-field">
-          Review notes
-          <input v-model="reviewNotes" autocomplete="off" />
-        </label>
-        <div v-for="request in store.dataSubjectRequests" :key="request.request_id" class="ui-card">
-          <strong>{{ request.request_id }}</strong>
-          <p>{{ request.type }} · {{ request.status }} · {{ request.subject_id }}</p>
-          <p>SLA due: {{ request.sla_due_at ?? 'No SLA evidence' }}</p>
-          <div v-if="canReviewDsr" class="action-row compact-actions">
-            <button
-              type="button"
-              class="ui-action ui-action--primary"
-              @click="store.reviewRequest(request.request_id, 'approved', reviewNotes)"
-            >
-              Approve
-            </button>
-            <button
-              type="button"
-              class="ui-action ui-action--danger"
-              @click="store.reviewRequest(request.request_id, 'rejected', reviewNotes)"
-            >
-              Reject
-            </button>
-            <button
-              type="button"
-              class="ui-action ui-action--primary"
-              @click="store.fulfillRequest(request.request_id, true)"
-            >
-              Dry-run fulfill
-            </button>
-          </div>
-        </div>
-        <p v-if="store.dataSubjectRequests.length === 0" class="muted">Tidak ada DSR submitted.</p>
-      </section>
-
-      <p v-if="store.errorMessage" class="ui-action-message">{{ store.errorMessage }}</p>
+        {{ store.errorMessage }}
+      </p>
     </div>
 
+    <!-- Evidence contextual panel -->
     <EvidenceContextPanel
       title="Audit evidence context"
       :request-id="store.requestId"

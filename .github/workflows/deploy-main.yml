@@ -160,20 +160,27 @@ jobs:
           # extra connections to port 22.
           if [ -n "${VPS_SSH_KNOWN_HOSTS}" ]; then
             printf '%s\n' "${VPS_SSH_KNOWN_HOSTS}" >> ~/.ssh/known_hosts
-            exit 0
+          else
+            # Single, best-effort host-key fetch — deliberately NOT a retry loop.
+            # One attempt keeps the connection count low; on failure ssh config
+            # falls back to StrictHostKeyChecking=accept-new on first connection.
+            ssh-keyscan -T 10 -p "${{ env.VPS_SSH_PORT }}" -H "${VPS_HOST}" >> ~/.ssh/known_hosts 2>/dev/null \
+              || echo "ssh-keyscan returned no key; relying on StrictHostKeyChecking=accept-new on first SSH." >&2
           fi
 
-          # Single, best-effort host-key fetch — deliberately NOT a retry loop.
-          # Repeated rapid connections to port 22 here (combined with the later
-          # nc readiness probe and the SSH deploy itself) can cross a VPS-side
-          # "ufw limit ssh" / fail2ban burst threshold and get the runner IP
-          # blocked mid-deploy — the observed root cause of the SSH timeouts.
-          # One attempt keeps the connection count low; on failure ssh_with_retry
-          # falls back to StrictHostKeyChecking=accept-new (TOFU) on the first
-          # real connection, the same security posture as before.
-          ssh-keyscan -T 10 -p "${{ env.VPS_SSH_PORT }}" -H "${VPS_HOST}" >> ~/.ssh/known_hosts 2>/dev/null \
-            || echo "ssh-keyscan returned no key; relying on StrictHostKeyChecking=accept-new on first SSH." >&2
-
+          # Enable SSH multiplexing to reuse a single Master connection across all deployment steps,
+          # completely avoiding connection rate limits, SSH timeouts, and ufw limit/fail2ban bans.
+          cat > ~/.ssh/config <<'EOF'
+          Host *
+            ControlMaster auto
+            ControlPath ~/.ssh/control-%r@%h:%p
+            ControlPersist 15m
+            StrictHostKeyChecking accept-new
+            ConnectTimeout 20
+            ServerAliveInterval 10
+            ServerAliveCountMax=3
+          EOF
+          chmod 600 ~/.ssh/config
 
       - name: Define SSH retry helpers
         shell: bash
@@ -230,7 +237,7 @@ jobs:
         # is genuinely unreachable. Tune via the VPS_SSH_PORT_WAIT_SECONDS var.
         shell: bash
         env:
-          VPS_SSH_PORT_WAIT_SECONDS: ${{ vars.VPS_SSH_PORT_WAIT_SECONDS || '1500' }}
+          VPS_SSH_PORT_WAIT_SECONDS: ${{ vars.VPS_SSH_PORT_WAIT_SECONDS || '90' }}
         run: |
           set -euo pipefail
           host="${{ secrets.VPS_HOST }}"

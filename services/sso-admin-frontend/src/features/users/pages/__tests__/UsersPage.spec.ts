@@ -175,8 +175,9 @@ describe('UsersPage', () => {
     store.users = [user]
     store.selectedSubjectId = 'sub_admin'
     await wrapper.vm.$nextTick()
+    // The searchable list itself uses shared form primitives.
+    expect(wrapper.find('input#search-users').exists()).toBe(true)
     await wrapper.find('button.create-user-toggle').trigger('click')
-    expect(wrapper.find('.ui-data-list').exists()).toBe(true)
     expect(wrapper.find('.ui-form-field').exists()).toBe(true)
     expect(wrapper.find('.ui-control').exists()).toBe(true)
   })
@@ -336,5 +337,75 @@ describe('UsersPage', () => {
     expect(wrapper.text()).not.toContain('Create User')
     expect(wrapper.text()).not.toContain('Sync Profile')
     expect(wrapper.text()).not.toContain('Deactivate')
+  })
+
+  it('renders an accessible tablist with Overview selected by default', () => {
+    const store = useUsersStore()
+    store.status = 'success'
+    store.users = [user]
+    store.selectedSubjectId = 'sub_admin'
+
+    const wrapper = mount(UsersPage)
+
+    expect(wrapper.find('[role="tablist"]').exists()).toBe(true)
+    const tabs = wrapper.findAll('[role="tab"]')
+    // overview + security + sessions + lifecycle (full-access principal)
+    expect(tabs).toHaveLength(4)
+    const selected = tabs.filter((tab) => tab.attributes('aria-selected') === 'true')
+    expect(selected).toHaveLength(1)
+    expect(selected[0]!.text()).toContain('Overview')
+  })
+
+  it('activates the matching panel when a tab is clicked', async () => {
+    const store = useUsersStore()
+    store.status = 'success'
+    store.users = [user]
+    store.selectedSubjectId = 'sub_admin'
+    store.sessions = [{ session_id: 'sess_1', client_id: 'portal' }]
+
+    const wrapper = mount(UsersPage)
+
+    expect(wrapper.find('#user-panel-overview').exists()).toBe(true)
+    expect(wrapper.find('#user-panel-overview').attributes('hidden')).toBeUndefined()
+    expect(wrapper.find('#user-panel-sessions').attributes('hidden')).toBeDefined()
+
+    const sessionsTab = wrapper
+      .findAll('[role="tab"]')
+      .find((tab) => tab.text().includes('Sessions'))!
+    await sessionsTab.trigger('click')
+
+    expect(sessionsTab.attributes('aria-selected')).toBe('true')
+    expect(wrapper.find('#user-panel-sessions').attributes('hidden')).toBeUndefined()
+    expect(wrapper.find('#user-panel-overview').attributes('hidden')).toBeDefined()
+  })
+
+  it('hides the Lifecycle tab for principals without lock or write access', () => {
+    seedPrincipal({})
+    const store = useUsersStore()
+    store.status = 'success'
+    store.users = [user]
+    store.selectedSubjectId = 'sub_admin'
+
+    const wrapper = mount(UsersPage)
+
+    const labels = wrapper.findAll('[role="tab"]').map((tab) => tab.text())
+    expect(labels.some((label) => label.includes('Lifecycle'))).toBe(false)
+    expect(labels.some((label) => label.includes('Overview'))).toBe(true)
+    expect(labels.some((label) => label.includes('Sessions'))).toBe(true)
+  })
+
+  it('moves tab selection to the next tab on ArrowRight', async () => {
+    const store = useUsersStore()
+    store.status = 'success'
+    store.users = [user]
+    store.selectedSubjectId = 'sub_admin'
+
+    const wrapper = mount(UsersPage)
+
+    await wrapper.findAll('[role="tab"]')[0]!.trigger('keydown', { key: 'ArrowRight' })
+
+    const tabs = wrapper.findAll('[role="tab"]')
+    expect(tabs[0]!.attributes('aria-selected')).toBe('false')
+    expect(tabs[1]!.attributes('aria-selected')).toBe('true')
   })
 })

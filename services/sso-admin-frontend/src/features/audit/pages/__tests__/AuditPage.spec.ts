@@ -247,7 +247,7 @@ describe('AuditPage', () => {
 
     const wrapper = mount(AuditPage)
 
-    expect(wrapper.text()).toContain('Cari audit event')
+    expect(wrapper.text()).toContain('Search audit events')
     expect(wrapper.text()).toContain('Correlation / request ID')
     expect(wrapper.text()).toContain('SID')
     expect(wrapper.text()).toContain('Action')
