@@ -120,4 +120,54 @@ describe('useRolesStore', () => {
       expect(store.permissions).toEqual([])
     })
   })
+
+  describe('actions', () => {
+    it('createRole calls api and reloads roles', async () => {
+      vi.mocked(rolesApi.createRole).mockResolvedValueOnce({ role: { slug: 'custom', name: 'Custom' } })
+      vi.mocked(rolesApi.listRoles).mockResolvedValueOnce({ roles: [] })
+      vi.mocked(rolesApi.listPermissions).mockResolvedValueOnce({ permissions: [] })
+      
+      const store = useRolesStore()
+      await store.createRole({ slug: 'custom', name: 'Custom' })
+
+      expect(rolesApi.createRole).toHaveBeenCalledWith({ slug: 'custom', name: 'Custom' })
+      expect(store.actionStatus).toBe('success')
+    })
+
+    it('updateRole calls api and reloads roles', async () => {
+      vi.mocked(rolesApi.updateRole).mockResolvedValueOnce({ role: { slug: 'custom', name: 'Custom New' } })
+      vi.mocked(rolesApi.listRoles).mockResolvedValueOnce({ roles: [] })
+      vi.mocked(rolesApi.listPermissions).mockResolvedValueOnce({ permissions: [] })
+      
+      const store = useRolesStore()
+      await store.updateRole('custom', { name: 'Custom New' })
+
+      expect(rolesApi.updateRole).toHaveBeenCalledWith('custom', { name: 'Custom New' })
+      expect(store.actionStatus).toBe('success')
+    })
+
+    it('deleteRole calls api and reloads roles', async () => {
+      vi.mocked(rolesApi.deleteRole).mockResolvedValueOnce({ deleted: true, role_slug: 'custom' })
+      vi.mocked(rolesApi.listRoles).mockResolvedValueOnce({ roles: [] })
+      vi.mocked(rolesApi.listPermissions).mockResolvedValueOnce({ permissions: [] })
+      
+      const store = useRolesStore()
+      await store.deleteRole('custom')
+
+      expect(rolesApi.deleteRole).toHaveBeenCalledWith('custom')
+      expect(store.actionStatus).toBe('success')
+    })
+
+    it('syncRolePermissions calls api and reloads roles', async () => {
+      vi.mocked(rolesApi.syncRolePermissions).mockResolvedValueOnce({ role: { slug: 'custom', name: 'Custom' } })
+      vi.mocked(rolesApi.listRoles).mockResolvedValueOnce({ roles: [] })
+      vi.mocked(rolesApi.listPermissions).mockResolvedValueOnce({ permissions: [] })
+      
+      const store = useRolesStore()
+      await store.syncRolePermissions('custom', ['perm.a'])
+
+      expect(rolesApi.syncRolePermissions).toHaveBeenCalledWith('custom', ['perm.a'])
+      expect(store.actionStatus).toBe('success')
+    })
+  })
 })

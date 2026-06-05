@@ -7,6 +7,9 @@
 export type AdminRole = {
   readonly slug: string
   readonly label: string
+  readonly name?: string
+  readonly description?: string | null
+  readonly is_system?: boolean
   readonly permissions: readonly string[]
   readonly user_count?: number | null
   readonly created_at?: string | null
@@ -25,4 +28,16 @@ export type RolesListResponse = {
 
 export type PermissionsListResponse = {
   readonly permissions: readonly AdminPermission[]
+}
+
+export type CreateRolePayload = {
+  readonly slug: string
+  readonly name: string
+  readonly description?: string | null
+  readonly permission_slugs?: readonly string[]
+}
+
+export type UpdateRolePayload = {
+  readonly name?: string
+  readonly description?: string | null
 }

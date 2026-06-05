@@ -42,8 +42,8 @@ export const useSessionStore = defineStore('admin-session', () => {
     status.value = 'idle'
   }
 
-  async function ensureSession(): Promise<SessionEnsureResult> {
-    if (principal.value !== null) return 'authenticated'
+  async function ensureSession(force = false): Promise<SessionEnsureResult> {
+    if (!force && principal.value !== null) return 'authenticated'
 
     status.value = 'loading'
     try {
@@ -65,8 +65,8 @@ export const useSessionStore = defineStore('admin-session', () => {
     }
   }
 
-  async function ensurePrincipal(): Promise<SessionEnsureResult> {
-    return ensureSession()
+  async function ensurePrincipal(force = false): Promise<SessionEnsureResult> {
+    return ensureSession(force)
   }
 
   function hasPermission(permission: string): boolean {

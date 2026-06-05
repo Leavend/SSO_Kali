@@ -169,7 +169,28 @@
     "matrix_title": "Permission Matrix",
     "matrix_desc": "All permissions registered in the backend, grouped by domain.",
     "no_permissions": "This role has no permissions yet.",
-    "permissions_label": "Permissions"
+    "permissions_label": "Permissions",
+    "btn_create_role": "Create Role",
+    "create_role_title": "Create New Role",
+    "edit_role_title": "Edit Role",
+    "edit_permissions_title": "Manage Role Permissions",
+    "btn_save": "Save",
+    "btn_cancel": "Cancel",
+    "label_name": "Role Name",
+    "label_slug": "Role Slug",
+    "label_description": "Description",
+    "confirm_delete_title": "Delete Role?",
+    "confirm_delete_desc": "Are you sure you want to delete role {target}? This action is irreversible.",
+    "confirm_sync_permissions_title": "Update Role Permissions?",
+    "confirm_sync_permissions_desc": "Are you sure you want to update permissions for role {target}? This will instantly modify backend authorization claims.",
+    "roles_create_success": "Role created successfully.",
+    "roles_update_success": "Role updated successfully.",
+    "roles_delete_success": "Role deleted successfully.",
+    "roles_permissions_success": "Role permissions updated successfully.",
+    "btn_edit": "Edit",
+    "btn_delete": "Delete",
+    "btn_manage_permissions": "Manage Permissions",
+    "system_role": "System Role"
   },
   "users": {
     "eyebrow": "User Lifecycle",
@@ -247,7 +268,8 @@
     "assign_roles_title": "Assign Roles",
     "btn_save_roles": "Save Roles",
     "roles_sync_success": "User roles synced successfully.",
-    "roles_self_warn": "You updated your own roles. Please re-authenticate/login again to refresh your token claims."
+    "roles_self_warn": "You updated your own roles. Please re-authenticate/login again to refresh your token claims.",
+    "roles_other_warn": "Role changes will take effect after the user logs in again or the token is refreshed."
   },
   "clients": {
     "eyebrow": "Client Management",

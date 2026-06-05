@@ -18,6 +18,7 @@ import { useSessionsStore } from '@/features/sessions/stores/sessions.store'
 import { useRolesStore } from '@/features/roles/stores/roles.store'
 import { useToast } from '@/components/ui/useToast'
 import { authApi } from '@/services/auth.api'
+import { useRouter } from 'vue-router'
 import type { CreateUserPayload, SyncProfilePayload } from '../types'
 import {
   Mail,
@@ -47,6 +48,7 @@ const rolesStore = useRolesStore()
 const session = useSessionStore()
 const { t } = useI18n()
 const toast = useToast()
+const router = useRouter()
 
 const canWriteUsers = computed(() => session.hasPermission('admin.users.write'))
 const canLockUsers = computed(() => session.hasPermission('admin.users.lock'))
@@ -250,8 +252,14 @@ async function submitAssignRoles(): Promise<void> {
         title: t('users.roles_self_warn'),
       })
       try {
-        const response = await authApi.getPrincipal()
-        session.setPrincipal(response.principal)
+        const result = await session.ensureSession(true)
+        if (result === 'unauthenticated') {
+          window.location.assign(`/auth/login?return_to=${encodeURIComponent(window.location.pathname)}`)
+        } else if (result === 'step_up_required') {
+          router.push({ name: 'admin.step-up-required' })
+        } else if (result === 'forbidden') {
+          router.push({ name: 'admin.forbidden' })
+        }
       } catch (err) {
         // ignore
       }
@@ -259,6 +267,10 @@ async function submitAssignRoles(): Promise<void> {
       toast.pushToast({
         tone: 'success',
         title: t('users.roles_sync_success'),
+      })
+      toast.pushToast({
+        tone: 'info',
+        title: t('users.roles_other_warn'),
       })
     }
   }

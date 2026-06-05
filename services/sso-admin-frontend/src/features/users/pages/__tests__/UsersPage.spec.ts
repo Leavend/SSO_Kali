@@ -5,7 +5,15 @@ import { useSessionStore } from '@/stores/session.store'
 import UsersPage from '../UsersPage.vue'
 import { useUsersStore } from '../../stores/users.store'
 import { useSessionsStore } from '../../../sessions/stores/sessions.store'
+import { useRolesStore } from '../../../roles/stores/roles.store'
+import { useToast } from '@/components/ui/useToast'
 import type { AdminUser } from '../../types'
+
+vi.mock('vue-router', () => ({
+  useRouter: () => ({
+    push: vi.fn<() => void>(),
+  }),
+}))
 
 vi.mock('../../services/users.api', () => ({
   usersApi: {
@@ -407,5 +415,103 @@ describe('UsersPage', () => {
     const tabs = wrapper.findAll('[role="tab"]')
     expect(tabs[0]!.attributes('aria-selected')).toBe('false')
     expect(tabs[1]!.attributes('aria-selected')).toBe('true')
+  })
+
+  it('calls ensureSession(true) to refresh the active session when admin assigns roles to themselves', async () => {
+    seedPrincipal({
+      'admin.users.write': true,
+      'admin.roles.write': true,
+    })
+    const store = useUsersStore()
+    const session = useSessionStore()
+    const rolesStore = useRolesStore()
+    const { toasts, clearToasts } = useToast()
+
+    clearToasts()
+    store.status = 'success'
+    store.users = [
+      {
+        subject_id: 'admin-1',
+        email: 'admin@example.test',
+        display_name: 'Admin One',
+        role: 'admin',
+        status: 'active',
+        local_account_enabled: true,
+      },
+    ]
+    store.selectedSubjectId = 'admin-1'
+
+    rolesStore.roles = [
+      { slug: 'admin', label: 'Admin', is_system: true, permissions: [], user_count: 1 },
+      { slug: 'user', label: 'User', is_system: true, permissions: [], user_count: 2 },
+    ]
+
+    const assignSpy = vi.spyOn(store, 'assignRoles').mockImplementation(async () => {
+      store.actionStatus = 'success'
+    })
+    const selectSpy = vi.spyOn(store, 'selectUser').mockResolvedValue()
+    const ensureSpy = vi.spyOn(session, 'ensureSession').mockResolvedValue('authenticated')
+
+    const wrapper = mount(UsersPage)
+
+    // Verify self roles save triggers refresh
+    const saveBtn = wrapper.find('.save-roles-button')
+    expect(saveBtn.exists()).toBe(true)
+    await saveBtn.trigger('click')
+
+    expect(assignSpy).toHaveBeenCalledWith('admin-1', [])
+    expect(selectSpy).toHaveBeenCalledWith('admin-1')
+    expect(ensureSpy).toHaveBeenCalledWith(true)
+
+    // Check warning toast
+    expect(toasts.value.some(t => t.title.includes('updated your own roles'))).toBe(true)
+  })
+
+  it('displays a warning toast that changes take effect after relogin when assigning roles to another user', async () => {
+    seedPrincipal({
+      'admin.users.write': true,
+      'admin.roles.write': true,
+    })
+    const store = useUsersStore()
+    const session = useSessionStore()
+    const rolesStore = useRolesStore()
+    const { toasts, clearToasts } = useToast()
+
+    clearToasts()
+    store.status = 'success'
+    store.users = [
+      {
+        subject_id: 'other-user-1',
+        email: 'other@example.test',
+        display_name: 'Other User',
+        role: 'user',
+        status: 'active',
+        local_account_enabled: true,
+      },
+    ]
+    store.selectedSubjectId = 'other-user-1'
+
+    rolesStore.roles = [
+      { slug: 'admin', label: 'Admin', is_system: true, permissions: [], user_count: 1 },
+      { slug: 'user', label: 'User', is_system: true, permissions: [], user_count: 2 },
+    ]
+
+    const assignSpy = vi.spyOn(store, 'assignRoles').mockImplementation(async () => {
+      store.actionStatus = 'success'
+    })
+    const selectSpy = vi.spyOn(store, 'selectUser').mockResolvedValue()
+    const ensureSpy = vi.spyOn(session, 'ensureSession')
+
+    const wrapper = mount(UsersPage)
+
+    const saveBtn = wrapper.find('.save-roles-button')
+    await saveBtn.trigger('click')
+
+    expect(assignSpy).toHaveBeenCalledWith('other-user-1', [])
+    expect(selectSpy).toHaveBeenCalledWith('other-user-1')
+    expect(ensureSpy).not.toHaveBeenCalled()
+
+    // Check warning toast for other user
+    expect(toasts.value.some(t => t.title.includes('will take effect after the user logs in again'))).toBe(true)
   })
 })

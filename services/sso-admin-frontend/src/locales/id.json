@@ -169,7 +169,28 @@
     "matrix_title": "Matriks Permission",
     "matrix_desc": "Seluruh permission yang terdaftar di backend, dikelompokkan per domain.",
     "no_permissions": "Peran ini belum memiliki permission.",
-    "permissions_label": "Izin"
+    "permissions_label": "Izin",
+    "btn_create_role": "Buat Peran",
+    "create_role_title": "Buat Peran Baru",
+    "edit_role_title": "Ubah Peran",
+    "edit_permissions_title": "Atur Permission Peran",
+    "btn_save": "Simpan",
+    "btn_cancel": "Batal",
+    "label_name": "Nama Peran",
+    "label_slug": "Slug Peran",
+    "label_description": "Deskripsi",
+    "confirm_delete_title": "Hapus Peran?",
+    "confirm_delete_desc": "Apakah kamu yakin ingin menghapus peran {target}? Tindakan ini tidak dapat dibatalkan.",
+    "confirm_sync_permissions_title": "Perbarui Permission Peran?",
+    "confirm_sync_permissions_desc": "Apakah kamu yakin ingin memperbarui permission untuk peran {target}? Ini akan segera mengubah hak akses di backend.",
+    "roles_create_success": "Peran berhasil dibuat.",
+    "roles_update_success": "Peran berhasil diubah.",
+    "roles_delete_success": "Peran berhasil dihapus.",
+    "roles_permissions_success": "Permission peran berhasil diperbarui.",
+    "btn_edit": "Ubah",
+    "btn_delete": "Hapus",
+    "btn_manage_permissions": "Atur Permission",
+    "system_role": "Peran Sistem"
   },
   "users": {
     "eyebrow": "User Lifecycle",
@@ -247,7 +268,8 @@
     "assign_roles_title": "Tetapkan Peran",
     "btn_save_roles": "Simpan Peran",
     "roles_sync_success": "Peran pengguna berhasil disinkronkan.",
-    "roles_self_warn": "Anda memperbarui peran Anda sendiri. Silakan re-autentikasi/login kembali untuk menyegarkan token klaim Anda."
+    "roles_self_warn": "Anda memperbarui peran Anda sendiri. Silakan re-autentikasi/login kembali untuk menyegarkan token klaim Anda.",
+    "roles_other_warn": "Perubahan peran akan berlaku setelah pengguna login kembali atau token disegarkan."
   },
   "clients": {
     "eyebrow": "Manajemen Klien",
