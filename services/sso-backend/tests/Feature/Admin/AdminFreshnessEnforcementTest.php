@@ -16,6 +16,7 @@ beforeEach(function (): void {
     config()->set('sso.signing.public_key_path', storage_path('app/testing/oidc/public.pem'));
     config()->set('sso.admin.session_management_roles', ['admin']);
     config()->set('sso.admin.freshness.read_seconds', 900);
+    config()->set('sso.admin.freshness.write_seconds', 1800);
     config()->set('sso.admin.freshness.step_up_seconds', 900);
     config()->set('sso.admin.mfa.enforced', false);
 });
@@ -178,6 +179,85 @@ it('enforces step_up_seconds config value as the freshness window', function ():
     expect($policy->window('step_up'))->toBe(900);
     expect($policy->stale(time() - 600, 'step_up'))->toBeFalse();  // 10 min old < 900s window
     expect($policy->stale(time() - 1200, 'step_up'))->toBeTrue();   // 20 min old > 900s window
+});
+
+it('allows routine write with 20-minute-old token under write window', function (): void {
+    /** @var TestCase $this */
+    $admin = User::factory()->create([
+        'subject_id' => 'write-tier-admin',
+        'subject_uuid' => 'write-tier-admin',
+        'role' => 'admin',
+    ]);
+
+    User::factory()->create([
+        'subject_id' => 'write-tier-target',
+        'subject_uuid' => 'write-tier-target',
+        'role' => 'user',
+    ]);
+
+    // syncProfile is :write tier — 20 min should pass under 1800s window
+    $this->withToken(adminToken($admin, now()->subMinutes(20)->timestamp))
+        ->postJson('/admin/api/users/write-tier-target/sync-profile')
+        ->assertOk();
+});
+
+it('rejects routine write beyond write window', function (): void {
+    /** @var TestCase $this */
+    $admin = User::factory()->create([
+        'subject_id' => 'exceeded-write-admin',
+        'subject_uuid' => 'exceeded-write-admin',
+        'role' => 'admin',
+    ]);
+
+    User::factory()->create([
+        'subject_id' => 'exceeded-write-target',
+        'subject_uuid' => 'exceeded-write-target',
+        'role' => 'user',
+    ]);
+
+    // 31 min exceeds write 1800s window
+    $this->withToken(adminToken($admin, now()->subMinutes(31)->timestamp))
+        ->postJson('/admin/api/users/exceeded-write-target/sync-profile')
+        ->assertStatus(401)
+        ->assertJsonPath('error', 'reauth_required');
+});
+
+it('rejects high-sensitivity action when step_up window expired but write window still valid', function (): void {
+    /** @var TestCase $this */
+    $admin = User::factory()->create([
+        'subject_id' => 'stepup-vs-write-admin',
+        'subject_uuid' => 'stepup-vs-write-admin',
+        'role' => 'admin',
+    ]);
+
+    User::factory()->create([
+        'subject_id' => 'stepup-vs-write-target',
+        'subject_uuid' => 'stepup-vs-write-target',
+        'role' => 'user',
+    ]);
+
+    // 16 min: within write window (1800s) but outside step_up window (900s)
+    // lock is :step_up — should be rejected
+    $this->withToken(adminToken($admin, now()->subMinutes(16)->timestamp))
+        ->postJson('/admin/api/users/stepup-vs-write-target/lock', ['reason' => 'tier-test'])
+        ->assertStatus(401)
+        ->assertJsonPath('error', 'reauth_required');
+
+    // But a routine write should still pass
+    $this->withToken(adminToken($admin, now()->subMinutes(16)->timestamp))
+        ->postJson('/admin/api/users/stepup-vs-write-target/sync-profile')
+        ->assertOk();
+});
+
+it('exposes write_seconds window from config', function (): void {
+    config()->set('sso.admin.freshness.write_seconds', 1800);
+
+    /** @var AdminFreshnessPolicy $policy */
+    $policy = app(AdminFreshnessPolicy::class);
+
+    expect($policy->window('write'))->toBe(1800);
+    expect($policy->stale(time() - 1200, 'write'))->toBeFalse();  // 20 min < 1800s
+    expect($policy->stale(time() - 2100, 'write'))->toBeTrue();   // 35 min > 1800s
 });
 
 function adminToken(User $user, int $authTime): string

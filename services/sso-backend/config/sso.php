@@ -161,6 +161,7 @@ return [
         ],
         'freshness' => [
             'read_seconds' => (int) env('ADMIN_PANEL_FRESH_AUTH_SECONDS', 900),
+            'write_seconds' => (int) env('ADMIN_PANEL_WRITE_AUTH_SECONDS', 1800),
             'step_up_seconds' => (int) env('ADMIN_PANEL_STEP_UP_AUTH_SECONDS', 900),
         ],
         'mfa' => [

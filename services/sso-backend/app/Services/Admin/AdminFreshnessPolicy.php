@@ -10,6 +10,7 @@ final class AdminFreshnessPolicy
     {
         return match ($level) {
             'step_up' => (int) config('sso.admin.freshness.step_up_seconds', 300),
+            'write' => (int) config('sso.admin.freshness.write_seconds', 1800),
             default => (int) config('sso.admin.freshness.read_seconds', 900),
         };
     }

@@ -163,7 +163,7 @@ Route::middleware([AdminGuard::class, EnsureAdminMfaEnrolled::class])->prefix('a
     Route::middleware([
         'throttle:admin-write',
         RequireAdminPermission::class.':'.AdminPermission::SECURITY_POLICY_WRITE,
-        EnsureFreshAdminAuth::class.':step_up',
+        EnsureFreshAdminAuth::class.':write',
         EnsureAdminMfaAssurance::class,
     ])->group(function (): void {
         Route::post('/security-policies/{category}', [SecurityPolicyController::class, 'store'])
@@ -216,7 +216,7 @@ Route::middleware([AdminGuard::class, EnsureAdminMfaEnrolled::class])->prefix('a
     Route::middleware([
         'throttle:admin-write',
         RequireAdminPermission::class.':'.AdminPermission::ROLES_WRITE,
-        EnsureFreshAdminAuth::class.':step_up',
+        EnsureFreshAdminAuth::class.':write',
         EnsureAdminMfaAssurance::class,
     ])->group(function (): void {
         Route::post('/roles', [RoleController::class, 'store']);
@@ -231,7 +231,7 @@ Route::middleware([AdminGuard::class, EnsureAdminMfaEnrolled::class])->prefix('a
     Route::middleware([
         'throttle:admin-write',
         RequireAdminPermission::class.':'.AdminPermission::USERS_WRITE,
-        EnsureFreshAdminAuth::class.':step_up',
+        EnsureFreshAdminAuth::class.':write',
         EnsureAdminMfaAssurance::class,
     ])->group(function (): void {
         Route::post('/users', [UserController::class, 'store']);
@@ -247,16 +247,26 @@ Route::middleware([AdminGuard::class, EnsureAdminMfaEnrolled::class])->prefix('a
             ->where('subjectId', '[a-zA-Z0-9_-]+');
     });
 
+    // Routine client mutations (update, sync scopes) — write window.
     Route::middleware([
         'throttle:admin-write',
         RequireAdminPermission::class.':'.AdminPermission::CLIENTS_WRITE,
-        EnsureFreshAdminAuth::class.':step_up',
+        EnsureFreshAdminAuth::class.':write',
         EnsureAdminMfaAssurance::class,
     ])->group(function (): void {
         Route::patch('/clients/{clientId}', [ClientController::class, 'update'])
             ->where('clientId', '[a-z0-9-]+');
         Route::put('/clients/{clientId}/scopes', [ClientController::class, 'syncScopes'])
             ->where('clientId', '[a-z0-9-]+');
+    });
+
+    // Client secret rotation — step_up window (high sensitivity).
+    Route::middleware([
+        'throttle:admin-write',
+        RequireAdminPermission::class.':'.AdminPermission::CLIENTS_WRITE,
+        EnsureFreshAdminAuth::class.':step_up',
+        EnsureAdminMfaAssurance::class,
+    ])->group(function (): void {
         // FR-009 / UC-61 — admin-triggered secret rotation. Returns the new
         // plaintext ONCE; caller must deliver it out-of-band.
         Route::post('/clients/{clientId}/rotate-secret', [ClientController::class, 'rotateSecret'])
@@ -266,7 +276,7 @@ Route::middleware([AdminGuard::class, EnsureAdminMfaEnrolled::class])->prefix('a
     Route::middleware([
         'throttle:admin-write',
         RequireAdminPermission::class.':'.AdminPermission::EXTERNAL_IDPS_WRITE,
-        EnsureFreshAdminAuth::class.':step_up',
+        EnsureFreshAdminAuth::class.':write',
         EnsureAdminMfaAssurance::class,
     ])->group(function (): void {
         Route::post('/external-idps', [ExternalIdentityProviderController::class, 'store']);
