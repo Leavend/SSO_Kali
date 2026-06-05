@@ -4,6 +4,7 @@ import type {
   RolesListResponse,
   CreateRolePayload,
   UpdateRolePayload,
+  AdminRole,
 } from '../types'
 
 export const rolesApi = {
@@ -15,20 +16,20 @@ export const rolesApi = {
     return apiClient.get<PermissionsListResponse>('/api/admin/permissions')
   },
 
-  createRole(payload: CreateRolePayload): Promise<{ role: any }> {
-    return apiClient.post<{ role: any }>('/api/admin/roles', payload)
+  createRole(payload: CreateRolePayload): Promise<{ role: AdminRole }> {
+    return apiClient.post<{ role: AdminRole }>('/api/admin/roles', payload)
   },
 
-  updateRole(slug: string, payload: UpdateRolePayload): Promise<{ role: any }> {
-    return apiClient.patch<{ role: any }>(`/api/admin/roles/${slug}`, payload)
+  updateRole(slug: string, payload: UpdateRolePayload): Promise<{ role: AdminRole }> {
+    return apiClient.patch<{ role: AdminRole }>(`/api/admin/roles/${encodeURIComponent(slug)}`, payload)
   },
 
   deleteRole(slug: string): Promise<{ deleted: boolean; role_slug: string }> {
-    return apiClient.delete<{ deleted: boolean; role_slug: string }>(`/api/admin/roles/${slug}`)
+    return apiClient.delete<{ deleted: boolean; role_slug: string }>(`/api/admin/roles/${encodeURIComponent(slug)}`)
   },
 
-  syncRolePermissions(slug: string, permissionSlugs: string[]): Promise<{ role: any }> {
-    return apiClient.put<{ role: any }>(`/api/admin/roles/${slug}/permissions`, {
+  syncRolePermissions(slug: string, permissionSlugs: string[]): Promise<{ role: AdminRole }> {
+    return apiClient.put<{ role: AdminRole }>(`/api/admin/roles/${encodeURIComponent(slug)}/permissions`, {
       permission_slugs: permissionSlugs,
     })
   },

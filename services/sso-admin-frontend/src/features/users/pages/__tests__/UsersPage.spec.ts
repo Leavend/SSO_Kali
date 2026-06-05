@@ -435,6 +435,7 @@ describe('UsersPage', () => {
         email: 'admin@example.test',
         display_name: 'Admin One',
         role: 'admin',
+        roles: [{ slug: 'admin', name: 'Admin', is_system: true }],
         status: 'active',
         local_account_enabled: true,
       },
@@ -459,7 +460,7 @@ describe('UsersPage', () => {
     expect(saveBtn.exists()).toBe(true)
     await saveBtn.trigger('click')
 
-    expect(assignSpy).toHaveBeenCalledWith('admin-1', [])
+    expect(assignSpy).toHaveBeenCalledWith('admin-1', ['admin'])
     expect(selectSpy).toHaveBeenCalledWith('admin-1')
     expect(ensureSpy).toHaveBeenCalledWith(true)
 
@@ -485,6 +486,7 @@ describe('UsersPage', () => {
         email: 'other@example.test',
         display_name: 'Other User',
         role: 'user',
+        roles: [{ slug: 'user', name: 'User', is_system: true }],
         status: 'active',
         local_account_enabled: true,
       },
@@ -507,7 +509,7 @@ describe('UsersPage', () => {
     const saveBtn = wrapper.find('.save-roles-button')
     await saveBtn.trigger('click')
 
-    expect(assignSpy).toHaveBeenCalledWith('other-user-1', [])
+    expect(assignSpy).toHaveBeenCalledWith('other-user-1', ['user'])
     expect(selectSpy).toHaveBeenCalledWith('other-user-1')
     expect(ensureSpy).not.toHaveBeenCalled()
 

@@ -269,7 +269,8 @@
     "btn_save_roles": "Save Roles",
     "roles_sync_success": "User roles synced successfully.",
     "roles_self_warn": "You updated your own roles. Please re-authenticate/login again to refresh your token claims.",
-    "roles_other_warn": "Role changes will take effect after the user logs in again or the token is refreshed."
+    "roles_other_warn": "Role changes will take effect after the user logs in again or the token is refreshed.",
+    "roles_min_required": "At least one role must be selected."
   },
   "clients": {
     "eyebrow": "Client Management",

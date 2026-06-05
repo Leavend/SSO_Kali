@@ -261,7 +261,7 @@ async function submitAssignRoles(): Promise<void> {
           router.push({ name: 'admin.forbidden' })
         }
       } catch (err) {
-        // ignore
+        console.error('[AssignRoles] Failed to refresh active session:', err)
       }
     } else {
       toast.pushToast({
@@ -779,10 +779,13 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
                 </div>
               </div>
             </div>
+            <p v-if="selectedRoles.length === 0" class="text-xs text-danger mt-2" style="color: var(--destructive); margin-bottom: 0.5rem;">
+              {{ t('users.roles_min_required') }}
+            </p>
             <div class="user-detail-card__actions">
               <UiButton
                 class="save-roles-button"
-                :disabled="store.actionStatus === 'loading' || rolesStore.status === 'loading'"
+                :disabled="store.actionStatus === 'loading' || rolesStore.status === 'loading' || selectedRoles.length === 0"
                 @click="submitAssignRoles"
               >
                 {{

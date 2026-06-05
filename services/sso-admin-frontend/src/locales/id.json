@@ -269,7 +269,8 @@
     "btn_save_roles": "Simpan Peran",
     "roles_sync_success": "Peran pengguna berhasil disinkronkan.",
     "roles_self_warn": "Anda memperbarui peran Anda sendiri. Silakan re-autentikasi/login kembali untuk menyegarkan token klaim Anda.",
-    "roles_other_warn": "Perubahan peran akan berlaku setelah pengguna login kembali atau token disegarkan."
+    "roles_other_warn": "Perubahan peran akan berlaku setelah pengguna login kembali atau token disegarkan.",
+    "roles_min_required": "Minimal satu peran harus dipilih."
   },
   "clients": {
     "eyebrow": "Manajemen Klien",
