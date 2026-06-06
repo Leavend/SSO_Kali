@@ -12,6 +12,7 @@ export type AdminUser = {
     readonly is_system: boolean
   }[]
   readonly status?: string | null
+  readonly effective_status?: 'active' | 'locked' | 'disabled' | 'deactivated' | null
   readonly disabled_at?: string | null
   readonly disabled_reason?: string | null
   readonly locked_at?: string | null

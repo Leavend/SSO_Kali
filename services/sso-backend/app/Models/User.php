@@ -135,4 +135,18 @@ class User extends Authenticatable implements OAuthenticatable
             'password' => 'hashed',
         ];
     }
+
+    public function isLocked(): bool
+    {
+        return $this->locked_at !== null
+            && ($this->locked_until === null || $this->locked_until->isFuture());
+    }
+
+    public function getEffectiveStatusAttribute(): string
+    {
+        if (in_array($this->status, ['disabled', 'deactivated'], true)) {
+            return $this->status;
+        }
+        return $this->isLocked() ? 'locked' : ($this->status ?: 'active');
+    }
 }

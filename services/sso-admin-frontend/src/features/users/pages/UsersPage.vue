@@ -54,6 +54,7 @@ const canWriteUsers = computed(() => session.hasPermission('admin.users.write'))
 const canLockUsers = computed(() => session.hasPermission('admin.users.lock'))
 const canTerminateSessions = computed(() => session.hasPermission('admin.sessions.terminate'))
 const canWriteRoles = computed(() => session.hasPermission('admin.roles.write'))
+const effectiveStatus = computed(() => store.selectedUser?.effective_status ?? store.selectedUser?.status ?? 'active')
 
 const reason = ref('Admin review')
 const showCreateForm = ref(false)
@@ -458,9 +459,9 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
                     <span class="user-card-item__name">{{ user.display_name ?? user.email }}</span>
                     <span
                       class="user-card-item__badge"
-                      :class="`badge--${user.status ?? 'active'}`"
+                      :class="`badge--${user.effective_status ?? user.status ?? 'active'}`"
                     >
-                      {{ user.status ?? 'active' }}
+                      {{ user.effective_status ?? user.status ?? 'active' }}
                     </span>
                   </span>
                   <span class="user-card-item__email">{{ user.email }}</span>
@@ -610,8 +611,11 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
           <div class="user-profile-hero__content">
             <div class="user-profile-hero__header-row">
               <h2>{{ store.selectedUser.display_name ?? store.selectedUser.email }}</h2>
-              <span class="ui-badge user-profile-hero__status-badge">
-                {{ store.selectedUser.status ?? t('users.status_unknown') }}
+              <span
+                class="ui-badge user-profile-hero__status-badge"
+                :class="`badge--${store.selectedUser.effective_status ?? store.selectedUser.status ?? 'active'}`"
+              >
+                {{ store.selectedUser.effective_status ?? store.selectedUser.status ?? t('users.status_unknown') }}
               </span>
             </div>
             <p class="user-profile-hero__role">
@@ -952,7 +956,7 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
                   v-if="canLockUsers"
                   class="lifecycle-lock-button"
                   variant="danger"
-                  :disabled="store.actionStatus === 'loading' || store.selectedUser?.status === 'locked' || store.selectedUser?.status === 'deactivated'"
+                  :disabled="store.actionStatus === 'loading' || effectiveStatus === 'locked' || effectiveStatus === 'disabled' || effectiveStatus === 'deactivated'"
                   @click="requestDestructiveAction('lock')"
                 >
                   <Lock :size="14" />
@@ -961,7 +965,7 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
                 <UiButton
                   v-if="canLockUsers"
                   class="lifecycle-unlock-button"
-                  :disabled="store.actionStatus === 'loading' || store.selectedUser?.status !== 'locked'"
+                  :disabled="store.actionStatus === 'loading' || effectiveStatus !== 'locked'"
                   @click="store.unlockSelected(reason)"
                 >
                   <Unlock :size="14" />
@@ -971,7 +975,7 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
                   v-if="canWriteUsers"
                   class="lifecycle-deactivate-button"
                   variant="danger"
-                  :disabled="store.actionStatus === 'loading' || store.selectedUser?.status === 'deactivated'"
+                  :disabled="store.actionStatus === 'loading' || effectiveStatus === 'disabled' || effectiveStatus === 'deactivated'"
                   @click="requestDestructiveAction('deactivate')"
                 >
                   <ShieldX :size="14" />
@@ -980,7 +984,7 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
                 <UiButton
                   v-if="canWriteUsers"
                   class="lifecycle-reactivate-button"
-                  :disabled="store.actionStatus === 'loading' || store.selectedUser?.status !== 'deactivated'"
+                  :disabled="store.actionStatus === 'loading' || (effectiveStatus !== 'disabled' && effectiveStatus !== 'deactivated')"
                   @click="store.reactivateSelected"
                 >
                   <UserCheck :size="14" />
@@ -995,7 +999,7 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
                 <UiButton
                   class="lifecycle-reset-mfa-button"
                   variant="danger"
-                  :disabled="store.actionStatus === 'loading' || store.selectedUser?.status === 'deactivated'"
+                  :disabled="store.actionStatus === 'loading' || effectiveStatus === 'disabled' || effectiveStatus === 'deactivated'"
                   @click="requestDestructiveAction('reset_mfa')"
                 >
                   <ShieldAlert :size="14" />
@@ -1003,7 +1007,7 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
                 </UiButton>
                 <UiButton
                   variant="danger"
-                  :disabled="store.actionStatus === 'loading' || store.selectedUser?.status === 'deactivated'"
+                  :disabled="store.actionStatus === 'loading' || effectiveStatus === 'disabled' || effectiveStatus === 'deactivated'"
                   @click="requestDestructiveAction('issue_password_reset')"
                 >
                   <Key :size="14" />

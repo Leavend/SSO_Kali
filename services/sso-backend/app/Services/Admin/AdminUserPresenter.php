@@ -48,6 +48,7 @@ final class AdminUserPresenter
 
         return [
             ...$user->only($this->columns()),
+            'effective_status' => $user->effective_status,
             'roles' => $user->roles
                 ->map(fn (Role $role): array => $role->only(['slug', 'name', 'is_system']))
                 ->sortBy('slug')

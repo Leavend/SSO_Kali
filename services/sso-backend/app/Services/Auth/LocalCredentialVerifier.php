@@ -57,6 +57,6 @@ final class LocalCredentialVerifier
     {
         $user = User::query()->where('email', $email)->first();
 
-        return $user instanceof User && $user->disabled_at !== null;
+        return $user instanceof User && ($user->disabled_at !== null || $user->isLocked());
     }
 }

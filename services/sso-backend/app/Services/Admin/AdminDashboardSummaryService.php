@@ -109,12 +109,23 @@ final class AdminDashboardSummaryService
     private function userCounters(): array
     {
         $total = (int) DB::table('users')->count();
-        $active = (int) DB::table('users')->where('status', 'active')->count();
-        $disabled = (int) DB::table('users')->where('status', 'disabled')->count();
+        $disabled = (int) DB::table('users')
+            ->whereIn('status', ['disabled', 'deactivated'])
+            ->count();
         $locked = (int) DB::table('users')
+            ->whereNotIn('status', ['disabled', 'deactivated'])
             ->whereNotNull('locked_at')
             ->where(function ($q): void {
                 $q->whereNull('locked_until')->orWhere('locked_until', '>', now());
+            })
+            ->count();
+        $active = (int) DB::table('users')
+            ->whereNotIn('status', ['disabled', 'deactivated'])
+            ->where(function ($q): void {
+                $q->whereNull('locked_at')
+                  ->orWhere(function ($q2): void {
+                      $q2->whereNotNull('locked_until')->where('locked_until', '<=', now());
+                  });
             })
             ->count();
 

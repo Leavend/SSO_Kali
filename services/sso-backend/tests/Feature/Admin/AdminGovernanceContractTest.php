@@ -242,6 +242,30 @@ it('seeds least-privilege admin roles with documented permission catalogs', func
         ->and($securityOfficer)->toContain(AdminPermission::DATA_SUBJECT_REQUESTS_REVIEW);
 });
 
+it('guarantees mutually exclusive dashboard user counters to prevent double counting', function (): void {
+    User::query()->whereNotIn('subject_id', ['admin_dashboard_exclusive'])->delete();
+
+    $admin = User::factory()->create(['subject_id' => 'admin_dashboard_exclusive', 'role' => 'admin']);
+
+    User::factory()->create(['subject_id' => 'user_active', 'role' => 'user', 'status' => 'active', 'locked_at' => null]);
+    User::factory()->create(['subject_id' => 'user_locked', 'role' => 'user', 'status' => 'active', 'locked_at' => now(), 'locked_until' => null]);
+    User::factory()->create(['subject_id' => 'user_disabled', 'role' => 'user', 'status' => 'disabled', 'locked_at' => null]);
+    User::factory()->create(['subject_id' => 'user_disabled_locked', 'role' => 'user', 'status' => 'disabled', 'locked_at' => now(), 'locked_until' => null]);
+
+    app(AdminDashboardSummaryService::class)->flush();
+
+    $response = $this->withToken(adminAccessTokenFor($admin))
+        ->getJson('/admin/api/dashboard/summary');
+
+    $response->assertOk();
+    $users = $response->json('counters.users');
+
+    expect($users['total'])->toBe(5);
+    expect($users['active'])->toBe(2);
+    expect($users['disabled'])->toBe(2);
+    expect($users['locked'])->toBe(1);
+});
+
 function adminAccessTokenFor(User $user): string
 {
     $tokens = app(LocalTokenService::class)->issue([

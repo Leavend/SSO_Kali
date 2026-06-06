@@ -593,5 +593,24 @@ describe('UsersPage', () => {
     expect(wrapper.find('button.lifecycle-unlock-button').attributes('disabled')).toBeDefined()
     expect(wrapper.find('button.lifecycle-deactivate-button').attributes('disabled')).toBeDefined()
     expect(wrapper.find('button.lifecycle-reactivate-button').attributes('disabled')).toBeDefined()
+
+    // Case 5: User is active but effective_status is locked
+    store.users = [{ ...user, status: 'active', effective_status: 'locked' }]
+    store.actionStatus = 'idle'
+    wrapper = mount(UsersPage)
+
+    expect(wrapper.find('button.lifecycle-lock-button').attributes('disabled')).toBeDefined()
+    expect(wrapper.find('button.lifecycle-unlock-button').attributes('disabled')).toBeUndefined()
+    expect(wrapper.find('button.lifecycle-deactivate-button').attributes('disabled')).toBeUndefined()
+    expect(wrapper.find('button.lifecycle-reactivate-button').attributes('disabled')).toBeDefined()
+
+    // Case 6: User is active but effective_status is disabled
+    store.users = [{ ...user, status: 'active', effective_status: 'disabled' }]
+    wrapper = mount(UsersPage)
+
+    expect(wrapper.find('button.lifecycle-lock-button').attributes('disabled')).toBeDefined()
+    expect(wrapper.find('button.lifecycle-unlock-button').attributes('disabled')).toBeDefined()
+    expect(wrapper.find('button.lifecycle-deactivate-button').attributes('disabled')).toBeDefined()
+    expect(wrapper.find('button.lifecycle-reactivate-button').attributes('disabled')).toBeUndefined()
   })
 })

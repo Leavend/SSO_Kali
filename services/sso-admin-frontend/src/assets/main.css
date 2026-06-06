@@ -2824,25 +2824,26 @@ select {
   letter-spacing: 0.05em;
 }
 
-.user-card-item__badge.badge--active {
-  background: rgba(16, 185, 129, 0.1);
-  color: rgb(16, 185, 129);
+.badge--active {
+  background: rgba(16, 185, 129, 0.1) !important;
+  color: rgb(16, 185, 129) !important;
 }
 
-.user-card-item__badge.badge--locked {
-  background: rgba(239, 68, 68, 0.1);
-  color: rgb(239, 68, 68);
+.badge--locked {
+  background: rgba(239, 68, 68, 0.1) !important;
+  color: rgb(239, 68, 68) !important;
 }
 
-.user-card-item__badge.badge--inactive,
-.user-card-item__badge.badge--disabled {
-  background: rgba(113, 113, 122, 0.1);
-  color: rgb(113, 113, 122);
+.badge--inactive,
+.badge--disabled,
+.badge--deactivated {
+  background: rgba(113, 113, 122, 0.1) !important;
+  color: rgb(113, 113, 122) !important;
 }
 
-.user-card-item__badge.badge--pending {
-  background: rgba(245, 158, 11, 0.1);
-  color: rgb(245, 158, 11);
+.badge--pending {
+  background: rgba(245, 158, 11, 0.1) !important;
+  color: rgb(245, 158, 11) !important;
 }
 
 .users-list {
