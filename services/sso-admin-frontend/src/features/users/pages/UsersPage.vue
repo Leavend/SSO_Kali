@@ -135,9 +135,32 @@ watch(
   { immediate: true },
 )
 
-onMounted(() => {
-  if (store.status === 'idle') void store.load()
-  if (rolesStore.status === 'idle') void rolesStore.load()
+onMounted(async () => {
+  store.restorePendingIntent()
+  const intent = store.pendingIntent
+
+  if (store.status === 'idle') {
+    await store.load()
+  }
+
+  if (intent) {
+    await store.selectUser(intent.subjectId)
+    if (intent.payload && typeof intent.payload.reason === 'string') {
+      reason.value = intent.payload.reason
+    }
+
+    toast.pushToast({
+      tone: 'step_up',
+      title: 'Sesi admin disegarkan',
+      description: 'Silakan ulangi kembali aksi Anda.',
+    })
+
+    store.clearPendingIntent()
+  }
+
+  if (rolesStore.status === 'idle') {
+    void rolesStore.load()
+  }
 })
 
 async function selectUser(subjectId: string): Promise<void> {
@@ -929,24 +952,37 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
                   v-if="canLockUsers"
                   class="lifecycle-lock-button"
                   variant="danger"
+                  :disabled="store.actionStatus === 'loading' || store.selectedUser?.status === 'locked' || store.selectedUser?.status === 'deactivated'"
                   @click="requestDestructiveAction('lock')"
                 >
                   <Lock :size="14" />
                   {{ t('users.btn_lock') }}
                 </UiButton>
-                <UiButton v-if="canLockUsers" @click="store.unlockSelected(reason)">
+                <UiButton
+                  v-if="canLockUsers"
+                  class="lifecycle-unlock-button"
+                  :disabled="store.actionStatus === 'loading' || store.selectedUser?.status !== 'locked'"
+                  @click="store.unlockSelected(reason)"
+                >
                   <Unlock :size="14" />
                   {{ t('users.btn_unlock') }}
                 </UiButton>
                 <UiButton
                   v-if="canWriteUsers"
+                  class="lifecycle-deactivate-button"
                   variant="danger"
+                  :disabled="store.actionStatus === 'loading' || store.selectedUser?.status === 'deactivated'"
                   @click="requestDestructiveAction('deactivate')"
                 >
                   <ShieldX :size="14" />
                   {{ t('users.btn_deactivate') }}
                 </UiButton>
-                <UiButton v-if="canWriteUsers" @click="store.reactivateSelected">
+                <UiButton
+                  v-if="canWriteUsers"
+                  class="lifecycle-reactivate-button"
+                  :disabled="store.actionStatus === 'loading' || store.selectedUser?.status !== 'deactivated'"
+                  @click="store.reactivateSelected"
+                >
                   <UserCheck :size="14" />
                   {{ t('users.btn_reactivate') }}
                 </UiButton>
@@ -959,6 +995,7 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
                 <UiButton
                   class="lifecycle-reset-mfa-button"
                   variant="danger"
+                  :disabled="store.actionStatus === 'loading' || store.selectedUser?.status === 'deactivated'"
                   @click="requestDestructiveAction('reset_mfa')"
                 >
                   <ShieldAlert :size="14" />
@@ -966,6 +1003,7 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
                 </UiButton>
                 <UiButton
                   variant="danger"
+                  :disabled="store.actionStatus === 'loading' || store.selectedUser?.status === 'deactivated'"
                   @click="requestDestructiveAction('issue_password_reset')"
                 >
                   <Key :size="14" />

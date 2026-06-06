@@ -518,4 +518,80 @@ describe('UsersPage', () => {
       toasts.value.some((t) => t.title.includes('will take effect after the user logs in again')),
     ).toBe(true)
   })
+
+  it('restores pending intent on mount, selects user, pre-fills reason, and pushes info toast', async () => {
+    const store = useUsersStore()
+    const { toasts, clearToasts } = useToast()
+    clearToasts()
+
+    store.status = 'success'
+    store.users = [user]
+    store.selectedSubjectId = 'sub_admin'
+    store.pendingIntent = {
+      action: 'lock',
+      subjectId: 'sub_admin',
+      payload: { reason: 'Pending security lock reason' },
+    }
+
+    const restoreSpy = vi.spyOn(store, 'restorePendingIntent').mockImplementation(() => {})
+    const selectSpy = vi.spyOn(store, 'selectUser').mockImplementation(async (id) => {
+      store.selectedSubjectId = id
+    })
+    const clearSpy = vi.spyOn(store, 'clearPendingIntent')
+
+    const wrapper = mount(UsersPage)
+
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    await wrapper.vm.$nextTick()
+
+    expect(restoreSpy).toHaveBeenCalled()
+    expect(selectSpy).toHaveBeenCalledWith('sub_admin')
+    const reasonInput = wrapper.find('input[name="lifecycle-reason"]')
+    expect((reasonInput.element as HTMLInputElement).value).toBe('Pending security lock reason')
+    expect(toasts.value.some((t) => t.title.includes('Sesi admin disegarkan'))).toBe(true)
+    expect(clearSpy).toHaveBeenCalled()
+  })
+
+  it('disables lifecycle buttons contextually based on target user status and action loading state', async () => {
+    const store = useUsersStore()
+    store.status = 'success'
+    store.selectedSubjectId = 'sub_admin'
+
+    // Case 1: User is active
+    store.users = [{ ...user, status: 'active' }]
+    let wrapper = mount(UsersPage)
+
+    expect(wrapper.find('button.lifecycle-lock-button').attributes('disabled')).toBeUndefined()
+    expect(wrapper.find('button.lifecycle-unlock-button').attributes('disabled')).toBeDefined()
+    expect(wrapper.find('button.lifecycle-deactivate-button').attributes('disabled')).toBeUndefined()
+    expect(wrapper.find('button.lifecycle-reactivate-button').attributes('disabled')).toBeDefined()
+
+    // Case 2: User is locked
+    store.users = [{ ...user, status: 'locked' }]
+    wrapper = mount(UsersPage)
+
+    expect(wrapper.find('button.lifecycle-lock-button').attributes('disabled')).toBeDefined()
+    expect(wrapper.find('button.lifecycle-unlock-button').attributes('disabled')).toBeUndefined()
+    expect(wrapper.find('button.lifecycle-deactivate-button').attributes('disabled')).toBeUndefined()
+    expect(wrapper.find('button.lifecycle-reactivate-button').attributes('disabled')).toBeDefined()
+
+    // Case 3: User is deactivated
+    store.users = [{ ...user, status: 'deactivated' }]
+    wrapper = mount(UsersPage)
+
+    expect(wrapper.find('button.lifecycle-lock-button').attributes('disabled')).toBeDefined()
+    expect(wrapper.find('button.lifecycle-unlock-button').attributes('disabled')).toBeDefined()
+    expect(wrapper.find('button.lifecycle-deactivate-button').attributes('disabled')).toBeDefined()
+    expect(wrapper.find('button.lifecycle-reactivate-button').attributes('disabled')).toBeUndefined()
+
+    // Case 4: Action is loading
+    store.users = [{ ...user, status: 'active' }]
+    store.actionStatus = 'loading'
+    wrapper = mount(UsersPage)
+
+    expect(wrapper.find('button.lifecycle-lock-button').attributes('disabled')).toBeDefined()
+    expect(wrapper.find('button.lifecycle-unlock-button').attributes('disabled')).toBeDefined()
+    expect(wrapper.find('button.lifecycle-deactivate-button').attributes('disabled')).toBeDefined()
+    expect(wrapper.find('button.lifecycle-reactivate-button').attributes('disabled')).toBeDefined()
+  })
 })

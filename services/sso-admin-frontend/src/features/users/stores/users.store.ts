@@ -31,6 +31,34 @@ export const useUsersStore = defineStore('admin-users', () => {
     () => users.value.find((user) => user.subject_id === selectedSubjectId.value) ?? null,
   )
 
+  const pendingIntent = ref<{
+    readonly action: string
+    readonly subjectId: string
+    readonly payload?: any
+  } | null>(null)
+
+  function savePendingIntent(action: string, subjectId: string, payload?: any): void {
+    const intent = { action, subjectId, payload }
+    pendingIntent.value = intent
+    sessionStorage.setItem('pending_admin_action', JSON.stringify(intent))
+  }
+
+  function clearPendingIntent(): void {
+    pendingIntent.value = null
+    sessionStorage.removeItem('pending_admin_action')
+  }
+
+  function restorePendingIntent(): void {
+    const raw = sessionStorage.getItem('pending_admin_action')
+    if (raw) {
+      try {
+        pendingIntent.value = JSON.parse(raw)
+      } catch {
+        pendingIntent.value = null
+      }
+    }
+  }
+
   async function load(): Promise<void> {
     status.value = 'loading'
     errorMessage.value = null
@@ -82,27 +110,43 @@ export const useUsersStore = defineStore('admin-users', () => {
   }
 
   async function lockSelected(reason: string): Promise<void> {
+    if (!selectedSubjectId.value) return
+    savePendingIntent('lock', selectedSubjectId.value, { reason })
     await mutateSelected((subjectId) => usersApi.lock(subjectId, { reason }))
+    clearPendingIntent()
   }
 
   async function unlockSelected(reason: string): Promise<void> {
+    if (!selectedSubjectId.value) return
+    savePendingIntent('unlock', selectedSubjectId.value, { reason })
     await mutateSelected((subjectId) => usersApi.unlock(subjectId, { reason }))
+    clearPendingIntent()
   }
 
   async function deactivateSelected(reason: string): Promise<void> {
+    if (!selectedSubjectId.value) return
+    savePendingIntent('deactivate', selectedSubjectId.value, { reason })
     await mutateSelected((subjectId) => usersApi.deactivate(subjectId, { reason }))
+    clearPendingIntent()
   }
 
   async function reactivateSelected(): Promise<void> {
+    if (!selectedSubjectId.value) return
+    savePendingIntent('reactivate', selectedSubjectId.value)
     await mutateSelected((subjectId) => usersApi.reactivate(subjectId))
+    clearPendingIntent()
   }
 
   async function resetMfaSelected(reason: string): Promise<void> {
+    if (!selectedSubjectId.value) return
+    savePendingIntent('reset_mfa', selectedSubjectId.value, { reason })
     await mutateSelected((subjectId) => usersApi.resetMfa(subjectId, { reason }))
+    clearPendingIntent()
   }
 
   async function issuePasswordResetSelected(): Promise<void> {
     if (!selectedSubjectId.value) return
+    savePendingIntent('issue_password_reset', selectedSubjectId.value)
     actionStatus.value = 'loading'
     errorMessage.value = null
     clearPasswordResetToken()
@@ -114,7 +158,21 @@ export const useUsersStore = defineStore('admin-users', () => {
       passwordResetExpiresAt.value = response.password_reset?.expires_at ?? null
       auditEventId.value = response.audit_event_id ?? null
       requestId.value = getLastRequestId()
-      actionStatus.value = 'success'
+
+      const subjectId = selectedSubjectId.value
+      try {
+        const showResponse = await usersApi.show(subjectId)
+        upsertUser(showResponse.user)
+        loginContext.value = showResponse.login_context ?? null
+        sessions.value = showResponse.sessions ?? []
+        requestId.value = getLastRequestId()
+        actionStatus.value = 'success'
+        clearPendingIntent()
+      } catch (selectError) {
+        actionStatus.value = 'success'
+        errorMessage.value = 'Aksi tersimpan, namun gagal memuat status terbaru—muat ulang.'
+        clearPendingIntent()
+      }
     } catch (error) {
       handleActionError(error)
     }
@@ -122,6 +180,7 @@ export const useUsersStore = defineStore('admin-users', () => {
 
   async function syncProfileSelected(payload: SyncProfilePayload): Promise<void> {
     if (!selectedSubjectId.value) return
+    savePendingIntent('sync_profile', selectedSubjectId.value, payload)
     actionStatus.value = 'loading'
     errorMessage.value = null
 
@@ -130,13 +189,28 @@ export const useUsersStore = defineStore('admin-users', () => {
       if (response.user) upsertUser(response.user)
       auditEventId.value = response.audit_event_id ?? null
       requestId.value = getLastRequestId()
-      actionStatus.value = 'success'
+
+      const subjectId = selectedSubjectId.value
+      try {
+        const showResponse = await usersApi.show(subjectId)
+        upsertUser(showResponse.user)
+        loginContext.value = showResponse.login_context ?? null
+        sessions.value = showResponse.sessions ?? []
+        requestId.value = getLastRequestId()
+        actionStatus.value = 'success'
+        clearPendingIntent()
+      } catch (selectError) {
+        actionStatus.value = 'success'
+        errorMessage.value = 'Aksi tersimpan, namun gagal memuat status terbaru—muat ulang.'
+        clearPendingIntent()
+      }
     } catch (error) {
       handleActionError(error)
     }
   }
 
   async function assignRoles(subjectId: string, roleSlugs: readonly string[]): Promise<void> {
+    savePendingIntent('assign_roles', subjectId, { roleSlugs })
     actionStatus.value = 'loading'
     errorMessage.value = null
     clearPasswordResetToken()
@@ -147,6 +221,7 @@ export const useUsersStore = defineStore('admin-users', () => {
       auditEventId.value = response.audit_event_id ?? null
       requestId.value = getLastRequestId()
       actionStatus.value = 'success'
+      clearPendingIntent()
     } catch (error) {
       if (error instanceof ApiError) {
         if (error.status === 403) {
@@ -187,7 +262,19 @@ export const useUsersStore = defineStore('admin-users', () => {
       if (response.user) upsertUser(response.user)
       auditEventId.value = response.audit_event_id ?? null
       requestId.value = getLastRequestId()
-      actionStatus.value = 'success'
+
+      const subjectId = selectedSubjectId.value
+      try {
+        const showResponse = await usersApi.show(subjectId)
+        upsertUser(showResponse.user)
+        loginContext.value = showResponse.login_context ?? null
+        sessions.value = showResponse.sessions ?? []
+        requestId.value = getLastRequestId()
+        actionStatus.value = 'success'
+      } catch (selectError) {
+        actionStatus.value = 'success'
+        errorMessage.value = 'Aksi tersimpan, namun gagal memuat status terbaru—muat ulang.'
+      }
     } catch (error) {
       handleActionError(error)
     }
@@ -275,5 +362,9 @@ export const useUsersStore = defineStore('admin-users', () => {
     syncProfileSelected,
     assignRoles,
     clearPasswordResetToken,
+    pendingIntent,
+    savePendingIntent,
+    clearPendingIntent,
+    restorePendingIntent,
   }
 })

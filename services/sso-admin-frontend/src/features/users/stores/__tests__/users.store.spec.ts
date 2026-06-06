@@ -47,18 +47,42 @@ const user: AdminUser = {
 }
 
 describe('useUsersStore', () => {
+  let activeUserDetail: AdminUser
+
   beforeEach(() => {
     setActivePinia(createPinia())
+    activeUserDetail = { ...user }
     vi.mocked(usersApi.create).mockReset()
     vi.mocked(usersApi.list).mockReset()
     vi.mocked(usersApi.show).mockReset()
+    vi.mocked(usersApi.show).mockImplementation(async (subjectId) => {
+      const store = useUsersStore()
+      const existing = store.users.find((u) => u.subject_id === subjectId)
+      return {
+        user: existing || activeUserDetail,
+        login_context: null,
+        sessions: [],
+      }
+    })
     vi.mocked(usersApi.lock).mockReset()
+    vi.mocked(usersApi.lock).mockImplementation(async (subjectId, payload) => {
+      activeUserDetail = { ...activeUserDetail, status: 'locked' }
+      return { user: activeUserDetail, audit_event_id: 'AUD01' }
+    })
     vi.mocked(usersApi.unlock).mockReset()
     vi.mocked(usersApi.deactivate).mockReset()
     vi.mocked(usersApi.reactivate).mockReset()
     vi.mocked(usersApi.issuePasswordReset).mockReset()
     vi.mocked(usersApi.resetMfa).mockReset()
     vi.mocked(usersApi.syncProfile).mockReset()
+    vi.mocked(usersApi.syncProfile).mockImplementation(async (subjectId, payload: any) => {
+      activeUserDetail = {
+        ...activeUserDetail,
+        ...(payload.email && { email: payload.email }),
+        ...(payload.display_name && { display_name: payload.display_name }),
+      }
+      return { user: activeUserDetail, audit_event_id: 'AUD-SYNC-1' }
+    })
     vi.mocked(usersApi.syncUserRoles).mockReset()
     vi.mocked(getLastRequestId).mockReturnValue('req-users-1')
   })
@@ -323,6 +347,51 @@ describe('useUsersStore', () => {
 
       expect(store.status).toBe('unauthenticated')
       expect(store.actionStatus).toBe('error')
+    })
+  })
+
+  describe('ISS-L1 & ISS-L3: Mutative re-fetch & error handling', () => {
+    it('re-fetches state after lock and updates status badge re-actively', async () => {
+      vi.mocked(usersApi.lock).mockResolvedValue({
+        user: { ...user, status: 'locked' },
+        audit_event_id: 'AUD01',
+      })
+      vi.mocked(usersApi.show).mockResolvedValue({
+        user: { ...user, status: 'locked' },
+        login_context: {
+          ip_address: '127.0.0.1',
+          risk_score: 0,
+          mfa_required: false,
+        },
+        sessions: [],
+      })
+      const store = useUsersStore()
+      store.users = [user]
+      store.selectedSubjectId = 'sub_admin'
+
+      await store.lockSelected('Security')
+
+      expect(usersApi.lock).toHaveBeenCalled()
+      expect(usersApi.show).toHaveBeenCalledWith('sub_admin')
+      expect(store.selectedUser?.status).toBe('locked')
+      expect(store.actionStatus).toBe('success')
+    })
+
+    it('sets warning message if re-fetch fails after successful mutation', async () => {
+      vi.mocked(usersApi.lock).mockResolvedValue({
+        user: { ...user, status: 'locked' },
+        audit_event_id: 'AUD01',
+      })
+      vi.mocked(usersApi.show).mockRejectedValue(new Error('Network error'))
+      const store = useUsersStore()
+      store.users = [user]
+      store.selectedSubjectId = 'sub_admin'
+
+      await store.lockSelected('Security')
+
+      expect(usersApi.lock).toHaveBeenCalled()
+      expect(store.actionStatus).toBe('success')
+      expect(store.errorMessage).toBe('Aksi tersimpan, namun gagal memuat status terbaru—muat ulang.')
     })
   })
 })
