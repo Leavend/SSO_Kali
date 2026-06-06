@@ -55,6 +55,35 @@ it('completes a pending admin authorization request with an active portal sso se
         ->and($payload['auth_time'])->toBeGreaterThanOrEqual(now()->subSeconds(2)->timestamp);
 });
 
+it('completes sso and inherits amr and acr from browser session context', function (): void {
+    [$user, $sessionId] = ssoCompletionUser('sso-complete-mfa-admin@example.test', 'admin');
+    $authRequestId = ssoCompletionPendingRequest();
+
+    // Populate browser session context simulating password + MFA authentication
+    $fixedAuthTime = now()->subMinutes(5)->timestamp;
+    session()->put('sso_browser_session', [
+        'subject_id' => $user->subject_id,
+        'session_id' => $sessionId,
+        'auth_time' => $fixedAuthTime,
+        'amr' => ['pwd', 'mfa'],
+        'acr' => 'urn:sso:loa:mfa',
+    ]);
+
+    $response = $this->withHeader('Cookie', ssoCompletionCookieName().'='.$sessionId)
+        ->postJson('/connect/sso-complete', ['auth_request_id' => $authRequestId]);
+
+    $response->assertOk();
+
+    $redirectUri = (string) $response->json('redirect_uri');
+    parse_str((string) parse_url($redirectUri, PHP_URL_QUERY), $query);
+    $payload = app(AuthorizationCodeStore::class)->pull((string) ($query['code'] ?? ''));
+
+    expect($payload)->toBeArray()
+        ->and($payload['amr'])->toBe(['pwd', 'mfa'])
+        ->and($payload['acr'])->toBe('urn:sso:loa:mfa')
+        ->and($payload['auth_time'])->toBe($fixedAuthTime);
+});
+
 it('rejects sso completion without a valid portal sso session cookie', function (): void {
     $authRequestId = ssoCompletionPendingRequest();
 

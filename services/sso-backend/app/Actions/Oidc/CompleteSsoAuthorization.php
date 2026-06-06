@@ -12,6 +12,7 @@ use App\Services\Oidc\AuthRequestStore;
 use App\Services\Oidc\DownstreamClientRegistry;
 use App\Services\Oidc\HighAssuranceClientPolicy;
 use App\Services\Oidc\ScopePolicy;
+use App\Services\Oidc\SsoBrowserSession;
 use App\Services\Oidc\SsoSessionLifecycleGuard;
 use App\Services\Session\SsoSessionCookieResolver;
 use App\Services\Session\SsoSessionService;
@@ -31,6 +32,7 @@ final class CompleteSsoAuthorization
         private readonly HighAssuranceClientPolicy $assurance,
         private readonly SsoSessionLifecycleGuard $sessionLifecycle,
         private readonly AuthorizationCodeStore $codes,
+        private readonly SsoBrowserSession $browserSession,
     ) {}
 
     public function handle(Request $request): JsonResponse
@@ -85,14 +87,25 @@ final class CompleteSsoAuthorization
             return OidcErrorResponse::json('invalid_scope', $exception->safeDescription(), 400);
         }
 
+        $browserContext = $this->browserSession->context($request);
+        $amr = ['pwd'];
+        $acr = 'urn:sso:loa:password';
+        $authTime = time();
+
+        if ($browserContext !== null && ($browserContext['session_id'] ?? null) === $session->session_id) {
+            $amr = is_array($browserContext['amr'] ?? null) ? $browserContext['amr'] : ['pwd'];
+            $acr = is_string($browserContext['acr'] ?? null) && $browserContext['acr'] !== '' ? $browserContext['acr'] : 'urn:sso:loa:password';
+            $authTime = is_int($browserContext['auth_time'] ?? null) ? $browserContext['auth_time'] : time();
+        }
+
         $payload = [
             ...$context,
             'scope' => $scope,
             'session_id' => $session->session_id,
             'subject_id' => $user->subject_id,
-            'auth_time' => time(),
-            'amr' => ['pwd'],
-            'acr' => 'urn:sso:loa:password',
+            'auth_time' => $authTime,
+            'amr' => $amr,
+            'acr' => $acr,
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
         ];

@@ -74,6 +74,27 @@ it('allows an enrolled admin to reach privileged routes in production', function
         ->assertJsonPath('principal.auth_context.mfa_verified', true);
 });
 
+it('blocks an enrolled admin with a password-only token and returns mfa_required', function (): void {
+    /** @var TestCase $this */
+    config()->set('app.env', 'production');
+    config()->set('sso.admin.mfa.grace_period_hours', 0);
+
+    $admin = adminMfaPolicyUser('mfa-grace-prod-3');
+
+    MfaCredential::query()->create([
+        'user_id' => $admin->id,
+        'method' => 'totp',
+        'label' => 'Authenticator',
+        'secret' => 'JBSWY3DPEHPK3PXP',
+        'verified_at' => now(),
+    ]);
+
+    $this->withToken(adminMfaPolicyToken($admin, ['pwd']))
+        ->getJson('/admin/api/me')
+        ->assertStatus(403)
+        ->assertJsonPath('error', 'mfa_required');
+});
+
 it('honours the configured grace period for unenrolled admins in non-production', function (): void {
     /** @var TestCase $this */
     config()->set('app.env', 'staging');
