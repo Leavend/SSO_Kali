@@ -177,7 +177,10 @@ describe('resolveAdminGuard', () => {
       new ApiError(403, 'MFA enrollment required', 'mfa_enrollment_required'),
     )
 
-    await expect(resolveAdminGuard(route())).resolves.toEqual({ name: 'admin.mfa-required' })
+    await expect(resolveAdminGuard(route())).resolves.toEqual({
+      name: 'admin.mfa-required',
+      query: { return_to: '/' },
+    })
   })
 
   it('routes stale admin assurance bootstrap failures to the step-up view', async () => {
@@ -185,7 +188,10 @@ describe('resolveAdminGuard', () => {
       new ApiError(428, 'Step up required', 'step_up_required'),
     )
 
-    await expect(resolveAdminGuard(route())).resolves.toEqual({ name: 'admin.step-up-required' })
+    await expect(resolveAdminGuard(route())).resolves.toEqual({
+      name: 'admin.step-up-required',
+      query: { return_to: '/' },
+    })
   })
 
   it('routes current backend reauth_required bootstrap failures to the step-up view', async () => {
@@ -193,7 +199,10 @@ describe('resolveAdminGuard', () => {
       new ApiError(401, 'Fresh authentication is required', 'reauth_required'),
     )
 
-    await expect(resolveAdminGuard(route())).resolves.toEqual({ name: 'admin.step-up-required' })
+    await expect(resolveAdminGuard(route())).resolves.toEqual({
+      name: 'admin.step-up-required',
+      query: { return_to: '/' },
+    })
   })
 
   it('allows admins with required route permissions', async () => {

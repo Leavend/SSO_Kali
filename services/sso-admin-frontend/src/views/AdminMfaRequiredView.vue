@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useRoute } from 'vue-router'
 import UiStatusView from '@/components/ui/UiStatusView.vue'
 import { getAdminEnvironment } from '@/config/adminEnvironment'
 import { useI18n } from '@/composables/useI18n'
@@ -12,6 +13,7 @@ interface Props {
 
 const props = defineProps<Props>()
 const { t } = useI18n()
+const route = useRoute()
 
 const env = getAdminEnvironment()
 
@@ -48,8 +50,16 @@ function stepUpUrl(): string {
   const url = new URL('/auth/login', window.location.origin)
   url.searchParams.set('prompt', 'login')
   url.searchParams.set('max_age', '0')
-  url.searchParams.set('return_to', normalizeReturnPath())
+  url.searchParams.set('return_to', getReturnToPath())
   return url.toString()
+}
+
+function getReturnToPath(): string {
+  const queryReturn = route?.query?.return_to
+  if (typeof queryReturn === 'string' && queryReturn) {
+    return queryReturn
+  }
+  return normalizeReturnPath()
 }
 
 function normalizeReturnPath(): string {
