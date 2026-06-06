@@ -60,7 +60,8 @@ final class EnsureFreshAdminAuth
     {
         return response()->json([
             'error' => 'reauth_required',
-            'error_description' => 'Fresh authentication is required for this resource.',
-        ], 401);
+            'error_description' => 'Fresh authentication is required for this resource. Re-authenticate to meet the freshness precondition.',
+            'step_up_url' => url('/auth/login?prompt=login&max_age=0&return_to='.urlencode(request()->path())),
+        ], 428);
     }
 }

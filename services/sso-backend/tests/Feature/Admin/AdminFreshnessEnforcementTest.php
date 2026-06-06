@@ -66,7 +66,7 @@ it('allows stale admin tokens to access routine read endpoints', function (): vo
         ->assertOk();
 });
 
-it('returns 401 reauth_required for stale privileged write actions', function (): void {
+it('returns 428 reauth_required for stale privileged write actions', function (): void {
     /** @var TestCase $this */
     $admin = User::factory()->create([
         'subject_id' => 'stale-write-admin',
@@ -82,11 +82,11 @@ it('returns 401 reauth_required for stale privileged write actions', function ()
 
     $this->withToken(adminToken($admin, now()->subMinutes(30)->timestamp))
         ->postJson('/admin/api/users/write-target-user/lock', ['reason' => 'audit-test'])
-        ->assertStatus(401)
+        ->assertStatus(428)
         ->assertJsonPath('error', 'reauth_required');
 });
 
-it('returns 401 reauth_required for stale destructive admin actions', function (): void {
+it('returns 428 reauth_required for stale destructive admin actions', function (): void {
     /** @var TestCase $this */
     $admin = User::factory()->create([
         'subject_id' => 'step-up-admin',
@@ -98,13 +98,13 @@ it('returns 401 reauth_required for stale destructive admin actions', function (
 
     $this->withToken(adminToken($admin, now()->subMinutes(20)->timestamp))
         ->deleteJson('/admin/api/sessions/session-step-up')
-        ->assertStatus(401)
+        ->assertStatus(428)
         ->assertJsonPath('error', 'reauth_required');
 
     assertLatestAudit('session_management', 'step_up_required', 'stale_auth_rejected');
 });
 
-it('returns 401 reauth_required when revoke-all is attempted with a stale admin session', function (): void {
+it('returns 428 reauth_required when revoke-all is attempted with a stale admin session', function (): void {
     /** @var TestCase $this */
     $admin = User::factory()->create([
         'subject_id' => 'stale-revoke-all-admin',
@@ -116,9 +116,9 @@ it('returns 401 reauth_required when revoke-all is attempted with a stale admin 
 
     $this->withToken(adminToken($admin, now()->subMinutes(20)->timestamp))
         ->deleteJson('/admin/api/users/subject-2002/sessions')
-        ->assertStatus(401)
+        ->assertStatus(428)
         ->assertJsonPath('error', 'reauth_required')
-        ->assertJsonPath('error_description', 'Fresh authentication is required for this resource.');
+        ->assertJsonPath('error_description', 'Fresh authentication is required for this resource. Re-authenticate to meet the freshness precondition.');
 
     assertLatestAudit('session_management', 'step_up_required', 'stale_auth_rejected');
 });
@@ -160,7 +160,7 @@ it('accepts re-issued token with fresh auth_time for step-up flow', function ():
     // Simulate a stale token first
     $this->withToken(adminToken($admin, now()->subMinutes(20)->timestamp))
         ->postJson('/admin/api/users/reissued-target/lock', ['reason' => 'stale-attempt'])
-        ->assertStatus(401)
+        ->assertStatus(428)
         ->assertJsonPath('error', 'reauth_required');
 
     // Re-issued token with auth_time = time() (simulates CompleteSsoAuthorization after prompt=login)
@@ -218,7 +218,7 @@ it('rejects routine write beyond write window', function (): void {
     // 31 min exceeds write 1800s window
     $this->withToken(adminToken($admin, now()->subMinutes(31)->timestamp))
         ->postJson('/admin/api/users/exceeded-write-target/sync-profile')
-        ->assertStatus(401)
+        ->assertStatus(428)
         ->assertJsonPath('error', 'reauth_required');
 });
 
@@ -240,7 +240,7 @@ it('rejects high-sensitivity action when step_up window expired but write window
     // lock is :step_up — should be rejected
     $this->withToken(adminToken($admin, now()->subMinutes(16)->timestamp))
         ->postJson('/admin/api/users/stepup-vs-write-target/lock', ['reason' => 'tier-test'])
-        ->assertStatus(401)
+        ->assertStatus(428)
         ->assertJsonPath('error', 'reauth_required');
 
     // But a routine write should still pass
