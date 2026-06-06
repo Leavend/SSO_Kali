@@ -237,7 +237,7 @@ jobs:
         # is genuinely unreachable. Tune via the VPS_SSH_PORT_WAIT_SECONDS var.
         shell: bash
         env:
-          VPS_SSH_PORT_WAIT_SECONDS: ${{ vars.VPS_SSH_PORT_WAIT_SECONDS || '90' }}
+          VPS_SSH_PORT_WAIT_SECONDS: ${{ vars.VPS_SSH_PORT_WAIT_SECONDS || '1500' }}
         run: |
           set -euo pipefail
           host="${{ secrets.VPS_HOST }}"
