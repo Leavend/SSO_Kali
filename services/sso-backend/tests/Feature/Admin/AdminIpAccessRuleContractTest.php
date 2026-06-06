@@ -88,7 +88,7 @@ it('requires ip access write permission to create rules', function (): void {
         ->assertStatus(403);
 });
 
-it('requires step up for write endpoints and returns 401 without fresh auth', function (): void {
+it('requires step up for write endpoints and returns 428 without fresh auth', function (): void {
     $admin = User::factory()->create(['subject_id' => 'admin_ip_stale', 'role' => 'admin']);
 
     $staleToken = adminTokenWithAuthTime($admin, now()->subMinutes(20)->timestamp);
@@ -99,7 +99,7 @@ it('requires step up for write endpoints and returns 401 without fresh auth', fu
             'mode' => 'allow',
             'reason' => 'Internal',
         ])
-        ->assertStatus(401);
+        ->assertStatus(428);
 });
 
 function ipAccessAdminTokenFor(User $user): string
