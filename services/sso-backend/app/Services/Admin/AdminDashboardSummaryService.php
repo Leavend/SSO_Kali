@@ -123,9 +123,9 @@ final class AdminDashboardSummaryService
             ->whereNotIn('status', ['disabled', 'deactivated'])
             ->where(function ($q): void {
                 $q->whereNull('locked_at')
-                  ->orWhere(function ($q2): void {
-                      $q2->whereNotNull('locked_until')->where('locked_until', '<=', now());
-                  });
+                    ->orWhere(function ($q2): void {
+                        $q2->whereNotNull('locked_until')->where('locked_until', '<=', now());
+                    });
             })
             ->count();
 

@@ -12,7 +12,7 @@ final class UserEffectiveStatusTest extends TestCase
 {
     public function test_is_locked_when_locked_at_is_null(): void
     {
-        $user = new User();
+        $user = new User;
         $user->locked_at = null;
         $user->locked_until = null;
 
@@ -21,7 +21,7 @@ final class UserEffectiveStatusTest extends TestCase
 
     public function test_is_locked_when_locked_at_is_set_and_locked_until_is_null(): void
     {
-        $user = new User();
+        $user = new User;
         $user->locked_at = Carbon::now();
         $user->locked_until = null;
 
@@ -30,7 +30,7 @@ final class UserEffectiveStatusTest extends TestCase
 
     public function test_is_locked_when_locked_until_is_in_the_future(): void
     {
-        $user = new User();
+        $user = new User;
         $user->locked_at = Carbon::now();
         $user->locked_until = Carbon::now()->addHour();
 
@@ -39,7 +39,7 @@ final class UserEffectiveStatusTest extends TestCase
 
     public function test_is_locked_when_locked_until_is_in_the_past(): void
     {
-        $user = new User();
+        $user = new User;
         $user->locked_at = Carbon::now()->subHours(2);
         $user->locked_until = Carbon::now()->subHour();
 
@@ -48,7 +48,7 @@ final class UserEffectiveStatusTest extends TestCase
 
     public function test_effective_status_precedence_when_disabled(): void
     {
-        $user = new User();
+        $user = new User;
         $user->status = 'disabled';
         $user->locked_at = Carbon::now();
         $user->locked_until = null;
@@ -58,7 +58,7 @@ final class UserEffectiveStatusTest extends TestCase
 
     public function test_effective_status_precedence_when_deactivated(): void
     {
-        $user = new User();
+        $user = new User;
         $user->status = 'deactivated';
         $user->locked_at = Carbon::now();
         $user->locked_until = null;
@@ -68,7 +68,7 @@ final class UserEffectiveStatusTest extends TestCase
 
     public function test_effective_status_precedence_when_active_and_locked(): void
     {
-        $user = new User();
+        $user = new User;
         $user->status = 'active';
         $user->locked_at = Carbon::now();
         $user->locked_until = null;
@@ -78,7 +78,7 @@ final class UserEffectiveStatusTest extends TestCase
 
     public function test_effective_status_precedence_when_active_and_not_locked(): void
     {
-        $user = new User();
+        $user = new User;
         $user->status = 'active';
         $user->locked_at = null;
         $user->locked_until = null;
@@ -88,7 +88,7 @@ final class UserEffectiveStatusTest extends TestCase
 
     public function test_effective_status_precedence_when_status_is_null_and_not_locked(): void
     {
-        $user = new User();
+        $user = new User;
         $user->status = '';
         $user->locked_at = null;
         $user->locked_until = null;

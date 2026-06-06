@@ -147,6 +147,7 @@ class User extends Authenticatable implements OAuthenticatable
         if (in_array($this->status, ['disabled', 'deactivated'], true)) {
             return $this->status;
         }
+
         return $this->isLocked() ? 'locked' : ($this->status ?: 'active');
     }
 }
