@@ -168,7 +168,7 @@ export const useUsersStore = defineStore('admin-users', () => {
         requestId.value = getLastRequestId()
         actionStatus.value = 'success'
         clearPendingIntent()
-      } catch (selectError) {
+      } catch {
         actionStatus.value = 'success'
         errorMessage.value = 'Aksi tersimpan, namun gagal memuat status terbaru—muat ulang.'
         clearPendingIntent()
@@ -199,7 +199,7 @@ export const useUsersStore = defineStore('admin-users', () => {
         requestId.value = getLastRequestId()
         actionStatus.value = 'success'
         clearPendingIntent()
-      } catch (selectError) {
+      } catch {
         actionStatus.value = 'success'
         errorMessage.value = 'Aksi tersimpan, namun gagal memuat status terbaru—muat ulang.'
         clearPendingIntent()
@@ -271,7 +271,7 @@ export const useUsersStore = defineStore('admin-users', () => {
         sessions.value = showResponse.sessions ?? []
         requestId.value = getLastRequestId()
         actionStatus.value = 'success'
-      } catch (selectError) {
+      } catch {
         actionStatus.value = 'success'
         errorMessage.value = 'Aksi tersimpan, namun gagal memuat status terbaru—muat ulang.'
       }

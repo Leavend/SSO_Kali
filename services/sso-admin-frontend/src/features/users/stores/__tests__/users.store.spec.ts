@@ -65,7 +65,7 @@ describe('useUsersStore', () => {
       }
     })
     vi.mocked(usersApi.lock).mockReset()
-    vi.mocked(usersApi.lock).mockImplementation(async (subjectId, payload) => {
+    vi.mocked(usersApi.lock).mockImplementation(async (_subjectId, _payload) => {
       activeUserDetail = { ...activeUserDetail, status: 'locked' }
       return { user: activeUserDetail, audit_event_id: 'AUD01' }
     })
@@ -75,7 +75,7 @@ describe('useUsersStore', () => {
     vi.mocked(usersApi.issuePasswordReset).mockReset()
     vi.mocked(usersApi.resetMfa).mockReset()
     vi.mocked(usersApi.syncProfile).mockReset()
-    vi.mocked(usersApi.syncProfile).mockImplementation(async (subjectId, payload: any) => {
+    vi.mocked(usersApi.syncProfile).mockImplementation(async (_subjectId, payload: any) => {
       activeUserDetail = {
         ...activeUserDetail,
         ...(payload.email && { email: payload.email }),
