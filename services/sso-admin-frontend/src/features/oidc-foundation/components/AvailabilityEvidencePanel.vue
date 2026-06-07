@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useDateFormat } from '@/composables/useDateFormat'
 import OidcStatusBadge from './OidcStatusBadge.vue'
 import type { OidcAvailabilityEvidence, OidcEndpointAvailability } from '../types'
 
@@ -7,6 +8,7 @@ defineProps<{
   readonly jwks: OidcEndpointAvailability
   readonly timeline: readonly OidcAvailabilityEvidence[]
 }>()
+const dateFormat = useDateFormat()
 </script>
 
 <template>
@@ -25,7 +27,7 @@ defineProps<{
           Latency:
           {{ endpoint.latency_ms === null ? 'Belum tersedia' : `${endpoint.latency_ms}ms` }}
         </p>
-        <p>Last check: {{ endpoint.last_checked_at ?? 'Belum tersedia' }}</p>
+        <p>Last check: {{ dateFormat.smart(endpoint.last_checked_at) }}</p>
       </article>
     </div>
 
@@ -34,7 +36,7 @@ defineProps<{
     <ul v-else class="oidc-timeline">
       <li v-for="item in timeline" :key="`${item.label}-${item.checked_at}`">
         <OidcStatusBadge :status="item.status" /> {{ item.label }} —
-        {{ item.checked_at ?? 'Belum tersedia' }}
+        {{ dateFormat.smart(item.checked_at) }}
       </li>
     </ul>
   </section>

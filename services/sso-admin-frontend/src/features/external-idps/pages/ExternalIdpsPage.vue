@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useI18n } from '@/composables/useI18n'
+import { useDateFormat } from '@/composables/useDateFormat'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiEmptyState from '@/components/ui/UiEmptyState.vue'
@@ -27,6 +28,7 @@ import {
 const store = useExternalIdpsStore()
 const session = useSessionStore()
 const { t } = useI18n()
+const dateFormat = useDateFormat()
 
 const canWriteExternalIdps = computed(() => session.hasPermission('admin.external-idps.write'))
 const canDeleteExternalIdps = computed(
@@ -802,7 +804,7 @@ onMounted(() => {
               <strong>{{ store.selectedProvider.consecutive_failures }}</strong>
             </p>
             <p v-if="store.selectedProvider.breaker_tripped_at" style="margin-bottom: 4px">
-              Breaker Tripped At: <strong>{{ store.selectedProvider.breaker_tripped_at }}</strong>
+              Breaker Tripped At: <strong>{{ dateFormat.smart(store.selectedProvider.breaker_tripped_at) }}</strong>
             </p>
             <p v-if="store.selectedProvider.breaker_reason" style="margin: 0">
               Breaker Reason: <code>{{ store.selectedProvider.breaker_reason }}</code>

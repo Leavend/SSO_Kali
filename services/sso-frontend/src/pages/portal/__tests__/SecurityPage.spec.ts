@@ -104,7 +104,7 @@ describe('SecurityPage', () => {
 
     expect(wrapper.text()).toContain('Kelola MFA')
     expect(wrapper.text()).toContain(
-      '6 recovery code tersisa · TOTP aktif · Diverifikasi 18/05/26, 19:00',
+      '6 recovery code tersisa · TOTP aktif · Diverifikasi',
     )
     expect(wrapper.text()).toContain(
       'Kelola aplikasi autentikasi dan kode cadangan untuk akun kamu.',
@@ -193,7 +193,7 @@ describe('SecurityPage', () => {
     expect(riskyRow?.text()).toContain('36.82.10.20')
     expect(riskyRow?.text()).toContain('Aktivitas sensitif terdeteksi dari IP yang tidak dikenal')
     expect(riskyRow?.classes().join(' ')).toContain('border-error-700/40')
-    expect(wrapper.text()).toContain('21/05/26, 02:25')
+    expect(wrapper.text()).toContain('20 Mei 2026')
     expect(wrapper.text()).not.toContain('session_revoked')
   })
 

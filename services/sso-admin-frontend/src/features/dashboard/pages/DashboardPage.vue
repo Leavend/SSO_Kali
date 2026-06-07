@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from '@/composables/useI18n'
+import { useDateFormat } from '@/composables/useDateFormat'
 import { useAutoRefresh } from '@/composables/useAutoRefresh'
 import { getAdminEnvironment } from '@/config/adminEnvironment'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
@@ -21,6 +22,7 @@ import {
 
 const dashboard = useDashboardStore()
 const { t } = useI18n()
+const dateFormat = useDateFormat()
 
 const lastRefreshedAt = ref<Date>(new Date())
 
@@ -163,7 +165,9 @@ function counterTone(key: string, value: number): 'neutral' | 'success' | 'warni
       <dl class="dashboard-evidence">
         <div v-if="dashboard.summary">
           <dt>Generated at</dt>
-          <dd>{{ dashboard.summary.generated_at }}</dd>
+          <dd :title="dateFormat.iso(dashboard.summary.generated_at)">
+            {{ dateFormat.smart(dashboard.summary.generated_at) }}
+          </dd>
         </div>
       </dl>
     </header>

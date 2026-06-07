@@ -7,6 +7,7 @@ namespace App\Actions\Auth;
 use App\Actions\Audit\RecordAuthenticationAuditEventAction;
 use App\Services\Directory\DirectoryUser;
 use App\Services\Directory\DirectoryUserProvider;
+use App\Services\Security\LoginContextRecorder;
 use App\Services\Session\SsoSessionService;
 use App\Support\Audit\AuthenticationAuditRecord;
 use App\Support\Auth\LocalPasswordLoginOutcome;
@@ -18,6 +19,7 @@ final readonly class LoginSsoUserAction
         private SsoSessionService $sessions,
         private RecordAuthenticationAuditEventAction $audits,
         private VerifyLocalPasswordLoginAction $verifier,
+        private LoginContextRecorder $recorder,
     ) {}
 
     public function execute(
@@ -41,6 +43,15 @@ final readonly class LoginSsoUserAction
 
         $session = $this->sessions->create($directoryUser, $ipAddress, $userAgent);
         $this->recordSuccess($identifier, $directoryUser, $session->session_id, $ipAddress, $userAgent, $authRequestId, $requestId);
+
+        $this->recorder->record(
+            $verification->user,
+            $ipAddress,
+            $userAgent,
+            ['pwd'],
+            'urn:sso:loa:password',
+            time()
+        );
 
         return new LoginSsoUserResult(authenticated: true, user: $directoryUser, session: $session);
     }

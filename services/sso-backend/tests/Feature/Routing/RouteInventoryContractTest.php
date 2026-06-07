@@ -8,8 +8,8 @@ use Illuminate\Support\Facades\Route as RouteFacade;
 it('keeps the production route inventory intentional', function (): void {
     $routes = collect(RouteFacade::getRoutes()->getRoutes());
 
-    expect($routes)->toHaveCount(136);
-    expect(applicationRoutes($routes))->toHaveCount(124);
+    expect($routes)->toHaveCount(138);
+    expect(applicationRoutes($routes))->toHaveCount(126);
     expect(vendorRoutes($routes))->toHaveCount(12);
 });
 
@@ -160,8 +160,10 @@ function expectedApplicationRouteSignatures(): array
         'POST admin/api/users/{subjectId}/lock',
         'POST admin/api/users/{subjectId}/password-reset',
         'POST admin/api/users/{subjectId}/reactivate',
+        'POST admin/api/users/{subjectId}/require-mfa',
         'POST admin/api/users/{subjectId}/reset-mfa',
         'POST admin/api/users/{subjectId}/sync-profile',
+        'POST admin/api/users/{subjectId}/unrequire-mfa',
         'POST admin/api/users/{subjectId}/unlock',
         'DELETE admin/api/users/{subjectId}/sessions',
         'POST api/auth/login',

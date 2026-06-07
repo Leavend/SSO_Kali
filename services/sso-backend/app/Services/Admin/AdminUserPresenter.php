@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Admin;
 
+use App\Models\MfaCredential;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -49,6 +50,9 @@ final class AdminUserPresenter
         return [
             ...$user->only($this->columns()),
             'effective_status' => $user->effective_status,
+            'mfa_enrolled' => MfaCredential::query()->forUser($user->id)->verified()->exists(),
+            'mfa_methods' => MfaCredential::query()->forUser($user->id)->verified()->pluck('method')->unique()->values()->all(),
+            'mfa_mandatory' => (bool) $user->mfa_mandatory,
             'roles' => $user->roles
                 ->map(fn (Role $role): array => $role->only(['slug', 'name', 'is_system']))
                 ->sortBy('slug')

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, reactive, ref, watch, type Component } from 'vue'
 import { useI18n } from '@/composables/useI18n'
+import { useDateFormat } from '@/composables/useDateFormat'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import { buttonVariants } from '@/components/ui/button'
@@ -32,6 +33,7 @@ import {
 const store = useClientsStore()
 const session = useSessionStore()
 const { t } = useI18n()
+const dateFormat = useDateFormat()
 const canWriteClients = computed(() => session.hasPermission('admin.clients.write'))
 const canManageClientLifecycle = computed(
   () => canWriteClients.value && session.hasPermission('admin.sessions.terminate'),
@@ -904,7 +906,7 @@ async function rotateSecret(): Promise<void> {
             </div>
             <div>
               <dt>{{ t('clients.ov_secret_rotated') }}</dt>
-              <dd>{{ store.selectedClient.secret_rotated_at ?? t('clients.val_no_evidence') }}</dd>
+              <dd>{{ dateFormat.smart(store.selectedClient.secret_rotated_at) }}</dd>
             </div>
             <div>
               <dt>{{ t('clients.ov_secret_hash') }}</dt>

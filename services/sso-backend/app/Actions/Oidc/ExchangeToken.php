@@ -16,6 +16,7 @@ use App\Services\Oidc\LocalTokenService;
 use App\Services\Oidc\OidcIncidentAuditLogger;
 use App\Services\Oidc\RefreshTokenStore;
 use App\Services\Oidc\TokenClientAuthenticationResolver;
+use App\Services\Security\LoginContextRecorder;
 use App\Support\Audit\AuthenticationAuditRecord;
 use App\Support\Oidc\DownstreamClient;
 use App\Support\Oidc\Pkce;
@@ -36,6 +37,7 @@ final class ExchangeToken
         private readonly OidcIncidentAuditLogger $incidents,
         private readonly RecordAuthenticationAuditEventAction $audits,
         private readonly RecordSsoErrorAction $ssoErrors,
+        private readonly LoginContextRecorder $recorder,
     ) {}
 
     public function handle(Request $request): JsonResponse
@@ -66,6 +68,21 @@ final class ExchangeToken
         }
 
         $response = $this->tokens->issue($payload);
+
+        if (isset($payload['subject_id'])) {
+            $user = User::query()->where('subject_id', $payload['subject_id'])->first();
+            if ($user !== null) {
+                $this->recorder->record(
+                    $user,
+                    $payload['ip_address'] ?? $request->ip(),
+                    $payload['user_agent'] ?? $request->userAgent(),
+                    $payload['amr'] ?? [],
+                    $payload['acr'] ?? null,
+                    $payload['auth_time'] ?? null
+                );
+            }
+        }
+
         $this->recordTokenLifecycle($request, 'token_issued', 'succeeded', null, $payload, [
             'grant_type' => 'authorization_code',
             'refresh_token_issued' => array_key_exists('refresh_token', $response),

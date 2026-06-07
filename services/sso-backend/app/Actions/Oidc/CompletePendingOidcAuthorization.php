@@ -12,6 +12,7 @@ use App\Services\Oidc\AuthRequestStore;
 use App\Services\Oidc\ConsentService;
 use App\Services\Oidc\DownstreamClientRegistry;
 use App\Services\Oidc\ScopePolicy;
+use App\Services\Security\LoginContextRecorder;
 use App\Support\Audit\AuthenticationAuditRecord;
 use App\Support\Oidc\DownstreamClient;
 use App\Support\Oidc\OidcContinuationResult;
@@ -39,6 +40,7 @@ final class CompletePendingOidcAuthorization
         private readonly AuthRequestStore $authRequests,
         private readonly ConsentService $consents,
         private readonly RecordAuthenticationAuditEventAction $audits,
+        private readonly LoginContextRecorder $recorder,
     ) {}
 
     /**
@@ -106,6 +108,15 @@ final class CompletePendingOidcAuthorization
         }
 
         $code = $this->codes->issue($payload);
+
+        $this->recorder->record(
+            $user,
+            $request->ip(),
+            $request->userAgent(),
+            ['pwd', 'mfa'],
+            'urn:sso:loa:mfa',
+            $payload['auth_time']
+        );
 
         $this->recordSuccess($request, $user, $client, $payload);
 

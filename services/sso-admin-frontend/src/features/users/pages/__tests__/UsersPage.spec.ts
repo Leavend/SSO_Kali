@@ -286,7 +286,7 @@ describe('UsersPage', () => {
     const wrapper = mount(UsersPage)
 
     expect(wrapper.text()).toContain('Sync Profile')
-    expect(wrapper.text()).toContain('2026-05-29T08:00:00Z')
+    expect(wrapper.text()).toContain('29 May 2026')
 
     const emailInput = wrapper.find('input[name="sync-email"]')
     const displayNameInput = wrapper.find('input[name="sync-display-name"]')

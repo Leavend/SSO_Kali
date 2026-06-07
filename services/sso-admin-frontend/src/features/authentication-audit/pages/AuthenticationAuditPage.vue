@@ -18,6 +18,7 @@ import UiStatusView from '@/components/ui/UiStatusView.vue'
 import { useAuthAuditStore } from '../stores/auth-audit.store'
 import type { AuthAuditFilters } from '../types'
 import { useI18n } from '@/composables/useI18n'
+import { useDateFormat } from '@/composables/useDateFormat'
 import {
   Search,
   ChevronLeft,
@@ -37,6 +38,7 @@ import {
 
 const store = useAuthAuditStore()
 const { t } = useI18n()
+const dateFormat = useDateFormat()
 
 const searchSubjectId = ref('')
 const searchClientId = ref('')
@@ -68,22 +70,6 @@ async function copyToClipboard(text: string): Promise<void> {
     }, 2000)
   } catch {
     // Fail-safe fallback if clipboard API is not available
-  }
-}
-
-function formatTime(val: string | null | undefined): string {
-  if (!val) return '—'
-  try {
-    const date = new Date(val)
-    return date.toLocaleDateString(undefined, {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    })
-  } catch {
-    return val
   }
 }
 
@@ -354,7 +340,7 @@ onMounted(() => {
                       {{ event.subject?.email ?? event.subject?.subject_id ?? '—' }}
                     </span>
                     <span class="event-card-item__footer-row">
-                      <span class="event-card-item__time">{{ formatTime(event.occurred_at) }}</span>
+                      <span class="event-card-item__time">{{ dateFormat.smart(event.occurred_at) }}</span>
                       <span
                         v-if="event.request?.request_id"
                         class="event-card-item__req-id font-mono text-xs"
@@ -473,7 +459,7 @@ onMounted(() => {
             </div>
             <div>
               <dt>{{ t('auth_audit.col_occurred_at') }}</dt>
-              <dd class="font-mono">{{ store.selectedEvent.occurred_at ?? '—' }}</dd>
+              <dd class="font-mono">{{ dateFormat.absolute(store.selectedEvent.occurred_at) }}</dd>
             </div>
             <div v-if="store.selectedEvent.error_code">
               <dt>{{ t('auth_audit.col_error_code') }}</dt>

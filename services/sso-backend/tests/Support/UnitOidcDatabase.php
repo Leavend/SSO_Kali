@@ -15,6 +15,7 @@ function resetOidcUnitTables(): void
     DB::table('login_contexts')->delete();
     DB::table('refresh_token_rotations')->delete();
     DB::table('oidc_rp_sessions')->delete();
+    DB::table('sso_sessions')->delete();
     DB::table('users')->delete();
 }
 
@@ -42,6 +43,7 @@ function ensureOidcUnitTables(): void
     ensureRefreshTokensTable();
     ensureAuthorizationCodesTable();
     ensureRpSessionsTable();
+    ensureSsoSessionsTable();
 }
 
 function ensureRpSessionsTable(): void
@@ -101,6 +103,7 @@ function ensureUsersTable(): void
         $table->string('family_name')->nullable();
         $table->string('display_name');
         $table->string('role')->default('user');
+        $table->boolean('mfa_mandatory')->default(false);
         $table->timestamp('email_verified_at')->nullable();
         $table->timestamp('last_login_at')->nullable();
         $table->timestamps();
@@ -152,6 +155,26 @@ function ensureRefreshTokensTable(): void
         $table->timestamp('expires_at');
         $table->string('replaced_by_token_id')->nullable();
         $table->timestamp('revoked_at')->nullable();
+        $table->timestamps();
+    });
+}
+
+function ensureSsoSessionsTable(): void
+{
+    if (Schema::hasTable('sso_sessions')) {
+        return;
+    }
+
+    Schema::create('sso_sessions', function (Blueprint $table): void {
+        $table->id();
+        $table->string('session_id')->unique();
+        $table->string('subject_id')->index();
+        $table->string('ip_address', 45)->nullable();
+        $table->text('user_agent')->nullable();
+        $table->timestamp('authenticated_at');
+        $table->timestamp('last_seen_at')->nullable();
+        $table->timestamp('expires_at')->index();
+        $table->timestamp('revoked_at')->nullable()->index();
         $table->timestamps();
     });
 }

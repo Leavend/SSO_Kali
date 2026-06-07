@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from '@/composables/useI18n'
+import { useDateFormat } from '@/composables/useDateFormat'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
 import UiDataList, { type UiDataListRow } from '@/components/ui/UiDataList.vue'
@@ -17,6 +18,7 @@ import { usePolicyStore } from '../stores/policy.store'
 const store = usePolicyStore()
 const session = useSessionStore()
 const { t } = useI18n()
+const dateFormat = useDateFormat()
 const canWriteSecurityPolicy = computed(() => session.hasPermission('admin.security-policy.write'))
 const canActivateSecurityPolicy = computed(() =>
   session.hasPermission('admin.security-policy.activate'),
@@ -250,7 +252,7 @@ const confirmDescription = computed<string>(() => {
 
         <div v-for="policy in store.policies" :key="policy.id" class="ui-card">
           <strong>{{ policy.category }} version {{ policy.version }}</strong>
-          <p>{{ policy.status }} · effective {{ policy.effective_at ?? 'not active' }}</p>
+          <p>{{ policy.status }} · effective {{ dateFormat.smart(policy.effective_at) }}</p>
           <p>Actor: {{ policy.actor_subject_id ?? 'unknown' }}</p>
           <pre class="policy-json">{{ JSON.stringify(policy.payload, null, 2) }}</pre>
           <div v-if="canActivateSecurityPolicy" class="action-row compact-actions">

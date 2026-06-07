@@ -1,3 +1,4 @@
+import { formatDateTimeAbsolute, formatDateTimeRelative } from '@/lib/datetime'
 import type { ParsedUserAgent } from '@/lib/parse-user-agent'
 import type { UserSessionSummary } from '@/types/profile.types'
 
@@ -9,38 +10,13 @@ export interface SessionLocationPresentation {
   readonly isForeignIp: boolean
 }
 
-const SESSION_TIMESTAMP_FORMATTER = new Intl.DateTimeFormat('id-ID', {
-  day: '2-digit',
-  month: '2-digit',
-  year: '2-digit',
-  hour: '2-digit',
-  minute: '2-digit',
-  hour12: false,
-  timeZone: 'Asia/Makassar',
-})
-
 export function formatSessionTimestamp(value: string | null | undefined, fallback = '—'): string {
-  if (!value) return fallback
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
-  return SESSION_TIMESTAMP_FORMATTER.format(date).replaceAll('.', ':')
+  return formatDateTimeAbsolute(value, { fallback })
 }
 
 export function relativeSessionTime(value: string, now = new Date()): string {
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return 'waktu tidak valid'
-  const diffMs = Math.max(0, now.getTime() - date.getTime())
-  const diffMinutes = Math.floor(diffMs / 60_000)
-  if (diffMinutes < 1) return 'baru saja'
-  if (diffMinutes < 60) return `${diffMinutes} menit lalu`
-  const diffHours = Math.floor(diffMinutes / 60)
-  if (diffHours < 24) return `${diffHours} jam lalu`
-  const diffDays = Math.floor(diffHours / 24)
-  if (diffDays < 30) return `${diffDays} hari lalu`
-  const diffMonths = Math.floor(diffDays / 30)
-  if (diffMonths < 12) return `${diffMonths} bulan lalu`
-  const diffYears = Math.floor(diffDays / 365)
-  return `${diffYears} tahun lalu`
+  const formatted = formatDateTimeRelative(value, { now, fallback: 'waktu tidak valid' })
+  return formatted === '—' ? 'waktu tidak valid' : formatted
 }
 
 export function isDormantSession(value: string, now = new Date()): boolean {

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useDateFormat } from '@/composables/useDateFormat'
 import OidcStatusBadge from './OidcStatusBadge.vue'
 import type { OidcJwksKey, OidcRotationEvidence } from '../types'
 
@@ -6,6 +7,7 @@ defineProps<{
   readonly keys: readonly OidcJwksKey[]
   readonly rotationEvidence: OidcRotationEvidence
 }>()
+const dateFormat = useDateFormat()
 </script>
 
 <template>
@@ -30,7 +32,7 @@ defineProps<{
             <td>{{ key.alg }}</td>
             <td>{{ key.use }}</td>
             <td><OidcStatusBadge :status="key.status" /></td>
-            <td>{{ key.rotated_at ?? 'Belum tersedia' }}</td>
+            <td>{{ dateFormat.smart(key.rotated_at) }}</td>
           </tr>
         </tbody>
       </table>
@@ -50,7 +52,7 @@ defineProps<{
         </div>
         <div>
           <dt>Latest drill</dt>
-          <dd>{{ rotationEvidence.latest_drill_at ?? 'Belum tersedia' }}</dd>
+          <dd>{{ dateFormat.smart(rotationEvidence.latest_drill_at) }}</dd>
         </div>
         <div>
           <dt>Operator signoff</dt>

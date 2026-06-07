@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import { useDateFormat } from '@/composables/useDateFormat'
 import OidcStatusBadge from './OidcStatusBadge.vue'
 import type { OidcFoundationSnapshot } from '../types'
 
 defineProps<{
   readonly snapshot: OidcFoundationSnapshot
 }>()
+const dateFormat = useDateFormat()
 </script>
 
 <template>
@@ -41,7 +43,7 @@ defineProps<{
       </div>
       <div>
         <dt>Checked at</dt>
-        <dd>{{ snapshot.checked_at }}</dd>
+        <dd>{{ dateFormat.smart(snapshot.checked_at) }}</dd>
       </div>
       <div v-if="snapshot.correlation_id">
         <dt>Correlation ID</dt>

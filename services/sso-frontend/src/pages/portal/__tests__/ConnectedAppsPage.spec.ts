@@ -109,9 +109,9 @@ describe('ConnectedAppsPage', () => {
       'Aplikasi ini memiliki akses ke sesi dan dapat memperbarui token tanpa login ulang.',
     )
     expect(wrapper.text()).toContain('Terhubung')
-    expect(wrapper.text()).toContain('12/05/26, 16:00')
+    expect(wrapper.text()).toContain('12 Mei 2026')
     expect(wrapper.text()).toContain('Terakhir Dipakai')
-    expect(wrapper.text()).toContain('21/05/26, 01:35')
+    expect(wrapper.text()).toContain('20 Mei 2026')
   })
 
   it('hides technical client ID until details are expanded', async () => {

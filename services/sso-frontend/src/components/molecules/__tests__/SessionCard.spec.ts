@@ -58,8 +58,8 @@ describe('SessionCard', () => {
     expect(wrapper.text()).toContain('Sesi Aktif Saat Ini')
     expect(wrapper.text()).toContain('103.88.12.10')
     expect(wrapper.text()).toContain('Bontang, Kalimantan Timur')
-    expect(wrapper.text()).toContain('21/05/26, 00:30')
-    expect(wrapper.text()).toContain('Token kedaluwarsa: 21/05/26, 10:42')
+    expect(wrapper.text()).toContain('20 Mei 2026')
+    expect(wrapper.text()).toContain('Token kedaluwarsa: 21 Mei 2026')
     expect(wrapper.text()).toContain('Untuk keluar dari perangkat ini, gunakan tombol Logout')
     expect(wrapper.find('[data-testid="session-revoke-button"]').exists()).toBe(false)
   })
@@ -75,9 +75,9 @@ describe('SessionCard', () => {
     expect(wrapper.text()).toContain('Safari · iOS · iPhone')
     expect(wrapper.text()).toContain('36.82.10.20')
     expect(wrapper.text()).toContain('Lokasi tidak dikenal')
-    expect(wrapper.text()).toContain('1 hari lalu')
-    expect(wrapper.find('[data-testid="session-last-used-relative"]').attributes('title')).toBe(
-      '20/05/26, 18:11',
+    expect(wrapper.text()).toContain('kemarin')
+    expect(wrapper.find('[data-testid="session-last-used-relative"]').attributes('title')).toContain(
+      '20 Mei 2026',
     )
     expect(wrapper.text()).toContain(
       'Sesi ini dibuka dari IP yang belum pernah digunakan sebelumnya',

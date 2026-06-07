@@ -22,6 +22,7 @@ use App\Http\Controllers\Admin\SessionController;
 use App\Http\Controllers\Admin\SsoErrorTemplateController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\UserLifecycleLockController;
+use App\Http\Controllers\Admin\UserMfaEnforcementController;
 use App\Http\Controllers\Admin\UserMfaResetController;
 use App\Http\Middleware\AdminGuard;
 use App\Http\Middleware\EnsureAdminMfaAssurance;
@@ -148,6 +149,10 @@ Route::middleware([AdminGuard::class, EnsureAdminMfaEnrolled::class])->prefix('a
         Route::post('/users/{subjectId}/lock', [UserLifecycleLockController::class, 'lock'])
             ->where('subjectId', '[a-zA-Z0-9_-]+');
         Route::post('/users/{subjectId}/unlock', [UserLifecycleLockController::class, 'unlock'])
+            ->where('subjectId', '[a-zA-Z0-9_-]+');
+        Route::post('/users/{subjectId}/require-mfa', [UserMfaEnforcementController::class, 'requireMfa'])
+            ->where('subjectId', '[a-zA-Z0-9_-]+');
+        Route::post('/users/{subjectId}/unrequire-mfa', [UserMfaEnforcementController::class, 'unrequireMfa'])
             ->where('subjectId', '[a-zA-Z0-9_-]+');
     });
 

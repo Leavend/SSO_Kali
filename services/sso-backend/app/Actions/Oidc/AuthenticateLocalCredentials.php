@@ -8,9 +8,7 @@ use App\Actions\Audit\RecordAuthenticationAuditEventAction;
 use App\Actions\Auth\VerifyLocalPasswordLoginAction;
 use App\Exceptions\OidcScopeException;
 use App\Models\MfaCredential;
-use App\Models\SsoSession;
 use App\Models\User;
-use App\Notifications\SuspiciousLoginNotification;
 use App\Services\Mfa\MfaChallengeStore;
 use App\Services\Oidc\AcrEvaluator;
 use App\Services\Oidc\AuthorizationCodeStore;
@@ -18,16 +16,15 @@ use App\Services\Oidc\AuthRequestStore;
 use App\Services\Oidc\ConsentService;
 use App\Services\Oidc\DownstreamClientRegistry;
 use App\Services\Oidc\ScopePolicy;
-use App\Services\Security\LoginRiskEvaluator;
+use App\Services\Security\LoginContextRecorder;
 use App\Support\Audit\AuthenticationAuditRecord;
 use App\Support\Auth\LocalPasswordLoginOutcome;
 use App\Support\Oidc\DownstreamClient;
 use App\Support\Oidc\ScopeSet;
 use App\Support\Responses\OidcErrorResponse;
-use App\Support\Security\RiskLevel;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
@@ -48,7 +45,7 @@ final class AuthenticateLocalCredentials
         private readonly RecordAuthenticationAuditEventAction $audits,
         private readonly MfaChallengeStore $challenges,
         private readonly AcrEvaluator $acrEvaluator,
-        private readonly LoginRiskEvaluator $riskEvaluator,
+        private readonly LoginContextRecorder $recorder,
     ) {}
 
     public function handle(Request $request): JsonResponse
@@ -140,8 +137,19 @@ final class AuthenticateLocalCredentials
 
         $user = $verification->user;
 
-        // FR-019 / UC-72: evaluate login risk and dispatch notification if suspicious
-        $this->evaluateLoginRisk($user, $request);
+        // Record login context and evaluate risk
+        $this->recorder->record(
+            $user,
+            $request->ip(),
+            $request->userAgent(),
+            ['pwd'],
+            'urn:sso:loa:password',
+            time()
+        );
+
+        $mfaRequired = (bool) DB::table('login_contexts')
+            ->where('subject_id', $user->subject_id)
+            ->value('mfa_required');
 
         // BE-FR020-001: a user whose MFA was emergency-reset must finish a
         // fresh enrolment before any privileged authentication can complete.
@@ -180,13 +188,13 @@ final class AuthenticateLocalCredentials
         $requiresMfaForAcr = $requestedAcr !== null
             && $this->acrEvaluator->level($requestedAcr) >= $this->acrEvaluator->level('urn:sso:loa:mfa');
 
-        if ($requiresMfaForAcr && ! $userHasMfa) {
+        if (($requiresMfaForAcr || $mfaRequired) && ! $userHasMfa) {
             $this->recordFailed($request, $email, $client, 'mfa_enrollment_required');
 
             return response()->json([
                 'error' => 'mfa_enrollment_required',
-                'error_description' => 'The relying party requires MFA but the user is not enrolled.',
-                'message' => 'Aplikasi ini memerlukan autentikasi multi-faktor. Silakan aktifkan MFA pada akun Anda terlebih dahulu.',
+                'error_description' => 'The relying party or security policy requires MFA but the user is not enrolled.',
+                'message' => 'Aplikasi atau kebijakan keamanan memerlukan autentikasi multi-faktor. Silakan aktifkan MFA pada akun Anda terlebih dahulu.',
                 'enroll_mfa_url' => '/security/mfa',
             ], 403, [
                 'Cache-Control' => 'no-store',
@@ -271,62 +279,6 @@ final class AuthenticateLocalCredentials
         return response()->json([
             'redirect_uri' => $callbackUri,
         ]);
-    }
-
-    /**
-     * FR-019 / UC-72: Evaluate login risk and dispatch notification if anomalous.
-     */
-    private function evaluateLoginRisk(User $user, Request $request): void
-    {
-        $ip = (string) $request->ip();
-        $ua = (string) $request->userAgent();
-        $subjectId = $user->subject_id;
-
-        $isNewIp = ! SsoSession::query()
-            ->where('subject_id', $subjectId)
-            ->where('ip_address', $ip)
-            ->exists();
-
-        $isNewDevice = ! SsoSession::query()
-            ->where('subject_id', $subjectId)
-            ->where('user_agent', $ua)
-            ->exists();
-
-        $recentLoginCount = SsoSession::query()
-            ->where('subject_id', $subjectId)
-            ->where('authenticated_at', '>', now()->subHour())
-            ->count();
-
-        $risk = $this->riskEvaluator->evaluate(
-            subjectId: $subjectId,
-            ipAddress: $ip,
-            deviceFingerprint: $ua,
-            isNewDevice: $isNewDevice,
-            isNewIp: $isNewIp,
-            recentLoginCount: $recentLoginCount,
-        );
-
-        if ($risk->exceedsThreshold() || $risk === RiskLevel::Medium) {
-            $this->dispatchSuspiciousNotification($user, $ip, $ua);
-        }
-    }
-
-    private function dispatchSuspiciousNotification(User $user, string $ip, string $ua): void
-    {
-        $cacheKey = 'suspicious_login_notified:'.$user->subject_id;
-
-        if (Cache::has($cacheKey)) {
-            return;
-        }
-
-        $window = (int) config('security-notifications.throttle.window_minutes', 60);
-        Cache::put($cacheKey, true, now()->addMinutes($window));
-
-        $user->notify(new SuspiciousLoginNotification(
-            ipAddress: $ip,
-            userAgent: $ua,
-            occurredAt: time(),
-        ));
     }
 
     private function requiresConsent(DownstreamClient $client, string $subjectId, string $scope): bool

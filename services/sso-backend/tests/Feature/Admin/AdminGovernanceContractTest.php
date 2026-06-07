@@ -251,6 +251,7 @@ it('guarantees mutually exclusive dashboard user counters to prevent double coun
     User::factory()->create(['subject_id' => 'user_locked', 'role' => 'user', 'status' => 'active', 'locked_at' => now(), 'locked_until' => null]);
     User::factory()->create(['subject_id' => 'user_disabled', 'role' => 'user', 'status' => 'disabled', 'locked_at' => null]);
     User::factory()->create(['subject_id' => 'user_disabled_locked', 'role' => 'user', 'status' => 'disabled', 'locked_at' => now(), 'locked_until' => null]);
+    User::factory()->create(['subject_id' => 'user_deactivated', 'role' => 'user', 'status' => 'deactivated', 'locked_at' => null]);
 
     app(AdminDashboardSummaryService::class)->flush();
 
@@ -260,9 +261,10 @@ it('guarantees mutually exclusive dashboard user counters to prevent double coun
     $response->assertOk();
     $users = $response->json('counters.users');
 
-    expect($users['total'])->toBe(5);
+    expect($users['total'])->toBe(6);
     expect($users['active'])->toBe(2);
     expect($users['disabled'])->toBe(2);
+    expect($users['deactivated'])->toBe(1);
     expect($users['locked'])->toBe(1);
 });
 

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch, type Component } from 'vue'
 import { useI18n } from '@/composables/useI18n'
+import { useDateFormat } from '@/composables/useDateFormat'
 import { useAutoRefresh } from '@/composables/useAutoRefresh'
 import { getAdminEnvironment } from '@/config/adminEnvironment'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
@@ -50,6 +51,7 @@ const sessionsStore = useSessionsStore()
 const rolesStore = useRolesStore()
 const session = useSessionStore()
 const { t } = useI18n()
+const dateFormat = useDateFormat()
 const toast = useToast()
 const router = useRouter()
 
@@ -747,7 +749,7 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
               <div class="user-stat-card__info">
                 <div class="user-stat-card__label">{{ t('users.email_verified') }}</div>
                 <div class="user-stat-card__value">
-                  {{ store.selectedUser.email_verified_at ?? t('users.not_verified') }}
+                  {{ dateFormat.smart(store.selectedUser.email_verified_at) }}
                 </div>
               </div>
             </div>
@@ -756,7 +758,7 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
               <div class="user-stat-card__info">
                 <div class="user-stat-card__label">{{ t('users.last_login') }}</div>
                 <div class="user-stat-card__value">
-                  {{ store.selectedUser.last_login_at ?? t('users.no_evidence') }}
+                  {{ dateFormat.smart(store.selectedUser.last_login_at) }}
                 </div>
               </div>
             </div>
@@ -782,7 +784,7 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
           <div v-if="canWriteUsers" class="user-detail-card">
             <h3 class="user-detail-section-title">{{ t('users.sync_profile_title') }}</h3>
             <p v-if="store.selectedUser.profile_synced_at" class="user-detail-card__hint">
-              {{ t('users.last_synced') }}: {{ store.selectedUser.profile_synced_at }}
+              {{ t('users.last_synced') }}: {{ dateFormat.smart(store.selectedUser.profile_synced_at) }}
             </p>
             <div class="user-form-grid user-form-grid-2">
               <UiFormField id="sync-email" :label="t('users.label_email')">

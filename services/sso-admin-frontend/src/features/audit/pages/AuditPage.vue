@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from '@/composables/useI18n'
+import { useDateFormat } from '@/composables/useDateFormat'
 import { useRoute } from 'vue-router'
 import {
   ClipboardList,
@@ -35,6 +36,7 @@ const store = useAuditStore()
 const session = useSessionStore()
 const route = useRoute()
 const { t } = useI18n()
+const dateFormat = useDateFormat()
 
 const activeTab = ref<'logs' | 'security' | 'reports' | 'retention' | 'dsr'>('logs')
 
@@ -608,7 +610,7 @@ onMounted(() => {
                       Occurred at
                     </dt>
                     <dd class="text-sm font-mono">
-                      {{ store.selectedEvent.occurred_at ?? 'No timestamp' }}
+                      {{ dateFormat.smart(store.selectedEvent.occurred_at) }}
                     </dd>
                   </div>
                 </dl>

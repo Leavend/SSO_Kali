@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useDateFormat } from '@/composables/useDateFormat'
 import OidcStatusBadge from './OidcStatusBadge.vue'
 import type { OidcEndpointConsistency, OidcIssuerConsistency } from '../types'
 
@@ -6,6 +7,7 @@ defineProps<{
   readonly issuer: OidcIssuerConsistency
   readonly endpoints: readonly OidcEndpointConsistency[]
 }>()
+const dateFormat = useDateFormat()
 </script>
 
 <template>
@@ -30,7 +32,7 @@ defineProps<{
       </div>
       <div>
         <dt>Last checked</dt>
-        <dd>{{ issuer.last_checked_at }}</dd>
+        <dd>{{ dateFormat.smart(issuer.last_checked_at) }}</dd>
       </div>
     </dl>
 

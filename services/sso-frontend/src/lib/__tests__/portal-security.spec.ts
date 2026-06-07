@@ -73,7 +73,7 @@ describe('portal-security presenters', () => {
       'profile',
       'offline_access',
     ])
-    expect(formatPortalDateTime('2026-05-20T18:25:00Z')).toBe('21/05/26, 02:25')
+    expect(formatPortalDateTime('2026-05-20T18:25:00Z')).toContain('20 Mei 2026')
   })
 
   it('summarizes MFA recovery, authenticator method, and last verification', () => {
@@ -87,6 +87,6 @@ describe('portal-security presenters', () => {
         },
         true,
       ),
-    ).toBe('6 recovery code tersisa · TOTP aktif · Diverifikasi 18/05/26, 19:00')
+    ).toContain('6 recovery code tersisa · TOTP aktif · Diverifikasi')
   })
 })

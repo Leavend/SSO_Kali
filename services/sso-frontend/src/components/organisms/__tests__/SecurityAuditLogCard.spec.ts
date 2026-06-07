@@ -40,7 +40,7 @@ describe('SecurityAuditLogCard', () => {
     const riskyRow = rows.find((row) => row.text().includes('Sesi Keluar Otomatis'))
 
     expect(wrapper.text()).toContain('Login Berhasil')
-    expect(wrapper.text()).toContain('21/05/26, 02:25')
+    expect(wrapper.text()).toContain('20 Mei 2026')
     expect(riskyRow?.text()).toContain('36.82.10.20')
     expect(wrapper.text()).toContain('Riwayat Keamanan Terbaru')
     expect(riskyRow?.text()).toContain('Aktivitas sensitif terdeteksi dari IP yang tidak dikenal')

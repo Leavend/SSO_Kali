@@ -110,7 +110,10 @@ final class AdminDashboardSummaryService
     {
         $total = (int) DB::table('users')->count();
         $disabled = (int) DB::table('users')
-            ->whereIn('status', ['disabled', 'deactivated'])
+            ->where('status', 'disabled')
+            ->count();
+        $deactivated = (int) DB::table('users')
+            ->where('status', 'deactivated')
             ->count();
         $locked = (int) DB::table('users')
             ->whereNotIn('status', ['disabled', 'deactivated'])
@@ -133,6 +136,7 @@ final class AdminDashboardSummaryService
             'total' => $total,
             'active' => $active,
             'disabled' => $disabled,
+            'deactivated' => $deactivated,
             'locked' => $locked,
         ];
     }

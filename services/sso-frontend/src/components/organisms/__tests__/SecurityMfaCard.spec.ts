@@ -7,7 +7,7 @@ describe('SecurityMfaCard', () => {
     return mount(SecurityMfaCard, {
       props: {
         isEnabled,
-        summary: '6 recovery code tersisa · TOTP aktif · Diverifikasi 18/05/26, 19:00',
+        summary: '6 recovery code tersisa · TOTP aktif · Diverifikasi',
         error: null,
       },
       global: {
