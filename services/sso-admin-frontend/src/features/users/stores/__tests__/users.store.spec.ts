@@ -99,6 +99,63 @@ describe('useUsersStore', () => {
     expect(store.requestId).toBe('req-users-1')
   })
 
+  it('refreshList merges silently and preserves selectedSubjectId', async () => {
+    const updatedUser: AdminUser = {
+      ...user,
+      display_name: 'Updated Admin User',
+      status: 'locked',
+    }
+    const otherUser: AdminUser = {
+      ...user,
+      subject_id: 'sub_other',
+      email: 'other@example.test',
+      display_name: 'Other User',
+    }
+    vi.mocked(usersApi.list).mockResolvedValue({ users: [updatedUser, otherUser] })
+    const store = useUsersStore()
+    store.status = 'success'
+    store.users = [user]
+    store.selectedSubjectId = 'sub_admin'
+
+    await store.refreshList()
+
+    expect(store.status).toBe('success')
+    expect(store.selectedSubjectId).toBe('sub_admin')
+    expect(store.users).toHaveLength(2)
+    expect(store.selectedUser?.display_name).toBe('Updated Admin User')
+    expect(store.selectedUser?.status).toBe('locked')
+  })
+
+  it('refreshList is a no-op while action is loading or pending intent exists', async () => {
+    vi.mocked(usersApi.list).mockResolvedValue({ users: [user] })
+    const store = useUsersStore()
+    store.actionStatus = 'loading'
+
+    await store.refreshList()
+
+    expect(usersApi.list).not.toHaveBeenCalled()
+
+    store.actionStatus = 'idle'
+    store.savePendingIntent('lock', 'sub_admin', { reason: 'Security' })
+
+    await store.refreshList()
+
+    expect(usersApi.list).not.toHaveBeenCalled()
+  })
+
+  it('refreshList maps auth failures to terminal polling states', async () => {
+    vi.mocked(usersApi.list).mockRejectedValue(new ApiError(401, 'raw auth leak'))
+    const store = useUsersStore()
+    store.status = 'success'
+    store.users = [user]
+
+    await store.refreshList()
+
+    expect(store.status).toBe('unauthenticated')
+    expect(store.users).toEqual([user])
+    expect(store.errorMessage).not.toContain('raw auth leak')
+  })
+
   it('loads selected user detail with login/session evidence', async () => {
     vi.mocked(usersApi.show).mockResolvedValue({
       user,
@@ -391,7 +448,9 @@ describe('useUsersStore', () => {
 
       expect(usersApi.lock).toHaveBeenCalled()
       expect(store.actionStatus).toBe('success')
-      expect(store.errorMessage).toBe('Aksi tersimpan, namun gagal memuat status terbaru—muat ulang.')
+      expect(store.errorMessage).toBe(
+        'Aksi tersimpan, namun gagal memuat status terbaru—muat ulang.',
+      )
     })
   })
 })

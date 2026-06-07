@@ -49,6 +49,42 @@ describe('useDashboardStore', () => {
     expect(store.requestId).toBe('req-dashboard-1')
   })
 
+  it('refreshes silently without returning to loading state', async () => {
+    const updatedSummary: DashboardSummary = {
+      ...summary,
+      generated_at: '2026-05-27T00:01:00Z',
+      counters: {
+        ...summary.counters,
+        users: { total: 11, active: 9, disabled: 1, locked: 1 },
+      },
+    }
+    vi.mocked(dashboardApi.getSummary).mockResolvedValue(updatedSummary)
+    const store = useDashboardStore()
+    store.status = 'success'
+    store.summary = summary
+
+    await store.refresh()
+
+    expect(store.status).toBe('success')
+    expect(store.summary).toEqual(updatedSummary)
+  })
+
+  it('keeps existing dashboard summary on transient silent refresh errors', async () => {
+    vi.mocked(dashboardApi.getSummary).mockRejectedValue(
+      new ApiError(500, 'SQLSTATE leaked admin trace', 'server_error', null, 'req-refresh-fail'),
+    )
+    const store = useDashboardStore()
+    store.status = 'success'
+    store.summary = summary
+    store.errorMessage = null
+
+    await store.refresh()
+
+    expect(store.status).toBe('success')
+    expect(store.summary).toEqual(summary)
+    expect(store.errorMessage).toBeNull()
+  })
+
   it('maps 401 to safe unauthenticated copy', async () => {
     vi.mocked(dashboardApi.getSummary).mockRejectedValue(new ApiError(401, 'raw session trace'))
     const store = useDashboardStore()

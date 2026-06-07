@@ -93,6 +93,40 @@ export const useUsersStore = defineStore('admin-users', () => {
     }
   }
 
+  async function refreshList(): Promise<void> {
+    if (actionStatus.value === 'loading' || pendingIntent.value) return
+
+    try {
+      const response = await usersApi.list()
+      users.value = mergeUsers(users.value, response.users)
+      requestId.value = getLastRequestId()
+      if (status.value !== 'unauthenticated' && status.value !== 'forbidden') {
+        status.value = 'success'
+      }
+    } catch (error) {
+      if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+        handleListError(error)
+      }
+    }
+  }
+
+  async function refreshSelected(): Promise<void> {
+    const subjectId = selectedSubjectId.value
+    if (!subjectId || actionStatus.value === 'loading' || pendingIntent.value) return
+
+    try {
+      const response = await usersApi.show(subjectId)
+      upsertUser(response.user)
+      loginContext.value = response.login_context ?? null
+      sessions.value = response.sessions ?? []
+      requestId.value = getLastRequestId()
+    } catch (error) {
+      if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+        handleListError(error)
+      }
+    }
+  }
+
   async function createUser(payload: CreateUserPayload): Promise<void> {
     actionStatus.value = 'loading'
     errorMessage.value = null
@@ -285,7 +319,28 @@ export const useUsersStore = defineStore('admin-users', () => {
     users.value =
       index === -1
         ? [...users.value, nextUser]
-        : users.value.map((user) => (user.subject_id === nextUser.subject_id ? nextUser : user))
+        : users.value.map((user) =>
+            user.subject_id === nextUser.subject_id ? { ...user, ...nextUser } : user,
+          )
+  }
+
+  function mergeUsers(
+    currentUsers: readonly AdminUser[],
+    incomingUsers: readonly AdminUser[],
+  ): readonly AdminUser[] {
+    const incomingBySubject = new Map(incomingUsers.map((user) => [user.subject_id, user]))
+    const merged = currentUsers
+      .filter((user) => incomingBySubject.has(user.subject_id))
+      .map((user) => ({ ...user, ...incomingBySubject.get(user.subject_id) }))
+
+    const existingIds = new Set(merged.map((user) => user.subject_id))
+    for (const incoming of incomingUsers) {
+      if (!existingIds.has(incoming.subject_id)) {
+        merged.push(incoming)
+      }
+    }
+
+    return merged
   }
 
   function handleListError(error: unknown): void {
@@ -351,6 +406,8 @@ export const useUsersStore = defineStore('admin-users', () => {
     passwordResetToken,
     passwordResetExpiresAt,
     load,
+    refreshList,
+    refreshSelected,
     selectUser,
     createUser,
     lockSelected,

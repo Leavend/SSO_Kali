@@ -90,6 +90,7 @@
         "total": "Total Akun",
         "active": "Pengguna Aktif",
         "disabled": "Akun Dinonaktifkan",
+        "deactivated": "Akun Deaktivasi",
         "locked": "Akun Terkunci"
       },
       "sessions": {

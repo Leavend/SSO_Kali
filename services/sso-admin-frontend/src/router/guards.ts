@@ -17,8 +17,10 @@ export async function resolveAdminGuard(
   }
 
   if (sessionResult === 'forbidden') return { name: 'admin.forbidden' }
-  if (sessionResult === 'mfa_enrollment_required') return { name: 'admin.mfa-required', query: { return_to: to.fullPath } }
-  if (sessionResult === 'step_up_required') return { name: 'admin.step-up-required', query: { return_to: to.fullPath } }
+  if (sessionResult === 'mfa_enrollment_required')
+    return { name: 'admin.mfa-required', query: { return_to: to.fullPath } }
+  if (sessionResult === 'step_up_required')
+    return { name: 'admin.step-up-required', query: { return_to: to.fullPath } }
   if (sessionResult === 'api_unreachable') return { name: 'admin.api-unreachable' }
   if (sessionResult === 'error') return { name: 'admin.error' }
 

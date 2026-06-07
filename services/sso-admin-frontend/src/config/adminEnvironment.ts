@@ -3,6 +3,8 @@ export interface AdminEnvironment {
   readonly publicBasePath: string
   readonly ssoBaseUrl: string
   readonly zitadelIssuerUrl: string
+  readonly VITE_ADMIN_DASHBOARD_POLL_MS: string
+  readonly VITE_ADMIN_USERS_POLL_MS: string
 }
 
 export function getAdminEnvironment(): AdminEnvironment {
@@ -11,6 +13,8 @@ export function getAdminEnvironment(): AdminEnvironment {
     publicBasePath: readEnv('VITE_PUBLIC_BASE_PATH', '/__vue-preview'),
     ssoBaseUrl: readEnv('VITE_SSO_BASE_URL', 'https://dev-sso.timeh.my.id'),
     zitadelIssuerUrl: readEnv('VITE_ZITADEL_ISSUER_URL', 'https://id.dev-sso.timeh.my.id'),
+    VITE_ADMIN_DASHBOARD_POLL_MS: readEnv('VITE_ADMIN_DASHBOARD_POLL_MS', '30000'),
+    VITE_ADMIN_USERS_POLL_MS: readEnv('VITE_ADMIN_USERS_POLL_MS', '45000'),
   }
 }
 

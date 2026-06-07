@@ -1,4 +1,3 @@
-
 export function triggerStepUpReauth(): void {
   const url = new URL('/auth/login', window.location.origin)
   url.searchParams.set('prompt', 'login')

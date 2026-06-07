@@ -20,16 +20,20 @@ export const useDashboardStore = defineStore('admin-dashboard', () => {
 
   const isLoading = computed<boolean>(() => status.value === 'loading')
 
-  async function load(): Promise<void> {
-    status.value = 'loading'
-    errorMessage.value = null
+  async function load(silent = false): Promise<void> {
+    if (!silent) {
+      status.value = 'loading'
+      errorMessage.value = null
+    }
 
     try {
       summary.value = await dashboardApi.getSummary()
       requestId.value = getLastRequestId()
       status.value = 'success'
     } catch (error) {
-      summary.value = null
+      if (!silent) {
+        summary.value = null
+      }
 
       if (error instanceof ApiError) {
         requestId.value = error.requestId ?? getLastRequestId()
@@ -46,15 +50,21 @@ export const useDashboardStore = defineStore('admin-dashboard', () => {
           return
         }
       } else {
-        requestId.value = getLastRequestId()
+        if (!silent) {
+          requestId.value = getLastRequestId()
+        }
       }
 
-      status.value = 'error'
-      errorMessage.value = requestId.value
-        ? `Dashboard admin belum bisa dimuat. Coba lagi atau gunakan request ID ${requestId.value} untuk investigasi.`
-        : 'Dashboard admin belum bisa dimuat. Coba lagi beberapa saat lagi.'
+      if (!silent) {
+        status.value = 'error'
+        errorMessage.value = requestId.value
+          ? `Dashboard admin belum bisa dimuat. Coba lagi atau gunakan request ID ${requestId.value} untuk investigasi.`
+          : 'Dashboard admin belum bisa dimuat. Coba lagi beberapa saat lagi.'
+      }
     }
   }
+
+  const refresh = (): Promise<void> => load(true)
 
   return {
     status,
@@ -63,5 +73,6 @@ export const useDashboardStore = defineStore('admin-dashboard', () => {
     requestId,
     isLoading,
     load,
+    refresh,
   }
 })

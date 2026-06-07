@@ -90,6 +90,7 @@
         "total": "Total Accounts",
         "active": "Active Users",
         "disabled": "Disabled Accounts",
+        "deactivated": "Deactivated Accounts",
         "locked": "Locked Accounts"
       },
       "sessions": {

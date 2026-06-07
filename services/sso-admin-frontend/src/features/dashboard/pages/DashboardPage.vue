@@ -1,16 +1,53 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from '@/composables/useI18n'
+import { useAutoRefresh } from '@/composables/useAutoRefresh'
+import { getAdminEnvironment } from '@/config/adminEnvironment'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
 import UiEmptyState from '@/components/ui/UiEmptyState.vue'
 import UiSkeleton from '@/components/ui/UiSkeleton.vue'
 import UiStatusView from '@/components/ui/UiStatusView.vue'
 import { useDashboardStore } from '../stores/dashboard.store'
 import type { DashboardCounterGroup } from '../types'
-import { Users, Activity, AppWindow, FileSearch, ShieldAlert, Inbox } from 'lucide-vue-next'
+import {
+  Users,
+  Activity,
+  AppWindow,
+  FileSearch,
+  ShieldAlert,
+  Inbox,
+  RefreshCw,
+} from 'lucide-vue-next'
 
 const dashboard = useDashboardStore()
 const { t } = useI18n()
+
+const lastRefreshedAt = ref<Date>(new Date())
+
+watch(
+  () => dashboard.summary,
+  (newVal) => {
+    if (newVal) {
+      lastRefreshedAt.value = new Date()
+    }
+  },
+  { immediate: true },
+)
+
+const formatLastRefreshed = computed(() => {
+  return lastRefreshedAt.value.toLocaleTimeString()
+})
+
+const env = getAdminEnvironment()
+const pollInterval = env.VITE_ADMIN_DASHBOARD_POLL_MS
+  ? Number(env.VITE_ADMIN_DASHBOARD_POLL_MS)
+  : 30000
+
+useAutoRefresh({
+  intervalMs: pollInterval,
+  task: () => dashboard.refresh(),
+  enabled: () => dashboard.status !== 'forbidden' && dashboard.status !== 'unauthenticated',
+})
 
 const cards = computed(() => {
   const counters = dashboard.summary?.counters
@@ -86,7 +123,8 @@ function counterTone(key: string, value: number): 'neutral' | 'success' | 'warni
     k.includes('denied') ||
     k.includes('locked') ||
     k.includes('rejected') ||
-    k.includes('disabled')
+    k.includes('disabled') ||
+    k.includes('deactivated')
   ) {
     return 'danger'
   }
@@ -106,6 +144,22 @@ function counterTone(key: string, value: number): 'neutral' | 'success' | 'warni
       <span class="eyebrow">{{ t('dashboard.eyebrow') }}</span>
       <h1>{{ t('dashboard.title') }}</h1>
       <p>{{ t('dashboard.summary') }}</p>
+      <div class="live-refresh-bar" aria-label="Realtime dashboard refresh status">
+        <span class="live-refresh-badge">
+          <span class="live-refresh-dot" aria-hidden="true"></span>
+          Live
+        </span>
+        <span class="live-refresh-meta">Last refreshed {{ formatLastRefreshed }}</span>
+        <button
+          id="dashboard-manual-refresh"
+          class="live-refresh-button"
+          type="button"
+          @click="dashboard.refresh()"
+        >
+          <RefreshCw :size="15" aria-hidden="true" />
+          Refresh
+        </button>
+      </div>
       <dl class="dashboard-evidence">
         <div v-if="dashboard.summary">
           <dt>Generated at</dt>

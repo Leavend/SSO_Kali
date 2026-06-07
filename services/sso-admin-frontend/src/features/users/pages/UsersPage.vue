@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch, type Component } from 'vue'
 import { useI18n } from '@/composables/useI18n'
+import { useAutoRefresh } from '@/composables/useAutoRefresh'
+import { getAdminEnvironment } from '@/config/adminEnvironment'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
 import UiButton from '@/components/ui/UiButton.vue'
@@ -40,6 +42,7 @@ import {
   LayoutDashboard,
   MonitorSmartphone,
   Settings,
+  RefreshCw,
 } from 'lucide-vue-next'
 
 const store = useUsersStore()
@@ -50,11 +53,34 @@ const { t } = useI18n()
 const toast = useToast()
 const router = useRouter()
 
+const lastRefreshedAt = ref<Date>(new Date())
+const formatLastRefreshed = computed(() => lastRefreshedAt.value.toLocaleTimeString())
+const env = getAdminEnvironment()
+const usersPollInterval = env.VITE_ADMIN_USERS_POLL_MS
+  ? Number(env.VITE_ADMIN_USERS_POLL_MS)
+  : 45000
+
+useAutoRefresh({
+  intervalMs: usersPollInterval,
+  task: async () => {
+    await store.refreshList()
+    await store.refreshSelected()
+    lastRefreshedAt.value = new Date()
+  },
+  enabled: () =>
+    store.status !== 'forbidden' &&
+    store.status !== 'unauthenticated' &&
+    store.actionStatus !== 'loading' &&
+    !store.pendingIntent,
+})
+
 const canWriteUsers = computed(() => session.hasPermission('admin.users.write'))
 const canLockUsers = computed(() => session.hasPermission('admin.users.lock'))
 const canTerminateSessions = computed(() => session.hasPermission('admin.sessions.terminate'))
 const canWriteRoles = computed(() => session.hasPermission('admin.roles.write'))
-const effectiveStatus = computed(() => store.selectedUser?.effective_status ?? store.selectedUser?.status ?? 'active')
+const effectiveStatus = computed(
+  () => store.selectedUser?.effective_status ?? store.selectedUser?.status ?? 'active',
+)
 
 const reason = ref('Admin review')
 const showCreateForm = ref(false)
@@ -124,8 +150,9 @@ function avatarStyle(name: string): Record<string, string> {
 }
 
 watch(
-  () => store.selectedUser,
-  (user) => {
+  () => store.selectedSubjectId,
+  () => {
+    const user = store.selectedUser
     syncEmail.value = user?.email ?? ''
     syncDisplayName.value = user?.display_name ?? ''
     syncGivenName.value = user?.given_name ?? ''
@@ -368,6 +395,22 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
       <p class="eyebrow">{{ t('users.eyebrow') }}</p>
       <h1 id="users-title">{{ t('users.title') }}</h1>
       <p class="page-summary">{{ t('users.summary') }}</p>
+      <div class="live-refresh-bar" aria-label="Realtime users refresh status">
+        <span class="live-refresh-badge">
+          <span class="live-refresh-dot" aria-hidden="true"></span>
+          Live
+        </span>
+        <span class="live-refresh-meta">Last refreshed {{ formatLastRefreshed }}</span>
+        <button
+          id="users-manual-refresh"
+          class="live-refresh-button"
+          type="button"
+          @click="store.refreshList()"
+        >
+          <RefreshCw :size="15" aria-hidden="true" />
+          Refresh
+        </button>
+      </div>
     </div>
 
     <UiSkeleton v-if="store.status === 'loading'" :label="t('users.loading')" />
@@ -615,7 +658,11 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
                 class="ui-badge user-profile-hero__status-badge"
                 :class="`badge--${store.selectedUser.effective_status ?? store.selectedUser.status ?? 'active'}`"
               >
-                {{ store.selectedUser.effective_status ?? store.selectedUser.status ?? t('users.status_unknown') }}
+                {{
+                  store.selectedUser.effective_status ??
+                  store.selectedUser.status ??
+                  t('users.status_unknown')
+                }}
               </span>
             </div>
             <p class="user-profile-hero__role">
@@ -956,7 +1003,12 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
                   v-if="canLockUsers"
                   class="lifecycle-lock-button"
                   variant="danger"
-                  :disabled="store.actionStatus === 'loading' || effectiveStatus === 'locked' || effectiveStatus === 'disabled' || effectiveStatus === 'deactivated'"
+                  :disabled="
+                    store.actionStatus === 'loading' ||
+                    effectiveStatus === 'locked' ||
+                    effectiveStatus === 'disabled' ||
+                    effectiveStatus === 'deactivated'
+                  "
                   @click="requestDestructiveAction('lock')"
                 >
                   <Lock :size="14" />
@@ -975,7 +1027,11 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
                   v-if="canWriteUsers"
                   class="lifecycle-deactivate-button"
                   variant="danger"
-                  :disabled="store.actionStatus === 'loading' || effectiveStatus === 'disabled' || effectiveStatus === 'deactivated'"
+                  :disabled="
+                    store.actionStatus === 'loading' ||
+                    effectiveStatus === 'disabled' ||
+                    effectiveStatus === 'deactivated'
+                  "
                   @click="requestDestructiveAction('deactivate')"
                 >
                   <ShieldX :size="14" />
@@ -984,7 +1040,10 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
                 <UiButton
                   v-if="canWriteUsers"
                   class="lifecycle-reactivate-button"
-                  :disabled="store.actionStatus === 'loading' || (effectiveStatus !== 'disabled' && effectiveStatus !== 'deactivated')"
+                  :disabled="
+                    store.actionStatus === 'loading' ||
+                    (effectiveStatus !== 'disabled' && effectiveStatus !== 'deactivated')
+                  "
                   @click="store.reactivateSelected"
                 >
                   <UserCheck :size="14" />
@@ -999,7 +1058,11 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
                 <UiButton
                   class="lifecycle-reset-mfa-button"
                   variant="danger"
-                  :disabled="store.actionStatus === 'loading' || effectiveStatus === 'disabled' || effectiveStatus === 'deactivated'"
+                  :disabled="
+                    store.actionStatus === 'loading' ||
+                    effectiveStatus === 'disabled' ||
+                    effectiveStatus === 'deactivated'
+                  "
                   @click="requestDestructiveAction('reset_mfa')"
                 >
                   <ShieldAlert :size="14" />
@@ -1007,7 +1070,11 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
                 </UiButton>
                 <UiButton
                   variant="danger"
-                  :disabled="store.actionStatus === 'loading' || effectiveStatus === 'disabled' || effectiveStatus === 'deactivated'"
+                  :disabled="
+                    store.actionStatus === 'loading' ||
+                    effectiveStatus === 'disabled' ||
+                    effectiveStatus === 'deactivated'
+                  "
                   @click="requestDestructiveAction('issue_password_reset')"
                 >
                   <Key :size="14" />
