@@ -2692,77 +2692,23 @@ select {
 }
 
 .user-stat-card {
-  --user-stat-accent: var(--primary);
   display: flex;
   align-items: center;
   gap: 14px;
-  min-width: 0;
   padding: 16px 18px;
-  border-radius: 18px;
-  border: 1px solid color-mix(in srgb, var(--border) 88%, transparent);
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--card) 94%, white 6%),
-    color-mix(in srgb, var(--card) 98%, var(--muted) 2%)
-  );
-  transition:
-    transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
-    border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1),
-    box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.28) inset,
-    0 8px 18px rgba(15, 23, 42, 0.03);
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.015);
   position: relative;
   overflow: hidden;
 }
 
-.user-stat-card--primary {
-  --user-stat-accent: var(--primary);
-}
-
-.user-stat-card--success {
-  --user-stat-accent: var(--color-success-700);
-}
-
-.user-stat-card--warning {
-  --user-stat-accent: var(--color-warning-700);
-}
-
-.user-stat-card--neutral {
-  --user-stat-accent: var(--color-info-700);
-}
-
-.user-stat-card--accent {
-  --user-stat-accent: #8b5cf6;
-}
-
-.user-stat-card::before {
-  content: '';
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 4px;
-  background: linear-gradient(180deg, var(--user-stat-accent), color-mix(in srgb, var(--user-stat-accent) 30%, transparent));
-  opacity: 0.8;
-}
-
-.user-stat-card::after {
-  content: '';
-  position: absolute;
-  inset: auto 0 0 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--user-stat-accent) 24%, transparent), transparent);
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
 .user-stat-card:hover {
   transform: translateY(-2px);
-  border-color: color-mix(in srgb, var(--user-stat-accent) 28%, var(--border));
-  box-shadow: 0 14px 30px color-mix(in srgb, var(--user-stat-accent) 12%, transparent);
-}
-
-.user-stat-card:hover::after {
-  opacity: 1;
+  border-color: var(--primary);
+  box-shadow: 0 12px 24px rgba(99, 102, 241, 0.06);
 }
 
 .user-stat-card__icon-wrapper {
@@ -2771,15 +2717,15 @@ select {
   justify-content: center;
   width: 42px;
   height: 42px;
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--user-stat-accent) 10%, var(--card));
-  color: var(--user-stat-accent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--primary) 8%, var(--card));
+  color: var(--primary);
   flex-shrink: 0;
   transition: all 0.2s ease;
 }
 
 .user-stat-card:hover .user-stat-card__icon-wrapper {
-  background: var(--user-stat-accent);
+  background: var(--primary);
   color: var(--primary-foreground);
   transform: scale(1.05);
 }
@@ -2787,127 +2733,25 @@ select {
 .user-stat-card__info {
   flex: 1;
   min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
 }
 
 .user-stat-card__label {
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   font-weight: 800;
   color: var(--muted-foreground);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin: 0;
+  letter-spacing: 0.05em;
+  margin-bottom: 2px;
 }
 
 .user-stat-card__value {
-  font-size: 0.9rem;
-  line-height: 1.35;
+  font-size: 0.85rem;
   font-weight: 700;
   color: var(--foreground);
+  /* Break long emails/IDs only when they would actually overflow, and at the
+     wrap point — not character-by-character like word-break: break-all. */
   overflow-wrap: anywhere;
 }
-
-.user-stat-pill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 32px;
-  padding: 0.38rem 0.82rem;
-  border-radius: 999px;
-  font-size: 0.76rem;
-  font-weight: 800;
-  line-height: 1;
-  letter-spacing: 0.03em;
-  border: 1px solid transparent;
-  white-space: nowrap;
-  max-width: 100%;
-}
-
-.user-stat-pill--success {
-  background: color-mix(in srgb, var(--color-success-50) 88%, white 12%);
-  color: var(--color-success-700);
-  border-color: color-mix(in srgb, var(--color-success-700) 18%, transparent);
-}
-
-.user-stat-pill--warning {
-  background: color-mix(in srgb, var(--color-warning-50) 88%, white 12%);
-  color: var(--color-warning-700);
-  border-color: color-mix(in srgb, var(--color-warning-700) 18%, transparent);
-}
-
-.user-stat-pill--danger {
-  background: color-mix(in srgb, var(--color-error-50) 88%, white 12%);
-  color: var(--color-error-700);
-  border-color: color-mix(in srgb, var(--color-error-700) 18%, transparent);
-}
-
-.user-stat-pill--muted {
-  background: color-mix(in srgb, var(--muted) 70%, white 30%);
-  color: var(--muted-foreground);
-  border-color: color-mix(in srgb, var(--muted-foreground) 16%, transparent);
-}
-
-@media (min-width: 1120px) {
-  .user-stats-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 14px;
-  }
-
-  .user-stat-card {
-    min-height: 88px;
-    padding: 16px 20px;
-    border-radius: 999px;
-  }
-
-  .user-stat-card--wide,
-  .user-stat-card--wide-desktop {
-    grid-column: 1 / -1;
-  }
-
-  .user-stat-card__info {
-    display: grid;
-    grid-template-columns: minmax(0, 122px) minmax(0, 1fr);
-    align-items: center;
-    column-gap: 14px;
-  }
-
-  .user-stat-card__label {
-    margin-bottom: 0;
-  }
-
-  .user-stat-card__value {
-    text-align: right;
-  }
-
-  .user-stat-pill {
-    justify-self: end;
-  }
-}
-
-@media (max-width: 639px) {
-  .user-stat-card {
-    align-items: flex-start;
-  }
-
-  .user-stat-card::before {
-    width: 100%;
-    height: 3px;
-    inset: 0 0 auto 0;
-  }
-
-  .user-stat-card__icon-wrapper {
-    margin-top: 2px;
-  }
-
-  .user-stat-pill {
-    white-space: normal;
-  }
-}
-
-
-
 
 .create-user-toggle {
   width: 100%;
