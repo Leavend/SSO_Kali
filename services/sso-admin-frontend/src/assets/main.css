@@ -2687,16 +2687,16 @@ select {
   /* Container-driven: the column count follows the detail panel's real width,
      not the viewport. Prevents the 4-up "shatter" when this grid is nested in
      the 1fr column (~540px at a 1024px viewport → cards were ~124px wide). */
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
   width: 100%;
 }
 
 .user-stat-card {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
+  gap: clamp(0.65rem, 0.5rem + 0.35vw, 0.85rem);
   min-width: 0;
-  padding: 14px 16px;
+  padding: clamp(0.875rem, 0.8rem + 0.25vw, 1rem);
   border-radius: 14px;
   border: 1px solid color-mix(in srgb, var(--border) 92%, transparent);
   background: color-mix(in srgb, var(--card) 98%, var(--muted) 2%);
@@ -2717,8 +2717,8 @@ select {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
+  width: clamp(2.25rem, 2.1rem + 0.25vw, 2.5rem);
+  height: clamp(2.25rem, 2.1rem + 0.25vw, 2.5rem);
   border-radius: 10px;
   background: var(--muted);
   color: var(--muted-foreground);
@@ -2748,10 +2748,14 @@ select {
 }
 
 .user-stat-card__value {
-  font-size: 0.92rem;
+  min-width: 0;
+  max-width: 100%;
+  font-size: clamp(0.9rem, 0.86rem + 0.12vw, 0.96rem);
   line-height: 1.45;
   font-weight: 600;
   color: var(--foreground);
+  text-align: left;
+  text-wrap: pretty;
   /* Break long emails/IDs only when they would actually overflow, and at the
      wrap point — not character-by-character like word-break: break-all. */
   overflow-wrap: anywhere;
@@ -2765,25 +2769,37 @@ select {
 
   .user-stat-card {
     align-items: center;
-    min-height: 72px;
-    padding: 14px 16px;
+    min-height: clamp(4.5rem, 4.1rem + 0.4vw, 4.9rem);
   }
 
   .user-stat-card__info {
     display: grid;
-    grid-template-columns: minmax(0, 108px) minmax(0, 1fr);
-    align-items: center;
-    column-gap: 16px;
+    grid-template-columns: minmax(5.5rem, max-content) minmax(0, 1fr);
+    align-items: start;
+    column-gap: clamp(0.75rem, 0.55rem + 0.4vw, 1rem);
   }
 
   .user-stat-card__label {
     margin-bottom: 0;
+    padding-top: 0.1rem;
   }
 
   .user-stat-card__value {
-    text-align: right;
+    justify-self: stretch;
+    align-self: center;
   }
 }
+
+@media (max-width: 640px) {
+  .user-stat-card {
+    align-items: flex-start;
+  }
+
+  .user-stat-card__icon-wrapper {
+    margin-top: 1px;
+  }
+}
+
 
 
 .create-user-toggle {
