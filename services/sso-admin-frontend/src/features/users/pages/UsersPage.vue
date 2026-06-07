@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch, type Component } from 'vue'
+import { computed, nextTick, onMounted, watch, type Component } from 'vue'
 import { useI18n } from '@/composables/useI18n'
 import { useDateFormat } from '@/composables/useDateFormat'
 import { useAutoRefresh } from '@/composables/useAutoRefresh'
@@ -43,7 +43,6 @@ import {
   LayoutDashboard,
   MonitorSmartphone,
   Settings,
-  RefreshCw,
 } from 'lucide-vue-next'
 
 const store = useUsersStore()
@@ -55,8 +54,6 @@ const dateFormat = useDateFormat()
 const toast = useToast()
 const router = useRouter()
 
-const lastRefreshedAt = ref<Date>(new Date())
-const formatLastRefreshed = computed(() => lastRefreshedAt.value.toLocaleTimeString())
 const env = getAdminEnvironment()
 const usersPollInterval = env.VITE_ADMIN_USERS_POLL_MS
   ? Number(env.VITE_ADMIN_USERS_POLL_MS)
@@ -75,9 +72,7 @@ useAutoRefresh({
 async function handleManualRefresh(): Promise<void> {
   await store.refreshList()
   await store.refreshSelected()
-  lastRefreshedAt.value = new Date()
 }
-
 
 const canWriteUsers = computed(() => session.hasPermission('admin.users.write'))
 const canLockUsers = computed(() => session.hasPermission('admin.users.lock'))
@@ -400,22 +395,7 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
       <p class="eyebrow">{{ t('users.eyebrow') }}</p>
       <h1 id="users-title">{{ t('users.title') }}</h1>
       <p class="page-summary">{{ t('users.summary') }}</p>
-      <div class="live-refresh-bar" aria-label="Realtime users refresh status">
-        <span class="live-refresh-badge">
-          <span class="live-refresh-dot" aria-hidden="true"></span>
-          Live
-        </span>
-        <span class="live-refresh-meta">Last refreshed {{ formatLastRefreshed }}</span>
-        <button
-          id="users-manual-refresh"
-          class="live-refresh-button"
-          type="button"
-          @click="handleManualRefresh()"
-        >
-          <RefreshCw :size="15" aria-hidden="true" />
-          Refresh
-        </button>
-      </div>
+
     </div>
 
     <UiSkeleton v-if="store.status === 'loading'" :label="t('users.loading')" />
