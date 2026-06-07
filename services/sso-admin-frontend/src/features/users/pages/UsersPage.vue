@@ -720,23 +720,32 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
         >
           <!-- Identity stats -->
           <div class="user-stats-grid">
-            <div class="user-stat-card">
+            <div class="user-stat-card user-stat-card--primary user-stat-card--wide">
               <span class="user-stat-card__icon-wrapper"><Mail :size="18" /></span>
               <div class="user-stat-card__info">
                 <div class="user-stat-card__label">{{ t('users.label_email') }}</div>
-                <div class="user-stat-card__value">{{ store.selectedUser.email }}</div>
+                <div class="user-stat-card__value font-mono">{{ store.selectedUser.email }}</div>
               </div>
             </div>
-            <div class="user-stat-card">
+            <div class="user-stat-card user-stat-card--success">
               <span class="user-stat-card__icon-wrapper"><CheckCircle :size="18" /></span>
               <div class="user-stat-card__info">
                 <div class="user-stat-card__label">{{ t('users.email_verified') }}</div>
                 <div class="user-stat-card__value">
-                  {{ dateFormat.smart(store.selectedUser.email_verified_at) }}
+                  <span
+                    class="user-stat-pill"
+                    :class="store.selectedUser.email_verified_at ? 'user-stat-pill--success' : 'user-stat-pill--muted'"
+                  >
+                    {{
+                      store.selectedUser.email_verified_at
+                        ? dateFormat.smart(store.selectedUser.email_verified_at)
+                        : t('users.not_verified')
+                    }}
+                  </span>
                 </div>
               </div>
             </div>
-            <div class="user-stat-card">
+            <div class="user-stat-card user-stat-card--neutral">
               <span class="user-stat-card__icon-wrapper"><Clock :size="18" /></span>
               <div class="user-stat-card__info">
                 <div class="user-stat-card__label">{{ t('users.last_login') }}</div>
@@ -745,7 +754,7 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
                 </div>
               </div>
             </div>
-            <div class="user-stat-card">
+            <div class="user-stat-card user-stat-card--accent">
               <span class="user-stat-card__icon-wrapper">
                 <Lock v-if="!store.selectedUser.local_account_enabled" :size="18" />
                 <Unlock v-else :size="18" />
@@ -753,11 +762,16 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
               <div class="user-stat-card__info">
                 <div class="user-stat-card__label">{{ t('users.local_account') }}</div>
                 <div class="user-stat-card__value">
-                  {{
-                    store.selectedUser.local_account_enabled
-                      ? t('users.enabled')
-                      : t('users.disabled')
-                  }}
+                  <span
+                    class="user-stat-pill"
+                    :class="store.selectedUser.local_account_enabled ? 'user-stat-pill--success' : 'user-stat-pill--danger'"
+                  >
+                    {{
+                      store.selectedUser.local_account_enabled
+                        ? t('users.enabled')
+                        : t('users.disabled')
+                    }}
+                  </span>
                 </div>
               </div>
             </div>
@@ -874,25 +888,39 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
           <div class="user-detail-card">
             <h3 class="user-detail-section-title">{{ t('users.assurance_title') }}</h3>
             <div class="user-stats-grid user-stats-grid--auto">
-              <div class="user-stat-card">
+              <div class="user-stat-card user-stat-card--warning">
                 <span class="user-stat-card__icon-wrapper"><ShieldAlert :size="18" /></span>
                 <div class="user-stat-card__info">
                   <div class="user-stat-card__label">{{ t('users.mfa_required') }}</div>
                   <div class="user-stat-card__value">
-                    {{ store.loginContext?.mfa_required ? t('users.yes') : t('users.no') }}
+                    <span
+                      class="user-stat-pill"
+                      :class="store.loginContext?.mfa_required ? 'user-stat-pill--warning' : 'user-stat-pill--muted'"
+                    >
+                      {{ store.loginContext?.mfa_required ? t('users.yes') : t('users.no') }}
+                    </span>
                   </div>
                 </div>
               </div>
-              <div class="user-stat-card">
+              <div class="user-stat-card user-stat-card--success">
                 <span class="user-stat-card__icon-wrapper"><Activity :size="18" /></span>
                 <div class="user-stat-card__info">
                   <div class="user-stat-card__label">{{ t('users.risk_score') }}</div>
                   <div class="user-stat-card__value">
-                    {{ store.loginContext?.risk_score ?? t('users.no_evidence') }}
+                    <span
+                      v-if="store.loginContext?.risk_score !== null && store.loginContext?.risk_score !== undefined"
+                      class="user-stat-pill"
+                      :class="store.loginContext.risk_score > 70 ? 'user-stat-pill--danger' : store.loginContext.risk_score > 40 ? 'user-stat-pill--warning' : 'user-stat-pill--success'"
+                    >
+                      {{ store.loginContext.risk_score }}
+                    </span>
+                    <span v-else class="user-stat-pill user-stat-pill--muted">
+                      {{ t('users.no_evidence') }}
+                    </span>
                   </div>
                 </div>
               </div>
-              <div class="user-stat-card">
+              <div class="user-stat-card user-stat-card--neutral user-stat-card--wide-desktop">
                 <span class="user-stat-card__icon-wrapper"><Globe :size="18" /></span>
                 <div class="user-stat-card__info">
                   <div class="user-stat-card__label">{{ t('users.ip_address') }}</div>
