@@ -2683,7 +2683,7 @@ select {
 /* User Stats Dashboard Grid */
 .user-stats-grid {
   display: grid;
-  gap: 16px;
+  gap: 12px;
   /* Container-driven: the column count follows the detail panel's real width,
      not the viewport. Prevents the 4-up "shatter" when this grid is nested in
      the 1fr column (~540px at a 1024px viewport → cards were ~124px wide). */
@@ -2693,41 +2693,44 @@ select {
 
 .user-stat-card {
   display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 16px 18px;
-  border-radius: 16px;
-  border: 1px solid var(--border);
-  background: var(--card);
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.015);
-  position: relative;
-  overflow: hidden;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--border) 92%, transparent);
+  background: color-mix(in srgb, var(--card) 98%, var(--muted) 2%);
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
 }
 
 .user-stat-card:hover {
-  transform: translateY(-2px);
-  border-color: var(--primary);
-  box-shadow: 0 12px 24px rgba(99, 102, 241, 0.06);
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--foreground) 10%, var(--border));
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
 }
 
 .user-stat-card__icon-wrapper {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--primary) 8%, var(--card));
-  color: var(--primary);
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: var(--muted);
+  color: var(--muted-foreground);
   flex-shrink: 0;
-  transition: all 0.2s ease;
+  transition:
+    background 0.18s ease,
+    color 0.18s ease;
 }
 
 .user-stat-card:hover .user-stat-card__icon-wrapper {
-  background: var(--primary);
-  color: var(--primary-foreground);
-  transform: scale(1.05);
+  background: color-mix(in srgb, var(--muted) 70%, var(--card));
+  color: var(--foreground);
 }
 
 .user-stat-card__info {
@@ -2736,22 +2739,52 @@ select {
 }
 
 .user-stat-card__label {
-  font-size: 0.72rem;
-  font-weight: 800;
+  font-size: 0.7rem;
+  font-weight: 700;
   color: var(--muted-foreground);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 2px;
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
 }
 
 .user-stat-card__value {
-  font-size: 0.85rem;
-  font-weight: 700;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  font-weight: 600;
   color: var(--foreground);
   /* Break long emails/IDs only when they would actually overflow, and at the
      wrap point — not character-by-character like word-break: break-all. */
   overflow-wrap: anywhere;
 }
+
+@media (min-width: 1120px) {
+  .user-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .user-stat-card {
+    align-items: center;
+    min-height: 72px;
+    padding: 14px 16px;
+  }
+
+  .user-stat-card__info {
+    display: grid;
+    grid-template-columns: minmax(0, 108px) minmax(0, 1fr);
+    align-items: center;
+    column-gap: 16px;
+  }
+
+  .user-stat-card__label {
+    margin-bottom: 0;
+  }
+
+  .user-stat-card__value {
+    text-align: right;
+  }
+}
+
 
 .create-user-toggle {
   width: 100%;
