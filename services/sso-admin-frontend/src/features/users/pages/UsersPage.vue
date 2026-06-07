@@ -64,17 +64,20 @@ const usersPollInterval = env.VITE_ADMIN_USERS_POLL_MS
 
 useAutoRefresh({
   intervalMs: usersPollInterval,
-  task: async () => {
-    await store.refreshList()
-    await store.refreshSelected()
-    lastRefreshedAt.value = new Date()
-  },
+  task: handleManualRefresh,
   enabled: () =>
     store.status !== 'forbidden' &&
     store.status !== 'unauthenticated' &&
     store.actionStatus !== 'loading' &&
     !store.pendingIntent,
 })
+
+async function handleManualRefresh(): Promise<void> {
+  await store.refreshList()
+  await store.refreshSelected()
+  lastRefreshedAt.value = new Date()
+}
+
 
 const canWriteUsers = computed(() => session.hasPermission('admin.users.write'))
 const canLockUsers = computed(() => session.hasPermission('admin.users.lock'))
@@ -407,7 +410,7 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
           id="users-manual-refresh"
           class="live-refresh-button"
           type="button"
-          @click="store.refreshList()"
+          @click="handleManualRefresh()"
         >
           <RefreshCw :size="15" aria-hidden="true" />
           Refresh
