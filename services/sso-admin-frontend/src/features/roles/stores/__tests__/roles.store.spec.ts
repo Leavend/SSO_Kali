@@ -14,8 +14,12 @@ const mockRolesResponse = {
   roles: [
     {
       slug: 'admin',
-      label: 'Administrator',
-      permissions: ['admin.users.read', 'admin.roles.read'],
+      name: 'Administrator',
+      users_count: 2,
+      permissions: [
+        { slug: 'admin.users.read', name: 'Admin Users Read', category: 'admin' },
+        { slug: 'admin.roles.read', name: 'Admin Roles Read', category: 'admin' },
+      ],
     },
     { slug: 'auditor', label: 'Auditor', permissions: ['admin.audit.read'] },
   ],
@@ -23,8 +27,8 @@ const mockRolesResponse = {
 
 const mockPermissionsResponse = {
   permissions: [
-    { key: 'admin.users.read', label: 'Read Users', group: 'Users' },
-    { key: 'admin.roles.read', label: 'Read Roles', group: 'RBAC' },
+    { slug: 'admin.users.read', name: 'Read Users', category: 'Users' },
+    { slug: 'admin.roles.read', name: 'Read Roles', category: 'RBAC' },
     { key: 'admin.audit.read', label: 'Read Audit', group: 'Audit' },
   ],
 }
@@ -58,6 +62,17 @@ describe('useRolesStore', () => {
       expect(store.status).toBe('success')
       expect(store.roles).toHaveLength(2)
       expect(store.permissions).toHaveLength(3)
+      expect(store.roles[0]).toMatchObject({
+        slug: 'admin',
+        label: 'Administrator',
+        user_count: 2,
+        permissions: ['admin.users.read', 'admin.roles.read'],
+      })
+      expect(store.permissions[0]).toMatchObject({
+        key: 'admin.users.read',
+        label: 'Read Users',
+        group: 'Users',
+      })
       expect(store.errorMessage).toBeNull()
     })
 

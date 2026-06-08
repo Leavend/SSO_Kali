@@ -7,8 +7,48 @@ use App\Models\Role;
 use App\Models\User;
 use App\Services\Admin\AdminPermissionMatrix;
 use App\Services\Admin\AdminRbacResolver;
+use App\Services\Oidc\LocalTokenService;
 use App\Support\Rbac\AdminPermission;
 use Database\Seeders\RbacSeeder;
+
+it('installs the baseline role catalog during migrations without manual seeding', function (): void {
+    expect(Role::query()->where('slug', 'admin')->exists())->toBeTrue()
+        ->and(Role::query()->where('slug', 'user')->exists())->toBeTrue()
+        ->and(Permission::query()->whereIn('slug', AdminPermission::all())->count())->toBe(count(AdminPermission::all()));
+});
+
+it('lists migrated roles and permissions through the admin API', function (): void {
+    $admin = User::factory()->create(['role' => 'admin']);
+
+    $roles = $this->getJson('/admin/api/roles', rbacPolicyAdminHeaders($admin))
+        ->assertOk()
+        ->assertJsonPath('roles.0.slug', 'admin')
+        ->json('roles');
+
+    $permissions = $this->getJson('/admin/api/permissions', rbacPolicyAdminHeaders($admin))
+        ->assertOk()
+        ->json('permissions');
+
+    expect(collect($roles)->pluck('slug')->all())->toContain('admin', 'user')
+        ->and($roles[0])->toHaveKeys(['slug', 'name', 'permissions', 'user_count', 'users_count'])
+        ->and(collect($permissions)->pluck('slug')->all())->toContain(AdminPermission::ROLES_READ)
+        ->and($permissions[0])->toHaveKeys(['slug', 'name', 'category']);
+});
+
+it('backfills legacy user role columns when the baseline catalog migration runs', function (): void {
+    $admin = User::factory()->create(['role' => 'admin']);
+
+    $migration = require database_path('migrations/2026_06_09_010000_seed_baseline_rbac_catalog.php');
+    $migration->up();
+    $migration->up();
+
+    $adminRole = Role::query()->where('slug', 'admin')->firstOrFail();
+
+    $this->assertDatabaseHas('role_user', [
+        'user_id' => $admin->id,
+        'role_id' => $adminRole->id,
+    ]);
+});
 
 it('grants baseline admin permissions through the legacy role fallback', function (): void {
     $admin = User::factory()->create(['role' => 'admin']);
@@ -63,3 +103,21 @@ it('seeds baseline roles and permission matrix idempotently', function (): void 
         ->and(Role::query()->where('slug', 'user')->count())->toBe(1)
         ->and(Permission::query()->whereIn('slug', AdminPermission::all())->count())->toBe(count(AdminPermission::all()));
 });
+
+/**
+ * @return array<string, string>
+ */
+function rbacPolicyAdminHeaders(User $admin): array
+{
+    $tokens = app(LocalTokenService::class)->issue([
+        'subject_id' => $admin->subject_id,
+        'client_id' => 'sso-admin-panel',
+        'scope' => 'openid profile email roles permissions',
+        'session_id' => 'rbac-policy-session-'.$admin->subject_id,
+        'auth_time' => now()->subMinute()->timestamp,
+        'amr' => ['pwd', 'mfa'],
+        'acr' => 'urn:example:loa:2',
+    ]);
+
+    return ['Authorization' => 'Bearer '.$tokens['access_token']];
+}

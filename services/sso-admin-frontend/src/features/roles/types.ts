@@ -16,18 +16,37 @@ export type AdminRole = {
   readonly updated_at?: string | null
 }
 
+export type AdminRoleApi = Omit<AdminRole, 'label' | 'permissions' | 'user_count'> & {
+  readonly label?: string
+  readonly permissions?: readonly (
+    | string
+    | {
+        readonly key?: string
+        readonly slug?: string
+      }
+  )[]
+  readonly user_count?: number | null
+  readonly users_count?: number | null
+}
+
 export type AdminPermission = {
   readonly key: string
   readonly label?: string | null
   readonly group?: string | null
 }
 
+export type AdminPermissionApi = Partial<AdminPermission> & {
+  readonly slug?: string
+  readonly name?: string | null
+  readonly category?: string | null
+}
+
 export type RolesListResponse = {
-  readonly roles: readonly AdminRole[]
+  readonly roles: readonly AdminRoleApi[]
 }
 
 export type PermissionsListResponse = {
-  readonly permissions: readonly AdminPermission[]
+  readonly permissions: readonly AdminPermissionApi[]
 }
 
 export type CreateRolePayload = {

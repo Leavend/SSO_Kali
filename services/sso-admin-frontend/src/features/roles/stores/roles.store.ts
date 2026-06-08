@@ -3,7 +3,14 @@ import { defineStore } from 'pinia'
 import { ApiError, getLastRequestId } from '@/lib/api/api-client'
 import { triggerStepUpReauth } from '@/lib/stepup/stepup'
 import { rolesApi } from '../services/roles.api'
-import type { AdminPermission, AdminRole, CreateRolePayload, UpdateRolePayload } from '../types'
+import type {
+  AdminPermission,
+  AdminPermissionApi,
+  AdminRole,
+  AdminRoleApi,
+  CreateRolePayload,
+  UpdateRolePayload,
+} from '../types'
 
 export type RolesStatus = 'idle' | 'loading' | 'success' | 'unauthenticated' | 'forbidden' | 'error'
 export type RolesActionStatus = 'idle' | 'loading' | 'success' | 'step_up_required' | 'error'
@@ -26,14 +33,8 @@ export const useRolesStore = defineStore('admin-roles', () => {
         rolesApi.listRoles(),
         rolesApi.listPermissions(),
       ])
-      roles.value = rolesResponse.roles.map((r: any) => ({
-        ...r,
-        label: r.label || r.name || r.slug || '',
-        permissions: (r.permissions || []).map((p: any) =>
-          p && typeof p === 'object' && 'slug' in p ? p.slug : p,
-        ),
-      }))
-      permissions.value = permissionsResponse.permissions
+      roles.value = rolesResponse.roles.map(normalizeRole)
+      permissions.value = permissionsResponse.permissions.map(normalizePermission)
       requestId.value = getLastRequestId()
       status.value = 'success'
     } catch (error) {
@@ -136,6 +137,32 @@ export const useRolesStore = defineStore('admin-roles', () => {
       actionError.value = error.message
     } else {
       actionError.value = 'Aksi gagal dilakukan. Coba beberapa saat lagi.'
+    }
+  }
+
+  function normalizeRole(role: AdminRoleApi): AdminRole {
+    return {
+      ...role,
+      label: role.label || role.name || role.slug || '',
+      user_count: role.user_count ?? role.users_count ?? null,
+      permissions: (role.permissions || [])
+        .map((permission) =>
+          typeof permission === 'string' ? permission : (permission.key ?? permission.slug ?? ''),
+        )
+        .filter(
+          (permission: unknown): permission is string =>
+            typeof permission === 'string' && permission.length > 0,
+        ),
+    }
+  }
+
+  function normalizePermission(permission: AdminPermissionApi): AdminPermission {
+    const key = permission.key ?? permission.slug ?? ''
+
+    return {
+      key,
+      label: permission.label ?? permission.name ?? key,
+      group: permission.group ?? permission.category ?? 'General',
     }
   }
 

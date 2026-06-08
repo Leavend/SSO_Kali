@@ -17,6 +17,8 @@ final class AdminRolePresenter
     {
         $role->loadMissing('permissions');
 
+        $usersCount = (int) ($role->users_count ?? $role->users()->count());
+
         return [
             ...$role->only(['id', 'slug', 'name', 'description', 'is_system']),
             'permissions' => $role->permissions
@@ -24,7 +26,8 @@ final class AdminRolePresenter
                 ->sortBy('slug')
                 ->values()
                 ->all(),
-            'users_count' => (int) ($role->users_count ?? $role->users()->count()),
+            'user_count' => $usersCount,
+            'users_count' => $usersCount,
         ];
     }
 
