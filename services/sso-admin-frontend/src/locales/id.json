@@ -240,7 +240,6 @@
     "last_login": "Login terakhir",
     "local_account": "Local account",
     "mfa_required": "MFA diperlukan",
-    "risk_score": "Skor risiko",
     "confirm_lock_title": "Kunci pengguna?",
     "confirm_lock_desc": "Ini akan mengunci {target} dan memblokir akses masuk.",
     "confirm_deactivate_title": "Nonaktifkan pengguna?",

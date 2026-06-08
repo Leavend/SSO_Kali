@@ -122,7 +122,6 @@ function ensureLoginContextsTable(): void
         $table->string('subject_uuid')->unique();
         $table->string('ip_address')->nullable();
         $table->string('device_fingerprint')->nullable();
-        $table->unsignedInteger('risk_score')->default(0);
         $table->boolean('mfa_required')->default(false);
         $table->timestamp('auth_time')->nullable();
         $table->json('amr')->nullable();

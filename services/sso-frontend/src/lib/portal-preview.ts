@@ -47,7 +47,6 @@ export const previewProfile: ProfilePortal = {
   },
   security: {
     session_id: 'sess_preview_current',
-    risk_score: 7,
     mfa_required: true,
     last_seen_at: '2026-05-20T18:42:00Z',
   },

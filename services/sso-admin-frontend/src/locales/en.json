@@ -240,7 +240,6 @@
     "last_login": "Last login",
     "local_account": "Local account",
     "mfa_required": "MFA required",
-    "risk_score": "Risk score",
     "confirm_lock_title": "Lock user?",
     "confirm_lock_desc": "This will lock {target} and may block sign-in.",
     "confirm_deactivate_title": "Deactivate user?",

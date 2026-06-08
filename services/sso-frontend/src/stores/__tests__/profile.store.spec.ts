@@ -13,7 +13,7 @@ const PROFILE_FIXTURE: ProfilePortal = {
     last_login_at: '2026-05-10T01:23:45Z',
   },
   authorization: { scope: 'openid profile email', roles: ['user'], permissions: [] },
-  security: { session_id: 'sess-1', risk_score: 12, mfa_required: false, last_seen_at: null },
+  security: { session_id: 'sess-1', mfa_required: false, last_seen_at: null },
 }
 
 const CONNECTED_APP_FIXTURE: ConnectedApp = {

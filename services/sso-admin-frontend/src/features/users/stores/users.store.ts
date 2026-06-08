@@ -340,7 +340,6 @@ export const useUsersStore = defineStore('admin-users', () => {
     return session?.ip_address
       ? {
           ip_address: session.ip_address,
-          risk_score: null,
           mfa_required: false,
           last_seen_at: session.last_activity_at ?? session.created_at ?? null,
         }

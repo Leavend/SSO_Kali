@@ -41,7 +41,6 @@ final class BuildResourceProfile
                     ? null
                     : Carbon::parse((string) $user->last_login_at)->toIso8601String(),
                 'login_context' => [
-                    'risk_score' => $loginContext->risk_score ?? 0,
                     'mfa_required' => (bool) ($loginContext->mfa_required ?? false),
                 ],
             ],

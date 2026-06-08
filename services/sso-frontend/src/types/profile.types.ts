@@ -23,7 +23,6 @@ export type ProfilePortal = {
   }
   readonly security: {
     readonly session_id: string | null
-    readonly risk_score: number
     readonly mfa_required: boolean
     readonly last_seen_at: string | null
   }

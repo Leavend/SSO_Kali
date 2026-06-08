@@ -95,7 +95,6 @@ describe('UsersPage', () => {
     store.selectedSubjectId = 'sub_admin'
     store.loginContext = {
       ip_address: '203.0.113.10',
-      risk_score: 15,
       mfa_required: true,
     }
     store.sessions = [{ session_id: 'sess_1', client_id: 'portal' }]
@@ -107,6 +106,7 @@ describe('UsersPage', () => {
     expect(wrapper.text()).toContain('Admin User')
     expect(wrapper.text()).toContain('admin@example.test')
     expect(wrapper.text()).toContain('MFA required')
+    expect(wrapper.text()).not.toContain('Risk score')
     expect(wrapper.text()).toContain('sess_1')
     expect(wrapper.text()).toContain('Request ID')
     expect(wrapper.text()).toContain('req-users-1')
@@ -212,7 +212,6 @@ describe('UsersPage', () => {
     store.selectedSubjectId = 'sub_admin'
     store.loginContext = {
       ip_address: '203.0.113.10',
-      risk_score: 3,
       mfa_required: false,
     }
 
@@ -278,7 +277,6 @@ describe('UsersPage', () => {
     store.selectedSubjectId = 'sub_admin'
     store.loginContext = {
       ip_address: '203.0.113.10',
-      risk_score: 3,
       mfa_required: false,
     }
     const syncSpy = vi.spyOn(store, 'syncProfileSelected')

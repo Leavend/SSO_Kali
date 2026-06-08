@@ -61,12 +61,6 @@ final class LoginContextRecorder
             recentLoginCount: $recentLoginCount
         );
 
-        $riskScore = match ($riskLevel) {
-            RiskLevel::High => 85,
-            RiskLevel::Medium => 45,
-            RiskLevel::Low => 15,
-        };
-
         if ($riskLevel === RiskLevel::High || $riskLevel === RiskLevel::Medium) {
             $cacheKey = 'suspicious_login_notified:'.$subjectId;
             if (! Cache::has($cacheKey)) {
@@ -81,8 +75,7 @@ final class LoginContextRecorder
             }
         }
 
-        $threshold = (int) config('sso.mfa.risk_threshold', 60);
-        $mfaRequired = $user->mfa_mandatory || $riskScore >= $threshold;
+        $mfaRequired = $user->mfa_mandatory || $riskLevel === RiskLevel::High;
 
         // Parse authTime
         $parsedAuthTime = null;
@@ -102,7 +95,6 @@ final class LoginContextRecorder
                 'subject_uuid' => $subjectId,
                 'ip_address' => $ip,
                 'device_fingerprint' => $fingerprint,
-                'risk_score' => $riskScore,
                 'mfa_required' => $mfaRequired,
                 'auth_time' => $parsedAuthTime,
                 'amr' => json_encode(array_values($amr)),

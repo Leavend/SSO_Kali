@@ -186,6 +186,5 @@ return [
         'challenge_ttl_seconds' => (int) env('MFA_CHALLENGE_TTL_SECONDS', 300),
         'challenge_max_attempts' => (int) env('MFA_CHALLENGE_MAX_ATTEMPTS', 5),
         'recovery_code_count' => (int) env('MFA_RECOVERY_CODE_COUNT', 8),
-        'risk_threshold' => (int) env('SSO_MFA_RISK_THRESHOLD', 60),
     ],
 ];

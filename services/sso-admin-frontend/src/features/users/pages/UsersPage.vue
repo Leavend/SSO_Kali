@@ -31,7 +31,6 @@ import {
   Unlock,
   Eye,
   ShieldAlert,
-  Activity,
   Globe,
   Plus,
   ShieldX,
@@ -927,15 +926,6 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
                   <div class="user-stat-card__label">{{ t('users.mfa_required') }}</div>
                   <div class="user-stat-card__value">
                     {{ store.loginContext?.mfa_required ? t('users.yes') : t('users.no') }}
-                  </div>
-                </div>
-              </div>
-              <div class="user-stat-card">
-                <span class="user-stat-card__icon-wrapper"><Activity :size="18" /></span>
-                <div class="user-stat-card__info">
-                  <div class="user-stat-card__label">{{ t('users.risk_score') }}</div>
-                  <div class="user-stat-card__value">
-                    {{ store.loginContext?.risk_score ?? t('users.no_evidence') }}
                   </div>
                 </div>
               </div>

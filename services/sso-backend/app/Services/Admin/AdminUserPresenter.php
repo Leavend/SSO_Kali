@@ -75,7 +75,6 @@ final class AdminUserPresenter
         if ($ctx === null) {
             return $latestSession === null ? null : [
                 'ip_address' => $latestSession->ip_address,
-                'risk_score' => null,
                 'mfa_required' => false,
                 'last_seen_at' => $latestSession->last_seen_at ?? $latestSession->authenticated_at,
             ];
@@ -83,7 +82,6 @@ final class AdminUserPresenter
 
         return [
             'ip_address' => $latestSession->ip_address ?? $ctx->ip_address,
-            'risk_score' => $ctx->risk_score,
             'mfa_required' => (bool) $ctx->mfa_required,
             'last_seen_at' => $latestSession->last_seen_at ?? $ctx->last_seen_at,
         ];

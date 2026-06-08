@@ -6,7 +6,6 @@ import SecurityAccessCard from '@/components/organisms/SecurityAccessCard.vue'
 import SecurityAuditLogCard from '@/components/organisms/SecurityAuditLogCard.vue'
 import SecurityMfaCard from '@/components/organisms/SecurityMfaCard.vue'
 import SecurityPasswordSection from '@/components/organisms/SecurityPasswordSection.vue'
-import SecurityRiskCard from '@/components/organisms/SecurityRiskCard.vue'
 import TrustedDevicesCard from '@/components/organisms/TrustedDevicesCard.vue'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useMfaEnrollment } from '@/composables/useMfaEnrollment'
@@ -17,7 +16,6 @@ import {
   knownLoginIpAddresses,
   oauthScopeTokens,
   presentMfaSummary,
-  presentRiskScore,
 } from '@/lib/portal-security'
 import { useProfileStore } from '@/stores/profile.store'
 import { profileApi } from '@/services/profile.api'
@@ -39,7 +37,6 @@ const mfaEnabled = computed<boolean>(
 const mfaSummary = computed<string>(() =>
   presentMfaSummary(mfa.status.value, Boolean(profile.profile?.security.mfa_required)),
 )
-const riskPresentation = computed(() => presentRiskScore(profile.profile?.security.risk_score ?? 0))
 const lastSeen = computed<string | null>(() => profile.profile?.security.last_seen_at ?? null)
 const userRoles = computed<readonly string[]>(() => profile.profile?.authorization.roles ?? [])
 const userPermissions = computed<readonly string[]>(
@@ -71,17 +68,16 @@ function updateTrustedDeviceLabel(deviceId: number, value: string): void {
     <PortalPageHeader
       eyebrow="Pusat Keamanan"
       title="Keamanan"
-      description="Kelola MFA, password, risiko login, dan riwayat keamanan dari satu halaman terpusat."
+      description="Kelola MFA, password, perangkat tepercaya, dan riwayat keamanan dari satu halaman terpusat."
       :icon="ShieldCheck"
     />
 
-    <div v-if="load.pending.value" class="grid gap-4 md:grid-cols-2">
+    <div v-if="load.pending.value" class="grid gap-4">
       <Skeleton v-for="i in 2" :key="i" class="h-44 rounded-xl" />
     </div>
 
-    <div v-else class="grid gap-4 md:grid-cols-2">
+    <div v-else class="grid gap-4">
       <SecurityMfaCard :is-enabled="mfaEnabled" :summary="mfaSummary" :error="mfa.error.value" />
-      <SecurityRiskCard :risk="riskPresentation" />
     </div>
 
     <SecurityPasswordSection

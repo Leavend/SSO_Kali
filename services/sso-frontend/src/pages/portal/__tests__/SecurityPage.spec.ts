@@ -50,7 +50,6 @@ vi.mock('@/services/profile.api', () => ({
       },
       security: {
         session_id: 'current',
-        risk_score: 55,
         mfa_required: true,
         last_seen_at: '2026-05-20T18:42:00Z',
       },
@@ -113,17 +112,12 @@ describe('SecurityPage', () => {
     expect(wrapper.text()).not.toContain('liquid glass')
   })
 
-  it('renders risk score context with gauge, scale, level, and detail CTA', async () => {
+  it('does not render the removed risk score card', async () => {
     const wrapper = await mountSecurityPage()
 
-    const riskCard = wrapper.find('[data-testid="risk-card"]')
-    const riskBar = wrapper.find('[data-testid="risk-score-bar"]')
-
-    expect(riskCard.text()).toContain('55/100')
-    expect(riskCard.text()).toContain('Tinggi')
-    expect(riskCard.text()).toContain('Lihat Detail Risiko')
-    expect(riskBar.attributes('style')).toContain('width: 55%')
-    expect(riskBar.classes()).toContain('bg-error-700')
+    expect(wrapper.find('[data-testid="risk-card"]').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('Skor risiko')
+    expect(wrapper.text()).not.toContain('Risiko Login')
   })
 
   it('keeps password change as a full-width section with reveal buttons and live strength checklist', async () => {

@@ -38,7 +38,6 @@ export type AdminUserSession = {
 
 export type AdminUserLoginContext = {
   readonly ip_address?: string | null
-  readonly risk_score?: number | null
   readonly mfa_required?: boolean
   readonly last_seen_at?: string | null
 }

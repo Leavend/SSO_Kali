@@ -31,7 +31,6 @@ it('returns the stable no-store profile portal contract with scoped claims only'
         'subject_id' => $user->subject_id,
         'ip_address' => '127.0.0.1',
         'device_fingerprint' => 'device-1',
-        'risk_score' => 7,
         'mfa_required' => true,
         'last_seen_at' => now()->toIso8601String(),
         'created_at' => now(),
@@ -46,8 +45,8 @@ it('returns the stable no-store profile portal contract with scoped claims only'
         ->assertJsonPath('profile.subject_id', 'profile-portal-subject')
         ->assertJsonPath('profile.display_name', 'Profile Portal User')
         ->assertJsonPath('profile.email', 'portal@example.test')
-        ->assertJsonPath('security.risk_score', 7)
         ->assertJsonPath('security.mfa_required', true)
+        ->assertJsonMissingPath('security.risk_score')
         ->assertJsonMissingPath('authorization.roles')
         ->assertJsonMissingPath('authorization.permissions')
         ->assertJsonMissingPath('profile.password')

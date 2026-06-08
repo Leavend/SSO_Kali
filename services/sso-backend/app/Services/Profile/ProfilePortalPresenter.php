@@ -72,7 +72,6 @@ final class ProfilePortalPresenter
 
         return [
             'session_id' => is_string($claims['sid'] ?? null) ? $claims['sid'] : null,
-            'risk_score' => $context['risk_score'] ?? 0,
             'mfa_required' => (bool) ($context['mfa_required'] ?? false),
             'last_seen_at' => $context['last_seen_at'] ?? null,
         ];
@@ -115,7 +114,6 @@ final class ProfilePortalPresenter
         }
 
         return [
-            'risk_score' => $context->risk_score,
             'mfa_required' => (bool) $context->mfa_required,
             'last_seen_at' => $context->last_seen_at,
         ];

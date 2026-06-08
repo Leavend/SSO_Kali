@@ -116,7 +116,6 @@ it('uses latest active SSO session IP as admin user login context evidence', fun
     DB::table('login_contexts')->insert([
         'subject_id' => $target->subject_id,
         'ip_address' => null,
-        'risk_score' => 15,
         'mfa_required' => false,
         'last_seen_at' => now()->subMinutes(10),
         'created_at' => now()->subMinutes(10),
@@ -137,9 +136,11 @@ it('uses latest active SSO session IP as admin user login context evidence', fun
     expect(app(AdminUserPresenter::class)->latestLoginContext($target->subject_id))
         ->toMatchArray([
             'ip_address' => '182.8.164.167',
-            'risk_score' => 15,
             'mfa_required' => false,
         ]);
+
+    expect(app(AdminUserPresenter::class)->latestLoginContext($target->subject_id))
+        ->not->toHaveKey('risk_score');
 });
 
 it('builds admin login context from active SSO session when login context is absent', function (): void {
@@ -159,9 +160,11 @@ it('builds admin login context from active SSO session when login context is abs
     expect(app(AdminUserPresenter::class)->latestLoginContext($target->subject_id))
         ->toMatchArray([
             'ip_address' => '203.0.113.88',
-            'risk_score' => null,
             'mfa_required' => false,
         ]);
+
+    expect(app(AdminUserPresenter::class)->latestLoginContext($target->subject_id))
+        ->not->toHaveKey('risk_score');
 });
 
 it('persists redacted admin audit context for user management actions', function (): void {

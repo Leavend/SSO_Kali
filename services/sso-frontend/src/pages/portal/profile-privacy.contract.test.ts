@@ -24,7 +24,6 @@ vi.mock('@/services/profile.api', () => ({
       authorization: { scope: '', roles: [], permissions: [] },
       security: {
         session_id: 'session-secret',
-        risk_score: 0,
         mfa_required: false,
         last_seen_at: null,
       },
@@ -70,7 +69,7 @@ describe('ProfilePage minimization contract', () => {
     store.profile = {
       profile: { subject_id: 'sub', display_name: 'User', status: 'active' },
       authorization: { scope: '', roles: [], permissions: [] },
-      security: { session_id: 's', risk_score: 0, mfa_required: false, last_seen_at: null },
+      security: { session_id: 's', mfa_required: false, last_seen_at: null },
     }
     const wrapper = mount(ProfilePage, { global: { stubs: { Skeleton: true } } })
     await flush()

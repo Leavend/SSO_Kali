@@ -7,7 +7,7 @@ use App\Models\User;
 use App\Services\Security\SuspiciousLoginPolicy;
 use App\Support\Security\RiskLevel;
 
-it('triggers MFA challenge when risk score exceeds threshold', function (): void {
+it('triggers MFA challenge when login risk is high', function (): void {
     $policy = app(SuspiciousLoginPolicy::class);
     $user = User::factory()->create();
 

@@ -6,7 +6,6 @@ import {
   oauthScopeTokens,
   presentAuditEvent,
   presentMfaSummary,
-  presentRiskScore,
 } from '@/lib/portal-security'
 import type { AuditEvent } from '@/types/audit.types'
 
@@ -28,26 +27,6 @@ const auditEvents: readonly AuditEvent[] = [
 ]
 
 describe('portal-security presenters', () => {
-  it('maps risk scores to a visible 0-100 scale and labels', () => {
-    expect(presentRiskScore(7)).toMatchObject({
-      label: 'Rendah',
-      scoreText: '7/100',
-      normalizedScore: 7,
-      description: 'Tidak ada aktivitas mencurigakan pada login terbaru.',
-      barClass: 'bg-success-700 dark:bg-success-400',
-    })
-    expect(presentRiskScore(35)).toMatchObject({
-      label: 'Sedang',
-      barClass: 'bg-warning-800 dark:bg-warning-300',
-    })
-    expect(presentRiskScore(120)).toMatchObject({
-      label: 'Tinggi',
-      scoreText: '100/100',
-      barClass: 'bg-error-700 dark:bg-error-400',
-      labelClass: 'text-error-700 dark:text-error-300',
-    })
-  })
-
   it('highlights sensitive audit events from unfamiliar IP addresses', () => {
     const knownIps = knownLoginIpAddresses(auditEvents)
     const riskyEvent = auditEvents[1]

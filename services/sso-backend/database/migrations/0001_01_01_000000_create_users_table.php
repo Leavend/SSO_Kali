@@ -48,7 +48,6 @@ return new class extends Migration
             $table->string('subject_uuid')->nullable()->index();
             $table->string('ip_address', 45)->nullable();
             $table->string('device_fingerprint')->nullable();
-            $table->unsignedTinyInteger('risk_score')->default(0);
             $table->boolean('mfa_required')->default(false);
             $table->timestamp('last_seen_at')->nullable();
             $table->timestamps();

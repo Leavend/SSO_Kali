@@ -161,7 +161,6 @@ describe('useUsersStore', () => {
       user,
       login_context: {
         ip_address: '203.0.113.10',
-        risk_score: 15,
         mfa_required: true,
       },
       sessions: [{ session_id: 'sess_1', client_id: 'portal' }],
@@ -194,7 +193,6 @@ describe('useUsersStore', () => {
 
     expect(store.loginContext).toMatchObject({
       ip_address: '182.8.164.167',
-      risk_score: null,
       mfa_required: false,
       last_seen_at: '2026-06-09T01:00:00Z',
     })
@@ -442,7 +440,6 @@ describe('useUsersStore', () => {
         user: { ...user, status: 'locked' },
         login_context: {
           ip_address: '127.0.0.1',
-          risk_score: 0,
           mfa_required: false,
         },
         sessions: [],

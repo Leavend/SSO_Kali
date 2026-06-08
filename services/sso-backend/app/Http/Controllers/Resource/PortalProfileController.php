@@ -60,7 +60,6 @@ final class PortalProfileController
             ],
             'security' => [
                 'session_id' => $currentSession->session_id,
-                'risk_score' => (int) ($loginContext->risk_score ?? 0),
                 'mfa_required' => (bool) ($loginContext->mfa_required ?? false),
                 'last_seen_at' => $currentSession->last_seen_at?->toIso8601String(),
             ],
