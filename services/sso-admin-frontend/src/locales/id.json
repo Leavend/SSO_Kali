@@ -72,7 +72,9 @@
     "syncing": "Sinkronisasi...",
     "exporting": "Mengekspor...",
     "generating": "Membuat...",
-    "back_to_list": "Kembali ke daftar"
+    "back_to_list": "Kembali ke daftar",
+    "copy": "Salin",
+    "copied": "Disalin!"
   },
   "dashboard": {
     "eyebrow": "Admin Governance",

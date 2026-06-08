@@ -43,6 +43,7 @@ import {
   LayoutDashboard,
   MonitorSmartphone,
   Settings,
+  Copy,
 } from 'lucide-vue-next'
 
 const store = useUsersStore()
@@ -72,6 +73,24 @@ useAutoRefresh({
 async function handleManualRefresh(): Promise<void> {
   await store.refreshList()
   await store.refreshSelected()
+}
+
+async function copyToClipboard(value: string): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(value)
+    toast.pushToast({ tone: 'success', title: t('common.copied') || 'Disalin' })
+  } catch {
+    // Fallback for older browsers / non-secure contexts
+    const ta = document.createElement('textarea')
+    ta.value = value
+    ta.style.position = 'fixed'
+    ta.style.opacity = '0'
+    document.body.appendChild(ta)
+    ta.select()
+    document.execCommand('copy')
+    document.body.removeChild(ta)
+    toast.pushToast({ tone: 'success', title: t('common.copied') || 'Disalin' })
+  }
 }
 
 const canWriteUsers = computed(() => session.hasPermission('admin.users.write'))
@@ -653,7 +672,21 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
             <p class="user-profile-hero__role">
               {{ store.selectedUser.role ?? t('users.status_unknown') }}
             </p>
-            <p class="user-profile-hero__subid">{{ store.selectedUser.subject_id }}</p>
+            <p class="user-profile-hero__subid stat-value--with-copy">
+              <span
+                class="stat-value stat-value--truncate stat-value--mono"
+                :title="store.selectedUser.subject_id"
+              >{{ store.selectedUser.subject_id }}</span>
+              <button
+                class="pill__copy"
+                type="button"
+                :aria-label="(t('common.copy') || 'Salin') + ' Subject ID'"
+                :title="t('common.copy') || 'Salin'"
+                @click="copyToClipboard(store.selectedUser.subject_id)"
+              >
+                <Copy :size="14" />
+              </button>
+            </p>
 
             <div class="user-profile-hero__actions">
               <RouterLink
@@ -720,11 +753,25 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
         >
           <!-- Identity stats -->
           <div class="user-stats-grid">
-            <div class="user-stat-card">
+            <div class="user-stat-card pill--full">
               <span class="user-stat-card__icon-wrapper"><Mail :size="18" /></span>
               <div class="user-stat-card__info">
                 <div class="user-stat-card__label">{{ t('users.label_email') }}</div>
-                <div class="user-stat-card__value">{{ store.selectedUser.email }}</div>
+                <div class="stat-value--with-copy">
+                  <span
+                    class="user-stat-card__value stat-value stat-value--truncate"
+                    :title="store.selectedUser.email"
+                  >{{ store.selectedUser.email }}</span>
+                  <button
+                    class="pill__copy"
+                    type="button"
+                    :aria-label="t('common.copy') || 'Salin' + ' ' + t('users.label_email')"
+                    :title="t('common.copy') || 'Salin'"
+                    @click="copyToClipboard(store.selectedUser.email)"
+                  >
+                    <Copy :size="14" />
+                  </button>
+                </div>
               </div>
             </div>
             <div class="user-stat-card">
@@ -896,7 +943,10 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
                 <span class="user-stat-card__icon-wrapper"><Globe :size="18" /></span>
                 <div class="user-stat-card__info">
                   <div class="user-stat-card__label">{{ t('users.ip_address') }}</div>
-                  <div class="user-stat-card__value font-mono">
+                  <div
+                    class="user-stat-card__value stat-value stat-value--truncate stat-value--mono"
+                    :title="store.loginContext?.ip_address ?? ''"
+                  >
                     {{ store.loginContext?.ip_address ?? t('users.no_evidence') }}
                   </div>
                 </div>
@@ -924,10 +974,16 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
                 class="user-session-list__item"
               >
                 <div class="user-session-list__meta">
-                  <span class="user-session-list__client">
+                  <span
+                    class="user-session-list__client stat-value stat-value--truncate"
+                    :title="userSession.client_id ?? ''"
+                  >
                     {{ userSession.client_id ?? t('users.status_unknown') }}
                   </span>
-                  <span class="user-session-list__id">
+                  <span
+                    class="user-session-list__id stat-value stat-value--truncate stat-value--mono"
+                    :title="(userSession.session_id ?? userSession.id) ?? ''"
+                  >
                     {{ userSession.session_id ?? userSession.id }}
                   </span>
                 </div>

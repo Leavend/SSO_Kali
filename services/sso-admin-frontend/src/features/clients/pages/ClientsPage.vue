@@ -28,6 +28,7 @@ import {
   AlertTriangle,
   HelpCircle,
   ShieldCheck,
+  Copy,
 } from 'lucide-vue-next'
 
 const store = useClientsStore()
@@ -658,7 +659,7 @@ async function rotateSecret(): Promise<void> {
                       {{ client.status ?? 'unknown' }}
                     </span>
                   </span>
-                  <span class="user-card-item__email">{{ client.client_id }}</span>
+                  <span class="user-card-item__email stat-value stat-value--truncate">{{ client.client_id }}</span>
                   <span class="user-card-item__meta">
                     <span class="user-card-item__role">{{ client.type ?? 'public' }}</span>
                   </span>
@@ -828,7 +829,21 @@ async function rotateSecret(): Promise<void> {
             <p class="client-profile-hero__env">
               {{ store.selectedClient.environment ?? t('clients.val_unknown') }}
             </p>
-            <p class="client-profile-hero__client-id">{{ store.selectedClient.client_id }}</p>
+            <p class="client-profile-hero__client-id stat-value--with-copy">
+              <span
+                class="stat-value stat-value--truncate stat-value--mono"
+                :title="store.selectedClient.client_id"
+              >{{ store.selectedClient.client_id }}</span>
+              <button
+                class="pill__copy"
+                type="button"
+                :aria-label="(t('common.copy') || 'Copy') + ' Client ID'"
+                :title="t('common.copy') || 'Copy'"
+                @click="copyToClipboard(store.selectedClient.client_id)"
+              >
+                <Copy :size="14" />
+              </button>
+            </p>
           </div>
           <div class="client-profile-hero__actions">
             <RouterLink

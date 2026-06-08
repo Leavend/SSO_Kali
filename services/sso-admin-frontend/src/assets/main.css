@@ -399,7 +399,7 @@ select {
 
 .admin-principal span {
   color: var(--muted-foreground);
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .admin-principal__role {
@@ -890,7 +890,7 @@ select {
 }
 
 .break-anywhere {
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
   word-break: break-word;
 }
 
@@ -1000,7 +1000,7 @@ select {
 .detail-section p,
 .request-evidence {
   color: var(--muted-foreground);
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .client-detail,
@@ -1043,7 +1043,7 @@ select {
 .detail-grid dd {
   margin: 6px 0 0;
   color: var(--foreground);
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .detail-section ul {
@@ -1051,7 +1051,7 @@ select {
   gap: 8px;
   padding-left: 18px;
   color: var(--foreground);
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .client-form {
@@ -1164,7 +1164,7 @@ select {
 .policy-json {
   padding: 10px;
   color: var(--foreground);
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
   border-radius: 10px;
   background: var(--muted);
 }
@@ -1340,7 +1340,7 @@ select {
   margin: 4px 0 0;
   color: var(--foreground);
   font-family: var(--font-mono);
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .ui-status-view .action-row {
@@ -1559,7 +1559,7 @@ select {
 
 .ui-toast__body small {
   font-family: var(--font-mono);
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .ui-toast__close {
@@ -2568,6 +2568,7 @@ select {
 }
 
 /* Modern Card Layouts for User Page */
+/* Container context for the detail panel (ISS-UI3). */
 .user-detail-container {
   display: flex;
   flex-direction: column;
@@ -2575,6 +2576,8 @@ select {
   width: 100%;
   grid-column: 2;
   min-width: 0;
+  container-type: inline-size;
+  container-name: userdetail;
 }
 
 .user-detail-card {
@@ -2746,7 +2749,6 @@ select {
   letter-spacing: 0.04em;
   margin-bottom: 4px;
 }
-
 .user-stat-card__value {
   min-width: 0;
   max-width: 100%;
@@ -2756,12 +2758,82 @@ select {
   color: var(--foreground);
   text-align: left;
   text-wrap: pretty;
-  /* Break long emails/IDs only when they would actually overflow, and at the
-     wrap point — not character-by-character like word-break: break-all. */
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
-@media (min-width: 1120px) {
+/* ═══════════════════════════════════════════════════════════════════
+   Stat-value type modifiers (ISS-UI1 · ISS-UI5)
+   Base: short values, prose — wraps at word boundaries only.
+   --truncate: email, UUID, IP, client_id, URL — single-line ellipsis
+              + :title full value + optional copy button.
+   --mono:    monospace face for codes/IDs.
+   ═══════════════════════════════════════════════════════════════════ */
+.stat-value {
+  min-width: 0;
+  overflow-wrap: break-word;
+  text-wrap: pretty;
+}
+
+.stat-value--truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.stat-value--mono {
+  font-family: var(--font-mono);
+}
+
+/* ── Pill that spans full grid row (email pada userstats) ───────── */
+.pill--full {
+  grid-column: 1 / -1;
+}
+
+/* ── Inline copy button inside a stat card value ─────────────────── */
+.pill__copy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin-left: 0.35rem;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+  vertical-align: middle;
+}
+
+.pill__copy:hover {
+  background: var(--muted);
+  color: var(--foreground);
+}
+
+.pill__copy:active {
+  transform: scale(0.92);
+}
+
+/* ── Value row with copy button: flex so truncation still works ──── */
+.stat-value--with-copy {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.stat-value--with-copy .stat-value--truncate {
+  flex: 1;
+  min-width: 0;
+}
+/* Container-driven 2‑column switch: the detail panel’s own width
+   determines the column count, not the viewport (ISS-UI3). */
+@container userdetail (min-width: 34rem) {
   .user-stats-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;

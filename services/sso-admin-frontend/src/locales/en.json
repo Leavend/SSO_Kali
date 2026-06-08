@@ -72,7 +72,9 @@
     "syncing": "Syncing...",
     "exporting": "Exporting...",
     "generating": "Generating...",
-    "back_to_list": "Back to list"
+    "back_to_list": "Back to list",
+    "copy": "Copy",
+    "copied": "Copied!"
   },
   "dashboard": {
     "eyebrow": "Admin Governance",
