@@ -11,6 +11,10 @@ use App\Services\Oidc\LocalTokenService;
 use App\Support\Rbac\AdminPermission;
 use Database\Seeders\RbacSeeder;
 
+beforeEach(function (): void {
+    config()->set('sso.admin.mfa.enforced', false);
+});
+
 it('installs the baseline role catalog during migrations without manual seeding', function (): void {
     expect(Role::query()->where('slug', 'admin')->exists())->toBeTrue()
         ->and(Role::query()->where('slug', 'user')->exists())->toBeTrue()
