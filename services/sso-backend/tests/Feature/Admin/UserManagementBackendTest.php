@@ -8,6 +8,7 @@ use App\Actions\Admin\IssueManagedUserPasswordResetAction;
 use App\Actions\Admin\ReactivateManagedUserAction;
 use App\Actions\Admin\SyncManagedUserProfileAction;
 use App\Models\AdminAuditEvent;
+use App\Models\SsoSession;
 use App\Models\User;
 use App\Services\Admin\AdminAuditLogger;
 use App\Services\Admin\AdminAuditTaxonomy;
@@ -107,6 +108,60 @@ it('includes email verification status in admin user presentation', function ():
 
     expect(app(AdminUserPresenter::class)->user($target))
         ->toHaveKey('email_verified_at');
+});
+
+it('uses latest active SSO session IP as admin user login context evidence', function (): void {
+    $target = User::factory()->create(['role' => 'user']);
+
+    DB::table('login_contexts')->insert([
+        'subject_id' => $target->subject_id,
+        'ip_address' => null,
+        'risk_score' => 15,
+        'mfa_required' => false,
+        'last_seen_at' => now()->subMinutes(10),
+        'created_at' => now()->subMinutes(10),
+        'updated_at' => now()->subMinutes(10),
+    ]);
+
+    SsoSession::query()->create([
+        'session_id' => 'sess-admin-context-ip',
+        'user_id' => $target->id,
+        'subject_id' => $target->subject_id,
+        'ip_address' => '182.8.164.167',
+        'user_agent' => 'Mozilla/5.0',
+        'authenticated_at' => now()->subMinute(),
+        'last_seen_at' => now(),
+        'expires_at' => now()->addHour(),
+    ]);
+
+    expect(app(AdminUserPresenter::class)->latestLoginContext($target->subject_id))
+        ->toMatchArray([
+            'ip_address' => '182.8.164.167',
+            'risk_score' => 15,
+            'mfa_required' => false,
+        ]);
+});
+
+it('builds admin login context from active SSO session when login context is absent', function (): void {
+    $target = User::factory()->create(['role' => 'user']);
+
+    SsoSession::query()->create([
+        'session_id' => 'sess-admin-context-only',
+        'user_id' => $target->id,
+        'subject_id' => $target->subject_id,
+        'ip_address' => '203.0.113.88',
+        'user_agent' => 'Mozilla/5.0',
+        'authenticated_at' => now()->subMinute(),
+        'last_seen_at' => now(),
+        'expires_at' => now()->addHour(),
+    ]);
+
+    expect(app(AdminUserPresenter::class)->latestLoginContext($target->subject_id))
+        ->toMatchArray([
+            'ip_address' => '203.0.113.88',
+            'risk_score' => null,
+            'mfa_required' => false,
+        ]);
 });
 
 it('persists redacted admin audit context for user management actions', function (): void {

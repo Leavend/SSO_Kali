@@ -175,6 +175,31 @@ describe('useUsersStore', () => {
     expect(store.sessions).toHaveLength(1)
   })
 
+  it('uses latest session IP as login context evidence when context IP is missing', async () => {
+    vi.mocked(usersApi.show).mockResolvedValue({
+      user,
+      login_context: null,
+      sessions: [
+        {
+          session_id: 'sess_1',
+          client_id: 'portal',
+          ip_address: '182.8.164.167',
+          last_activity_at: '2026-06-09T01:00:00Z',
+        },
+      ],
+    })
+    const store = useUsersStore()
+
+    await store.selectUser('sub_admin')
+
+    expect(store.loginContext).toMatchObject({
+      ip_address: '182.8.164.167',
+      risk_score: null,
+      mfa_required: false,
+      last_seen_at: '2026-06-09T01:00:00Z',
+    })
+  })
+
   it('applies lifecycle actions and stores audit evidence', async () => {
     vi.mocked(usersApi.lock).mockResolvedValue({
       user: { ...user, status: 'locked' },

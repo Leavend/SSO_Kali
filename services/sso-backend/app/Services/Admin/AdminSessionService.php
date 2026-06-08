@@ -118,6 +118,7 @@ final class AdminSessionService
     {
         return DB::table('refresh_token_rotations as r')
             ->join('users as u', 'u.subject_id', '=', 'r.subject_id')
+            ->leftJoin('sso_sessions as s', 's.session_id', '=', 'r.session_id')
             ->whereNull('r.revoked_at')
             ->where('r.expires_at', '>', now())
             ->whereNull('r.replaced_by_token_id')
@@ -128,6 +129,9 @@ final class AdminSessionService
                 'r.scope',
                 'r.created_at',
                 'r.expires_at',
+                's.ip_address',
+                's.user_agent',
+                's.last_seen_at',
                 'u.email',
                 'u.display_name',
             ])
@@ -294,7 +298,10 @@ final class AdminSessionService
             'email' => $row->email,
             'display_name' => $row->display_name,
             'scope' => $row->scope,
+            'ip_address' => $row->ip_address,
+            'user_agent' => $row->user_agent,
             'created_at' => $row->created_at,
+            'last_activity_at' => $row->last_seen_at,
             'expires_at' => $row->expires_at,
         ];
     }

@@ -9,6 +9,7 @@ import type {
   AdminUserSession,
   CreateUserPayload,
   SyncProfilePayload,
+  UserDetailResponse,
 } from '../types'
 
 export type UsersStatus = 'idle' | 'loading' | 'success' | 'unauthenticated' | 'forbidden' | 'error'
@@ -85,7 +86,7 @@ export const useUsersStore = defineStore('admin-users', () => {
     try {
       const response = await usersApi.show(subjectId)
       upsertUser(response.user)
-      loginContext.value = response.login_context ?? null
+      loginContext.value = loginContextEvidence(response)
       sessions.value = response.sessions ?? []
       requestId.value = getLastRequestId()
     } catch (error) {
@@ -117,7 +118,7 @@ export const useUsersStore = defineStore('admin-users', () => {
     try {
       const response = await usersApi.show(subjectId)
       upsertUser(response.user)
-      loginContext.value = response.login_context ?? null
+      loginContext.value = loginContextEvidence(response)
       sessions.value = response.sessions ?? []
       requestId.value = getLastRequestId()
     } catch (error) {
@@ -197,7 +198,7 @@ export const useUsersStore = defineStore('admin-users', () => {
       try {
         const showResponse = await usersApi.show(subjectId)
         upsertUser(showResponse.user)
-        loginContext.value = showResponse.login_context ?? null
+        loginContext.value = loginContextEvidence(showResponse)
         sessions.value = showResponse.sessions ?? []
         requestId.value = getLastRequestId()
         actionStatus.value = 'success'
@@ -228,7 +229,7 @@ export const useUsersStore = defineStore('admin-users', () => {
       try {
         const showResponse = await usersApi.show(subjectId)
         upsertUser(showResponse.user)
-        loginContext.value = showResponse.login_context ?? null
+        loginContext.value = loginContextEvidence(showResponse)
         sessions.value = showResponse.sessions ?? []
         requestId.value = getLastRequestId()
         actionStatus.value = 'success'
@@ -301,7 +302,7 @@ export const useUsersStore = defineStore('admin-users', () => {
       try {
         const showResponse = await usersApi.show(subjectId)
         upsertUser(showResponse.user)
-        loginContext.value = showResponse.login_context ?? null
+        loginContext.value = loginContextEvidence(showResponse)
         sessions.value = showResponse.sessions ?? []
         requestId.value = getLastRequestId()
         actionStatus.value = 'success'
@@ -322,6 +323,28 @@ export const useUsersStore = defineStore('admin-users', () => {
         : users.value.map((user) =>
             user.subject_id === nextUser.subject_id ? { ...user, ...nextUser } : user,
           )
+  }
+
+  function loginContextEvidence(response: UserDetailResponse): AdminUserLoginContext | null {
+    const context = response.login_context ?? null
+    const session = response.sessions?.find((item) => item.ip_address)
+
+    if (context !== null) {
+      return {
+        ...context,
+        ip_address: context.ip_address ?? session?.ip_address ?? null,
+        last_seen_at: context.last_seen_at ?? session?.last_activity_at ?? session?.created_at ?? null,
+      }
+    }
+
+    return session?.ip_address
+      ? {
+          ip_address: session.ip_address,
+          risk_score: null,
+          mfa_required: false,
+          last_seen_at: session.last_activity_at ?? session.created_at ?? null,
+        }
+      : null
   }
 
   function mergeUsers(

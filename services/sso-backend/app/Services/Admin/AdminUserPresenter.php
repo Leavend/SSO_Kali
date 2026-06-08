@@ -66,21 +66,39 @@ final class AdminUserPresenter
      */
     public function latestLoginContext(string $subjectId): ?array
     {
+        $latestSession = $this->latestActiveSsoSession($subjectId);
         $ctx = DB::table('login_contexts')
             ->where('subject_id', $subjectId)
             ->orderByDesc('id')
             ->first();
 
         if ($ctx === null) {
-            return null;
+            return $latestSession === null ? null : [
+                'ip_address' => $latestSession->ip_address,
+                'risk_score' => null,
+                'mfa_required' => false,
+                'last_seen_at' => $latestSession->last_seen_at ?? $latestSession->authenticated_at,
+            ];
         }
 
         return [
-            'ip_address' => $ctx->ip_address,
+            'ip_address' => $latestSession->ip_address ?? $ctx->ip_address,
             'risk_score' => $ctx->risk_score,
             'mfa_required' => (bool) $ctx->mfa_required,
-            'last_seen_at' => $ctx->last_seen_at,
+            'last_seen_at' => $latestSession->last_seen_at ?? $ctx->last_seen_at,
         ];
+    }
+
+    private function latestActiveSsoSession(string $subjectId): ?object
+    {
+        return DB::table('sso_sessions')
+            ->where('subject_id', $subjectId)
+            ->whereNull('revoked_at')
+            ->where('expires_at', '>', now())
+            ->orderByDesc('last_seen_at')
+            ->orderByDesc('authenticated_at')
+            ->orderByDesc('id')
+            ->first();
     }
 
     /**
