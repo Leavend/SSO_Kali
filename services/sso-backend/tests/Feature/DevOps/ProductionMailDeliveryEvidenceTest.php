@@ -6,6 +6,7 @@ it('passes production SMTP settings into the backend queue runtime', function ()
     $compose = file_get_contents(production_mail_repository_path('docker-compose.main.yml'));
 
     expect($compose)->toBeString()
+        ->and($compose)->toContain('APP_NAME: ${APP_NAME:-Dev-SSO}')
         ->and($compose)->toContain('MAIL_MAILER: ${MAIL_MAILER:-log}')
         ->and($compose)->toContain('MAIL_SCHEME: ${MAIL_SCHEME:-}')
         ->and($compose)->toContain('MAIL_URL: ${MAIL_URL:-null}')
@@ -33,6 +34,7 @@ it('keeps production SMTP credentials secret-driven in deployment assets', funct
         ->and($workflow)->not->toContain('MAIL_PASSWORD=')
         ->and($mailConfig)->toContain("'url' => env('MAIL_URL') ?: null")
         ->and($envExample)->toContain('MAIL_MAILER=smtp')
+        ->and($envExample)->toContain('APP_NAME=Dev-SSO')
         ->and($envExample)->toContain('MAIL_HOST=mail.bontangtechnohub.com')
         ->and($envExample)->toContain('MAIL_PASSWORD=CHANGE_ME')
         ->and($envExample)->toContain('SSO_WORKER_QUEUE=notifications,default')

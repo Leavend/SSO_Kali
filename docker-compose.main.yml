@@ -1,6 +1,7 @@
 name: ${COMPOSE_PROJECT_NAME:-sso-backend-prod}
 
 x-sso-backend-env: &sso-backend-env
+  APP_NAME: ${APP_NAME:-Dev-SSO}
   APP_ENV: ${APP_ENV:-production}
   APP_DEBUG: ${APP_DEBUG:-false}
   APP_KEY: ${SSO_BACKEND_APP_KEY}
