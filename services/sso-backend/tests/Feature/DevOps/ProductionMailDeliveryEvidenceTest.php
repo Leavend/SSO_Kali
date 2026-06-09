@@ -16,6 +16,7 @@ it('passes production SMTP settings into the backend queue runtime', function ()
         ->and($compose)->toContain('MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-hello@example.com}')
         ->and($compose)->toContain('SECURITY_NOTIFICATIONS_ENABLED: ${SECURITY_NOTIFICATIONS_ENABLED:-true}')
         ->and($compose)->toContain('SECURITY_NOTIFICATIONS_FROM_ADDRESS')
+        ->and($compose)->toContain('--queue=notifications,default')
         ->and(substr_count($compose, 'environment: *sso-backend-env'))->toBe(3);
 });
 
@@ -30,6 +31,7 @@ it('keeps production SMTP credentials secret-driven in deployment assets', funct
         ->and($envExample)->toContain('MAIL_MAILER=smtp')
         ->and($envExample)->toContain('MAIL_HOST=mail.bontangtechnohub.com')
         ->and($envExample)->toContain('MAIL_PASSWORD=CHANGE_ME')
+        ->and($envExample)->toContain('SSO_WORKER_QUEUE=notifications,default')
         ->and($envExample)->toContain('SECURITY_NOTIFICATIONS_FROM_NAME="Dev-SSO Security"');
 });
 

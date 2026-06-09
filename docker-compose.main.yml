@@ -189,7 +189,7 @@ services:
     restart: unless-stopped
     init: true
     environment: *sso-backend-env
-    command: ["php", "artisan", "queue:work", "redis", "--sleep=1", "--tries=3", "--timeout=90", "--memory=192"]
+    command: ["php", "artisan", "queue:work", "redis", "--queue=notifications,default", "--sleep=1", "--tries=3", "--timeout=90", "--memory=192"]
     depends_on:
       postgres:
         condition: service_healthy
