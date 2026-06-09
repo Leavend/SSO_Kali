@@ -1,0 +1,286 @@
+name: Verify SSO Logout Production
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  VPS_SSH_PORT: ${{ secrets.VPS_SSH_PORT || '22' }}
+  VPS_SSH_ATTEMPTS: ${{ vars.VPS_SSH_ATTEMPTS || '8' }}
+  VPS_SSH_COMMAND_TIMEOUT: ${{ vars.VPS_SSH_COMMAND_TIMEOUT || '90' }}
+
+jobs:
+  verify:
+    name: Verify admin/portal SSO logout propagation
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+
+    steps:
+      - name: Setup SSH key
+        shell: bash
+        env:
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_SSH_KNOWN_HOSTS: ${{ secrets.VPS_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          test -n "${VPS_SSH_KEY}" || { echo "VPS_SSH_KEY secret is required" >&2; exit 1; }
+          test -n "${VPS_HOST}" || { echo "VPS_HOST secret is required" >&2; exit 1; }
+
+          mkdir -p ~/.ssh
+          printf '%s\n' "${VPS_SSH_KEY}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          touch ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+          if [ -n "${VPS_SSH_KNOWN_HOSTS}" ]; then
+            printf '%s\n' "${VPS_SSH_KNOWN_HOSTS}" >> ~/.ssh/known_hosts
+          else
+            ssh-keyscan -T 10 -p "${VPS_SSH_PORT}" -H "${VPS_HOST}" >> ~/.ssh/known_hosts 2>/dev/null \
+              || echo "ssh-keyscan returned no key; relying on StrictHostKeyChecking=accept-new." >&2
+          fi
+
+          cat > ~/.ssh/config <<'EOF'
+          Host *
+            ControlMaster auto
+            ControlPath ~/.ssh/control-%r@%h:%p
+            ControlPersist 15m
+            StrictHostKeyChecking accept-new
+            ConnectTimeout 20
+            ServerAliveInterval 10
+            ServerAliveCountMax=3
+          EOF
+          chmod 600 ~/.ssh/config
+
+      - name: Define SSH retry helper
+        shell: bash
+        run: |
+          cat > /tmp/sso-verify-ssh-helpers.sh <<'EOF'
+          set -euo pipefail
+
+          ssh_with_retry() {
+            local attempt delay=20
+            for attempt in $(seq 1 "${VPS_SSH_ATTEMPTS}"); do
+              if timeout "${VPS_SSH_COMMAND_TIMEOUT}s" ssh -i ~/.ssh/deploy_key -p "${VPS_SSH_PORT}" \
+                -o BatchMode=yes \
+                -o ConnectTimeout=20 \
+                -o ConnectionAttempts=1 \
+                -o RequestTTY=no \
+                -o StrictHostKeyChecking=accept-new \
+                -o ServerAliveInterval=10 \
+                -o ServerAliveCountMax=3 \
+                "$@"; then
+                return 0
+              fi
+              echo "ssh attempt ${attempt}/${VPS_SSH_ATTEMPTS} failed; retrying in ${delay}s..." >&2
+              sleep "${delay}"
+              [ "${delay}" -lt 120 ] && delay=$((delay * 2)) || true
+            done
+            return 1
+          }
+          EOF
+
+      - name: Run production logout propagation E2E
+        shell: bash
+        run: |
+          set -euo pipefail
+          source /tmp/sso-verify-ssh-helpers.sh
+
+          ssh_with_retry "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+            'docker exec -i sso-backend-prod-sso-backend-1 php' <<'PHP'
+          <?php
+          require __DIR__.'/vendor/autoload.php';
+          $app = require __DIR__.'/bootstrap/app.php';
+          $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+
+          use App\Models\MfaCredential;
+          use App\Models\Role;
+          use App\Models\User;
+          use App\Services\Oidc\LocalTokenService;
+          use Illuminate\Support\Facades\DB;
+          use Illuminate\Support\Facades\Http;
+          use Illuminate\Support\Facades\Redis as RedisFacade;
+          use Illuminate\Support\Str;
+
+          function opaque_id(): string { return rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '='); }
+
+          $subject = 'gha-slo-e2e-'.strtolower(Str::random(12));
+          $email = $subject.'@example.invalid';
+          $adminSid = 'adm_'.opaque_id();
+          $portalSid = 'prt_'.opaque_id();
+          $bffSessionId = opaque_id();
+          $now = time();
+          $userId = null;
+          $redis5 = null;
+          $result = [];
+
+          try {
+              $user = User::query()->create([
+                  'subject_id' => $subject,
+                  'subject_uuid' => $subject,
+                  'email' => $email,
+                  'display_name' => 'GHA SLO E2E Admin',
+                  'given_name' => 'GHA',
+                  'family_name' => 'SLO',
+                  'role' => 'admin',
+                  'status' => 'active',
+                  'local_account_enabled' => false,
+                  'email_verified_at' => now(),
+                  'last_login_at' => now(),
+              ]);
+              $userId = (int) $user->getKey();
+              if ($role = Role::query()->where('slug', 'admin')->first()) {
+                  $user->roles()->syncWithoutDetaching([$role->getKey()]);
+              }
+              MfaCredential::query()->create([
+                  'user_id' => $userId,
+                  'method' => 'totp',
+                  'secret' => 'gha-slo-e2e-secret',
+                  'algorithm' => 'sha1',
+                  'digits' => 6,
+                  'period' => 30,
+                  'verified_at' => now(),
+              ]);
+
+              $scope = 'openid profile email offline_access roles permissions';
+              $context = [
+                  'subject_id' => $subject,
+                  'scope' => $scope,
+                  'auth_time' => $now,
+                  'amr' => ['pwd', 'mfa'],
+                  'acr' => 'urn:timeh:assurance:mfa',
+                  'expires_at' => now()->addMinutes(30)->toIso8601String(),
+              ];
+
+              $tokens = app(LocalTokenService::class);
+              $adminTokens = $tokens->issue($context + [
+                  'client_id' => 'sso-admin-panel',
+                  'session_id' => $adminSid,
+                  'nonce' => 'gha-admin-'.Str::random(8),
+              ]);
+              $portalTokens = $tokens->issue($context + [
+                  'client_id' => 'sso-frontend-portal',
+                  'session_id' => $portalSid,
+                  'nonce' => 'gha-portal-'.Str::random(8),
+              ]);
+
+              // Simulate a legacy active admin BFF session that predates RP registration.
+              DB::table('oidc_rp_sessions')->where('subject_id', $subject)->delete();
+
+              $redis5 = new Redis();
+              $redis5->connect(getenv('REDIS_HOST') ?: 'redis', (int) (getenv('REDIS_PORT') ?: 6379), 3.0);
+              $password = getenv('REDIS_PASSWORD');
+              if (is_string($password) && $password !== '') { $redis5->auth($password); }
+              $redis5->select(5);
+              $redis5->setex('admin:sessions:'.$bffSessionId, 3600, json_encode([
+                  'accessToken' => $adminTokens['access_token'],
+                  'idToken' => $adminTokens['id_token'],
+                  'refreshToken' => $adminTokens['refresh_token'] ?? 'missing-refresh-token',
+                  'sub' => $subject,
+                  'subject' => $subject,
+                  'email' => $email,
+                  'displayName' => 'GHA SLO E2E Admin',
+                  'role' => 'admin',
+                  'expiresAt' => $now + 900,
+                  'authTime' => $now,
+                  'amr' => ['pwd', 'mfa'],
+                  'acr' => 'urn:timeh:assurance:mfa',
+                  'lastLoginAt' => now()->toJSON(),
+                  'issuedAt' => $now,
+                  'absoluteExpiresAt' => $now + 3600,
+                  'lastRefreshedAt' => $now,
+              ], JSON_THROW_ON_ERROR));
+
+              $cookie = '__Host-sso-admin-session='.$bffSessionId;
+              $rpBeforeAdminAccess = DB::table('oidc_rp_sessions')
+                  ->where('subject_id', $subject)
+                  ->whereNull('revoked_at')
+                  ->count();
+
+              $adminBefore = Http::withHeaders([
+                  'Accept' => 'application/json',
+                  'Cookie' => $cookie,
+                  'X-Request-Id' => 'gha-slo-admin-before',
+              ])->timeout(20)->get('https://admin-sso.timeh.my.id/api/admin/me');
+
+              $rpAfterAdminAccess = DB::table('oidc_rp_sessions')
+                  ->where('subject_id', $subject)
+                  ->where('client_id', 'sso-admin-panel')
+                  ->whereNull('revoked_at')
+                  ->where('expires_at', '>', now())
+                  ->count();
+
+              $logout = Http::withToken($portalTokens['access_token'])
+                  ->withHeaders([
+                      'Accept' => 'application/json',
+                      'X-Request-Id' => 'gha-slo-logout-'.substr(hash('sha256', $subject), 0, 12),
+                  ])
+                  ->timeout(20)
+                  ->post('https://api-sso.timeh.my.id/connect/logout', []);
+
+              $adminAfter = null;
+              $attempts = 0;
+              for ($i = 1; $i <= 24; $i++) {
+                  usleep(500000);
+                  $attempts = $i;
+                  $adminAfter = Http::withHeaders([
+                      'Accept' => 'application/json',
+                      'Cookie' => $cookie,
+                      'X-Request-Id' => 'gha-slo-admin-after-'.$i,
+                  ])->timeout(20)->get('https://admin-sso.timeh.my.id/api/admin/me');
+                  if ($adminAfter->status() === 401) { break; }
+              }
+
+              $target = User::query()->where('email', 'huanamasi123@gmail.com')->first(['subject_id']);
+              $targetCounts = ['user_found' => $target !== null];
+              if ($target !== null) {
+                  $targetCounts += [
+                      'sso_sessions_active' => (int) DB::table('sso_sessions')->where('subject_id', $target->subject_id)->whereNull('revoked_at')->where('expires_at', '>', now())->count(),
+                      'rp_sessions_active' => (int) DB::table('oidc_rp_sessions')->where('subject_id', $target->subject_id)->whereNull('revoked_at')->where('expires_at', '>', now())->count(),
+                      'rp_admin_active' => (int) DB::table('oidc_rp_sessions')->where('subject_id', $target->subject_id)->where('client_id', 'sso-admin-panel')->whereNull('revoked_at')->where('expires_at', '>', now())->count(),
+                  ];
+              }
+
+              $queueRedis = RedisFacade::connection();
+              $rpAfterLogout = DB::table('oidc_rp_sessions')->where('subject_id', $subject)->whereNull('revoked_at')->count();
+
+              $result = [
+                  'rp_before_admin_access' => (int) $rpBeforeAdminAccess,
+                  'admin_before_status' => $adminBefore->status(),
+                  'rp_after_admin_access' => (int) $rpAfterAdminAccess,
+                  'logout_status' => $logout->status(),
+                  'logout_signed_out' => $logout->json('signed_out'),
+                  'logout_notifications' => is_array($logout->json('notifications')) ? count($logout->json('notifications')) : null,
+                  'admin_after_status' => $adminAfter?->status(),
+                  'admin_after_401_attempt' => $adminAfter?->status() === 401 ? $attempts : null,
+                  'rp_after_logout_active' => (int) $rpAfterLogout,
+                  'queue_backchannel_logout_size' => (int) $queueRedis->llen('queues:backchannel-logout'),
+                  'target_account' => $targetCounts,
+              ];
+
+              $result['pass'] = $rpBeforeAdminAccess === 0
+                  && $adminBefore->ok()
+                  && $rpAfterAdminAccess >= 1
+                  && $logout->ok()
+                  && $logout->json('signed_out') === true
+                  && $adminAfter?->status() === 401
+                  && $rpAfterLogout === 0;
+          } catch (Throwable $e) {
+              $result['pass'] = false;
+              $result['exception'] = get_class($e).': '.$e->getMessage();
+          } finally {
+              try { if ($redis5 instanceof Redis) { $redis5->select(5); $redis5->del('admin:sessions:'.$bffSessionId); } } catch (Throwable) {}
+              try { DB::table('mfa_credentials')->where('user_id', $userId)->delete(); } catch (Throwable) {}
+              try { DB::table('role_user')->where('user_id', $userId)->delete(); } catch (Throwable) {}
+              try { DB::table('refresh_token_rotations')->where('subject_id', $subject)->delete(); } catch (Throwable) {}
+              try { DB::table('oidc_rp_sessions')->where('subject_id', $subject)->delete(); } catch (Throwable) {}
+              try { DB::table('sso_sessions')->where('subject_id', $subject)->delete(); } catch (Throwable) {}
+              try { User::query()->where('subject_id', $subject)->delete(); } catch (Throwable) {}
+          }
+
+          echo json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES).PHP_EOL;
+          exit(($result['pass'] ?? false) ? 0 : 1);
+          PHP
