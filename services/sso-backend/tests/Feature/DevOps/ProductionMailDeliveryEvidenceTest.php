@@ -8,6 +8,7 @@ it('passes production SMTP settings into the backend queue runtime', function ()
     expect($compose)->toBeString()
         ->and($compose)->toContain('MAIL_MAILER: ${MAIL_MAILER:-log}')
         ->and($compose)->toContain('MAIL_SCHEME: ${MAIL_SCHEME:-}')
+        ->and($compose)->toContain('MAIL_URL: ${MAIL_URL:-null}')
         ->and($compose)->toContain('MAIL_HOST: ${MAIL_HOST:-127.0.0.1}')
         ->and($compose)->toContain('MAIL_PORT: ${MAIL_PORT:-2525}')
         ->and($compose)->toContain('MAIL_USERNAME: ${MAIL_USERNAME:-}')
@@ -22,12 +23,14 @@ it('passes production SMTP settings into the backend queue runtime', function ()
 
 it('keeps production SMTP credentials secret-driven in deployment assets', function (): void {
     $workflow = file_get_contents(production_mail_repository_path('.github/workflows/deploy-main.yml'));
+    $mailConfig = file_get_contents(production_mail_repository_path('services/sso-backend/config/mail.php'));
     $envExample = file_get_contents(production_mail_repository_path('.env.sso-backend.example'));
 
     expect($workflow)->toBeString()
         ->and($workflow)->toContain('VPS_ENV_PROD: ${{ secrets.VPS_ENV_PROD }}')
         ->and($workflow)->toContain('Install production env on VPS')
         ->and($workflow)->not->toContain('MAIL_PASSWORD=')
+        ->and($mailConfig)->toContain("'url' => env('MAIL_URL') ?: null")
         ->and($envExample)->toContain('MAIL_MAILER=smtp')
         ->and($envExample)->toContain('MAIL_HOST=mail.bontangtechnohub.com')
         ->and($envExample)->toContain('MAIL_PASSWORD=CHANGE_ME')

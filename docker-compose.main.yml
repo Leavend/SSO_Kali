@@ -8,7 +8,7 @@ x-sso-backend-env: &sso-backend-env
   LOG_LEVEL: ${LOG_LEVEL:-info}
   MAIL_MAILER: ${MAIL_MAILER:-log}
   MAIL_SCHEME: ${MAIL_SCHEME:-}
-  MAIL_URL: ${MAIL_URL:-}
+  MAIL_URL: ${MAIL_URL:-null}
   MAIL_HOST: ${MAIL_HOST:-127.0.0.1}
   MAIL_PORT: ${MAIL_PORT:-2525}
   MAIL_USERNAME: ${MAIL_USERNAME:-}
