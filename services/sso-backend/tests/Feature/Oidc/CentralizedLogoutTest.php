@@ -83,6 +83,48 @@ it('revokes the admin panel access tokens for the subject during centralized log
     expect($revocations->revoked($adminJti))->toBeTrue();
 });
 
+it('terminates a registered admin panel session when the user logs out from the portal', function (): void {
+    Bus::fake();
+
+    // Reproduces the reported production bug end-to-end through the registration
+    // path: an admin panel session that the admin BFF registered with the IdP
+    // (session-registration.ts) must be terminated when the same user signs out
+    // from the portal — otherwise admin-sso stays reachable after portal logout.
+    $subjectId = 'user-cross-app-slo';
+    $portalSessionId = 'sid-portal-cross-slo';
+    $adminSessionId = 'sid-admin-cross-slo';
+    $adminClientId = (string) config('sso.admin.panel_client_id', 'sso-admin-panel');
+    $registry = app(BackChannelSessionRegistry::class);
+    $revocations = app(AccessTokenRevocationStore::class);
+
+    // The admin BFF registered its RP session at login (sid == the access token's
+    // sid claim), and the admin access token was tracked the way LocalTokenService
+    // tracks it at issuance.
+    $registry->register(
+        $adminSessionId,
+        $adminClientId,
+        'https://api-sso.example.test/connect/backchannel/admin-panel/logout',
+        ['subject_id' => $subjectId],
+    );
+    $adminJti = 'jti-admin-cross-'.str()->uuid();
+    $revocations->track($adminSessionId, $adminJti, time() + 300, $adminClientId, $subjectId);
+
+    // Precondition: admin session is discoverable for the subject and its token is live.
+    expect($registry->sessionIdsForSubject($subjectId))->toContain($adminSessionId)
+        ->and($revocations->revoked($adminJti))->toBeFalse();
+
+    // The SAME user signs out from a different (portal) session.
+    $this->postJson('/connect/logout', [], bearerHeaders($subjectId, $portalSessionId))
+        ->assertOk()
+        ->assertJsonPath('signed_out', true);
+
+    // The admin panel is now terminated: its access token is revoked (so the admin
+    // BFF's next backend call returns 401 and the SPA redirects to login) and its RP
+    // session is cleared from the registry.
+    expect($revocations->revoked($adminJti))->toBeTrue()
+        ->and($registry->forSession($adminSessionId))->toBe([]);
+});
+
 it('dedupes duplicate global logout requests by sid sub and request id', function (): void {
     Bus::fake();
 
