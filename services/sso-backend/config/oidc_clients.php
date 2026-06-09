@@ -7,6 +7,15 @@ $frontendUrl = rtrim((string) env('SSO_FRONTEND_URL', 'http://localhost:3000'), 
 $loadTestEnabled = (bool) env('SSO_LOAD_TEST_CLIENT_ENABLED', false);
 $loadTestClientId = (string) env('SSO_LOAD_TEST_CLIENT_ID', 'sso-load-test-client');
 
+// Always resolve a non-empty back-channel logout endpoint for the admin panel so
+// its RP sessions are registered for single sign-out. env('X', default) returns
+// '' (not the default) when the variable is set but blank, which would silently
+// drop the admin client from logout propagation and leave admin-sso reachable
+// after the user logs out elsewhere.
+$adminBackchannelLogoutUri = filled(env('ADMIN_PANEL_BACKCHANNEL_LOGOUT_URI'))
+    ? (string) env('ADMIN_PANEL_BACKCHANNEL_LOGOUT_URI')
+    : $appUrl.'/connect/backchannel/admin-panel/logout';
+
 $lockedProductionClientIds = [
     env('APP_A_CLIENT_ID', 'app-a'),
     env('APP_B_CLIENT_ID', 'app-b'),
@@ -55,10 +64,7 @@ $clients = [
         'post_logout_redirect_uris' => [
             env('ADMIN_PANEL_POST_LOGOUT_REDIRECT_URI', $frontendUrl),
         ],
-        'backchannel_logout_uri' => env(
-            'ADMIN_PANEL_BACKCHANNEL_LOGOUT_URI',
-            $appUrl.'/connect/backchannel/admin-panel/logout',
-        ),
+        'backchannel_logout_uri' => $adminBackchannelLogoutUri,
         'frontchannel_logout_uri' => env('ADMIN_PANEL_FRONTCHANNEL_LOGOUT_URI'),
         'allowed_scopes' => ['openid', 'profile', 'email', 'offline_access', 'roles', 'permissions'],
     ],

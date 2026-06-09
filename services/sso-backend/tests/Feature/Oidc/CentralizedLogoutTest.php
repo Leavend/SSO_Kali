@@ -125,6 +125,20 @@ it('terminates a registered admin panel session when the user logs out from the 
         ->and($registry->forSession($adminSessionId))->toBe([]);
 });
 
+it('keeps a back-channel logout channel for the admin panel client so it can register for single sign-out', function (): void {
+    // Invariant the cross-app single sign-out depends on: if the admin client ever
+    // loses its logout channel (e.g. a blank ADMIN_PANEL_BACKCHANNEL_LOGOUT_URI in
+    // the environment), its sessions can no longer be registered, and admin-sso
+    // would stay reachable after logout elsewhere.
+    $adminClientId = (string) config('sso.admin.panel_client_id', 'sso-admin-panel');
+    $client = app(DownstreamClientRegistry::class)->find($adminClientId);
+
+    expect($client)->not->toBeNull()
+        ->and($client->supportsLogoutNotification())->toBeTrue()
+        ->and($client->backchannelLogoutUri)->not->toBeNull()
+        ->and($client->backchannelLogoutUri)->not->toBe('');
+});
+
 it('dedupes duplicate global logout requests by sid sub and request id', function (): void {
     Bus::fake();
 
