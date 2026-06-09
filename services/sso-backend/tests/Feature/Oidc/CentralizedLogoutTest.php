@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Actions\Audit\RecordLogoutAuditEventAction;
 use App\Jobs\DispatchBackChannelLogoutJob;
+use App\Services\Oidc\AccessTokenRevocationStore;
 use App\Services\Oidc\BackChannelSessionRegistry;
 use App\Services\Oidc\DownstreamClientRegistry;
 use App\Services\Oidc\LocalLogoutTokenVerifier;
@@ -55,6 +56,31 @@ it('queues back-channel logout for every registered client session', function ()
 
     Bus::assertDispatched(DispatchBackChannelLogoutJob::class, 2);
     expect(app(BackChannelSessionRegistry::class)->forSession($sessionId))->toBe([]);
+});
+
+it('revokes the admin panel access tokens for the subject during centralized logout', function (): void {
+    Bus::fake();
+
+    $subjectId = 'user-admin-slo';
+    $portalSessionId = 'sid-portal-admin-slo';
+    $adminSessionId = 'sid-admin-admin-slo';
+    $adminClientId = (string) config('sso.admin.panel_client_id', 'sso-admin-panel');
+    $revocations = app(AccessTokenRevocationStore::class);
+
+    // An active admin-panel access token, tracked at issuance the way LocalTokenService does.
+    $adminJti = 'jti-admin-'.str()->uuid();
+    $revocations->track($adminSessionId, $adminJti, time() + 300, $adminClientId, $subjectId);
+    expect($revocations->revoked($adminJti))->toBeFalse();
+
+    // The same user signs out centrally from a different (e.g. portal) session.
+    $this->postJson('/connect/logout', [], bearerHeaders($subjectId, $portalSessionId))
+        ->assertOk()
+        ->assertJsonPath('signed_out', true);
+
+    // Single sign-out MUST also revoke the admin panel's access tokens for the subject,
+    // otherwise the admin BFF keeps accepting the still-valid access token and the admin
+    // panel stays reachable after the portal has logged out.
+    expect($revocations->revoked($adminJti))->toBeTrue();
 });
 
 it('dedupes duplicate global logout requests by sid sub and request id', function (): void {

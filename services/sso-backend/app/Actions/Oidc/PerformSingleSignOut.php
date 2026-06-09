@@ -83,6 +83,7 @@ final class PerformSingleSignOut
         $sessionIds = $this->sessionIds($sessionId, $subjectId, $records);
 
         $this->revokeAccessTokens($sessionIds);
+        $this->revokeAdminPanelAccessTokens($subjectId);
 
         $notifications = $this->dispatchLogout($subjectId, $sessionIds, $requestId);
         $this->clearLocalSessions($subjectId, $sessionIds);
@@ -134,6 +135,25 @@ final class PerformSingleSignOut
         foreach ($sessionIds as $sessionId) {
             $this->revocations->revokeSession($sessionId);
         }
+    }
+
+    /**
+     * Single sign-out must also revoke the admin panel client's access tokens for
+     * the subject. Those tokens live under a different session id than the logout
+     * context, so the per-session revocation above never reaches them — leaving the
+     * admin BFF able to keep presenting a still-valid access token after the user
+     * logged out elsewhere (e.g. from the portal). The subject's refresh tokens are
+     * already revoked subject-wide via RefreshTokenStore::revokeSubject().
+     */
+    private function revokeAdminPanelAccessTokens(string $subjectId): void
+    {
+        $adminClientId = (string) config('sso.admin.panel_client_id', 'sso-admin-panel');
+
+        if ($adminClientId === '') {
+            return;
+        }
+
+        $this->revocations->revokeSubjectClient($subjectId, $adminClientId);
     }
 
     /**
