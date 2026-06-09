@@ -22,13 +22,11 @@ import { useRoute, useRouter } from 'vue-router'
 import LocaleSwitcher from '@/components/LocaleSwitcher.vue'
 import UiThemeToggle from '@/components/ui/UiThemeToggle.vue'
 import { useI18n } from '@/composables/useI18n'
-import { getAdminEnvironment } from '@/config/adminEnvironment'
 import { useSessionStore } from '@/stores/session.store'
 import type { AdminPermissionMenu } from '@/types/auth.types'
 
 const session = useSessionStore()
 const { t, locale } = useI18n()
-const env = getAdminEnvironment()
 const isNavOpen = ref(false)
 
 const route = useRoute()
@@ -87,7 +85,12 @@ function menuPath(menu: AdminPermissionMenu): string {
   return `/${menu.id}`
 }
 
-const logoutHref = computed<string>(() => new URL('/logout', env.ssoBaseUrl).toString())
+// Same-origin admin BFF logout. GET /auth/logout revokes the admin's access +
+// refresh tokens (which triggers IdP single sign-out via /connect/logout),
+// deletes the server-side session record, and clears the session cookie. This
+// must stay same-origin — pointing it at the portal origin leaves this BFF
+// session fully intact, so the admin stays logged in.
+const logoutHref = '/auth/logout'
 
 function closeNav(): void {
   isNavOpen.value = false

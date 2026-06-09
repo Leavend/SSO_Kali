@@ -90,8 +90,13 @@ describe('AdminShellLayout', () => {
     expect(
       wrapper.get('[data-testid="admin-mobile-menu-toggle"]').attributes('aria-expanded'),
     ).toBe('false')
-    expect(wrapper.get('[data-testid="admin-logout-action"]').attributes('href')).toContain(
-      '/logout',
+    // The logout link MUST point at the admin BFF's own same-origin /auth/logout
+    // route — the only handler that revokes the admin's tokens, deletes the
+    // server-side session record, clears the session cookie, and triggers IdP
+    // single sign-out. It must NOT point at the portal origin (ssoBaseUrl/logout),
+    // which leaves the admin BFF session fully intact.
+    expect(wrapper.get('[data-testid="admin-logout-action"]').attributes('href')).toBe(
+      '/auth/logout',
     )
   })
 })

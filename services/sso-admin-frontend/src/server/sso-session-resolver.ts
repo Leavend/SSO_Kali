@@ -3,6 +3,7 @@ import { refreshPortalSession, sessionNeedsRefresh } from './session-refresh.js'
 import type { PortalSession } from './session.js'
 import { readSession, replaceSession, sessionCookieForId } from './session.js'
 import { resolveBffRequestId } from './proxy-headers.js'
+import { registerClientSession } from './session-registration.js'
 
 export type ResolvedSsoSession = {
   readonly sessionId: string
@@ -18,10 +19,11 @@ export async function resolveSsoSession(
   if (!sessionId || !session) return null
   if (!sessionNeedsRefresh(session)) return { sessionId, session, cookies: [] }
 
-  const refreshed = await refreshPortalSession(session, {
-    requestId: resolveBffRequestId(request.headers),
-  })
+  const requestId = resolveBffRequestId(request.headers)
+  const refreshed = await refreshPortalSession(session, { requestId })
   await replaceSession(sessionId, refreshed)
+  // Keep the IdP RP-session registration alive across token rotation.
+  void registerClientSession(refreshed.accessToken, requestId)
   return { sessionId, session: refreshed, cookies: [sessionCookieForId(sessionId, refreshed)] }
 }
 

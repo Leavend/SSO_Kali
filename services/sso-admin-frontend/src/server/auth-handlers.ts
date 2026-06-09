@@ -41,6 +41,7 @@ import {
   generateState,
 } from './pkce.js'
 import { resolveBffRequestId } from './proxy-headers.js'
+import { registerClientSession } from './session-registration.js'
 
 const jwksByUrl = new Map<string, ReturnType<typeof createRemoteJWKSet>>()
 
@@ -178,10 +179,12 @@ export async function handleRefresh(request: IncomingMessage): Promise<AppRespon
   try {
     if (!sessionNeedsRefresh(session)) return refreshResponse(sessionId, session)
 
-    const refreshedSession = await refreshPortalSession(session, {
-      requestId: resolveBffRequestId(request.headers),
-    })
+    const requestId = resolveBffRequestId(request.headers)
+    const refreshedSession = await refreshPortalSession(session, { requestId })
     await replaceSession(sessionId, refreshedSession)
+    // Keep the IdP RP-session registration alive across token rotation so the
+    // admin stays visible in connected-apps and logout-reachable.
+    void registerClientSession(refreshedSession.accessToken, requestId)
 
     return refreshResponse(sessionId, refreshedSession)
   } catch (error) {
@@ -307,6 +310,10 @@ async function completeCallbackSession(
     if (principal.subjectId !== claims.sub) {
       throw new Error('Admin principal subject does not match the verified ID token subject.')
     }
+
+    // Register the RP session so the admin panel is visible in connected-apps and
+    // reachable by IdP single sign-out (back-channel logout). Best-effort.
+    await registerClientSession(tokens.access_token, requestId)
 
     return {
       ok: true,
