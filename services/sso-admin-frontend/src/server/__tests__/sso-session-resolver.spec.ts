@@ -50,7 +50,7 @@ describe('admin BFF SSO session resolver', () => {
     let registerRequest: RequestInit | undefined
     vi.stubGlobal(
       'fetch',
-      vi.fn(async (input: string | URL, init?: RequestInit) => {
+      vi.fn<(input: string | URL, init?: RequestInit) => Promise<Response>>(async (input, init) => {
         if (input.toString() === 'https://api-sso.example.test/connect/register-session') {
           registerRequest = init
           return Response.json({ registered: true, client_id: 'sso-admin-panel' })
@@ -75,7 +75,9 @@ describe('admin BFF SSO session resolver', () => {
   })
 
   it('does not re-register a recently registered admin RP session on every request', async () => {
-    const fetchMock = vi.fn(async () => Response.json({ registered: true }))
+    const fetchMock = vi.fn<() => Promise<Response>>(async () =>
+      Response.json({ registered: true }),
+    )
     vi.stubGlobal('fetch', fetchMock)
 
     const { sessionCookie } = await import('../session.js')
