@@ -86,7 +86,7 @@ describe('PolicyPage', () => {
     seedFullAccessPrincipal()
   })
 
-  it('renders security policy, RBAC, step-up evidence, and request ID', () => {
+  it('renders security policy, RBAC, step-up evidence, and reference code', () => {
     const store = usePolicyStore()
     store.status = 'success'
     store.policies = [policy]
@@ -102,8 +102,9 @@ describe('PolicyPage', () => {
     expect(wrapper.text()).toContain('Auditor')
     expect(wrapper.text()).toContain('admin.audit.read')
     expect(wrapper.text()).toContain('Policy evidence')
-    expect(wrapper.text()).toContain('Request ID')
-    expect(wrapper.text()).toContain('req-policy-1')
+    expect(wrapper.text()).toContain('Kode referensi')
+    expect(wrapper.text()).toContain('REF-QPOLICY1')
+    expect(wrapper.text()).not.toContain('req-policy-1')
     expect(wrapper.text()).not.toMatch(/Bearer|refreshToken|SQLSTATE/i)
   })
 

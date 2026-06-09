@@ -14,6 +14,7 @@ import UiStatusView from '@/components/ui/UiStatusView.vue'
 import UiTextarea from '@/components/ui/UiTextarea.vue'
 import { useSessionStore } from '@/stores/session.store'
 import { usePolicyStore } from '../stores/policy.store'
+import { formatTechnicalPreview } from '@/lib/display-identifiers'
 
 const store = usePolicyStore()
 const session = useSessionStore()
@@ -253,7 +254,7 @@ const confirmDescription = computed<string>(() => {
         <div v-for="policy in store.policies" :key="policy.id" class="ui-card">
           <strong>{{ policy.category }} version {{ policy.version }}</strong>
           <p>{{ policy.status }} · effective {{ dateFormat.smart(policy.effective_at) }}</p>
-          <p>Actor: {{ policy.actor_subject_id ?? 'unknown' }}</p>
+          <p>Kode admin: {{ formatTechnicalPreview(policy.actor_subject_id) }}</p>
           <pre class="policy-json">{{ JSON.stringify(policy.payload, null, 2) }}</pre>
           <div v-if="canActivateSecurityPolicy" class="action-row compact-actions">
             <button

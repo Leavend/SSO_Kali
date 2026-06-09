@@ -176,7 +176,7 @@ test('renders OAuth client console, evidence panel, and one-time client secret f
   await expect(page.getByRole('heading', { name: 'Backchannel logout URI' })).toBeVisible()
   await expect(page.getByText('https://app.example.test/logout')).toBeVisible()
   await expect(page.getByText('Client evidence')).toBeVisible()
-  await expect(page.getByText('Request ID')).toBeVisible()
+  await expect(page.getByText('Kode referensi')).toBeVisible()
   await expect(page.getByText('req-clients-e2e')).toBeVisible()
 
   await page.locator('input[name="client_id"]').fill('prototype-app-b')

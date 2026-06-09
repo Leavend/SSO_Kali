@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { AlertTriangle, Ban, RefreshCw, ShieldAlert } from 'lucide-vue-next'
+import { computed } from 'vue'
+import { formatSupportReference, redactTechnicalIdentifiers } from '@/lib/display-identifiers'
 
 type StatusTone = 'error' | 'forbidden' | 'step_up' | 'api'
 
@@ -12,10 +14,13 @@ interface Props {
   readonly standalone?: boolean
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   requestId: undefined,
   standalone: true,
 })
+
+const safeDescription = computed(() => redactTechnicalIdentifiers(props.description))
+const supportReference = computed(() => formatSupportReference(props.requestId))
 </script>
 
 <template>
@@ -33,11 +38,11 @@ withDefaults(defineProps<Props>(), {
         </div>
         <span class="eyebrow">{{ eyebrow }}</span>
         <h1>{{ title }}</h1>
-        <p>{{ description }}</p>
-        <dl v-if="requestId" class="ui-status-view__evidence">
+        <p>{{ safeDescription }}</p>
+        <dl v-if="supportReference" class="ui-status-view__evidence">
           <div>
-            <dt>Correlation ID</dt>
-            <dd>{{ requestId }}</dd>
+            <dt>Kode referensi</dt>
+            <dd>{{ supportReference }}</dd>
           </div>
         </dl>
         <div class="action-row" :aria-label="`${eyebrow} actions`">

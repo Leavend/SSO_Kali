@@ -19,6 +19,7 @@ import { useAuthAuditStore } from '../stores/auth-audit.store'
 import type { AuthAuditFilters } from '../types'
 import { useI18n } from '@/composables/useI18n'
 import { useDateFormat } from '@/composables/useDateFormat'
+import { formatFriendlyClientName, formatTechnicalPreview } from '@/lib/display-identifiers'
 import {
   Search,
   ChevronLeft,
@@ -337,7 +338,7 @@ onMounted(() => {
                       </span>
                     </span>
                     <span class="event-card-item__subject">
-                      {{ event.subject?.email ?? event.subject?.subject_id ?? '—' }}
+                      {{ event.subject?.email ?? formatTechnicalPreview(event.subject?.subject_id) }}
                     </span>
                     <span class="event-card-item__footer-row">
                       <span class="event-card-item__time">{{ dateFormat.smart(event.occurred_at) }}</span>
@@ -345,7 +346,7 @@ onMounted(() => {
                         v-if="event.request?.request_id"
                         class="event-card-item__req-id font-mono text-xs"
                       >
-                        {{ event.request.request_id.substring(0, 8) }}
+                        {{ formatTechnicalPreview(event.request.request_id) }}
                       </span>
                     </span>
                   </span>
@@ -399,13 +400,13 @@ onMounted(() => {
             {{ store.selectedEvent.event_type }}
           </h2>
           <div class="detail-event-id-wrap">
-            <span class="label">Event ID:</span>
-            <code class="value font-mono break-all">{{ store.selectedEvent.event_id }}</code>
+            <span class="label">Kode event:</span>
+            <code class="value font-mono break-all">{{ formatTechnicalPreview(store.selectedEvent.event_id) }}</code>
             <button
               class="copy-btn"
               type="button"
-              :title="copied ? 'Copied' : 'Copy Event ID'"
-              @click="copyToClipboard(store.selectedEvent.event_id)"
+              :title="copied ? 'Copied' : 'Copy event reference'"
+              @click="copyToClipboard(formatTechnicalPreview(store.selectedEvent.event_id))"
             >
               <Check v-if="copied" :size="14" class="text-emerald-500 animate-scale-up" />
               <Copy v-else :size="14" />
@@ -436,26 +437,25 @@ onMounted(() => {
               <dd>
                 {{
                   store.selectedEvent.subject?.email ??
-                  store.selectedEvent.subject?.subject_id ??
-                  '—'
+                  formatTechnicalPreview(store.selectedEvent.subject?.subject_id)
                 }}
               </dd>
             </div>
             <div>
-              <dt>Subject ID</dt>
+              <dt>Kode akun</dt>
               <dd class="font-mono break-all">
-                {{ store.selectedEvent.subject?.subject_id ?? '—' }}
+                {{ formatTechnicalPreview(store.selectedEvent.subject?.subject_id) }}
               </dd>
             </div>
             <div>
-              <dt>{{ t('auth_audit.col_client_id') }}</dt>
+              <dt>Aplikasi</dt>
               <dd>
-                <code>{{ store.selectedEvent.client_id ?? '—' }}</code>
+                <code>{{ formatFriendlyClientName(store.selectedEvent.client_id) }}</code>
               </dd>
             </div>
             <div>
-              <dt>{{ t('auth_audit.col_session_id') }}</dt>
-              <dd class="font-mono break-all">{{ store.selectedEvent.session_id ?? '—' }}</dd>
+              <dt>Kode sesi</dt>
+              <dd class="font-mono break-all">{{ formatTechnicalPreview(store.selectedEvent.session_id) }}</dd>
             </div>
             <div>
               <dt>{{ t('auth_audit.col_occurred_at') }}</dt>
@@ -475,9 +475,9 @@ onMounted(() => {
           </h3>
           <dl class="detail-metadata-grid">
             <div>
-              <dt>{{ t('auth_audit.col_request_id') }}</dt>
+              <dt>Kode request</dt>
               <dd class="font-mono break-all">
-                {{ store.selectedEvent.request.request_id ?? '—' }}
+                {{ formatTechnicalPreview(store.selectedEvent.request.request_id) }}
               </dd>
             </div>
             <div>

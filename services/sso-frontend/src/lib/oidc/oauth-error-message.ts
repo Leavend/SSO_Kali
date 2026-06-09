@@ -24,6 +24,7 @@
  */
 
 import idLocale from '@/locales/id.json'
+import { formatSupportReference as formatDisplaySupportReference } from '@/lib/display-identifiers'
 
 export type OAuthErrorInput =
   | string
@@ -129,9 +130,10 @@ export function extractSupportReference(
  * reference is available so callers can hide the line entirely.
  */
 export function formatSupportReference(reference: string | null): string | null {
-  if (reference === null || reference.length === 0) return null
+  const formatted = formatDisplaySupportReference(reference)
+  if (formatted === null) return null
   const template = localized('oauth.support_ref', 'Kode dukungan: {ref}')
-  return template.replaceAll('{ref}', reference)
+  return template.replaceAll('{ref}', formatted)
 }
 
 function readErrorCode(input: OAuthErrorInput): string | null {

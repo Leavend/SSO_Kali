@@ -103,7 +103,7 @@ test('renders external IdP provider and mapping evidence', async ({ page }) => {
   await expect(providerList).toContainText('healthy')
   await expect(page.getByText('safe to link: true')).toBeVisible()
   await expect(page.getByText('Federation evidence')).toBeVisible()
-  await expect(page.getByText('Request ID')).toBeVisible()
+  await expect(page.getByText('Kode referensi')).toBeVisible()
   await expect(page.getByText('req-idp-e2e')).toBeVisible()
   await expect(page.getByText(/Bearer|client_secret|access_token|SQLSTATE/u)).toHaveCount(0)
 })

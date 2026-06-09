@@ -88,7 +88,8 @@ describe('IpAccessPage', () => {
     const wrapper = mount(IpAccessPage)
 
     expect(wrapper.text()).toContain('IP access rules could not be loaded')
-    expect(wrapper.text()).toContain('req-ip-fail')
+    expect(wrapper.text()).toContain('REF-EQIPFAIL')
+    expect(wrapper.text()).not.toContain('req-ip-fail')
     expect(wrapper.text()).not.toMatch(/Bearer|SQLSTATE/i)
   })
 

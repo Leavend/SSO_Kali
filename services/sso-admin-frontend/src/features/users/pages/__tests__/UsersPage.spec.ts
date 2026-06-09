@@ -88,7 +88,7 @@ describe('UsersPage', () => {
     seedFullAccessPrincipal()
   })
 
-  it('renders user list, detail, assurance evidence, sessions, and request ID', () => {
+  it('renders user list, detail, assurance evidence, sessions, and reference code', () => {
     const store = useUsersStore()
     store.status = 'success'
     store.users = [user]
@@ -107,9 +107,11 @@ describe('UsersPage', () => {
     expect(wrapper.text()).toContain('admin@example.test')
     expect(wrapper.text()).toContain('MFA required')
     expect(wrapper.text()).not.toContain('Risk score')
-    expect(wrapper.text()).toContain('sess_1')
-    expect(wrapper.text()).toContain('Request ID')
-    expect(wrapper.text()).toContain('req-users-1')
+    expect(wrapper.text()).toContain('REF-SESS1')
+    expect(wrapper.text()).toContain('Kode referensi')
+    expect(wrapper.text()).toContain('REF-EQUSERS1')
+    expect(wrapper.text()).not.toContain('sess_1')
+    expect(wrapper.text()).not.toContain('req-users-1')
     expect(wrapper.text()).not.toMatch(/Bearer|refreshToken|password|SQLSTATE/i)
   })
 
@@ -150,7 +152,8 @@ describe('UsersPage', () => {
     const wrapper = mount(UsersPage)
 
     expect(wrapper.text()).toContain('Password reset dikirim melalui channel aman backend.')
-    expect(wrapper.text()).toContain('AUD-RESET-1')
+    expect(wrapper.text()).toContain('REF-UDRESET1')
+    expect(wrapper.text()).not.toContain('AUD-RESET-1')
     expect(wrapper.text()).not.toContain('reset-token-once')
   })
 

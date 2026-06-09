@@ -71,7 +71,7 @@ test('renders ops readiness and evidence placeholders', async ({ page }) => {
     .getByRole('heading', { name: 'Ops evidence', exact: true })
     .locator('..')
   await expect(evidencePanel).toBeVisible()
-  await expect(evidencePanel).toContainText('Request ID')
+  await expect(evidencePanel).toContainText('Kode referensi')
   await expect(evidencePanel).toContainText('req-ops-e2e')
   await expect(page.getByText(/Bearer|metrics token|secret|SQLSTATE/u)).toHaveCount(0)
 })

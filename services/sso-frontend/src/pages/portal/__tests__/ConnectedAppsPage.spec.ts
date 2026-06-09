@@ -128,8 +128,11 @@ describe('ConnectedAppsPage', () => {
     await nextTick()
 
     expect(wrapper.html()).toContain('connected-app-details')
-    expect(wrapper.find('[data-testid="connected-app-details"]').text()).toContain('Client ID:')
+    expect(wrapper.find('[data-testid="connected-app-details"]').text()).toContain('Aplikasi:')
     expect(wrapper.find('[data-testid="connected-app-details"]').text()).toContain(
+      'Bontang Civic Dashboard',
+    )
+    expect(wrapper.find('[data-testid="connected-app-details"]').text()).not.toContain(
       'bontang-civic-dashboard',
     )
   })

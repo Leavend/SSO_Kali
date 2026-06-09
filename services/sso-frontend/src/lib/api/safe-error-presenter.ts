@@ -1,4 +1,5 @@
 import { ApiError, isApiError, isValidationError } from './api-error'
+import { formatSupportReference } from '@/lib/display-identifiers'
 
 export type SafeErrorPresentation = {
   readonly message: string
@@ -25,7 +26,8 @@ export function validationErrors(error: unknown): Record<string, string> {
 }
 
 export function supportReferenceCopy(reference: string | null): string | null {
-  return reference ? `Kode dukungan: ${reference}` : null
+  const formatted = formatSupportReference(reference)
+  return formatted ? `Kode dukungan: ${formatted}` : null
 }
 
 function safeMessage(error: ApiError): string {

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { CheckCircle2, Info, ShieldAlert, X, XCircle } from 'lucide-vue-next'
+import { formatSupportReference } from '@/lib/display-identifiers'
 import { useToast } from './useToast'
 
 const { toasts, dismissToast } = useToast()
@@ -21,7 +22,7 @@ const { toasts, dismissToast } = useToast()
       <div class="ui-toast__body">
         <strong>{{ toast.title }}</strong>
         <p v-if="toast.description">{{ toast.description }}</p>
-        <small v-if="toast.requestId">Request ID: {{ toast.requestId }}</small>
+        <small v-if="toast.requestId">Kode referensi: {{ formatSupportReference(toast.requestId) }}</small>
       </div>
       <button
         class="ui-toast__close"

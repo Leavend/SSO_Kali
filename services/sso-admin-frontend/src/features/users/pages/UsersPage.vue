@@ -21,6 +21,7 @@ import { useSessionsStore } from '@/features/sessions/stores/sessions.store'
 import { useRolesStore } from '@/features/roles/stores/roles.store'
 import { useToast } from '@/components/ui/useToast'
 import { authApi } from '@/services/auth.api'
+import { formatFriendlyClientName, formatTechnicalPreview } from '@/lib/display-identifiers'
 import { useRouter } from 'vue-router'
 import type { CreateUserPayload, SyncProfilePayload } from '../types'
 import {
@@ -674,14 +675,14 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
             <p class="user-profile-hero__subid stat-value--with-copy">
               <span
                 class="stat-value stat-value--truncate stat-value--mono"
-                :title="store.selectedUser.subject_id"
-              >{{ store.selectedUser.subject_id }}</span>
+                title="Kode akun"
+              >{{ formatTechnicalPreview(store.selectedUser.subject_id) }}</span>
               <button
                 class="pill__copy"
                 type="button"
-                :aria-label="(t('common.copy') || 'Salin') + ' Subject ID'"
+                :aria-label="(t('common.copy') || 'Salin') + ' kode akun'"
                 :title="t('common.copy') || 'Salin'"
-                @click="copyToClipboard(store.selectedUser.subject_id)"
+                @click="copyToClipboard(formatTechnicalPreview(store.selectedUser.subject_id))"
               >
                 <Copy :size="14" />
               </button>
@@ -966,15 +967,15 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
                 <div class="user-session-list__meta">
                   <span
                     class="user-session-list__client stat-value stat-value--truncate"
-                    :title="userSession.client_id ?? ''"
+                    title="Aplikasi"
                   >
-                    {{ userSession.client_id ?? t('users.status_unknown') }}
+                    {{ formatFriendlyClientName(userSession.client_id) }}
                   </span>
                   <span
                     class="user-session-list__id stat-value stat-value--truncate stat-value--mono"
-                    :title="(userSession.session_id ?? userSession.id) ?? ''"
+                    title="Kode sesi"
                   >
-                    {{ userSession.session_id ?? userSession.id }}
+                    {{ formatTechnicalPreview(userSession.session_id ?? userSession.id) }}
                   </span>
                 </div>
                 <UiButton

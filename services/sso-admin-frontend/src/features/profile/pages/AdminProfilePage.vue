@@ -12,6 +12,7 @@ import UiSkeleton from '@/components/ui/UiSkeleton.vue'
 import UiStatusView from '@/components/ui/UiStatusView.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import { useAdminProfileStore } from '../stores/admin-profile.store'
+import { formatTechnicalPreview } from '@/lib/display-identifiers'
 import { Copy, Check, Shield, User, Mail } from 'lucide-vue-next'
 
 const store = useAdminProfileStore()
@@ -121,14 +122,14 @@ onMounted(() => {
         <hr class="profile-divider" />
 
         <div class="profile-sec-info">
-          <span class="label">Subject ID:</span>
+          <span class="label">Kode admin:</span>
           <div class="subject-id-row">
-            <code class="font-mono text-xs break-all">{{ store.principal.subject_id }}</code>
+            <code class="font-mono text-xs break-all">{{ formatTechnicalPreview(store.principal.subject_id) }}</code>
             <button
               class="copy-btn"
               type="button"
-              :title="copied ? 'Copied' : 'Copy Subject ID'"
-              @click="copyToClipboard(store.principal.subject_id)"
+              :title="copied ? 'Copied' : 'Copy admin reference'"
+              @click="copyToClipboard(formatTechnicalPreview(store.principal.subject_id))"
             >
               <Check v-if="copied" :size="12" class="text-emerald-500 animate-scale-up" />
               <Copy v-else :size="12" />

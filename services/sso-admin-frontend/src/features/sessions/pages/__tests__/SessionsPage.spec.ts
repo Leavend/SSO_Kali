@@ -81,12 +81,15 @@ describe('SessionsPage', () => {
     const wrapper = mount(SessionsPage)
 
     expect(wrapper.text()).toContain('Sessions')
-    expect(wrapper.text()).toContain('sess-001')
-    expect(wrapper.text()).toContain('sess-002')
-    expect(wrapper.text()).toContain('app-a')
+    expect(wrapper.text()).toContain('REF-SESS001')
+    expect(wrapper.text()).toContain('REF-SESS002')
+    expect(wrapper.text()).toContain('App A')
+    expect(wrapper.text()).not.toContain('sess-001')
+    expect(wrapper.text()).not.toContain('sess-002')
     expect(wrapper.text()).toContain('Admin User')
     expect(wrapper.text()).toContain('203.0.113.10')
-    expect(wrapper.text()).toContain('req-sessions-1')
+    expect(wrapper.text()).toContain('REF-ESSIONS1')
+    expect(wrapper.text()).not.toContain('req-sessions-1')
   })
 
   it('renders loading state when status is loading', () => {
@@ -190,7 +193,8 @@ describe('SessionsPage', () => {
     const wrapper = mount(SessionsPage)
 
     expect(wrapper.text()).toContain('Admin sessions could not be loaded')
-    expect(wrapper.text()).toContain('Gunakan request ID req-123.')
+    expect(wrapper.text()).toContain('Gunakan kode referensi REF-REQ123')
+    expect(wrapper.text()).not.toContain('req-123')
   })
 
   it('hides revoke buttons for read-only principals', () => {

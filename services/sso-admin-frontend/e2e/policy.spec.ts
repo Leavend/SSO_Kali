@@ -107,7 +107,7 @@ test('renders policy and RBAC evidence', async ({ page }) => {
   await expect(roles).toContainText('Auditor')
   await expect(roles).toContainText('admin.audit.read')
   await expect(page.getByText('Policy evidence')).toBeVisible()
-  await expect(page.getByText('Request ID')).toBeVisible()
+  await expect(page.getByText('Kode referensi')).toBeVisible()
   await expect(page.getByText('req-policy-e2e')).toBeVisible()
   await expect(page.getByText(/Bearer|refreshToken|SQLSTATE/u)).toHaveCount(0)
 })

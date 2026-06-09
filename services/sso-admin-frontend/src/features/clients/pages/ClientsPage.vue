@@ -15,6 +15,7 @@ import UiSelect from '@/components/ui/UiSelect.vue'
 import { useSessionStore } from '@/stores/session.store'
 import { useClientsStore } from '../stores/clients.store'
 import { clientsApi } from '../services/clients.api'
+import { formatFriendlyClientName } from '@/lib/display-identifiers'
 import {
   Search,
   X,
@@ -659,7 +660,7 @@ async function rotateSecret(): Promise<void> {
                       {{ client.status ?? 'unknown' }}
                     </span>
                   </span>
-                  <span class="user-card-item__email stat-value stat-value--truncate">{{ client.client_id }}</span>
+                  <span class="user-card-item__email stat-value stat-value--truncate">{{ client.owner_email ?? formatFriendlyClientName(client.client_id) }}</span>
                   <span class="user-card-item__meta">
                     <span class="user-card-item__role">{{ client.type ?? 'public' }}</span>
                   </span>
@@ -832,14 +833,14 @@ async function rotateSecret(): Promise<void> {
             <p class="client-profile-hero__client-id stat-value--with-copy">
               <span
                 class="stat-value stat-value--truncate stat-value--mono"
-                :title="store.selectedClient.client_id"
-              >{{ store.selectedClient.client_id }}</span>
+                title="Kode aplikasi"
+              >{{ formatFriendlyClientName(store.selectedClient.client_id) }}</span>
               <button
                 class="pill__copy"
                 type="button"
-                :aria-label="(t('common.copy') || 'Copy') + ' Client ID'"
+                :aria-label="(t('common.copy') || 'Copy') + ' kode aplikasi'"
                 :title="t('common.copy') || 'Copy'"
-                @click="copyToClipboard(store.selectedClient.client_id)"
+                @click="copyToClipboard(formatFriendlyClientName(store.selectedClient.client_id))"
               >
                 <Copy :size="14" />
               </button>

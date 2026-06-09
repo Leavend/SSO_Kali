@@ -166,7 +166,8 @@ describe('formatSupportReference (FE-FR063-001 / FR-063)', () => {
   it('renders the localized template only when a reference is supplied', () => {
     const formatted = formatSupportReference('SSOERR-ABCDEFGH')
     expect(formatted).toBeTypeOf('string')
-    expect(formatted).toContain('SSOERR-ABCDEFGH')
+    expect(formatted).toContain('REF-ABCDEFGH')
+    expect(formatted).not.toContain('SSOERR-ABCDEFGH')
     expect(formatSupportReference(null)).toBeNull()
     expect(formatSupportReference('')).toBeNull()
   })

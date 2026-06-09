@@ -75,7 +75,8 @@ describe('SsoErrorTemplatesPage', () => {
     expect(wrapper.text()).toContain('session_expired')
     expect(wrapper.text()).toContain('Sesi berakhir')
     expect(wrapper.text()).toContain('Silakan login kembali.')
-    expect(wrapper.text()).toContain('req-templates-1')
+    expect(wrapper.text()).toContain('REF-MPLATES1')
+    expect(wrapper.text()).not.toContain('req-templates-1')
   })
 
   it('renders loading state', () => {
@@ -119,7 +120,8 @@ describe('SsoErrorTemplatesPage', () => {
     const wrapper = mount(SsoErrorTemplatesPage)
 
     expect(wrapper.text()).toContain('SSO error templates could not be loaded')
-    expect(wrapper.text()).toContain('req-err')
+    expect(wrapper.text()).toContain('REF-REQERR')
+    expect(wrapper.text()).not.toContain('req-err')
     expect(wrapper.find('.ui-status-view').exists()).toBe(true)
   })
 

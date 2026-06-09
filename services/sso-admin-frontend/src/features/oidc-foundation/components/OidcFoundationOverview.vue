@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useDateFormat } from '@/composables/useDateFormat'
+import { formatTechnicalPreview } from '@/lib/display-identifiers'
 import OidcStatusBadge from './OidcStatusBadge.vue'
 import type { OidcFoundationSnapshot } from '../types'
 
@@ -46,8 +47,8 @@ const dateFormat = useDateFormat()
         <dd>{{ dateFormat.smart(snapshot.checked_at) }}</dd>
       </div>
       <div v-if="snapshot.correlation_id">
-        <dt>Correlation ID</dt>
-        <dd class="break-anywhere">{{ snapshot.correlation_id }}</dd>
+        <dt>Kode referensi</dt>
+        <dd class="break-anywhere">{{ formatTechnicalPreview(snapshot.correlation_id) }}</dd>
       </div>
     </dl>
   </section>

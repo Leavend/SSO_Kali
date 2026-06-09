@@ -45,8 +45,9 @@ describe('DashboardPage', () => {
     expect(wrapper.text()).toContain('Admin Dashboard')
     expect(wrapper.text()).toContain('Users')
     expect(wrapper.text()).toContain('10')
-    expect(wrapper.text()).toContain('Request ID')
-    expect(wrapper.text()).toContain('req-dashboard-1')
+    expect(wrapper.text()).toContain('Kode referensi')
+    expect(wrapper.text()).toContain('REF-SHBOARD1')
+    expect(wrapper.text()).not.toContain('req-dashboard-1')
     expect(wrapper.find('[title="2026-05-27T00:00:00.000Z"]').exists()).toBe(true)
   })
 
@@ -71,7 +72,8 @@ describe('DashboardPage', () => {
     const wrapper = mount(DashboardPage)
 
     expect(wrapper.text()).toContain('Admin dashboard could not be loaded')
-    expect(wrapper.text()).toContain('req-fail-1')
+    expect(wrapper.text()).toContain('REF-REQFAIL1')
+    expect(wrapper.text()).not.toContain('req-fail-1')
     expect(wrapper.text()).not.toMatch(/Bearer|refreshToken|SQLSTATE/i)
   })
 

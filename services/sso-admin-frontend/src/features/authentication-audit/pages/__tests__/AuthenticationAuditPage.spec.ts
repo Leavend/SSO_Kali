@@ -139,8 +139,10 @@ describe('AuthenticationAuditPage', () => {
 
     expect(wrapper.find('.auth-audit-detail').exists()).toBe(true)
     expect(wrapper.text()).toContain('Event Detail')
-    expect(wrapper.text()).toContain('sid-abc-123')
-    expect(wrapper.text()).toContain('req-xyz-789')
+    expect(wrapper.text()).toContain('REF-IDABC123')
+    expect(wrapper.text()).toContain('REF-EQXYZ789')
+    expect(wrapper.text()).not.toContain('sid-abc-123')
+    expect(wrapper.text()).not.toContain('req-xyz-789')
     expect(wrapper.text()).toContain('Mozilla/5.0 Chrome/120')
   })
 
@@ -154,7 +156,7 @@ describe('AuthenticationAuditPage', () => {
     const wrapper = mount(AuthenticationAuditPage)
     await wrapper.find('.copy-btn').trigger('click')
 
-    expect(navigator.clipboard.writeText).toHaveBeenCalledWith('EVT-001')
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith('REF-EVT001')
   })
 
   it('shows layout selected state indicator classes', () => {

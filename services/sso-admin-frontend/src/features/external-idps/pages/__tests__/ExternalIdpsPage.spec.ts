@@ -96,7 +96,8 @@ describe('ExternalIdpsPage', () => {
     expect(wrapper.text()).toContain('https://accounts.google.com')
     expect(wrapper.text()).toContain('healthy')
     expect(wrapper.text()).toContain('safe to link')
-    expect(wrapper.text()).toContain('req-idp-1')
+    expect(wrapper.text()).toContain('REF-REQIDP1')
+    expect(wrapper.text()).not.toContain('req-idp-1')
     expect(wrapper.text()).not.toMatch(/Bearer|client_secret|access_token|SQLSTATE/u)
   })
 

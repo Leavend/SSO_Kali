@@ -102,7 +102,8 @@ describe('PrivacyPage data subject request contract', () => {
     await flush()
 
     expect(wrapper.text()).toContain('Layanan SSO sedang tidak tersedia. Coba lagi nanti.')
-    expect(wrapper.text()).toContain('Kode dukungan: SSOERR-PRIVACY1')
+    expect(wrapper.text()).toContain('Kode dukungan: REF-PRIVACY1')
+    expect(wrapper.text()).not.toContain('SSOERR-PRIVACY1')
     expect(wrapper.text()).not.toContain('SQLSTATE')
     expect(wrapper.text()).not.toContain('GDPR Article')
   })

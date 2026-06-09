@@ -26,6 +26,7 @@ import UiSkeleton from '@/components/ui/UiSkeleton.vue'
 import UiStatusView from '@/components/ui/UiStatusView.vue'
 import { useSessionStore } from '@/stores/session.store'
 import { useAuditStore } from '../stores/audit.store'
+import { formatFriendlyClientName, formatTechnicalPreview } from '@/lib/display-identifiers'
 import type {
   AuditExportFilters,
   ComplianceEvidencePackFilters,
@@ -208,21 +209,21 @@ const hasAuditEvidence = computed(
     store.retentionStatus !== null,
 )
 const auditEventColumns = [
-  { key: 'event_id', label: 'Event ID' },
+  { key: 'event_id', label: 'Kode event' },
   { key: 'action', label: 'Action' },
   { key: 'outcome', label: 'Outcome' },
   { key: 'taxonomy', label: 'Taxonomy' },
 ] as const
 const authenticationEventColumns = [
-  { key: 'event_id', label: 'Event ID' },
+  { key: 'event_id', label: 'Kode event' },
   { key: 'event_type', label: 'Event type' },
   { key: 'outcome', label: 'Outcome' },
-  { key: 'request_id', label: 'Request ID' },
+  { key: 'request_id', label: 'Kode request' },
 ] as const
 const auditEventRows = computed<readonly UiDataListRow[]>(() =>
   store.events.map((event) => ({
     id: event.event_id,
-    event_id: event.event_id,
+    event_id: formatTechnicalPreview(event.event_id),
     action: event.action,
     outcome: event.outcome,
     taxonomy: event.taxonomy ?? 'taxonomy unknown',
@@ -231,10 +232,10 @@ const auditEventRows = computed<readonly UiDataListRow[]>(() =>
 const authenticationEventRows = computed<readonly UiDataListRow[]>(() =>
   store.authenticationEvents.map((event) => ({
     id: event.event_id,
-    event_id: event.event_id,
+    event_id: formatTechnicalPreview(event.event_id),
     event_type: event.event_type,
     outcome: event.outcome,
-    request_id: event.request?.request_id ?? 'no request evidence',
+    request_id: formatTechnicalPreview(event.request?.request_id),
   })),
 )
 
@@ -581,8 +582,7 @@ onMounted(() => {
                     <dd class="text-sm font-semibold break-anywhere">
                       {{
                         store.selectedEvent.actor?.email ??
-                        store.selectedEvent.actor?.subject_id ??
-                        'unknown'
+                        formatTechnicalPreview(store.selectedEvent.actor?.subject_id)
                       }}
                     </dd>
                   </div>
@@ -703,8 +703,7 @@ onMounted(() => {
                     <dd class="text-sm font-semibold break-anywhere">
                       {{
                         store.selectedAuthenticationEvent.subject?.email ??
-                        store.selectedAuthenticationEvent.subject?.subject_id ??
-                        'unknown'
+                        formatTechnicalPreview(store.selectedAuthenticationEvent.subject?.subject_id)
                       }}
                     </dd>
                   </div>
@@ -713,15 +712,15 @@ onMounted(() => {
                       Client
                     </dt>
                     <dd class="text-sm break-anywhere font-semibold">
-                      {{ store.selectedAuthenticationEvent.client_id ?? 'No client evidence' }}
+                      {{ formatFriendlyClientName(store.selectedAuthenticationEvent.client_id) }}
                     </dd>
                   </div>
                   <div class="flex flex-col gap-1 border-t border-border pt-2">
                     <dt class="text-xs font-bold text-muted-foreground uppercase tracking-wide">
-                      Session ID (SID)
+                      Kode sesi
                     </dt>
                     <dd class="text-sm font-mono break-anywhere">
-                      {{ store.selectedAuthenticationEvent.session_id ?? 'No SID evidence' }}
+                      {{ formatTechnicalPreview(store.selectedAuthenticationEvent.session_id) }}
                     </dd>
                   </div>
                   <div
@@ -1166,7 +1165,7 @@ onMounted(() => {
                   class="flex justify-between items-center flex-wrap gap-2 border-b border-border pb-2"
                 >
                   <strong class="text-sm font-bold text-foreground break-anywhere">{{
-                    request.request_id
+                    formatTechnicalPreview(request.request_id)
                   }}</strong>
                   <span class="audit-badge audit-badge--info">
                     {{ request.type }}
@@ -1178,9 +1177,9 @@ onMounted(() => {
                     <span class="text-foreground capitalize">{{ request.status }}</span>
                   </div>
                   <div class="flex justify-between">
-                    <span class="text-muted-foreground">Subject ID:</span>
+                    <span class="text-muted-foreground">Kode akun:</span>
                     <span class="text-foreground font-mono break-anywhere">{{
-                      request.subject_id
+                      formatTechnicalPreview(request.subject_id)
                     }}</span>
                   </div>
                   <div class="flex justify-between">

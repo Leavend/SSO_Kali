@@ -97,7 +97,8 @@ describe('AdminProfilePage', () => {
 
     expect(wrapper.find('.profile-display-name').text()).toBe('Administrator User')
     expect(wrapper.text()).toContain('admin@sso.example.com')
-    expect(wrapper.text()).toContain('admin-001')
+    expect(wrapper.text()).toContain('REF-ADMIN001')
+    expect(wrapper.text()).not.toContain('admin-001')
     expect(wrapper.text()).toContain('Admin')
     expect(wrapper.text()).toContain('User')
     expect(wrapper.text()).toContain('admin-role')
@@ -105,7 +106,7 @@ describe('AdminProfilePage', () => {
     expect(wrapper.text()).toContain('admin.roles.read')
   })
 
-  it('allows copying subject ID to clipboard', async () => {
+  it('allows copying admin reference to clipboard', async () => {
     const store = useAdminProfileStore()
     store.principal = mockPrincipal
     store.status = 'success'
@@ -113,6 +114,6 @@ describe('AdminProfilePage', () => {
     const wrapper = mount(AdminProfilePage)
     await wrapper.find('.copy-btn').trigger('click')
 
-    expect(navigator.clipboard.writeText).toHaveBeenCalledWith('admin-001')
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith('REF-ADMIN001')
   })
 })

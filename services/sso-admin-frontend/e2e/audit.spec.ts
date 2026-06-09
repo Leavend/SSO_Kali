@@ -171,10 +171,10 @@ test('renders audit compliance evidence and DSR queue', async ({ page }) => {
   await expect(page.getByText('Safe error regression review')).toBeVisible()
   const evidencePanel = page.getByRole('heading', { name: 'Audit evidence context' }).locator('..')
   await expect(evidencePanel).toBeVisible()
-  await expect(evidencePanel).toContainText('Request ID')
+  await expect(evidencePanel).toContainText('Kode referensi')
   await expect(evidencePanel).toContainText('req-audit-e2e')
-  await expect(evidencePanel).toContainText('Correlation ID')
-  await expect(evidencePanel).toContainText('SID')
+  await expect(evidencePanel).toContainText('Correlation')
+  await expect(evidencePanel).toContainText('Session')
   await expect(page.getByText(/Bearer|refreshToken|SQLSTATE/u)).toHaveCount(0)
 })
 

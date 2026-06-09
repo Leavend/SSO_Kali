@@ -25,6 +25,7 @@ describe('UiToastProvider', () => {
     await nextTick()
 
     expect(wrapper.get('[role="status"]').text()).toContain('Verifikasi ulang')
-    expect(wrapper.text()).toContain('req-123')
+    expect(wrapper.text()).toContain('REF-REQ123')
+    expect(wrapper.text()).not.toContain('req-123')
   })
 })

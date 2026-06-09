@@ -11,6 +11,7 @@ import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useProfileStore } from '@/stores/profile.store'
 import { isApiError } from '@/lib/api/api-error'
 import { presentConnectedApp } from '@/lib/connected-apps'
+import { formatFriendlyClientName } from '@/lib/display-identifiers'
 import { formatPortalDateTime } from '@/lib/portal-security'
 import { cn } from '@/lib/utils'
 import type { ConnectedApp } from '@/types/profile.types'
@@ -221,8 +222,8 @@ const revokeErrorMessage = computed<string | null>(() => {
           >
             <div class="grid gap-1 sm:grid-cols-2">
               <p>
-                <span class="text-muted-foreground">Client ID:</span>
-                <code>{{ item.app.client_id }}</code>
+                <span class="text-muted-foreground">Aplikasi:</span>
+                <code>{{ formatFriendlyClientName(item.app.client_id) }}</code>
               </p>
               <p>
                 <span class="text-muted-foreground">Token berakhir:</span>
