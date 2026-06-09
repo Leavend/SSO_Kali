@@ -17,9 +17,12 @@ import { getConfig } from './config.js'
  * Best-effort by design: a registration failure must never block login or token
  * refresh, so the network error is swallowed after logging.
  */
-export async function registerClientSession(accessToken: string, requestId: string): Promise<void> {
+export async function registerClientSession(
+  accessToken: string,
+  requestId: string,
+): Promise<boolean> {
   try {
-    await fetch(`${getConfig().internalBaseUrl}/connect/register-session`, {
+    const response = await fetch(`${getConfig().internalBaseUrl}/connect/register-session`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -28,10 +31,18 @@ export async function registerClientSession(accessToken: string, requestId: stri
       },
       signal: AbortSignal.timeout(5_000),
     })
+
+    if (!response.ok) {
+      console.error('Admin RP session registration failed:', response.status)
+      return false
+    }
+
+    return true
   } catch (error) {
     console.error(
       'Admin RP session registration failed:',
       error instanceof Error ? error.message : error,
     )
+    return false
   }
 }

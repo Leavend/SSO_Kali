@@ -28,6 +28,7 @@ import {
   sessionCookieForId,
   sessionFromBootstrap,
   transactionCookie,
+  unixTime,
 } from './session.js'
 import type { PortalSession } from './session.js'
 import { refreshPortalSession, sessionNeedsRefresh } from './session-refresh.js'
@@ -181,12 +182,14 @@ export async function handleRefresh(request: IncomingMessage): Promise<AppRespon
 
     const requestId = resolveBffRequestId(request.headers)
     const refreshedSession = await refreshPortalSession(session, { requestId })
-    await replaceSession(sessionId, refreshedSession)
     // Keep the IdP RP-session registration alive across token rotation so the
     // admin stays visible in connected-apps and logout-reachable.
-    void registerClientSession(refreshedSession.accessToken, requestId)
+    const registeredSession = (await registerClientSession(refreshedSession.accessToken, requestId))
+      ? { ...refreshedSession, rpSessionRegisteredAt: unixTime() }
+      : refreshedSession
+    await replaceSession(sessionId, registeredSession)
 
-    return refreshResponse(sessionId, refreshedSession)
+    return refreshResponse(sessionId, registeredSession)
   } catch (error) {
     console.error('Token refresh failed:', error instanceof Error ? error.message : error)
     return json(
@@ -313,20 +316,21 @@ async function completeCallbackSession(
 
     // Register the RP session so the admin panel is visible in connected-apps and
     // reachable by IdP single sign-out (back-channel logout). Best-effort.
-    await registerClientSession(tokens.access_token, requestId)
+    const rpSessionRegistered = await registerClientSession(tokens.access_token, requestId)
+    const session = sessionFromBootstrap(
+      {
+        accessToken: tokens.access_token,
+        idToken: tokens.id_token,
+        refreshToken: tokens.refresh_token,
+        expiresAt: Math.floor(Date.now() / 1000) + tokens.expires_in,
+      },
+      principal,
+    )
 
     return {
       ok: true,
       returnTo: normalizeReturnTo(tx.returnTo) ?? '/dashboard',
-      session: sessionFromBootstrap(
-        {
-          accessToken: tokens.access_token,
-          idToken: tokens.id_token,
-          refreshToken: tokens.refresh_token,
-          expiresAt: Math.floor(Date.now() / 1000) + tokens.expires_in,
-        },
-        principal,
-      ),
+      session: rpSessionRegistered ? { ...session, rpSessionRegisteredAt: unixTime() } : session,
     }
   } catch (error) {
     logCallbackFailure(error, verifiedSubjectId)

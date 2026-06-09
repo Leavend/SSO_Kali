@@ -26,6 +26,7 @@ export type PortalSession = PortalSessionView & {
   readonly issuedAt: number
   readonly absoluteExpiresAt: number
   readonly lastRefreshedAt: number
+  readonly rpSessionRegisteredAt?: number
 }
 
 export type AuthTransaction = {

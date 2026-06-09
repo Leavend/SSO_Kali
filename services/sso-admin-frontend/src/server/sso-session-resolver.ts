@@ -1,9 +1,11 @@
 import type { IncomingMessage } from 'node:http'
 import { refreshPortalSession, sessionNeedsRefresh } from './session-refresh.js'
 import type { PortalSession } from './session.js'
-import { readSession, replaceSession, sessionCookieForId } from './session.js'
+import { readSession, replaceSession, sessionCookieForId, unixTime } from './session.js'
 import { resolveBffRequestId } from './proxy-headers.js'
 import { registerClientSession } from './session-registration.js'
+
+const RP_SESSION_REGISTRATION_INTERVAL_SECONDS = 300
 
 export type ResolvedSsoSession = {
   readonly sessionId: string
@@ -17,14 +19,20 @@ export async function resolveSsoSession(
   const sessionId = sessionIdFromRequest(request)
   const session = await readSession(request)
   if (!sessionId || !session) return null
-  if (!sessionNeedsRefresh(session)) return { sessionId, session, cookies: [] }
 
   const requestId = resolveBffRequestId(request.headers)
+  if (!sessionNeedsRefresh(session)) {
+    const registered = await withFreshRpSessionRegistration(session, requestId)
+    if (registered !== session) await replaceSession(sessionId, registered)
+
+    return { sessionId, session: registered, cookies: [] }
+  }
+
   const refreshed = await refreshPortalSession(session, { requestId })
-  await replaceSession(sessionId, refreshed)
-  // Keep the IdP RP-session registration alive across token rotation.
-  void registerClientSession(refreshed.accessToken, requestId)
-  return { sessionId, session: refreshed, cookies: [sessionCookieForId(sessionId, refreshed)] }
+  const registered = await withFreshRpSessionRegistration(refreshed, requestId, true)
+  await replaceSession(sessionId, registered)
+
+  return { sessionId, session: registered, cookies: [sessionCookieForId(sessionId, registered)] }
 }
 
 export function sessionHeaders(resolved: ResolvedSsoSession): Record<string, readonly string[]> {
@@ -35,4 +43,22 @@ function sessionIdFromRequest(request: IncomingMessage): string | null {
   const raw = request.headers.cookie ?? ''
   const match = raw.match(/(?:^|;\s*)__Host-sso-admin-session=([^;]+)/u)
   return match?.[1] ? decodeURIComponent(match[1]) : null
+}
+
+async function withFreshRpSessionRegistration(
+  session: PortalSession,
+  requestId: string,
+  force = false,
+): Promise<PortalSession> {
+  if (!force && rpSessionRegistrationIsFresh(session)) return session
+  if (!(await registerClientSession(session.accessToken, requestId))) return session
+
+  return { ...session, rpSessionRegisteredAt: unixTime() }
+}
+
+function rpSessionRegistrationIsFresh(session: PortalSession): boolean {
+  return (
+    typeof session.rpSessionRegisteredAt === 'number' &&
+    session.rpSessionRegisteredAt + RP_SESSION_REGISTRATION_INTERVAL_SECONDS > unixTime()
+  )
 }
