@@ -30,9 +30,15 @@ describe('admin BFF auth flow', () => {
   it('returns an authenticated admin from OIDC callback to the admin dashboard', async () => {
     let tokenRequest: RequestInit | undefined
     let userinfoRequest: RequestInit | undefined
+    let registerRequest: RequestInit | undefined
     const fetchMock = vi.fn<(input: string | URL, init?: RequestInit) => Promise<Response>>(
       async (input, init) => {
         const url = input.toString()
+
+        if (url === 'https://api-sso.example.test/connect/register-session') {
+          registerRequest = init
+          return Response.json({ registered: true, client_id: 'sso-admin-panel' })
+        }
 
         if (url.endsWith('/.well-known/openid-configuration')) {
           return Response.json({
@@ -123,6 +129,14 @@ describe('admin BFF auth flow', () => {
       'Bearer server-side-access-token',
     )
     expect(new Headers(userinfoRequest?.headers).get('accept-encoding')).toBe('identity')
+
+    // The admin BFF must register its RP session with the IdP so the admin panel
+    // is visible in the user's connected-apps list AND reachable by OIDC
+    // back-channel logout (single sign-out propagation).
+    expect(registerRequest?.method).toBe('POST')
+    expect((registerRequest?.headers as Record<string, string> | undefined)?.Authorization).toBe(
+      'Bearer server-side-access-token',
+    )
   })
 
   it('forwards step-up prompt and max age to the authorize request', async () => {
