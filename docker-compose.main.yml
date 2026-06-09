@@ -190,6 +190,8 @@ services:
     init: true
     environment: *sso-backend-env
     command: ["php", "artisan", "queue:work", "redis", "--queue=notifications,default", "--sleep=1", "--tries=3", "--timeout=90", "--memory=192"]
+    healthcheck:
+      disable: true
     depends_on:
       postgres:
         condition: service_healthy
@@ -211,6 +213,8 @@ services:
     init: true
     environment: *sso-backend-env
     command: ["php", "artisan", "schedule:work"]
+    healthcheck:
+      disable: true
     depends_on:
       postgres:
         condition: service_healthy

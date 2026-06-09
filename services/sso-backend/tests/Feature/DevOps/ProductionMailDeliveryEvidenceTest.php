@@ -18,6 +18,7 @@ it('passes production SMTP settings into the backend queue runtime', function ()
         ->and($compose)->toContain('SECURITY_NOTIFICATIONS_ENABLED: ${SECURITY_NOTIFICATIONS_ENABLED:-true}')
         ->and($compose)->toContain('SECURITY_NOTIFICATIONS_FROM_ADDRESS')
         ->and($compose)->toContain('--queue=notifications,default')
+        ->and(substr_count($compose, 'healthcheck:'.PHP_EOL.'      disable: true'))->toBe(2)
         ->and(substr_count($compose, 'environment: *sso-backend-env'))->toBe(3);
 });
 
