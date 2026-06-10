@@ -99,6 +99,38 @@ describe('useUsersStore', () => {
     expect(store.requestId).toBe('req-users-1')
   })
 
+  it('hydrates the auto-selected user detail on load so MFA and session tabs are populated immediately', async () => {
+    vi.mocked(usersApi.list).mockResolvedValue({ users: [user] })
+    vi.mocked(usersApi.show).mockResolvedValue({
+      user,
+      login_context: { ip_address: '203.0.113.10', mfa_required: true },
+      sessions: [{ session_id: 'sess-1', client_id: 'portal', ip_address: '203.0.113.10' }],
+    })
+    const store = useUsersStore()
+
+    await store.load()
+
+    // load() auto-selects the first user; it MUST also fetch that user's detail,
+    // otherwise the Security & MFA / Sessions tabs stay empty until the 45s poll.
+    expect(usersApi.show).toHaveBeenCalledWith('sub_admin')
+    expect(store.loginContext?.mfa_required).toBe(true)
+    expect(store.loginContext?.ip_address).toBe('203.0.113.10')
+    expect(store.sessions).toHaveLength(1)
+  })
+
+  it('keeps load() resilient when the detail hydration request fails', async () => {
+    vi.mocked(usersApi.list).mockResolvedValue({ users: [user] })
+    vi.mocked(usersApi.show).mockRejectedValue(new Error('detail timeout'))
+    const store = useUsersStore()
+
+    await store.load()
+
+    // The list still renders; a failed detail hydration must not break the page.
+    expect(store.status).toBe('success')
+    expect(store.users).toEqual([user])
+    expect(store.selectedSubjectId).toBe('sub_admin')
+  })
+
   it('refreshList merges silently and preserves selectedSubjectId', async () => {
     const updatedUser: AdminUser = {
       ...user,

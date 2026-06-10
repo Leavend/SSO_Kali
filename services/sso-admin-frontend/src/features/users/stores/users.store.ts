@@ -60,6 +60,18 @@ export const useUsersStore = defineStore('admin-users', () => {
     }
   }
 
+  // Fetch a user's detail and apply its evidence (login context + active
+  // sessions) to the store. Shared by load (initial hydration), explicit
+  // selection, and the background poll so all three populate the detail tabs
+  // identically.
+  async function fetchSelectedDetail(subjectId: string): Promise<void> {
+    const response = await usersApi.show(subjectId)
+    upsertUser(response.user)
+    loginContext.value = loginContextEvidence(response)
+    sessions.value = response.sessions ?? []
+    requestId.value = getLastRequestId()
+  }
+
   async function load(): Promise<void> {
     status.value = 'loading'
     errorMessage.value = null
@@ -71,6 +83,19 @@ export const useUsersStore = defineStore('admin-users', () => {
       selectedSubjectId.value = response.users[0]?.subject_id ?? null
       requestId.value = getLastRequestId()
       status.value = 'success'
+
+      // Hydrate the auto-selected user's detail so the Security & MFA and
+      // Sessions tabs render immediately instead of staying empty until the
+      // next 45s auto-refresh tick. Best-effort: the list already rendered, and
+      // the poll / explicit selection retries on failure.
+      const firstSubjectId = selectedSubjectId.value
+      if (firstSubjectId !== null) {
+        try {
+          await fetchSelectedDetail(firstSubjectId)
+        } catch {
+          /* detail hydration is best-effort and must not break the list view */
+        }
+      }
     } catch (error) {
       users.value = []
       selectedSubjectId.value = null
@@ -84,11 +109,7 @@ export const useUsersStore = defineStore('admin-users', () => {
     clearPasswordResetToken()
 
     try {
-      const response = await usersApi.show(subjectId)
-      upsertUser(response.user)
-      loginContext.value = loginContextEvidence(response)
-      sessions.value = response.sessions ?? []
-      requestId.value = getLastRequestId()
+      await fetchSelectedDetail(subjectId)
     } catch (error) {
       handleActionError(error)
     }
@@ -116,11 +137,7 @@ export const useUsersStore = defineStore('admin-users', () => {
     if (!subjectId || actionStatus.value === 'loading' || pendingIntent.value) return
 
     try {
-      const response = await usersApi.show(subjectId)
-      upsertUser(response.user)
-      loginContext.value = loginContextEvidence(response)
-      sessions.value = response.sessions ?? []
-      requestId.value = getLastRequestId()
+      await fetchSelectedDetail(subjectId)
     } catch (error) {
       if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
         handleListError(error)
@@ -333,7 +350,8 @@ export const useUsersStore = defineStore('admin-users', () => {
       return {
         ...context,
         ip_address: context.ip_address ?? session?.ip_address ?? null,
-        last_seen_at: context.last_seen_at ?? session?.last_activity_at ?? session?.created_at ?? null,
+        last_seen_at:
+          context.last_seen_at ?? session?.last_activity_at ?? session?.created_at ?? null,
       }
     }
 
