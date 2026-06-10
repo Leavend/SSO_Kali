@@ -15,6 +15,11 @@ import type {
 export type RolesStatus = 'idle' | 'loading' | 'success' | 'unauthenticated' | 'forbidden' | 'error'
 export type RolesActionStatus = 'idle' | 'loading' | 'success' | 'step_up_required' | 'error'
 
+const supportedRoleOrder = new Map<string, number>([
+  ['admin', 0],
+  ['user', 1],
+])
+
 export const useRolesStore = defineStore('admin-roles', () => {
   const status = ref<RolesStatus>('idle')
   const actionStatus = ref<RolesActionStatus>('idle')
@@ -33,7 +38,10 @@ export const useRolesStore = defineStore('admin-roles', () => {
         rolesApi.listRoles(),
         rolesApi.listPermissions(),
       ])
-      roles.value = rolesResponse.roles.map(normalizeRole)
+      roles.value = rolesResponse.roles
+        .map(normalizeRole)
+        .filter((role) => supportedRoleOrder.has(role.slug.toLowerCase()))
+        .sort((first, second) => roleSortRank(first) - roleSortRank(second))
       permissions.value = permissionsResponse.permissions.map(normalizePermission)
       requestId.value = getLastRequestId()
       status.value = 'success'
@@ -154,6 +162,10 @@ export const useRolesStore = defineStore('admin-roles', () => {
             typeof permission === 'string' && permission.length > 0,
         ),
     }
+  }
+
+  function roleSortRank(role: AdminRole): number {
+    return supportedRoleOrder.get(role.slug.toLowerCase()) ?? Number.MAX_SAFE_INTEGER
   }
 
   function normalizePermission(permission: AdminPermissionApi): AdminPermission {

@@ -338,10 +338,14 @@ onMounted(() => {
                       </span>
                     </span>
                     <span class="event-card-item__subject">
-                      {{ event.subject?.email ?? formatTechnicalPreview(event.subject?.subject_id) }}
+                      {{
+                        event.subject?.email ?? formatTechnicalPreview(event.subject?.subject_id)
+                      }}
                     </span>
                     <span class="event-card-item__footer-row">
-                      <span class="event-card-item__time">{{ dateFormat.smart(event.occurred_at) }}</span>
+                      <span class="event-card-item__time">{{
+                        dateFormat.smart(event.occurred_at)
+                      }}</span>
                       <span
                         v-if="event.request?.request_id"
                         class="event-card-item__req-id font-mono text-xs"
@@ -401,7 +405,9 @@ onMounted(() => {
           </h2>
           <div class="detail-event-id-wrap">
             <span class="label">Kode event:</span>
-            <code class="value font-mono break-all">{{ formatTechnicalPreview(store.selectedEvent.event_id) }}</code>
+            <code class="value font-mono break-all">{{
+              formatTechnicalPreview(store.selectedEvent.event_id)
+            }}</code>
             <button
               class="copy-btn"
               type="button"
@@ -455,7 +461,9 @@ onMounted(() => {
             </div>
             <div>
               <dt>Kode sesi</dt>
-              <dd class="font-mono break-all">{{ formatTechnicalPreview(store.selectedEvent.session_id) }}</dd>
+              <dd class="font-mono break-all">
+                {{ formatTechnicalPreview(store.selectedEvent.session_id) }}
+              </dd>
             </div>
             <div>
               <dt>{{ t('auth_audit.col_occurred_at') }}</dt>

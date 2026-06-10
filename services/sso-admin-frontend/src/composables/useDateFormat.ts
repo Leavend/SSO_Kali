@@ -17,7 +17,10 @@ const DEFAULT_FALLBACK = '—' as const
 const LOCALE_MAP = { id: 'id-ID', en: 'en-GB' } as const
 const timeZonePreference = ref<string | null>(readStoredTimeZone())
 
-const RELATIVE_DIVISIONS: readonly { readonly amount: number; readonly unit: Intl.RelativeTimeFormatUnit }[] = [
+const RELATIVE_DIVISIONS: readonly {
+  readonly amount: number
+  readonly unit: Intl.RelativeTimeFormatUnit
+}[] = [
   { amount: 60, unit: 'second' },
   { amount: 60, unit: 'minute' },
   { amount: 24, unit: 'hour' },

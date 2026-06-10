@@ -660,7 +660,9 @@ async function rotateSecret(): Promise<void> {
                       {{ client.status ?? 'unknown' }}
                     </span>
                   </span>
-                  <span class="user-card-item__email stat-value stat-value--truncate">{{ client.owner_email ?? formatFriendlyClientName(client.client_id) }}</span>
+                  <span class="user-card-item__email stat-value stat-value--truncate">{{
+                    client.owner_email ?? formatFriendlyClientName(client.client_id)
+                  }}</span>
                   <span class="user-card-item__meta">
                     <span class="user-card-item__role">{{ client.type ?? 'public' }}</span>
                   </span>
@@ -834,7 +836,8 @@ async function rotateSecret(): Promise<void> {
               <span
                 class="stat-value stat-value--truncate stat-value--mono"
                 title="Kode aplikasi"
-              >{{ formatFriendlyClientName(store.selectedClient.client_id) }}</span>
+                >{{ formatFriendlyClientName(store.selectedClient.client_id) }}</span
+              >
               <button
                 class="pill__copy"
                 type="button"

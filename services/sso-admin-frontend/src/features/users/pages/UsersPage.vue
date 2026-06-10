@@ -22,6 +22,7 @@ import { useRolesStore } from '@/features/roles/stores/roles.store'
 import { useToast } from '@/components/ui/useToast'
 import { authApi } from '@/services/auth.api'
 import { formatFriendlyClientName, formatTechnicalPreview } from '@/lib/display-identifiers'
+import { composeProfileDisplayName } from '@/lib/display-name'
 import { useRouter } from 'vue-router'
 import type { CreateUserPayload, SyncProfilePayload } from '../types'
 import {
@@ -78,7 +79,10 @@ async function handleManualRefresh(): Promise<void> {
 async function copyToClipboard(value: string): Promise<void> {
   try {
     await navigator.clipboard.writeText(value)
-    toast.pushToast({ tone: 'success', title: t('common.copied') || 'Disalin' })
+    toast.pushToast({
+      tone: 'success',
+      title: t('common.copied') || 'Disalin',
+    })
   } catch {
     // Fallback for older browsers / non-secure contexts
     const ta = document.createElement('textarea')
@@ -89,7 +93,10 @@ async function copyToClipboard(value: string): Promise<void> {
     ta.select()
     document.execCommand('copy')
     document.body.removeChild(ta)
-    toast.pushToast({ tone: 'success', title: t('common.copied') || 'Disalin' })
+    toast.pushToast({
+      tone: 'success',
+      title: t('common.copied') || 'Disalin',
+    })
   }
 }
 
@@ -130,7 +137,6 @@ const createRoleOptions = [
 ] as const
 
 const syncEmail = ref('')
-const syncDisplayName = ref('')
 const syncGivenName = ref('')
 const syncFamilyName = ref('')
 
@@ -165,7 +171,9 @@ function avatarStyle(name: string): Record<string, string> {
     hash = name.charCodeAt(i) + ((hash << 5) - hash)
   }
   const color = palette[Math.abs(hash) % palette.length] ?? palette[0]!
-  return { background: `linear-gradient(135deg, ${color.start}, ${color.end})` }
+  return {
+    background: `linear-gradient(135deg, ${color.start}, ${color.end})`,
+  }
 }
 
 watch(
@@ -173,7 +181,6 @@ watch(
   () => {
     const user = store.selectedUser
     syncEmail.value = user?.email ?? ''
-    syncDisplayName.value = user?.display_name ?? ''
     syncGivenName.value = user?.given_name ?? ''
     syncFamilyName.value = user?.family_name ?? ''
     selectedRoles.value = user?.roles ? user.roles.map((r) => r.slug) : []
@@ -218,10 +225,18 @@ const detailTabs = computed<Array<{ key: DetailTab; label: string; icon: Compone
   const tabs: Array<{ key: DetailTab; label: string; icon: Component }> = [
     { key: 'overview', label: t('users.tab_overview'), icon: LayoutDashboard },
     { key: 'security', label: t('users.tab_security'), icon: ShieldAlert },
-    { key: 'sessions', label: t('users.tab_sessions'), icon: MonitorSmartphone },
+    {
+      key: 'sessions',
+      label: t('users.tab_sessions'),
+      icon: MonitorSmartphone,
+    },
   ]
   if (canLockUsers.value || canWriteUsers.value) {
-    tabs.push({ key: 'lifecycle', label: t('users.tab_lifecycle'), icon: Settings })
+    tabs.push({
+      key: 'lifecycle',
+      label: t('users.tab_lifecycle'),
+      icon: Settings,
+    })
   }
   return tabs
 })
@@ -294,9 +309,9 @@ async function submitCreateUser(): Promise<void> {
 
 async function submitSyncProfile(): Promise<void> {
   const email = syncEmail.value.trim()
-  const displayName = syncDisplayName.value.trim()
   const givenName = syncGivenName.value.trim()
   const familyName = syncFamilyName.value.trim()
+  const displayName = composeProfileDisplayName(givenName, familyName)
   const payload: SyncProfilePayload = {
     ...(email && { email }),
     ...(displayName && { display_name: displayName }),
@@ -332,8 +347,13 @@ async function submitAssignRoles(): Promise<void> {
         } else if (result === 'forbidden') {
           router.push({ name: 'admin.forbidden' })
         }
-      } catch (err) {
-        console.error('[AssignRoles] Failed to refresh active session:', err)
+      } catch {
+        toast.pushToast({
+          tone: 'error',
+          title: 'Session refresh failed',
+          description:
+            'Role changes were saved. Refresh the page if the current session looks stale.',
+        })
       }
     } else {
       toast.pushToast({
@@ -414,7 +434,6 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
       <p class="eyebrow">{{ t('users.eyebrow') }}</p>
       <h1 id="users-title">{{ t('users.title') }}</h1>
       <p class="page-summary">{{ t('users.summary') }}</p>
-
     </div>
 
     <UiSkeleton v-if="store.status === 'loading'" :label="t('users.loading')" />
@@ -452,7 +471,9 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
     <div
       v-else
       class="users-layout"
-      :class="{ 'users-layout--has-selection': store.selectedSubjectId !== null }"
+      :class="{
+        'users-layout--has-selection': store.selectedSubjectId !== null,
+      }"
     >
       <!-- ─── Sidebar: searchable user list ─────────────────────────────── -->
       <aside class="users-list" :aria-label="t('users.title')">
@@ -490,7 +511,9 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
               <button
                 class="user-card-item"
                 type="button"
-                :class="{ 'user-card-item--active': user.subject_id === store.selectedSubjectId }"
+                :class="{
+                  'user-card-item--active': user.subject_id === store.selectedSubjectId,
+                }"
                 :aria-current="user.subject_id === store.selectedSubjectId ? 'true' : undefined"
                 @click="selectUser(user.subject_id)"
               >
@@ -514,6 +537,13 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
                   <span class="user-card-item__email">{{ user.email }}</span>
                   <span class="user-card-item__meta">
                     <span class="user-card-item__role">{{ user.role ?? 'user' }}</span>
+                    <span class="user-card-item__last-login">
+                      <Clock :size="12" aria-hidden="true" />
+                      <span
+                        >{{ t('users.last_login') }}:
+                        {{ dateFormat.smart(user.last_login_at) }}</span
+                      >
+                    </span>
                   </span>
                 </span>
               </button>
@@ -657,7 +687,9 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
           </span>
           <div class="user-profile-hero__content">
             <div class="user-profile-hero__header-row">
-              <h2>{{ store.selectedUser.display_name ?? store.selectedUser.email }}</h2>
+              <h2>
+                {{ store.selectedUser.display_name ?? store.selectedUser.email }}
+              </h2>
               <span
                 class="ui-badge user-profile-hero__status-badge"
                 :class="`badge--${store.selectedUser.effective_status ?? store.selectedUser.status ?? 'active'}`"
@@ -673,10 +705,9 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
               {{ store.selectedUser.role ?? t('users.status_unknown') }}
             </p>
             <p class="user-profile-hero__subid stat-value--with-copy">
-              <span
-                class="stat-value stat-value--truncate stat-value--mono"
-                title="Kode akun"
-              >{{ formatTechnicalPreview(store.selectedUser.subject_id) }}</span>
+              <span class="stat-value stat-value--truncate stat-value--mono" title="Kode akun">{{
+                formatTechnicalPreview(store.selectedUser.subject_id)
+              }}</span>
               <button
                 class="pill__copy"
                 type="button"
@@ -693,7 +724,10 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
                 :class="buttonVariants({ variant: 'secondary' })"
                 :to="{
                   name: 'admin.audit',
-                  query: { consent: '1', subject_id: store.selectedUser.subject_id },
+                  query: {
+                    consent: '1',
+                    subject_id: store.selectedUser.subject_id,
+                  },
                 }"
               >
                 <Eye :size="16" />
@@ -756,12 +790,15 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
             <div class="user-stat-card pill--full">
               <span class="user-stat-card__icon-wrapper"><Mail :size="18" /></span>
               <div class="user-stat-card__info">
-                <div class="user-stat-card__label">{{ t('users.label_email') }}</div>
+                <div class="user-stat-card__label">
+                  {{ t('users.label_email') }}
+                </div>
                 <div class="stat-value--with-copy">
                   <span
                     class="user-stat-card__value stat-value stat-value--truncate"
                     :title="store.selectedUser.email"
-                  >{{ store.selectedUser.email }}</span>
+                    >{{ store.selectedUser.email }}</span
+                  >
                   <button
                     class="pill__copy"
                     type="button"
@@ -777,7 +814,9 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
             <div class="user-stat-card">
               <span class="user-stat-card__icon-wrapper"><CheckCircle :size="18" /></span>
               <div class="user-stat-card__info">
-                <div class="user-stat-card__label">{{ t('users.email_verified') }}</div>
+                <div class="user-stat-card__label">
+                  {{ t('users.email_verified') }}
+                </div>
                 <div class="user-stat-card__value">
                   {{ dateFormat.smart(store.selectedUser.email_verified_at) }}
                 </div>
@@ -786,7 +825,9 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
             <div class="user-stat-card">
               <span class="user-stat-card__icon-wrapper"><Clock :size="18" /></span>
               <div class="user-stat-card__info">
-                <div class="user-stat-card__label">{{ t('users.last_login') }}</div>
+                <div class="user-stat-card__label">
+                  {{ t('users.last_login') }}
+                </div>
                 <div class="user-stat-card__value">
                   {{ dateFormat.smart(store.selectedUser.last_login_at) }}
                 </div>
@@ -798,7 +839,9 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
                 <Unlock v-else :size="18" />
               </span>
               <div class="user-stat-card__info">
-                <div class="user-stat-card__label">{{ t('users.local_account') }}</div>
+                <div class="user-stat-card__label">
+                  {{ t('users.local_account') }}
+                </div>
                 <div class="user-stat-card__value">
                   {{
                     store.selectedUser.local_account_enabled
@@ -812,21 +855,16 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
 
           <!-- Sync profile -->
           <div v-if="canWriteUsers" class="user-detail-card">
-            <h3 class="user-detail-section-title">{{ t('users.sync_profile_title') }}</h3>
+            <h3 class="user-detail-section-title">
+              {{ t('users.sync_profile_title') }}
+            </h3>
             <p v-if="store.selectedUser.profile_synced_at" class="user-detail-card__hint">
-              {{ t('users.last_synced') }}: {{ dateFormat.smart(store.selectedUser.profile_synced_at) }}
+              {{ t('users.last_synced') }}:
+              {{ dateFormat.smart(store.selectedUser.profile_synced_at) }}
             </p>
             <div class="user-form-grid user-form-grid-2">
               <UiFormField id="sync-email" :label="t('users.label_email')">
                 <UiInput id="sync-email" v-model="syncEmail" name="sync-email" autocomplete="off" />
-              </UiFormField>
-              <UiFormField id="sync-display-name" :label="t('users.label_display_name')">
-                <UiInput
-                  id="sync-display-name"
-                  v-model="syncDisplayName"
-                  name="sync-display-name"
-                  autocomplete="off"
-                />
               </UiFormField>
               <UiFormField id="sync-given-name" :label="t('users.label_given_name')">
                 <UiInput
@@ -861,8 +899,10 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
           </div>
 
           <!-- Assign roles -->
-          <div v-if="canWriteRoles" class="user-detail-card mt-6">
-            <h3 class="user-detail-section-title mt-0">{{ t('users.assign_roles_title') }}</h3>
+          <div v-if="canWriteRoles" class="user-detail-card">
+            <h3 class="user-detail-section-title">
+              {{ t('users.assign_roles_title') }}
+            </h3>
             <div class="user-form-grid user-form-grid-1">
               <div class="role-selection-grid">
                 <div v-for="role in rolesStore.roles" :key="role.slug" class="role-checkbox-item">
@@ -883,11 +923,7 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
                 </div>
               </div>
             </div>
-            <p
-              v-if="selectedRoles.length === 0"
-              class="text-xs text-danger mt-2"
-              style="color: var(--destructive); margin-bottom: 0.5rem"
-            >
+            <p v-if="selectedRoles.length === 0" class="roles-selection-error">
               {{ t('users.roles_min_required') }}
             </p>
             <div class="user-detail-card__actions">
@@ -919,12 +955,16 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
         >
           <!-- MFA assurance -->
           <div class="user-detail-card">
-            <h3 class="user-detail-section-title">{{ t('users.assurance_title') }}</h3>
+            <h3 class="user-detail-section-title">
+              {{ t('users.assurance_title') }}
+            </h3>
             <div class="user-stats-grid user-stats-grid--auto">
               <div class="user-stat-card">
                 <span class="user-stat-card__icon-wrapper"><ShieldAlert :size="18" /></span>
                 <div class="user-stat-card__info">
-                  <div class="user-stat-card__label">{{ t('users.mfa_required') }}</div>
+                  <div class="user-stat-card__label">
+                    {{ t('users.mfa_required') }}
+                  </div>
                   <div class="user-stat-card__value">
                     {{ store.loginContext?.mfa_required ? t('users.yes') : t('users.no') }}
                   </div>
@@ -933,7 +973,9 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
               <div class="user-stat-card">
                 <span class="user-stat-card__icon-wrapper"><Globe :size="18" /></span>
                 <div class="user-stat-card__info">
-                  <div class="user-stat-card__label">{{ t('users.ip_address') }}</div>
+                  <div class="user-stat-card__label">
+                    {{ t('users.ip_address') }}
+                  </div>
                   <div
                     class="user-stat-card__value stat-value stat-value--truncate stat-value--mono"
                     :title="store.loginContext?.ip_address ?? ''"
@@ -957,7 +999,9 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
         >
           <!-- Sessions -->
           <div class="user-detail-card">
-            <h3 class="user-detail-section-title">{{ t('users.sessions_title') }}</h3>
+            <h3 class="user-detail-section-title">
+              {{ t('users.sessions_title') }}
+            </h3>
             <ul class="user-session-list">
               <li
                 v-for="userSession in store.sessions"
@@ -1029,7 +1073,9 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
             </UiFormField>
 
             <div class="user-detail__sub-actions">
-              <h4 class="user-detail__sub-actions-title">{{ t('users.group_account_status') }}</h4>
+              <h4 class="user-detail__sub-actions-title">
+                {{ t('users.group_account_status') }}
+              </h4>
               <div class="user-detail__action-row">
                 <UiButton
                   v-if="canLockUsers"
@@ -1085,7 +1131,9 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
             </div>
 
             <div v-if="canWriteUsers" class="user-detail__sub-actions">
-              <h4 class="user-detail__sub-actions-title">{{ t('users.group_credentials') }}</h4>
+              <h4 class="user-detail__sub-actions-title">
+                {{ t('users.group_credentials') }}
+              </h4>
               <div class="user-detail__action-row">
                 <UiButton
                   class="lifecycle-reset-mfa-button"

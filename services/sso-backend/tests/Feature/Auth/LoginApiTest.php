@@ -47,6 +47,23 @@ it('creates an HttpOnly SSO session cookie for valid credentials', function (): 
     expect(SsoSession::query()->where('subject_id', $user->subject_id)->whereNull('revoked_at')->exists())->toBeTrue();
 });
 
+it('records the user last login timestamp for valid credentials', function (): void {
+    $user = User::factory()->create([
+        'email' => 'last-login@example.test',
+        'password' => Hash::make('correct-password'),
+        'last_login_at' => null,
+    ]);
+
+    $this->postJson('/api/auth/login', [
+        'identifier' => 'last-login@example.test',
+        'password' => 'correct-password',
+    ])->assertOk()
+        ->assertJsonPath('authenticated', true);
+
+    expect($user->refresh()->last_login_at)->not->toBeNull()
+        ->and($user->last_login_at?->greaterThan(now()->subMinute()))->toBeTrue();
+});
+
 it('reuses the active portal session for the same trusted device', function (): void {
     $user = User::factory()->create([
         'email' => 'reuse@example.test',

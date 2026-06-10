@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { formatFriendlyClientName, formatSupportReference, formatTechnicalPreview } from '@/lib/display-identifiers'
+import {
+  formatFriendlyClientName,
+  formatSupportReference,
+  formatTechnicalPreview,
+} from '@/lib/display-identifiers'
 
 const props = defineProps<{
   readonly title?: string

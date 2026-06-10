@@ -22,7 +22,9 @@ const { toasts, dismissToast } = useToast()
       <div class="ui-toast__body">
         <strong>{{ toast.title }}</strong>
         <p v-if="toast.description">{{ toast.description }}</p>
-        <small v-if="toast.requestId">Kode referensi: {{ formatSupportReference(toast.requestId) }}</small>
+        <small v-if="toast.requestId"
+          >Kode referensi: {{ formatSupportReference(toast.requestId) }}</small
+        >
       </div>
       <button
         class="ui-toast__close"

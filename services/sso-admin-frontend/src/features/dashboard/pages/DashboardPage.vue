@@ -27,7 +27,6 @@ useAutoRefresh({
   enabled: () => dashboard.status !== 'forbidden' && dashboard.status !== 'unauthenticated',
 })
 
-
 const cards = computed(() => {
   const counters = dashboard.summary?.counters
   if (!counters) return []

@@ -703,7 +703,9 @@ onMounted(() => {
                     <dd class="text-sm font-semibold break-anywhere">
                       {{
                         store.selectedAuthenticationEvent.subject?.email ??
-                        formatTechnicalPreview(store.selectedAuthenticationEvent.subject?.subject_id)
+                        formatTechnicalPreview(
+                          store.selectedAuthenticationEvent.subject?.subject_id,
+                        )
                       }}
                     </dd>
                   </div>

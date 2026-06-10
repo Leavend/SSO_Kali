@@ -30,6 +30,7 @@ final class LoginContextRecorder
         ?string $acr = null,
         mixed $authTime = null
     ): void {
+        $observedAt = now();
         $subjectId = $user->subject_id;
         $ip = $ipAddress ?? '127.0.0.1';
         $ua = $userAgent ?? 'unknown-device';
@@ -99,10 +100,12 @@ final class LoginContextRecorder
                 'auth_time' => $parsedAuthTime,
                 'amr' => json_encode(array_values($amr)),
                 'acr' => $acr,
-                'last_seen_at' => now(),
-                'updated_at' => now(),
-                'created_at' => now(),
+                'last_seen_at' => $observedAt,
+                'updated_at' => $observedAt,
+                'created_at' => $observedAt,
             ]
         );
+
+        $user->forceFill(['last_login_at' => $observedAt])->save();
     }
 }

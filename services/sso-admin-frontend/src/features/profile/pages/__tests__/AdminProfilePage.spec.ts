@@ -95,7 +95,7 @@ describe('AdminProfilePage', () => {
 
     const wrapper = mount(AdminProfilePage)
 
-    expect(wrapper.find('.profile-display-name').text()).toBe('Administrator User')
+    expect(wrapper.find('.profile-display-name').text()).toBe('Admin User')
     expect(wrapper.text()).toContain('admin@sso.example.com')
     expect(wrapper.text()).toContain('REF-ADMIN001')
     expect(wrapper.text()).not.toContain('admin-001')
@@ -104,6 +104,22 @@ describe('AdminProfilePage', () => {
     expect(wrapper.text()).toContain('admin-role')
     expect(wrapper.text()).toContain('admin.users.read')
     expect(wrapper.text()).toContain('admin.roles.read')
+  })
+
+  it('shows display name as the first given-name word plus first family-name word', () => {
+    const store = useAdminProfileStore()
+    store.principal = {
+      ...mockPrincipal,
+      display_name: 'Legacy Display',
+      given_name: 'Admin Middle',
+      family_name: 'User Family',
+    }
+    store.status = 'success'
+
+    const wrapper = mount(AdminProfilePage)
+
+    expect(wrapper.find('.profile-display-name').text()).toBe('Admin User')
+    expect(wrapper.find('.profile-avatar').text()).toBe('A')
   })
 
   it('allows copying admin reference to clipboard', async () => {

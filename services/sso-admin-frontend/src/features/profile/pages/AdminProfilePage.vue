@@ -6,18 +6,31 @@
  * No write actions on this page — read-only view.
  */
 
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useI18n } from '@/composables/useI18n'
 import UiSkeleton from '@/components/ui/UiSkeleton.vue'
 import UiStatusView from '@/components/ui/UiStatusView.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import { useAdminProfileStore } from '../stores/admin-profile.store'
 import { formatTechnicalPreview } from '@/lib/display-identifiers'
+import { resolveProfileDisplayName } from '@/lib/display-name'
 import { Copy, Check, Shield, User, Mail } from 'lucide-vue-next'
 
 const store = useAdminProfileStore()
 const { t } = useI18n()
 const copied = ref(false)
+
+const principalDisplayName = computed(() => {
+  const principal = store.principal
+  if (!principal) return ''
+
+  return resolveProfileDisplayName({
+    displayName: principal.display_name,
+    givenName: principal.given_name,
+    familyName: principal.family_name,
+    fallback: principal.email ?? principal.subject_id,
+  })
+})
 
 async function copyToClipboard(text: string): Promise<void> {
   try {
@@ -101,21 +114,17 @@ onMounted(() => {
       <!-- Left Column: Identity card summary -->
       <article class="profile-identity-card" aria-label="Identity Summary">
         <div class="profile-avatar-wrapper">
-          <div
-            class="profile-avatar"
-            :style="avatarStyle(store.principal.display_name ?? store.principal.subject_id)"
-            aria-hidden="true"
-          >
-            {{ avatarInitial(store.principal.display_name ?? store.principal.subject_id) }}
+          <div class="profile-avatar" :style="avatarStyle(principalDisplayName)" aria-hidden="true">
+            {{ avatarInitial(principalDisplayName) }}
           </div>
           <span class="profile-role-badge">
             {{ store.principal.role }}
           </span>
         </div>
 
-        <h2 class="profile-display-name">{{ store.principal.display_name ?? '—' }}</h2>
-        <p class="profile-email-sub flex items-center gap-1.5 justify-center">
-          <Mail :size="14" class="text-muted-foreground" aria-hidden="true" />
+        <h2 class="profile-display-name">{{ principalDisplayName }}</h2>
+        <p class="profile-email-sub">
+          <Mail :size="14" aria-hidden="true" />
           <span>{{ store.principal.email ?? '—' }}</span>
         </p>
 
@@ -124,7 +133,9 @@ onMounted(() => {
         <div class="profile-sec-info">
           <span class="label">Kode admin:</span>
           <div class="subject-id-row">
-            <code class="font-mono text-xs break-all">{{ formatTechnicalPreview(store.principal.subject_id) }}</code>
+            <code class="font-mono text-xs break-all">{{
+              formatTechnicalPreview(store.principal.subject_id)
+            }}</code>
             <button
               class="copy-btn"
               type="button"
@@ -148,6 +159,10 @@ onMounted(() => {
           </h2>
 
           <dl class="detail-grid">
+            <div>
+              <dt>{{ t('profile.label_display_name') }}</dt>
+              <dd>{{ principalDisplayName }}</dd>
+            </div>
             <div>
               <dt>{{ t('profile.label_given_name') }}</dt>
               <dd>{{ store.principal.given_name ?? '—' }}</dd>
@@ -248,7 +263,7 @@ onMounted(() => {
   font-size: 0.68rem;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0;
   background: var(--primary);
   color: var(--primary-foreground);
   border-radius: 999px;
@@ -262,14 +277,25 @@ onMounted(() => {
   font-size: 1.4rem;
   font-weight: 900;
   color: var(--foreground);
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   line-height: 1.2;
 }
 
 .profile-email-sub {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   margin: 0;
   font-size: 0.88rem;
   color: var(--muted-foreground);
+  min-width: 0;
+  max-width: 100%;
+}
+
+.profile-email-sub span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .profile-divider {
@@ -291,7 +317,7 @@ onMounted(() => {
   font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0;
   color: var(--muted-foreground);
 }
 
@@ -359,7 +385,7 @@ onMounted(() => {
   font-size: 1.15rem;
   font-weight: 800;
   color: var(--foreground);
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -383,7 +409,7 @@ onMounted(() => {
   font-size: 0.74rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0;
   color: var(--muted-foreground);
 }
 
@@ -391,6 +417,7 @@ onMounted(() => {
   margin: 0;
   font-size: 0.95rem;
   color: var(--foreground);
+  overflow-wrap: anywhere;
 }
 
 .detail-grid dd code {

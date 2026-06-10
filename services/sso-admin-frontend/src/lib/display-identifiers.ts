@@ -1,5 +1,6 @@
 const UUID_PATTERN = /[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/iu
-const UUID_REDACTION_PATTERN = /[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/giu
+const UUID_REDACTION_PATTERN =
+  /[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/giu
 const REQUEST_ID_PATTERN = /\b(?:request|correlation)\s+ID\s+([a-z0-9][a-z0-9_:.@/-]{5,127})/giu
 const ACRONYM_LABELS: Readonly<Record<string, string>> = {
   api: 'API',
@@ -42,7 +43,12 @@ export function redactTechnicalIdentifiers(message: string): string {
 }
 
 function normalizeReference(value: string | null | undefined): string | null {
-  const chars = value?.trim().match(/[a-z0-9]/giu)?.join('').toUpperCase() ?? ''
+  const chars =
+    value
+      ?.trim()
+      .match(/[a-z0-9]/giu)
+      ?.join('')
+      .toUpperCase() ?? ''
   return chars.length > 0 ? chars : null
 }
 

@@ -115,6 +115,20 @@ describe('UsersPage', () => {
     expect(wrapper.text()).not.toMatch(/Bearer|refreshToken|password|SQLSTATE/i)
   })
 
+  it('renders last-login evidence on the user list card', () => {
+    const store = useUsersStore()
+    store.status = 'success'
+    store.users = [user]
+    store.selectedSubjectId = 'sub_admin'
+
+    const wrapper = mount(UsersPage)
+
+    const lastLogin = wrapper.find('.user-card-item__last-login')
+    expect(lastLogin.exists()).toBe(true)
+    expect(lastLogin.text()).toContain('Last login')
+    expect(lastLogin.text()).toContain('27 May 2026')
+  })
+
   it('renders safe forbidden state', () => {
     const store = useUsersStore()
     store.status = 'forbidden'
@@ -290,12 +304,11 @@ describe('UsersPage', () => {
     expect(wrapper.text()).toContain('29 May 2026')
 
     const emailInput = wrapper.find('input[name="sync-email"]')
-    const displayNameInput = wrapper.find('input[name="sync-display-name"]')
     const givenNameInput = wrapper.find('input[name="sync-given-name"]')
     const familyNameInput = wrapper.find('input[name="sync-family-name"]')
 
     expect((emailInput.element as HTMLInputElement).value).toBe('admin@example.test')
-    expect((displayNameInput.element as HTMLInputElement).value).toBe('Admin User')
+    expect(wrapper.find('input[name="sync-display-name"]').exists()).toBe(false)
     expect((givenNameInput.element as HTMLInputElement).value).toBe('Admin')
     expect((familyNameInput.element as HTMLInputElement).value).toBe('One')
 
@@ -303,9 +316,37 @@ describe('UsersPage', () => {
 
     expect(syncSpy).toHaveBeenCalledWith({
       email: 'admin@example.test',
-      display_name: 'Admin User',
+      display_name: 'Admin One',
       given_name: 'Admin',
       family_name: 'One',
+    })
+  })
+
+  it('submits sync profile display name from one given-name word and one family-name word without a display-name field', async () => {
+    const store = useUsersStore()
+    store.status = 'success'
+    store.users = [
+      {
+        ...user,
+        display_name: 'Legacy Display',
+        given_name: 'Admin Middle',
+        family_name: 'User Family',
+      },
+    ]
+    store.selectedSubjectId = 'sub_admin'
+    const syncSpy = vi.spyOn(store, 'syncProfileSelected')
+
+    const wrapper = mount(UsersPage)
+
+    expect(wrapper.find('input[name="sync-display-name"]').exists()).toBe(false)
+
+    await wrapper.find('button.sync-profile-button').trigger('click')
+
+    expect(syncSpy).toHaveBeenCalledWith({
+      email: 'admin@example.test',
+      display_name: 'Admin User',
+      given_name: 'Admin Middle',
+      family_name: 'User Family',
     })
   })
 
@@ -331,7 +372,10 @@ describe('UsersPage', () => {
   })
 
   it('renders user action groups only for matching permissions', () => {
-    seedPrincipal({ 'admin.users.lock': true, 'admin.sessions.terminate': true })
+    seedPrincipal({
+      'admin.users.lock': true,
+      'admin.sessions.terminate': true,
+    })
     const store = useUsersStore()
     store.status = 'success'
     store.users = [user]
@@ -386,6 +430,51 @@ describe('UsersPage', () => {
     expect(sessionsTab.attributes('aria-selected')).toBe('true')
     expect(wrapper.find('#user-panel-sessions').attributes('hidden')).toBeUndefined()
     expect(wrapper.find('#user-panel-overview').attributes('hidden')).toBeDefined()
+  })
+
+  it('keeps Assign Roles in the Overview panel for role writers and limits choices to primary roles', async () => {
+    seedPrincipal({
+      'admin.users.write': true,
+      'admin.roles.write': true,
+    })
+    const store = useUsersStore()
+    const rolesStore = useRolesStore()
+    store.status = 'success'
+    store.users = [
+      {
+        ...user,
+        roles: [{ slug: 'user', name: 'User', is_system: true }],
+      },
+    ]
+    store.selectedSubjectId = 'sub_admin'
+    rolesStore.roles = [
+      {
+        slug: 'admin',
+        label: 'Administrator',
+        is_system: true,
+        permissions: [],
+        user_count: 2,
+      },
+      {
+        slug: 'user',
+        label: 'User',
+        is_system: true,
+        permissions: [],
+        user_count: 3,
+      },
+    ]
+
+    const wrapper = mount(UsersPage)
+
+    expect(wrapper.find('#user-panel-roles').exists()).toBe(false)
+    expect(wrapper.findAll('[role="tab"]').some((tab) => tab.text().includes('Assign Roles'))).toBe(
+      false,
+    )
+    expect(wrapper.find('#user-panel-overview').attributes('hidden')).toBeUndefined()
+    expect(wrapper.text()).toContain('Assign Roles')
+    expect(wrapper.text()).toContain('Administrator')
+    expect(wrapper.text()).toContain('User')
+    expect(wrapper.find('.save-roles-button').exists()).toBe(true)
   })
 
   it('hides the Lifecycle tab for principals without lock or write access', () => {
@@ -444,8 +533,20 @@ describe('UsersPage', () => {
     store.selectedSubjectId = 'admin-1'
 
     rolesStore.roles = [
-      { slug: 'admin', label: 'Admin', is_system: true, permissions: [], user_count: 1 },
-      { slug: 'user', label: 'User', is_system: true, permissions: [], user_count: 2 },
+      {
+        slug: 'admin',
+        label: 'Admin',
+        is_system: true,
+        permissions: [],
+        user_count: 1,
+      },
+      {
+        slug: 'user',
+        label: 'User',
+        is_system: true,
+        permissions: [],
+        user_count: 2,
+      },
     ]
 
     const assignSpy = vi.spyOn(store, 'assignRoles').mockImplementation(async () => {
@@ -495,8 +596,20 @@ describe('UsersPage', () => {
     store.selectedSubjectId = 'other-user-1'
 
     rolesStore.roles = [
-      { slug: 'admin', label: 'Admin', is_system: true, permissions: [], user_count: 1 },
-      { slug: 'user', label: 'User', is_system: true, permissions: [], user_count: 2 },
+      {
+        slug: 'admin',
+        label: 'Admin',
+        is_system: true,
+        permissions: [],
+        user_count: 1,
+      },
+      {
+        slug: 'user',
+        label: 'User',
+        is_system: true,
+        permissions: [],
+        user_count: 2,
+      },
     ]
 
     const assignSpy = vi.spyOn(store, 'assignRoles').mockImplementation(async () => {

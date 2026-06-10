@@ -804,7 +804,8 @@ onMounted(() => {
               <strong>{{ store.selectedProvider.consecutive_failures }}</strong>
             </p>
             <p v-if="store.selectedProvider.breaker_tripped_at" style="margin-bottom: 4px">
-              Breaker Tripped At: <strong>{{ dateFormat.smart(store.selectedProvider.breaker_tripped_at) }}</strong>
+              Breaker Tripped At:
+              <strong>{{ dateFormat.smart(store.selectedProvider.breaker_tripped_at) }}</strong>
             </p>
             <p v-if="store.selectedProvider.breaker_reason" style="margin: 0">
               Breaker Reason: <code>{{ store.selectedProvider.breaker_reason }}</code>

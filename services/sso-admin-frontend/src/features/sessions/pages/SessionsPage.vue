@@ -111,7 +111,9 @@ async function confirmRevokeSession(): Promise<void> {
 
 const confirmDescription = computed<string>(() =>
   pendingRevokeSessionId.value
-    ? t('sessions.confirm_revoke_desc', { id: formatTechnicalPreview(pendingRevokeSessionId.value) })
+    ? t('sessions.confirm_revoke_desc', {
+        id: formatTechnicalPreview(pendingRevokeSessionId.value),
+      })
     : t('common.confirm_desc') || 'Review the impact before continuing.',
 )
 
@@ -294,9 +296,13 @@ watch(
                 </span>
                 <span class="session-card-item__body">
                   <span class="session-card-item__name">{{ adminSession.user_display_name }}</span>
-                  <span class="session-card-item__id">{{ formatTechnicalPreview(adminSession.session_id) }}</span>
+                  <span class="session-card-item__id">{{
+                    formatTechnicalPreview(adminSession.session_id)
+                  }}</span>
                   <span class="session-card-item__meta">
-                    <span class="session-card-item__client">{{ formatFriendlyClientName(adminSession.client_id) }}</span>
+                    <span class="session-card-item__client">{{
+                      formatFriendlyClientName(adminSession.client_id)
+                    }}</span>
                     <span class="session-card-item__ip">{{ adminSession.ip_address }}</span>
                   </span>
                 </span>
@@ -339,8 +345,12 @@ watch(
               <h2>{{ selectedSession.user_display_name }}</h2>
               <span class="ui-badge badge--active">{{ t('sessions.status_active') }}</span>
             </div>
-            <p class="client-profile-hero__env">{{ formatFriendlyClientName(selectedSession.client_id) }}</p>
-            <p class="client-profile-hero__client-id">{{ formatTechnicalPreview(selectedSession.session_id) }}</p>
+            <p class="client-profile-hero__env">
+              {{ formatFriendlyClientName(selectedSession.client_id) }}
+            </p>
+            <p class="client-profile-hero__client-id">
+              {{ formatTechnicalPreview(selectedSession.session_id) }}
+            </p>
           </div>
         </header>
 
