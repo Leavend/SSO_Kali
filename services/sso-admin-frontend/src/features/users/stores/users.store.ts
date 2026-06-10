@@ -338,7 +338,7 @@ export const useUsersStore = defineStore('admin-users', () => {
       index === -1
         ? [...users.value, nextUser]
         : users.value.map((user) =>
-            user.subject_id === nextUser.subject_id ? { ...user, ...nextUser } : user,
+            user.subject_id === nextUser.subject_id ? mergeUserRecord(user, nextUser) : user,
           )
   }
 
@@ -371,7 +371,7 @@ export const useUsersStore = defineStore('admin-users', () => {
     const incomingBySubject = new Map(incomingUsers.map((user) => [user.subject_id, user]))
     const merged = currentUsers
       .filter((user) => incomingBySubject.has(user.subject_id))
-      .map((user) => ({ ...user, ...incomingBySubject.get(user.subject_id) }))
+      .map((user) => mergeUserRecord(user, incomingBySubject.get(user.subject_id)))
 
     const existingIds = new Set(merged.map((user) => user.subject_id))
     for (const incoming of incomingUsers) {
@@ -381,6 +381,16 @@ export const useUsersStore = defineStore('admin-users', () => {
     }
 
     return merged
+  }
+
+  function mergeUserRecord(currentUser: AdminUser, incomingUser?: AdminUser): AdminUser {
+    if (!incomingUser) return currentUser
+
+    return {
+      ...currentUser,
+      ...incomingUser,
+      last_login_at: incomingUser.last_login_at ?? currentUser.last_login_at ?? null,
+    }
   }
 
   function handleListError(error: unknown): void {

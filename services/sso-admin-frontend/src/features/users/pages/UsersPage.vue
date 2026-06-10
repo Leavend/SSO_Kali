@@ -107,6 +107,14 @@ const canWriteRoles = computed(() => session.hasPermission('admin.roles.write'))
 const effectiveStatus = computed(
   () => store.selectedUser?.effective_status ?? store.selectedUser?.status ?? 'active',
 )
+const selectedUserLastLoginAt = computed(
+  () =>
+    store.selectedUser?.last_login_at ??
+    store.loginContext?.last_seen_at ??
+    store.sessions[0]?.last_activity_at ??
+    store.sessions[0]?.created_at ??
+    null,
+)
 
 const reason = ref('Admin review')
 const showCreateForm = ref(false)
@@ -537,13 +545,6 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
                   <span class="user-card-item__email">{{ user.email }}</span>
                   <span class="user-card-item__meta">
                     <span class="user-card-item__role">{{ user.role ?? 'user' }}</span>
-                    <span class="user-card-item__last-login">
-                      <Clock :size="12" aria-hidden="true" />
-                      <span
-                        >{{ t('users.last_login') }}:
-                        {{ dateFormat.smart(user.last_login_at) }}</span
-                      >
-                    </span>
                   </span>
                 </span>
               </button>
@@ -829,7 +830,7 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
                   {{ t('users.last_login') }}
                 </div>
                 <div class="user-stat-card__value">
-                  {{ dateFormat.smart(store.selectedUser.last_login_at) }}
+                  {{ dateFormat.smart(selectedUserLastLoginAt) }}
                 </div>
               </div>
             </div>

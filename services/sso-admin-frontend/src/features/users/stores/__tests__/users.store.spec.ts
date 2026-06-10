@@ -158,6 +158,21 @@ describe('useUsersStore', () => {
     expect(store.selectedUser?.status).toBe('locked')
   })
 
+  it('refreshList does not replace hydrated last-login evidence with a null list value', async () => {
+    vi.mocked(usersApi.list).mockResolvedValue({
+      users: [{ ...user, display_name: 'Updated Admin User', last_login_at: null }],
+    })
+    const store = useUsersStore()
+    store.status = 'success'
+    store.users = [user]
+    store.selectedSubjectId = 'sub_admin'
+
+    await store.refreshList()
+
+    expect(store.selectedUser?.display_name).toBe('Updated Admin User')
+    expect(store.selectedUser?.last_login_at).toBe('2026-05-27T01:00:00Z')
+  })
+
   it('refreshList is a no-op while action is loading or pending intent exists', async () => {
     vi.mocked(usersApi.list).mockResolvedValue({ users: [user] })
     const store = useUsersStore()

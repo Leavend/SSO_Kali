@@ -115,7 +115,7 @@ describe('UsersPage', () => {
     expect(wrapper.text()).not.toMatch(/Bearer|refreshToken|password|SQLSTATE/i)
   })
 
-  it('renders last-login evidence on the user list card', () => {
+  it('keeps last-login evidence out of the user list card', () => {
     const store = useUsersStore()
     store.status = 'success'
     store.users = [user]
@@ -123,10 +123,27 @@ describe('UsersPage', () => {
 
     const wrapper = mount(UsersPage)
 
-    const lastLogin = wrapper.find('.user-card-item__last-login')
-    expect(lastLogin.exists()).toBe(true)
-    expect(lastLogin.text()).toContain('Last login')
-    expect(lastLogin.text()).toContain('27 May 2026')
+    expect(wrapper.find('.user-card-item__last-login').exists()).toBe(false)
+    expect(wrapper.find('.user-card-item').text()).not.toContain('Last login')
+  })
+
+  it('renders last-login evidence in the selected user stat card from detail context fallback', () => {
+    const store = useUsersStore()
+    store.status = 'success'
+    store.users = [{ ...user, last_login_at: null }]
+    store.selectedSubjectId = 'sub_admin'
+    store.loginContext = {
+      ip_address: '203.0.113.10',
+      mfa_required: false,
+      last_seen_at: '2026-05-27T01:00:00Z',
+    }
+
+    const wrapper = mount(UsersPage)
+
+    const lastLoginStat = wrapper
+      .findAll('.user-stat-card')
+      .find((card) => card.text().includes('Last login'))
+    expect(lastLoginStat?.text()).toContain('27 May 2026')
   })
 
   it('renders safe forbidden state', () => {
