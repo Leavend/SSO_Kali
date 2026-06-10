@@ -61,4 +61,6 @@ docs/*
 !docs/ops/evidence/
 !docs/onboarding/
 !docs/onboarding/**/*.md
+!docs/developers/
+!docs/developers/**/*.md
 node_modules

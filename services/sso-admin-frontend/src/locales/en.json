@@ -351,7 +351,7 @@
     "secret_reveal_title": "New secret for",
     "secret_reveal_warning": "Store this secret securely in your key vault. It will not be shown again after you close the screen or press the button below.",
     "btn_clear_secret": "Clear secret from screen",
-    "onboarding_guide": "Onboarding Guide",
+    "onboarding_guide": "Developer Guide",
     "copy_success": "Copied!",
     "copy_failed": "Copy failed. Please copy manually.",
     "btn_copy_secret": "Copy Secret",

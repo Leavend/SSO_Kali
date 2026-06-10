@@ -549,7 +549,7 @@ async function rotateSecret(): Promise<void> {
       <a
         v-if="canWriteClients"
         class="onboarding-link"
-        href="/docs/onboarding/client-web-app-onboarding.md"
+        href="/docs/developers/README.md"
         target="_blank"
         rel="noopener noreferrer"
       >

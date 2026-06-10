@@ -351,7 +351,7 @@
     "secret_reveal_title": "Secret baru untuk",
     "secret_reveal_warning": "Simpan secret ini dengan aman di key vault Anda. Secret ini tidak akan ditampilkan lagi setelah Anda menutup layar atau menekan tombol di bawah.",
     "btn_clear_secret": "Hapus secret dari layar",
-    "onboarding_guide": "Panduan Onboarding",
+    "onboarding_guide": "Panduan Developer",
     "copy_success": "Tersalin!",
     "copy_failed": "Salin gagal. Silakan salin manual.",
     "btn_copy_secret": "Salin Secret",
