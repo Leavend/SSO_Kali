@@ -115,7 +115,8 @@ final class CompletePendingOidcAuthorization
             $request->userAgent(),
             ['pwd', 'mfa'],
             'urn:sso:loa:mfa',
-            $payload['auth_time']
+            $payload['auth_time'],
+            evaluateRiskInline: false,
         );
 
         $this->recordSuccess($request, $user, $client, $payload);

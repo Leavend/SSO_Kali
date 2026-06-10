@@ -25,13 +25,19 @@ final class SyncManagedUserProfileAction
 
         if (array_key_exists('given_name', $changes)) {
             $changes['given_name'] = NameComposer::firstWord(is_string($changes['given_name']) ? $changes['given_name'] : null);
+            if ($changes['given_name'] === null) {
+                unset($changes['given_name']);
+            }
         }
 
         if (array_key_exists('family_name', $changes)) {
             $changes['family_name'] = NameComposer::firstWord(is_string($changes['family_name']) ? $changes['family_name'] : null);
+            if ($changes['family_name'] === null) {
+                unset($changes['family_name']);
+            }
         }
 
-        if ($hasNameInput) {
+        if ($hasNameInput && (array_key_exists('given_name', $changes) || array_key_exists('family_name', $changes))) {
             $givenName = array_key_exists('given_name', $changes)
                 ? (is_string($changes['given_name']) ? $changes['given_name'] : null)
                 : $target->given_name;

@@ -17,7 +17,7 @@ use App\Support\Security\RiskLevel;
  */
 final class LoginRiskEvaluator
 {
-    private const int VELOCITY_THRESHOLD = 10;
+    public const int VELOCITY_THRESHOLD = 10;
 
     /**
      * Evaluate login risk for a given authentication attempt.

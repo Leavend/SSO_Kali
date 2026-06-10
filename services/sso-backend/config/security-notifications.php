@@ -56,5 +56,6 @@ return [
     'throttle' => [
         'max_per_window' => 3,
         'window_minutes' => 60,
+        'failure_backoff_minutes' => (int) env('SECURITY_NOTIFICATION_FAILURE_BACKOFF_MINUTES', 5),
     ],
 ];

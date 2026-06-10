@@ -4,18 +4,19 @@ declare(strict_types=1);
 
 namespace App\Services\Security;
 
+use App\Jobs\EvaluateLoginRiskNotificationJob;
 use App\Models\SsoSession;
 use App\Models\User;
-use App\Notifications\SuspiciousLoginNotification;
 use App\Support\Security\RiskLevel;
-use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 final class LoginContextRecorder
 {
     public function __construct(
-        private readonly LoginRiskEvaluator $riskEvaluator
+        private readonly LoginRiskEvaluator $riskEvaluator,
+        private readonly SuspiciousLoginNotifier $notifier,
     ) {}
 
     /**
@@ -29,7 +30,8 @@ final class LoginContextRecorder
         ?string $userAgent,
         array $amr = [],
         ?string $acr = null,
-        mixed $authTime = null
+        mixed $authTime = null,
+        bool $evaluateRiskInline = true,
     ): void {
         $observedAt = now();
         $subjectId = $user->subject_id;
@@ -49,21 +51,13 @@ final class LoginContextRecorder
             $isNewDevice = $existing->device_fingerprint !== $fingerprint;
         }
 
-        $recentLoginCount = SsoSession::query()
-            ->where('subject_id', $subjectId)
-            ->where('authenticated_at', '>', now()->subHour())
-            ->count();
+        $riskLevel = null;
+        $mfaRequired = (bool) $user->mfa_mandatory;
 
-        $riskLevel = $this->riskEvaluator->evaluate(
-            subjectId: $subjectId,
-            ipAddress: $ip,
-            deviceFingerprint: $ua,
-            isNewDevice: $isNewDevice,
-            isNewIp: $isNewIp,
-            recentLoginCount: $recentLoginCount
-        );
-
-        $mfaRequired = $user->mfa_mandatory || $riskLevel === RiskLevel::High;
+        if ($evaluateRiskInline) {
+            $riskLevel = $this->evaluateRisk($subjectId, $ip, $ua, $isNewDevice, $isNewIp);
+            $mfaRequired = $mfaRequired || $riskLevel === RiskLevel::High;
+        }
 
         // Parse authTime
         $parsedAuthTime = null;
@@ -95,31 +89,65 @@ final class LoginContextRecorder
 
         $user->forceFill(['last_login_at' => $observedAt])->save();
 
-        if ($riskLevel === RiskLevel::High || $riskLevel === RiskLevel::Medium) {
-            $this->notifySuspiciousLogin($user, $subjectId, $ip, $ua);
-        }
-    }
+        if ($evaluateRiskInline) {
+            if ($riskLevel === RiskLevel::High || $riskLevel === RiskLevel::Medium) {
+                $this->notifier->notify($user, $subjectId, $ip, $ua);
+            }
 
-    private function notifySuspiciousLogin(User $user, string $subjectId, string $ip, string $ua): void
-    {
-        $cacheKey = 'suspicious_login_notified:'.$subjectId;
-        if (Cache::has($cacheKey)) {
             return;
         }
 
-        try {
-            $user->notify(new SuspiciousLoginNotification(
-                ipAddress: $ip,
-                userAgent: $ua,
-                occurredAt: time()
-            ));
+        $this->queueRiskEvaluation($user, $subjectId, $ip, $ua, $fingerprint, $isNewIp, $isNewDevice);
+    }
 
-            $window = (int) config('security-notifications.throttle.window_minutes', 60);
-            Cache::put($cacheKey, true, now()->addMinutes($window));
+    private function evaluateRisk(string $subjectId, string $ipAddress, string $userAgent, bool $isNewDevice, bool $isNewIp): RiskLevel
+    {
+        return $this->riskEvaluator->evaluate(
+            subjectId: $subjectId,
+            ipAddress: $ipAddress,
+            deviceFingerprint: $userAgent,
+            isNewDevice: $isNewDevice,
+            isNewIp: $isNewIp,
+            recentLoginCount: $this->recentLoginCount($subjectId),
+        );
+    }
+
+    private function recentLoginCount(string $subjectId): int
+    {
+        $recentLogins = SsoSession::query()
+            ->select('id')
+            ->where('subject_id', $subjectId)
+            ->where('authenticated_at', '>', now()->subHour())
+            ->limit(LoginRiskEvaluator::VELOCITY_THRESHOLD + 1);
+
+        return (int) DB::query()
+            ->fromSub($recentLogins->toBase(), 'recent_logins')
+            ->count();
+    }
+
+    private function queueRiskEvaluation(
+        User $user,
+        string $subjectId,
+        string $ipAddress,
+        string $userAgent,
+        string $deviceFingerprint,
+        bool $isNewIp,
+        bool $isNewDevice,
+    ): void {
+        try {
+            Bus::dispatch(new EvaluateLoginRiskNotificationJob(
+                userId: (int) $user->getKey(),
+                subjectId: $subjectId,
+                ipAddress: $ipAddress,
+                userAgent: $userAgent,
+                deviceFingerprint: $deviceFingerprint,
+                isNewIp: $isNewIp,
+                isNewDevice: $isNewDevice,
+            ));
         } catch (\Throwable $exception) {
-            Log::error('[SUSPICIOUS_LOGIN_NOTIFICATION_FAILED]', [
+            Log::error('[LOGIN_RISK_EVALUATION_QUEUE_FAILED]', [
                 'subject_id' => $subjectId,
-                'ip_address' => $ip,
+                'ip_address' => $ipAddress,
                 'exception' => $exception::class,
                 'message' => $exception->getMessage(),
             ]);

@@ -108,6 +108,25 @@ it('composes display name and stores only first name words during profile sync',
         ->and($synced->family_name)->toBe('Pranoto');
 });
 
+it('ignores blank profile name sync inputs without clearing composed names', function (): void {
+    $target = User::factory()->create([
+        'email' => 'blank-profile-sync@example.com',
+        'display_name' => 'Tio Pranoto',
+        'given_name' => 'Tio',
+        'family_name' => 'Pranoto',
+    ]);
+
+    $synced = app(SyncManagedUserProfileAction::class)->execute($target, [
+        'given_name' => '',
+        'family_name' => '',
+    ]);
+
+    expect($synced->display_name)->toBe('Tio Pranoto')
+        ->and($synced->given_name)->toBe('Tio')
+        ->and($synced->family_name)->toBe('Pranoto')
+        ->and($synced->profile_synced_at)->not->toBeNull();
+});
+
 it('preserves email verification when admin sync does not change email', function (): void {
     $verifiedAt = now()->subDay();
     $target = User::factory()->create([

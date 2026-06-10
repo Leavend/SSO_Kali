@@ -47,7 +47,8 @@ final class UserProfileSynchronizer
             $context['user_agent'] ?? $context['device_fingerprint'] ?? null,
             $amr,
             $acr,
-            $authTime
+            $authTime,
+            evaluateRiskInline: false,
         );
 
         return $user->refresh();

@@ -2,12 +2,17 @@
 
 declare(strict_types=1);
 
+use App\Jobs\EvaluateLoginRiskNotificationJob;
 use App\Models\User;
 use App\Notifications\SuspiciousLoginNotification;
 use App\Services\Oidc\DownstreamClientRegistry;
 use App\Services\Security\LoginContextRecorder;
+use App\Services\Security\LoginRiskEvaluator;
+use App\Services\Security\SuspiciousLoginNotifier;
 use Illuminate\Contracts\Notifications\Dispatcher;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -21,6 +26,8 @@ use Illuminate\Support\Facades\Notification;
  * score exceeds the medium threshold.
  */
 beforeEach(function (): void {
+    Cache::flush();
+
     config()->set('oidc_clients.clients', [
         'local-test-app' => [
             'type' => 'public',
@@ -141,5 +148,92 @@ describe('POST /connect/local-login suspicious notification', function (): void 
             fn (string $message, array $context): bool => $message === '[SUSPICIOUS_LOGIN_NOTIFICATION_FAILED]'
                 && ($context['subject_id'] ?? null) === $this->user->subject_id,
         );
+    });
+
+    it('backs off repeated suspicious notification dispatch failures', function (): void {
+        Log::spy();
+
+        $this->app->instance(Dispatcher::class, new class implements Dispatcher
+        {
+            public function send($notifiables, $notification): void
+            {
+                throw new RuntimeException('Queue transport unavailable');
+            }
+
+            public function sendNow($notifiables, $notification, ?array $channels = null): void
+            {
+                throw new RuntimeException('Queue transport unavailable');
+            }
+        });
+
+        $notifier = app(SuspiciousLoginNotifier::class);
+
+        $notifier->notify($this->user, $this->user->subject_id, '203.0.113.10', 'Mozilla/5.0');
+        $notifier->notify($this->user, $this->user->subject_id, '203.0.113.10', 'Mozilla/5.0');
+
+        expect(Cache::has('suspicious_login_notify_failed:'.$this->user->subject_id))->toBeTrue();
+
+        Log::shouldHaveReceived('error')->once()->withArgs(
+            fn (string $message, array $context): bool => $message === '[SUSPICIOUS_LOGIN_NOTIFICATION_FAILED]'
+                && ($context['subject_id'] ?? null) === $this->user->subject_id,
+        );
+    });
+
+    it('queues risk evaluation when inline risk is not required', function (): void {
+        Bus::fake();
+
+        app(LoginContextRecorder::class)->record(
+            $this->user,
+            '203.0.113.10',
+            'Mozilla/5.0 (Deferred Contract Test)',
+            ['pwd'],
+            null,
+            time(),
+            false,
+        );
+
+        expect($this->user->refresh()->last_login_at)->not->toBeNull()
+            ->and(DB::table('login_contexts')->where('subject_id', $this->user->subject_id)->exists())->toBeTrue();
+
+        Bus::assertDispatched(
+            EvaluateLoginRiskNotificationJob::class,
+            fn (EvaluateLoginRiskNotificationJob $job): bool => $job->subjectId === $this->user->subject_id
+                && $job->isNewIp,
+        );
+    });
+
+    it('evaluates deferred risk and notifies from the notifications queue job', function (): void {
+        Notification::fake();
+
+        $userAgent = 'Mozilla/5.0 (Deferred Job Contract Test)';
+        $fingerprint = hash('sha256', $userAgent);
+
+        DB::table('login_contexts')->insert([
+            'subject_id' => $this->user->subject_id,
+            'subject_uuid' => $this->user->subject_id,
+            'ip_address' => '203.0.113.10',
+            'device_fingerprint' => $fingerprint,
+            'mfa_required' => false,
+            'last_seen_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $job = new EvaluateLoginRiskNotificationJob(
+            userId: (int) $this->user->getKey(),
+            subjectId: $this->user->subject_id,
+            ipAddress: '203.0.113.10',
+            userAgent: $userAgent,
+            deviceFingerprint: $fingerprint,
+            isNewIp: true,
+            isNewDevice: true,
+        );
+
+        $job->handle(app(LoginRiskEvaluator::class), app(SuspiciousLoginNotifier::class));
+
+        Notification::assertSentTo($this->user, SuspiciousLoginNotification::class);
+
+        expect((bool) DB::table('login_contexts')->where('subject_id', $this->user->subject_id)->value('mfa_required'))
+            ->toBeTrue();
     });
 });

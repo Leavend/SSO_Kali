@@ -50,7 +50,8 @@ final readonly class LoginSsoUserAction
             $userAgent,
             ['pwd'],
             'urn:sso:loa:password',
-            time()
+            time(),
+            evaluateRiskInline: false,
         );
 
         return new LoginSsoUserResult(authenticated: true, user: $directoryUser, session: $session);

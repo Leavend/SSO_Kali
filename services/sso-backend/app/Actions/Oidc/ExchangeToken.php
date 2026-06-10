@@ -78,7 +78,8 @@ final class ExchangeToken
                     $payload['user_agent'] ?? $request->userAgent(),
                     $payload['amr'] ?? [],
                     $payload['acr'] ?? null,
-                    $payload['auth_time'] ?? null
+                    $payload['auth_time'] ?? null,
+                    evaluateRiskInline: false,
                 );
             }
         }

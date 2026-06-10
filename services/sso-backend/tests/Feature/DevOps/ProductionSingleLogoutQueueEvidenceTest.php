@@ -10,7 +10,10 @@ it('keeps production workers subscribed to admin single-logout fanout jobs', fun
 
     expect($job)->toContain("\$this->onQueue('backchannel-logout')")
         ->and($compose)->toContain('--queue=${SSO_WORKER_QUEUE:-backchannel-logout,notifications,default}')
+        ->and($compose)->toContain('QUEUE_CONNECTION: ${QUEUE_CONNECTION:-redis}')
         ->and($envExample)->toContain('SSO_WORKER_QUEUE=backchannel-logout,notifications,default')
+        ->and($envExample)->toContain('QUEUE_CONNECTION=redis')
+        ->and($envExample)->not->toContain('QUEUE_CONNECTION=sync')
         ->and($config)->toContain('ADMIN_PANEL_BACKCHANNEL_LOGOUT_URI')
         ->and($config)->toContain('/connect/backchannel/admin-panel/logout')
         ->and($compose)->toContain('sso-backend-worker:')
