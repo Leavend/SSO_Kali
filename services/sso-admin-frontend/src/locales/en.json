@@ -219,6 +219,7 @@
     "label_reason": "Reason",
     "label_email": "Email",
     "label_display_name": "Display name",
+    "label_display_name_preview": "Display name preview",
     "label_given_name": "Given name",
     "label_family_name": "Family name",
     "label_role": "Role",

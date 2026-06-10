@@ -26,6 +26,8 @@ it('returns the authenticated admin principal from /admin/api/me', function (): 
         'role' => 'admin',
         'email' => 'admin@example.com',
         'display_name' => 'Admin User',
+        'given_name' => 'Admin',
+        'family_name' => 'User',
     ]);
 
     $response = $this->withToken(adminPanelAccessToken($admin, $authTime))
@@ -35,6 +37,8 @@ it('returns the authenticated admin principal from /admin/api/me', function (): 
         ->assertOk()
         ->assertJsonPath('principal.subject_id', 'admin-1')
         ->assertJsonPath('principal.email', 'admin@example.com')
+        ->assertJsonPath('principal.given_name', 'Admin')
+        ->assertJsonPath('principal.family_name', 'User')
         ->assertJsonPath('principal.role', 'admin')
         ->assertJsonPath('principal.auth_context.auth_time', $authTime)
         ->assertJsonPath('principal.auth_context.amr.0', 'pwd')

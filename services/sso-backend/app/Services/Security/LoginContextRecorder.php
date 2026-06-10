@@ -10,6 +10,7 @@ use App\Notifications\SuspiciousLoginNotification;
 use App\Support\Security\RiskLevel;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 final class LoginContextRecorder
 {
@@ -62,20 +63,6 @@ final class LoginContextRecorder
             recentLoginCount: $recentLoginCount
         );
 
-        if ($riskLevel === RiskLevel::High || $riskLevel === RiskLevel::Medium) {
-            $cacheKey = 'suspicious_login_notified:'.$subjectId;
-            if (! Cache::has($cacheKey)) {
-                $window = (int) config('security-notifications.throttle.window_minutes', 60);
-                Cache::put($cacheKey, true, now()->addMinutes($window));
-
-                $user->notify(new SuspiciousLoginNotification(
-                    ipAddress: $ip,
-                    userAgent: $ua,
-                    occurredAt: time()
-                ));
-            }
-        }
-
         $mfaRequired = $user->mfa_mandatory || $riskLevel === RiskLevel::High;
 
         // Parse authTime
@@ -107,5 +94,35 @@ final class LoginContextRecorder
         );
 
         $user->forceFill(['last_login_at' => $observedAt])->save();
+
+        if ($riskLevel === RiskLevel::High || $riskLevel === RiskLevel::Medium) {
+            $this->notifySuspiciousLogin($user, $subjectId, $ip, $ua);
+        }
+    }
+
+    private function notifySuspiciousLogin(User $user, string $subjectId, string $ip, string $ua): void
+    {
+        $cacheKey = 'suspicious_login_notified:'.$subjectId;
+        if (Cache::has($cacheKey)) {
+            return;
+        }
+
+        try {
+            $user->notify(new SuspiciousLoginNotification(
+                ipAddress: $ip,
+                userAgent: $ua,
+                occurredAt: time()
+            ));
+
+            $window = (int) config('security-notifications.throttle.window_minutes', 60);
+            Cache::put($cacheKey, true, now()->addMinutes($window));
+        } catch (\Throwable $exception) {
+            Log::error('[SUSPICIOUS_LOGIN_NOTIFICATION_FAILED]', [
+                'subject_id' => $subjectId,
+                'ip_address' => $ip,
+                'exception' => $exception::class,
+                'message' => $exception->getMessage(),
+            ]);
+        }
     }
 }

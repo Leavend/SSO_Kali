@@ -44,7 +44,7 @@ final class PrincipalController
     private function payload(User $user, array $authContext): array
     {
         return [
-            ...$user->only(['subject_id', 'email', 'display_name', 'role', 'last_login_at']),
+            ...$user->only(['subject_id', 'email', 'display_name', 'given_name', 'family_name', 'role', 'last_login_at']),
             'auth_context' => [
                 'auth_time' => $authContext['auth_time'] ?? null,
                 'amr' => $authContext['amr'] ?? [],

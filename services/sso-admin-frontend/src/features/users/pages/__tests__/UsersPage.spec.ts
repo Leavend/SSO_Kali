@@ -328,6 +328,7 @@ describe('UsersPage', () => {
     expect(wrapper.find('input[name="sync-display-name"]').exists()).toBe(false)
     expect((givenNameInput.element as HTMLInputElement).value).toBe('Admin')
     expect((familyNameInput.element as HTMLInputElement).value).toBe('One')
+    expect(wrapper.find('[data-testid="sync-display-name-preview"]').text()).toContain('Admin One')
 
     await wrapper.find('button.sync-profile-button').trigger('click')
 
@@ -365,6 +366,31 @@ describe('UsersPage', () => {
       given_name: 'Admin Middle',
       family_name: 'User Family',
     })
+  })
+
+  it('updates sync profile display-name preview while typing given and family names', async () => {
+    const store = useUsersStore()
+    store.status = 'success'
+    store.users = [
+      {
+        ...user,
+        display_name: 'Legacy Display',
+        given_name: 'Admin Middle',
+        family_name: 'User Family',
+      },
+    ]
+    store.selectedSubjectId = 'sub_admin'
+
+    const wrapper = mount(UsersPage)
+
+    expect(wrapper.find('[data-testid="sync-display-name-preview"]').text()).toContain('Admin User')
+
+    await wrapper.find('input[name="sync-given-name"]').setValue('Tio Hady')
+    await wrapper.find('input[name="sync-family-name"]').setValue('Pranoto Family')
+
+    expect(wrapper.find('[data-testid="sync-display-name-preview"]').text()).toContain(
+      'Tio Pranoto',
+    )
   })
 
   it('hides user write, lock, and session actions for read-only principals', () => {

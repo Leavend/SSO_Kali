@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Auth;
 use App\Models\Role;
 use App\Models\User;
 use App\Rules\StrongPassword;
+use App\Support\Profile\NameComposer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -31,14 +32,18 @@ final class RegisterController
         }
 
         $validated = $validator->validated();
+        $name = (string) $validated['name'];
+        $names = NameComposer::derive($name);
+        $displayName = NameComposer::compose($names['given_name'], $names['family_name']);
 
         $user = User::create([
             'subject_id' => Str::uuid()->toString(),
             'subject_uuid' => Str::uuid()->toString(),
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
-            'display_name' => $validated['name'],
-            'given_name' => $validated['name'],
+            'display_name' => $displayName !== '' ? $displayName : $name,
+            'given_name' => $names['given_name'],
+            'family_name' => $names['family_name'],
             'role' => 'user',
             'status' => 'active',
             'local_account_enabled' => true,

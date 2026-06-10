@@ -43,6 +43,8 @@ export type AdminPrincipal = {
   readonly subject_id: string
   readonly email: string
   readonly display_name: string
+  readonly given_name?: string | null
+  readonly family_name?: string | null
   readonly role: string
   readonly last_login_at: string | null
   readonly auth_context: AdminAuthContext

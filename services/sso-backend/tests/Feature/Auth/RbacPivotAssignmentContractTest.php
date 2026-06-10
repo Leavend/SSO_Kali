@@ -44,6 +44,30 @@ it('assigns newly registered users to the default user role pivot', function ():
     ]);
 });
 
+it('composes registered profile names from the first and last display words', function (): void {
+    $this->app->instance(BreachedPasswordVerifier::class, new class
+    {
+        public function isBreached(mixed $password): bool
+        {
+            return false;
+        }
+    });
+
+    $this->postJson('/api/auth/register', [
+        'name' => 'Tio Hady Pranoto',
+        'email' => 'composed-register@example.test',
+        'password' => 'SecurePass123!',
+        'password_confirmation' => 'SecurePass123!',
+    ])->assertCreated()
+        ->assertJsonPath('user.display_name', 'Tio Pranoto');
+
+    $user = User::query()->where('email', 'composed-register@example.test')->firstOrFail();
+
+    expect($user->display_name)->toBe('Tio Pranoto')
+        ->and($user->given_name)->toBe('Tio')
+        ->and($user->family_name)->toBe('Pranoto');
+});
+
 it('backfills legacy user role columns into the role pivot', function (): void {
     $this->seed(RbacSeeder::class);
 

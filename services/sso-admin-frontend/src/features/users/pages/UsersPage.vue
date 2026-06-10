@@ -147,6 +147,9 @@ const createRoleOptions = [
 const syncEmail = ref('')
 const syncGivenName = ref('')
 const syncFamilyName = ref('')
+const syncDisplayNamePreview = computed(
+  () => composeProfileDisplayName(syncGivenName.value, syncFamilyName.value) ?? '—',
+)
 
 const searchQuery = ref('')
 
@@ -882,6 +885,19 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
                   name="sync-family-name"
                   autocomplete="off"
                 />
+              </UiFormField>
+              <UiFormField
+                id="sync-display-name-preview"
+                :label="t('users.label_display_name_preview')"
+              >
+                <div
+                  id="sync-display-name-preview"
+                  class="sync-profile-preview"
+                  data-testid="sync-display-name-preview"
+                  aria-live="polite"
+                >
+                  {{ syncDisplayNamePreview }}
+                </div>
               </UiFormField>
             </div>
             <div class="user-detail-card__actions">

@@ -5,7 +5,12 @@ declare(strict_types=1);
 use App\Models\User;
 use App\Notifications\SuspiciousLoginNotification;
 use App\Services\Oidc\DownstreamClientRegistry;
+use App\Services\Security\LoginContextRecorder;
+use Illuminate\Contracts\Notifications\Dispatcher;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 
 /**
@@ -56,6 +61,14 @@ function suspiciousLoginPayload(): array
 }
 
 describe('POST /connect/local-login suspicious notification', function (): void {
+    it('keeps the suspicious login notification queued', function (): void {
+        expect(new SuspiciousLoginNotification(
+            ipAddress: '203.0.113.10',
+            userAgent: 'Mozilla/5.0',
+            occurredAt: time(),
+        ))->toBeInstanceOf(ShouldQueue::class);
+    });
+
     it('dispatches SuspiciousLoginNotification on login from new IP/device', function (): void {
         Notification::fake();
 
@@ -92,5 +105,41 @@ describe('POST /connect/local-login suspicious notification', function (): void 
         $this->postJson('/connect/local-login', suspiciousLoginPayload())->assertOk();
 
         Notification::assertNothingSent();
+    });
+
+    it('persists login context and last login when notification dispatch fails', function (): void {
+        Log::spy();
+
+        $this->app->instance(Dispatcher::class, new class implements Dispatcher
+        {
+            public function send($notifiables, $notification): void
+            {
+                throw new RuntimeException('SMTP transport unavailable');
+            }
+
+            public function sendNow($notifiables, $notification, ?array $channels = null): void
+            {
+                throw new RuntimeException('SMTP transport unavailable');
+            }
+        });
+
+        try {
+            app(LoginContextRecorder::class)->record(
+                $this->user,
+                '203.0.113.10',
+                'Mozilla/5.0 (Contract Test)',
+                ['pwd'],
+            );
+        } catch (Throwable $exception) {
+            $this->fail('Notification failure must not abort login context persistence: '.$exception->getMessage());
+        }
+
+        expect($this->user->refresh()->last_login_at)->not->toBeNull()
+            ->and(DB::table('login_contexts')->where('subject_id', $this->user->subject_id)->exists())->toBeTrue();
+
+        Log::shouldHaveReceived('error')->withArgs(
+            fn (string $message, array $context): bool => $message === '[SUSPICIOUS_LOGIN_NOTIFICATION_FAILED]'
+                && ($context['subject_id'] ?? null) === $this->user->subject_id,
+        );
     });
 });

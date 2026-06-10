@@ -13,6 +13,8 @@ use App\Models\User;
 use App\Services\Admin\AdminAuditLogger;
 use App\Services\Admin\AdminAuditTaxonomy;
 use App\Services\Admin\AdminUserPresenter;
+use App\Services\Oidc\LocalTokenService;
+use App\Services\Security\LoginContextRecorder;
 use Illuminate\Support\Facades\Hash;
 
 it('creates local fallback users without leaking plaintext passwords to audit context', function (): void {
@@ -87,6 +89,25 @@ it('syncs selected profile fields and timestamps the sync', function (): void {
         ->and($synced->profile_synced_at)->not->toBeNull();
 });
 
+it('composes display name and stores only first name words during profile sync', function (): void {
+    $target = User::factory()->create([
+        'email' => 'profile-sync@example.com',
+        'display_name' => 'Legacy Display',
+        'given_name' => 'Legacy Given',
+        'family_name' => 'Legacy Family',
+    ]);
+
+    $synced = app(SyncManagedUserProfileAction::class)->execute($target, [
+        'display_name' => 'Ignored Manual Display',
+        'given_name' => 'Tio Hady',
+        'family_name' => 'Pranoto Family',
+    ]);
+
+    expect($synced->display_name)->toBe('Tio Pranoto')
+        ->and($synced->given_name)->toBe('Tio')
+        ->and($synced->family_name)->toBe('Pranoto');
+});
+
 it('preserves email verification when admin sync does not change email', function (): void {
     $verifiedAt = now()->subDay();
     $target = User::factory()->create([
@@ -108,6 +129,63 @@ it('includes email verification status in admin user presentation', function ():
 
     expect(app(AdminUserPresenter::class)->user($target))
         ->toHaveKey('email_verified_at');
+});
+
+it('backfills legacy profile names from display names', function (): void {
+    $missing = User::factory()->create([
+        'display_name' => 'Tio Hady Pranoto',
+        'given_name' => null,
+        'family_name' => null,
+    ]);
+    $multiWordGiven = User::factory()->create([
+        'display_name' => 'Sari Dewi',
+        'given_name' => 'Sari Middle',
+        'family_name' => null,
+    ]);
+    $clean = User::factory()->create([
+        'display_name' => 'Ada Lovelace',
+        'given_name' => 'Ada',
+        'family_name' => 'Lovelace',
+    ]);
+
+    $migration = require database_path('migrations/2026_06_10_000001_backfill_user_profile_names.php');
+    $migration->up();
+    $migration->up();
+
+    expect($missing->refresh()->given_name)->toBe('Tio')
+        ->and($missing->family_name)->toBe('Pranoto')
+        ->and($missing->display_name)->toBe('Tio Pranoto')
+        ->and($multiWordGiven->refresh()->given_name)->toBe('Sari')
+        ->and($multiWordGiven->family_name)->toBe('Dewi')
+        ->and($clean->refresh()->given_name)->toBe('Ada')
+        ->and($clean->family_name)->toBe('Lovelace');
+});
+
+it('returns first new login last_login_at in admin user show response immediately', function (): void {
+    config()->set('sso.base_url', 'http://localhost');
+    config()->set('sso.issuer', 'http://localhost');
+    config()->set('sso.resource_audience', 'sso-resource-api');
+    config()->set('sso.signing.private_key_path', storage_path('app/testing/oidc/private.pem'));
+    config()->set('sso.signing.public_key_path', storage_path('app/testing/oidc/public.pem'));
+    config()->set('sso.admin.session_management_roles', ['admin']);
+    config()->set('sso.admin.mfa.enforced', false);
+
+    $admin = User::factory()->create(['role' => 'admin']);
+    $target = User::factory()->create(['last_login_at' => null]);
+
+    app(LoginContextRecorder::class)->record(
+        $target,
+        '203.0.113.77',
+        'Mozilla/5.0 Immediate Login',
+        ['pwd'],
+    );
+
+    $response = $this->withToken(adminUserShowAccessToken($admin))
+        ->getJson('/admin/api/users/'.$target->subject_id)
+        ->assertOk()
+        ->assertJsonPath('user.subject_id', $target->subject_id);
+
+    expect($response->json('user.last_login_at'))->not->toBeNull();
 });
 
 it('uses latest active SSO session IP as admin user login context evidence', function (): void {
@@ -184,3 +262,18 @@ it('persists redacted admin audit context for user management actions', function
         ->and($event->context)->toMatchArray(['email' => 'created@example.com', 'role' => 'user'])
         ->and(json_encode($event->context, JSON_THROW_ON_ERROR))->not->toContain('password');
 });
+
+function adminUserShowAccessToken(User $user): string
+{
+    $tokens = app(LocalTokenService::class)->issue([
+        'client_id' => 'sso-admin-panel',
+        'scope' => 'openid profile email',
+        'session_id' => 'admin-user-show-session-'.$user->subject_id,
+        'subject_id' => $user->subject_id,
+        'auth_time' => now()->subMinute()->timestamp,
+        'amr' => ['pwd', 'mfa'],
+        'acr' => 'urn:example:loa:2',
+    ]);
+
+    return (string) $tokens['access_token'];
+}
