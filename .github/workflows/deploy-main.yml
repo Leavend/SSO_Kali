@@ -447,7 +447,8 @@ jobs:
           docs_url="https://docs.sso.timeh.my.id"
           # Use -k (insecure) to tolerate self-signed cert during certbot first-issue race.
           # Content verification is the real gate — empty 5xx or wrong page still fails.
-          if ! curl -fsSk --max-time 30 "${docs_url%/}/" | grep -q "Dev-SSO"; then
+          docs_body="$(curl -fsSk --max-time 30 "${docs_url%/}/")"
+          if ! echo "${docs_body}" | grep -q "Dev-SSO"; then
             echo "Docs production smoke FAILED: site not serving expected content at $docs_url" >&2
             exit 1
           fi
