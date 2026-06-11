@@ -449,32 +449,6 @@ export const useAuditStore = defineStore('admin-audit', () => {
     return errorSection?.requestId ?? getLastRequestId()
   }
 
-  function handleLoadError(error: unknown): void {
-    if (error instanceof ApiError) {
-      requestId.value = error.requestId ?? getLastRequestId()
-
-      if (error.status === 401) {
-        status.value = 'unauthenticated'
-        errorMessage.value = 'Sesi admin berakhir. Login ulang untuk melanjutkan.'
-        return
-      }
-
-      if (error.status === 403) {
-        status.value = 'forbidden'
-        errorMessage.value = 'Kamu tidak memiliki izin untuk melihat audit compliance.'
-        return
-      }
-    } else {
-      requestId.value = getLastRequestId()
-    }
-
-    status.value = 'error'
-    const ref = formatRef(requestId.value)
-    errorMessage.value = ref !== 'N/A'
-      ? `Audit compliance belum bisa dimuat. Coba lagi atau gunakan kode referensi ${ref} untuk investigasi.`
-      : 'Audit compliance belum bisa dimuat. Coba lagi beberapa saat lagi.'
-  }
-
   function handleActionError(error: unknown): void {
     requestId.value =
       error instanceof ApiError ? (error.requestId ?? getLastRequestId()) : getLastRequestId()
