@@ -112,7 +112,7 @@ it('merges dynamic registrations with static clients', function (): void {
         ->and($registry->ids())->toContain('static-portal', 'static-spa', 'dynamic-app');
 });
 
-it('dynamic registration takes priority over static config with same id (DB-wins)', function (): void {
+it('static config prevents a DB registration from overriding the same client id', function (): void {
     ensureOidcClientRegistrationsTable();
 
     OidcClientRegistration::query()->create([
@@ -133,9 +133,10 @@ it('dynamic registration takes priority over static config with same id (DB-wins
     $registry = app(DownstreamClientRegistry::class);
     $client = $registry->find('static-portal');
 
-    // DB-wins: the registration overrides the config entry
-    expect($client->type)->toBe('public')
-        ->and($client->redirectUris)->toBe(['https://portal-override.example/callback'])
+    // Config-wins: the static config entry defines the client;
+    // DB registration for the same client_id is ignored as a gap-fill.
+    expect($client->type)->toBe('confidential')
+        ->and($client->redirectUris)->toBe(['https://portal.example/auth/callback'])
         ->and($client->clientId)->toBe('static-portal');
 });
 
