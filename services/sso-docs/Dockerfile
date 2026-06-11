@@ -1,6 +1,9 @@
 # Stage 1: Build VitePress site
 FROM node:22-alpine AS build
 
+# Install git for VitePress lastUpdated feature
+RUN apk add --no-cache git
+
 WORKDIR /site
 
 # Install dependencies
