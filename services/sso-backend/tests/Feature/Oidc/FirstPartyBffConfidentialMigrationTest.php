@@ -66,8 +66,8 @@ it('migrates both BFF registrations idempotently and rolls them back to public',
 
     expect($secondHashes->all())->toBe($firstHashes->all())
         ->and(DB::table('oidc_client_registrations')
-        ->whereIn('client_id', ['sso-frontend-portal', 'sso-admin-panel'])
-        ->where('type', 'confidential')->count())->toBe(2);
+            ->whereIn('client_id', ['sso-frontend-portal', 'sso-admin-panel'])
+            ->where('type', 'confidential')->count())->toBe(2);
 
     $migration->down();
     expect(DB::table('oidc_client_registrations')
