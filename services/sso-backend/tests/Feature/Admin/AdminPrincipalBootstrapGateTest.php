@@ -48,17 +48,20 @@ it('returns the authenticated admin principal from /admin/api/me', function (): 
         ->assertJsonPath('principal.auth_context.mfa_verified', true)
         ->assertJsonPath('principal.permissions.view_admin_panel', true)
         ->assertJsonPath('principal.permissions.manage_sessions', true)
-        ->assertJsonPath('principal.permissions.menus.0.id', 'dashboard')
-        ->assertJsonPath('principal.permissions.menus.0.visible', true)
-        ->assertJsonPath('principal.permissions.menus.1.id', 'users')
-        ->assertJsonPath('principal.permissions.menus.1.visible', true)
-        ->assertJsonPath('principal.permissions.menus.4.id', 'external-idps')
-        ->assertJsonPath('principal.permissions.menus.4.visible', true)
-        ->assertJsonPath('principal.permissions.menus.5.id', 'sessions')
-        ->assertJsonPath('principal.permissions.menus.5.visible', true)
         ->assertJsonMissingPath('principal.subject_uuid');
 
     $principal = $response->json('principal');
+    $menus = $principal['permissions']['menus'] ?? [];
+    $menuIds = array_column($menus, 'id');
+
+    // First two menus must be present regardless of external-idps flag
+    expect($menuIds)->toContain('dashboard')
+        ->toContain('users');
+
+    // Verify visible integrity: every menu entry must have visible=true
+    foreach ($menus as $menu) {
+        expect($menu['visible'])->toBeTrue();
+    }
 
     expect($principal['permissions']['capabilities']['admin.panel.view'])->toBeTrue()
         ->and($principal['permissions']['capabilities']['admin.users.write'])->toBeTrue()
@@ -71,6 +74,46 @@ it('returns the authenticated admin principal from /admin/api/me', function (): 
     expect($event->taxonomy)->toBe('fresh_auth_success')
         ->and($event->action)->toBe('admin_api')
         ->and($event->outcome)->toBe('succeeded');
+});
+
+it('does not include external-idps in menus when the feature flag is disabled (default)', function (): void {
+    /** @var TestCase $this */
+    config()->set('sso.admin.menus.external_idps_enabled', false);
+
+    $admin = User::factory()->create([
+        'subject_id' => 'admin-no-idp-menu',
+        'subject_uuid' => 'admin-no-idp-menu',
+        'role' => 'admin',
+    ]);
+
+    $response = $this->withToken(adminPanelAccessToken($admin))
+        ->getJson('/admin/api/me');
+
+    $menus = $response->json('principal.permissions.menus');
+    $menuIds = array_column($menus, 'id');
+
+    expect($menuIds)->not->toContain('external-idps')
+        ->toContain('dashboard')
+        ->toContain('users');
+});
+
+it('includes external-idps in menus when the feature flag is enabled', function (): void {
+    /** @var TestCase $this */
+    config()->set('sso.admin.menus.external_idps_enabled', true);
+
+    $admin = User::factory()->create([
+        'subject_id' => 'admin-idp-enabled',
+        'subject_uuid' => 'admin-idp-enabled',
+        'role' => 'admin',
+    ]);
+
+    $response = $this->withToken(adminPanelAccessToken($admin))
+        ->getJson('/admin/api/me');
+
+    $menus = $response->json('principal.permissions.menus');
+    $menuIds = array_column($menus, 'id');
+
+    expect($menuIds)->toContain('external-idps');
 });
 
 it('allows stale but valid admin tokens to bootstrap /admin/api/me', function (): void {

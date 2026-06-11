@@ -16,6 +16,8 @@ import {
   CircleDot,
   X,
   Menu,
+  BookOpen,
+  ExternalLink,
 } from 'lucide-vue-next'
 import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -24,10 +26,12 @@ import UiThemeToggle from '@/components/ui/UiThemeToggle.vue'
 import { useI18n } from '@/composables/useI18n'
 import { useSessionStore } from '@/stores/session.store'
 import type { AdminPermissionMenu } from '@/types/auth.types'
+import { getAdminEnvironment } from '@/config/adminEnvironment'
 
 const session = useSessionStore()
 const { t, locale } = useI18n()
 const isNavOpen = ref(false)
+const docsBaseUrl = getAdminEnvironment().docsBaseUrl
 
 const route = useRoute()
 const router = useRouter()
@@ -264,6 +268,21 @@ async function handleMenuClick(menu: AdminPermissionMenu, index: number) {
           </span>
         </RouterLink>
       </nav>
+
+      <a
+        class="admin-nav__link admin-nav__link--external"
+        :href="docsBaseUrl"
+        target="_blank"
+        rel="noopener noreferrer"
+        :aria-label="t('admin.nav_docs')"
+        :data-tooltip="t('admin.nav_docs')"
+      >
+        <span class="admin-nav__label">
+          <BookOpen class="admin-nav__icon" :size="16" aria-hidden="true" />
+          <span v-show="!isCollapsed" class="admin-nav__text">{{ t('admin.nav_docs') }}</span>
+        </span>
+        <ExternalLink v-show="!isCollapsed" :size="12" aria-hidden="true" />
+      </a>
 
       <section
         v-if="session.principal"

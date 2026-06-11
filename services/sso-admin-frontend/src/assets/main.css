@@ -347,6 +347,18 @@ select {
   font-weight: 600;
 }
 
+.admin-nav__link--external {
+  justify-content: space-between;
+  border-top: 1px solid var(--border);
+  border-radius: 0 0 8px 8px;
+  margin-top: 4px;
+  padding-top: 14px;
+}
+
+.admin-nav__link--external .admin-nav__text {
+  color: var(--muted-foreground);
+}
+
 .admin-nav__label {
   display: inline-flex;
   gap: 12px;
@@ -3618,9 +3630,18 @@ button.user-card-item {
   display: flex;
   align-items: center;
   gap: 8px;
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 12px;
   letter-spacing: -0.01em;
+}
+
+/* Shared permission group label — used in permission matrix & dialog.
+   Same visual treatment as .roles-perm-group__label to prevent drift. */
+.perm-group__label {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--foreground);
+  margin: 0 0 14px 0;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
 }
 
 @media (max-width: 760px) {

@@ -155,6 +155,14 @@ return [
         'panel_client_id' => env('ADMIN_PANEL_CLIENT_ID', 'sso-admin-panel'),
         'panel_redirect_uri' => env('ADMIN_PANEL_REDIRECT_URI', rtrim((string) env('SSO_FRONTEND_URL', env('APP_URL', 'http://localhost:3000')), '/').'/auth/callback'),
         'session_management_roles' => $csv(env('ADMIN_PANEL_SESSION_MANAGEMENT_ROLES', 'admin')),
+        'menus' => [
+            // Hide-only flag: when false the "External IdPs" entry is omitted
+            // from the sidebar menu list returned by AdminMenu::definitions().
+            // The /external-idps route and all External IdP APIs remain active
+            // (permission-gated) regardless of this flag.  Flip to true in env
+            // when the feature is ready for public exposure.
+            'external_idps_enabled' => (bool) env('ADMIN_MENU_EXTERNAL_IDPS_ENABLED', false),
+        ],
         'rate_limits' => [
             'read_per_minute' => (int) env('ADMIN_PANEL_READ_RATE_LIMIT_PER_MINUTE', 60),
             'write_per_minute' => (int) env('ADMIN_PANEL_WRITE_RATE_LIMIT_PER_MINUTE', 10),

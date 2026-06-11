@@ -31,7 +31,7 @@ final class AdminMenu
      */
     public static function definitions(): array
     {
-        return [
+        $definitions = [
             [
                 'id' => self::DASHBOARD,
                 'label' => 'Dashboard',
@@ -83,6 +83,17 @@ final class AdminMenu
                 'required_permission' => AdminPermission::IP_ACCESS_READ,
             ],
         ];
+
+        // Hide-only flag: /external-idps route & APIs remain active
+        // (permission-gated); this only removes the sidebar entry.
+        if (! config('sso.admin.menus.external_idps_enabled', false)) {
+            $definitions = array_values(array_filter(
+                $definitions,
+                static fn (array $entry): bool => $entry['id'] !== self::EXTERNAL_IDPS,
+            ));
+        }
+
+        return $definitions;
     }
 
     /**

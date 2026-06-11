@@ -128,7 +128,6 @@ onMounted(() => {
           <span>{{ store.principal.email ?? '—' }}</span>
         </p>
 
-        <hr class="profile-divider" />
 
         <div class="profile-sec-info">
           <span class="label">Kode admin:</span>
@@ -298,12 +297,6 @@ onMounted(() => {
   overflow-wrap: anywhere;
 }
 
-.profile-divider {
-  width: 100%;
-  border: 0;
-  border-top: 1px solid var(--border);
-  margin: 20px 0;
-}
 
 .profile-sec-info {
   display: flex;

@@ -333,7 +333,7 @@ onMounted(() => {
         </h2>
         <p class="page-summary">{{ t('roles.matrix_desc') }}</p>
         <div v-for="[group, perms] in permissionsByGroup" :key="group" class="roles-perm-group">
-          <h3 class="roles-perm-group__label">{{ group }}</h3>
+          <h3 class="perm-group__label">{{ group }}</h3>
           <ul class="roles-perm-list" :aria-label="`Permissions group ${group}`">
             <li v-for="perm in perms" :key="perm" class="roles-perm-item">
               <code>{{ perm }}</code>
@@ -532,16 +532,8 @@ onMounted(() => {
               v-for="[group, perms] in permissionsByGroup"
               :key="group"
               class="roles-perm-group"
-              style="margin-bottom: 24px"
             >
-              <h4
-                class="font-bold text-sm text-foreground mb-3"
-                style="
-                  border-bottom: 1px solid var(--border);
-                  padding-bottom: 4px;
-                  margin-bottom: 12px;
-                "
-              >
+              <h4 class="perm-group__label">
                 {{ group }}
               </h4>
               <div class="role-selection-grid">

@@ -23,7 +23,9 @@ it('locks adminBackend admin menu authorization into the backend contract', func
         ],
         'tests/Feature/Admin/AdminPrincipalBootstrapGateTest.php' => [
             "['permissions']['capabilities']['admin.panel.view']",
-            'principal.permissions.menus.0.id',
+            'array_column($menus, \'id\')',
+            "toContain('dashboard')",
+            'external_idps_enabled',
         ],
     ];
 
