@@ -24,6 +24,7 @@ beforeEach(() => {
   process.env.SSO_INTERNAL_JWKS_URL = jwksUrl
   process.env.VITE_SSO_FRONTEND_BASE_URL = appBaseUrl
   process.env.VITE_CLIENT_ID = clientId
+  process.env.SSO_PORTAL_CLIENT_SECRET = 'portal-bff-secret'
   process.env.SESSION_ENCRYPTION_SECRET = 'test-secret-with-at-least-32-characters'
   __clearDiscoveryCacheForTests()
 })
@@ -196,6 +197,7 @@ function mockOidcFetch(
 
     if (url === metadataTokenUrl) {
       expect(init?.method).toBe('POST')
+      expect(new URLSearchParams(String(init?.body)).get('client_secret')).toBe('portal-bff-secret')
       return jsonResponse({
         access_token: 'access-token',
         refresh_token: 'refresh-token',

@@ -37,6 +37,10 @@ describe('admin BFF serving contract', () => {
     expect(compose).toContain('x-sso-admin-frontend-env: &sso-admin-frontend-env')
     expect(compose).toContain('ADMIN_OIDC_CLIENT_ID: ${ADMIN_PANEL_CLIENT_ID:-sso-admin-panel}')
     expect(compose).toContain(
+      'ADMIN_OIDC_CLIENT_SECRET: ${ADMIN_PANEL_CLIENT_SECRET:?ADMIN_PANEL_CLIENT_SECRET is required}',
+    )
+    expect(compose).not.toContain('VITE_ADMIN_OIDC_CLIENT_SECRET')
+    expect(compose).toContain(
       'ADMIN_OIDC_PUBLIC_ISSUER: ${SSO_FRONTEND_URL:-https://sso.timeh.my.id}',
     )
     expect(compose).toContain(

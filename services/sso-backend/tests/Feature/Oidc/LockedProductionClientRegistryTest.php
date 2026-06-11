@@ -67,16 +67,19 @@ it('rejects missing sso-frontend-portal client registration', function (): void 
         ->and(implode(' ', $result['errors']))->toContain('sso-frontend-portal');
 });
 
-it('registers sso-frontend-portal as PKCE public client (no secret, explicit redirect)', function (): void {
+it('registers both first-party BFF clients as confidential clients with PKCE redirects', function (): void {
     $registry = config('oidc_clients.clients');
 
     expect($registry)->toHaveKey('sso-frontend-portal');
 
     $portal = $registry['sso-frontend-portal'];
-    expect($portal['type'])->toBe('public')
-        ->and($portal)->not->toHaveKey('secret')
+    $admin = $registry['sso-admin-panel'];
+    expect($portal['type'])->toBe('confidential')
+        ->and($portal['secret'])->toStartWith('$argon2id$')
         ->and($portal['redirect_uris'])->toContain('https://sso.timeh.my.id/auth/callback')
-        ->and($portal['post_logout_redirect_uris'])->toContain('https://sso.timeh.my.id');
+        ->and($portal['post_logout_redirect_uris'])->toContain('https://sso.timeh.my.id')
+        ->and($admin['type'])->toBe('confidential')
+        ->and($admin['secret'])->toStartWith('$argon2id$');
 });
 
 function issue4ValidRegistry(): array
@@ -95,13 +98,17 @@ function issue4ValidRegistry(): array
             'post_logout_redirect_uris' => ['https://sso.timeh.my.id/app-b'],
         ],
         'sso-admin-panel' => [
-            'type' => 'public',
+            'type' => 'confidential',
+            'secret' => app(ClientSecretHashPolicy::class)->make('admin-panel-secret'),
+            'secret_expires_at' => now()->addDays(90)->toIso8601String(),
             'redirect_uris' => ['https://sso.timeh.my.id/auth/callback'],
             'post_logout_redirect_uris' => ['https://sso.timeh.my.id'],
             'backchannel_logout_uri' => 'https://api-sso.timeh.my.id/connect/backchannel/admin-panel/logout',
         ],
         'sso-frontend-portal' => [
-            'type' => 'public',
+            'type' => 'confidential',
+            'secret' => app(ClientSecretHashPolicy::class)->make('portal-secret'),
+            'secret_expires_at' => now()->addDays(90)->toIso8601String(),
             'redirect_uris' => ['https://sso.timeh.my.id/auth/callback'],
             'post_logout_redirect_uris' => ['https://sso.timeh.my.id'],
         ],

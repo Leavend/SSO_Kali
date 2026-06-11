@@ -29,6 +29,8 @@ if (! function_exists('storedClientSecretPolicyClients')) {
 
 it('stores confidential oidc client secrets as argon2id hashes', function (): void {
     config()->set('oidc_clients.clients.app-b.secret', COMPLIANT_TEST_CLIENT_SECRET_HASH);
+    config()->set('oidc_clients.clients.sso-admin-panel.secret', COMPLIANT_TEST_CLIENT_SECRET_HASH);
+    config()->set('oidc_clients.clients.sso-frontend-portal.secret', COMPLIANT_TEST_CLIENT_SECRET_HASH);
 
     $policy = app(ClientSecretHashPolicy::class);
     $clients = config('oidc_clients.clients', []);
@@ -62,13 +64,16 @@ it('fails production verification when a static confidential client is missing s
         ->toThrow(RuntimeException::class, 'missing secret_expires_at lifecycle metadata');
 });
 
-it('fails runtime verification when a stored verifier secret is plaintext', function (): void {
+it('hashes plaintext config secrets at the server boundary before verification', function (): void {
     config()->set('app.env', 'production');
     config()->set('oidc_clients.clients', storedClientSecretPolicyClients('prototype-secret', now()->addDays(90)->toIso8601String()));
     app(DownstreamClientRegistry::class)->flush();
 
-    expect(fn () => app(DownstreamClientRegistry::class)->assertStoredSecretsCompliant())
-        ->toThrow(RuntimeException::class, 'non-compliant verifier secret hash');
+    $client = app(DownstreamClientRegistry::class)->find('app-b');
+
+    expect($client)->not->toBeNull()
+        ->and($client?->secret)->toStartWith('$argon2id$')
+        ->and(app(DownstreamClientRegistry::class)->validSecret($client, 'prototype-secret'))->toBeTrue();
 });
 
 it('reads confidential verifier secrets from hash-specific env bindings', function (): void {
@@ -80,4 +85,13 @@ it('reads confidential verifier secrets from hash-specific env bindings', functi
         ->and($config)->not->toContain("env('APP_B_CLIENT_SECRET'")
         ->and($example)->toContain('APP_B_CLIENT_SECRET_HASH=$argon2id$')
         ->and($example)->toContain('APP_B_CLIENT_SECRET_EXPIRES_AT=');
+});
+
+it('reads first-party BFF plaintext secrets only from server-side env bindings', function (): void {
+    $config = file_get_contents(base_path('config/oidc_clients.php'));
+
+    expect($config)->toContain("env('SSO_PORTAL_CLIENT_SECRET')")
+        ->and($config)->toContain("env('ADMIN_PANEL_CLIENT_SECRET')")
+        ->and($config)->not->toContain('VITE_SSO_PORTAL_CLIENT_SECRET')
+        ->and($config)->not->toContain('VITE_ADMIN_PANEL_CLIENT_SECRET');
 });

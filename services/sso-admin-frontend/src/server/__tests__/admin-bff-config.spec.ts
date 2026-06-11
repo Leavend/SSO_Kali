@@ -6,6 +6,7 @@ describe('admin BFF runtime config', () => {
     vi.stubEnv('VITE_ADMIN_BASE_URL', 'https://admin-sso.example.test')
     vi.stubEnv('VITE_SSO_BASE_URL', 'https://api-sso.example.test')
     vi.stubEnv('ADMIN_OIDC_CLIENT_ID', 'sso-admin-panel')
+    vi.stubEnv('ADMIN_OIDC_CLIENT_SECRET', 'admin-bff-secret')
     vi.stubEnv('SSO_ADMIN_SESSION_REDIS_URL', 'redis://redis:6379/5')
 
     const [{ getConfig }, cookies, store] = await Promise.all([
@@ -18,6 +19,7 @@ describe('admin BFF runtime config', () => {
       issuer: 'https://api-sso.example.test',
       appBaseUrl: 'https://admin-sso.example.test',
       clientId: 'sso-admin-panel',
+      clientSecret: 'admin-bff-secret',
       redirectUri: 'https://admin-sso.example.test/auth/callback',
       sessionRedisUrl: 'redis://redis:6379/5',
       port: 8080,

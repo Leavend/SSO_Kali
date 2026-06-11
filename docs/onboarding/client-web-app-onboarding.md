@@ -21,6 +21,11 @@ SSO (Single Sign-On) Timeh adalah identity provider terpusat. Setiap web app yan
 
 > **Rule of thumb:** Jika app kamu punya `fetch` atau `axios` dari server (bukan dari browser), pakai `confidential`. Jika semua logika ada di client-side browser, pakai `public`.
 
+Implementasi first-party portal dan admin pada repo ini mengikuti pola
+**BFF = confidential + PKCE S256**. Authorization code, refresh token, dan
+revocation diproses di server BFF dengan `client_secret`; browser hanya menerima
+cookie sesi same-origin dan tidak pernah menerima token atau secret.
+
 ### Authorization Code + PKCE (Wajib)
 
 Semua client **wajib** menggunakan Authorization Code Flow dengan **PKCE** (Proof Key for Code Exchange), sesuai security best practice OAuth 2.1:

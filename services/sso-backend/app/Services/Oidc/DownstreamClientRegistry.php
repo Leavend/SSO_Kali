@@ -188,7 +188,7 @@ final class DownstreamClientRegistry
             backchannelLogoutUri: is_string($config['backchannel_logout_uri'] ?? null)
                 ? $config['backchannel_logout_uri']
                 : null,
-            secret: is_string($config['secret'] ?? null) ? $config['secret'] : null,
+            secret: $this->configuredSecretHash($config['secret'] ?? null),
             secretExpiresAt: $this->optionalCarbon($config['secret_expires_at'] ?? null),
             secretRotatedAt: $this->optionalCarbon($config['secret_rotated_at'] ?? null),
             skipConsent: (bool) ($config['skip_consent'] ?? true),
@@ -197,6 +197,19 @@ final class DownstreamClientRegistry
                 : null,
             frontchannelLogoutSessionRequired: (bool) ($config['frontchannel_logout_session_required'] ?? true),
         );
+    }
+
+    private function configuredSecretHash(mixed $secret): ?string
+    {
+        if (! is_string($secret) || $secret === '') {
+            return null;
+        }
+
+        if (str_starts_with($secret, '$argon2id$')) {
+            return $secret;
+        }
+
+        return $this->hashes->make($secret);
     }
 
     private function makeDynamicClient(OidcClientRegistration $registration): DownstreamClient

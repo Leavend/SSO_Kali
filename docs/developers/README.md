@@ -50,6 +50,11 @@ sequenceDiagram
 5. Refresh token hanya terbit bila scope `offline_access` diminta dan client memang diizinkan memegang scope itu.
 6. Token endpoint boleh dipakai oleh public client tanpa secret, tetapi PKCE tetap wajib.
 
+Portal pengguna dan panel admin first-party memakai pola BFF: keduanya adalah
+`confidential` client, menyimpan secret hanya di runtime server, dan tetap wajib
+menggunakan PKCE `S256`. Jangan pernah mengekspos secret BFF melalui env `VITE_*`
+atau bundle browser.
+
 ## Contoh Python dengan Authlib dan PKCE
 
 Contoh ini hanya skeleton. Simpan `code_verifier`, `state`, dan `nonce` di session server atau storage sementara yang terlindungi.

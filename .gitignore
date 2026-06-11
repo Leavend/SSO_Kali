@@ -54,6 +54,7 @@ charts/**/*.tgz
 !README.md
 !**/README.md
 !services/sso-docs/**/*.md
+!.github/pull_request_template.md
 
 # Ignore docs workspace by default; track explicitly with `git add -f`
 docs/*

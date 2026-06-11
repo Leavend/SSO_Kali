@@ -53,6 +53,7 @@ x-sso-backend-env: &sso-backend-env
   OIDC_AUTH_REQUEST_TTL: ${OIDC_AUTH_REQUEST_TTL:-300}
   OIDC_AUTHORIZATION_CODE_TTL: ${OIDC_AUTHORIZATION_CODE_TTL:-60}
   ADMIN_PANEL_CLIENT_ID: ${ADMIN_PANEL_CLIENT_ID:-sso-admin-panel}
+  ADMIN_PANEL_CLIENT_SECRET: ${ADMIN_PANEL_CLIENT_SECRET:?ADMIN_PANEL_CLIENT_SECRET is required}
   ADMIN_PANEL_REDIRECT_URI: ${SSO_ADMIN_FRONTEND_URL:-https://admin-sso.timeh.my.id}/auth/callback
   ADMIN_PANEL_POST_LOGOUT_REDIRECT_URI: ${SSO_ADMIN_FRONTEND_URL:-https://admin-sso.timeh.my.id}
   ADMIN_PANEL_ADMIN_EMAIL: ${ADMIN_PANEL_ADMIN_EMAIL:-admin@example.com}
@@ -73,6 +74,7 @@ x-sso-backend-env: &sso-backend-env
   SSO_BACKEND_PASSPORT_KEYS: ${SSO_BACKEND_PASSPORT_KEYS:-false}
   SSO_BACKEND_EVENT_CACHE: ${SSO_BACKEND_EVENT_CACHE:-true}
   SSO_BACKEND_FIX_PERMISSIONS: ${SSO_BACKEND_FIX_PERMISSIONS:-true}
+  SSO_PORTAL_CLIENT_SECRET: ${SSO_PORTAL_CLIENT_SECRET:?SSO_PORTAL_CLIENT_SECRET is required}
 
 x-sso-frontend-env: &sso-frontend-env
   PORT: 3000
@@ -82,6 +84,7 @@ x-sso-frontend-env: &sso-frontend-env
   NEXT_PUBLIC_SSO_BASE_URL: ${SSO_BASE_URL:-https://api-sso.timeh.my.id}
   VITE_CLIENT_ID: ${SSO_FRONTEND_CLIENT_ID:-sso-frontend-portal}
   NEXT_PUBLIC_CLIENT_ID: ${SSO_FRONTEND_CLIENT_ID:-sso-frontend-portal}
+  SSO_PORTAL_CLIENT_SECRET: ${SSO_PORTAL_CLIENT_SECRET:?SSO_PORTAL_CLIENT_SECRET is required}
   SSO_INTERNAL_BASE_URL: ${SSO_INTERNAL_BASE_URL:-http://sso-backend:8000}
   SSO_INTERNAL_TOKEN_URL: ${SSO_INTERNAL_TOKEN_URL:-http://sso-backend:8000/token}
   SSO_INTERNAL_JWKS_URL: ${SSO_INTERNAL_JWKS_URL:-http://sso-backend:8000/jwks}
@@ -100,6 +103,7 @@ x-sso-admin-frontend-env: &sso-admin-frontend-env
   VITE_DOCS_BASE_URL: ${SSO_DOCS_BASE_URL:-https://docs.sso.timeh.my.id}
   ADMIN_OIDC_PUBLIC_ISSUER: ${SSO_FRONTEND_URL:-https://sso.timeh.my.id}
   ADMIN_OIDC_CLIENT_ID: ${ADMIN_PANEL_CLIENT_ID:-sso-admin-panel}
+  ADMIN_OIDC_CLIENT_SECRET: ${ADMIN_PANEL_CLIENT_SECRET:?ADMIN_PANEL_CLIENT_SECRET is required}
   ADMIN_OIDC_SCOPE: ${ADMIN_OIDC_SCOPE:-openid profile email offline_access roles permissions}
   SSO_INTERNAL_BASE_URL: ${SSO_INTERNAL_BASE_URL:-http://sso-backend:8000}
   SSO_INTERNAL_TOKEN_URL: ${SSO_INTERNAL_TOKEN_URL:-http://sso-backend:8000/token}
