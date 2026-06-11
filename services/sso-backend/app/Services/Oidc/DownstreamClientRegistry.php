@@ -99,15 +99,10 @@ final class DownstreamClientRegistry
             return $this->clientsCache;
         }
 
-        // DB registrations are the primary source of truth (ISS-C1).
-        // Config entries act as bootstrap fallback for environments where
-        // the backfill migration has not yet run or the table is empty.
+        // Config is the primary source. DB registrations fill gaps for
+        // client IDs not defined in config (e.g. dynamically provisioned
+        // clients or backfilled seeds for admin UI visibility).
         $clients = [];
-
-        foreach ($this->dynamicRegistrations() as $registration) {
-            $clients[$registration->client_id] = $this->makeDynamicClient($registration);
-        }
-
         $rawClients = config('oidc_clients.clients', []);
 
         foreach ($rawClients as $clientId => $config) {
@@ -115,13 +110,15 @@ final class DownstreamClientRegistry
                 continue;
             }
 
-            // DB-wins dedupe: skip config entry when a registration already
-            // exists for this client_id.
-            if (isset($clients[$clientId])) {
+            $clients[$clientId] = $this->makeClient($clientId, $config);
+        }
+
+        foreach ($this->dynamicRegistrations() as $registration) {
+            if (isset($clients[$registration->client_id])) {
                 continue;
             }
 
-            $clients[$clientId] = $this->makeClient($clientId, $config);
+            $clients[$registration->client_id] = $this->makeDynamicClient($registration);
         }
 
         $this->clientsCache = $this->withLoadTestClient($clients);

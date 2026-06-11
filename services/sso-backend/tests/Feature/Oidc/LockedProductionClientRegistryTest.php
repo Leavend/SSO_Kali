@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Actions\Oidc\ValidateProductionOidcClientRegistryAction;
+use App\Services\Oidc\DownstreamClientRegistry;
 use App\Support\Security\ClientSecretHashPolicy;
 
 beforeEach(function (): void {
@@ -18,6 +19,7 @@ beforeEach(function (): void {
     ]);
 
     config()->set('oidc_clients.clients', issue4ValidRegistry());
+    app(DownstreamClientRegistry::class)->flush();
 });
 
 it('accepts only the locked production client id set', function (): void {

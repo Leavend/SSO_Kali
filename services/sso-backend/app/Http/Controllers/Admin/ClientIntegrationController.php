@@ -78,10 +78,8 @@ final class ClientIntegrationController
 
     private function admin(Request $request): User
     {
-        /** @var User $admin */
-        $admin = $request->attributes->get('admin_user');
-
-        return $admin;
+        /** @var User */
+        return $request->attributes->get('admin_user');
     }
 
     private function secretHash(Request $request): ?string

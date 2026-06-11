@@ -19,6 +19,14 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // This migration backfills production client registrations.
+        // Skip in non-production (test/dev) to avoid leaking entries
+        // whose client IDs conflict with environment-specific config
+        // overrides (e.g. prototype-app-a → app-a mismatch).
+        if (config('app.env') !== 'production') {
+            return;
+        }
+
         if (! Schema::hasTable('oidc_client_registrations')) {
             return;
         }

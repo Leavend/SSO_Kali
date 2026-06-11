@@ -60,6 +60,7 @@ beforeEach(function (): void {
             'post_logout_redirect_uris' => ['https://sso.timeh.my.id'],
         ],
     ]);
+    app(DownstreamClientRegistry::class)->flush();
 });
 
 it('validates the production oidc client registry', function (): void {
