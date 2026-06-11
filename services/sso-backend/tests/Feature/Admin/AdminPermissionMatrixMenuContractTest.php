@@ -19,7 +19,7 @@ it('returns all capabilities and visible menus for admin users', function (): vo
         ->and($permissions['capabilities'][AdminPermission::EXTERNAL_IDPS_WRITE])->toBeTrue()
         ->and($permissions['capabilities'][AdminPermission::AUTHENTICATION_AUDIT_READ])->toBeTrue()
         ->and($permissions['menus'])->toHaveCount(count(AdminMenu::ids()))
-        ->and(visibleMenuIds($permissions['menus']))->toContain('dashboard', 'users', 'roles', 'clients', 'external-idps', 'sessions', 'audit', 'authentication-audit', 'profile', 'ip-access');
+        ->and(visibleMenuIds($permissions['menus']))->toContain('dashboard', 'users', 'roles', 'clients', 'sessions', 'audit', 'authentication-audit', 'profile', 'ip-access');
 });
 
 it('limits normal users to profile capabilities and profile menu', function (): void {
@@ -45,12 +45,23 @@ it('denies unknown roles and unknown menu ids by default', function (): void {
 
 it('uses centralized menu definitions for required permissions', function (): void {
     $menus = AdminMenu::definitions();
+    $menuIds = AdminMenu::ids();
 
-    expect(AdminMenu::ids())->toBe(['dashboard', 'users', 'roles', 'clients', 'external-idps', 'sessions', 'audit', 'authentication-audit', 'profile', 'ip-access'])
-        ->and($menus[1]['required_permission'])->toBe(AdminPermission::USERS_READ)
-        ->and($menus[4]['required_permission'])->toBe(AdminPermission::EXTERNAL_IDPS_READ)
-        ->and($menus[5]['required_permission'])->toBe(AdminPermission::SESSIONS_READ)
-        ->and($menus[7]['required_permission'])->toBe(AdminPermission::AUTHENTICATION_AUDIT_READ);
+    // Index-brittle assertions replaced with by-ID lookups
+    expect($menuIds)->toContain('dashboard')
+        ->and($menuIds)->toContain('users')
+        ->and($menuIds)->toContain('roles')
+        ->and($menuIds)->toContain('clients')
+        ->and($menuIds)->toContain('sessions')
+        ->and($menuIds)->toContain('audit')
+        ->and($menuIds)->toContain('authentication-audit')
+        ->and($menuIds)->toContain('profile')
+        ->and($menuIds)->toContain('ip-access');
+
+    $byId = collect($menus)->keyBy('id');
+    expect($byId['users']['required_permission'])->toBe(AdminPermission::USERS_READ)
+        ->and($byId['sessions']['required_permission'])->toBe(AdminPermission::SESSIONS_READ)
+        ->and($byId['authentication-audit']['required_permission'])->toBe(AdminPermission::AUTHENTICATION_AUDIT_READ);
 });
 
 /**

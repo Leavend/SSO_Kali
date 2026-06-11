@@ -30,6 +30,7 @@ it('exposes external idp capabilities only through explicit read and write permi
 });
 
 it('adds a dedicated external idps menu guarded by the read permission', function (): void {
+    config(['sso.admin.menus.external_idps_enabled' => true]);
     $this->seed(RbacSeeder::class);
 
     $reader = externalIdpMatrixUser('external-idp-reader', [AdminPermission::EXTERNAL_IDPS_READ]);

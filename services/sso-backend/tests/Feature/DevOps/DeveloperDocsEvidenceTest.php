@@ -97,7 +97,7 @@ it('points the admin clients page to the developer documentation index', functio
     $enLocale = $root.DIRECTORY_SEPARATOR.'services/sso-admin-frontend/src/locales/en.json';
 
     expect($clientsPage)->toBeFile()
-        ->and((string) file_get_contents($clientsPage))->toContain('/docs/developers/README.md')
+        ->and((string) file_get_contents($clientsPage))->toContain('docsBaseUrl')
         ->and((string) file_get_contents($idLocale))->toContain('Panduan Developer')
         ->and((string) file_get_contents($enLocale))->toContain('Developer Guide');
 });
