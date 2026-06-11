@@ -102,6 +102,15 @@ it('ensures sso-docs markdown files are git-tracked via gitignore exception', fu
         ->toContain('!services/sso-docs/**/*.md');
 });
 
+it('includes sso-docs in the VPS deploy script', function (): void {
+    $script = docsPublicationFile('scripts/vps-deploy-main.sh');
+
+    expect($script)
+        ->toContain('compose pull sso-backend sso-backend-worker sso-backend-scheduler sso-frontend sso-admin-frontend sso-docs')
+        ->toContain('compose up -d --remove-orphans sso-backend sso-backend-worker sso-backend-scheduler sso-frontend sso-admin-frontend sso-docs')
+        ->toContain('wait_for_service sso-docs');
+});
+
 function docsPublicationFile(string $relativePath): string
 {
     $path = dirname(base_path(), 2).DIRECTORY_SEPARATOR.ltrim($relativePath, '/');

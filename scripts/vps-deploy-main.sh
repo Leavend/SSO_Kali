@@ -177,6 +177,7 @@ run_smoke_tests() {
   smoke_url 'SSO JWKS' "$base_url/.well-known/jwks.json" '^(200)$'
   smoke_cors_preflight "$base_url" "${SSO_FRONTEND_URL:-https://sso.timeh.my.id}"
   smoke_url 'Admin frontend internal health' "${SSO_ADMIN_FRONTEND_INTERNAL_URL:-http://127.0.0.1:3091}/healthz" '^(200)$'
+  smoke_url 'Docs site internal health' "${SSO_DOCS_UPSTREAM:-http://127.0.0.1:8190}/" '^(200)$'
 
   :
 }
@@ -266,7 +267,7 @@ main() {
   export SSO_DEPLOY_TAG="$DEPLOY_TAG"
 
   compose config >/dev/null
-  compose pull sso-backend sso-backend-worker sso-backend-scheduler sso-frontend sso-admin-frontend || compose pull
+  compose pull sso-backend sso-backend-worker sso-backend-scheduler sso-frontend sso-admin-frontend sso-docs || compose pull
 
   compose up -d postgres redis
   wait_for_service postgres 180
@@ -275,10 +276,11 @@ main() {
   run_migrations
 
   adopt_legacy_frontend_container
-  compose up -d --remove-orphans sso-backend sso-backend-worker sso-backend-scheduler sso-frontend sso-admin-frontend
+  compose up -d --remove-orphans sso-backend sso-backend-worker sso-backend-scheduler sso-frontend sso-admin-frontend sso-docs
   wait_for_service sso-backend 240
   wait_for_service sso-frontend 180
   wait_for_service sso-admin-frontend 180
+  wait_for_service sso-docs 60
   log 'sso-backend-worker and sso-backend-scheduler started; health is supervised by restart policy and logs'
 
   reattach_frontend_to_backend_network
