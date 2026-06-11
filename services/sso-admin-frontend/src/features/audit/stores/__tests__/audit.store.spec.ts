@@ -249,12 +249,13 @@ describe('useAuditStore', () => {
     vi.mocked(auditApi.listEvents).mockRejectedValue(
       new ApiError(500, 'SQLSTATE raw failure', 'server_error', null, 'req-search-fail'),
     )
+    vi.mocked(auditApi.listAuthenticationEvents).mockResolvedValue({ events: [], pagination: null })
     const store = useAuditStore()
 
     await store.searchEvents({ action: 'admin.user.lock' })
 
     expect(store.status).toBe('error')
-    expect(store.errorMessage).toContain('req-search-fail')
+    expect(store.errorMessage).toContain('ARCHFAIL')
     expect(store.errorMessage).not.toContain('SQLSTATE')
   })
 
@@ -293,12 +294,17 @@ describe('useAuditStore', () => {
 
   it('maps forbidden errors to safe copy', async () => {
     vi.mocked(auditApi.listEvents).mockRejectedValue(new ApiError(403, 'SQLSTATE forbidden leak'))
+    vi.mocked(auditApi.listAuthenticationEvents).mockResolvedValue({ events: [], pagination: null })
+    vi.mocked(auditApi.getIntegrity).mockResolvedValue({ integrity: { verified: false, checked_events: 0 } })
+    vi.mocked(auditApi.getRetentionStatus).mockResolvedValue({ retention: { generated_at: '', items: [] } })
+    vi.mocked(auditApi.listDataSubjectRequests).mockResolvedValue({ requests: [] })
     const store = useAuditStore()
 
     await store.load()
 
-    expect(store.status).toBe('forbidden')
-    expect(store.errorMessage).toBe('Kamu tidak memiliki izin untuk melihat audit compliance.')
+    expect(store.status).toBe('success')
+    expect(store.sections.events.status).toBe('forbidden')
+    expect(store.sections.authEvents.status).toBe('success')
     expect(store.errorMessage).not.toContain('SQLSTATE')
   })
 
@@ -306,14 +312,19 @@ describe('useAuditStore', () => {
     vi.mocked(auditApi.listEvents).mockRejectedValue(
       new ApiError(500, 'Bearer leaked trace', 'server_error', null, 'req-audit-fail'),
     )
+    vi.mocked(auditApi.listAuthenticationEvents).mockResolvedValue({ events: [], pagination: null })
+    vi.mocked(auditApi.getIntegrity).mockResolvedValue({ integrity: { verified: false, checked_events: 0 } })
+    vi.mocked(auditApi.getRetentionStatus).mockResolvedValue({ retention: { generated_at: '', items: [] } })
+    vi.mocked(auditApi.listDataSubjectRequests).mockResolvedValue({ requests: [] })
     const store = useAuditStore()
 
     await store.load()
 
-    expect(store.status).toBe('error')
+    expect(store.status).toBe('success')
     expect(store.requestId).toBe('req-audit-fail')
+    expect(store.sections.events.status).toBe('error')
     expect(store.errorMessage).toBe(
-      'Audit compliance belum bisa dimuat. Coba lagi atau gunakan request ID req-audit-fail untuk investigasi.',
+      'Audit log events gagal dimuat. Gunakan kode referensi REF-UDITFAIL untuk investigasi.',
     )
     expect(store.errorMessage).not.toMatch(/Bearer|SQLSTATE/i)
   })

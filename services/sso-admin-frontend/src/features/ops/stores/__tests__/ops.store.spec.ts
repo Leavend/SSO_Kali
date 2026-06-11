@@ -68,9 +68,9 @@ describe('useOpsStore', () => {
 
     expect(store.status).toBe('error')
     expect(store.requestId).toBe('req-ops-fail')
-    expect(store.errorMessage).toBe(
-      'Ops evidence belum bisa dimuat. Coba lagi atau gunakan request ID req-ops-fail untuk investigasi.',
-    )
+    // formatSupportReference('req-ops-fail') → 'REQOPSFAIL' (10 chars) → slice(-8) → 'QOPSFAIL'
+    expect(store.errorMessage).toContain('kode referensi REF-QOPSFAIL')
+    expect(store.errorMessage).not.toContain('request ID')
     expect(store.errorMessage).not.toContain('raw metrics token')
   })
 })

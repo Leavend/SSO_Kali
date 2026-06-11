@@ -112,19 +112,19 @@ it('merges dynamic registrations with static clients', function (): void {
         ->and($registry->ids())->toContain('static-portal', 'static-spa', 'dynamic-app');
 });
 
-it('static client takes priority over dynamic registration with same id', function (): void {
+it('dynamic registration takes priority over static config with same id (DB-wins)', function (): void {
     ensureOidcClientRegistrationsTable();
 
     OidcClientRegistration::query()->create([
         'client_id' => 'static-portal',
-        'display_name' => 'Shadow Portal',
+        'display_name' => 'Portal Override',
         'type' => 'public',
         'environment' => 'development',
-        'app_base_url' => 'https://shadow.example',
-        'redirect_uris' => ['https://shadow.example/callback'],
-        'post_logout_redirect_uris' => ['https://shadow.example'],
+        'app_base_url' => 'https://portal-override.example',
+        'redirect_uris' => ['https://portal-override.example/callback'],
+        'post_logout_redirect_uris' => ['https://portal-override.example'],
         'backchannel_logout_uri' => null,
-        'owner_email' => 'shadow@example.com',
+        'owner_email' => 'override@example.com',
         'provisioning' => 'jit',
         'contract' => [],
         'status' => 'active',
@@ -133,8 +133,10 @@ it('static client takes priority over dynamic registration with same id', functi
     $registry = app(DownstreamClientRegistry::class);
     $client = $registry->find('static-portal');
 
-    expect($client->type)->toBe('confidential')
-        ->and($client->redirectUris)->toBe(['https://portal.example/auth/callback']);
+    // DB-wins: the registration overrides the config entry
+    expect($client->type)->toBe('public')
+        ->and($client->redirectUris)->toBe(['https://portal-override.example/callback'])
+        ->and($client->clientId)->toBe('static-portal');
 });
 
 it('returns ids from both static and dynamic clients', function (): void {

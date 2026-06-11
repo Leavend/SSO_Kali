@@ -82,10 +82,22 @@ final class ClientIntegrationRegistrationService
      *
      * Irreversible — revokes all tokens, clears sensitive config,
      * and sets status to 'decommissioned'. Cannot be reactivated.
+     *
+     * Seeded clients (provisioning='seeded') are protected from decommission
+     * because they represent infrastructure-critical integrations (SSO portal,
+     * admin panel). Their lifecycle is managed through config deployment.
      */
     public function decommission(Request $request, User $admin, string $clientId, ?string $reason = null): OidcClientRegistration
     {
         $registration = $this->rollbackRegistration($clientId);
+
+        if ($registration->provisioning === 'seeded') {
+            throw new RuntimeException(
+                'Klien seeded tidak dapat didecommission. Klien ini adalah infrastruktur inti SSO dan lifecyclenya dikelola melalui deployment konfigurasi.',
+                403,
+            );
+        }
+
         $outcome = $this->revoker->revoke($registration);
 
         $registration->update([

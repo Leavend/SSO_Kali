@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import { ApiError, getLastRequestId } from '@/lib/api/api-client'
+import { formatSupportReference } from '@/lib/display-identifiers'
 import { triggerStepUpReauth } from '@/lib/stepup/stepup'
 import { sessionsApi } from '../services/sessions.api'
 import type { AdminSession } from '../types'
@@ -96,8 +97,9 @@ export const useSessionsStore = defineStore('admin-sessions', () => {
     }
 
     status.value = 'error'
-    errorMessage.value = requestId.value
-      ? `Sessions admin belum bisa dimuat. Gunakan request ID ${requestId.value} untuk investigasi.`
+    const ref = formatSupportReference(requestId.value)
+    errorMessage.value = ref
+      ? `Sessions admin belum bisa dimuat. Gunakan kode referensi ${ref} untuk investigasi.`
       : 'Sessions admin belum bisa dimuat. Coba lagi beberapa saat lagi.'
   }
 
@@ -120,8 +122,9 @@ export const useSessionsStore = defineStore('admin-sessions', () => {
     }
 
     actionStatus.value = 'error'
-    errorMessage.value = requestId.value
-      ? `Operasi sesi gagal. Gunakan request ID ${requestId.value} untuk investigasi.`
+    const ref = formatSupportReference(requestId.value)
+    errorMessage.value = ref
+      ? `Operasi sesi gagal. Gunakan kode referensi ${ref} untuk investigasi.`
       : 'Operasi sesi gagal. Coba lagi beberapa saat lagi.'
   }
 

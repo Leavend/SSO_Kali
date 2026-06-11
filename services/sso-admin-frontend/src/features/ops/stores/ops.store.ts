@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import { ApiError, getLastRequestId } from '@/lib/api/api-client'
+import { formatSupportReference } from '@/lib/display-identifiers'
 import { opsApi } from '../services/ops.api'
 import type { OpsReadiness } from '../types'
 
@@ -46,8 +47,9 @@ export const useOpsStore = defineStore('admin-ops', () => {
     }
 
     status.value = 'error'
-    errorMessage.value = requestId.value
-      ? `Ops evidence belum bisa dimuat. Coba lagi atau gunakan request ID ${requestId.value} untuk investigasi.`
+    const ref = formatSupportReference(requestId.value)
+    errorMessage.value = ref
+      ? `Ops evidence belum bisa dimuat. Coba lagi atau gunakan kode referensi ${ref} untuk investigasi.`
       : 'Ops evidence belum bisa dimuat. Coba lagi beberapa saat lagi.'
   }
 

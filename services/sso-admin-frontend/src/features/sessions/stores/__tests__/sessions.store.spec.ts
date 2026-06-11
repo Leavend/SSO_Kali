@@ -94,7 +94,10 @@ describe('useSessionsStore', () => {
       await store.load()
 
       expect(store.status).toBe('error')
-      expect(store.errorMessage).toContain('req-sessions-1')
+      // formatSupportReference('req-sessions-1') → 'REQSESSIONS1' → slice(-8) → 'ESSIONS1'
+      expect(store.errorMessage).toContain('kode referensi REF-ESSIONS1')
+      expect(store.errorMessage).not.toContain('request ID')
+      expect(store.errorMessage).not.toContain('server crash')
     })
   })
 

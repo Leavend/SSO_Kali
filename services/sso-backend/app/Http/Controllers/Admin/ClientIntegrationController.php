@@ -93,6 +93,10 @@ final class ClientIntegrationController
 
     private function invalidIntegration(RuntimeException $exception): JsonResponse
     {
-        return AdminApiResponse::error('client_integration_invalid', $exception->getMessage(), 422);
+        $status = $exception->getCode() >= 400 && $exception->getCode() <= 599
+            ? $exception->getCode()
+            : 422;
+
+        return AdminApiResponse::error('client_integration_invalid', $exception->getMessage(), $status);
     }
 }

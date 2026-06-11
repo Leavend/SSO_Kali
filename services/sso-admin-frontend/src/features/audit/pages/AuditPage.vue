@@ -15,6 +15,7 @@ import {
   AlertCircle,
   Settings,
   Key,
+  RefreshCw,
 } from 'lucide-vue-next'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
 import UiDataList, { type UiDataListRow } from '@/components/ui/UiDataList.vue'
@@ -208,6 +209,37 @@ const hasAuditEvidence = computed(
     store.integrity !== null ||
     store.retentionStatus !== null,
 )
+
+// ISS-C3: per-section error + retry
+const sectionLabels: Record<string, string> = {
+  events: 'Admin audit events',
+  authEvents: 'Authentication events',
+  integrity: 'Integrity hash-chain',
+  retention: 'Retention status',
+  dsr: 'DSR queue',
+}
+
+function sectionLabel(key: string): string {
+  return sectionLabels[key] ?? key
+}
+
+async function retrySection(key: string): Promise<void> {
+  await store.retrySection(key as never)
+}
+
+function isSectionErrored(key: string): boolean {
+  const s = store.sections[key as never]
+  if (!s) return false
+  return s.status === 'error' || s.status === 'forbidden' || s.status === 'unauthenticated'
+}
+
+const hasAnySectionErrored = computed(() =>
+  Object.keys(store.sections).some((k) => isSectionErrored(k)),
+)
+
+const erroredSectionKeys = computed(() =>
+  Object.keys(store.sections).filter((k) => isSectionErrored(k)),
+)
 const auditEventColumns = [
   { key: 'event_id', label: 'Kode event' },
   { key: 'action', label: 'Action' },
@@ -288,7 +320,7 @@ onMounted(() => {
     />
 
     <UiStatusView
-      v-else-if="store.status === 'error'"
+      v-else-if="store.status === 'error' && !hasAnySectionErrored"
       tone="api"
       eyebrow="Admin API"
       :title="t('audit.error_title')"
@@ -296,6 +328,41 @@ onMounted(() => {
       :request-id="store.requestId ?? undefined"
       :standalone="false"
     />
+
+    <!-- ISS-C3: per-section error cards -->
+    <section v-else-if="hasAnySectionErrored" class="space-y-3" aria-label="Section errors">
+      <div
+        v-for="key in erroredSectionKeys"
+        :key="key"
+        class="ui-card border-destructive/40 bg-destructive/5 p-4 space-y-2"
+        role="alert"
+      >
+        <div class="flex items-start justify-between gap-3">
+          <div class="flex items-start gap-3 min-w-0">
+            <AlertTriangle class="size-5 mt-0.5 text-destructive shrink-0" />
+            <div class="min-w-0">
+              <h3 class="text-sm font-bold text-destructive">{{ sectionLabel(key) }}</h3>
+              <p class="text-xs text-muted-foreground leading-relaxed mt-1 break-words">
+                {{ store.sections[key]?.error ?? 'Failed to load.' }}
+              </p>
+            </div>
+          </div>
+          <UiButton
+            variant="secondary"
+            size="sm"
+            class="shrink-0"
+            :disabled="store.sections[key]?.status === 'loading'"
+            @click="retrySection(key)"
+          >
+            <RefreshCw
+              class="size-4 mr-1"
+              :class="{ 'animate-spin': store.sections[key]?.status === 'loading' }"
+            />
+            Retry
+          </UiButton>
+        </div>
+      </div>
+    </section>
 
     <UiEmptyState
       v-else-if="!hasAuditEvidence"

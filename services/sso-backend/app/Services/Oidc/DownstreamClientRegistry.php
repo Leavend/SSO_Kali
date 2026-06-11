@@ -99,18 +99,32 @@ final class DownstreamClientRegistry
             return $this->clientsCache;
         }
 
-        $rawClients = config('oidc_clients.clients', []);
+        // DB registrations are the primary source of truth (ISS-C1).
+        // Config entries act as bootstrap fallback for environments where
+        // the backfill migration has not yet run or the table is empty.
         $clients = [];
+
+        foreach ($this->dynamicRegistrations() as $registration) {
+            $clients[$registration->client_id] = $this->makeDynamicClient($registration);
+        }
+
+        $rawClients = config('oidc_clients.clients', []);
 
         foreach ($rawClients as $clientId => $config) {
             if (! is_string($clientId) || ! is_array($config)) {
                 continue;
             }
 
+            // DB-wins dedupe: skip config entry when a registration already
+            // exists for this client_id.
+            if (isset($clients[$clientId])) {
+                continue;
+            }
+
             $clients[$clientId] = $this->makeClient($clientId, $config);
         }
 
-        $this->clientsCache = $this->withDynamicClients($this->withLoadTestClient($clients));
+        $this->clientsCache = $this->withLoadTestClient($clients);
 
         return $this->clientsCache;
     }
@@ -145,22 +159,7 @@ final class DownstreamClientRegistry
         return $clients;
     }
 
-    /**
-     * @param  array<string, DownstreamClient>  $clients
-     * @return array<string, DownstreamClient>
-     */
-    private function withDynamicClients(array $clients): array
-    {
-        foreach ($this->dynamicRegistrations() as $registration) {
-            if (isset($clients[$registration->client_id])) {
-                continue;
-            }
 
-            $clients[$registration->client_id] = $this->makeDynamicClient($registration);
-        }
-
-        return $clients;
-    }
 
     /**
      * @return iterable<OidcClientRegistration>

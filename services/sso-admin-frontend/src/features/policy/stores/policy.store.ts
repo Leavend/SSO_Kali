@@ -1,6 +1,7 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { ApiError, getLastRequestId } from '@/lib/api/api-client'
+import { formatSupportReference } from '@/lib/display-identifiers'
 import { triggerStepUpReauth } from '@/lib/stepup/stepup'
 import { policyApi } from '../services/policy.api'
 import type { AdminPermission, AdminRole, SecurityPolicy } from '../types'
@@ -231,8 +232,9 @@ export const usePolicyStore = defineStore('admin-policy', () => {
     }
 
     status.value = 'error'
-    errorMessage.value = requestId.value
-      ? `Policy/RBAC admin belum bisa dimuat. Coba lagi atau gunakan request ID ${requestId.value} untuk investigasi.`
+    const ref = formatSupportReference(requestId.value)
+    errorMessage.value = ref
+      ? `Policy/RBAC admin belum bisa dimuat. Coba lagi atau gunakan kode referensi ${ref} untuk investigasi.`
       : 'Policy/RBAC admin belum bisa dimuat. Coba lagi beberapa saat lagi.'
   }
 
@@ -255,8 +257,9 @@ export const usePolicyStore = defineStore('admin-policy', () => {
     }
 
     actionStatus.value = 'error'
-    errorMessage.value = requestId.value
-      ? `Operasi policy/RBAC gagal. Gunakan request ID ${requestId.value} untuk investigasi.`
+    const ref = formatSupportReference(requestId.value)
+    errorMessage.value = ref
+      ? `Operasi policy/RBAC gagal. Gunakan kode referensi ${ref} untuk investigasi.`
       : 'Operasi policy/RBAC gagal. Coba lagi beberapa saat lagi.'
   }
 
