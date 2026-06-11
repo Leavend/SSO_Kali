@@ -9,6 +9,7 @@ export type PortalConfig = {
   readonly internalLogoutUrl: string
   readonly internalRevocationUrl: string
   readonly clientId: string
+  readonly clientSecret: string | null
   readonly redirectUri: string
   readonly appBaseUrl: string
   readonly sessionIdleTtlSeconds: number
@@ -35,12 +36,21 @@ export function getConfig(): PortalConfig {
     internalLogoutUrl: `${internalBase}/connect/logout`,
     internalRevocationUrl: `${internalBase}/revocation`,
     clientId: env('ADMIN_OIDC_CLIENT_ID') ?? env('VITE_CLIENT_ID') ?? 'sso-admin-panel',
+    clientSecret: env('ADMIN_OIDC_CLIENT_SECRET') ?? null,
     redirectUri: `${appBase}/auth/callback`,
     appBaseUrl: appBase,
     ...sessionConfig(),
     sessionRedisUrl: env('SSO_ADMIN_SESSION_REDIS_URL') ?? env('REDIS_URL') ?? null,
     port: Number(env('PORT') ?? 8080),
   }
+}
+
+export function warnIfClientSecretMissing(config: PortalConfig = getConfig()): void {
+  if (config.clientSecret) return
+
+  console.error(
+    'SECURITY MISCONFIGURATION: ADMIN_OIDC_CLIENT_SECRET is empty; confidential OIDC token operations will fail.',
+  )
 }
 
 function sessionConfig(): Pick<

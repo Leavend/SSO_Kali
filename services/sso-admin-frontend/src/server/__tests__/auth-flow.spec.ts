@@ -23,6 +23,7 @@ describe('admin BFF auth flow', () => {
     vi.stubEnv('VITE_SSO_BASE_URL', 'https://api-sso.example.test')
     vi.stubEnv('ADMIN_OIDC_PUBLIC_ISSUER', 'https://sso.example.test')
     vi.stubEnv('ADMIN_OIDC_CLIENT_ID', 'sso-admin-panel')
+    vi.stubEnv('ADMIN_OIDC_CLIENT_SECRET', 'admin-bff-secret')
     vi.stubEnv('SESSION_ENCRYPTION_SECRET', 'test-admin-session-secret-32-bytes-long')
     vi.stubEnv('SSO_ADMIN_SESSION_REDIS_URL', '')
   })
@@ -124,6 +125,9 @@ describe('admin BFF auth flow', () => {
     expect(String(tokenRequest?.body)).toContain(
       'redirect_uri=https%3A%2F%2Fadmin-sso.example.test%2Fauth%2Fcallback',
     )
+    expect(new URLSearchParams(String(tokenRequest?.body)).get('client_secret')).toBe(
+      'admin-bff-secret',
+    )
     expect(new Headers(tokenRequest?.headers).get('accept-encoding')).toBe('identity')
     expect((userinfoRequest?.headers as Record<string, string> | undefined)?.Authorization).toBe(
       'Bearer server-side-access-token',
@@ -170,5 +174,48 @@ describe('admin BFF auth flow', () => {
     expect(location.origin).toBe('https://sso.example.test')
     expect(location.searchParams.get('prompt')).toBe('login')
     expect(location.searchParams.get('max_age')).toBe('0')
+  })
+
+  it('authenticates the confidential client during refresh-token revocation', async () => {
+    const calls: Array<{ readonly url: string; readonly init?: RequestInit }> = []
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string | URL, init?: RequestInit) => {
+        calls.push({ url: input.toString(), init })
+        return new Response(null, { status: 200 })
+      }),
+    )
+
+    const [{ handleLogout }, { sessionCookie }] = await Promise.all([
+      import('../auth-handlers.js'),
+      import('../session.js'),
+    ])
+    const cookie = (
+      await sessionCookie({
+        accessToken: 'access-token',
+        idToken: 'id-token',
+        refreshToken: 'admin-refresh-token',
+        sub: 'admin-subject',
+        subject: 'admin-subject',
+        email: 'admin@example.test',
+        displayName: 'Admin',
+        role: 'admin',
+        expiresAt: 4_102_444_800,
+        authTime: null,
+        amr: ['pwd', 'mfa'],
+        acr: null,
+        lastLoginAt: null,
+        issuedAt: 1_780_000_000,
+        absoluteExpiresAt: 4_102_444_800,
+        lastRefreshedAt: 1_780_000_000,
+      })
+    ).split(';')[0]!
+
+    await handleLogout(requestWithCookie(cookie))
+
+    const revocation = calls.find((call) => call.url.endsWith('/revocation'))
+    const body = new URLSearchParams(String(revocation?.init?.body))
+    expect(body.get('client_secret')).toBe('admin-bff-secret')
+    expect(body.get('token')).toBe('admin-refresh-token')
   })
 })

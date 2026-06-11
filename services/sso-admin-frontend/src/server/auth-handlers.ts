@@ -355,6 +355,7 @@ async function exchangeCode(
     body: new URLSearchParams({
       grant_type: 'authorization_code',
       client_id: config.clientId,
+      client_secret: requiredClientSecret(config),
       code,
       redirect_uri: config.redirectUri,
       code_verifier: codeVerifier,
@@ -455,11 +456,18 @@ async function revokeRefreshToken(
     },
     body: new URLSearchParams({
       client_id: config.clientId,
+      client_secret: requiredClientSecret(config),
       token: refreshToken,
       token_type_hint: 'refresh_token',
     }),
     signal: AbortSignal.timeout(5_000),
   })
+}
+
+function requiredClientSecret(config: PortalConfig): string {
+  if (config.clientSecret) return config.clientSecret
+
+  throw new Error('ADMIN_OIDC_CLIENT_SECRET is required for confidential OIDC client operations.')
 }
 
 async function readJsonBody(request: IncomingMessage): Promise<Record<string, unknown>> {

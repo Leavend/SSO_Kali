@@ -319,6 +319,63 @@ jobs:
             "install -m 0600 /tmp/sso-backend-deploy/.env.prod '${{ env.VPS_PROJECT_DIR }}/.env.prod'"
           rm -f /tmp/sso-backend.env.prod
 
+      - name: Install confidential BFF secrets on VPS
+        shell: bash
+        env:
+          SSO_PORTAL_CLIENT_SECRET: ${{ secrets.SSO_PORTAL_CLIENT_SECRET }}
+          ADMIN_PANEL_CLIENT_SECRET: ${{ secrets.ADMIN_PANEL_CLIENT_SECRET }}
+        run: |
+          set -euo pipefail
+          for key in SSO_PORTAL_CLIENT_SECRET ADMIN_PANEL_CLIENT_SECRET; do
+            value="${!key}"
+            if [ "${#value}" -ne 64 ]; then
+              echo "${key} repository secret must be exactly 64 characters" >&2
+              exit 1
+            fi
+          done
+
+          secrets_file="$(mktemp)"
+          chmod 600 "${secrets_file}"
+          printf 'SSO_PORTAL_CLIENT_SECRET=%s\nADMIN_PANEL_CLIENT_SECRET=%s\n' \
+            "${SSO_PORTAL_CLIENT_SECRET}" \
+            "${ADMIN_PANEL_CLIENT_SECRET}" > "${secrets_file}"
+
+          source /tmp/sso-backend-ssh-helpers.sh
+          rsync_with_retry \
+            "${secrets_file}" \
+            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/tmp/sso-backend-deploy/bff-secrets.env"
+          rm -f "${secrets_file}"
+
+          ssh_with_retry "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+            "set -euo pipefail
+             env_file='${{ env.VPS_PROJECT_DIR }}/.env.prod'
+             touch \"\${env_file}\"
+             chmod 0600 \"\${env_file}\"
+             while IFS='=' read -r key value; do
+               tmp=\"\$(mktemp)\"
+               grep -v \"^\${key}=\" \"\${env_file}\" > \"\${tmp}\" || true
+               printf '%s=%s\n' \"\${key}\" \"\${value}\" >> \"\${tmp}\"
+               install -m 0600 \"\${tmp}\" \"\${env_file}\"
+               rm -f \"\${tmp}\"
+             done < /tmp/sso-backend-deploy/bff-secrets.env
+             rm -f /tmp/sso-backend-deploy/bff-secrets.env"
+
+      - name: Validate confidential BFF secrets on VPS
+        shell: bash
+        run: |
+          source /tmp/sso-backend-ssh-helpers.sh
+          ssh_with_retry "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+            "set -euo pipefail
+             env_file='${{ env.VPS_PROJECT_DIR }}/.env.prod'
+             test -f \"\${env_file}\" || { echo 'production env file is missing' >&2; exit 1; }
+             for key in SSO_PORTAL_CLIENT_SECRET ADMIN_PANEL_CLIENT_SECRET; do
+               value=\"\$(sed -n \"s/^\${key}=//p\" \"\${env_file}\" | tail -n 1)\"
+               if [ \"\${#value}\" -ne 64 ]; then
+                 echo \"\${key} must be configured as exactly 64 characters before atomic deploy\" >&2
+                 exit 1
+               fi
+             done"
+
       - name: Login VPS to GHCR
         shell: bash
         env:

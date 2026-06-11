@@ -33,7 +33,7 @@ beforeEach(function (): void {
         'sso-frontend-portal',
     ]);
 
-    $secretHash = app(ClientSecretHashPolicy::class)->make('app-b-secret');
+    $hashes = app(ClientSecretHashPolicy::class);
 
     config()->set('oidc_clients.clients', [
         'app-a' => [
@@ -43,19 +43,23 @@ beforeEach(function (): void {
         ],
         'app-b' => [
             'type' => 'confidential',
-            'secret' => $secretHash,
+            'secret' => $hashes->make('app-b-secret'),
             'secret_expires_at' => now()->addDays(90)->toIso8601String(),
             'redirect_uris' => ['https://sso.timeh.my.id/app-b/auth/callback'],
             'post_logout_redirect_uris' => ['https://sso.timeh.my.id/app-b'],
         ],
         'sso-admin-panel' => [
-            'type' => 'public',
+            'type' => 'confidential',
+            'secret' => $hashes->make('admin-panel-secret'),
+            'secret_expires_at' => now()->addDays(90)->toIso8601String(),
             'redirect_uris' => ['https://sso.timeh.my.id/auth/callback'],
             'post_logout_redirect_uris' => ['https://sso.timeh.my.id'],
             'backchannel_logout_uri' => 'https://api-sso.timeh.my.id/connect/backchannel/admin-panel/logout',
         ],
         'sso-frontend-portal' => [
-            'type' => 'public',
+            'type' => 'confidential',
+            'secret' => $hashes->make('portal-secret'),
+            'secret_expires_at' => now()->addDays(90)->toIso8601String(),
             'redirect_uris' => ['https://sso.timeh.my.id/auth/callback'],
             'post_logout_redirect_uris' => ['https://sso.timeh.my.id'],
         ],
@@ -68,7 +72,7 @@ it('validates the production oidc client registry', function (): void {
 
     expect($result['valid'])->toBeTrue()
         ->and($result['checked_clients'])->toBe(4)
-        ->and($result['checked_confidential_clients'])->toBe(1)
+        ->and($result['checked_confidential_clients'])->toBe(3)
         ->and($result['errors'])->toBe([]);
 });
 
@@ -186,3 +190,99 @@ it('enforces App B confidential client secret during token exchange', function (
         'code' => (string) $callbackQuery['code'],
     ])->assertStatus(401);
 });
+
+it('requires secret and S256 PKCE for both first-party BFF clients', function (string $clientId, string $secret): void {
+    $redirectUri = 'https://sso.timeh.my.id/auth/callback';
+    $user = User::factory()->create(['email' => $clientId.'@example.test']);
+    $sessionId = (string) Str::uuid();
+
+    SsoSession::query()->create([
+        'session_id' => $sessionId,
+        'user_id' => $user->id,
+        'subject_id' => $user->subject_id,
+        'ip_address' => '127.0.0.1',
+        'user_agent' => 'ProductionClientRegistryTest/1.0',
+        'authenticated_at' => now(),
+        'last_seen_at' => now(),
+        'expires_at' => now()->addHour(),
+    ]);
+
+    $verifier = productionClientVerifier();
+    $authorize = $this->withSession([
+        'sso_browser_session' => [
+            'subject_id' => $user->subject_id,
+            'session_id' => $sessionId,
+            'auth_time' => time(),
+            'amr' => ['pwd'],
+        ],
+    ])->get('/authorize?'.http_build_query([
+        'client_id' => $clientId,
+        'redirect_uri' => $redirectUri,
+        'response_type' => 'code',
+        'scope' => 'openid profile email offline_access',
+        'state' => 'state-'.Str::random(16),
+        'nonce' => 'nonce-'.Str::random(16),
+        'code_challenge' => productionClientChallenge($verifier),
+        'code_challenge_method' => 'S256',
+    ]))->assertRedirect();
+
+    parse_str((string) parse_url((string) $authorize->headers->get('Location'), PHP_URL_QUERY), $query);
+
+    $this->postJson('/token', [
+        'grant_type' => 'authorization_code',
+        'client_id' => $clientId,
+        'redirect_uri' => $redirectUri,
+        'code_verifier' => $verifier,
+        'code' => (string) $query['code'],
+    ])->assertStatus(401)->assertJsonPath('error', 'invalid_client');
+
+    $authorizeWithoutPkce = $this->withSession([
+        'sso_browser_session' => [
+            'subject_id' => $user->subject_id,
+            'session_id' => $sessionId,
+            'auth_time' => time(),
+            'amr' => ['pwd'],
+        ],
+    ])->get('/authorize?'.http_build_query([
+        'client_id' => $clientId,
+        'redirect_uri' => $redirectUri,
+        'response_type' => 'code',
+        'scope' => 'openid',
+        'state' => 'state-'.Str::random(16),
+        'nonce' => 'nonce-'.Str::random(16),
+    ]));
+
+    $authorizeWithoutPkce->assertStatus(400)->assertJsonPath('error', 'invalid_request');
+
+    $authorizeWithSecret = $this->withSession([
+        'sso_browser_session' => [
+            'subject_id' => $user->subject_id,
+            'session_id' => $sessionId,
+            'auth_time' => time(),
+            'amr' => ['pwd'],
+        ],
+    ])->get('/authorize?'.http_build_query([
+        'client_id' => $clientId,
+        'redirect_uri' => $redirectUri,
+        'response_type' => 'code',
+        'scope' => 'openid profile email offline_access',
+        'state' => 'state-'.Str::random(16),
+        'nonce' => 'nonce-'.Str::random(16),
+        'code_challenge' => productionClientChallenge($verifier),
+        'code_challenge_method' => 'S256',
+    ]))->assertRedirect();
+
+    parse_str((string) parse_url((string) $authorizeWithSecret->headers->get('Location'), PHP_URL_QUERY), $success);
+
+    $this->postJson('/token', [
+        'grant_type' => 'authorization_code',
+        'client_id' => $clientId,
+        'client_secret' => $secret,
+        'redirect_uri' => $redirectUri,
+        'code_verifier' => $verifier,
+        'code' => (string) $success['code'],
+    ])->assertOk();
+})->with([
+    'portal BFF' => ['sso-frontend-portal', 'portal-secret'],
+    'admin BFF' => ['sso-admin-panel', 'admin-panel-secret'],
+]);

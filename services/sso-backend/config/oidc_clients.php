@@ -55,9 +55,10 @@ $clients = [
         'allowed_scopes' => ['openid', 'profile', 'email', 'offline_access'],
     ],
 
-    // sso-admin-panel: legacy archive; see $lockedProductionClientIds note above.
+    // First-party admin BFF: confidential client authentication plus PKCE S256.
     env('ADMIN_PANEL_CLIENT_ID', 'sso-admin-panel') => [
-        'type' => 'public',
+        'type' => 'confidential',
+        'secret' => env('ADMIN_PANEL_CLIENT_SECRET'),
         'redirect_uris' => [
             env('ADMIN_PANEL_REDIRECT_URI', $frontendUrl.'/auth/callback'),
         ],
@@ -70,7 +71,8 @@ $clients = [
     ],
 
     env('SSO_PORTAL_CLIENT_ID', 'sso-frontend-portal') => [
-        'type' => 'public',
+        'type' => 'confidential',
+        'secret' => env('SSO_PORTAL_CLIENT_SECRET'),
         'redirect_uris' => [
             env('SSO_PORTAL_REDIRECT_URI', $frontendUrl.'/auth/callback'),
         ],
@@ -101,6 +103,18 @@ if ($loadTestEnabled) {
 }
 
 return [
+    'first_party_bff_clients' => [
+        [
+            'client_id' => (string) env('SSO_PORTAL_CLIENT_ID', 'sso-frontend-portal'),
+            'secret' => env('SSO_PORTAL_CLIENT_SECRET'),
+            'secret_env' => 'SSO_PORTAL_CLIENT_SECRET',
+        ],
+        [
+            'client_id' => (string) env('ADMIN_PANEL_CLIENT_ID', 'sso-admin-panel'),
+            'secret' => env('ADMIN_PANEL_CLIENT_SECRET'),
+            'secret_env' => 'ADMIN_PANEL_CLIENT_SECRET',
+        ],
+    ],
     'load_test_client' => [
         'enabled' => $loadTestEnabled,
         'client_id' => $loadTestClientId,

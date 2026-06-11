@@ -12,7 +12,7 @@ import {
   handleLogout,
   handleRefresh,
 } from './auth-handlers.js'
-import { getConfig } from './config.js'
+import { getConfig, warnIfClientSecretMissing } from './config.js'
 import type { AppResponse } from './response.js'
 import { html, methodNotAllowed, send, text } from './response.js'
 import { shouldProxyPortalPath } from './proxy-routes.js'
@@ -21,6 +21,9 @@ import { handleSession, handleUserApi, redirectForLegacyError } from './user-han
 
 const clientDir = fileURLToPath(new URL('../../client/', import.meta.url))
 const assetCache = new Map<string, { readonly path: string; readonly immutable: boolean } | null>()
+const config = getConfig()
+
+warnIfClientSecretMissing(config)
 
 const server = createServer(async (request, response) => {
   try {
@@ -46,8 +49,8 @@ const server = createServer(async (request, response) => {
   }
 })
 
-server.listen(getConfig().port, '0.0.0.0', () => {
-  console.log(`sso-frontend portal BFF listening on :${getConfig().port}`)
+server.listen(config.port, '0.0.0.0', () => {
+  console.log(`sso-frontend portal BFF listening on :${config.port}`)
 })
 
 async function route(request: IncomingMessage, requestUrl: URL): Promise<AppResponse | null> {

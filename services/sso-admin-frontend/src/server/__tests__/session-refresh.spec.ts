@@ -26,6 +26,7 @@ describe('admin BFF session refresh', () => {
     vi.stubEnv('VITE_ADMIN_BASE_URL', 'https://admin-sso.example.test')
     vi.stubEnv('VITE_SSO_BASE_URL', 'https://api-sso.example.test')
     vi.stubEnv('ADMIN_OIDC_CLIENT_ID', 'sso-admin-panel')
+    vi.stubEnv('ADMIN_OIDC_CLIENT_SECRET', 'admin-bff-secret')
     vi.stubEnv('SESSION_ENCRYPTION_SECRET', 'test-admin-session-secret-32-bytes-long')
     vi.stubEnv('SSO_ADMIN_SESSION_REDIS_URL', '')
     vi.setSystemTime(new Date('2026-06-03T03:00:00Z'))
@@ -53,6 +54,9 @@ describe('admin BFF session refresh', () => {
 
     expect(refreshed.accessToken).toBe('new-access-token')
     expect(refreshed.role).toBe('admin')
+    expect(new URLSearchParams(String(calls[0]?.init?.body)).get('client_secret')).toBe(
+      'admin-bff-secret',
+    )
     expect(new Headers(calls[0]?.init?.headers).get('accept-encoding')).toBe('identity')
     expect(new Headers(calls[1]?.init?.headers).get('accept-encoding')).toBe('identity')
   })

@@ -47,12 +47,19 @@ async function requestRefreshTokens(
     body: new URLSearchParams({
       grant_type: 'refresh_token',
       client_id: config.clientId,
+      client_secret: requiredClientSecret(config.clientSecret),
       refresh_token: refreshToken,
     }),
   })
 
   if (!res.ok) throw new Error(`Refresh failed: HTTP ${res.status} - ${await safeText(res)}`)
   return res.json() as Promise<RefreshTokenSet>
+}
+
+function requiredClientSecret(secret: string | null): string {
+  if (secret) return secret
+
+  throw new Error('SSO_PORTAL_CLIENT_SECRET is required for confidential OIDC client operations.')
 }
 
 async function safeText(response: Response): Promise<string> {
