@@ -1,6 +1,7 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { ApiError, getLastRequestId } from '@/lib/api/api-client'
+import { formatSupportReference } from '@/lib/display-identifiers'
 import { triggerStepUpReauth } from '@/lib/stepup/stepup'
 import { clientsApi } from '../services/clients.api'
 import type {
@@ -211,8 +212,9 @@ export const useClientsStore = defineStore('admin-clients', () => {
     }
 
     status.value = 'error'
-    errorMessage.value = requestId.value
-      ? `OAuth clients belum bisa dimuat. Coba lagi atau gunakan request ID ${requestId.value} untuk investigasi.`
+    const ref = formatSupportReference(requestId.value)
+    errorMessage.value = ref
+      ? `OAuth clients belum bisa dimuat. Gunakan kode referensi ${ref} untuk investigasi.`
       : 'OAuth clients belum bisa dimuat. Coba lagi beberapa saat lagi.'
   }
 
@@ -235,14 +237,16 @@ export const useClientsStore = defineStore('admin-clients', () => {
     }
 
     if (error instanceof ApiError && error.status === 422) {
-      errorMessage.value = requestId.value
-        ? `Validasi OAuth client gagal. Periksa input lalu gunakan request ID ${requestId.value} untuk investigasi jika perlu.`
+      const ref = formatSupportReference(requestId.value)
+      errorMessage.value = ref
+        ? `Validasi OAuth client gagal. Periksa input lalu gunakan kode referensi ${ref} untuk investigasi jika perlu.`
         : 'Validasi OAuth client gagal. Periksa input lalu coba lagi.'
       return
     }
 
-    errorMessage.value = requestId.value
-      ? `Operasi OAuth client gagal. Gunakan request ID ${requestId.value} untuk investigasi.`
+    const ref = formatSupportReference(requestId.value)
+    errorMessage.value = ref
+      ? `Operasi OAuth client gagal. Gunakan kode referensi ${ref} untuk investigasi.`
       : 'Operasi OAuth client gagal. Coba lagi beberapa saat lagi.'
   }
 

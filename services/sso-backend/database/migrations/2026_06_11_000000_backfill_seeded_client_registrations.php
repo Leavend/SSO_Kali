@@ -11,22 +11,14 @@ return new class extends Migration
 {
     /**
      * Backfill clients defined in config('oidc_clients.clients') into the
-     * oidc_client_registrations table so they become the single source of
-     * truth (DB-wins). Config entries remain as bootstrap fallback when the
-     * table is empty (Schema::hasTable guard in DownstreamClientRegistry).
+     * oidc_client_registrations table so they become visible in the Admin
+     * Clients panel and support runtime operations (edit, rotate secret,
+     * sync scopes) through the standard registration row lifecycle.
      *
      * Idempotent: skips any client_id that already has a registration row.
      */
     public function up(): void
     {
-        // This migration backfills production client registrations.
-        // Skip in non-production (test/dev) to avoid leaking entries
-        // whose client IDs conflict with environment-specific config
-        // overrides (e.g. prototype-app-a → app-a mismatch).
-        if (config('app.env') !== 'production') {
-            return;
-        }
-
         if (! Schema::hasTable('oidc_client_registrations')) {
             return;
         }

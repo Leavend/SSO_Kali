@@ -1,6 +1,7 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { ApiError, getLastRequestId } from '@/lib/api/api-client'
+import { formatSupportReference } from '@/lib/display-identifiers'
 import { triggerStepUpReauth } from '@/lib/stepup/stepup'
 import { usersApi } from '../services/users.api'
 import type {
@@ -413,8 +414,9 @@ export const useUsersStore = defineStore('admin-users', () => {
     }
 
     status.value = 'error'
-    errorMessage.value = requestId.value
-      ? `Users admin belum bisa dimuat. Coba lagi atau gunakan request ID ${requestId.value} untuk investigasi.`
+    const ref = formatSupportReference(requestId.value)
+    errorMessage.value = ref
+      ? `Users admin belum bisa dimuat. Gunakan kode referensi ${ref} untuk investigasi.`
       : 'Users admin belum bisa dimuat. Coba lagi beberapa saat lagi.'
   }
 
@@ -437,8 +439,9 @@ export const useUsersStore = defineStore('admin-users', () => {
     }
 
     actionStatus.value = 'error'
-    errorMessage.value = requestId.value
-      ? `Operasi user gagal. Gunakan request ID ${requestId.value} untuk investigasi.`
+    const ref = formatSupportReference(requestId.value)
+    errorMessage.value = ref
+      ? `Operasi user gagal. Gunakan kode referensi ${ref} untuk investigasi.`
       : 'Operasi user gagal. Coba lagi beberapa saat lagi.'
   }
 

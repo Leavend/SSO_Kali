@@ -340,7 +340,7 @@ describe('useClientsStore', () => {
 
     expect(store.requestId).toBe('req-client-422')
     expect(store.errorMessage).toBe(
-      'Validasi OAuth client gagal. Periksa input lalu gunakan request ID req-client-422 untuk investigasi jika perlu.',
+      'Validasi OAuth client gagal. Periksa input lalu gunakan kode referensi REF-LIENT422 untuk investigasi jika perlu.',
     )
     expect(store.errorMessage).not.toContain('SQLSTATE')
   })
@@ -369,7 +369,7 @@ describe('useClientsStore', () => {
     expect(store.status).toBe('error')
     expect(store.requestId).toBe('req-clients-fail')
     expect(store.errorMessage).toBe(
-      'OAuth clients belum bisa dimuat. Coba lagi atau gunakan request ID req-clients-fail untuk investigasi.',
+      'OAuth clients belum bisa dimuat. Gunakan kode referensi REF-ENTSFAIL untuk investigasi.',
     )
     expect(store.errorMessage).not.toMatch(/Bearer|raw token/i)
   })

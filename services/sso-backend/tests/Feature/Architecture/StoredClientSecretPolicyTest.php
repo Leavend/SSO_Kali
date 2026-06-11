@@ -2,10 +2,16 @@
 
 declare(strict_types=1);
 
+use App\Models\OidcClientRegistration;
 use App\Services\Oidc\DownstreamClientRegistry;
 use App\Support\Security\ClientSecretHashPolicy;
 
 const COMPLIANT_TEST_CLIENT_SECRET_HASH = '$argon2id$v=19$m=19456,t=3,p=1$LjdEd3dSZERUcjdtcGJhTA$69AablhTFZNWAg7DFVgO7aok3D9GXKESsp2iCnpwpsg';
+
+beforeEach(function (): void {
+    // Wipe any migrated registrations so the registry sees only test-config clients.
+    OidcClientRegistration::query()->delete();
+});
 
 if (! function_exists('storedClientSecretPolicyClients')) {
     function storedClientSecretPolicyClients(?string $secret, ?string $expiresAt): array
