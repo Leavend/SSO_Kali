@@ -36,6 +36,7 @@ const store = useClientsStore()
 const session = useSessionStore()
 const { t } = useI18n()
 const dateFormat = useDateFormat()
+const docsBaseUrl = import.meta.env.VITE_DOCS_BASE_URL || 'https://docs.sso.timeh.my.id'
 const canWriteClients = computed(() => session.hasPermission('admin.clients.write'))
 const canManageClientLifecycle = computed(
   () => canWriteClients.value && session.hasPermission('admin.sessions.terminate'),
@@ -549,7 +550,7 @@ async function rotateSecret(): Promise<void> {
       <a
         v-if="canWriteClients"
         class="onboarding-link"
-        href="/docs/developers/README.md"
+        :href="docsBaseUrl + '/onboarding'"
         target="_blank"
         rel="noopener noreferrer"
       >

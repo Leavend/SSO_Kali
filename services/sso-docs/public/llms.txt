@@ -1,0 +1,25 @@
+# Dev-SSO Developer Docs - LLM Index
+
+This file provides a machine-readable index of all documentation pages for LLMs.
+
+## Base URL
+https://docs.sso.timeh.my.id
+
+## Pages
+
+- / - Developer Documentation Overview - Landing page with quick start guide and feature overview
+- /onboarding - Client Web App Onboarding - Step-by-step guide to register and integrate a new OAuth/OIDC client
+- /api-reference - API Reference - Complete endpoint documentation for OAuth 2.0 and OpenID Connect flows
+- /scopes-and-claims - Scopes and Claims - Available OAuth scopes and the claims returned in tokens
+- /errors - Errors and FAQ - Common OAuth errors, error codes, and troubleshooting FAQ
+- /security-model - Security Model - PKCE requirements, token signing, refresh rotation, and security best practices
+- /resource-server - Resource Server Guide - How to validate access tokens and protect API endpoints
+
+## Key Information
+
+- Issuer: https://api-sso.timeh.my.id
+- Discovery: https://api-sso.timeh.my.id/.well-known/openid-configuration
+- JWKS: https://api-sso.timeh.my.id/.well-known/jwks.json
+- PKCE S256 is mandatory for all clients
+- ES256 signing algorithm for all JWTs
+- Access token audience: sso-resource-api

@@ -73,6 +73,10 @@ jobs:
               VITE_ADMIN_BASE_URL=${{ vars.SSO_ADMIN_FRONTEND_URL || 'https://admin-sso.timeh.my.id' }}
               VITE_PUBLIC_BASE_PATH=${{ vars.SSO_ADMIN_FRONTEND_BASE_PATH || '/' }}
               VITE_SSO_BASE_URL=${{ vars.SSO_FRONTEND_BASE_URL || 'https://sso.timeh.my.id' }}
+              VITE_DOCS_BASE_URL=${{ vars.SSO_DOCS_BASE_URL || 'https://docs.sso.timeh.my.id' }}
+          - service: sso-docs
+            context: ./
+            dockerfile: ./services/sso-docs/Dockerfile
 
     steps:
       - name: Checkout
@@ -280,6 +284,7 @@ jobs:
             scripts/vps-deploy-main.sh \
             scripts/vps-apply-sso-operational-route-optimization.sh \
             scripts/vps-apply-sso-admin-frontend-route.sh \
+            scripts/vps-apply-sso-docs-route.sh \
             docker-compose.main.yml \
             "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/tmp/sso-backend-deploy/"
 
@@ -292,7 +297,8 @@ jobs:
              install -m 0644 /tmp/sso-backend-deploy/docker-compose.main.yml '${{ env.VPS_PROJECT_DIR }}/docker-compose.main.yml'
              install -m 0755 /tmp/sso-backend-deploy/vps-deploy-main.sh '${{ env.VPS_PROJECT_DIR }}/scripts/vps-deploy-main.sh'
              install -m 0755 /tmp/sso-backend-deploy/vps-apply-sso-operational-route-optimization.sh '${{ env.VPS_PROJECT_DIR }}/scripts/vps-apply-sso-operational-route-optimization.sh'
-             install -m 0755 /tmp/sso-backend-deploy/vps-apply-sso-admin-frontend-route.sh '${{ env.VPS_PROJECT_DIR }}/scripts/vps-apply-sso-admin-frontend-route.sh'"
+             install -m 0755 /tmp/sso-backend-deploy/vps-apply-sso-admin-frontend-route.sh '${{ env.VPS_PROJECT_DIR }}/scripts/vps-apply-sso-admin-frontend-route.sh'
+             install -m 0755 /tmp/sso-backend-deploy/vps-apply-sso-docs-route.sh '${{ env.VPS_PROJECT_DIR }}/scripts/vps-apply-sso-docs-route.sh'"
 
       - name: Install production env on VPS
         shell: bash
@@ -400,6 +406,56 @@ jobs:
             exit 1
           fi
           cat "$route_log"
+
+      - name: Apply docs route on VPS
+        if: ${{ vars.SSO_APPLY_DOCS_ROUTE != 'false' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          source /tmp/sso-backend-ssh-helpers.sh
+          route_log="$(mktemp)"
+          docs_domain="${{ vars.SSO_DOCS_DOMAIN || 'docs.sso.timeh.my.id' }}"
+          docs_upstream="${{ vars.SSO_DOCS_UPSTREAM || 'http://127.0.0.1:8190' }}"
+          certbot_email="${{ vars.CERTBOT_EMAIL || '' }}"
+          skip_certbot="${{ vars.CERTBOT_EMAIL == '' && 'true' || 'false' }}"
+          if ! ssh_with_retry "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+            "sudo -n bash -s -- '$docs_domain' '$docs_upstream' '$certbot_email' '$skip_certbot' '${{ env.VPS_PROJECT_DIR }}'" \
+            >"$route_log" 2>&1 <<'REMOTE'
+          set -euxo pipefail
+          docs_domain="$1"
+          docs_upstream="$2"
+          certbot_email="$3"
+          skip_certbot="$4"
+          project_dir="$5"
+          SSO_DOCS_DOMAIN="$docs_domain" \
+          SSO_DOCS_UPSTREAM="$docs_upstream" \
+          CERTBOT_EMAIL="$certbot_email" \
+          SKIP_CERTBOT="$skip_certbot" \
+          bash "$project_dir/scripts/vps-apply-sso-docs-route.sh" --mode apply
+          REMOTE
+          then
+            echo 'docs route apply failed; raw output follows:' >&2
+            perl -pe 's/${{ secrets.VPS_HOST }}/[host]/g; s/${{ secrets.VPS_USER }}/[user]/g' "$route_log" >&2
+            exit 1
+          fi
+          cat "$route_log"
+
+      - name: Run docs production smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          docs_url="${{ vars.SSO_DOCS_BASE_URL || 'https://docs.sso.timeh.my.id' }}"
+          # Try HTTPS first; fallback to HTTP for HTTP-only (no cert) setups
+          if ! curl -fsS --max-time 20 "${docs_url%/}/" >/dev/null 2>&1; then
+            docs_url="http://docs.sso.timeh.my.id"
+            curl -fsS --max-time 20 "${docs_url%/}/" >/dev/null
+          fi
+          # Verify page contains expected content
+          if ! curl -fsS --max-time 20 "${docs_url%/}/" | grep -q "Dev-SSO"; then
+            echo "Expected docs page to contain 'Dev-SSO'" >&2
+            exit 1
+          fi
+          echo "Docs site smoke test passed"
 
       - name: Run admin frontend production smoke
         shell: bash

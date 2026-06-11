@@ -53,6 +53,7 @@ charts/**/*.tgz
 *.md
 !README.md
 !**/README.md
+!services/sso-docs/**/*.md
 
 # Ignore docs workspace by default; track explicitly with `git add -f`
 docs/*
