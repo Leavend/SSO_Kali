@@ -26,7 +26,8 @@ import UiButton from '@/components/ui/UiButton.vue'
 import UiSkeleton from '@/components/ui/UiSkeleton.vue'
 import UiStatusView from '@/components/ui/UiStatusView.vue'
 import { useSessionStore } from '@/stores/session.store'
-import { useAuditStore } from '../stores/audit.store'
+import { useAuditStore } from '@/features/audit/stores/audit.store'
+import type { SectionKey } from '@/features/audit/stores/audit.store'
 import { formatFriendlyClientName, formatTechnicalPreview } from '@/lib/display-identifiers'
 import type {
   AuditExportFilters,
@@ -211,7 +212,7 @@ const hasAuditEvidence = computed(
 )
 
 // ISS-C3: per-section error + retry
-const sectionLabels: Record<string, string> = {
+const sectionLabels: Record<SectionKey, string> = {
   events: 'Admin audit events',
   authEvents: 'Authentication events',
   integrity: 'Integrity hash-chain',
@@ -219,26 +220,25 @@ const sectionLabels: Record<string, string> = {
   dsr: 'DSR queue',
 }
 
-function sectionLabel(key: string): string {
+function sectionLabel(key: SectionKey): string {
   return sectionLabels[key] ?? key
 }
 
-async function retrySection(key: string): Promise<void> {
-  await store.retrySection(key as never)
+async function retrySection(key: SectionKey): Promise<void> {
+  await store.retrySection(key)
 }
 
-function isSectionErrored(key: string): boolean {
-  const s = store.sections[key as never]
-  if (!s) return false
+function isSectionErrored(key: SectionKey): boolean {
+  const s = store.sections[key]
   return s.status === 'error' || s.status === 'forbidden' || s.status === 'unauthenticated'
 }
 
 const hasAnySectionErrored = computed(() =>
-  Object.keys(store.sections).some((k) => isSectionErrored(k)),
+  (Object.keys(store.sections) as SectionKey[]).some((k) => isSectionErrored(k)),
 )
 
 const erroredSectionKeys = computed(() =>
-  Object.keys(store.sections).filter((k) => isSectionErrored(k)),
+  (Object.keys(store.sections) as SectionKey[]).filter((k) => isSectionErrored(k)),
 )
 const auditEventColumns = [
   { key: 'event_id', label: 'Kode event' },

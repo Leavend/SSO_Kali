@@ -159,8 +159,6 @@ final class DownstreamClientRegistry
         return $clients;
     }
 
-
-
     /**
      * @return iterable<OidcClientRegistration>
      */

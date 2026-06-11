@@ -140,43 +140,50 @@ export const useAuditStore = defineStore('admin-audit', () => {
   async function retrySection(section: SectionKey): Promise<void> {
     sections.value[section] = { status: 'loading', error: null, requestId: null }
 
-    let result: PromiseSettledResult<unknown>
-
     switch (section) {
-      case 'events':
-        result = await promiseSettled(auditApi.listEvents(eventFilters.value))
+      case 'events': {
+        const result = await promiseSettled(auditApi.listEvents(eventFilters.value))
         applySectionResult('events', result, (resp) => {
           events.value = resp.events
           eventPagination.value = resp.pagination ?? null
           selectedEventId.value = resp.events[0]?.event_id ?? null
         })
         break
-      case 'authEvents':
-        result = await promiseSettled(auditApi.listAuthenticationEvents(authenticationEventFilters.value))
+      }
+      case 'authEvents': {
+        const result = await promiseSettled(
+          auditApi.listAuthenticationEvents(authenticationEventFilters.value),
+        )
         applySectionResult('authEvents', result, (resp) => {
           authenticationEvents.value = resp.events
           authenticationEventPagination.value = resp.pagination ?? null
           selectedAuthenticationEventId.value = resp.events[0]?.event_id ?? null
         })
         break
-      case 'integrity':
-        result = await promiseSettled(auditApi.getIntegrity())
+      }
+      case 'integrity': {
+        const result = await promiseSettled(auditApi.getIntegrity())
         applySectionResult('integrity', result, (resp) => {
           integrity.value = resp.integrity
         })
         break
-      case 'retention':
-        result = await promiseSettled(auditApi.getRetentionStatus())
+      }
+      case 'retention': {
+        const result = await promiseSettled(auditApi.getRetentionStatus())
         applySectionResult('retention', result, (resp) => {
           retentionStatus.value = resp.retention
         })
         break
-      case 'dsr':
-        result = await promiseSettled(auditApi.listDataSubjectRequests({ status: 'submitted' }))
+      }
+      case 'dsr': {
+        const result = await promiseSettled(
+          auditApi.listDataSubjectRequests({ status: 'submitted' }),
+        )
         applySectionResult('dsr', result, (resp) => {
           dataSubjectRequests.value = resp.requests
         })
         break
+      }
     }
 
     requestId.value = getLastRequestId()

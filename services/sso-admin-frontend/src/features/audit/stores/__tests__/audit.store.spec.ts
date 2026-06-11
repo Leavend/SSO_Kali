@@ -249,7 +249,7 @@ describe('useAuditStore', () => {
     vi.mocked(auditApi.listEvents).mockRejectedValue(
       new ApiError(500, 'SQLSTATE raw failure', 'server_error', null, 'req-search-fail'),
     )
-    vi.mocked(auditApi.listAuthenticationEvents).mockResolvedValue({ events: [], pagination: null })
+    vi.mocked(auditApi.listAuthenticationEvents).mockResolvedValue({ events: [] })
     const store = useAuditStore()
 
     await store.searchEvents({ action: 'admin.user.lock' })
@@ -294,7 +294,7 @@ describe('useAuditStore', () => {
 
   it('maps forbidden errors to safe copy', async () => {
     vi.mocked(auditApi.listEvents).mockRejectedValue(new ApiError(403, 'SQLSTATE forbidden leak'))
-    vi.mocked(auditApi.listAuthenticationEvents).mockResolvedValue({ events: [], pagination: null })
+    vi.mocked(auditApi.listAuthenticationEvents).mockResolvedValue({ events: [] })
     vi.mocked(auditApi.getIntegrity).mockResolvedValue({ integrity: { verified: false, checked_events: 0 } })
     vi.mocked(auditApi.getRetentionStatus).mockResolvedValue({ retention: { generated_at: '', items: [] } })
     vi.mocked(auditApi.listDataSubjectRequests).mockResolvedValue({ requests: [] })
@@ -312,7 +312,7 @@ describe('useAuditStore', () => {
     vi.mocked(auditApi.listEvents).mockRejectedValue(
       new ApiError(500, 'Bearer leaked trace', 'server_error', null, 'req-audit-fail'),
     )
-    vi.mocked(auditApi.listAuthenticationEvents).mockResolvedValue({ events: [], pagination: null })
+    vi.mocked(auditApi.listAuthenticationEvents).mockResolvedValue({ events: [] })
     vi.mocked(auditApi.getIntegrity).mockResolvedValue({ integrity: { verified: false, checked_events: 0 } })
     vi.mocked(auditApi.getRetentionStatus).mockResolvedValue({ retention: { generated_at: '', items: [] } })
     vi.mocked(auditApi.listDataSubjectRequests).mockResolvedValue({ requests: [] })

@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use App\Models\OidcClientRegistration;
 use App\Models\User;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
@@ -122,7 +121,7 @@ return new class extends Migration
                     return $admin->email;
                 }
             }
-        } catch (\Throwable) {
+        } catch (Throwable) {
             // Gracefully degrade to empty string when the users table is
             // unavailable (e.g. pristine schema).
         }
