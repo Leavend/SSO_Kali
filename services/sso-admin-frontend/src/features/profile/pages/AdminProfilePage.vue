@@ -128,7 +128,6 @@ onMounted(() => {
           <span>{{ store.principal.email ?? '—' }}</span>
         </p>
 
-
         <div class="profile-sec-info">
           <span class="label">Kode admin:</span>
           <div class="subject-id-row">
@@ -296,7 +295,6 @@ onMounted(() => {
   min-width: 0;
   overflow-wrap: anywhere;
 }
-
 
 .profile-sec-info {
   display: flex;

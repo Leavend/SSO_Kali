@@ -122,24 +122,26 @@ describe('SessionsPage', () => {
     expect(wrapper.text()).toContain('No sessions to display.')
   })
 
-  it('renders revoke button for each session row', () => {
+  it('renders no revoke buttons inside session cards', () => {
     const store = useSessionsStore()
     store.sessions = [session1, session2]
     store.status = 'success'
 
     const wrapper = mount(SessionsPage)
 
-    const buttons = wrapper.findAll('button.revoke-button')
-    expect(buttons).toHaveLength(2)
+    const buttons = wrapper.findAll('.session-card-item button.revoke-button')
+    expect(buttons).toHaveLength(0)
   })
 
   it('calls store.revokeSession when revoke button clicked', async () => {
     const store = useSessionsStore()
     store.sessions = [session1]
     store.status = 'success'
+    store.selectedSessionId = 'sess-001'
     const revokeSpy = vi.spyOn(store, 'revokeSession')
 
     const wrapper = mount(SessionsPage)
+    await wrapper.find('#session-tab-lifecycle').trigger('click')
     await wrapper.find('button.revoke-button').trigger('click')
 
     expect(revokeSpy).not.toHaveBeenCalled()
@@ -154,9 +156,11 @@ describe('SessionsPage', () => {
     const store = useSessionsStore()
     store.sessions = [session1]
     store.status = 'success'
+    store.selectedSessionId = 'sess-001'
     const revokeSpy = vi.spyOn(store, 'revokeSession')
 
     const wrapper = mount(SessionsPage)
+    await wrapper.find('#session-tab-lifecycle').trigger('click')
     await wrapper.find('button.revoke-button').trigger('click')
     await wrapper.find('[data-testid="confirm-dialog-cancel"]').trigger('click')
 
@@ -219,7 +223,7 @@ describe('SessionsPage', () => {
     expect(wrapper.find('.clients-layout').exists()).toBe(false)
   })
 
-  it('renders session cards as accessible li elements with separate select and revoke buttons', () => {
+  it('renders session cards as accessible li elements with only select button and no action button', () => {
     const store = useSessionsStore()
     store.sessions = [session1, session2]
     store.status = 'success'
@@ -228,10 +232,8 @@ describe('SessionsPage', () => {
 
     const cards = wrapper.findAll('li.session-card-item')
     expect(cards).toHaveLength(2)
-    // The revoke button must NOT be nested inside the select button
     const selectBtn = cards[0]!.find('button.session-card-item__select')
     expect(selectBtn.exists()).toBe(true)
-    expect(selectBtn.find('button.revoke-button').exists()).toBe(false)
-    expect(cards[0]!.find('button.revoke-button').exists()).toBe(true)
+    expect(cards[0]!.findAll('button')).toHaveLength(1)
   })
 })

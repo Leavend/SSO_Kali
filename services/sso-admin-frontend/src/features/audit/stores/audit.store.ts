@@ -18,11 +18,24 @@ import type {
   RetentionStatus,
 } from '../types'
 
-export type AuditStatus = 'idle' | 'loading' | 'success' | 'unauthenticated' | 'forbidden' | 'error' | 'partial'
+export type AuditStatus =
+  | 'idle'
+  | 'loading'
+  | 'success'
+  | 'unauthenticated'
+  | 'forbidden'
+  | 'error'
+  | 'partial'
 export type AuditActionStatus = 'idle' | 'loading' | 'success' | 'step_up_required' | 'error'
 
 export type SectionKey = 'events' | 'integrity' | 'retention' | 'dsr' | 'authEvents'
-export type SectionStatus = 'idle' | 'loading' | 'success' | 'error' | 'forbidden' | 'unauthenticated'
+export type SectionStatus =
+  | 'idle'
+  | 'loading'
+  | 'success'
+  | 'error'
+  | 'forbidden'
+  | 'unauthenticated'
 
 type SectionState = {
   status: SectionStatus
@@ -409,9 +422,10 @@ export const useAuditStore = defineStore('admin-audit', () => {
   }
 
   function sectionFailed(key: SectionKey, error: unknown, reqId?: string | null): void {
-    const resolvedRequestId = error instanceof ApiError
-      ? (error.requestId ?? getLastRequestId())
-      : (reqId ?? getLastRequestId())
+    const resolvedRequestId =
+      error instanceof ApiError
+        ? (error.requestId ?? getLastRequestId())
+        : (reqId ?? getLastRequestId())
 
     const label = sectionLabel(key)
     const message = formatSectionError(label, error, resolvedRequestId)
@@ -442,7 +456,9 @@ export const useAuditStore = defineStore('admin-audit', () => {
   // ── error handling ───────────────────────────────────────────
 
   function resolveOverallRequestId(): string | null {
-    const errorSection = Object.values(sections.value).find((s) => s.status === 'error' || s.status === 'forbidden')
+    const errorSection = Object.values(sections.value).find(
+      (s) => s.status === 'error' || s.status === 'forbidden',
+    )
     return errorSection?.requestId ?? getLastRequestId()
   }
 
@@ -466,9 +482,10 @@ export const useAuditStore = defineStore('admin-audit', () => {
 
     actionStatus.value = 'error'
     const ref = formatRef(requestId.value)
-    errorMessage.value = ref !== 'N/A'
-      ? `Operasi audit compliance gagal. Gunakan kode referensi ${ref} untuk investigasi.`
-      : 'Operasi audit compliance gagal. Coba lagi beberapa saat lagi.'
+    errorMessage.value =
+      ref !== 'N/A'
+        ? `Operasi audit compliance gagal. Gunakan kode referensi ${ref} untuk investigasi.`
+        : 'Operasi audit compliance gagal. Coba lagi beberapa saat lagi.'
   }
 
   function sectionLabel(key: SectionKey): string {
@@ -490,8 +507,6 @@ export const useAuditStore = defineStore('admin-audit', () => {
     }
     return 'error'
   }
-
-
 
   return {
     status,

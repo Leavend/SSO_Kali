@@ -528,11 +528,7 @@ onMounted(() => {
             class="user-form-grid user-form-grid-1"
             style="max-height: 60vh; overflow-y: auto; padding-right: 8px"
           >
-            <div
-              v-for="[group, perms] in permissionsByGroup"
-              :key="group"
-              class="roles-perm-group"
-            >
+            <div v-for="[group, perms] in permissionsByGroup" :key="group" class="roles-perm-group">
               <h4 class="perm-group__label">
                 {{ group }}
               </h4>

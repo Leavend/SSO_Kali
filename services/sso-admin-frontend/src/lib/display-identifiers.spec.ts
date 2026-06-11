@@ -29,7 +29,7 @@ describe('formatSectionError', () => {
 
   it('handles 403 forbidden status correctly with lowercase labels', () => {
     const err = new ApiError(403, 'Forbidden')
-    
+
     const msgAudit = formatSectionError('Audit log events', err)
     expect(msgAudit).toBe('Kamu tidak memiliki izin untuk melihat audit log events.')
 

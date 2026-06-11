@@ -41,9 +41,10 @@ export function formatSectionError(
   customRequestId?: string | null,
 ): string {
   const status = error instanceof ApiError ? error.status : null
-  const reqId = error instanceof ApiError
-    ? (error.requestId ?? getLastRequestId())
-    : (customRequestId ?? getLastRequestId())
+  const reqId =
+    error instanceof ApiError
+      ? (error.requestId ?? getLastRequestId())
+      : (customRequestId ?? getLastRequestId())
   const ref = formatSupportReference(reqId)
 
   if (status === 401) {
@@ -58,7 +59,8 @@ export function formatSectionError(
     if (label === 'Authentication events') lowerLabel = 'authentication events'
     if (label === 'Ops evidence') lowerLabel = 'ops evidence'
     if (label === 'Sessions admin') lowerLabel = 'sessions admin'
-    if (label === 'policy/RBAC admin' || label === 'Policy/RBAC admin') lowerLabel = 'policy/RBAC admin'
+    if (label === 'policy/RBAC admin' || label === 'Policy/RBAC admin')
+      lowerLabel = 'policy/RBAC admin'
     return `Kamu tidak memiliki izin untuk melihat ${lowerLabel}.`
   }
 

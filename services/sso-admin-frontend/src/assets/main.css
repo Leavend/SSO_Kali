@@ -4427,37 +4427,6 @@ button.user-card-item {
   color: var(--muted-foreground);
 }
 
-/* Revoke button — sibling to the select button inside the <li>. */
-.session-card-item__revoke {
-  flex-shrink: 0;
-  margin-right: 10px;
-  padding: 6px 10px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  font-family: inherit;
-  white-space: nowrap;
-  border-radius: 8px;
-  border: 1px solid color-mix(in srgb, var(--destructive) 28%, transparent);
-  background: color-mix(in srgb, var(--destructive) 6%, transparent);
-  color: var(--destructive);
-  cursor: pointer;
-  transition:
-    background 0.15s ease,
-    border-color 0.15s ease,
-    color 0.15s ease;
-}
-
-.session-card-item__revoke:hover {
-  background: var(--destructive);
-  border-color: var(--destructive);
-  color: #fff;
-}
-
-.session-card-item__revoke:focus-visible {
-  outline: 2px solid var(--destructive);
-  outline-offset: 2px;
-}
-
 /* Session search (mirrors .clients-search) */
 .sessions-search {
   width: 100%;

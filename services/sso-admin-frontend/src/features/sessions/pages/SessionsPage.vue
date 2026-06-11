@@ -307,15 +307,6 @@ watch(
                   </span>
                 </span>
               </button>
-
-              <button
-                v-if="canTerminateSessions"
-                class="revoke-button session-card-item__revoke"
-                type="button"
-                @click.stop="requestRevokeSession(adminSession.session_id)"
-              >
-                {{ t('sessions.btn_revoke') }}
-              </button>
             </li>
           </ul>
         </template>
