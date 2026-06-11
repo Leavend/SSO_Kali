@@ -459,6 +459,7 @@
     "window": "Window",
     "schedule": "Schedule",
     "last_pruned": "Last pruned",
+    "not_pruned": "Never run",
     "pruned_rows": "Pruned rows",
     "candidate_rows": "Candidate rows",
     "search_desc": "Search evidence by correlation/request code, session code, action, outcome, taxonomy, account, or date range.",

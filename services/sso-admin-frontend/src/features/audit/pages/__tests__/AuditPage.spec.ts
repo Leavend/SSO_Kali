@@ -5,6 +5,7 @@ import { useSessionStore } from '@/stores/session.store'
 import AuditPage from '../AuditPage.vue'
 import { useAuditStore } from '../../stores/audit.store'
 import type { AdminAuditEvent, AuthenticationAuditEvent, DataSubjectRequest } from '../../types'
+import { useDateFormat } from '@/composables/useDateFormat'
 
 vi.mock('../../services/audit.api', () => ({
   auditApi: {
@@ -154,7 +155,8 @@ describe('AuditPage', () => {
     expect(wrapper.text()).toContain('Retention status')
     expect(wrapper.text()).toContain('Authentication audit events')
     expect(wrapper.text()).toContain('90 hari')
-    expect(wrapper.text()).toContain('2026-05-31T00:10:00Z')
+    const dateFormat = useDateFormat()
+    expect(wrapper.text()).toContain(dateFormat.smart('2026-05-31T00:10:00Z'))
     expect(wrapper.text()).toContain('12')
     expect(wrapper.text()).toContain('3')
     expect(wrapper.text()).toContain('REF-34567890')

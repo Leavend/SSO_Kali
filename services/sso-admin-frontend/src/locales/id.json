@@ -459,6 +459,7 @@
     "window": "Window",
     "schedule": "Jadwal",
     "last_pruned": "Prune terakhir",
+    "not_pruned": "Belum ada run",
     "pruned_rows": "Baris di-prune",
     "candidate_rows": "Baris kandidat",
     "search_desc": "Cari evidence berdasarkan kode korelasi/request, kode sesi, action, outcome, taxonomy, akun, atau rentang tanggal.",

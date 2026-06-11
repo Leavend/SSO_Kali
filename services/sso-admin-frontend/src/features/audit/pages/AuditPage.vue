@@ -1166,7 +1166,11 @@ onMounted(() => {
                   <div class="flex justify-between items-center border-b border-border/50 pb-1">
                     <dt class="text-muted-foreground">{{ t('audit.last_pruned') }}</dt>
                     <dd class="text-foreground text-right">
-                      {{ item.last_pruned_at ?? 'Belum ada run' }}
+                      {{
+                        item.last_pruned_at
+                          ? dateFormat.smart(item.last_pruned_at)
+                          : t('audit.not_pruned')
+                      }}
                     </dd>
                   </div>
                   <div class="flex justify-between items-center border-b border-border/50 pb-1">
