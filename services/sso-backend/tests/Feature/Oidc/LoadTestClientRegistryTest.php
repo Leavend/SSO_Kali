@@ -3,14 +3,11 @@
 declare(strict_types=1);
 
 use App\Actions\Oidc\ValidateProductionOidcClientRegistryAction;
-use App\Models\OidcClientRegistration;
 use App\Services\Oidc\DownstreamClientRegistry;
 use App\Support\Security\ClientSecretHashPolicy;
 
 beforeEach(function (): void {
     config()->set('app.env', 'production');
-    // Wipe any migrated registrations so the registry sees only test-config clients.
-    OidcClientRegistration::query()->delete();
 });
 
 it('keeps the load-test client absent by default', function (): void {

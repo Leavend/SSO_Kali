@@ -9,11 +9,6 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
-beforeEach(function (): void {
-    // Wipe any migrated registrations so test fixtures don't conflict.
-    OidcClientRegistration::query()->delete();
-});
-
 it('updates managed client metadata without exposing or changing secret hashes', function (): void {
     $admin = User::factory()->create(['role' => 'admin']);
     $client = managedClientFixture();

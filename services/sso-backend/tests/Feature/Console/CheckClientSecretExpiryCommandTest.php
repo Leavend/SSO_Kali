@@ -15,10 +15,7 @@ use Illuminate\Support\Carbon;
  *   - Returns warning (1) when expiring/expired secrets found
  *   - Supports --days option to customize threshold
  */
-beforeEach(function (): void {
-    // Clean slate
-    OidcClientRegistration::query()->delete();
-});
+beforeEach(function (): void {});
 
 it('exits with success when no secrets are expiring', function (): void {
     OidcClientRegistration::query()->create([

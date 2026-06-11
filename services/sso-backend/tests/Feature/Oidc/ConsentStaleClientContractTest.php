@@ -42,7 +42,6 @@ beforeEach(function (): void {
         });
     }
 
-    OidcClientRegistration::query()->delete();
     app(DownstreamClientRegistry::class)->flush();
 
     // Seed a dynamic, mutable client (so we can suspend/rotate in tests).

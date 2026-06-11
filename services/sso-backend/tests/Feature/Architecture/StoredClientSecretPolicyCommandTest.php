@@ -2,14 +2,8 @@
 
 declare(strict_types=1);
 
-use App\Models\OidcClientRegistration;
 use App\Services\Oidc\DownstreamClientRegistry;
 use Tests\TestCase;
-
-beforeEach(function (): void {
-    // Wipe any migrated registrations so the registry sees only test-config clients.
-    OidcClientRegistration::query()->delete();
-});
 
 if (! function_exists('storedClientSecretPolicyClients')) {
     function storedClientSecretPolicyClients(?string $secret, ?string $expiresAt): array

@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use App\Actions\Oidc\ValidateProductionOidcClientRegistryAction;
-use App\Models\OidcClientRegistration;
 use App\Models\SsoSession;
 use App\Models\User;
 use App\Services\Oidc\DownstreamClientRegistry;
@@ -33,10 +32,6 @@ beforeEach(function (): void {
         'sso-admin-panel',
         'sso-frontend-portal',
     ]);
-
-    // Wipe any leftover registrations from migrations so the
-    // production validator sees only the config-defined set.
-    OidcClientRegistration::query()->delete();
 
     $secretHash = app(ClientSecretHashPolicy::class)->make('app-b-secret');
 
