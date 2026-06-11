@@ -7,6 +7,7 @@ namespace App\Services\Admin;
 use App\Models\AdminAuditEvent;
 use Illuminate\Contracts\Pagination\CursorPaginator;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 
 final class AdminAuditTrailPresenter
 {
@@ -23,10 +24,11 @@ final class AdminAuditTrailPresenter
                     return $this->event($this->auditEvent($event));
                 } catch (\Throwable $e) {
                     $skippedCount++;
-                    \Illuminate\Support\Facades\Log::warning('[AUDIT_PRESENT_FAILED]', [
-                        'event_id' => $event instanceof AdminAuditEvent ? $event->event_id : null,
+                    Log::warning('[AUDIT_PRESENT_FAILED]', [
+                        'event_id' => $event->event_id,
                         'exception' => $e->getMessage(),
                     ]);
+
                     return null;
                 }
             })
@@ -56,6 +58,7 @@ final class AdminAuditTrailPresenter
      */
     public function event(AdminAuditEvent $event): array
     {
+        /** @var mixed $context */
         $context = $event->context;
         if (! is_array($context)) {
             $context = [];

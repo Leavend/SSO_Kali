@@ -114,6 +114,7 @@ class AdminAuditEventStore
                 $k = is_string($k) ? mb_convert_encoding($k, 'UTF-8', 'UTF-8') : $k;
                 $sanitized[$k] = $this->sanitizeUtf8($v);
             }
+
             return $sanitized;
         }
 

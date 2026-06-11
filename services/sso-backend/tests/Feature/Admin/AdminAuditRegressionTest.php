@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 use App\Models\AdminAuditEvent;
 use App\Services\Admin\AdminAuditEventStore;
-use App\Services\Admin\AdminAuditTrailPresenter;
 use App\Services\Admin\AdminAuditIntegrityVerifier;
+use App\Services\Admin\AdminAuditTrailPresenter;
 use Database\Seeders\RbacSeeder;
+use Illuminate\Pagination\CursorPaginator;
 use Illuminate\Support\Facades\Log;
 
 beforeEach(function (): void {
@@ -34,8 +35,8 @@ it('handles non-associative/integer key arrays in context without throwing TypeE
         'context' => [
             'role_slugs' => ['user', 'moderator'], // non-associative, keys are 0, 1
             'nested' => [
-                'some_list' => ['item1', 'item2']
-            ]
+                'some_list' => ['item1', 'item2'],
+            ],
         ],
         'occurred_at' => now(),
     ]);
@@ -51,7 +52,7 @@ it('sanitizes invalid UTF-8 characters when writing to DB without breaking hash-
     $store = app(AdminAuditEventStore::class);
     $presenter = app(AdminAuditTrailPresenter::class);
 
-    $invalidUtf8String = "Invalid UTF-8: " . "\xC2\xA0\x9F" . " and \xFF";
+    $invalidUtf8String = 'Invalid UTF-8: '."\xC2\xA0\x9F"." and \xFF";
 
     $store->append([
         'action' => 'user.update',
@@ -65,7 +66,7 @@ it('sanitizes invalid UTF-8 characters when writing to DB without breaking hash-
         'ip_address' => '127.0.0.1',
         'reason' => $invalidUtf8String,
         'context' => [
-            'bad_key_' . "\xFF" => 'bad_value_' . $invalidUtf8String,
+            'bad_key_'."\xFF" => 'bad_value_'.$invalidUtf8String,
         ],
         'occurred_at' => now(),
     ]);
@@ -102,7 +103,7 @@ it('implements fail-soft per-baris and lists skipped_events in collection pagina
     ]);
 
     // Use setRawAttributes to prevent casting from executing inside constructor
-    $corruptEvent = new AdminAuditEvent();
+    $corruptEvent = new AdminAuditEvent;
     $corruptEvent->setRawAttributes([
         'event_id' => 'EVT02',
         'action' => 'action2',
@@ -120,7 +121,7 @@ it('implements fail-soft per-baris and lists skipped_events in collection pagina
     ]);
 
     $items = collect([$event1, $corruptEvent]);
-    $paginator = new \Illuminate\Pagination\CursorPaginator(
+    $paginator = new CursorPaginator(
         $items,
         50,
         null,

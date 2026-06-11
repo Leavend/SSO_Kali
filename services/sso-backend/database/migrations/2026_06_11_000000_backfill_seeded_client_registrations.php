@@ -23,7 +23,7 @@ return new class extends Migration
             return;
         }
 
-        /** @var array<string, array<string, mixed>> $configClients */
+        /** @var array<mixed, mixed> $configClients */
         $configClients = config('oidc_clients.clients', []);
 
         if ($configClients === []) {
@@ -117,7 +117,7 @@ return new class extends Migration
                     ->orderBy('id')
                     ->first();
 
-                if ($admin instanceof User && is_string($admin->email) && $admin->email !== '') {
+                if ($admin instanceof User && $admin->email !== '') {
                     return $admin->email;
                 }
             }
