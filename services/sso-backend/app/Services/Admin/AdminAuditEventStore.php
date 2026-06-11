@@ -35,6 +35,13 @@ class AdminAuditEventStore
      */
     private function record(array $payload, ?string $previousHash, string $signingKeyId): array
     {
+        if (isset($payload['context'])) {
+            $payload['context'] = $this->sanitizeUtf8($payload['context']);
+        }
+        if (isset($payload['reason']) && is_string($payload['reason'])) {
+            $payload['reason'] = mb_convert_encoding($payload['reason'], 'UTF-8', 'UTF-8');
+        }
+
         $record = [
             ...$payload,
             'event_id' => (string) Str::ulid(),
@@ -97,5 +104,23 @@ class AdminAuditEventStore
     private function registry(): AdminAuditSigningKeyRegistry
     {
         return $this->registry ?? app(AdminAuditSigningKeyRegistry::class);
+    }
+
+    private function sanitizeUtf8(mixed $value): mixed
+    {
+        if (is_array($value)) {
+            $sanitized = [];
+            foreach ($value as $k => $v) {
+                $k = is_string($k) ? mb_convert_encoding($k, 'UTF-8', 'UTF-8') : $k;
+                $sanitized[$k] = $this->sanitizeUtf8($v);
+            }
+            return $sanitized;
+        }
+
+        if (is_string($value)) {
+            return mb_convert_encoding($value, 'UTF-8', 'UTF-8');
+        }
+
+        return $value;
     }
 }

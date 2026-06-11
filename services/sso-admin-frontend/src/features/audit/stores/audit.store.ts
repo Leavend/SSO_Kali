@@ -1,7 +1,7 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { ApiError, getLastRequestId } from '@/lib/api/api-client'
-import { formatSupportReference } from '@/lib/display-identifiers'
+import { formatSupportReference, formatSectionError } from '@/lib/display-identifiers'
 import { triggerBlobDownload } from '@/lib/download/trigger-download'
 import { triggerStepUpReauth } from '@/lib/stepup/stepup'
 import { auditApi } from '../services/audit.api'
@@ -413,11 +413,8 @@ export const useAuditStore = defineStore('admin-audit', () => {
       ? (error.requestId ?? getLastRequestId())
       : (reqId ?? getLastRequestId())
 
-    const ref = formatRef(resolvedRequestId)
     const label = sectionLabel(key)
-    const message = error instanceof ApiError
-      ? safeSectionErrorMessage(key, error, ref)
-      : `${label} gagal dimuat. Gunakan kode referensi ${ref} untuk investigasi.`
+    const message = formatSectionError(label, error, resolvedRequestId)
 
     sections.value[key] = {
       status: sectionErrorStatus(error),
@@ -494,12 +491,7 @@ export const useAuditStore = defineStore('admin-audit', () => {
     return 'error'
   }
 
-  function safeSectionErrorMessage(key: SectionKey, error: ApiError, ref: string): string {
-    const label = sectionLabel(key)
-    if (error.status === 401) return `Sesi admin berakhir. Login ulang untuk melanjutkan.`
-    if (error.status === 403) return `Kamu tidak memiliki izin untuk melihat ${label.toLowerCase()}.`
-    return `${label} gagal dimuat. Gunakan kode referensi ${ref} untuk investigasi.`
-  }
+
 
   return {
     status,

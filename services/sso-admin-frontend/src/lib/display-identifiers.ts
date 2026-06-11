@@ -33,6 +33,41 @@ export function formatFriendlyClientName(value: string | null | undefined): stri
     .join(' ')
 }
 
+import { ApiError, getLastRequestId } from '@/lib/api/api-client'
+
+export function formatSectionError(
+  label: string,
+  error: unknown,
+  customRequestId?: string | null,
+): string {
+  const status = error instanceof ApiError ? error.status : null
+  const reqId = error instanceof ApiError
+    ? (error.requestId ?? getLastRequestId())
+    : (customRequestId ?? getLastRequestId())
+  const ref = formatSupportReference(reqId)
+
+  if (status === 401) {
+    return 'Sesi admin berakhir. Login ulang untuk melanjutkan.'
+  }
+  if (status === 403) {
+    let lowerLabel = label
+    if (label === 'Audit log events') lowerLabel = 'audit log events'
+    if (label === 'Integritas hash chain') lowerLabel = 'integritas hash chain'
+    if (label === 'Status retensi') lowerLabel = 'status retensi'
+    if (label === 'Data subject requests') lowerLabel = 'data subject requests'
+    if (label === 'Authentication events') lowerLabel = 'authentication events'
+    if (label === 'Ops evidence') lowerLabel = 'ops evidence'
+    if (label === 'Sessions admin') lowerLabel = 'sessions admin'
+    if (label === 'policy/RBAC admin' || label === 'Policy/RBAC admin') lowerLabel = 'policy/RBAC admin'
+    return `Kamu tidak memiliki izin untuk melihat ${lowerLabel}.`
+  }
+
+  const statusSuffix = status ? ` (HTTP ${status})` : ''
+  const refMessage = ref ? `. Gunakan kode referensi ${ref} untuk investigasi.` : '.'
+
+  return `${label} gagal dimuat${statusSuffix}${refMessage}`
+}
+
 export function redactTechnicalIdentifiers(message: string): string {
   return message
     .replace(REQUEST_ID_PATTERN, (_match, id: string) => {

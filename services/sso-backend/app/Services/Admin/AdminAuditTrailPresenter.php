@@ -16,14 +16,38 @@ final class AdminAuditTrailPresenter
      */
     public function collection(CursorPaginator $events): array
     {
+        $skippedCount = 0;
+        $mappedEvents = collect($events->items())
+            ->map(function (mixed $event) use (&$skippedCount): ?array {
+                try {
+                    return $this->event($this->auditEvent($event));
+                } catch (\Throwable $e) {
+                    $skippedCount++;
+                    \Illuminate\Support\Facades\Log::warning('[AUDIT_PRESENT_FAILED]', [
+                        'event_id' => $event instanceof AdminAuditEvent ? $event->event_id : null,
+                        'exception' => $e->getMessage(),
+                    ]);
+                    return null;
+                }
+            })
+            ->filter()
+            ->values()
+            ->all();
+
+        $pagination = [
+            'per_page' => $events->perPage(),
+            'next_cursor' => $events->nextCursor()?->encode(),
+            'previous_cursor' => $events->previousCursor()?->encode(),
+            'has_more' => $events->hasMorePages(),
+        ];
+
+        if ($skippedCount > 0) {
+            $pagination['skipped_events'] = $skippedCount;
+        }
+
         return [
-            'events' => collect($events->items())->map(fn (mixed $event): array => $this->event($this->auditEvent($event)))->values()->all(),
-            'pagination' => [
-                'per_page' => $events->perPage(),
-                'next_cursor' => $events->nextCursor()?->encode(),
-                'previous_cursor' => $events->previousCursor()?->encode(),
-                'has_more' => $events->hasMorePages(),
-            ],
+            'events' => $mappedEvents,
+            'pagination' => $pagination,
         ];
     }
 
@@ -32,6 +56,16 @@ final class AdminAuditTrailPresenter
      */
     public function event(AdminAuditEvent $event): array
     {
+        $context = $event->context;
+        if (! is_array($context)) {
+            $context = [];
+        } else {
+            $encoded = json_encode($context, JSON_INVALID_UTF8_SUBSTITUTE);
+            if (is_string($encoded)) {
+                $context = json_decode($encoded, true) ?? [];
+            }
+        }
+
         return [
             'event_id' => $event->event_id,
             'action' => $event->action,
@@ -48,7 +82,7 @@ final class AdminAuditTrailPresenter
                 'ip_address' => $event->ip_address,
             ],
             'reason' => $event->reason,
-            'context' => $this->redact($event->context ?? []),
+            'context' => $this->redact($context),
             'hash_chain' => [
                 'previous_hash' => $event->previous_hash,
                 'event_hash' => $event->event_hash,
@@ -96,8 +130,12 @@ final class AdminAuditTrailPresenter
         return $this->redact($value);
     }
 
-    private function isSensitive(string $key): bool
+    private function isSensitive(string|int $key): bool
     {
+        if (is_int($key)) {
+            return false;
+        }
+
         $normalized = strtolower($key);
 
         foreach (['token', 'secret', 'password', 'authorization', 'bearer', 'hash'] as $needle) {

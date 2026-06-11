@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import { ApiError, getLastRequestId } from '@/lib/api/api-client'
-import { formatSupportReference } from '@/lib/display-identifiers'
+import { formatSupportReference, formatSectionError } from '@/lib/display-identifiers'
 import { triggerStepUpReauth } from '@/lib/stepup/stepup'
 import { sessionsApi } from '../services/sessions.api'
 import type { AdminSession } from '../types'
@@ -83,24 +83,17 @@ export const useSessionsStore = defineStore('admin-sessions', () => {
 
       if (error.status === 401) {
         status.value = 'unauthenticated'
-        errorMessage.value = 'Sesi admin berakhir. Login ulang untuk melanjutkan.'
-        return
-      }
-
-      if (error.status === 403) {
+      } else if (error.status === 403) {
         status.value = 'forbidden'
-        errorMessage.value = 'Kamu tidak memiliki izin untuk melihat sessions admin.'
-        return
+      } else {
+        status.value = 'error'
       }
     } else {
       requestId.value = getLastRequestId()
+      status.value = 'error'
     }
 
-    status.value = 'error'
-    const ref = formatSupportReference(requestId.value)
-    errorMessage.value = ref
-      ? `Sessions admin belum bisa dimuat. Gunakan kode referensi ${ref} untuk investigasi.`
-      : 'Sessions admin belum bisa dimuat. Coba lagi beberapa saat lagi.'
+    errorMessage.value = formatSectionError('Sessions admin', error)
   }
 
   function handleActionError(error: unknown): void {

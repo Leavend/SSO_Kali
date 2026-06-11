@@ -324,7 +324,7 @@ describe('useAuditStore', () => {
     expect(store.requestId).toBe('req-audit-fail')
     expect(store.sections.events.status).toBe('error')
     expect(store.errorMessage).toBe(
-      'Audit log events gagal dimuat. Gunakan kode referensi REF-UDITFAIL untuk investigasi.',
+      'Audit log events gagal dimuat (HTTP 500). Gunakan kode referensi REF-UDITFAIL untuk investigasi.',
     )
     expect(store.errorMessage).not.toMatch(/Bearer|SQLSTATE/i)
   })

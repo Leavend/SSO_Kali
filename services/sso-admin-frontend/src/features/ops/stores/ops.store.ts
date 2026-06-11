@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import { ApiError, getLastRequestId } from '@/lib/api/api-client'
-import { formatSupportReference } from '@/lib/display-identifiers'
+import { formatSectionError } from '@/lib/display-identifiers'
 import { opsApi } from '../services/ops.api'
 import type { OpsReadiness } from '../types'
 
@@ -33,24 +33,17 @@ export const useOpsStore = defineStore('admin-ops', () => {
 
       if (error.status === 401) {
         status.value = 'unauthenticated'
-        errorMessage.value = 'Sesi admin berakhir. Login ulang untuk melanjutkan.'
-        return
-      }
-
-      if (error.status === 403) {
+      } else if (error.status === 403) {
         status.value = 'forbidden'
-        errorMessage.value = 'Kamu tidak memiliki izin untuk melihat ops evidence.'
-        return
+      } else {
+        status.value = 'error'
       }
     } else {
       requestId.value = getLastRequestId()
+      status.value = 'error'
     }
 
-    status.value = 'error'
-    const ref = formatSupportReference(requestId.value)
-    errorMessage.value = ref
-      ? `Ops evidence belum bisa dimuat. Coba lagi atau gunakan kode referensi ${ref} untuk investigasi.`
-      : 'Ops evidence belum bisa dimuat. Coba lagi beberapa saat lagi.'
+    errorMessage.value = formatSectionError('Ops evidence', error)
   }
 
   return { status, readiness, errorMessage, requestId, load }
