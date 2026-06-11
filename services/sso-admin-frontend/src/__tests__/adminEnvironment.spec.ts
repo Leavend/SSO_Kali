@@ -9,6 +9,7 @@ describe('getAdminEnvironment', () => {
       publicBasePath: '/__vue-preview',
       ssoBaseUrl: 'https://dev-sso.timeh.my.id',
       zitadelIssuerUrl: 'https://id.dev-sso.timeh.my.id',
+      docsBaseUrl: 'https://docs.sso.timeh.my.id',
       VITE_ADMIN_DASHBOARD_POLL_MS: '30000',
       VITE_ADMIN_USERS_POLL_MS: '45000',
     })

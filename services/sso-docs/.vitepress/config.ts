@@ -81,14 +81,6 @@ export default defineConfig({
       text: 'Edit halaman ini di GitHub'
     },
 
-    lastUpdated: {
-      text: 'Terakhir diperbarui',
-      formatOptions: {
-        dateStyle: 'full',
-        timeStyle: 'short'
-      }
-    },
-
     docFooter: {
       prev: 'Halaman sebelumnya',
       next: 'Halaman selanjutnya'

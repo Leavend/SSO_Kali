@@ -443,16 +443,15 @@ jobs:
       - name: Run docs production smoke
         shell: bash
         run: |
-          set +e
+          set -euo pipefail
           docs_url="https://docs.sso.timeh.my.id"
-          docs_body="$(curl -fsS -k --max-time 30 "${docs_url%/}/" 2>&1)" || docs_body=""
-          if echo "$docs_body" | grep -q "Dev-SSO"; then
-            echo "Docs site smoke test passed"
-          elif echo "$docs_body" | grep -q "SSO"; then
-            echo "::warning::Docs site served but expected content 'Dev-SSO' not found; cert may still be provisioning"
-          else
-            echo "::warning::Docs site not yet reachable at $docs_url; cert may still be provisioning (retry after certbot completes)"
+          # Use -k (insecure) to tolerate self-signed cert during certbot first-issue race.
+          # Content verification is the real gate — empty 5xx or wrong page still fails.
+          if ! curl -fsSk --max-time 30 "${docs_url%/}/" | grep -q "Dev-SSO"; then
+            echo "Docs production smoke FAILED: site not serving expected content at $docs_url" >&2
+            exit 1
           fi
+          echo "Docs site smoke test passed"
 
       - name: Run admin frontend production smoke
         shell: bash

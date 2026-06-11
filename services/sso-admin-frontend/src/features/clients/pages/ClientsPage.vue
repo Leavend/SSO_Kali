@@ -32,11 +32,13 @@ import {
   Copy,
 } from 'lucide-vue-next'
 
+import { getAdminEnvironment } from '@/config/adminEnvironment'
+
 const store = useClientsStore()
 const session = useSessionStore()
 const { t } = useI18n()
 const dateFormat = useDateFormat()
-const docsBaseUrl = import.meta.env.VITE_DOCS_BASE_URL || 'https://docs.sso.timeh.my.id'
+const docsBaseUrl = getAdminEnvironment().docsBaseUrl
 const canWriteClients = computed(() => session.hasPermission('admin.clients.write'))
 const canManageClientLifecycle = computed(
   () => canWriteClients.value && session.hasPermission('admin.sessions.terminate'),
