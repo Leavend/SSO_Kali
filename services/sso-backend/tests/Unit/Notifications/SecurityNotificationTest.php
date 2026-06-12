@@ -127,6 +127,7 @@ describe('RecoveryCodesRegeneratedNotification', function (): void {
 });
 
 it('renders branded mail without framework branding', function (): void {
+    config()->set('app.name', 'Laravel');
     config()->set('security-notifications.support_address', 'support@dev-sso.example');
 
     $html = (string) (new MfaEnabledNotification)->toMail($this->user)->render();
