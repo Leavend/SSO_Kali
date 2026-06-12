@@ -5,6 +5,7 @@ import HomePage from '../HomePage.vue'
 import { useProfileStore } from '@/stores/profile.store'
 import { useSessionStore } from '@/stores/session.store'
 import { profileApi } from '@/services/profile.api'
+import { useI18n } from '@/composables/useI18n'
 
 vi.mock('@/services/profile.api', () => ({
   profileApi: {
@@ -17,6 +18,36 @@ describe('HomePage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     setActivePinia(createPinia())
+    useI18n().setLocale('id')
+  })
+
+  it('renders English copy reactively without Indonesian dashboard text', async () => {
+    const session = useSessionStore()
+    session.user = {
+      id: 'u-1',
+      email: 'user@example.test',
+      display_name: 'Ayu',
+      roles: ['member'],
+    }
+    useI18n().setLocale('en')
+
+    const wrapper = mount(HomePage, {
+      global: {
+        stubs: {
+          PortalPageHeader: {
+            props: ['eyebrow', 'title', 'description'],
+            template: '<header>{{ eyebrow }} {{ title }} {{ description }}</header>',
+          },
+          RouterLink: true,
+        },
+      },
+    })
+
+    expect(wrapper.text()).toContain('Portal Dashboard')
+    expect(wrapper.text()).toContain('Hello, Ayu')
+    expect(wrapper.text()).toContain('Monitor active devices')
+    expect(wrapper.text()).not.toContain('Ringkasan akun')
+    expect(wrapper.text()).not.toContain('Pantau perangkat')
   })
 
   it('renders the portal liquid-glass hero and dashboard metrics', () => {

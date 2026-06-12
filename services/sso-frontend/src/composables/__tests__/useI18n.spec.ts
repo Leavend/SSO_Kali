@@ -1,5 +1,20 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import enLocale from '@/locales/en.json'
+import idLocale from '@/locales/id.json'
 import { useI18n } from '../useI18n'
+
+function flattenKeys(value: unknown, prefix = ''): string[] {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return [prefix]
+
+  return Object.entries(value).flatMap(([key, child]) =>
+    flattenKeys(child, prefix ? `${prefix}.${key}` : key),
+  )
+}
+
+function leafValues(value: unknown): unknown[] {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return [value]
+  return Object.values(value).flatMap(leafValues)
+}
 
 describe('useI18n', () => {
   afterEach(() => {
@@ -60,5 +75,15 @@ describe('useI18n', () => {
     setLocale('en')
     expect(locale.value).toBe('en')
     expect(document.documentElement.getAttribute('lang')).toBe('en')
+  })
+
+  it('keeps Indonesian and English catalog keys in exact non-empty parity', () => {
+    expect(flattenKeys(idLocale).sort()).toEqual(flattenKeys(enLocale).sort())
+
+    for (const catalog of [idLocale, enLocale]) {
+      for (const value of leafValues(catalog)) {
+        expect(typeof value === 'string' && value.trim().length > 0).toBe(true)
+      }
+    }
   })
 })

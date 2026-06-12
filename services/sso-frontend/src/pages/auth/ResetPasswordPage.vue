@@ -13,7 +13,9 @@ import SsoGlassButton from '@/components/atoms/SsoGlassButton.vue'
 import SsoGlassFormField from '@/components/molecules/SsoGlassFormField.vue'
 import SsoAlertBanner from '@/components/molecules/SsoAlertBanner.vue'
 import { usePasswordResetConfirm } from '@/composables/usePasswordLifecycle'
+import { useI18n } from '@/composables/useI18n'
 
+const { t } = useI18n()
 const route = useRoute()
 const token = computed<string | null>(() =>
   typeof route.query['token'] === 'string' ? route.query['token'] : null,
@@ -29,10 +31,10 @@ const reset = usePasswordResetConfirm(token.value)
         class="text-balance text-4xl font-light leading-[1.05] tracking-tight text-foreground sm:text-5xl"
         style="font-family: var(--font-serif)"
       >
-        Atur password baru
+        {{ t('auth.reset.title') }}
       </h1>
       <p class="max-w-sm text-sm font-medium leading-relaxed text-muted-foreground">
-        Setelah berhasil, semua sesi aktif akan otomatis keluar dan kamu perlu masuk ulang.
+        {{ t('auth.reset.description') }}
       </p>
     </header>
 
@@ -47,7 +49,7 @@ const reset = usePasswordResetConfirm(token.value)
       <SsoGlassFormField
         id="reset-password-email"
         v-model="reset.form.email"
-        label="Email"
+        :label="t('portal.profile.email')"
         type="email"
         autocomplete="email"
         inputmode="email"
@@ -61,10 +63,10 @@ const reset = usePasswordResetConfirm(token.value)
       <SsoGlassFormField
         id="reset-password-token"
         v-model="reset.form.token"
-        label="Token reset"
+        :label="t('auth.reset.token')"
         type="text"
         autocomplete="one-time-code"
-        placeholder="Token reset"
+        :placeholder="t('auth.reset.token')"
         :required="true"
         :disabled="reset.pending.value"
         :error="reset.fieldErrors.value['token'] ?? null"
@@ -74,11 +76,11 @@ const reset = usePasswordResetConfirm(token.value)
       <SsoGlassFormField
         id="reset-password-new"
         v-model="reset.form.password"
-        label="Password baru"
+        :label="t('portal.security.new_password')"
         type="password"
         autocomplete="new-password"
-        placeholder="Password baru"
-        hint="Minimal 12 karakter, huruf besar/kecil, angka, karakter spesial, dan belum pernah bocor."
+        :placeholder="t('portal.security.new_password')"
+        :hint="t('auth.reset.password_hint')"
         :required="true"
         :disabled="reset.pending.value"
         :error="reset.fieldErrors.value['password'] ?? null"
@@ -86,19 +88,23 @@ const reset = usePasswordResetConfirm(token.value)
       />
 
       <p class="text-center text-xs leading-relaxed text-muted-foreground" aria-live="polite">
-        Kebutuhan tersisa:
         {{
-          reset.strengthItems.value.length > 0 ? reset.strengthItems.value.join(', ') : 'terpenuhi'
-        }}.
+          t('portal.security.remaining_requirements', {
+            items:
+              reset.strengthItems.value.length > 0
+                ? reset.strengthItems.value.join(', ')
+                : t('portal.security.fulfilled'),
+          })
+        }}
       </p>
 
       <SsoGlassFormField
         id="reset-password-confirm"
         v-model="reset.form.password_confirmation"
-        label="Konfirmasi password baru"
+        :label="t('portal.security.confirm_password')"
         type="password"
         autocomplete="new-password"
-        placeholder="Konfirmasi password baru"
+        :placeholder="t('portal.security.confirm_password')"
         :required="true"
         :disabled="reset.pending.value"
         :error="reset.fieldErrors.value['password_confirmation'] ?? null"
@@ -115,7 +121,7 @@ const reset = usePasswordResetConfirm(token.value)
         <template v-if="!reset.pending.value" #leading>
           <KeyRound class="size-4" aria-hidden="true" />
         </template>
-        {{ reset.pending.value ? 'Menyimpan…' : 'Reset password' }}
+        {{ reset.pending.value ? t('common.saving') : t('auth.reset.submit') }}
       </SsoGlassButton>
     </form>
 
@@ -124,7 +130,7 @@ const reset = usePasswordResetConfirm(token.value)
       class="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
     >
       <ArrowLeft class="size-3.5" aria-hidden="true" />
-      Kembali ke halaman masuk
+      {{ t('auth.back_to_login') }}
     </RouterLink>
   </section>
 </template>

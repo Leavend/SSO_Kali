@@ -10,12 +10,14 @@ use App\Actions\Admin\SyncManagedUserProfileAction;
 use App\Models\AdminAuditEvent;
 use App\Models\SsoSession;
 use App\Models\User;
+use App\Notifications\PasswordResetRequestedNotification;
 use App\Services\Admin\AdminAuditLogger;
 use App\Services\Admin\AdminAuditTaxonomy;
 use App\Services\Admin\AdminUserPresenter;
 use App\Services\Oidc\LocalTokenService;
 use App\Services\Security\LoginContextRecorder;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Notification;
 
 it('creates local fallback users without leaking plaintext passwords to audit context', function (): void {
     $user = app(CreateManagedUserAction::class)->execute([
@@ -32,6 +34,23 @@ it('creates local fallback users without leaking plaintext passwords to audit co
         ->and($user->status)->toBe('active')
         ->and($user->local_account_enabled)->toBeTrue()
         ->and(Hash::check('very-secure-password', (string) $user->password))->toBeTrue();
+});
+
+it('sends activation instructions when a local user is created without a password', function (): void {
+    Notification::fake();
+
+    $user = app(CreateManagedUserAction::class)->execute([
+        'email' => 'activation@example.com',
+        'display_name' => 'Activation User',
+        'role' => 'user',
+        'local_account_enabled' => true,
+    ]);
+
+    expect($user->password)->toBeNull()
+        ->and($user->password_reset_token_hash)->not->toBeNull()
+        ->and($user->password_reset_token_expires_at)->not->toBeNull();
+
+    Notification::assertSentTo($user, PasswordResetRequestedNotification::class);
 });
 
 it('deactivates and reactivates managed users while preventing self deactivation', function (): void {

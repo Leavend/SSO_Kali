@@ -14,7 +14,9 @@ import SsoFormField from '@/components/molecules/SsoFormField.vue'
 import SsoPasswordField from '@/components/molecules/SsoPasswordField.vue'
 import SsoAlertBanner from '@/components/molecules/SsoAlertBanner.vue'
 import { usePhoneChange } from '@/composables/usePhoneChange'
+import { useI18n } from '@/composables/useI18n'
 
+const { t } = useI18n()
 const props = defineProps<{
   open: boolean
   currentPhone: string | null
@@ -77,18 +79,18 @@ watch(success, (val) => {
     <AlertDialogContent class="sm:max-w-md">
       <AlertDialogHeader>
         <AlertDialogTitle>{{
-          isEditing ? 'Ubah Nomor Telepon' : 'Tambah Nomor Telepon'
+          isEditing ? t('portal.phone_change.edit_title') : t('portal.phone_change.add_title')
         }}</AlertDialogTitle>
         <AlertDialogDescription v-if="isRequestStep">
           <template v-if="isEditing">
-            Nomor saat ini: <strong>{{ props.currentPhone }}</strong>
+            {{ t('portal.phone_change.current') }} <strong>{{ props.currentPhone }}</strong>
             <br />
           </template>
-          Masukkan nomor telepon baru dan password untuk menerima kode OTP.
+          {{ t('portal.phone_change.request_description') }}
         </AlertDialogDescription>
         <AlertDialogDescription v-else>
-          Kode OTP telah dikirim ke <strong>{{ newPhone }}</strong
-          >. Masukkan kode untuk menyelesaikan verifikasi.
+          {{ t('portal.phone_change.sent_prefix') }} <strong>{{ newPhone }}</strong
+          >. {{ t('portal.phone_change.confirm_description') }}
         </AlertDialogDescription>
       </AlertDialogHeader>
 
@@ -100,18 +102,18 @@ watch(success, (val) => {
             id="phone-change-number"
             v-model="phoneInput"
             type="tel"
-            label="Nomor telepon baru"
+            :label="t('portal.phone_change.new_phone')"
             autocomplete="tel"
             inputmode="tel"
             :disabled="pending"
             :error="fieldErrors.new_phone ?? null"
-            hint="Format internasional: +6281234567890"
+            :hint="t('portal.phone_change.format_hint')"
             required
           />
           <SsoPasswordField
             id="phone-change-password"
             v-model="passwordInput"
-            label="Password saat ini"
+            :label="t('portal.security.current_password')"
             autocomplete="current-password"
             :disabled="pending"
             :error="fieldErrors.current_password ?? null"
@@ -123,12 +125,12 @@ watch(success, (val) => {
             id="phone-change-otp"
             v-model="otpInput"
             type="text"
-            label="Kode OTP"
+            :label="t('portal.phone_change.otp')"
             autocomplete="one-time-code"
             inputmode="numeric"
             :disabled="pending"
             :error="fieldErrors.otp ?? null"
-            hint="Periksa SMS untuk kode verifikasi."
+            :hint="t('portal.phone_change.otp_hint')"
             required
           />
         </template>
@@ -139,14 +141,14 @@ watch(success, (val) => {
       <AlertDialogFooter>
         <Button type="button" variant="ghost" :disabled="pending" @click="handleClose">
           <X class="size-4" aria-hidden="true" />
-          Tutup
+          {{ t('common.close') }}
         </Button>
         <Button v-if="isRequestStep" type="button" :disabled="pending" @click="handleRequestChange">
           <Phone class="size-4" aria-hidden="true" />
-          {{ pending ? 'Mengirim…' : 'Kirim OTP' }}
+          {{ pending ? t('common.sending') : t('portal.phone_change.send_otp') }}
         </Button>
         <Button v-if="isConfirmStep" type="button" :disabled="pending" @click="handleConfirmChange">
-          {{ pending ? 'Memverifikasi…' : 'Verifikasi OTP' }}
+          {{ pending ? t('common.verifying') : t('portal.phone_change.verify_otp') }}
         </Button>
       </AlertDialogFooter>
     </AlertDialogContent>

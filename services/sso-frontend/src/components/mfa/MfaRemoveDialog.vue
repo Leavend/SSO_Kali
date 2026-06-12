@@ -23,7 +23,9 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
 } from '@/components/ui/alert-dialog'
+import { useI18n } from '@/composables/useI18n'
 
+const { t } = useI18n()
 defineProps<{
   open: boolean
   pending: boolean
@@ -57,23 +59,24 @@ function handleCancel(): void {
           <ShieldOff class="size-6 text-destructive" />
         </div>
         <AlertDialogTitle class="text-center text-base font-semibold">
-          Nonaktifkan MFA?
+          {{ t('portal.mfa.disable_title') }}
         </AlertDialogTitle>
         <AlertDialogDescription class="text-center text-sm text-muted-foreground">
-          Akun kamu akan kehilangan perlindungan verifikasi dua langkah. Masukkan password untuk
-          mengkonfirmasi.
+          {{ t('portal.mfa.disable_description') }}
         </AlertDialogDescription>
       </AlertDialogHeader>
 
       <form class="grid gap-3" @submit.prevent="handleConfirm">
         <div class="grid gap-1.5">
-          <Label for="mfa-remove-password" class="text-xs font-medium"> Password </Label>
+          <Label for="mfa-remove-password" class="text-xs font-medium">{{
+            t('portal.security.password_title')
+          }}</Label>
           <Input
             id="mfa-remove-password"
             v-model="password"
             type="password"
             autocomplete="current-password"
-            placeholder="Masukkan password kamu"
+            :placeholder="t('portal.mfa.password_placeholder')"
             :disabled="pending"
             required
           />
@@ -93,7 +96,7 @@ function handleCancel(): void {
               :disabled="pending"
               @click="handleCancel"
             >
-              Batal
+              {{ t('common.cancel') }}
             </Button>
           </AlertDialogCancel>
           <AlertDialogAction as-child>
@@ -104,7 +107,7 @@ function handleCancel(): void {
               class="flex-1"
               :disabled="pending || password.length === 0"
             >
-              {{ pending ? 'Menonaktifkan...' : 'Nonaktifkan MFA' }}
+              {{ pending ? t('common.disabling') : t('portal.mfa.disable') }}
             </Button>
           </AlertDialogAction>
         </AlertDialogFooter>

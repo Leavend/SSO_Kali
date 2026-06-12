@@ -18,7 +18,9 @@ import {
   sessionLocation,
 } from '@/lib/session-presentation'
 import type { UserSessionSummary } from '@/types/profile.types'
+import { useI18n } from '@/composables/useI18n'
 
+const { t } = useI18n()
 interface Props {
   session: UserSessionSummary
   pending: boolean
@@ -52,14 +54,18 @@ const isPortalSession = computed<boolean>(() => props.session.is_portal === true
 const appCountLabel = computed<string>(() => {
   const count = props.session.client_count
   if (isPortalSession.value) {
-    return count === 0 ? 'Portal' : `Portal + ${count} aplikasi`
+    return count === 0
+      ? t('portal.session_card.portal')
+      : t('portal.session_card.portal_apps', { count })
   }
-  return `${count} aplikasi`
+  return t('portal.session_card.apps', { count })
 })
 
 function appGrantLabel(displayNames: readonly string[]): string {
   const name = displayNames.find((value) => value.length > 0)
-  return name ? `Aplikasi: ${name}` : 'Aplikasi terhubung'
+  return name
+    ? t('portal.session_card.application_name', { name })
+    : t('portal.session_card.connected_application')
 }
 
 function handleRevoke(): void {
@@ -95,10 +101,10 @@ function handleRevoke(): void {
       <div data-testid="session-card-title-row" class="flex min-w-0 flex-wrap items-center gap-2">
         <strong class="text-sm">{{ deviceLabel }}</strong>
         <Badge v-if="props.session.is_current" variant="default" class="text-[10px]">
-          Sesi ini
+          {{ t('portal.session_card.this_session') }}
         </Badge>
         <Badge v-if="isDormant" variant="outline" class="rounded-full text-[10px]">
-          Tidak aktif
+          {{ t('portal.session_card.inactive') }}
         </Badge>
         <Badge variant="secondary" class="text-[10px]">
           {{ appCountLabel }}
@@ -129,13 +135,13 @@ function handleRevoke(): void {
         </div>
         <div class="grid gap-0.5">
           <span class="text-muted-foreground text-[10px] font-medium uppercase tracking-wider">
-            Lokasi
+            {{ t('portal.session_card.location') }}
           </span>
           <span data-testid="session-location">{{ locationInfo.location }}</span>
         </div>
         <div class="grid gap-0.5">
           <span class="text-muted-foreground text-[10px] font-medium uppercase tracking-wider">
-            Dibuka
+            {{ t('portal.session_card.opened') }}
           </span>
           <time class="tabular-nums" :datetime="props.session.opened_at">
             {{ formatSessionTimestamp(props.session.opened_at) }}
@@ -143,7 +149,7 @@ function handleRevoke(): void {
         </div>
         <div class="grid gap-0.5">
           <span class="text-muted-foreground text-[10px] font-medium uppercase tracking-wider">
-            Terakhir Aktif
+            {{ t('portal.session_card.last_active') }}
           </span>
           <time
             data-testid="session-last-used-relative"
@@ -161,8 +167,11 @@ function handleRevoke(): void {
         class="text-muted-foreground flex items-center gap-1 text-xs"
       >
         <Info class="size-3.5" aria-hidden="true" />
-        Token kedaluwarsa: {{ formatSessionTimestamp(props.session.expires_at) }}. Sesi akan
-        otomatis berakhir jika tidak ada aktivitas.
+        {{
+          t('portal.session_card.expires', {
+            date: formatSessionTimestamp(props.session.expires_at),
+          })
+        }}
       </p>
 
       <p
@@ -171,7 +180,7 @@ function handleRevoke(): void {
         class="text-error-700 flex items-center gap-1 text-xs dark:text-error-300"
       >
         <AlertTriangle class="size-3.5" aria-hidden="true" />
-        Sesi ini dibuka dari IP yang belum pernah digunakan sebelumnya.
+        {{ t('portal.session_card.foreign_ip') }}
       </p>
 
       <p
@@ -179,7 +188,7 @@ function handleRevoke(): void {
         data-testid="current-session-helper"
         class="text-muted-foreground text-xs"
       >
-        Untuk keluar dari perangkat ini, gunakan tombol Logout di pojok kanan atas.
+        {{ t('portal.session_card.logout_helper') }}
       </p>
     </div>
 
@@ -190,7 +199,7 @@ function handleRevoke(): void {
         variant="outline"
         class="rounded-full"
       >
-        Sesi Aktif Saat Ini
+        {{ t('portal.session_card.current') }}
       </Badge>
       <Button
         v-else
@@ -199,11 +208,11 @@ function handleRevoke(): void {
         :disabled="props.pending"
         data-testid="session-revoke-button"
         class="w-full md:w-fit"
-        :aria-label="`Akhiri sesi ini: ${deviceLabel}`"
+        :aria-label="t('portal.session_card.end_aria', { device: deviceLabel })"
         @click="handleRevoke"
       >
         <Trash2 class="size-4" aria-hidden="true" />
-        <span data-testid="session-revoke-label">Akhiri Sesi Ini</span>
+        <span data-testid="session-revoke-label">{{ t('portal.session_card.end') }}</span>
       </Button>
     </div>
   </Card>

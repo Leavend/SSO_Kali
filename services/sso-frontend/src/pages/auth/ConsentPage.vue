@@ -31,24 +31,20 @@ import {
   type ConsentDetails,
 } from '@/services/consent.api'
 import { isApiError } from '@/lib/api/api-error'
+import { useI18n } from '@/composables/useI18n'
 
-const LOAD_FAILURE_COPY = 'Data persetujuan tidak dapat dimuat. Coba lagi beberapa saat.'
-const CSRF_EXPIRED_COPY = 'Sesi keamanan kedaluwarsa. Muat ulang halaman lalu coba lagi.'
-const RATE_LIMITED_COPY = 'Terlalu banyak percobaan. Tunggu sebentar sebelum mencoba lagi.'
-const SUBMIT_FAILURE_COPY = 'Keputusan persetujuan gagal diproses. Coba lagi beberapa saat.'
+const route = useRoute()
+const { t } = useI18n()
 
 function safeConsentErrorCopy(error: unknown, fallback: string): string {
   if (!isApiError(error)) return fallback
-  if (error.status === 419) return CSRF_EXPIRED_COPY
-  if (error.status === 429) return RATE_LIMITED_COPY
-  if (error.status === 401) return 'Sesi SSO kedaluwarsa. Silakan masuk lagi.'
-  if (error.status === 403) return 'Akses ke halaman persetujuan tidak diizinkan untuk akun ini.'
-  if (error.status === 0 || error.status >= 500)
-    return 'Layanan SSO sedang tidak tersedia. Coba lagi nanti.'
+  if (error.status === 419) return t('api.status_419')
+  if (error.status === 429) return t('api.status_429')
+  if (error.status === 401) return t('api.status_401')
+  if (error.status === 403) return t('auth.consent.forbidden')
+  if (error.status === 0 || error.status >= 500) return t('api.status_5xx')
   return fallback
 }
-
-const route = useRoute()
 
 const consent = ref<ConsentDetails | null>(null)
 const loading = ref(true)
@@ -84,7 +80,7 @@ onMounted(async () => {
   const requestedClientId = String(route.query['client_id'] ?? '')
   if (!requestedClientId || !state.value) {
     loading.value = false
-    errorMessage.value = 'Permintaan persetujuan tidak lengkap. Silakan ulangi proses otorisasi.'
+    errorMessage.value = t('auth.consent.incomplete')
     return
   }
 
@@ -95,7 +91,7 @@ onMounted(async () => {
       state: state.value,
     })
   } catch (error) {
-    errorMessage.value = safeConsentErrorCopy(error, LOAD_FAILURE_COPY)
+    errorMessage.value = safeConsentErrorCopy(error, t('auth.consent.load_failure'))
   } finally {
     loading.value = false
   }
@@ -114,7 +110,7 @@ async function decide(decision: ConsentDecision): Promise<void> {
     })
     window.location.assign(result.redirect_uri)
   } catch (error) {
-    errorMessage.value = safeConsentErrorCopy(error, SUBMIT_FAILURE_COPY)
+    errorMessage.value = safeConsentErrorCopy(error, t('auth.consent.submit_failure'))
   } finally {
     submitting.value = null
   }
@@ -145,12 +141,14 @@ function shouldShowScopeStatus(scope: ScopeDescriptor): boolean {
         class="text-balance text-4xl font-light leading-[1.05] tracking-tight text-foreground sm:text-5xl"
         style="font-family: var(--font-serif)"
       >
-        Beri akses ke aplikasi
+        {{ t('auth.consent.title') }}
       </h1>
       <p class="max-w-md text-sm font-medium leading-relaxed text-muted-foreground">
-        Aplikasi
-        <strong class="font-semibold text-foreground">{{ clientName || 'Unknown' }}</strong>
-        meminta akses ke akun SSO-mu. Tinjau izin sebelum menyetujui.
+        {{
+          t('auth.consent.description_prefix', {
+            client: clientName || t('auth.consent.unknown_client'),
+          })
+        }}
       </p>
     </header>
 
@@ -170,18 +168,17 @@ function shouldShowScopeStatus(scope: ScopeDescriptor): boolean {
     >
       <ShieldAlert class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
       <span>
-        Permintaan ini berisi cakupan akses yang belum dikenal. Jangan menyetujui jika kamu tidak
-        yakin aplikasi ini tepercaya.
+        {{ t('auth.consent.untrusted_warning') }}
       </span>
     </p>
 
     <p v-if="loading" class="text-sm text-muted-foreground" aria-live="polite">
-      Memuat data persetujuan…
+      {{ t('auth.consent.loading') }}
     </p>
 
     <div v-else-if="scopes.length > 0" class="flex w-full flex-col gap-3">
       <p class="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
-        Izin yang diminta
+        {{ t('auth.consent.requested_permissions') }}
       </p>
       <ul class="flex flex-col gap-2">
         <li v-for="scope in scopes" :key="scope.name">
@@ -216,8 +213,7 @@ function shouldShowScopeStatus(scope: ScopeDescriptor): boolean {
     <p
       class="w-full rounded-2xl border border-border bg-card/40 px-4 py-3 text-center text-xs leading-relaxed text-muted-foreground backdrop-blur-md"
     >
-      Pilih Izinkan hanya jika kamu mempercayai aplikasi ini. Kamu dapat menghapus akses dari
-      halaman Aplikasi Terhubung.
+      {{ t('auth.consent.helper') }}
     </p>
 
     <!--
@@ -237,7 +233,7 @@ function shouldShowScopeStatus(scope: ScopeDescriptor): boolean {
         <template v-if="submitting !== 'deny'" #leading>
           <X class="size-4" aria-hidden="true" />
         </template>
-        {{ submitting === 'deny' ? 'Memproses…' : 'Tolak' }}
+        {{ submitting === 'deny' ? t('common.processing') : t('auth.consent.deny') }}
       </SsoGlassButton>
 
       <SsoGlassButton
@@ -251,7 +247,7 @@ function shouldShowScopeStatus(scope: ScopeDescriptor): boolean {
         <template v-if="submitting !== 'allow'" #leading>
           <Check class="size-4" aria-hidden="true" />
         </template>
-        {{ submitting === 'allow' ? 'Memproses…' : 'Izinkan' }}
+        {{ submitting === 'allow' ? t('common.processing') : t('auth.consent.allow') }}
       </SsoGlassButton>
     </div>
   </section>

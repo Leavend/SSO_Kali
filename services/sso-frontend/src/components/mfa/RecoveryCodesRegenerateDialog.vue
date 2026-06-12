@@ -21,7 +21,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { useI18n } from '@/composables/useI18n'
 
+const { t } = useI18n()
 const props = defineProps<{
   open: boolean
   pending: boolean
@@ -54,21 +56,21 @@ function handleSubmit(): void {
       <DialogHeader>
         <DialogTitle class="flex items-center gap-2 text-base">
           <KeyRound class="size-5 text-amber-600 dark:text-amber-400" />
-          Regenerasi Kode Cadangan
+          {{ t('portal.mfa.regenerate_title') }}
         </DialogTitle>
         <DialogDescription>
-          Kami akan menonaktifkan kode lama. Masukkan password untuk konfirmasi.
+          {{ t('portal.mfa.regenerate_description') }}
         </DialogDescription>
       </DialogHeader>
 
       <form class="grid gap-4" @submit.prevent="handleSubmit">
         <div class="grid gap-2">
-          <Label for="regen-password">Password</Label>
+          <Label for="regen-password">{{ t('portal.security.password_title') }}</Label>
           <Input
             id="regen-password"
             v-model="password"
             type="password"
-            placeholder="Masukkan password kamu"
+            :placeholder="t('portal.mfa.password_placeholder')"
             autocomplete="current-password"
             :disabled="pending"
           />
@@ -85,11 +87,11 @@ function handleSubmit(): void {
             :disabled="pending"
             @click="emit('update:open', false)"
           >
-            Batal
+            {{ t('common.cancel') }}
           </Button>
           <Button type="submit" size="sm" :disabled="pending || password.length === 0">
             <KeyRound class="size-4" />
-            Regenerasi
+            {{ t('portal.mfa.regenerate') }}
           </Button>
         </DialogFooter>
       </form>

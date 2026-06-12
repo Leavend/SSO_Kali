@@ -13,6 +13,9 @@ import PortalPageHeader from '@/components/molecules/PortalPageHeader.vue'
 import { useProfileForm } from '@/composables/useProfileForm'
 import { useProfileStore } from '@/stores/profile.store'
 import { storeToRefs } from 'pinia'
+import { useI18n } from '@/composables/useI18n'
+
+const { t } = useI18n()
 
 const {
   form,
@@ -43,7 +46,7 @@ const showEmailDialog = ref(false)
 const showPhoneDialog = ref(false)
 
 const phoneText = computed<string | null>(() => profile.value?.profile?.phone ?? null)
-const phoneDisplay = computed<string>(() => phoneText.value ?? 'Belum diisi')
+const phoneDisplay = computed<string>(() => phoneText.value ?? t('portal.profile.not_set'))
 const isPhoneSet = computed<boolean>(() => Boolean(phoneText.value))
 
 function onEmailChanged(): Promise<void> {
@@ -60,9 +63,9 @@ function onPhoneChanged(): Promise<void> {
 <template>
   <section class="grid gap-6 sm:gap-8">
     <PortalPageHeader
-      eyebrow="Identitas Akun"
-      title="Profil"
-      description="Kelola nama, tampilan, email, dan nomor telepon akunmu di portal SSO."
+      :eyebrow="t('portal.profile.eyebrow')"
+      :title="t('portal.profile.title')"
+      :description="t('portal.profile.description')"
       :icon="UserRound"
     />
 
@@ -92,7 +95,7 @@ function onPhoneChanged(): Promise<void> {
               type="button"
               data-testid="profile-avatar-upload"
               class="group relative grid size-20 shrink-0 place-items-center rounded-full bg-gradient-to-br from-sky-500 to-blue-700 text-lg font-bold text-white shadow-[var(--shadow-glass-sm)] focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:outline-none"
-              aria-label="Ubah foto profil"
+              :aria-label="t('portal.profile.change_avatar')"
               @click="openAvatarPicker"
             >
               {{ avatarInitials }}
@@ -107,14 +110,13 @@ function onPhoneChanged(): Promise<void> {
               class="sr-only"
               type="file"
               accept="image/jpeg,image/png,image/webp"
-              aria-label="Pilih foto profil"
+              :aria-label="t('portal.profile.choose_avatar')"
             />
             <div class="grid gap-1">
               <h2 class="text-lg font-semibold">{{ displayNameText }}</h2>
               <p class="text-muted-foreground text-sm">{{ emailText }}</p>
               <p class="text-muted-foreground text-xs">
-                Klik avatar untuk mengubah foto profil. Format: JPG, PNG, WebP · Maks 2MB · Rasio
-                1:1 disarankan.
+                {{ t('portal.profile.avatar_helper') }}
               </p>
             </div>
           </div>
@@ -125,7 +127,7 @@ function onPhoneChanged(): Promise<void> {
                 id="profile-given-name"
                 v-model="form.given_name"
                 data-testid="profile-given-name-field"
-                label="Nama depan"
+                :label="t('portal.profile.given_name')"
                 autocomplete="given-name"
                 :disabled="save.pending.value"
                 :error="givenNameError"
@@ -135,7 +137,7 @@ function onPhoneChanged(): Promise<void> {
                 id="profile-family-name"
                 v-model="form.family_name"
                 data-testid="profile-family-name-field"
-                label="Nama belakang"
+                :label="t('portal.profile.family_name')"
                 autocomplete="family-name"
                 :disabled="save.pending.value"
                 :error="familyNameError"
@@ -143,38 +145,38 @@ function onPhoneChanged(): Promise<void> {
               />
             </div>
             <p data-testid="profile-name-helper" class="text-muted-foreground text-xs">
-              Nama depan dan nama belakang digabungkan otomatis sebagai nama tampilan.
+              {{ t('portal.profile.name_helper') }}
             </p>
           </div>
 
           <SsoFormField
             id="profile-display-name"
             v-model="form.display_name"
-            label="Nama tampilan"
+            :label="t('portal.profile.display_name')"
             autocomplete="name"
             :disabled="save.pending.value"
             :error="displayNameError"
             input-class="data-[invalid=true]:border-destructive"
           >
             <template #label>
-              Nama tampilan
-              <span class="text-muted-foreground">(dihasilkan otomatis — bisa diubah manual)</span>
+              {{ t('portal.profile.display_name') }}
+              <span class="text-muted-foreground">{{ t('portal.profile.display_name_helper') }}</span>
             </template>
           </SsoFormField>
 
           <div class="grid gap-4 sm:grid-cols-2">
             <div class="grid content-start gap-2">
-              <span class="text-sm font-medium">Email</span>
+              <span class="text-sm font-medium">{{ t('portal.profile.email') }}</span>
               <div class="flex items-center gap-2">
                 <span class="text-sm text-muted-foreground">{{ emailText }}</span>
                 <Button type="button" variant="outline" size="sm" @click="showEmailDialog = true">
                   <Mail class="size-3.5" aria-hidden="true" />
-                  Ganti Email
+                  {{ t('portal.profile.change_email') }}
                 </Button>
               </div>
             </div>
             <div class="grid content-start gap-2">
-              <span class="text-sm font-medium">Status akun</span>
+              <span class="text-sm font-medium">{{ t('portal.profile.account_status') }}</span>
               <Badge
                 :variant="isStatusActive ? 'default' : 'secondary'"
                 class="w-fit bg-success-700 text-white"
@@ -189,7 +191,7 @@ function onPhoneChanged(): Promise<void> {
             <SsoAlertBanner
               v-else-if="showSaveSuccess"
               tone="success"
-              message="Profil berhasil diperbarui."
+              :message="t('portal.profile.save_success')"
             />
           </div>
 
@@ -206,7 +208,7 @@ function onPhoneChanged(): Promise<void> {
               @click="handleCancel"
             >
               <X class="size-4" aria-hidden="true" />
-              Batal
+              {{ t('common.cancel') }}
             </Button>
             <Button
               data-testid="profile-save-button"
@@ -215,7 +217,7 @@ function onPhoneChanged(): Promise<void> {
               :disabled="save.pending.value || !isDirty"
             >
               <Save class="size-4" aria-hidden="true" />
-              {{ save.pending.value ? 'Menyimpan…' : 'Simpan Perubahan' }}
+              {{ save.pending.value ? t('common.saving') : t('portal.profile.save_changes') }}
             </Button>
           </div>
         </form>
@@ -224,10 +226,8 @@ function onPhoneChanged(): Promise<void> {
 
     <Card data-testid="profile-contact-card">
       <CardHeader>
-        <CardTitle>Kontak</CardTitle>
-        <CardDescription>
-          Kelola email dan nomor telepon untuk verifikasi dan pemulihan akun.
-        </CardDescription>
+        <CardTitle>{{ t('portal.profile.contact_title') }}</CardTitle>
+        <CardDescription>{{ t('portal.profile.contact_description') }}</CardDescription>
       </CardHeader>
       <CardContent>
         <div v-if="load.pending.value" class="grid gap-4">
@@ -237,7 +237,7 @@ function onPhoneChanged(): Promise<void> {
         <div v-else class="grid gap-4">
           <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div class="grid gap-0.5">
-              <span class="text-sm font-medium">Email</span>
+              <span class="text-sm font-medium">{{ t('portal.profile.email') }}</span>
               <span class="text-sm text-muted-foreground">{{ emailText }}</span>
             </div>
             <Button
@@ -248,13 +248,13 @@ function onPhoneChanged(): Promise<void> {
               @click="showEmailDialog = true"
             >
               <Mail class="size-3.5" aria-hidden="true" />
-              Ganti Email
+              {{ t('portal.profile.change_email') }}
             </Button>
           </div>
 
           <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div class="grid gap-0.5">
-              <span class="text-sm font-medium">Nomor Telepon</span>
+              <span class="text-sm font-medium">{{ t('portal.profile.phone') }}</span>
               <span class="text-sm text-muted-foreground">{{ phoneDisplay }}</span>
             </div>
             <Button
@@ -265,7 +265,7 @@ function onPhoneChanged(): Promise<void> {
               @click="showPhoneDialog = true"
             >
               <Phone class="size-3.5" aria-hidden="true" />
-              {{ isPhoneSet ? 'Ubah Nomor' : 'Tambah Nomor' }}
+              {{ isPhoneSet ? t('portal.profile.change_phone') : t('portal.profile.add_phone') }}
             </Button>
           </div>
         </div>

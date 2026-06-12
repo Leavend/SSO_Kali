@@ -24,7 +24,9 @@ const emit = defineEmits<{ (event: 'update:modelValue', value: boolean): void }>
       :disabled="disabled"
       @click="emit('update:modelValue', !modelValue)"
     >
-      <span class="ui-switch__thumb" aria-hidden="true" />
+      <span class="ui-switch__track" aria-hidden="true">
+        <span class="ui-switch__thumb" />
+      </span>
     </button>
     <span
       class="ui-switch__label"

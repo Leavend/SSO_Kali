@@ -38,7 +38,7 @@ describe('SuspiciousLoginNotification', function (): void {
         );
         $mail = $notification->toMail($this->user);
 
-        expect($mail->actionUrl)->toBe(url('/sessions'))
+        expect($mail->actionUrl)->toBe(rtrim((string) config('sso.frontend_url'), '/').'/sessions')
             ->and($mail->actionText)->toContain('Periksa Aktivitas Login');
     });
 

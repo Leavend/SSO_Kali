@@ -20,7 +20,9 @@ import MfaRecoveryInput from '@/components/mfa/MfaRecoveryInput.vue'
 import MfaChallengeTimer from '@/components/mfa/MfaChallengeTimer.vue'
 import { useMfaChallenge } from '@/composables/useMfaChallenge'
 import { useMfaChallengeStore } from '@/stores/mfa-challenge.store'
+import { useI18n } from '@/composables/useI18n'
 
+const { t } = useI18n()
 const router = useRouter()
 const challengeStore = useMfaChallengeStore()
 const mfa = useMfaChallenge()
@@ -40,10 +42,10 @@ onMounted(() => {
         class="text-balance text-4xl font-light leading-[1.05] tracking-tight text-foreground sm:text-5xl"
         style="font-family: var(--font-serif)"
       >
-        Verifikasi keamanan
+        {{ t('auth.mfa.title') }}
       </h1>
       <p class="max-w-sm text-sm font-medium leading-relaxed text-muted-foreground">
-        Masukkan kode dari aplikasi autentikasi atau gunakan kode cadangan.
+        {{ t('auth.mfa.description') }}
       </p>
     </header>
 
@@ -60,7 +62,7 @@ onMounted(() => {
         @expired="mfa.cancel"
       />
 
-      <div class="flex gap-2" role="group" aria-label="Pilih metode verifikasi">
+      <div class="flex gap-2" role="group" :aria-label="t('auth.mfa.choose_method')">
         <SsoGlassButton
           type="button"
           :variant="mfa.method.value === 'totp' ? 'primary' : 'glass'"
@@ -72,7 +74,7 @@ onMounted(() => {
           <template #leading>
             <Shield class="size-4" aria-hidden="true" />
           </template>
-          Aplikasi Autentikasi
+          {{ t('auth.mfa.authenticator') }}
         </SsoGlassButton>
         <SsoGlassButton
           type="button"
@@ -85,7 +87,7 @@ onMounted(() => {
           <template #leading>
             <Key class="size-4" aria-hidden="true" />
           </template>
-          Recovery Code
+          {{ t('auth.mfa.recovery_code') }}
         </SsoGlassButton>
       </div>
 
@@ -109,7 +111,7 @@ onMounted(() => {
         :loading="mfa.pending.value"
         :disabled="mfa.pending.value || mfa.code.value.trim().length === 0"
       >
-        {{ mfa.pending.value ? 'Memverifikasi…' : 'Verifikasi' }}
+        {{ mfa.pending.value ? t('common.verifying') : t('common.verify') }}
       </SsoGlassButton>
     </form>
 
@@ -119,7 +121,7 @@ onMounted(() => {
       @click="mfa.cancel"
     >
       <ArrowLeft class="size-3.5" aria-hidden="true" />
-      Kembali ke halaman masuk
+      {{ t('auth.back_to_login') }}
     </button>
   </section>
 </template>

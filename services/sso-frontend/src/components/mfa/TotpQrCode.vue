@@ -12,7 +12,9 @@ import { computed } from 'vue'
 import { Copy } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { totpQrDataUrl } from '@/lib/totp-qr'
+import { useI18n } from '@/composables/useI18n'
 
+const { t } = useI18n()
 const props = defineProps<{
   provisioningUri: string
   secret: string
@@ -31,7 +33,7 @@ async function copySecret(): Promise<void> {
       <div class="rounded-xl border bg-white p-3 shadow-sm dark:bg-zinc-900">
         <img
           :src="qrImageUrl"
-          :alt="`QR Code untuk TOTP enrollment`"
+          :alt="t('portal.mfa.qr_alt')"
           width="200"
           height="200"
           class="size-[200px]"
@@ -41,12 +43,12 @@ async function copySecret(): Promise<void> {
 
     <div class="grid gap-2">
       <p class="text-muted-foreground text-center text-xs">
-        Scan QR code di atas menggunakan aplikasi autentikasi (Google Authenticator, Authy, dll).
+        {{ t('portal.mfa.qr_helper') }}
       </p>
 
       <div class="grid gap-1.5">
         <span class="text-muted-foreground text-[11px] font-medium uppercase tracking-wider">
-          Atau masukkan kode manual:
+          {{ t('portal.mfa.manual_code') }}
         </span>
         <div class="flex items-center gap-2">
           <code
@@ -58,7 +60,7 @@ async function copySecret(): Promise<void> {
             variant="ghost"
             size="sm"
             class="shrink-0"
-            aria-label="Salin kode secret"
+            :aria-label="t('portal.mfa.copy_secret')"
             @click="copySecret"
           >
             <Copy class="size-4" />

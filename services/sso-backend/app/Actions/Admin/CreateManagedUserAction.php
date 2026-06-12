@@ -4,12 +4,17 @@ declare(strict_types=1);
 
 namespace App\Actions\Admin;
 
+use App\Actions\Auth\RequestPasswordResetAction;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Support\Str;
 
 final class CreateManagedUserAction
 {
+    public function __construct(
+        private readonly RequestPasswordResetAction $requestPasswordReset,
+    ) {}
+
     /**
      * @param  array<string, mixed>  $data
      */
@@ -29,6 +34,10 @@ final class CreateManagedUserAction
         ]);
 
         $this->attachRole($user, (string) $data['role']);
+
+        if ($user->local_account_enabled && blank($data['password'] ?? null)) {
+            $this->requestPasswordReset->execute($user->email);
+        }
 
         return $user->refresh();
     }

@@ -20,22 +20,18 @@ final class SuspiciousLoginNotification extends SecurityNotification
         private readonly string $ipAddress,
         private readonly string $userAgent,
         private readonly int $occurredAt,
+        string $locale = 'id',
     ) {
-        parent::__construct();
+        parent::__construct($locale);
     }
 
     public function toMail(object $notifiable): MailMessage
     {
-        $appName = (string) config('app.name', 'SSO');
-        $subject = "Login Baru Terdeteksi — {$appName}";
-        $time = date('Y-m-d H:i:s', $this->occurredAt);
-
-        return $this->baseMail()
-            ->subject($subject)
-            ->greeting('Halo!')
+        return $this->baseMail($notifiable)
+            ->subject('Peringatan: Login Baru Terdeteksi')
             ->line(sprintf(
-                'Kami mendeteksi login baru pada akun Anda (%s).',
-                $time,
+                'Kami mendeteksi login baru pada akun Anda pada %s.',
+                $this->formatDateTime($this->occurredAt),
             ))
             ->line(sprintf(
                 'Alamat IP: %s',
@@ -45,7 +41,7 @@ final class SuspiciousLoginNotification extends SecurityNotification
                 'Perangkat: %s',
                 $this->userAgent,
             ))
-            ->line('Jika kamu tidak merasa melakukan ini, segera ubah password kamu dan hubungi administrator.')
-            ->action('Periksa Aktivitas Login', url('/sessions'));
+            ->action('Periksa Aktivitas Login', $this->frontendUrl('/sessions'))
+            ->line('Jika Anda tidak mengenali aktivitas ini, segera ubah password dan hubungi administrator.');
     }
 }

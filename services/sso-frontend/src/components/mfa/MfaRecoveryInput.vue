@@ -7,7 +7,9 @@
 
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useI18n } from '@/composables/useI18n'
 
+const { t } = useI18n()
 defineProps<{
   modelValue: string
   disabled?: boolean
@@ -25,7 +27,9 @@ function onInput(event: Event): void {
 
 <template>
   <div class="grid gap-2">
-    <Label for="mfa-recovery-code" class="text-body-sm font-medium"> Kode cadangan </Label>
+    <Label for="mfa-recovery-code" class="text-body-sm font-medium">{{
+      t('portal.mfa.recovery_code')
+    }}</Label>
     <Input
       id="mfa-recovery-code"
       type="text"
@@ -38,7 +42,7 @@ function onInput(event: Event): void {
       @input="onInput"
     />
     <p class="text-muted-foreground text-caption">
-      Masukkan salah satu kode cadangan yang kamu simpan saat mendaftar MFA.
+      {{ t('portal.mfa.recovery_input_helper') }}
     </p>
   </div>
 </template>

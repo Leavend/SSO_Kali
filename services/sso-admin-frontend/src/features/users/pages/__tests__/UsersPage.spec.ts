@@ -7,6 +7,8 @@ import { useUsersStore } from '../../stores/users.store'
 import { useSessionsStore } from '../../../sessions/stores/sessions.store'
 import { useRolesStore } from '../../../roles/stores/roles.store'
 import { useToast } from '@/components/ui/useToast'
+import { useI18n } from '@/composables/useI18n'
+import { usersApi } from '../../services/users.api'
 import type { AdminUser } from '../../types'
 
 vi.mock('vue-router', () => ({
@@ -85,6 +87,7 @@ function seedFullAccessPrincipal(): void {
 describe('UsersPage', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    useI18n().setLocale('en')
     seedFullAccessPrincipal()
   })
 
@@ -237,6 +240,51 @@ describe('UsersPage', () => {
     expect(wrapper.find('input[name="create-email"]').exists()).toBe(true)
     expect(wrapper.find('input[name="create-display-name"]').exists()).toBe(true)
     expect(wrapper.find('select[name="create-role"]').exists()).toBe(true)
+  })
+
+  it('explains optional password and local account behavior and previews the composed name', async () => {
+    useI18n().setLocale('id')
+    const store = useUsersStore()
+    store.status = 'success'
+    store.users = [user]
+    store.selectedSubjectId = 'sub_admin'
+
+    const wrapper = mount(UsersPage)
+    await wrapper.find('button.create-user-toggle').trigger('click')
+    await wrapper.find('input[name="create-given-name"]').setValue('Ayu')
+    await wrapper.find('input[name="create-family-name"]').setValue('Lestari')
+
+    expect(wrapper.text()).toContain('Kosongkan untuk mengirim link aktivasi/reset')
+    expect(wrapper.text()).toContain('user hanya bisa masuk via SSO/federasi')
+    expect(wrapper.text()).toContain('Preview Nama Tampilan: Ayu Lestari')
+  })
+
+  it('submits the create-user payload and disables submit while invalid', async () => {
+    vi.mocked(usersApi.create).mockResolvedValueOnce({ user })
+    const store = useUsersStore()
+    store.status = 'success'
+    store.users = [user]
+    store.selectedSubjectId = 'sub_admin'
+
+    const wrapper = mount(UsersPage)
+    await wrapper.find('button.create-user-toggle').trigger('click')
+    const submit = wrapper.get('[data-testid="create-user-submit"]')
+    expect(submit.attributes('disabled')).toBeDefined()
+
+    await wrapper.find('input[name="create-email"]').setValue('ayu@example.test')
+    await wrapper.find('input[name="create-given-name"]').setValue('Ayu')
+    await wrapper.find('input[name="create-family-name"]').setValue('Lestari')
+    await wrapper.get('[role="switch"]').trigger('click')
+    await submit.trigger('click')
+
+    expect(usersApi.create).toHaveBeenCalledWith({
+      email: 'ayu@example.test',
+      display_name: 'Ayu Lestari',
+      given_name: 'Ayu',
+      family_name: 'Lestari',
+      role: 'user',
+      local_account_enabled: false,
+    })
   })
 
   it('renders revoke user sessions button and calls sessionsStore.revokeUserSessions', async () => {

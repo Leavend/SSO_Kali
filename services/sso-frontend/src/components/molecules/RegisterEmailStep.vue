@@ -13,7 +13,9 @@
 import { ArrowRight, Mail } from 'lucide-vue-next'
 import SsoGlassInput from '@/components/atoms/SsoGlassInput.vue'
 import { cn } from '@/lib/utils'
+import { useI18n } from '@/composables/useI18n'
 
+const { t } = useI18n()
 interface Props {
   modelValue: string
   valid: boolean
@@ -52,7 +54,7 @@ const emit = defineEmits<Emits>()
       <template #trailing>
         <button
           type="button"
-          aria-label="Lanjut ke step password"
+          :aria-label="t('auth.login.next_password_step')"
           :aria-hidden="!props.valid"
           :tabindex="props.valid ? 0 : -1"
           :disabled="!props.valid"

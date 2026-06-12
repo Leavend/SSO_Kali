@@ -2,6 +2,7 @@ import { ref, type Ref } from 'vue'
 import { profileApi } from '@/services/profile.api'
 import { presentSafeError, validationErrors } from '@/lib/api/safe-error-presenter'
 import type { RequestPhoneChangePayload, ConfirmPhoneChangePayload } from '@/types/profile.types'
+import { useI18n } from '@/composables/useI18n'
 
 type PhoneChangeStep = 'request' | 'confirm'
 
@@ -25,6 +26,7 @@ export type UsePhoneChangeReturn = PhoneChangeState & PhoneChangeActions
 const PHONE_REGEX = /^\+?[\d\s\-().]{7,20}$/u
 
 export function usePhoneChange(): UsePhoneChangeReturn {
+  const { t } = useI18n()
   const step = ref<PhoneChangeStep>('request')
   const pending = ref(false)
   const success = ref<string | null>(null)
@@ -40,10 +42,10 @@ export function usePhoneChange(): UsePhoneChangeReturn {
     newPhone.value = phone
 
     const clientErrors: Record<string, string> = {}
-    if (!phone.trim()) clientErrors.new_phone = 'Nomor telepon wajib diisi.'
+    if (!phone.trim()) clientErrors.new_phone = t('validation.phone_required')
     else if (!PHONE_REGEX.test(phone.trim()))
-      clientErrors.new_phone = 'Format nomor telepon tidak valid.'
-    if (!password) clientErrors.current_password = 'Password saat ini wajib diisi.'
+      clientErrors.new_phone = t('validation.phone_invalid')
+    if (!password) clientErrors.current_password = t('validation.current_password_required')
 
     if (Object.keys(clientErrors).length > 0) {
       fieldErrors.value = clientErrors
@@ -58,7 +60,7 @@ export function usePhoneChange(): UsePhoneChangeReturn {
       step.value = 'confirm'
     } catch (caught) {
       fieldErrors.value = validationErrors(caught)
-      error.value = presentSafeError(caught, 'Gagal mengirim kode OTP. Coba lagi.').message
+      error.value = presentSafeError(caught, t('portal.phone_change.request_error')).message
     } finally {
       pending.value = false
     }
@@ -71,7 +73,7 @@ export function usePhoneChange(): UsePhoneChangeReturn {
     fieldErrors.value = {}
 
     if (!otp.trim()) {
-      fieldErrors.value = { otp: 'Kode OTP wajib diisi.' }
+      fieldErrors.value = { otp: t('portal.phone_change.otp_required') }
       pending.value = false
       return
     }
@@ -84,7 +86,7 @@ export function usePhoneChange(): UsePhoneChangeReturn {
       fieldErrors.value = validationErrors(caught)
       error.value = presentSafeError(
         caught,
-        'Gagal mengonfirmasi perubahan nomor. Coba lagi.',
+        t('portal.phone_change.confirm_error'),
       ).message
     } finally {
       pending.value = false

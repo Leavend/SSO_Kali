@@ -11,28 +11,19 @@ import { mfaApi, type MfaChallengeVerifyResponse } from '@/services/mfa.api'
 import { useMfaChallengeStore } from '@/stores/mfa-challenge.store'
 import { useSessionStore } from '@/stores/session.store'
 import type { MfaMethod } from '@/types/mfa.types'
+import { useI18n } from '@/composables/useI18n'
 
 const ERROR_TRANSLATIONS: Record<string, string> = {
-  'Challenge expired or not found.': 'Sesi verifikasi telah kedaluwarsa. Silakan login ulang.',
-  'Maximum verification attempts exceeded.': 'Terlalu banyak percobaan. Silakan login ulang.',
-  'Invalid verification code.': 'Kode verifikasi tidak valid. Silakan coba lagi.',
-  'Unsupported MFA method.': 'Metode MFA tidak didukung.',
-  'The pending authorization request is no longer valid.':
-    'Permintaan otorisasi sudah tidak berlaku. Silakan masuk ulang.',
+  'Challenge expired or not found.': 'auth.mfa.error_expired',
+  'Maximum verification attempts exceeded.': 'auth.mfa.error_attempts',
+  'Invalid verification code.': 'auth.mfa.error_invalid_code',
+  'Unsupported MFA method.': 'auth.mfa.error_unsupported',
+  'The pending authorization request is no longer valid.': 'auth.mfa.error_authorization',
 }
-
-const SAFE_VERIFY_ERROR = 'Gagal memproses verifikasi. Coba lagi beberapa saat.'
-const CSRF_ERROR = 'Sesi keamanan kedaluwarsa. Muat ulang halaman lalu coba lagi.'
-const RATE_LIMIT_ERROR = 'Terlalu banyak percobaan. Tunggu sebentar sebelum mencoba lagi.'
-const EXPIRED_CHALLENGE_ERROR = 'Sesi verifikasi telah kedaluwarsa. Silakan login ulang.'
 
 type MfaContinuation = {
   readonly type: 'authorization_code' | 'consent'
   readonly redirect_uri: string
-}
-
-function translateError(message: string): string {
-  return ERROR_TRANSLATIONS[message] ?? SAFE_VERIFY_ERROR
 }
 
 function isSafeContinuationRedirect(value: string): boolean {
@@ -61,6 +52,12 @@ export function useMfaChallenge(): UseMfaChallengeReturn {
   const router = useRouter()
   const challengeStore = useMfaChallengeStore()
   const sessionStore = useSessionStore()
+  const { t } = useI18n()
+
+  function translateError(message: string): string {
+    const key = ERROR_TRANSLATIONS[message]
+    return key ? t(key) : t('auth.mfa.error_safe')
+  }
 
   const method = ref<MfaMethod>('totp')
   const code = ref<string>('')
@@ -121,15 +118,15 @@ export function useMfaChallenge(): UseMfaChallengeReturn {
   }
 
   function safeApiErrorMessage(exception: unknown): string {
-    if (!(exception instanceof ApiError)) return SAFE_VERIFY_ERROR
-    if (exception.status === 419) return CSRF_ERROR
-    if (exception.status === 429) return RATE_LIMIT_ERROR
+    if (!(exception instanceof ApiError)) return t('auth.mfa.error_safe')
+    if (exception.status === 419) return t('api.status_419')
+    if (exception.status === 429) return t('api.status_429')
     if (exception.status === 404 || exception.status === 409 || exception.status === 410) {
-      return EXPIRED_CHALLENGE_ERROR
+      return t('auth.mfa.error_expired')
     }
     if (exception.status === 422) return translateError(exception.message)
     if (exception.kind === 'timeout' || exception.kind === 'network') return exception.message
-    return SAFE_VERIFY_ERROR
+    return t('auth.mfa.error_safe')
   }
 
   async function cancel(): Promise<void> {

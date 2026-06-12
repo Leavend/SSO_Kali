@@ -12,7 +12,9 @@ import { cn } from '@/lib/utils'
 import { formatPortalDateTime, presentAuditEvent } from '@/lib/portal-security'
 import type { AuditEventPresentation } from '@/lib/portal-security'
 import type { AuditEvent } from '@/types/audit.types'
+import { useI18n } from '@/composables/useI18n'
 
+const { t } = useI18n()
 interface Props {
   events: readonly AuditEvent[]
   knownLoginIps: ReadonlySet<string>
@@ -36,8 +38,8 @@ const presentedEvents = computed<readonly PresentedAuditEvent[]>(() =>
 <template>
   <Card>
     <CardHeader>
-      <CardTitle class="text-base font-semibold">Riwayat Keamanan Terbaru</CardTitle>
-      <CardDescription>Aktivitas login, logout, dan perubahan keamanan akun.</CardDescription>
+      <CardTitle class="text-base font-semibold">{{ t('portal.audit.title') }}</CardTitle>
+      <CardDescription>{{ t('portal.audit.description') }}</CardDescription>
     </CardHeader>
     <CardContent>
       <div v-if="props.isPending" class="grid gap-2">
@@ -48,7 +50,7 @@ const presentedEvents = computed<readonly PresentedAuditEvent[]>(() =>
         class="text-muted-foreground flex flex-col items-center gap-2 py-8 text-center text-sm"
       >
         <ShieldCheck class="text-muted-foreground/50 size-8" />
-        Belum ada riwayat keamanan.
+        {{ t('portal.audit.empty') }}
       </div>
       <ul v-else class="grid min-w-0 gap-2" data-testid="audit-events-list">
         <li

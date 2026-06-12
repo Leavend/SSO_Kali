@@ -22,7 +22,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import PortalPageHeader from '@/components/molecules/PortalPageHeader.vue'
 import { ArrowLeft, ShieldCheck } from 'lucide-vue-next'
+import { useI18n } from '@/composables/useI18n'
 
+const { t } = useI18n()
 const mfa = useMfaEnrollment()
 const showRemoveDialog = ref(false)
 const showRegenerateDialog = ref(false)
@@ -47,16 +49,19 @@ async function handleRegenerate(password: string): Promise<void> {
 <template>
   <section class="grid gap-6 sm:gap-8">
     <PortalPageHeader
-      eyebrow="Authenticator"
-      title="Pengaturan MFA"
-      description="Kelola verifikasi dua langkah, aplikasi autentikasi, dan kode cadangan untuk akun kamu."
+      :eyebrow="t('portal.mfa.eyebrow')"
+      :title="t('portal.mfa.title')"
+      :description="t('portal.mfa.description')"
       :icon="ShieldCheck"
     >
       <template #actions>
         <Button as-child variant="outline" size="sm" class="w-full sm:w-fit">
-          <RouterLink :to="{ name: 'portal.security' }" aria-label="Kembali ke halaman keamanan">
+          <RouterLink
+            :to="{ name: 'portal.security' }"
+            :aria-label="t('portal.mfa.back_to_security')"
+          >
             <ArrowLeft class="size-4" />
-            Kembali
+            {{ t('common.back') }}
           </RouterLink>
         </Button>
       </template>
@@ -83,7 +88,7 @@ async function handleRegenerate(password: string): Promise<void> {
     <!-- Enrollment Wizard -->
     <Card v-if="mfa.step.value === 'scanning' && mfa.enrollData.value">
       <CardHeader>
-        <CardTitle class="text-base font-semibold"> Langkah 1: Scan QR Code </CardTitle>
+        <CardTitle class="text-base font-semibold">{{ t('portal.mfa.scan_step') }}</CardTitle>
       </CardHeader>
       <CardContent class="grid gap-4">
         <TotpQrCode
@@ -96,7 +101,7 @@ async function handleRegenerate(password: string): Promise<void> {
           class="mx-auto w-fit"
           @click="mfa.step.value = 'verifying'"
         >
-          Lanjut ke Verifikasi
+          {{ t('portal.mfa.continue_verify') }}
         </Button>
       </CardContent>
     </Card>
@@ -104,7 +109,7 @@ async function handleRegenerate(password: string): Promise<void> {
     <!-- Verify Step -->
     <Card v-if="mfa.step.value === 'verifying'">
       <CardHeader>
-        <CardTitle class="text-base font-semibold"> Langkah 2: Verifikasi Kode </CardTitle>
+        <CardTitle class="text-base font-semibold">{{ t('portal.mfa.verify_step') }}</CardTitle>
       </CardHeader>
       <CardContent>
         <TotpVerifyStep
@@ -118,7 +123,7 @@ async function handleRegenerate(password: string): Promise<void> {
     <!-- Kode cadangan (after enrollment or regeneration) -->
     <Card v-if="mfa.step.value === 'recovery' && mfa.recoveryCodes.value.length > 0">
       <CardHeader>
-        <CardTitle class="text-base font-semibold"> Simpan Kode Cadangan </CardTitle>
+        <CardTitle class="text-base font-semibold">{{ t('portal.mfa.save_codes') }}</CardTitle>
       </CardHeader>
       <CardContent>
         <RecoveryCodesDisplay
@@ -135,7 +140,7 @@ async function handleRegenerate(password: string): Promise<void> {
       role="status"
     >
       <p class="text-sm text-green-800 dark:text-green-200">
-        ✓ MFA berhasil diaktifkan. Akun kamu sekarang dilindungi dengan verifikasi dua langkah.
+        {{ t('portal.mfa.enabled_success') }}
       </p>
     </div>
 

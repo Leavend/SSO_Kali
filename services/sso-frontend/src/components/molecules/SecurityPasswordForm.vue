@@ -10,7 +10,9 @@ import SsoPasswordField from '@/components/molecules/SsoPasswordField.vue'
 import { cn } from '@/lib/utils'
 import type { ChangePasswordPayload } from '@/types/profile.types'
 import type { PasswordRequirementStatus, PasswordStrengthSummary } from '@/lib/auth/password-policy'
+import { useI18n } from '@/composables/useI18n'
 
+const { t } = useI18n()
 interface Props {
   form: ChangePasswordPayload
   errors: Record<string, string>
@@ -61,7 +63,7 @@ function handleCancel(): void {
       <SsoPasswordField
         id="current_password"
         :model-value="props.form.current_password"
-        label="Password Saat Ini"
+        :label="t('portal.security.current_password')"
         autocomplete="current-password"
         :error="props.errors.current_password"
         :disabled="props.isPending"
@@ -72,7 +74,7 @@ function handleCancel(): void {
       <SsoPasswordField
         id="new_password"
         :model-value="props.form.new_password"
-        label="Password Baru"
+        :label="t('portal.security.new_password')"
         autocomplete="new-password"
         :error="props.errors.new_password"
         :disabled="props.isPending"
@@ -83,7 +85,7 @@ function handleCancel(): void {
       <SsoPasswordField
         id="new_password_confirmation"
         :model-value="props.form.new_password_confirmation"
-        label="Konfirmasi Password Baru"
+        :label="t('portal.security.confirm_password')"
         autocomplete="new-password"
         :error="props.errors.password_confirmation"
         :disabled="props.isPending"
@@ -96,7 +98,9 @@ function handleCancel(): void {
       class="grid gap-3 rounded-[var(--radius-glass-xl)] border border-[var(--glass-border-subtle)] bg-[var(--glass-bg-primary)] p-3"
     >
       <div class="flex items-center justify-between gap-3">
-        <span class="text-xs font-medium text-[var(--text-primary)]">Kekuatan password</span>
+        <span class="text-xs font-medium text-[var(--text-primary)]">{{
+          t('portal.security.password_strength')
+        }}</span>
         <span data-testid="password-strength-label" class="text-xs font-semibold">
           {{ strengthLabel }}
         </span>
@@ -124,8 +128,14 @@ function handleCancel(): void {
         </li>
       </ul>
       <p class="sr-only" aria-live="polite">
-        Kebutuhan tersisa:
-        {{ props.strengthItems.length > 0 ? props.strengthItems.join(', ') : 'terpenuhi' }}.
+        {{
+          t('portal.security.remaining_requirements', {
+            items:
+              props.strengthItems.length > 0
+                ? props.strengthItems.join(', ')
+                : t('portal.security.fulfilled'),
+          })
+        }}
       </p>
     </div>
 
@@ -134,7 +144,7 @@ function handleCancel(): void {
     </p>
 
     <p class="text-muted-foreground text-xs" data-testid="password-required-note">
-      * Semua kolom wajib diisi
+      {{ t('portal.security.all_fields_required') }}
     </p>
 
     <div
@@ -148,10 +158,10 @@ function handleCancel(): void {
         :disabled="props.isPending || !props.canSubmit"
       >
         <KeyRound class="size-4" aria-hidden="true" />
-        {{ props.isPending ? 'Menyimpan...' : 'Simpan Password' }}
+        {{ props.isPending ? t('common.saving') : t('portal.security.save_password') }}
       </Button>
       <Button type="button" variant="ghost" size="sm" class="w-full sm:w-fit" @click="handleCancel">
-        Batal
+        {{ t('common.cancel') }}
       </Button>
     </div>
   </form>

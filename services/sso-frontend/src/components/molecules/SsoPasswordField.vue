@@ -8,6 +8,7 @@
 import { computed, ref } from 'vue'
 import { Eye, EyeOff } from 'lucide-vue-next'
 import SsoFormField from './SsoFormField.vue'
+import { useI18n } from '@/composables/useI18n'
 
 const props = withDefaults(
   defineProps<{
@@ -32,11 +33,12 @@ const props = withDefaults(
 const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void
 }>()
+const { t } = useI18n()
 
 const revealed = ref<boolean>(false)
 const inputType = computed<'password' | 'text'>(() => (revealed.value ? 'text' : 'password'))
 const toggleLabel = computed<string>(() =>
-  revealed.value ? 'Sembunyikan password' : 'Tampilkan password',
+  revealed.value ? t('common.hide_password') : t('common.show_password'),
 )
 
 function toggle(): void {

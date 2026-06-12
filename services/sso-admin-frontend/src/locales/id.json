@@ -32,6 +32,8 @@
   },
   "language": {
     "label": "Bahasa",
+    "switch_to_en": "Ganti bahasa ke English",
+    "switch_to_id": "Ganti bahasa ke Indonesia",
     "id": "ID",
     "en": "EN"
   },

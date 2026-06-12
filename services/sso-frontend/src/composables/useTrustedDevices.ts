@@ -2,6 +2,7 @@ import { computed, reactive, ref } from 'vue'
 import type { ComputedRef, Ref } from 'vue'
 import { profileApi } from '@/services/profile.api'
 import type { TrustedDeviceSummary } from '@/types/profile.types'
+import { useI18n } from '@/composables/useI18n'
 
 interface TrustedDevicesState {
   devices: Ref<readonly TrustedDeviceSummary[]>
@@ -17,6 +18,7 @@ interface TrustedDevicesState {
 }
 
 export function useTrustedDevices(): TrustedDevicesState {
+  const { t } = useI18n()
   const devices = ref<readonly TrustedDeviceSummary[]>([])
   const pending = ref(false)
   const mutatingId = ref<number | null>(null)
@@ -32,7 +34,7 @@ export function useTrustedDevices(): TrustedDevicesState {
       devices.value = await profileApi.getTrustedDevices()
       syncLabels(devices.value)
     } catch {
-      error.value = 'Daftar perangkat tepercaya belum bisa dimuat.'
+      error.value = t('portal.devices.load_error')
     } finally {
       pending.value = false
     }
@@ -49,7 +51,7 @@ export function useTrustedDevices(): TrustedDevicesState {
         device.id === deviceId ? { ...device, label: response.device.label } : device,
       )
     } catch {
-      error.value = 'Nama perangkat belum bisa disimpan.'
+      error.value = t('portal.devices.rename_error')
     } finally {
       mutatingId.value = null
     }
@@ -63,7 +65,7 @@ export function useTrustedDevices(): TrustedDevicesState {
       devices.value = devices.value.filter((device) => device.id !== deviceId)
       delete labels[deviceId]
     } catch {
-      error.value = 'Perangkat belum bisa dicabut.'
+      error.value = t('portal.devices.revoke_error')
     } finally {
       mutatingId.value = null
     }

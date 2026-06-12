@@ -12,16 +12,17 @@ final class EmailChangedNotification extends SecurityNotification
     public function __construct(
         private readonly string $newEmail,
         private readonly Carbon $changedAt,
+        string $locale = 'id',
     ) {
-        parent::__construct();
+        parent::__construct($locale);
     }
 
     public function toMail(object $notifiable): MailMessage
     {
-        return $this->baseMail()
-            ->subject('Email SSO Berhasil Diubah — '.config('app.name', 'SSO'))
-            ->greeting('Halo!')
-            ->line('Email akun SSO kamu berhasil diubah menjadi '.$this->newEmail.' pada '.$this->changedAt->toIso8601String().'.')
-            ->line('Jika kamu tidak melakukan perubahan ini, segera hubungi administrator.');
+        return $this->baseMail($notifiable)
+            ->subject('Email Akun Dev-SSO Berhasil Diubah')
+            ->line('Alamat email akun Anda telah diubah menjadi **'.$this->newEmail.'** pada '.$this->formatDateTime($this->changedAt).'.')
+            ->action('Periksa Profil Akun', $this->frontendUrl('/profile'))
+            ->line('Jika Anda tidak melakukan perubahan ini, segera amankan akun dan hubungi administrator.');
     }
 }

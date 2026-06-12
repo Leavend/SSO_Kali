@@ -12,7 +12,9 @@ import SsoGlassButton from '@/components/atoms/SsoGlassButton.vue'
 import SsoGlassFormField from '@/components/molecules/SsoGlassFormField.vue'
 import SsoAlertBanner from '@/components/molecules/SsoAlertBanner.vue'
 import { usePasswordResetRequest } from '@/composables/usePasswordLifecycle'
+import { useI18n } from '@/composables/useI18n'
 
+const { t } = useI18n()
 const reset = usePasswordResetRequest()
 </script>
 
@@ -24,11 +26,10 @@ const reset = usePasswordResetRequest()
         class="text-balance text-4xl font-light leading-[1.05] tracking-tight text-foreground sm:text-5xl"
         style="font-family: var(--font-serif)"
       >
-        Lupa password kamu?
+        {{ t('auth.forgot.title') }}
       </h1>
       <p class="max-w-sm text-sm font-medium leading-relaxed text-muted-foreground">
-        Masukkan email akun. Jika terdaftar, kami akan mengirimkan instruksi reset tanpa membuka
-        status akun.
+        {{ t('auth.forgot.description') }}
       </p>
     </header>
 
@@ -43,7 +44,7 @@ const reset = usePasswordResetRequest()
       <SsoGlassFormField
         id="forgot-password-email"
         v-model="reset.form.email"
-        label="Email"
+        :label="t('portal.profile.email')"
         type="email"
         autocomplete="email"
         inputmode="email"
@@ -68,7 +69,7 @@ const reset = usePasswordResetRequest()
         <template v-if="!reset.pending.value" #leading>
           <Mail class="size-4" aria-hidden="true" />
         </template>
-        {{ reset.pending.value ? 'Mengirim…' : 'Kirim instruksi reset' }}
+        {{ reset.pending.value ? t('common.sending') : t('auth.forgot.submit') }}
       </SsoGlassButton>
     </form>
 
@@ -77,7 +78,7 @@ const reset = usePasswordResetRequest()
       class="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
     >
       <ArrowLeft class="size-3.5" aria-hidden="true" />
-      Kembali ke halaman masuk
+      {{ t('auth.back_to_login') }}
     </RouterLink>
   </section>
 </template>

@@ -13,14 +13,11 @@ final class RecoveryCodesRegeneratedNotification extends SecurityNotification
 {
     public function toMail(object $notifiable): MailMessage
     {
-        $appName = config('app.name', 'SSO');
-
-        return $this->baseMail()
-            ->subject("Recovery Codes Diperbarui — {$appName}")
-            ->greeting('Halo!')
-            ->line('Recovery codes MFA kamu telah diperbarui. Kode lama sudah tidak berlaku.')
-            ->line('Pastikan kamu menyimpan kode baru di tempat yang aman.')
-            ->action('Kelola Keamanan Akun', url('/security/mfa'))
-            ->line('Jika kamu tidak melakukan ini, segera amankan akun kamu.');
+        return $this->baseMail($notifiable)
+            ->subject('Recovery Code Dev-SSO Berhasil Diperbarui')
+            ->line('Recovery code akun Anda telah diperbarui dan seluruh kode lama tidak lagi berlaku.')
+            ->line('Simpan kode baru di lokasi yang aman dan jangan membagikannya kepada siapa pun.')
+            ->action('Kelola Keamanan Akun', $this->frontendUrl('/security/mfa'))
+            ->line('Jika Anda tidak melakukan perubahan ini, segera amankan akun dan hubungi administrator.');
     }
 }

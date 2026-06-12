@@ -13,7 +13,9 @@
 import { ArrowLeft, ArrowRight, Lock, User } from 'lucide-vue-next'
 import SsoGlassButton from '@/components/atoms/SsoGlassButton.vue'
 import SsoGlassInput from '@/components/atoms/SsoGlassInput.vue'
+import { useI18n } from '@/composables/useI18n'
 
+const { t } = useI18n()
 interface Props {
   passwordConfirmation: string
   name: string
@@ -42,7 +44,7 @@ const emit = defineEmits<Emits>()
       :model-value="props.passwordConfirmation"
       type="password"
       autocomplete="new-password"
-      placeholder="Konfirmasi password"
+      :placeholder="t('auth.register.confirm_password')"
       :required="true"
       :autofocus="true"
       :disabled="props.pending"
@@ -59,7 +61,7 @@ const emit = defineEmits<Emits>()
       :model-value="props.name"
       type="text"
       autocomplete="name"
-      placeholder="Nama lengkap"
+      :placeholder="t('auth.register.full_name')"
       :required="true"
       :disabled="props.pending"
       :error="props.nameError ?? null"
@@ -80,7 +82,7 @@ const emit = defineEmits<Emits>()
       <template v-if="!props.pending" #trailing>
         <ArrowRight class="size-4" aria-hidden="true" />
       </template>
-      {{ props.pending ? 'Mendaftarkan…' : 'Buat akun' }}
+      {{ props.pending ? t('auth.register.submitting') : t('auth.register.submit') }}
     </SsoGlassButton>
 
     <button
@@ -89,7 +91,7 @@ const emit = defineEmits<Emits>()
       @click="emit('back')"
     >
       <ArrowLeft class="size-3.5" aria-hidden="true" />
-      Kembali
+      {{ t('common.back') }}
     </button>
   </div>
 </template>

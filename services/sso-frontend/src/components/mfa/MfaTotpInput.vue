@@ -8,7 +8,9 @@
 import { ref, watch } from 'vue'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useI18n } from '@/composables/useI18n'
 
+const { t } = useI18n()
 const props = defineProps<{
   modelValue: string
   disabled?: boolean
@@ -44,7 +46,7 @@ watch(
 <template>
   <div class="grid gap-2">
     <Label for="mfa-totp-code" class="text-body-sm font-medium">
-      Kode 6 digit dari authenticator
+      {{ t('portal.mfa.totp_label') }}
     </Label>
     <Input
       id="mfa-totp-code"

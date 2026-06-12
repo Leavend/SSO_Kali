@@ -12,20 +12,20 @@ final class EmailChangeRequestedNotification extends SecurityNotification
     public function __construct(
         private readonly string $token,
         private readonly Carbon $expiresAt,
+        string $locale = 'id',
     ) {
-        parent::__construct();
+        parent::__construct($locale);
     }
 
     public function toMail(object $notifiable): MailMessage
     {
-        $url = rtrim((string) config('sso.frontend_url'), '/').'/profile/email-change/confirm?token='.urlencode($this->token);
+        $url = $this->frontendUrl('/profile/email-change/confirm?token='.urlencode($this->token));
 
-        return $this->baseMail()
-            ->subject('Konfirmasi Perubahan Email SSO — '.config('app.name', 'SSO'))
-            ->greeting('Halo!')
-            ->line('Gunakan tautan berikut untuk mengonfirmasi perubahan email akun SSO kamu.')
-            ->line('Tautan ini berlaku sampai '.$this->expiresAt->toIso8601String().'.')
+        return $this->baseMail($notifiable)
+            ->subject('Konfirmasi Perubahan Email Akun Dev-SSO')
+            ->line('Kami menerima permintaan untuk mengubah alamat email akun Dev-SSO Anda.')
+            ->line('Tautan konfirmasi berlaku hingga '.$this->formatDateTime($this->expiresAt).'.')
             ->action('Konfirmasi Email Baru', $url)
-            ->line('Abaikan email ini jika kamu tidak meminta perubahan email.');
+            ->line('Jika Anda tidak meminta perubahan ini, jangan membuka tautan dan segera periksa keamanan akun Anda.');
     }
 }

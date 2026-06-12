@@ -13,7 +13,9 @@ import { KeyRound, RefreshCw, AlertTriangle } from 'lucide-vue-next'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useI18n } from '@/composables/useI18n'
 
+const { t } = useI18n()
 const props = defineProps<{
   remaining: number
   pending: boolean
@@ -30,8 +32,8 @@ const statusVariant = computed<'default' | 'secondary' | 'destructive'>(() => {
 })
 
 const statusLabel = computed<string>(() => {
-  if (props.remaining === 0) return 'Habis'
-  return `${props.remaining} tersisa`
+  if (props.remaining === 0) return t('portal.mfa.codes_empty')
+  return t('portal.mfa.codes_remaining', { count: props.remaining })
 })
 
 const indicatorClass = computed<string>(() => {
@@ -48,7 +50,7 @@ const indicatorClass = computed<string>(() => {
         <KeyRound class="size-5" />
       </span>
       <div class="grid gap-1">
-        <CardTitle class="text-sm font-semibold">Kode Cadangan</CardTitle>
+        <CardTitle class="text-sm font-semibold">{{ t('portal.mfa.recovery_codes') }}</CardTitle>
         <CardDescription class="flex items-center gap-2">
           <Badge :variant="statusVariant" class="text-[10px]">
             {{ statusLabel }}
@@ -67,16 +69,16 @@ const indicatorClass = computed<string>(() => {
         <AlertTriangle class="mt-0.5 size-4 shrink-0 text-red-600 dark:text-red-400" />
         <p class="text-xs text-red-800 dark:text-red-200">
           <template v-if="remaining === 0">
-            Semua kode cadangan sudah digunakan. Regenerasi segera untuk menjaga akses akun.
+            {{ t('portal.mfa.codes_exhausted') }}
           </template>
           <template v-else>
-            Sisa kode cadangan sangat sedikit. Regenerasi kode baru untuk keamanan akun.
+            {{ t('portal.mfa.codes_low') }}
           </template>
         </p>
       </div>
 
       <p class="text-muted-foreground text-xs">
-        Kode cadangan digunakan jika kamu kehilangan akses ke aplikasi autentikasi.
+        {{ t('portal.mfa.codes_usage') }}
       </p>
 
       <Button
@@ -87,7 +89,7 @@ const indicatorClass = computed<string>(() => {
         @click="emit('regenerate')"
       >
         <RefreshCw class="size-4" :class="{ 'animate-spin': pending }" />
-        Regenerasi Kode Cadangan
+        {{ t('portal.mfa.regenerate_title') }}
       </Button>
     </CardContent>
   </Card>

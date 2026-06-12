@@ -9,7 +9,9 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { formatSessionTimestamp, relativeSessionTime, sessionDeviceLabel } from '@/lib/session-presentation'
 import { parseUserAgent } from '@/lib/parse-user-agent'
 import type { TrustedDeviceSummary } from '@/types/profile.types'
+import { useI18n } from '@/composables/useI18n'
 
+const { t } = useI18n()
 interface Props {
   devices: readonly TrustedDeviceSummary[]
   labels: Readonly<Record<number, string>>
@@ -53,10 +55,8 @@ function handleRevoke(deviceId: number): void {
 <template>
   <Card data-testid="trusted-devices-card">
     <CardHeader>
-      <CardTitle class="text-base font-semibold">Perangkat Tepercaya</CardTitle>
-      <CardDescription>
-        Kelola perangkat yang pernah dipercaya untuk login dan MFA remember-device.
-      </CardDescription>
+      <CardTitle class="text-base font-semibold">{{ t('portal.devices.title') }}</CardTitle>
+      <CardDescription>{{ t('portal.devices.description') }}</CardDescription>
     </CardHeader>
 
     <CardContent class="grid gap-4">
@@ -69,7 +69,7 @@ function handleRevoke(deviceId: number): void {
       </div>
 
       <p v-else-if="!hasDevices" class="text-muted-foreground text-sm">
-        Belum ada perangkat tepercaya.
+        {{ t('portal.devices.empty') }}
       </p>
 
       <div v-else class="grid gap-3">
@@ -96,27 +96,39 @@ function handleRevoke(deviceId: number): void {
             <div class="grid gap-2 text-xs sm:grid-cols-3">
               <span class="grid gap-0.5">
                 <span class="text-muted-foreground text-[10px] font-medium uppercase tracking-wider">IP</span>
-                <span class="font-mono tabular-nums">{{ device.ip_address ?? 'IP tidak dikenal' }}</span>
+                <span class="font-mono tabular-nums">{{
+                  device.ip_address ?? t('portal.devices.unknown_ip')
+                }}</span>
               </span>
               <span class="grid gap-0.5">
-                <span class="text-muted-foreground text-[10px] font-medium uppercase tracking-wider">Dipercaya</span>
+                <span class="text-muted-foreground text-[10px] font-medium uppercase tracking-wider">{{
+                  t('portal.devices.trusted')
+                }}</span>
                 <time :datetime="device.trusted_at ?? undefined">{{ formatSessionTimestamp(device.trusted_at) }}</time>
               </span>
               <span class="grid gap-0.5">
-                <span class="text-muted-foreground text-[10px] font-medium uppercase tracking-wider">Terakhir Aktif</span>
+                <span class="text-muted-foreground text-[10px] font-medium uppercase tracking-wider">{{
+                  t('portal.devices.last_active')
+                }}</span>
                 <time :datetime="device.last_seen_at ?? undefined">
-                  {{ device.last_seen_at ? relativeSessionTime(device.last_seen_at) : 'Belum ada aktivitas' }}
+                  {{
+                    device.last_seen_at
+                      ? relativeSessionTime(device.last_seen_at)
+                      : t('portal.devices.no_activity')
+                  }}
                 </time>
               </span>
             </div>
 
             <label class="grid gap-1 text-xs">
-              <span class="text-muted-foreground font-medium">Nama perangkat</span>
+              <span class="text-muted-foreground font-medium">{{
+                t('portal.devices.device_name')
+              }}</span>
               <Input
                 :model-value="props.labels[device.id] ?? ''"
                 maxlength="80"
                 :disabled="props.mutatingId === device.id"
-                :aria-label="`Nama perangkat ${deviceTitle(device)}`"
+                :aria-label="t('portal.devices.device_name_aria', { name: deviceTitle(device) })"
                 @update:model-value="handleLabelInput(device.id, $event)"
               />
             </label>
@@ -130,7 +142,7 @@ function handleRevoke(deviceId: number): void {
               :disabled="props.mutatingId === device.id"
               @click="handleRename(device.id)"
             >
-              Simpan Nama
+              {{ t('portal.devices.save_name') }}
             </Button>
             <Button
               type="button"
@@ -140,7 +152,7 @@ function handleRevoke(deviceId: number): void {
               @click="handleRevoke(device.id)"
             >
               <Trash2 class="size-4" aria-hidden="true" />
-              Cabut
+              {{ t('portal.devices.revoke') }}
             </Button>
           </div>
         </section>

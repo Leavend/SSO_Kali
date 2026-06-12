@@ -11,7 +11,9 @@ import SsoAlertBanner from '@/components/molecules/SsoAlertBanner.vue'
 import { formatPortalDateTime } from '@/lib/portal-security'
 import type { ChangePasswordPayload } from '@/types/profile.types'
 import type { PasswordRequirementStatus, PasswordStrengthSummary } from '@/lib/auth/password-policy'
+import { useI18n } from '@/composables/useI18n'
 
+const { t } = useI18n()
 interface Props {
   form: ChangePasswordPayload
   errors: Record<string, string>
@@ -55,16 +57,15 @@ function handleReset(): void {
         <KeyRound class="size-5" />
       </span>
       <div class="grid gap-1">
-        <CardTitle class="text-sm font-semibold">Password</CardTitle>
+        <CardTitle class="text-sm font-semibold">{{ t('portal.security.password_title') }}</CardTitle>
         <CardDescription class="text-xs">
-          Terakhir aktif: {{ formatPortalDateTime(props.lastSeen) }}
+          {{ t('portal.security.last_active', { date: formatPortalDateTime(props.lastSeen) }) }}
         </CardDescription>
       </div>
     </CardHeader>
     <CardContent class="grid gap-3">
       <p class="text-muted-foreground text-xs">
-        Perbarui password secara berkala. Setelah berhasil, semua sesi lain akan otomatis keluar dan
-        kami mengirimkan notifikasi ke email kamu.
+        {{ t('portal.security.password_description') }}
       </p>
       <SsoAlertBanner v-if="props.success" tone="success" :message="props.success" />
       <SsoAlertBanner v-if="props.error" tone="error" :message="props.error" />
@@ -83,7 +84,7 @@ function handleReset(): void {
       />
       <Button v-else variant="outline" size="sm" class="w-fit" @click="handleReset">
         <KeyRound class="size-4" />
-        Ganti Password Lagi
+        {{ t('portal.security.change_password_again') }}
       </Button>
     </CardContent>
   </Card>

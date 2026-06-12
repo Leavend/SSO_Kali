@@ -36,7 +36,7 @@ declare module 'vue-router' {
     layout?: RouteLayout
     requiresAuth?: boolean
     requiresGuest?: boolean
-    title?: string
+    titleKey?: string
     hero?: AuthHero
   }
 }
@@ -49,7 +49,7 @@ export const routes: RouteRecordRaw[] = [
     meta: {
       layout: 'auth',
       requiresGuest: true,
-      title: 'Masuk',
+      titleKey: 'routes.login',
       hero: { aurora: 'default' },
     },
   },
@@ -64,7 +64,7 @@ export const routes: RouteRecordRaw[] = [
     meta: {
       layout: 'auth',
       requiresGuest: true,
-      title: 'Daftar',
+      titleKey: 'routes.register',
       hero: { aurora: 'default' },
     },
   },
@@ -74,7 +74,7 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/pages/auth/CallbackPage.vue'),
     meta: {
       layout: 'auth',
-      title: 'Memverifikasi login',
+      titleKey: 'routes.callback',
       hero: { aurora: 'cool' },
     },
   },
@@ -84,7 +84,7 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/pages/auth/ConsentPage.vue'),
     meta: {
       layout: 'auth',
-      title: 'Otorisasi Aplikasi',
+      titleKey: 'routes.consent',
       hero: { aurora: 'cool', maxWidth: 'lg' },
     },
   },
@@ -94,7 +94,7 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/pages/auth/MfaChallengePage.vue'),
     meta: {
       layout: 'auth',
-      title: 'Verifikasi MFA',
+      titleKey: 'routes.mfa_challenge',
       hero: { aurora: 'cool' },
     },
   },
@@ -105,7 +105,7 @@ export const routes: RouteRecordRaw[] = [
     meta: {
       layout: 'auth',
       requiresGuest: true,
-      title: 'Reset Password',
+      titleKey: 'routes.forgot_password',
       hero: { aurora: 'default' },
     },
   },
@@ -116,7 +116,7 @@ export const routes: RouteRecordRaw[] = [
     meta: {
       layout: 'auth',
       requiresGuest: true,
-      title: 'Password Baru',
+      titleKey: 'routes.reset_password',
       hero: { aurora: 'default' },
     },
   },
@@ -124,31 +124,31 @@ export const routes: RouteRecordRaw[] = [
     path: '/home',
     name: 'portal.home',
     component: () => import('@/pages/portal/HomePage.vue'),
-    meta: { layout: 'portal', requiresAuth: true, title: 'Beranda' },
+    meta: { layout: 'portal', requiresAuth: true, titleKey: 'routes.home' },
   },
   {
     path: '/profile',
     name: 'portal.profile',
     component: () => import('@/pages/portal/ProfilePage.vue'),
-    meta: { layout: 'portal', requiresAuth: true, title: 'Profil' },
+    meta: { layout: 'portal', requiresAuth: true, titleKey: 'routes.profile' },
   },
   {
     path: '/apps',
     name: 'portal.apps',
     component: () => import('@/pages/portal/ConnectedAppsPage.vue'),
-    meta: { layout: 'portal', requiresAuth: true, title: 'Aplikasi Terhubung' },
+    meta: { layout: 'portal', requiresAuth: true, titleKey: 'routes.apps' },
   },
   {
     path: '/sessions',
     name: 'portal.sessions',
     component: () => import('@/pages/portal/SessionsPage.vue'),
-    meta: { layout: 'portal', requiresAuth: true, title: 'Sesi Aktif' },
+    meta: { layout: 'portal', requiresAuth: true, titleKey: 'routes.sessions' },
   },
   {
     path: '/security',
     name: 'portal.security',
     component: () => import('@/pages/portal/SecurityPage.vue'),
-    meta: { layout: 'portal', requiresAuth: true, title: 'Keamanan' },
+    meta: { layout: 'portal', requiresAuth: true, titleKey: 'routes.security' },
   },
   {
     path: '/profile/security',
@@ -158,13 +158,13 @@ export const routes: RouteRecordRaw[] = [
     path: '/privacy',
     name: 'portal.privacy',
     component: () => import('@/pages/portal/PrivacyPage.vue'),
-    meta: { layout: 'portal', requiresAuth: true, title: 'Privasi & Data' },
+    meta: { layout: 'portal', requiresAuth: true, titleKey: 'routes.privacy' },
   },
   {
     path: '/security/mfa',
     name: 'portal.mfa-settings',
     component: () => import('@/pages/portal/MfaSettingsPage.vue'),
-    meta: { layout: 'portal', requiresAuth: true, title: 'Pengaturan MFA' },
+    meta: { layout: 'portal', requiresAuth: true, titleKey: 'routes.mfa_settings' },
   },
   {
     path: '/:pathMatch(.*)*',
@@ -172,7 +172,7 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/pages/errors/NotFoundPage.vue'),
     meta: {
       layout: 'auth',
-      title: 'Tidak ditemukan',
+      titleKey: 'routes.not_found',
       hero: { aurora: 'error' },
     },
   },
@@ -186,34 +186,15 @@ const router = createRouter({
 
 router.beforeEach(resolveAuthGuard)
 
-const routeTitleKeys: Record<string, string> = {
-  'auth.login': 'routes.login',
-  'auth.register': 'routes.register',
-  'auth.callback': 'routes.callback',
-  'auth.consent': 'routes.consent',
-  'auth.mfa-challenge': 'routes.mfa_challenge',
-  'auth.forgot-password': 'routes.forgot_password',
-  'auth.reset-password': 'routes.reset_password',
-  'portal.home': 'routes.home',
-  'portal.profile': 'routes.profile',
-  'portal.apps': 'routes.apps',
-  'portal.sessions': 'routes.sessions',
-  'portal.security': 'routes.security',
-  'portal.privacy': 'routes.privacy',
-  'portal.mfa-settings': 'routes.mfa_settings',
-  'error.not-found': 'routes.not_found',
-}
-
-export function updateDocumentTitle(routeName: string | null | undefined, defaultTitle?: string): void {
+export function updateDocumentTitle(titleKey?: string): void {
   const base = import.meta.env.VITE_APP_NAME ?? 'Dev-SSO'
   const { t } = useI18n()
-  const key = routeName ? routeTitleKeys[routeName] : null
-  const title = key ? t(key) : (defaultTitle ?? '')
+  const title = titleKey ? t(titleKey) : ''
   document.title = title ? `${title} · ${base}` : base
 }
 
 router.afterEach((to) => {
-  updateDocumentTitle(to.name as string | null | undefined, to.meta.title)
+  updateDocumentTitle(to.meta.titleKey)
 })
 
 export default router
