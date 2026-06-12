@@ -3164,18 +3164,29 @@ select {
   z-index: 1000;
   animation: userFadeIn 0.2s ease-out;
   padding: 16px;
+  overflow-y: auto;
 }
 
 .user-modal-card {
   width: 100%;
   max-width: 520px;
+  max-height: min(780px, 90vh);
+  display: flex;
+  flex-direction: column;
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 20px;
-  padding: 32px;
+  padding: 24px;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
   animation: userScaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   text-align: left;
+  overflow: hidden;
+}
+
+@media (min-width: 640px) {
+  .user-modal-card {
+    padding: 32px;
+  }
 }
 
 .user-modal-header {
@@ -3185,6 +3196,42 @@ select {
   border-bottom: 1px solid var(--border);
   padding-bottom: 16px;
   margin-bottom: 20px;
+  flex-shrink: 0;
+}
+
+.user-modal-card > form {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.user-modal-body,
+.user-modal-card > form > .user-form-grid {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  min-height: 0;
+  margin-right: -12px;
+  padding-right: 12px;
+}
+
+/* Custom scrollbar styling */
+.user-modal-body::-webkit-scrollbar,
+.user-modal-card > form > .user-form-grid::-webkit-scrollbar {
+  width: 6px;
+}
+.user-modal-body::-webkit-scrollbar-track,
+.user-modal-card > form > .user-form-grid::-webkit-scrollbar-track {
+  background: transparent;
+}
+.user-modal-body::-webkit-scrollbar-thumb,
+.user-modal-card > form > .user-form-grid::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+.user-modal-body::-webkit-scrollbar-thumb:hover,
+.user-modal-card > form > .user-form-grid::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
 }
 
 .user-modal-header h3 {
