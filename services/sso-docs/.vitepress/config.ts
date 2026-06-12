@@ -1,12 +1,143 @@
 import { defineConfig } from 'vitepress'
 
+const githubRepository = 'https://github.com/Leavend/SSO_Kali'
+
+const integrationItemsId = [
+  { text: 'Laravel', link: '/integrations/laravel' },
+  { text: 'Next.js', link: '/integrations/nextjs' },
+  { text: 'Vue.js SPA', link: '/integrations/vuejs' },
+  { text: 'Express', link: '/integrations/express' },
+]
+
+const integrationItemsEn = [
+  { text: 'Laravel', link: '/en/integrations/laravel' },
+  { text: 'Next.js', link: '/en/integrations/nextjs' },
+  { text: 'Vue.js SPA', link: '/en/integrations/vuejs' },
+  { text: 'Express', link: '/en/integrations/express' },
+]
+
 export default defineConfig({
   title: 'Dev-SSO Developer Docs',
   description: 'Dokumentasi integrasi OpenID Connect untuk aplikasi pihak ketiga',
-  lang: 'id',
-  
+
+  locales: {
+    root: {
+      lang: 'id',
+      label: 'Bahasa Indonesia',
+      title: 'Dev-SSO Developer Docs',
+      description: 'Dokumentasi integrasi OpenID Connect untuk aplikasi pihak ketiga',
+      themeConfig: {
+        nav: [
+          { text: 'Mulai', link: '/' },
+          { text: 'Onboarding', link: '/onboarding' },
+          { text: 'Integrasi', items: integrationItemsId },
+          { text: 'API Reference', link: '/api-reference' },
+          { text: 'Security', link: '/security-model' },
+        ],
+        sidebar: [
+          {
+            text: 'Mulai',
+            items: [
+              { text: 'Overview', link: '/' },
+              { text: 'Onboarding', link: '/onboarding' },
+            ],
+          },
+          { text: 'Integrasi', items: integrationItemsId },
+          {
+            text: 'Referensi',
+            items: [
+              { text: 'API Reference', link: '/api-reference' },
+              { text: 'Scopes & Claims', link: '/scopes-and-claims' },
+              { text: 'Errors & FAQ', link: '/errors' },
+            ],
+          },
+          {
+            text: 'Keamanan',
+            items: [
+              { text: 'Security Model', link: '/security-model' },
+              { text: 'Resource Server', link: '/resource-server' },
+            ],
+          },
+        ],
+        footer: {
+          message: 'Dirilis dengan lisensi MIT.',
+          copyright: 'Copyright © 2026 Dev-SSO Team',
+        },
+        docFooter: {
+          prev: 'Halaman sebelumnya',
+          next: 'Halaman selanjutnya',
+        },
+        outline: { label: 'Di halaman ini' },
+        returnToTopLabel: 'Kembali ke atas',
+        skipToContentLabel: 'Lewati ke konten',
+        langMenuLabel: 'Ganti bahasa',
+        sidebarMenuLabel: 'Menu',
+        darkModeSwitchLabel: 'Tema',
+        lightModeSwitchTitle: 'Beralih ke mode terang',
+        darkModeSwitchTitle: 'Beralih ke mode gelap',
+      },
+    },
+    en: {
+      lang: 'en',
+      label: 'English',
+      link: '/en/',
+      title: 'Dev-SSO Developer Docs',
+      description: 'OpenID Connect integration documentation for third-party applications',
+      themeConfig: {
+        nav: [
+          { text: 'Start', link: '/en/' },
+          { text: 'Onboarding', link: '/en/onboarding' },
+          { text: 'Integrations', items: integrationItemsEn },
+          { text: 'API Reference', link: '/en/api-reference' },
+          { text: 'Security', link: '/en/security-model' },
+        ],
+        sidebar: [
+          {
+            text: 'Start',
+            items: [
+              { text: 'Overview', link: '/en/' },
+              { text: 'Onboarding', link: '/en/onboarding' },
+            ],
+          },
+          { text: 'Integrations', items: integrationItemsEn },
+          {
+            text: 'Reference',
+            items: [
+              { text: 'API Reference', link: '/en/api-reference' },
+              { text: 'Scopes & Claims', link: '/en/scopes-and-claims' },
+              { text: 'Errors & FAQ', link: '/en/errors' },
+            ],
+          },
+          {
+            text: 'Security',
+            items: [
+              { text: 'Security Model', link: '/en/security-model' },
+              { text: 'Resource Server', link: '/en/resource-server' },
+            ],
+          },
+        ],
+        footer: {
+          message: 'Released under the MIT License.',
+          copyright: 'Copyright © 2026 Dev-SSO Team',
+        },
+        docFooter: {
+          prev: 'Previous page',
+          next: 'Next page',
+        },
+        outline: { label: 'On this page' },
+        returnToTopLabel: 'Return to top',
+        skipToContentLabel: 'Skip to content',
+        langMenuLabel: 'Change language',
+        sidebarMenuLabel: 'Menu',
+        darkModeSwitchLabel: 'Theme',
+        lightModeSwitchTitle: 'Switch to light theme',
+        darkModeSwitchTitle: 'Switch to dark theme',
+      },
+    },
+  },
+
   sitemap: {
-    hostname: 'https://docs.sso.timeh.my.id'
+    hostname: 'https://docs.sso.timeh.my.id',
   },
 
   head: [
@@ -20,80 +151,7 @@ export default defineConfig({
   themeConfig: {
     logo: '/logo.svg',
     siteTitle: 'Dev-SSO Docs',
-    
-    nav: [
-      { text: 'Mulai', link: '/' },
-      { text: 'Onboarding', link: '/onboarding' },
-      { text: 'API Reference', link: '/api-reference' },
-      { text: 'Scopes & Claims', link: '/scopes-and-claims' },
-      { text: 'Errors & FAQ', link: '/errors' },
-      { text: 'Security', link: '/security-model' },
-      { text: 'Resource Server', link: '/resource-server' },
-    ],
-
-    sidebar: [
-      {
-        text: 'Mulai',
-        items: [
-          { text: 'Overview', link: '/' },
-          { text: 'Onboarding', link: '/onboarding' },
-        ]
-      },
-      {
-        text: 'Referensi',
-        items: [
-          { text: 'API Reference', link: '/api-reference' },
-          { text: 'Scopes & Claims', link: '/scopes-and-claims' },
-          { text: 'Errors & FAQ', link: '/errors' },
-        ]
-      },
-      {
-        text: 'Keamanan',
-        items: [
-          { text: 'Security Model', link: '/security-model' },
-          { text: 'Resource Server', link: '/resource-server' },
-        ]
-      },
-    ],
-
-    socialLinks: [
-      { icon: 'github', link: 'https://github.com/leavend/sso-kali' }
-    ],
-
-    search: {
-      provider: 'local'
-    },
-
-    footer: {
-      message: 'Released under the MIT License.',
-      copyright: 'Copyright © 2026 Dev-SSO Team'
-    },
-
-    editLink: {
-      pattern: ({ relativePath }) => {
-        // Map onboarding.md to its actual source location
-        if (relativePath === 'onboarding.md') {
-          return 'https://github.com/leavend/sso-kali/edit/main/docs/onboarding/client-web-app-onboarding.md'
-        }
-        // All other pages come from docs/developers/
-        return `https://github.com/leavend/sso-kali/edit/main/docs/developers/${relativePath}`
-      },
-      text: 'Edit halaman ini di GitHub'
-    },
-
-    docFooter: {
-      prev: 'Halaman sebelumnya',
-      next: 'Halaman selanjutnya'
-    },
-
-    outline: {
-      label: 'Di halaman ini'
-    },
-
-    returnToTopLabel: 'Kembali ke atas',
-    sidebarMenuLabel: 'Menu',
-    darkModeSwitchLabel: 'Tema',
-    lightModeSwitchTitle: 'Beralih ke mode terang',
-    darkModeSwitchTitle: 'Beralih ke mode gelap',
-  }
+    socialLinks: [{ icon: 'github', link: githubRepository }],
+    search: { provider: 'local' },
+  },
 })

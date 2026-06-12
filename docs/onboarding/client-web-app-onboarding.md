@@ -120,6 +120,14 @@ https://admin-sso.timeh.my.id
 
 ## 4. Integrasi
 
+Pilih panduan sesuai arsitektur aplikasi. Halaman ini tidak mengulang glue code
+framework agar kontrak keamanan tetap konsisten:
+
+- [Laravel confidential client](/integrations/laravel)
+- [Next.js route-handler BFF](/integrations/nextjs)
+- [Vue.js public SPA](/integrations/vuejs)
+- [Express confidential client](/integrations/express)
+
 ### Endpoint (dari Discovery)
 
 | Endpoint | URL | Metode |
@@ -216,7 +224,7 @@ public function redirect(): RedirectResponse
         'response_type' => 'code',
         'scope' => 'openid profile email offline_access',
         'state' => session()->get('auth_state'),
-        'code_challenge' => hash('sha256', $codeVerifier),
+        'code_challenge' => rtrim(strtr(base64_encode(hash('sha256', $codeVerifier, true)), '+/', '-_'), '='),
         'code_challenge_method' => 'S256',
     ]);
 
@@ -368,7 +376,7 @@ Gunakan `request_id` saat melaporkan masalah ke tim SSO.
 - [RFC 6749 — OAuth 2.0 Authorization Framework](https://datatracker.ietf.org/doc/html/rfc6749)
 - [RFC 7636 — PKCE](https://datatracker.ietf.org/doc/html/rfc7636)
 - [OAuth 2.1 Draft](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1)
-- [Client Integration Runbook](https://github.com/Leavend/Project_SSO/blob/main/docs/generated/client-integration-rfc7642-runbook-2026-04-28.md) (teknis/devops)
+- [Client Integration Runbook](https://github.com/Leavend/SSO_Kali/blob/main/docs/generated/client-integration-rfc7642-runbook-2026-04-28.md) (teknis/devops)
 
 ---
 

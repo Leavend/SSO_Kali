@@ -51,12 +51,11 @@ it('copies docs/developers content in Dockerfile for single-source', function ()
 
     expect($dockerfile)
         ->toContain('COPY docs/developers/')
-        ->toContain('COPY docs/onboarding/client-web-app-onboarding.md')
+        ->toContain('COPY docs/onboarding/')
+        ->toContain('CONTENT_SOURCE_ROOT')
+        ->toContain('sync-content.sh')
         ->toContain('npm run docs:build')
-        ->toContain('nginx:alpine')
-        ->toContain('sed -i') // Link rewrite for VitePress
-        ->toContain('../onboarding/client-web-app-onboarding.md')
-        ->toContain('/onboarding');
+        ->toContain('nginx:alpine');
 });
 
 it('configures admin frontend with docs base URL environment', function (): void {
@@ -91,7 +90,91 @@ it('provides LLM-readable documentation index at llms.txt', function (): void {
         ->toContain('/scopes-and-claims')
         ->toContain('/errors')
         ->toContain('/security-model')
-        ->toContain('/resource-server');
+        ->toContain('/resource-server')
+        ->toContain('/integrations/laravel')
+        ->toContain('/integrations/nextjs')
+        ->toContain('/integrations/vuejs')
+        ->toContain('/integrations/express')
+        ->toContain('/en/')
+        ->toContain('/en/integrations/laravel');
+});
+
+it('publishes framework guides with mandatory S256 and placeholder-only secrets', function (): void {
+    foreach (['', 'en/'] as $locale) {
+        foreach (['laravel', 'nextjs', 'vuejs', 'express'] as $framework) {
+            $guide = docsPublicationFile("docs/developers/{$locale}integrations/{$framework}.md");
+
+            expect($guide)
+                ->toContain('S256')
+                ->not->toMatch('/client_secret\s*[:=]\s*[\'"][^<{][^\'"]{15,}[\'"]/i');
+        }
+    }
+
+    expect(docsPublicationFile('docs/developers/integrations/laravel.md'))
+        ->toContain('confidential client')
+        ->toContain("'client_secret'");
+
+    expect(docsPublicationFile('docs/developers/integrations/express.md'))
+        ->toContain('confidential client')
+        ->toContain('client_secret:');
+
+    expect(docsPublicationFile('docs/developers/integrations/nextjs.md'))
+        ->toContain('confidential BFF')
+        ->toContain('SPA-Only')
+        ->toContain('public client');
+
+    expect(docsPublicationFile('docs/developers/integrations/vuejs.md'))
+        ->toContain('public client')
+        ->toContain('VITE_SSO_CLIENT_SECRET')
+        ->not->toContain('VITE_SSO_CLIENT_SECRET=');
+});
+
+it('keeps English documentation in parity with every registered Indonesian page', function (): void {
+    $developerPages = [
+        'README.md',
+        'api-reference.md',
+        'errors.md',
+        'resource-server.md',
+        'scopes-and-claims.md',
+        'security-model.md',
+        'integrations/laravel.md',
+        'integrations/nextjs.md',
+        'integrations/vuejs.md',
+        'integrations/express.md',
+    ];
+
+    foreach ($developerPages as $page) {
+        expect(docsPublicationPath("docs/developers/{$page}"))->toBeFile()
+            ->and(docsPublicationPath("docs/developers/en/{$page}"))->toBeFile();
+    }
+
+    expect(docsPublicationPath('docs/onboarding/client-web-app-onboarding.md'))->toBeFile()
+        ->and(docsPublicationPath('docs/onboarding/en/client-web-app-onboarding.md'))->toBeFile();
+});
+
+it('configures localized navigation without repository edit links', function (): void {
+    $config = docsPublicationFile('services/sso-docs/.vitepress/config.ts');
+
+    expect($config)
+        ->toContain('locales:')
+        ->toContain("lang: 'id'")
+        ->toContain("lang: 'en'")
+        ->toContain("link: '/en/'")
+        ->toContain('https://github.com/Leavend/SSO_Kali')
+        ->not->toContain('editLink')
+        ->not->toContain('Edit halaman ini di GitHub')
+        ->not->toContain('github.com/leavend/sso-kali');
+});
+
+it('syncs developer and onboarding directories for both locales', function (): void {
+    $script = docsPublicationFile('services/sso-docs/sync-content.sh');
+
+    expect($script)
+        ->toContain('CONTENT_SOURCE_ROOT')
+        ->toContain('developers')
+        ->toContain('onboarding')
+        ->toContain('integrations')
+        ->toContain('en');
 });
 
 it('ensures sso-docs markdown files are git-tracked via gitignore exception', function (): void {
@@ -113,7 +196,12 @@ it('includes sso-docs in the VPS deploy script', function (): void {
 
 function docsPublicationFile(string $relativePath): string
 {
-    $path = dirname(base_path(), 2).DIRECTORY_SEPARATOR.ltrim($relativePath, '/');
+    $path = docsPublicationPath($relativePath);
 
     return (string) file_get_contents($path);
+}
+
+function docsPublicationPath(string $relativePath): string
+{
+    return dirname(base_path(), 2).DIRECTORY_SEPARATOR.ltrim($relativePath, '/');
 }

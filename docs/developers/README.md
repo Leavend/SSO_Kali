@@ -16,6 +16,10 @@ Discovery otoritatif: `https://api-sso.timeh.my.id/.well-known/openid-configurat
 | Error OAuth, `error_ref`, `request_id`, FAQ integrasi | [Errors and FAQ](errors.md) |
 | PKCE wajib, TTL, refresh rotation, rate limit, JWKS | [Security Model](security-model.md) |
 | Validasi access token di API/resource server | [Resource Server Guide](resource-server.md) |
+| Laravel confidential client | [Integrasi Laravel](integrations/laravel.md) |
+| Next.js route-handler BFF | [Integrasi Next.js](integrations/nextjs.md) |
+| Vue.js public SPA | [Integrasi Vue.js](integrations/vuejs.md) |
+| Express confidential client | [Integrasi Express](integrations/express.md) |
 
 ## Flow Authorization Code + PKCE
 

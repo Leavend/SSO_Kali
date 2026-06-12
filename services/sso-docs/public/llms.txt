@@ -1,25 +1,44 @@
 # Dev-SSO Developer Docs - LLM Index
 
-This file provides a machine-readable index of all documentation pages for LLMs.
+Machine-readable index for the Indonesian and English documentation.
 
 ## Base URL
 https://docs.sso.timeh.my.id
 
-## Pages
+## Bahasa Indonesia
 
-- / - Developer Documentation Overview - Landing page with quick start guide and feature overview
-- /onboarding - Client Web App Onboarding - Step-by-step guide to register and integrate a new OAuth/OIDC client
-- /api-reference - API Reference - Complete endpoint documentation for OAuth 2.0 and OpenID Connect flows
-- /scopes-and-claims - Scopes and Claims - Available OAuth scopes and the claims returned in tokens
-- /errors - Errors and FAQ - Common OAuth errors, error codes, and troubleshooting FAQ
-- /security-model - Security Model - PKCE requirements, token signing, refresh rotation, and security best practices
-- /resource-server - Resource Server Guide - How to validate access tokens and protect API endpoints
+- / - Overview and quick start
+- /onboarding - Client web application onboarding
+- /integrations/laravel - Laravel confidential client integration
+- /integrations/nextjs - Recommended Next.js confidential BFF integration
+- /integrations/vuejs - Vue.js public SPA integration
+- /integrations/express - Express confidential client integration
+- /api-reference - OAuth 2.0 and OpenID Connect endpoint reference
+- /scopes-and-claims - Scope and token claim catalog
+- /errors - Error reference and troubleshooting
+- /security-model - PKCE, token, and client security policy
+- /resource-server - Access token validation guide
+
+## English
+
+- /en/ - Overview and quick start
+- /en/onboarding - Client web application onboarding
+- /en/integrations/laravel - Laravel confidential client integration
+- /en/integrations/nextjs - Recommended Next.js confidential BFF integration
+- /en/integrations/vuejs - Vue.js public SPA integration
+- /en/integrations/express - Express confidential client integration
+- /en/api-reference - OAuth 2.0 and OpenID Connect endpoint reference
+- /en/scopes-and-claims - Scope and token claim catalog
+- /en/errors - Error reference and troubleshooting
+- /en/security-model - PKCE, token, and client security policy
+- /en/resource-server - Access token validation guide
 
 ## Key Information
 
 - Issuer: https://api-sso.timeh.my.id
 - Discovery: https://api-sso.timeh.my.id/.well-known/openid-configuration
 - JWKS: https://api-sso.timeh.my.id/.well-known/jwks.json
-- PKCE S256 is mandatory for all clients
-- ES256 signing algorithm for all JWTs
+- PKCE S256 is mandatory for every client
+- Confidential clients authenticate at token, refresh, and revocation endpoints
+- ES256 signing algorithm for JWTs
 - Access token audience: sso-resource-api
