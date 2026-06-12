@@ -55,6 +55,12 @@ describe('admin BFF serving contract', () => {
   })
 
   it('keeps anonymous production smoke strict enough to detect JSON BFF responses', () => {
+    expect(deployWorkflow).toContain('admin_url="https://${admin_authority%/}"')
+    expect(deployWorkflow).toContain('[ "$health_status" = "200" ] && break')
+    expect(deployWorkflow).toContain('[ "$http_health_status" != "200" ]')
+    expect(deployWorkflow).not.toContain(
+      'curl -fsS --max-time 20 "${admin_url%/}/healthz" >/dev/null',
+    )
     expect(deployWorkflow).toContain('/api/admin/me')
     expect(deployWorkflow).toContain('expected anonymous /api/admin/me to return 401 JSON')
     expect(deployWorkflow).toContain('^content-type: application/json')

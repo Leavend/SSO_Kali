@@ -515,11 +515,30 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          admin_url="${{ vars.SSO_ADMIN_FRONTEND_URL || 'https://admin-sso.timeh.my.id' }}"
-          # Try HTTPS first; fallback to HTTP for HTTP-only (no cert) setups
-          if ! curl -fsS --max-time 20 "${admin_url%/}/healthz" >/dev/null 2>&1; then
-            admin_url="http://admin-sso.timeh.my.id"
-            curl -fsS --max-time 20 "${admin_url%/}/healthz" >/dev/null
+          configured_admin_url="${{ vars.SSO_ADMIN_FRONTEND_URL || 'https://admin-sso.timeh.my.id' }}"
+          admin_authority="${configured_admin_url#*://}"
+          admin_url="https://${admin_authority%/}"
+          health_status="000"
+
+          # Give the canonical HTTPS route time to settle after the container and
+          # nginx configuration are replaced. Only an exact 200 is healthy; curl
+          # otherwise treats a redirect from HTTP to HTTPS as a successful probe.
+          for attempt in 1 2 3 4 5 6; do
+            health_status="$(curl -sS --max-time 20 -o /dev/null -w '%{http_code}' \
+              "${admin_url}/healthz" 2>/dev/null || true)"
+            [ "$health_status" = "200" ] && break
+            sleep $((attempt * 2))
+          done
+
+          if [ "$health_status" != "200" ]; then
+            http_admin_url="http://${admin_authority%/}"
+            http_health_status="$(curl -sS --max-time 20 -o /dev/null -w '%{http_code}' \
+              "${http_admin_url}/healthz" 2>/dev/null || true)"
+            if [ "$http_health_status" != "200" ]; then
+              echo "admin health check failed: HTTPS=$health_status HTTP=$http_health_status" >&2
+              exit 1
+            fi
+            admin_url="$http_admin_url"
           fi
           root_headers_file="$(mktemp)"
           root_body_file="$(mktemp)"
