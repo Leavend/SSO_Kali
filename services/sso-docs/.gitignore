@@ -2,10 +2,6 @@ node_modules
 .vitepress/dist
 .vitepress/cache
 # Synced content (generated from docs/developers/ and docs/onboarding/)
-api-reference.md
-scopes-and-claims.md
-errors.md
-security-model.md
-resource-server.md
-onboarding.md
-index.md
+/*.md
+/integrations/
+/en/

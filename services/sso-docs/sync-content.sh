@@ -1,33 +1,61 @@
 #!/usr/bin/env bash
-# Sync content from repo root for local development
-# This script copies markdown files from docs/ to the VitePress root
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+CONTENT_SOURCE_ROOT="${CONTENT_SOURCE_ROOT:-${PROJECT_ROOT}/docs}"
+DEVELOPERS_SOURCE="${CONTENT_SOURCE_ROOT}/developers"
+ONBOARDING_SOURCE="${CONTENT_SOURCE_ROOT}/onboarding"
 
 log() {
   printf '[sync-content] %s\n' "$*"
 }
 
-log "Syncing content from ${PROJECT_ROOT}/docs/developers/ to VitePress root"
+require_directory() {
+  if [ ! -d "$1" ]; then
+    printf '[sync-content] missing source directory: %s\n' "$1" >&2
+    exit 1
+  fi
+}
 
-# Sync developer docs directly to root (VitePress expects markdown at root)
-log "Syncing docs/developers/*.md to root"
-cp "${PROJECT_ROOT}/docs/developers/api-reference.md" "${SCRIPT_DIR}/api-reference.md"
-cp "${PROJECT_ROOT}/docs/developers/scopes-and-claims.md" "${SCRIPT_DIR}/scopes-and-claims.md"
-cp "${PROJECT_ROOT}/docs/developers/errors.md" "${SCRIPT_DIR}/errors.md"
-cp "${PROJECT_ROOT}/docs/developers/security-model.md" "${SCRIPT_DIR}/security-model.md"
-cp "${PROJECT_ROOT}/docs/developers/resource-server.md" "${SCRIPT_DIR}/resource-server.md"
+rewrite_onboarding_link() {
+  local file="$1"
+  local target="$2"
+  local temporary
 
-# Sync onboarding
-log "Syncing docs/onboarding/client-web-app-onboarding.md"
-cp "${PROJECT_ROOT}/docs/onboarding/client-web-app-onboarding.md" "${SCRIPT_DIR}/onboarding.md"
+  temporary="$(mktemp)"
+  sed \
+    -e "s|](../onboarding/client-web-app-onboarding.md)|](${target})|g" \
+    -e "s|](../../onboarding/en/client-web-app-onboarding.md)|](${target})|g" \
+    "${file}" > "${temporary}"
+  mv "${temporary}" "${file}"
+}
 
-# Copy README and rewrite the onboarding link for VitePress
-log "Copying README.md as index.md with link rewrite"
-cp "${PROJECT_ROOT}/docs/developers/README.md" "${SCRIPT_DIR}/index.md"
-sed -i '' 's|\](../onboarding/client-web-app-onboarding.md)|](/onboarding)|g' "${SCRIPT_DIR}/index.md"
+require_directory "${DEVELOPERS_SOURCE}"
+require_directory "${ONBOARDING_SOURCE}"
 
-log "Content sync complete!"
+log "Removing previously generated documentation"
+rm -f \
+  "${SCRIPT_DIR}/index.md" \
+  "${SCRIPT_DIR}/api-reference.md" \
+  "${SCRIPT_DIR}/errors.md" \
+  "${SCRIPT_DIR}/resource-server.md" \
+  "${SCRIPT_DIR}/scopes-and-claims.md" \
+  "${SCRIPT_DIR}/security-model.md" \
+  "${SCRIPT_DIR}/onboarding.md"
+rm -rf "${SCRIPT_DIR}/integrations" "${SCRIPT_DIR}/en"
+
+log "Copying the complete developer documentation tree"
+cp -R "${DEVELOPERS_SOURCE}/." "${SCRIPT_DIR}/"
+mv "${SCRIPT_DIR}/README.md" "${SCRIPT_DIR}/index.md"
+rewrite_onboarding_link "${SCRIPT_DIR}/index.md" '/onboarding'
+
+log "Mapping localized onboarding pages"
+cp "${ONBOARDING_SOURCE}/client-web-app-onboarding.md" "${SCRIPT_DIR}/onboarding.md"
+mkdir -p "${SCRIPT_DIR}/en"
+cp "${ONBOARDING_SOURCE}/en/client-web-app-onboarding.md" "${SCRIPT_DIR}/en/onboarding.md"
+mv "${SCRIPT_DIR}/en/README.md" "${SCRIPT_DIR}/en/index.md"
+rewrite_onboarding_link "${SCRIPT_DIR}/en/index.md" '/en/onboarding'
+
+log "Content sync complete"
