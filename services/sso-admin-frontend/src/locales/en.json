@@ -228,6 +228,8 @@
     "label_given_name": "Given name",
     "label_family_name": "Family name",
     "label_role": "Role",
+    "role_user": "User (Standard Access)",
+    "role_admin": "Administrator (Full Control)",
     "label_password": "Password (optional)",
     "label_password_helper": "Leave blank to send an activation/reset link to the user's email.",
     "label_local_account": "Local account enabled",

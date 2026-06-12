@@ -139,10 +139,10 @@ const createFamilyName = ref('')
 const createRole = ref<'admin' | 'user'>('user')
 const createPassword = ref('')
 const createLocalAccountEnabled = ref(true)
-const createRoleOptions = [
-  { value: 'user', label: 'user' },
-  { value: 'admin', label: 'admin' },
-] as const
+const createRoleOptions = computed(() => [
+  { value: 'user', label: t('users.role_user') || 'User' },
+  { value: 'admin', label: t('users.role_admin') || 'Administrator' },
+])
 
 const isDisplayNameManuallyEdited = ref(false)
 

@@ -228,6 +228,8 @@
     "label_given_name": "Nama Depan",
     "label_family_name": "Nama Belakang",
     "label_role": "Peran",
+    "role_user": "User (Akses Standar)",
+    "role_admin": "Administrator (Kontrol Penuh)",
     "label_password": "Password (opsional)",
     "label_password_helper": "Kosongkan untuk mengirim link aktivasi/reset ke email user.",
     "label_local_account": "Local account aktif",
