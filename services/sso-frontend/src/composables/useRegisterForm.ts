@@ -24,6 +24,7 @@ import { passwordStrengthHints } from '@/lib/auth/password-policy'
 import { translateRegisterViolation } from '@/lib/auth/register-violations'
 import { useAuthSteps, type UseAuthStepsApi } from '@/composables/useAuthSteps'
 import { useRateLimitNotice } from '@/composables/useRateLimitNotice'
+import { useI18n } from '@/composables/useI18n'
 
 export type RegisterStepId = 'email' | 'password' | 'confirm'
 
@@ -53,22 +54,10 @@ export interface UseRegisterFormReturn {
 
 const REDIRECT_DELAY_MS = 3000
 
-const HEADLINES: Readonly<Record<RegisterStepId, string>> = {
-  email: 'Get started with Dev-SSO',
-  password: 'Buat password baru',
-  confirm: 'Satu langkah terakhir',
-}
-
-const TAGLINES: Readonly<Record<RegisterStepId, string>> = {
-  email: 'Buat akun untuk mengakses semua aplikasi internal dengan satu identitas.',
-  password:
-    'Minimal 12 karakter dengan huruf besar, huruf kecil, angka, karakter spesial, dan tidak pernah muncul dalam kebocoran data.',
-  confirm: 'Konfirmasi password dan masukkan nama lengkapmu.',
-}
-
 export function useRegisterForm(): UseRegisterFormReturn {
   const router = useRouter()
   const rateLimitNotice = useRateLimitNotice()
+  const { t } = useI18n()
 
   const form = reactive<RegisterForm>({
     name: '',
@@ -110,19 +99,19 @@ export function useRegisterForm(): UseRegisterFormReturn {
     },
   ])
 
-  const headline = computed<string>(() => HEADLINES[steps.current.value])
-  const tagline = computed<string>(() => TAGLINES[steps.current.value])
+  const headline = computed<string>(() => t(`auth.register.headline_${steps.current.value}`))
+  const tagline = computed<string>(() => t(`auth.register.tagline_${steps.current.value}`))
 
   function validateFinalStep(): boolean {
     const errors: Record<string, string> = {}
-    if (form.name.trim().length === 0) errors.name = 'Nama lengkap wajib diisi.'
-    if (!isEmailFormatted.value) errors.email = 'Email wajib diisi.'
+    if (form.name.trim().length === 0) errors.name = t('auth.register.name_required')
+    if (!isEmailFormatted.value) errors.email = t('auth.register.email_required')
     if (passwordHints.value.length > 0) {
       errors.password =
-        'Password belum memenuhi kebijakan keamanan: ' + passwordHints.value.join(', ') + '.'
+        t('auth.register.password_policy_error', { items: passwordHints.value.join(', ') })
     }
     if (form.password !== form.password_confirmation) {
-      errors.password_confirmation = 'Konfirmasi password tidak cocok.'
+      errors.password_confirmation = t('auth.register.password_mismatch')
     }
     fieldErrors.value = errors
     return Object.keys(errors).length === 0
@@ -140,7 +129,7 @@ export function useRegisterForm(): UseRegisterFormReturn {
       acc[violation.field] = translateRegisterViolation(violation.message)
       return acc
     }, {})
-    bannerError.value = presentSafeError(error, 'Data tidak valid.').message
+    bannerError.value = presentSafeError(error, t('auth.register.invalid_data')).message
     if (fieldErrors.value.email) steps.goTo('email')
     else if (fieldErrors.value.password) steps.goTo('password')
   }
@@ -158,11 +147,11 @@ export function useRegisterForm(): UseRegisterFormReturn {
       }
       bannerError.value = presentSafeError(
         error,
-        'Gagal mendaftarkan akun. Coba lagi beberapa saat.',
+        t('auth.register.failure'),
       ).message
       return
     }
-    bannerError.value = 'Gagal mendaftarkan akun. Coba lagi beberapa saat.'
+    bannerError.value = t('auth.register.failure')
   }
 
   async function submit(): Promise<void> {
@@ -177,7 +166,7 @@ export function useRegisterForm(): UseRegisterFormReturn {
         password: form.password,
         password_confirmation: form.password_confirmation,
       })
-      bannerSuccess.value = 'Akun berhasil dibuat! Silakan login dengan kredensial baru kamu.'
+      bannerSuccess.value = t('auth.register.success')
       resetForm()
       setTimeout(() => {
         void router.push({ name: 'auth.login' })

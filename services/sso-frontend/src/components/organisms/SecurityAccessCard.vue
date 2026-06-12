@@ -11,7 +11,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { permissionDescription } from '@/lib/portal-security'
 import { resolveScopeList } from '@/lib/oidc/scope-labels'
 import type { ScopeDescriptor } from '@/lib/oidc/scope-labels'
+import { useI18n } from '@/composables/useI18n'
 
+const { t } = useI18n()
 interface Props {
   roles: readonly string[]
   permissions: readonly string[]
@@ -38,28 +40,26 @@ function tooltipKey(prefix: string, value: string): string {
 <template>
   <Card>
     <CardHeader>
-      <CardTitle class="text-base font-semibold">Hak Akses</CardTitle>
-      <CardDescription>
-        Peran, izin, dan cakupan akses yang ditetapkan oleh administrator untuk akun kamu.
-      </CardDescription>
+      <CardTitle class="text-base font-semibold">{{ t('portal.access.title') }}</CardTitle>
+      <CardDescription>{{ t('portal.access.description') }}</CardDescription>
     </CardHeader>
     <CardContent class="grid min-w-0 gap-4 lg:grid-cols-3">
       <div class="grid min-w-0 gap-1.5">
         <span class="text-muted-foreground text-[11px] font-medium uppercase tracking-wider"
-          >Peran</span
+          >{{ t('portal.access.roles') }}</span
         >
         <div class="flex min-w-0 flex-wrap gap-1.5">
           <Badge v-for="role in props.roles" :key="role" variant="default" class="max-w-full text-xs">
             {{ role }}
           </Badge>
           <span v-if="props.roles.length === 0" class="text-muted-foreground text-xs italic">
-            Tidak ada peran.
+            {{ t('portal.access.no_roles') }}
           </span>
         </div>
       </div>
       <div class="grid min-w-0 gap-1.5">
         <span class="text-muted-foreground text-[11px] font-medium uppercase tracking-wider"
-          >Izin</span
+          >{{ t('portal.access.permissions') }}</span
         >
         <div class="grid min-w-0 gap-2">
           <div
@@ -76,7 +76,12 @@ function tooltipKey(prefix: string, value: string): string {
                 size="icon"
                 :data-testid="tooltipKey('permission-info', permission)"
                 class="text-muted-foreground size-6 shrink-0 rounded-full hover:text-foreground"
-                :aria-label="`Info izin ${permission}: ${permissionDescription(permission)}`"
+                :aria-label="
+                  t('portal.access.permission_info', {
+                    permission,
+                    description: permissionDescription(permission),
+                  })
+                "
                 :aria-describedby="tooltipKey('permission-tooltip', permission)"
               >
                 <Info class="size-3.5" aria-hidden="true" />
@@ -92,13 +97,13 @@ function tooltipKey(prefix: string, value: string): string {
             </span>
           </div>
           <span v-if="props.permissions.length === 0" class="text-muted-foreground text-xs italic">
-            Tidak ada izin khusus.
+            {{ t('portal.access.no_permissions') }}
           </span>
         </div>
       </div>
       <div class="grid min-w-0 gap-1.5">
         <span class="text-muted-foreground text-[11px] font-medium uppercase tracking-wider"
-          >Cakupan Akses</span
+          >{{ t('portal.access.scopes') }}</span
         >
         <div class="grid min-w-0 gap-2">
           <div
@@ -114,7 +119,7 @@ function tooltipKey(prefix: string, value: string): string {
                 variant="destructive"
                 class="text-[10px]"
               >
-                {{ scope.statusLabel ?? 'Belum Diverifikasi' }}
+                {{ scope.statusLabel ?? t('portal.access.unverified') }}
               </Badge>
               <code class="text-muted-foreground min-w-0 font-mono text-[11px] break-all">{{ scope.name }}</code>
               <Button
@@ -123,7 +128,12 @@ function tooltipKey(prefix: string, value: string): string {
                 size="icon"
                 :data-testid="tooltipKey('scope-info', scope.name)"
                 class="text-muted-foreground size-6 shrink-0 rounded-full hover:text-foreground"
-                :aria-label="`Info cakupan ${scope.name}: ${scope.description}`"
+                :aria-label="
+                  t('portal.access.scope_info', {
+                    scope: scope.name,
+                    description: scope.description,
+                  })
+                "
                 :aria-describedby="tooltipKey('scope-tooltip', scope.name)"
               >
                 <Info class="size-3.5" aria-hidden="true" />
@@ -139,7 +149,7 @@ function tooltipKey(prefix: string, value: string): string {
             </span>
           </div>
           <span v-if="resolvedScopes.length === 0" class="text-muted-foreground text-xs italic">
-            Tidak ada cakupan akses.
+            {{ t('portal.access.no_scopes') }}
           </span>
         </div>
       </div>

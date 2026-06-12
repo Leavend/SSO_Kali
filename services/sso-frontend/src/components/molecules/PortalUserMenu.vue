@@ -12,7 +12,9 @@ import ConfirmDialog from '@/components/molecules/ConfirmDialog.vue'
 import { useSessionStore } from '@/stores/session.store'
 import { useAuthRedirect } from '@/composables/useAuthRedirect'
 import { cn } from '@/lib/utils'
+import { useI18n } from '@/composables/useI18n'
 
+const { t } = useI18n()
 const props = withDefaults(
   defineProps<{
     compact?: boolean
@@ -53,7 +55,7 @@ async function confirmLogout(): Promise<void> {
       />
       <div class="portal-account-identity hidden text-xs leading-tight sm:flex sm:flex-col">
         <strong class="font-semibold text-[var(--text-primary)]">{{
-          session.user?.display_name ?? 'Pengguna'
+          session.user?.display_name ?? t('portal.home.user_fallback')
         }}</strong>
         <span class="text-[var(--text-secondary)]">{{ session.user?.email ?? '' }}</span>
       </div>
@@ -73,7 +75,7 @@ async function confirmLogout(): Promise<void> {
     <Button
       variant="outline"
       size="icon"
-      aria-label="Keluar"
+      :aria-label="t('portal.account.logout')"
       class="portal-nav-pill relative isolate overflow-hidden rounded-full"
       :disabled="isLoggingOut"
       @click="askLogout"
@@ -83,9 +85,9 @@ async function confirmLogout(): Promise<void> {
 
     <ConfirmDialog
       v-model:open="showLogoutDialog"
-      title="Keluar dari portal?"
-      description="Sesi di perangkat ini akan berakhir. Kamu harus login ulang untuk mengakses portal."
-      confirm-label="Keluar"
+      :title="t('portal.account.logout_title')"
+      :description="t('portal.account.logout_description')"
+      :confirm-label="t('portal.account.logout')"
       destructive
       @confirm="confirmLogout"
     />

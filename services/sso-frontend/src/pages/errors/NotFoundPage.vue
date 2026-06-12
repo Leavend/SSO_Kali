@@ -7,6 +7,9 @@
 
 import { ArrowLeft, Home } from 'lucide-vue-next'
 import SsoGlassButton from '@/components/atoms/SsoGlassButton.vue'
+import { useI18n } from '@/composables/useI18n'
+
+const { t } = useI18n()
 </script>
 
 <template>
@@ -20,8 +23,7 @@ import SsoGlassButton from '@/components/atoms/SsoGlassButton.vue'
         404
       </h1>
       <p class="max-w-sm text-sm font-medium leading-relaxed text-muted-foreground">
-        Halaman yang kamu cari tidak terdaftar di portal. Kembali ke beranda atau halaman masuk
-        untuk melanjutkan.
+        {{ t('errors.not_found_description_long') }}
       </p>
     </header>
 
@@ -30,13 +32,13 @@ import SsoGlassButton from '@/components/atoms/SsoGlassButton.vue'
         <template #leading>
           <Home class="size-4" aria-hidden="true" />
         </template>
-        Beranda
+        {{ t('errors.go_home') }}
       </SsoGlassButton>
       <SsoGlassButton variant="glass" size="fullWidth" @click="$router.push('/')">
         <template #leading>
           <ArrowLeft class="size-4" aria-hidden="true" />
         </template>
-        Halaman masuk
+        {{ t('errors.go_login') }}
       </SsoGlassButton>
     </div>
   </section>

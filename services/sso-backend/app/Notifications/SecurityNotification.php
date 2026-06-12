@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Notifications;
 
+use Carbon\CarbonInterface;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\Carbon;
 
 /**
  * FR-020 / UC-71: Base class for security notifications.
@@ -22,8 +24,9 @@ abstract class SecurityNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    public function __construct()
-    {
+    public function __construct(
+        protected readonly string $notificationLocale = 'id',
+    ) {
         $this->onQueue('notifications');
     }
 
@@ -53,9 +56,9 @@ abstract class SecurityNotification extends Notification implements ShouldQueue
     /**
      * Helper: create a base mail message with consistent branding.
      */
-    protected function baseMail(): MailMessage
+    protected function baseMail(object $notifiable): MailMessage
     {
-        $appName = config('app.name', 'SSO');
+        $appName = config('app.name', 'Dev-SSO');
         $mail = new MailMessage;
 
         $fromAddress = config('security-notifications.from_address', config('mail.from.address'));
@@ -67,6 +70,37 @@ abstract class SecurityNotification extends Notification implements ShouldQueue
             );
         }
 
-        return $mail;
+        return $mail
+            ->theme('devsso')
+            ->greeting($this->greeting($notifiable))
+            ->salutation('Salam, Tim Keamanan Dev-SSO');
+    }
+
+    protected function greeting(object $notifiable): string
+    {
+        $displayName = data_get($notifiable, 'display_name');
+
+        return is_string($displayName) && trim($displayName) !== ''
+            ? 'Halo, '.trim($displayName)
+            : 'Halo,';
+    }
+
+    protected function formatDateTime(CarbonInterface|int $value): string
+    {
+        $date = is_int($value)
+            ? Carbon::createFromTimestamp($value)
+            : Carbon::instance($value);
+
+        $date = $date
+            ->copy()
+            ->locale($this->notificationLocale)
+            ->setTimezone((string) config('sso.display_timezone', 'Asia/Makassar'));
+
+        return $date->translatedFormat('j F Y, H.i').' '.$date->format('T');
+    }
+
+    protected function frontendUrl(string $path): string
+    {
+        return rtrim((string) config('sso.frontend_url'), '/').'/'.ltrim($path, '/');
     }
 }

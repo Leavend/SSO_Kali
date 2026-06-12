@@ -32,6 +32,7 @@ return [
     */
     'from_address' => env('SECURITY_NOTIFICATIONS_FROM_ADDRESS'),
     'from_name' => env('SECURITY_NOTIFICATIONS_FROM_NAME'),
+    'support_address' => env('SECURITY_NOTIFICATIONS_SUPPORT_ADDRESS', env('MAIL_FROM_ADDRESS')),
 
     /*
     |--------------------------------------------------------------------------

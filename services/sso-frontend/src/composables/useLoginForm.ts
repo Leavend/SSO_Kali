@@ -15,12 +15,7 @@ import { adminFrontendUrlForTarget, isAdminFrontendTarget } from '@/lib/admin-fr
 import { useSessionStore } from '@/stores/session.store'
 import { useMfaChallengeStore } from '@/stores/mfa-challenge.store'
 import type { SsoLoginResponse } from '@/types/auth.types'
-
-const GENERIC_FAILURE_MESSAGE = 'Email atau password yang kamu masukkan salah. Silakan coba lagi.'
-const UNEXPECTED_FAILURE_MESSAGE = 'Gagal memproses login. Coba lagi beberapa saat.'
-const LOCKED_OR_DISABLED_MESSAGE =
-  'Akun tidak dapat digunakan untuk masuk saat ini. Hubungi administrator jika kamu membutuhkan bantuan.'
-const RATE_LIMIT_MESSAGE = 'Terlalu banyak percobaan login. Coba lagi dalam {seconds} detik.'
+import { useI18n } from '@/composables/useI18n'
 
 /**
  * FE-FR022-001 / FR-022 — password lifecycle:
@@ -28,26 +23,16 @@ const RATE_LIMIT_MESSAGE = 'Terlalu banyak percobaan login. Coba lagi dalam {sec
  *     primary CTA pointing to the credential lifecycle (change password)
  *     flow. The technical `error_description` is dropped on the floor.
  */
-const PASSWORD_EXPIRED_MESSAGE =
-  'Password kamu telah kedaluwarsa. Ubah password sebelum melanjutkan login.'
-const PASSWORD_EXPIRED_CTA_LABEL = 'Ubah Password'
 const PASSWORD_EXPIRED_CTA_HREF = '/security'
-const MFA_REENROLL_MESSAGE =
-  'Akun kamu telah direset oleh admin. Aktifkan kembali autentikasi multi-faktor (MFA) sebelum melanjutkan.'
 
-/** Map common backend English error messages to Indonesian. */
+/** Map common backend messages to locale keys without exposing raw backend copy. */
 const ERROR_TRANSLATIONS: Record<string, string> = {
-  'The supplied credentials are invalid.': 'Email atau password yang kamu masukkan salah.',
-  'These credentials do not match our records.': 'Email atau password yang kamu masukkan salah.',
-  'Too many login attempts. Please try again later.':
-    'Terlalu banyak percobaan login. Coba lagi nanti.',
-  'The provided credentials are incorrect.': 'Email atau password yang kamu masukkan salah.',
-  'Your account has been disabled.': 'Akun kamu telah dinonaktifkan. Hubungi administrator.',
-  'Invalid credentials.': 'Email atau password yang kamu masukkan salah.',
-}
-
-function translateError(message: string): string {
-  return ERROR_TRANSLATIONS[message] ?? message
+  'The supplied credentials are invalid.': 'auth.login.error_credentials',
+  'These credentials do not match our records.': 'auth.login.error_credentials',
+  'Too many login attempts. Please try again later.': 'auth.login.error_rate_limit_later',
+  'The provided credentials are incorrect.': 'auth.login.error_credentials',
+  'Your account has been disabled.': 'auth.login.error_disabled',
+  'Invalid credentials.': 'auth.login.error_credentials',
 }
 
 export type LoginAdvisoryAction = {
@@ -77,6 +62,12 @@ export function useLoginForm(): UseLoginFormReturn {
   const router = useRouter()
   const session = useSessionStore()
   const mfaChallengeStore = useMfaChallengeStore()
+  const { t } = useI18n()
+
+  function translateError(message: string): string {
+    const key = ERROR_TRANSLATIONS[message]
+    return key ? t(key) : message
+  }
 
   const form = reactive<LoginFormState>({
     identifier: '',
@@ -140,7 +131,7 @@ export function useLoginForm(): UseLoginFormReturn {
     }
 
     if (!response.authenticated) {
-      bannerError.value = GENERIC_FAILURE_MESSAGE
+      bannerError.value = t('auth.login.error_generic')
       return
     }
 
@@ -167,7 +158,7 @@ export function useLoginForm(): UseLoginFormReturn {
       return
     }
 
-    bannerError.value = UNEXPECTED_FAILURE_MESSAGE
+    bannerError.value = t('auth.login.error_unexpected')
   }
 
   function applyStructuredLoginError(error: ApiError): void {
@@ -178,9 +169,9 @@ export function useLoginForm(): UseLoginFormReturn {
 
     // FE-FR022-001 — password_expired (BE returns 403 with code).
     if (error.status === 403 && error.code === 'password_expired') {
-      bannerError.value = PASSWORD_EXPIRED_MESSAGE
+      bannerError.value = t('auth.login.password_expired')
       advisoryAction.value = {
-        label: PASSWORD_EXPIRED_CTA_LABEL,
+        label: t('auth.login.change_password'),
         href: PASSWORD_EXPIRED_CTA_HREF,
       }
       return
@@ -188,21 +179,21 @@ export function useLoginForm(): UseLoginFormReturn {
 
     // BE-FR020-001 — lost-factor recovery (admin reset MFA).
     if (error.status === 403 && error.code === 'mfa_reenrollment_required') {
-      bannerError.value = MFA_REENROLL_MESSAGE
+      bannerError.value = t('auth.login.mfa_reenroll')
       advisoryAction.value = {
-        label: 'Aktifkan MFA',
+        label: t('portal.mfa.enable'),
         href: '/security/mfa',
       }
       return
     }
 
     if (error.status === 423 || error.status === 403) {
-      bannerError.value = LOCKED_OR_DISABLED_MESSAGE
+      bannerError.value = t('auth.login.error_locked')
       return
     }
 
     if (error.status === 401) {
-      bannerError.value = GENERIC_FAILURE_MESSAGE
+      bannerError.value = t('auth.login.error_generic')
       return
     }
 
@@ -226,12 +217,12 @@ export function useLoginForm(): UseLoginFormReturn {
   function updateRateLimitMessage(): void {
     bannerError.value =
       retryAfterSeconds.value > 0
-        ? RATE_LIMIT_MESSAGE.replace('{seconds}', retryAfterSeconds.value.toString())
+        ? t('auth.login.error_rate_limit', { seconds: retryAfterSeconds.value })
         : null
   }
 
   function safeLoginErrorMessage(error: ApiError): string {
-    if (error.status >= 500 || error.status === 0) return UNEXPECTED_FAILURE_MESSAGE
+    if (error.status >= 500 || error.status === 0) return t('auth.login.error_unexpected')
     return translateError(error.message)
   }
 

@@ -12,7 +12,9 @@ import { ShieldCheck, ShieldOff } from 'lucide-vue-next'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useI18n } from '@/composables/useI18n'
 
+const { t, locale } = useI18n()
 defineProps<{
   enrolled: boolean
   pending: boolean
@@ -36,10 +38,16 @@ const emit = defineEmits<{
         <CardTitle class="text-sm font-semibold">Multi-Factor Authentication</CardTitle>
         <CardDescription class="flex items-center gap-2">
           <Badge :variant="enrolled ? 'default' : 'secondary'" class="text-[10px]">
-            {{ enrolled ? 'Aktif' : 'Belum diaktifkan' }}
+            {{ enrolled ? t('common.active') : t('common.not_enabled') }}
           </Badge>
           <span v-if="enrolled && lastVerifiedAt" class="text-muted-foreground text-[10px]">
-            Diverifikasi: {{ new Date(lastVerifiedAt).toLocaleDateString('id-ID') }}
+            {{
+              t('portal.mfa.verified_at', {
+                date: new Date(lastVerifiedAt).toLocaleDateString(
+                  locale === 'id' ? 'id-ID' : 'en-US',
+                ),
+              })
+            }}
           </span>
         </CardDescription>
       </div>
@@ -47,14 +55,12 @@ const emit = defineEmits<{
     <CardContent class="grid gap-3">
       <p class="text-muted-foreground text-xs">
         {{
-          enrolled
-            ? 'Akun kamu dilindungi dengan verifikasi dua langkah menggunakan aplikasi autentikasi.'
-            : 'Aktifkan MFA untuk menambahkan lapisan keamanan ekstra pada akun kamu.'
+          enrolled ? t('portal.mfa.enabled_description') : t('portal.mfa.disabled_description')
         }}
       </p>
       <Button v-if="!enrolled" size="sm" class="w-fit" :disabled="pending" @click="emit('enable')">
         <ShieldCheck class="size-4" />
-        Aktifkan MFA
+        {{ t('portal.mfa.enable') }}
       </Button>
       <Button
         v-else
@@ -65,7 +71,7 @@ const emit = defineEmits<{
         @click="emit('disable')"
       >
         <ShieldOff class="size-4" />
-        Nonaktifkan MFA
+        {{ t('portal.mfa.disable') }}
       </Button>
     </CardContent>
   </Card>

@@ -11,7 +11,9 @@
 import { ref } from 'vue'
 import MfaTotpInput from '@/components/mfa/MfaTotpInput.vue'
 import { Button } from '@/components/ui/button'
+import { useI18n } from '@/composables/useI18n'
 
+const { t } = useI18n()
 defineProps<{
   pending: boolean
   error: string | null
@@ -39,9 +41,9 @@ function handleSubmit(): void {
 <template>
   <div class="grid gap-4">
     <div class="grid gap-2 text-center">
-      <h3 class="text-sm font-semibold">Verifikasi Kode</h3>
+      <h3 class="text-sm font-semibold">{{ t('portal.mfa.verify_code') }}</h3>
       <p class="text-muted-foreground text-xs">
-        Masukkan kode 6 digit dari aplikasi autentikasi untuk mengonfirmasi pendaftaran.
+        {{ t('portal.mfa.verify_description') }}
       </p>
     </div>
 
@@ -53,7 +55,7 @@ function handleSubmit(): void {
       </p>
 
       <Button type="submit" size="sm" class="w-full" :disabled="pending || code.length < 6">
-        {{ pending ? 'Memverifikasi...' : 'Verifikasi' }}
+        {{ pending ? t('common.verifying') : t('common.verify') }}
       </Button>
     </form>
   </div>

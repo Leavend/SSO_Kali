@@ -26,7 +26,9 @@ import RegisterEmailStep from '@/components/molecules/RegisterEmailStep.vue'
 import RegisterPasswordStep from '@/components/molecules/RegisterPasswordStep.vue'
 import SsoAlertBanner from '@/components/molecules/SsoAlertBanner.vue'
 import { useRegisterForm } from '@/composables/useRegisterForm'
+import { useI18n } from '@/composables/useI18n'
 
+const { t } = useI18n()
 const {
   form,
   pending,
@@ -107,12 +109,12 @@ const {
     </form>
 
     <p class="text-center text-sm text-muted-foreground">
-      Sudah punya akun?
+      {{ t('auth.register.have_account') }}
       <RouterLink
         :to="{ name: 'auth.login' }"
         class="ml-1 font-medium text-foreground underline-offset-4 hover:underline"
       >
-        Masuk
+        {{ t('auth.login.submit') }}
       </RouterLink>
     </p>
   </section>

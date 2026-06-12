@@ -18,24 +18,21 @@ final class RefreshTokenReuseDetectedNotification extends SecurityNotification
 {
     public function __construct(
         private readonly string $clientId,
+        string $locale = 'id',
     ) {
-        parent::__construct();
+        parent::__construct($locale);
     }
 
     public function toMail(object $notifiable): MailMessage
     {
-        $appName = (string) config('app.name', 'SSO');
-        $subject = "Aktivitas Mencurigakan Terdeteksi — {$appName}";
-
-        return $this->baseMail()
-            ->subject($subject)
-            ->greeting('Halo!')
+        return $this->baseMail($notifiable)
+            ->subject('Peringatan Keamanan: Penggunaan Ulang Token Terdeteksi')
             ->line(sprintf(
                 'Sistem mendeteksi penggunaan ulang refresh token untuk aplikasi "%s".',
                 $this->clientId,
             ))
-            ->line('Sebagai langkah pencegahan, semua sesi terkait sudah kami akhiri dan token akses pada aplikasi tersebut sudah dicabut.')
-            ->action('Periksa Sesi Aktif', url('/sessions'))
-            ->line('Jika kamu tidak merasa melakukan ini, segera ubah password kamu dan hubungi administrator.');
+            ->line('Sebagai tindakan pencegahan, seluruh sesi terkait telah diakhiri dan token akses aplikasi tersebut telah dicabut.')
+            ->action('Periksa Sesi Aktif', $this->frontendUrl('/sessions'))
+            ->line('Jika Anda tidak mengenali aktivitas ini, segera ubah password dan hubungi administrator.');
     }
 }

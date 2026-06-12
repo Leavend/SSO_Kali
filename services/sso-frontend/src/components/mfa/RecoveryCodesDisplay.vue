@@ -10,7 +10,9 @@
 
 import { Copy, Download, AlertTriangle } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
+import { useI18n } from '@/composables/useI18n'
 
+const { t } = useI18n()
 const props = defineProps<{
   codes: readonly string[]
 }>()
@@ -26,9 +28,9 @@ async function copyAll(): Promise<void> {
 
 function downloadCodes(): void {
   const text = [
-    '# SSO Kode Cadangan',
-    '# Simpan file ini di tempat yang aman.',
-    '# Setiap kode hanya bisa digunakan satu kali.',
+    t('portal.mfa.download_title'),
+    t('portal.mfa.download_keep_safe'),
+    t('portal.mfa.download_single_use'),
     '',
     ...props.codes,
   ].join('\n')
@@ -46,10 +48,9 @@ function downloadCodes(): void {
 <template>
   <div class="grid gap-4">
     <div class="grid gap-2 text-center">
-      <h3 class="text-sm font-semibold">Kode Cadangan</h3>
+      <h3 class="text-sm font-semibold">{{ t('portal.mfa.recovery_codes') }}</h3>
       <p class="text-muted-foreground text-xs">
-        Simpan kode-kode ini di tempat yang aman. Kamu bisa menggunakannya untuk login jika
-        kehilangan akses ke aplikasi autentikasi.
+        {{ t('portal.mfa.recovery_codes_description') }}
       </p>
     </div>
 
@@ -60,8 +61,7 @@ function downloadCodes(): void {
     >
       <AlertTriangle class="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
       <p class="text-xs text-amber-800 dark:text-amber-200">
-        Kode ini <strong>tidak akan ditampilkan lagi</strong>. Pastikan kamu sudah menyimpannya
-        sebelum melanjutkan.
+        {{ t('portal.mfa.codes_warning') }}
       </p>
     </div>
 
@@ -80,16 +80,16 @@ function downloadCodes(): void {
     <div class="flex flex-wrap justify-center gap-2">
       <Button variant="outline" size="sm" @click="copyAll">
         <Copy class="size-4" />
-        Salin Semua
+        {{ t('portal.mfa.copy_all') }}
       </Button>
       <Button variant="outline" size="sm" @click="downloadCodes">
         <Download class="size-4" />
-        Unduh
+        {{ t('portal.mfa.download') }}
       </Button>
     </div>
 
     <Button size="sm" class="w-full" @click="emit('acknowledged')">
-      Saya sudah menyimpan kode ini
+      {{ t('portal.mfa.codes_saved') }}
     </Button>
   </div>
 </template>

@@ -13,27 +13,24 @@ final class MfaDisabledNotification extends SecurityNotification
 {
     public function __construct(
         private readonly bool $byAdmin = false,
+        string $locale = 'id',
     ) {
-        parent::__construct();
+        parent::__construct($locale);
     }
 
     public function toMail(object $notifiable): MailMessage
     {
-        $appName = config('app.name', 'SSO');
-        $subject = "MFA Dinonaktifkan — {$appName}";
-
-        $mail = $this->baseMail()
-            ->subject($subject)
-            ->greeting('Halo!')
-            ->line('Multi-Factor Authentication telah dinonaktifkan pada akun kamu.');
+        $mail = $this->baseMail($notifiable)
+            ->subject('Peringatan: Autentikasi Multi-Faktor Dev-SSO Dinonaktifkan')
+            ->line('Autentikasi multi-faktor telah dinonaktifkan pada akun Anda.');
 
         if ($this->byAdmin) {
             $mail->line('Perubahan ini dilakukan oleh administrator sistem.');
         }
 
         return $mail
-            ->line('Akun kamu sekarang hanya dilindungi oleh password.')
-            ->action('Aktifkan Kembali MFA', url('/security/mfa'))
-            ->line('Jika kamu tidak melakukan ini, segera hubungi administrator.');
+            ->line('Akun Anda sekarang hanya dilindungi oleh password.')
+            ->action('Aktifkan Kembali MFA', $this->frontendUrl('/security/mfa'))
+            ->line('Jika Anda tidak mengharapkan perubahan ini, segera amankan akun dan hubungi administrator.');
     }
 }

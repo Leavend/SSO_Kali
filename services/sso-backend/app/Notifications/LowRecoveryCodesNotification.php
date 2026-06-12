@@ -13,21 +13,18 @@ final class LowRecoveryCodesNotification extends SecurityNotification
 {
     public function __construct(
         private readonly int $remainingCodes,
+        string $locale = 'id',
     ) {
-        parent::__construct();
+        parent::__construct($locale);
     }
 
     public function toMail(object $notifiable): MailMessage
     {
-        $appName = config('app.name', 'SSO');
-
-        return $this->baseMail()
-            ->subject("⚠️ Recovery Codes Hampir Habis — {$appName}")
-            ->greeting('Perhatian!')
-            ->line("Kamu hanya memiliki **{$this->remainingCodes}** recovery code tersisa.")
-            ->line('Jika semua recovery codes habis, kamu tidak akan bisa login menggunakan metode pemulihan.')
-            ->line('Segera regenerasi recovery codes baru untuk menjaga akses akun kamu.')
-            ->action('Regenerasi Recovery Codes', url('/security/mfa'))
-            ->line('Abaikan email ini jika kamu sudah meregenerasi kode baru.');
+        return $this->baseMail($notifiable)
+            ->subject('Tindakan Diperlukan: Recovery Code Dev-SSO Hampir Habis')
+            ->line("Anda hanya memiliki **{$this->remainingCodes}** recovery code tersisa.")
+            ->line('Jika seluruh kode habis, metode pemulihan ini tidak dapat digunakan untuk login.')
+            ->action('Buat Recovery Code Baru', $this->frontendUrl('/security/mfa'))
+            ->line('Jika Anda sudah membuat kode baru, tidak ada tindakan tambahan yang diperlukan.');
     }
 }

@@ -19,6 +19,7 @@ return [
     // "per-API" gate is wrong.
     'resource_audience' => env('SSO_RESOURCE_AUDIENCE', 'sso-resource-api'),
     'frontend_url' => env('SSO_FRONTEND_URL', env('APP_URL', 'http://localhost:3000')),
+    'display_timezone' => env('SSO_DISPLAY_TIMEZONE', 'Asia/Makassar'),
     'login_url' => env('SSO_LOGIN_URL', env('SSO_FRONTEND_URL', 'http://localhost:3000').'/login'),
     'observability' => [
         'request_timing_log_enabled' => (bool) env('SSO_REQUEST_TIMING_LOG_ENABLED', false),

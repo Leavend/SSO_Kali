@@ -6,6 +6,7 @@ import type {
   DataSubjectRequestSummary,
   DataSubjectRequestType,
 } from '@/types/profile.types'
+import { useI18n } from '@/composables/useI18n'
 
 type MutableDataSubjectRequestPayload = {
   type: DataSubjectRequestType
@@ -29,6 +30,7 @@ export type UseDataSubjectRequestsReturn = {
 }
 
 export function useDataSubjectRequests(): UseDataSubjectRequestsReturn {
+  const { t } = useI18n()
   const requests = ref<readonly DataSubjectRequestSummary[]>([])
   const pending = ref(false)
   const submitting = ref(false)
@@ -54,7 +56,7 @@ export function useDataSubjectRequests(): UseDataSubjectRequestsReturn {
     try {
       requests.value = await profileApi.getDataSubjectRequests()
     } catch (caught) {
-      const presented = presentSafeError(caught, 'Gagal memuat permintaan privasi.')
+      const presented = presentSafeError(caught, t('portal.privacy.load_error'))
       error.value = presented.message
       supportReference.value = presented.supportReference
     } finally {
@@ -76,10 +78,10 @@ export function useDataSubjectRequests(): UseDataSubjectRequestsReturn {
     try {
       const created = await profileApi.createDataSubjectRequest(createPayload())
       requests.value = [created, ...requests.value]
-      success.value = 'Permintaan privasi diterima. Tim kami akan meninjau dalam 30 hari.'
+      success.value = t('portal.privacy.submit_success')
       form.reason = ''
     } catch (caught) {
-      const presented = presentSafeError(caught, 'Gagal mengirim permintaan privasi.')
+      const presented = presentSafeError(caught, t('portal.privacy.submit_error'))
       error.value = presented.message
       supportReference.value = presented.supportReference
     } finally {

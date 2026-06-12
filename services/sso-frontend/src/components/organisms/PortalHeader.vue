@@ -99,7 +99,7 @@ function closeMenu(): void {
         <button
           type="button"
           class="inline-flex size-11 items-center justify-center rounded-full border border-[var(--glass-border-subtle)] bg-white/20 text-[var(--text-secondary)] shadow-[var(--shadow-glass-sm)] transition-colors hover:bg-white/35 hover:text-[var(--text-primary)] md:hidden dark:bg-white/10 dark:hover:bg-white/15"
-          :aria-label="mobileMenuOpen ? 'Tutup menu' : 'Buka menu'"
+          :aria-label="mobileMenuOpen ? t('portal.header.close_menu') : t('portal.header.open_menu')"
           :aria-expanded="mobileMenuOpen"
           @click="toggleMenu"
         >

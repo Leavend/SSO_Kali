@@ -2,6 +2,7 @@ import { ref, type Ref } from 'vue'
 import { profileApi } from '@/services/profile.api'
 import { presentSafeError, validationErrors } from '@/lib/api/safe-error-presenter'
 import type { RequestEmailChangePayload, ConfirmEmailChangePayload } from '@/types/profile.types'
+import { useI18n } from '@/composables/useI18n'
 
 type EmailChangeStep = 'request' | 'confirm'
 
@@ -25,6 +26,7 @@ export type UseEmailChangeReturn = EmailChangeState & EmailChangeActions
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u
 
 export function useEmailChange(): UseEmailChangeReturn {
+  const { t } = useI18n()
   const step = ref<EmailChangeStep>('request')
   const pending = ref(false)
   const success = ref<string | null>(null)
@@ -40,9 +42,10 @@ export function useEmailChange(): UseEmailChangeReturn {
     newEmail.value = email
 
     const clientErrors: Record<string, string> = {}
-    if (!email.trim()) clientErrors.new_email = 'Email wajib diisi.'
-    else if (!EMAIL_REGEX.test(email.trim())) clientErrors.new_email = 'Format email tidak valid.'
-    if (!password) clientErrors.current_password = 'Password saat ini wajib diisi.'
+    if (!email.trim()) clientErrors.new_email = t('validation.email_required')
+    else if (!EMAIL_REGEX.test(email.trim()))
+      clientErrors.new_email = t('validation.email_invalid')
+    if (!password) clientErrors.current_password = t('validation.current_password_required')
 
     if (Object.keys(clientErrors).length > 0) {
       fieldErrors.value = clientErrors
@@ -57,7 +60,7 @@ export function useEmailChange(): UseEmailChangeReturn {
       step.value = 'confirm'
     } catch (caught) {
       fieldErrors.value = validationErrors(caught)
-      error.value = presentSafeError(caught, 'Gagal mengirim token verifikasi. Coba lagi.').message
+      error.value = presentSafeError(caught, t('portal.email_change.request_error')).message
     } finally {
       pending.value = false
     }
@@ -70,7 +73,7 @@ export function useEmailChange(): UseEmailChangeReturn {
     fieldErrors.value = {}
 
     if (!token.trim()) {
-      fieldErrors.value = { token: 'Token verifikasi wajib diisi.' }
+      fieldErrors.value = { token: t('portal.email_change.token_required') }
       pending.value = false
       return
     }
@@ -83,7 +86,7 @@ export function useEmailChange(): UseEmailChangeReturn {
       fieldErrors.value = validationErrors(caught)
       error.value = presentSafeError(
         caught,
-        'Gagal mengonfirmasi perubahan email. Coba lagi.',
+        t('portal.email_change.confirm_error'),
       ).message
     } finally {
       pending.value = false

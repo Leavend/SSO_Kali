@@ -8,7 +8,9 @@
 
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { Clock } from 'lucide-vue-next'
+import { useI18n } from '@/composables/useI18n'
 
+const { t } = useI18n()
 const props = defineProps<{
   expiresAt: string
 }>()
@@ -58,7 +60,7 @@ onBeforeUnmount(() => {
   >
     <Clock class="size-4 shrink-0" aria-hidden="true" />
     <span
-      >Sisa waktu verifikasi: <strong>{{ formattedTime }}</strong></span
+      >{{ t('portal.mfa.time_remaining') }} <strong>{{ formattedTime }}</strong></span
     >
   </div>
 </template>

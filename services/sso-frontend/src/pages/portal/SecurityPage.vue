@@ -21,7 +21,9 @@ import { useProfileStore } from '@/stores/profile.store'
 import { profileApi } from '@/services/profile.api'
 import type { AuditEvent } from '@/types/audit.types'
 import type { ChangePasswordPayload } from '@/types/profile.types'
+import { useI18n } from '@/composables/useI18n'
 
+const { t } = useI18n()
 const profile = useProfileStore()
 const load = useAsyncAction(() => profile.loadProfile())
 const auditLoad = useAsyncAction(() => profileApi.getAuditEvents(undefined, 10))
@@ -66,9 +68,9 @@ function updateTrustedDeviceLabel(deviceId: number, value: string): void {
 <template>
   <section class="grid gap-6 sm:gap-8">
     <PortalPageHeader
-      eyebrow="Pusat Keamanan"
-      title="Keamanan"
-      description="Kelola MFA, password, perangkat tepercaya, dan riwayat keamanan dari satu halaman terpusat."
+      :eyebrow="t('portal.security.eyebrow')"
+      :title="t('portal.security.title')"
+      :description="t('portal.security.description')"
       :icon="ShieldCheck"
     />
 

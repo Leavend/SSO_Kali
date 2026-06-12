@@ -259,7 +259,11 @@ const revokeErrorMessage = computed<string | null>(() => {
 
     <ConfirmDialog
       v-model:open="showDialog"
-      :title="t('portal.apps.dialog_title', { name: pendingTarget?.name ?? 'aplikasi' })"
+      :title="
+        t('portal.apps.dialog_title', {
+          name: pendingTarget?.name ?? t('portal.apps.fallback_name'),
+        })
+      "
       :description="t('portal.apps.dialog_description')"
       :confirm-label="t('portal.apps.dialog_confirm')"
       destructive

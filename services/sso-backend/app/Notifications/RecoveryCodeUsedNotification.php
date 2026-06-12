@@ -17,27 +17,25 @@ final class RecoveryCodeUsedNotification extends SecurityNotification
     public function __construct(
         private readonly int $remainingCodes,
         private readonly string $ipAddress = 'unknown',
+        string $locale = 'id',
     ) {
-        parent::__construct();
+        parent::__construct($locale);
     }
 
     public function toMail(object $notifiable): MailMessage
     {
-        $appName = config('app.name', 'SSO');
-
-        $mail = $this->baseMail()
-            ->subject("Recovery Code Digunakan — {$appName}")
-            ->greeting('Halo!')
-            ->line('Sebuah recovery code telah digunakan untuk login ke akun kamu.')
-            ->line("IP Address: {$this->ipAddress}")
-            ->line("Sisa recovery codes: **{$this->remainingCodes}**");
+        $mail = $this->baseMail($notifiable)
+            ->subject('Peringatan: Recovery Code Dev-SSO Digunakan')
+            ->line('Sebuah recovery code telah digunakan untuk masuk ke akun Anda.')
+            ->line("Alamat IP: {$this->ipAddress}")
+            ->line("Sisa recovery code: **{$this->remainingCodes}**");
 
         if ($this->remainingCodes <= 2) {
-            $mail->line('⚠️ Sisa recovery codes kamu sangat sedikit. Segera regenerasi kode baru.');
+            $mail->line('Sisa recovery code Anda sangat sedikit. Segera buat kode baru.');
         }
 
         return $mail
-            ->action('Kelola Recovery Codes', url('/security/mfa'))
-            ->line('Jika kamu tidak melakukan login ini, segera amankan akun kamu.');
+            ->action('Kelola Recovery Code', $this->frontendUrl('/security/mfa'))
+            ->line('Jika Anda tidak melakukan login ini, segera amankan akun dan hubungi administrator.');
     }
 }

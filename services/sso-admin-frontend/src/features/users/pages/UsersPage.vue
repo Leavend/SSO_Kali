@@ -680,9 +680,9 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
                 <p class="ui-field-hint">{{ t('users.label_password_helper') }}</p>
               </UiFormField>
 
-              <div class="pt-2">
+              <div class="user-modal-switch-field">
                 <UiSwitch v-model="createLocalAccountEnabled" :label="t('users.label_local_account')" />
-                <p class="ui-field-hint" style="margin-top: 6px; padding-left: 2px;">{{ t('users.label_local_account_helper') }}</p>
+                <p class="ui-field-hint">{{ t('users.label_local_account_helper') }}</p>
               </div>
             </div>
           </div>
@@ -691,7 +691,11 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
             <UiButton variant="secondary" @click="closeCreateForm">
               {{ t('common.btn_cancel') }}
             </UiButton>
-            <UiButton :disabled="store.actionStatus === 'loading' || isCreateFormInvalid" @click="submitCreateUser">
+            <UiButton
+              data-testid="create-user-submit"
+              :disabled="store.actionStatus === 'loading' || isCreateFormInvalid"
+              @click="submitCreateUser"
+            >
               {{
                 store.actionStatus === 'loading' ? t('common.creating') : t('users.btn_create_user')
               }}

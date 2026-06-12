@@ -1,18 +1,16 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useI18n } from '@/composables/useI18n'
 
 const { locale, t, setLocale } = useI18n()
 
-function toggleLocale() {
+const ariaLabel = computed<string>(() =>
+  locale.value === 'id' ? t('language.switch_to_en') : t('language.switch_to_id'),
+)
+
+function toggleLocale(): void {
   const nextLocale = locale.value === 'id' ? 'en' : 'id'
   setLocale(nextLocale)
-  if (
-    typeof window !== 'undefined' &&
-    window.location &&
-    typeof window.location.reload === 'function'
-  ) {
-    window.location.reload()
-  }
 }
 </script>
 
@@ -20,14 +18,11 @@ function toggleLocale() {
   <button
     class="admin-locale-switcher"
     type="button"
-    :aria-label="t('language.label')"
+    :aria-label="ariaLabel"
     @click="toggleLocale"
   >
-    <div class="admin-locale-switcher__content">
-      <span class="admin-locale-label">{{ t('language.label') }}</span>
-      <span class="admin-locale-selected">
-        {{ locale.toUpperCase() }}
-      </span>
-    </div>
+    <span :class="{ 'admin-locale-selected': locale === 'id' }">ID</span>
+    <span class="admin-locale-divider" aria-hidden="true">|</span>
+    <span :class="{ 'admin-locale-selected': locale === 'en' }">EN</span>
   </button>
 </template>

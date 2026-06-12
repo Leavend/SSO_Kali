@@ -19,6 +19,7 @@ import type { HTMLAttributes } from 'vue'
 import { computed, ref } from 'vue'
 import { AlertCircle, Eye, EyeOff } from 'lucide-vue-next'
 import { cn } from '@/lib/utils'
+import { useI18n } from '@/composables/useI18n'
 
 type InputType = 'text' | 'email' | 'password' | 'tel' | 'url'
 
@@ -63,6 +64,7 @@ const props = withDefaults(
 const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void
 }>()
+const { t } = useI18n()
 
 // Password reveal state
 const revealed = ref<boolean>(false)
@@ -72,7 +74,7 @@ const effectiveType = computed<InputType>(() => {
   return revealed.value ? 'text' : 'password'
 })
 const toggleLabel = computed<string>(() =>
-  revealed.value ? 'Sembunyikan password' : 'Tampilkan password',
+  revealed.value ? t('common.hide_password') : t('common.show_password'),
 )
 
 const hasError = computed<boolean>(() => Boolean(props.error))

@@ -65,6 +65,19 @@ describe('admin ui primitives', () => {
     expect(toggle.emitted('update:modelValue')?.at(-1)).toEqual([true])
   })
 
+  it('keeps the switch track separate from its label and exposes switch semantics', async () => {
+    const toggle = mount(UiSwitch, { props: { modelValue: false, label: 'Local account enabled' } })
+
+    expect(toggle.html()).toMatchSnapshot()
+    expect(toggle.get('[role="switch"]').attributes('aria-checked')).toBe('false')
+    expect(toggle.find('.ui-switch__track').exists()).toBe(true)
+    expect(toggle.get('.ui-switch__label').text()).toBe('Local account enabled')
+
+    await toggle.get('[role="switch"]').trigger('click')
+
+    expect(toggle.emitted('update:modelValue')?.at(-1)).toEqual([true])
+  })
+
   it('renders a dense data list with cursor pagination actions', () => {
     const wrapper = mount(UiDataList, {
       props: {

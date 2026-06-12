@@ -14,7 +14,9 @@ import SsoFormField from '@/components/molecules/SsoFormField.vue'
 import SsoPasswordField from '@/components/molecules/SsoPasswordField.vue'
 import SsoAlertBanner from '@/components/molecules/SsoAlertBanner.vue'
 import { useEmailChange } from '@/composables/useEmailChange'
+import { useI18n } from '@/composables/useI18n'
 
+const { t } = useI18n()
 const props = defineProps<{
   open: boolean
   currentEmail: string
@@ -75,15 +77,15 @@ watch(success, (val) => {
   <AlertDialog :open="props.open" @update:open="handleOpenChange">
     <AlertDialogContent class="sm:max-w-md">
       <AlertDialogHeader>
-        <AlertDialogTitle>Ubah Email</AlertDialogTitle>
+        <AlertDialogTitle>{{ t('portal.email_change.title') }}</AlertDialogTitle>
         <AlertDialogDescription v-if="isRequestStep">
-          Email saat ini: <strong>{{ props.currentEmail }}</strong>
+          {{ t('portal.email_change.current') }} <strong>{{ props.currentEmail }}</strong>
           <br />
-          Masukkan email baru dan password untuk menerima token verifikasi.
+          {{ t('portal.email_change.request_description') }}
         </AlertDialogDescription>
         <AlertDialogDescription v-else>
-          Token verifikasi telah dikirim ke <strong>{{ newEmail }}</strong
-          >. Masukkan token untuk menyelesaikan perubahan.
+          {{ t('portal.email_change.sent_prefix') }} <strong>{{ newEmail }}</strong
+          >. {{ t('portal.email_change.confirm_description') }}
         </AlertDialogDescription>
       </AlertDialogHeader>
 
@@ -95,7 +97,7 @@ watch(success, (val) => {
             id="email-change-new-email"
             v-model="emailInput"
             type="email"
-            label="Email baru"
+            :label="t('portal.email_change.new_email')"
             autocomplete="email"
             :disabled="pending"
             :error="fieldErrors.new_email ?? null"
@@ -104,7 +106,7 @@ watch(success, (val) => {
           <SsoPasswordField
             id="email-change-password"
             v-model="passwordInput"
-            label="Password saat ini"
+            :label="t('portal.security.current_password')"
             autocomplete="current-password"
             :disabled="pending"
             :error="fieldErrors.current_password ?? null"
@@ -116,11 +118,11 @@ watch(success, (val) => {
             id="email-change-token"
             v-model="tokenInput"
             type="text"
-            label="Token verifikasi"
+            :label="t('portal.email_change.token')"
             autocomplete="one-time-code"
             :disabled="pending"
             :error="fieldErrors.token ?? null"
-            hint="Periksa email baru untuk token verifikasi."
+            :hint="t('portal.email_change.token_hint')"
             required
           />
         </template>
@@ -131,14 +133,14 @@ watch(success, (val) => {
       <AlertDialogFooter>
         <Button type="button" variant="ghost" :disabled="pending" @click="handleClose">
           <X class="size-4" aria-hidden="true" />
-          Tutup
+          {{ t('common.close') }}
         </Button>
         <Button v-if="isRequestStep" type="button" :disabled="pending" @click="handleRequestChange">
           <Mail class="size-4" aria-hidden="true" />
-          {{ pending ? 'Mengirim…' : 'Kirim Token' }}
+          {{ pending ? t('common.sending') : t('portal.email_change.send_token') }}
         </Button>
         <Button v-if="isConfirmStep" type="button" :disabled="pending" @click="handleConfirmChange">
-          {{ pending ? 'Memverifikasi…' : 'Verifikasi Token' }}
+          {{ pending ? t('common.verifying') : t('portal.email_change.verify_token') }}
         </Button>
       </AlertDialogFooter>
     </AlertDialogContent>

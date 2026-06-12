@@ -12,10 +12,10 @@ import { updateDocumentTitle } from '@/router'
 const route = useRoute()
 const theme = useThemeStore()
 const { isOnline, cleanup } = useNetworkStatus()
-const { locale } = useI18n()
+const { locale, t } = useI18n()
 
 watch(locale, () => {
-  updateDocumentTitle(route.name as string | null | undefined, route.meta.title)
+  updateDocumentTitle(route.meta.titleKey)
 })
 
 const Layout = computed(() => (route.meta.layout === 'portal' ? PortalLayout : AuthLayout))
@@ -42,7 +42,7 @@ onBeforeUnmount(() => {
       class="fixed inset-x-0 top-0 z-[9999] flex items-center justify-center gap-2 bg-destructive px-4 py-2 text-destructive-foreground text-sm font-medium shadow-lg"
     >
       <WifiOff class="size-4 shrink-0" aria-hidden="true" />
-      Koneksi terputus. Periksa jaringan dan coba lagi.
+      {{ t('errors.offline') }}
     </div>
   </Transition>
 

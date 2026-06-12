@@ -17,19 +17,24 @@ import SsoSpinner from '@/components/atoms/SsoSpinner.vue'
 import SsoAlertBanner from '@/components/molecules/SsoAlertBanner.vue'
 import { useOidcCallback } from '@/composables/useOidcCallback'
 import { extractSupportReference, formatSupportReference } from '@/lib/oidc/oauth-error-message'
+import { useI18n } from '@/composables/useI18n'
 
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const callback = useOidcCallback()
 
-const FALLBACK_ERROR_COPY =
-  'Login tidak dapat diselesaikan. Mulai ulang dari halaman login atau kembali ke aplikasi awal.'
-
 const headline = computed<string>(() =>
-  callback.pending.value ? 'Memverifikasi sesi' : callback.error.value ? 'Login gagal' : 'Selesai',
+  callback.pending.value
+    ? t('auth.callback.title_loading')
+    : callback.error.value
+      ? t('auth.callback.title_error')
+      : t('auth.callback.title_done'),
 )
 
-const safeErrorCopy = computed<string>(() => callback.errorMessage.value ?? FALLBACK_ERROR_COPY)
+const safeErrorCopy = computed<string>(
+  () => callback.errorMessage.value ?? t('oauth.errors._generic'),
+)
 
 const supportReference = computed<string | null>(() => {
   if (!callback.error.value) return null
@@ -81,7 +86,7 @@ function readString(key: string): string | undefined {
         {{ headline }}
       </h1>
       <p class="max-w-sm text-sm font-medium leading-relaxed text-muted-foreground">
-        Memproses respons OIDC dan menyiapkan sesi aman untuk kamu.
+        {{ t('auth.callback.description') }}
       </p>
     </header>
 
@@ -105,14 +110,14 @@ function readString(key: string): string | undefined {
       class="text-sm leading-relaxed text-muted-foreground"
       aria-live="polite"
     >
-      Mohon tunggu sebentar.
+      {{ t('auth.callback.wait') }}
     </p>
 
     <SsoGlassButton v-if="callback.error.value" variant="glass" size="sm" @click="router.push('/')">
       <template #leading>
         <ArrowLeft class="size-3.5" aria-hidden="true" />
       </template>
-      Kembali ke halaman masuk
+      {{ t('auth.back_to_login') }}
     </SsoGlassButton>
   </section>
 </template>

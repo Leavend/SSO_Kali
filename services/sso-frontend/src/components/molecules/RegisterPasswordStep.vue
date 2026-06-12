@@ -15,7 +15,9 @@
 import { ArrowLeft, ArrowRight, Lock } from 'lucide-vue-next'
 import SsoGlassInput from '@/components/atoms/SsoGlassInput.vue'
 import { cn } from '@/lib/utils'
+import { useI18n } from '@/composables/useI18n'
 
+const { t } = useI18n()
 interface Props {
   modelValue: string
   valid: boolean
@@ -41,7 +43,7 @@ const emit = defineEmits<Emits>()
       :model-value="props.modelValue"
       type="password"
       autocomplete="new-password"
-      placeholder="Password baru"
+      :placeholder="t('portal.security.new_password')"
       :required="true"
       :autofocus="true"
       :disabled="props.pending"
@@ -55,7 +57,7 @@ const emit = defineEmits<Emits>()
       <template #trailing>
         <button
           type="button"
-          aria-label="Lanjut ke konfirmasi"
+          :aria-label="t('auth.register.continue_confirm')"
           :aria-hidden="!props.valid"
           :tabindex="props.valid ? 0 : -1"
           :disabled="!props.valid"
@@ -72,7 +74,7 @@ const emit = defineEmits<Emits>()
       class="text-center text-xs leading-relaxed text-muted-foreground"
       aria-live="polite"
     >
-      Belum: {{ props.hints.join(', ') }}.
+      {{ t('auth.register.missing_requirements', { items: props.hints.join(', ') }) }}
     </p>
 
     <button
@@ -81,7 +83,7 @@ const emit = defineEmits<Emits>()
       @click="emit('back')"
     >
       <ArrowLeft class="size-3.5" aria-hidden="true" />
-      Kembali
+      {{ t('common.back') }}
     </button>
   </div>
 </template>

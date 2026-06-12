@@ -9,18 +9,20 @@ use Illuminate\Support\Carbon;
 
 final class PasswordChangedNotification extends SecurityNotification
 {
-    public function __construct(private readonly Carbon $changedAt)
-    {
-        parent::__construct();
+    public function __construct(
+        private readonly Carbon $changedAt,
+        string $locale = 'id',
+    ) {
+        parent::__construct($locale);
     }
 
     public function toMail(object $notifiable): MailMessage
     {
-        return $this->baseMail()
-            ->subject('Password SSO Berhasil Diubah — '.config('app.name', 'SSO'))
-            ->greeting('Halo!')
-            ->line('Password akun SSO kamu berhasil diubah pada '.$this->changedAt->toIso8601String().'.')
-            ->line('Semua sesi lain telah dicabut demi keamanan.')
-            ->line('Jika kamu tidak melakukan perubahan ini, segera hubungi administrator.');
+        return $this->baseMail($notifiable)
+            ->subject('Password Akun Dev-SSO Berhasil Diubah')
+            ->line('Password akun Anda berhasil diubah pada '.$this->formatDateTime($this->changedAt).'.')
+            ->line('Sebagai perlindungan tambahan, seluruh sesi lain telah diakhiri.')
+            ->action('Periksa Sesi Aktif', $this->frontendUrl('/sessions'))
+            ->line('Jika Anda tidak melakukan perubahan ini, segera amankan akun dan hubungi administrator.');
     }
 }
