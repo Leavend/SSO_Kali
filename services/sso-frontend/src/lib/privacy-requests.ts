@@ -1,19 +1,20 @@
 import type { DataSubjectRequestStatus, DataSubjectRequestType } from '@/types/profile.types'
+import { useI18n } from '@/composables/useI18n'
 
 type BadgeVariant = 'default' | 'secondary' | 'destructive' | 'outline'
 type ButtonVariant = 'default' | 'secondary' | 'destructive' | 'outline' | 'ghost' | 'link'
 
 export interface PrivacyRequestTypeOption {
   readonly type: DataSubjectRequestType
-  readonly title: string
-  readonly description: string
-  readonly riskLabel: string
-  readonly riskDescription: string
-  readonly ctaLabel: string
-  readonly pendingLabel: string
-  readonly confirmTitle: string
-  readonly confirmDescription: string
-  readonly confirmLabel: string
+  readonly titleKey: string
+  readonly descriptionKey: string
+  readonly riskLabelKey: string
+  readonly riskDescriptionKey: string
+  readonly ctaLabelKey: string
+  readonly pendingLabelKey: string
+  readonly confirmTitleKey: string
+  readonly confirmDescriptionKey: string
+  readonly confirmLabelKey: string
   readonly requiresConfirmation: boolean
   readonly buttonVariant: ButtonVariant
   readonly buttonClass: string
@@ -25,15 +26,15 @@ export interface PrivacyRequestTypeOption {
 
 const EXPORT_OPTION: PrivacyRequestTypeOption = {
   type: 'export',
-  title: 'Ekspor Data',
-  description: 'Dapatkan salinan data akun yang dapat diunduh.',
-  riskLabel: 'Aman',
-  riskDescription: 'Aman — tidak mengubah data.',
-  ctaLabel: 'Ajukan Ekspor Data',
-  pendingLabel: 'Mengajukan ekspor…',
-  confirmTitle: '',
-  confirmDescription: '',
-  confirmLabel: '',
+  titleKey: 'portal.privacy.type_export',
+  descriptionKey: 'portal.privacy.desc_export',
+  riskLabelKey: 'portal.privacy.risk_safe',
+  riskDescriptionKey: 'portal.privacy.risk_desc_safe',
+  ctaLabelKey: 'portal.privacy.cta_export',
+  pendingLabelKey: 'portal.privacy.pending_export',
+  confirmTitleKey: '',
+  confirmDescriptionKey: '',
+  confirmLabelKey: '',
   requiresConfirmation: false,
   buttonVariant: 'default',
   buttonClass: '',
@@ -47,17 +48,15 @@ const EXPORT_OPTION: PrivacyRequestTypeOption = {
 
 const DELETE_OPTION: PrivacyRequestTypeOption = {
   type: 'delete',
-  title: 'Hapus Data',
-  description:
-    'Hapus data akun secara permanen. Sebagian data mungkin tetap disimpan sesuai kewajiban hukum.',
-  riskLabel: 'Destruktif',
-  riskDescription: 'Permanen setelah disetujui.',
-  ctaLabel: 'Ajukan Penghapusan Data',
-  pendingLabel: 'Mengajukan penghapusan…',
-  confirmTitle: 'Kamu yakin ingin mengajukan penghapusan?',
-  confirmDescription:
-    'Tindakan ini tidak dapat dibatalkan setelah diverifikasi. Tim kami akan meninjau permintaan sebelum data diproses.',
-  confirmLabel: 'Ya, Ajukan Penghapusan',
+  titleKey: 'portal.privacy.type_delete',
+  descriptionKey: 'portal.privacy.desc_delete',
+  riskLabelKey: 'portal.privacy.risk_destructive',
+  riskDescriptionKey: 'portal.privacy.risk_desc_destructive',
+  ctaLabelKey: 'portal.privacy.cta_delete',
+  pendingLabelKey: 'portal.privacy.pending_delete',
+  confirmTitleKey: 'portal.privacy.confirm_title_delete',
+  confirmDescriptionKey: 'portal.privacy.confirm_desc_delete',
+  confirmLabelKey: 'portal.privacy.confirm_btn_delete',
   requiresConfirmation: true,
   buttonVariant: 'destructive',
   buttonClass:
@@ -71,16 +70,15 @@ const DELETE_OPTION: PrivacyRequestTypeOption = {
 
 const ANONYMIZE_OPTION: PrivacyRequestTypeOption = {
   type: 'anonymize',
-  title: 'Anonimisasi Data',
-  description: 'Samarkan identitas pada data historis yang wajib disimpan.',
-  riskLabel: 'Permanen',
-  riskDescription: 'Tidak bisa dikembalikan.',
-  ctaLabel: 'Ajukan Anonimisasi Data',
-  pendingLabel: 'Mengajukan anonimisasi…',
-  confirmTitle: 'Kamu yakin ingin mengajukan anonimisasi?',
-  confirmDescription:
-    'Tindakan ini tidak dapat dikembalikan setelah diverifikasi. Identitas pada data historis akan disamarkan permanen.',
-  confirmLabel: 'Ya, Ajukan Anonimisasi',
+  titleKey: 'portal.privacy.type_anonymize',
+  descriptionKey: 'portal.privacy.desc_anonymize',
+  riskLabelKey: 'portal.privacy.risk_permanent',
+  riskDescriptionKey: 'portal.privacy.risk_desc_permanent',
+  ctaLabelKey: 'portal.privacy.cta_anonymize',
+  pendingLabelKey: 'portal.privacy.pending_anonymize',
+  confirmTitleKey: 'portal.privacy.confirm_title_anonymize',
+  confirmDescriptionKey: 'portal.privacy.confirm_desc_anonymize',
+  confirmLabelKey: 'portal.privacy.confirm_btn_anonymize',
   requiresConfirmation: true,
   buttonVariant: 'outline',
   buttonClass:
@@ -104,16 +102,18 @@ export function privacyRequestOption(type: DataSubjectRequestType): PrivacyReque
 }
 
 export function dataSubjectTypeLabel(type: DataSubjectRequestType): string {
-  if (type === 'delete') return 'Hapus'
-  if (type === 'anonymize') return 'Anonimisasi'
-  return 'Ekspor'
+  const { t } = useI18n()
+  if (type === 'delete') return t('portal.privacy.label_delete')
+  if (type === 'anonymize') return t('portal.privacy.label_anonymize')
+  return t('portal.privacy.label_export')
 }
 
 export function dataSubjectStatusLabel(status: DataSubjectRequestStatus): string {
-  if (status === 'approved') return 'Disetujui'
-  if (status === 'rejected') return 'Ditolak'
-  if (status === 'fulfilled') return 'Selesai'
-  return 'Diajukan'
+  const { t } = useI18n()
+  if (status === 'approved') return t('portal.privacy.status_approved')
+  if (status === 'rejected') return t('portal.privacy.status_rejected')
+  if (status === 'fulfilled') return t('portal.privacy.status_fulfilled')
+  return t('portal.privacy.status_submitted')
 }
 
 export function dataSubjectTypeBadgeVariant(type: DataSubjectRequestType): BadgeVariant {

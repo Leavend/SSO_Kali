@@ -1,15 +1,22 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted } from 'vue'
+import { computed, onBeforeUnmount, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { WifiOff } from 'lucide-vue-next'
 import AuthLayout from '@/components/layouts/AuthLayout.vue'
 import PortalLayout from '@/components/layouts/PortalLayout.vue'
 import { useThemeStore } from '@/stores/theme.store'
 import { useNetworkStatus } from '@/composables/useNetworkStatus'
+import { useI18n } from '@/composables/useI18n'
+import { updateDocumentTitle } from '@/router'
 
 const route = useRoute()
 const theme = useThemeStore()
 const { isOnline, cleanup } = useNetworkStatus()
+const { locale } = useI18n()
+
+watch(locale, () => {
+  updateDocumentTitle(route.name as string | null | undefined, route.meta.title)
+})
 
 const Layout = computed(() => (route.meta.layout === 'portal' ? PortalLayout : AuthLayout))
 

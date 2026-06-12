@@ -92,7 +92,7 @@ describe('SessionsPage', () => {
     expect(wrapper.text()).toContain('Keamanan Perangkat')
     expect(wrapper.text()).toContain('Pantau semua perangkat yang sedang login')
 
-    const endAllButton = wrapper.find('[aria-label="Akhiri semua sesi"]')
+    const endAllButton = wrapper.find('[aria-label="Akhiri Semua Sesi"]')
     expect(endAllButton.text()).toContain('Akhiri Semua Sesi')
     expect(endAllButton.classes()).toContain('sm:w-fit')
     expect(endAllButton.classes()).not.toContain('bg-destructive')

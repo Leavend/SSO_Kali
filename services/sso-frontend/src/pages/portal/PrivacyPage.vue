@@ -21,15 +21,19 @@ import {
   PRIVACY_REQUEST_TYPE_OPTIONS,
 } from '@/lib/privacy-requests'
 import { cn } from '@/lib/utils'
+import { useI18n } from '@/composables/useI18n'
 import type { Component } from 'vue'
 import type { DataSubjectRequestType } from '@/types/profile.types'
 
 const privacy = useDataSubjectRequests()
 const isConfirmOpen = ref(false)
+const { t } = useI18n()
 
 const selectedOption = computed(() => privacyRequestOption(privacy.form.type))
 const submitLabel = computed<string>(() =>
-  privacy.submitting.value ? selectedOption.value.pendingLabel : selectedOption.value.ctaLabel,
+  privacy.submitting.value
+    ? t(selectedOption.value.pendingLabelKey)
+    : t(selectedOption.value.ctaLabelKey),
 )
 
 function requestIcon(type: DataSubjectRequestType): Component {
@@ -59,18 +63,17 @@ function handleConfirmSubmit(): void {
 <template>
   <section class="grid gap-6 sm:gap-8">
     <PortalPageHeader
-      eyebrow="Privacy Center"
-      title="Privasi & Data"
-      description="Ajukan permintaan ekspor, penghapusan, atau anonimisasi data pribadi dengan tenggat peninjauan 30 hari dan status yang bisa kamu pantau."
+      :eyebrow="t('portal.privacy.eyebrow')"
+      :title="t('portal.privacy.title')"
+      :description="t('portal.privacy.description')"
       :icon="ScrollText"
     />
 
     <Card>
       <CardHeader>
-        <CardTitle>Permintaan Baru</CardTitle>
+        <CardTitle>{{ t('portal.privacy.new_request') }}</CardTitle>
         <CardDescription>
-          Permintaan akan diproses dalam 30 hari (tenggat dihitung saat dikirim). Permintaan
-          penghapusan atau anonimisasi diproses hanya setelah diverifikasi.
+          {{ t('portal.privacy.request_helper') }}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -98,27 +101,27 @@ function handleConfirmSubmit(): void {
                 :class="cn('mb-3 size-5', item.iconClass)"
                 aria-hidden="true"
               />
-              <span class="block text-sm font-semibold">{{ item.title }}</span>
+              <span class="block text-sm font-semibold">{{ t(item.titleKey) }}</span>
               <span class="text-muted-foreground mt-1 block text-xs leading-relaxed">
-                {{ item.description }}
+                {{ t(item.descriptionKey) }}
               </span>
               <span class="mt-3 flex flex-wrap items-center gap-2">
                 <Badge variant="outline" :class="cn('rounded-full', item.riskBadgeClass)">
-                  {{ item.riskLabel }}
+                  {{ t(item.riskLabelKey) }}
                 </Badge>
-                <span class="text-muted-foreground text-xs">{{ item.riskDescription }}</span>
+                <span class="text-muted-foreground text-xs">{{ t(item.riskDescriptionKey) }}</span>
               </span>
             </button>
           </div>
 
           <div class="grid gap-2">
-            <Label for="privacy-reason">Konteks tambahan (opsional)</Label>
+            <Label for="privacy-reason">{{ t('portal.privacy.reason_label') }}</Label>
             <Input
               id="privacy-reason"
               :model-value="privacy.form.reason"
               type="text"
               maxlength="500"
-              placeholder="Contoh: diperlukan untuk keperluan audit akun internal"
+              :placeholder="t('portal.privacy.reason_placeholder')"
               :disabled="privacy.submitting.value"
               @update:model-value="privacy.form.reason = String($event)"
             />
@@ -151,9 +154,9 @@ function handleConfirmSubmit(): void {
 
     <Card>
       <CardHeader>
-        <CardTitle>Status Permintaan</CardTitle>
+        <CardTitle>{{ t('portal.privacy.status_title') }}</CardTitle>
         <CardDescription>
-          Pantau status dan tenggat waktu penyelesaian permintaan kamu.
+          {{ t('portal.privacy.status_helper') }}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -166,7 +169,7 @@ function handleConfirmSubmit(): void {
           class="text-muted-foreground flex flex-col items-center gap-2 py-8 text-center text-sm"
         >
           <Inbox class="text-muted-foreground/50 size-8" aria-hidden="true" />
-          Belum ada permintaan yang diajukan. Gunakan form di atas untuk memulai.
+          {{ t('portal.privacy.empty_requests') }}
         </div>
         <ul v-else class="grid gap-3">
           <li
@@ -191,14 +194,14 @@ function handleConfirmSubmit(): void {
                   {{ dataSubjectStatusLabel(request.status) }}
                 </Badge>
               </div>
-              <p class="text-sm font-medium">{{ request.reason || 'Tanpa konteks tambahan.' }}</p>
+              <p class="text-sm font-medium">{{ request.reason || t('portal.privacy.reason_fallback') }}</p>
               <p class="text-muted-foreground text-xs">
-                Diajukan: {{ formatPrivacyTimestamp(request.submitted_at, 'Belum diajukan') }}
+                {{ t('portal.privacy.submitted_at', { date: formatPrivacyTimestamp(request.submitted_at, t('portal.privacy.submitted_not_available')) }) }}
               </p>
             </div>
             <div class="text-muted-foreground text-xs sm:text-right">
-              <p>SLA: {{ formatPrivacyTimestamp(request.sla_due_at, 'Belum tersedia') }}</p>
-              <p>Selesai: {{ formatPrivacyTimestamp(request.fulfilled_at) }}</p>
+              <p>{{ t('portal.privacy.sla_due', { date: formatPrivacyTimestamp(request.sla_due_at, t('portal.privacy.sla_not_available')) }) }}</p>
+              <p>{{ t('portal.privacy.fulfilled_at', { date: formatPrivacyTimestamp(request.fulfilled_at) }) }}</p>
             </div>
           </li>
         </ul>
@@ -207,10 +210,10 @@ function handleConfirmSubmit(): void {
 
     <ConfirmDialog
       v-model:open="isConfirmOpen"
-      :title="selectedOption.confirmTitle"
-      :description="selectedOption.confirmDescription"
-      :confirm-label="selectedOption.confirmLabel"
-      cancel-label="Periksa Lagi"
+      :title="selectedOption.confirmTitleKey ? t(selectedOption.confirmTitleKey) : ''"
+      :description="selectedOption.confirmDescriptionKey ? t(selectedOption.confirmDescriptionKey) : ''"
+      :confirm-label="selectedOption.confirmLabelKey ? t(selectedOption.confirmLabelKey) : ''"
+      :cancel-label="t('portal.privacy.check_again')"
       destructive
       @confirm="handleConfirmSubmit"
     />

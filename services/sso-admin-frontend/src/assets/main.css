@@ -1431,19 +1431,31 @@ select {
   resize: vertical;
 }
 
-.ui-switch {
+.ui-switch-wrapper {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  width: fit-content;
-  min-height: 38px;
-  padding: 4px 10px 4px 4px;
-  color: var(--foreground);
-  font-weight: 800;
+  cursor: pointer;
+}
+
+.ui-switch-wrapper--disabled {
+  opacity: 0.56;
+  cursor: not-allowed;
+}
+
+.ui-switch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 52px;
+  height: 36px;
+  padding: 3px;
   border: 1px solid var(--border);
   border-radius: 999px;
   background: var(--muted);
   cursor: pointer;
+  box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 .ui-switch__thumb {
@@ -1456,9 +1468,21 @@ select {
     background 180ms ease;
 }
 
+.ui-switch--checked {
+  background: rgba(99, 102, 241, 0.1);
+  border-color: var(--primary);
+}
+
 .ui-switch--checked .ui-switch__thumb {
   background: var(--primary);
   transform: translateX(16px);
+}
+
+.ui-switch__label {
+  color: var(--foreground);
+  font-weight: 800;
+  font-size: var(--text-sm);
+  user-select: none;
 }
 
 .ui-data-list {
@@ -4685,4 +4709,32 @@ button.user-card-item {
   font-size: 0.75rem;
   font-family: var(--font-mono);
   color: var(--muted-foreground);
+}
+
+.user-modal-group {
+  display: grid;
+  gap: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px;
+  background: rgba(255, 255, 255, 0.01);
+  margin-bottom: 20px;
+}
+
+.user-modal-group-title {
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--primary);
+  margin: 0;
+  padding-bottom: 6px;
+  border-bottom: 1px dashed var(--border);
+}
+
+.ui-field-hint {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  margin-top: 4px;
+  line-height: 1.4;
 }

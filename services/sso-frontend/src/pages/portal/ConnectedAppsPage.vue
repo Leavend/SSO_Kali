@@ -9,6 +9,7 @@ import ConfirmDialog from '@/components/molecules/ConfirmDialog.vue'
 import PortalPageHeader from '@/components/molecules/PortalPageHeader.vue'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useProfileStore } from '@/stores/profile.store'
+import { useI18n } from '@/composables/useI18n'
 import { isApiError } from '@/lib/api/api-error'
 import { presentConnectedApp } from '@/lib/connected-apps'
 import { formatFriendlyClientName } from '@/lib/display-identifiers'
@@ -27,6 +28,7 @@ interface PresentedConnectedApp {
 }
 
 const profile = useProfileStore()
+const { t } = useI18n()
 
 const load = useAsyncAction(() => profile.loadConnectedApps())
 const revoke = useAsyncAction((clientId: string) => profile.revokeConnectedApp(clientId))
@@ -73,40 +75,26 @@ function isExpanded(clientId: string): boolean {
   return expandedClientIds.value.has(clientId)
 }
 
-/**
- * FE-FR026-002 / FR-026: never render the raw ApiError message — it can
- * include backend technical details (SQLSTATE, internal IDs, etc). Map
- * known statuses to safe localized copy; everything else falls back to a
- * generic message.
- */
-const REVOKE_GENERIC_FAILURE = 'Gagal mencabut akses aplikasi. Coba lagi beberapa saat.'
-const REVOKE_CSRF_EXPIRED = 'Sesi keamanan kedaluwarsa. Muat ulang halaman lalu coba lagi.'
-const REVOKE_RATE_LIMITED = 'Terlalu banyak percobaan. Tunggu sebentar sebelum mencoba lagi.'
-const REVOKE_UNAUTHORIZED = 'Sesi SSO kedaluwarsa. Silakan masuk lagi untuk mencabut aplikasi ini.'
-const REVOKE_FORBIDDEN = 'Akses aplikasi ini tidak dapat dicabut dari akun ini.'
-const REVOKE_NOT_FOUND = 'Aplikasi sudah tidak terhubung dengan akunmu. Muat ulang halaman.'
-const REVOKE_SERVER_ERROR = 'Layanan SSO sedang tidak tersedia. Coba lagi nanti.'
-
 const revokeErrorMessage = computed<string | null>(() => {
   const error = revoke.error.value
   if (!error) return null
-  if (!isApiError(error)) return REVOKE_GENERIC_FAILURE
-  if (error.status === 419) return REVOKE_CSRF_EXPIRED
-  if (error.status === 429) return REVOKE_RATE_LIMITED
-  if (error.status === 401) return REVOKE_UNAUTHORIZED
-  if (error.status === 403) return REVOKE_FORBIDDEN
-  if (error.status === 404) return REVOKE_NOT_FOUND
-  if (error.status === 0 || error.status >= 500) return REVOKE_SERVER_ERROR
-  return REVOKE_GENERIC_FAILURE
+  if (!isApiError(error)) return t('portal.apps.revoke_error_generic')
+  if (error.status === 419) return t('portal.apps.revoke_error_csrf')
+  if (error.status === 429) return t('portal.apps.revoke_error_rate_limit')
+  if (error.status === 401) return t('portal.apps.revoke_error_unauthorized')
+  if (error.status === 403) return t('portal.apps.revoke_error_forbidden')
+  if (error.status === 404) return t('portal.apps.revoke_error_not_found')
+  if (error.status === 0 || error.status >= 500) return t('portal.apps.revoke_error_server')
+  return t('portal.apps.revoke_error_generic')
 })
 </script>
 
 <template>
   <section class="grid gap-6 sm:gap-8">
     <PortalPageHeader
-      eyebrow="Aplikasi Terhubung"
-      title="Aplikasi Terhubung"
-      description="Aplikasi yang saat ini memiliki akses ke akunmu melalui Dev-SSO. Cabut akses kapan saja jika kamu tidak lagi menggunakan aplikasi tersebut."
+      :eyebrow="t('portal.apps.eyebrow')"
+      :title="t('portal.apps.title')"
+      :description="t('portal.apps.description')"
       :icon="AppWindow"
     />
 
@@ -122,9 +110,9 @@ const revokeErrorMessage = computed<string | null>(() => {
         >
           <AppWindow class="size-5" />
         </span>
-        <CardTitle class="text-base">Belum ada aplikasi yang terhubung.</CardTitle>
+        <CardTitle class="text-base">{{ t('portal.apps.empty_title') }}</CardTitle>
         <CardDescription data-testid="connected-apps-empty-copy" class="mx-auto max-w-[18rem]">
-          Aplikasi yang kamu otorisasi melalui Dev-SSO akan muncul di sini.
+          {{ t('portal.apps.empty_description') }}
         </CardDescription>
       </CardHeader>
     </Card>
@@ -159,14 +147,14 @@ const revokeErrorMessage = computed<string | null>(() => {
             <div class="flex min-w-0 flex-wrap items-center gap-2">
               <strong class="text-sm">{{ item.app.display_name }}</strong>
               <Badge v-if="item.presentation.isActive" variant="default" class="text-[10px]">
-                Sedang dipakai
+                {{ t('portal.apps.currently_used') }}
               </Badge>
               <Badge
                 v-if="item.presentation.isDormant"
                 variant="outline"
                 class="rounded-full text-[10px]"
               >
-                Tidak aktif {{ item.presentation.relativeLastUsed }}
+                {{ t('portal.apps.inactive', { relativeLastUsed: item.presentation.relativeLastUsed }) }}
               </Badge>
               <Badge variant="secondary" class="text-[10px]">{{
                 item.presentation.category
@@ -178,7 +166,7 @@ const revokeErrorMessage = computed<string | null>(() => {
           <div class="grid gap-2 text-xs sm:grid-cols-2">
             <div class="grid gap-0.5">
               <span class="text-muted-foreground text-[10px] font-medium uppercase tracking-wider">
-                Terhubung
+                {{ t('portal.apps.connected') }}
               </span>
               <time :datetime="item.app.first_connected_at" class="tabular-nums">
                 {{ formatPortalDateTime(item.app.first_connected_at) }}
@@ -186,7 +174,7 @@ const revokeErrorMessage = computed<string | null>(() => {
             </div>
             <div class="grid gap-0.5">
               <span class="text-muted-foreground text-[10px] font-medium uppercase tracking-wider">
-                Terakhir Dipakai
+                {{ t('portal.apps.last_used') }}
               </span>
               <time :datetime="item.app.last_used_at" class="tabular-nums">
                 {{ formatPortalDateTime(item.app.last_used_at) }}
@@ -222,16 +210,16 @@ const revokeErrorMessage = computed<string | null>(() => {
           >
             <div class="grid gap-1 sm:grid-cols-2">
               <p>
-                <span class="text-muted-foreground">Aplikasi:</span>
+                <span class="text-muted-foreground">{{ t('portal.apps.app') }}</span>
                 <code>{{ formatFriendlyClientName(item.app.client_id) }}</code>
               </p>
               <p>
-                <span class="text-muted-foreground">Token berakhir:</span>
+                <span class="text-muted-foreground">{{ t('portal.apps.token_expires') }}</span>
                 {{ formatPortalDateTime(item.app.expires_at) }}
               </p>
             </div>
             <p v-if="item.presentation.isDormant" class="text-warning-800">
-              Pertimbangkan untuk mencabut akses aplikasi yang sudah lama tidak digunakan.
+              {{ t('portal.apps.dormant_warning') }}
             </p>
           </div>
         </div>
@@ -245,7 +233,7 @@ const revokeErrorMessage = computed<string | null>(() => {
             @click="toggleDetails(item.app.client_id)"
           >
             <ChevronDown class="size-4" aria-hidden="true" />
-            Lihat Detail
+            {{ t('portal.apps.view_details') }}
           </button>
           <Button
             variant="outline"
@@ -254,7 +242,7 @@ const revokeErrorMessage = computed<string | null>(() => {
             @click="askRevoke(item.app.client_id, item.app.display_name)"
           >
             <Loader2 v-if="revokingClientId === item.app.client_id" class="size-4 animate-spin" />
-            {{ revokingClientId === item.app.client_id ? 'Mencabut…' : 'Cabut Akses' }}
+            {{ revokingClientId === item.app.client_id ? t('portal.apps.revoking') : t('portal.apps.revoke_access') }}
           </Button>
         </div>
       </Card>
@@ -271,9 +259,9 @@ const revokeErrorMessage = computed<string | null>(() => {
 
     <ConfirmDialog
       v-model:open="showDialog"
-      :title="`Cabut akses ${pendingTarget?.name ?? 'aplikasi'}?`"
-      description="Aplikasi tidak bisa lagi mengakses akun kamu sampai kamu otorisasi ulang."
-      confirm-label="Ya, Cabut Akses"
+      :title="t('portal.apps.dialog_title', { name: pendingTarget?.name ?? 'aplikasi' })"
+      :description="t('portal.apps.dialog_description')"
+      :confirm-label="t('portal.apps.dialog_confirm')"
       destructive
       @confirm="confirmRevoke"
     />

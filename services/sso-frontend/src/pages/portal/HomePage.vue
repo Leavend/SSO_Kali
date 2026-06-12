@@ -6,11 +6,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import PortalPageHeader from '@/components/molecules/PortalPageHeader.vue'
 import { useSessionStore } from '@/stores/session.store'
 import { useProfileStore } from '@/stores/profile.store'
+import { useI18n } from '@/composables/useI18n'
 
 const session = useSessionStore()
 const profile = useProfileStore()
+const { t } = useI18n()
 
-const welcome = computed<string>(() => session.displayName || 'Pengguna')
+const welcome = computed<string>(() => session.displayName || t('portal.home.user_fallback'))
 const sessionsMetric = computed<string>(() =>
   profile.sessionsStatus === 'success' ? String(profile.sessions.length) : '—',
 )
@@ -18,32 +20,32 @@ const connectedAppsMetric = computed<string>(() =>
   profile.connectedAppsStatus === 'success' ? String(profile.connectedApps.length) : '—',
 )
 
-const shortcuts = [
+const shortcuts = computed(() => [
   {
     to: '/profile',
-    label: 'Profil',
+    label: t('portal.nav.profile'),
     icon: UserRound,
-    description: 'Kelola data akun dan identitas yang tampil di portal.',
+    description: t('portal.home.shortcut_profile_desc'),
   },
   {
     to: '/apps',
-    label: 'Aplikasi Terhubung',
+    label: t('portal.home.apps_metric_desc'),
     icon: AppWindow,
-    description: 'Audit aplikasi yang pernah kamu otorisasi lewat SSO.',
+    description: t('portal.home.shortcut_apps_desc'),
   },
   {
     to: '/sessions',
-    label: 'Sesi Aktif',
+    label: t('portal.nav.sessions'),
     icon: Activity,
-    description: 'Pantau perangkat aktif dan akhiri sesi mencurigakan.',
+    description: t('portal.home.shortcut_sessions_desc'),
   },
   {
     to: '/security',
-    label: 'Keamanan',
+    label: t('portal.nav.security'),
     icon: ShieldCheck,
-    description: 'Kelola MFA, password, dan kontrol login akun.',
+    description: t('portal.home.shortcut_security_desc'),
   },
-]
+])
 
 onMounted(async (): Promise<void> => {
   // Independent calls — one failure must not block others (FR-061).
@@ -54,16 +56,16 @@ onMounted(async (): Promise<void> => {
 <template>
   <section class="grid gap-6 sm:gap-8">
     <PortalPageHeader
-      eyebrow="Dashboard Portal"
-      :title="`Halo, ${welcome} 👋`"
-      description="Ringkasan akun SSO-mu dalam satu kanvas liquid glass. Pantau profil, sesi, aplikasi, dan keamanan tanpa keluar dari portal."
+      :eyebrow="t('portal.home.eyebrow')"
+      :title="t('portal.home.title', { name: welcome })"
+      :description="t('portal.home.description')"
       :icon="UserRound"
     />
 
     <div class="grid gap-4 md:grid-cols-3">
       <Card data-testid="home-metric-card" class="overflow-hidden">
         <CardHeader>
-          <CardDescription>Sesi perangkat & aplikasi</CardDescription>
+          <CardDescription>{{ t('portal.home.sessions_metric_title') }}</CardDescription>
           <CardTitle
             data-testid="home-sessions-metric"
             class="font-display text-3xl"
@@ -74,10 +76,10 @@ onMounted(async (): Promise<void> => {
         </CardHeader>
         <CardContent class="space-y-3 text-xs text-[var(--text-secondary)]">
           <p v-if="profile.sessionsStatus === 'error'" data-testid="home-sessions-error">
-            Gagal memuat sesi. Angka ini bukan indikator status login saat ini.
+            {{ t('portal.home.sessions_metric_error') }}
           </p>
           <p v-else>
-            Ringkasan sesi dari perangkat dan aplikasi; bukan indikator apakah kamu sedang login.
+            {{ t('portal.home.sessions_metric_desc') }}
           </p>
           <Button
             v-if="profile.sessionsStatus === 'error'"
@@ -86,13 +88,13 @@ onMounted(async (): Promise<void> => {
             size="sm"
             @click="profile.loadSessions()"
           >
-            Muat ulang
+            {{ t('common.retry') }}
           </Button>
         </CardContent>
       </Card>
       <Card data-testid="home-metric-card" class="overflow-hidden">
         <CardHeader>
-          <CardDescription>Aplikasi Terhubung</CardDescription>
+          <CardDescription>{{ t('portal.home.apps_metric_desc') }}</CardDescription>
           <CardTitle
             data-testid="home-connected-apps-metric"
             class="font-display text-3xl"
@@ -103,9 +105,9 @@ onMounted(async (): Promise<void> => {
         </CardHeader>
         <CardContent class="space-y-3 text-xs text-[var(--text-secondary)]">
           <p v-if="profile.connectedAppsStatus === 'error'" data-testid="home-connected-apps-error">
-            Gagal memuat aplikasi terhubung.
+            {{ t('portal.home.apps_metric_error') }}
           </p>
-          <p v-else>Aplikasi yang pernah kamu otorisasi lewat SSO.</p>
+          <p v-else>{{ t('portal.home.apps_metric_desc') }}</p>
           <Button
             v-if="profile.connectedAppsStatus === 'error'"
             data-testid="home-connected-apps-retry"
@@ -113,20 +115,20 @@ onMounted(async (): Promise<void> => {
             size="sm"
             @click="profile.loadConnectedApps()"
           >
-            Muat ulang
+            {{ t('common.retry') }}
           </Button>
         </CardContent>
       </Card>
       <Card data-testid="home-metric-card" class="overflow-hidden">
         <CardHeader>
-          <CardDescription>Peran</CardDescription>
+          <CardDescription>{{ t('portal.home.roles_title') }}</CardDescription>
           <CardTitle class="text-lg">
             {{ session.roles.length ? session.roles.join(', ') : '—' }}
           </CardTitle>
         </CardHeader>
-        <CardContent class="text-xs text-[var(--text-secondary)]"
-          >Diambil dari direktori SSO.</CardContent
-        >
+        <CardContent class="text-xs text-[var(--text-secondary)]">
+          {{ t('portal.home.roles_desc') }}
+        </CardContent>
       </Card>
     </div>
 
@@ -153,7 +155,7 @@ onMounted(async (): Promise<void> => {
         <CardContent>
           <Button as-child variant="outline" size="sm">
             <router-link :to="shortcut.to">
-              Buka
+              {{ t('portal.home.btn_open') }}
               <ArrowRight class="ml-2 size-4" />
             </router-link>
           </Button>

@@ -4,6 +4,7 @@
 
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { resolveAuthGuard } from './guards'
+import { useI18n } from '@/composables/useI18n'
 
 export type RouteLayout = 'auth' | 'portal'
 export type AuroraPreset = 'default' | 'cool' | 'error'
@@ -185,9 +186,34 @@ const router = createRouter({
 
 router.beforeEach(resolveAuthGuard)
 
-router.afterEach((to) => {
+const routeTitleKeys: Record<string, string> = {
+  'auth.login': 'routes.login',
+  'auth.register': 'routes.register',
+  'auth.callback': 'routes.callback',
+  'auth.consent': 'routes.consent',
+  'auth.mfa-challenge': 'routes.mfa_challenge',
+  'auth.forgot-password': 'routes.forgot_password',
+  'auth.reset-password': 'routes.reset_password',
+  'portal.home': 'routes.home',
+  'portal.profile': 'routes.profile',
+  'portal.apps': 'routes.apps',
+  'portal.sessions': 'routes.sessions',
+  'portal.security': 'routes.security',
+  'portal.privacy': 'routes.privacy',
+  'portal.mfa-settings': 'routes.mfa_settings',
+  'error.not-found': 'routes.not_found',
+}
+
+export function updateDocumentTitle(routeName: string | null | undefined, defaultTitle?: string): void {
   const base = import.meta.env.VITE_APP_NAME ?? 'Dev-SSO'
-  document.title = to.meta.title ? `${String(to.meta.title)} · ${base}` : base
+  const { t } = useI18n()
+  const key = routeName ? routeTitleKeys[routeName] : null
+  const title = key ? t(key) : (defaultTitle ?? '')
+  document.title = title ? `${title} · ${base}` : base
+}
+
+router.afterEach((to) => {
+  updateDocumentTitle(to.name as string | null | undefined, to.meta.title)
 })
 
 export default router

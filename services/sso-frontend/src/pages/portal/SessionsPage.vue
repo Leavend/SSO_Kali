@@ -19,11 +19,13 @@ import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useSessionRevocation } from '@/composables/useSessionRevocation'
 import { useProfileStore } from '@/stores/profile.store'
 import { presentSafeError } from '@/lib/api/safe-error-presenter'
+import { useI18n } from '@/composables/useI18n'
 
 const profile = useProfileStore()
 const load = useAsyncAction(() => profile.loadSessions())
 
 const revocation = useSessionRevocation()
+const { t } = useI18n()
 
 const sortedSessions = computed(() => [...profile.sessions].sort(compareSessions))
 const sessions = computed(() => sortedSessions.value)
@@ -78,9 +80,9 @@ function compareSessions(
 <template>
   <section class="grid gap-6 sm:gap-8">
     <PortalPageHeader
-      eyebrow="Keamanan Perangkat"
-      title="Sesi Aktif"
-      description="Pantau semua perangkat yang sedang login ke akun kamu. Akhiri sesi dari perangkat yang tidak kamu kenal untuk menjaga keamanan akun."
+      :eyebrow="t('portal.sessions.eyebrow')"
+      :title="t('portal.sessions.title')"
+      :description="t('portal.sessions.description')"
       :icon="Activity"
     />
 
@@ -95,8 +97,8 @@ function compareSessions(
         <span class="sso-glass-pill grid size-10 place-items-center text-white" aria-hidden="true">
           <Monitor class="size-5" />
         </span>
-        <CardTitle class="text-base">Belum ada sesi aktif</CardTitle>
-        <CardDescription>Sesi aktif akan tampil di sini setelah kamu login.</CardDescription>
+        <CardTitle class="text-base">{{ t('portal.sessions.empty_title') }}</CardTitle>
+        <CardDescription>{{ t('portal.sessions.empty_description') }}</CardDescription>
       </CardHeader>
     </Card>
 
@@ -124,8 +126,8 @@ function compareSessions(
           >
             <Monitor class="size-5" />
           </span>
-          <CardTitle class="text-base">Tidak ada sesi aktif lainnya</CardTitle>
-          <CardDescription> Akun kamu hanya diakses dari perangkat ini. </CardDescription>
+          <CardTitle class="text-base">{{ t('portal.sessions.other_empty_title') }}</CardTitle>
+          <CardDescription> {{ t('portal.sessions.other_empty_description') }} </CardDescription>
         </CardHeader>
       </Card>
 
@@ -134,11 +136,11 @@ function compareSessions(
           variant="outline"
           size="sm"
           :disabled="revocation.pendingGlobalLogout.value || sessions.length === 0"
-          aria-label="Akhiri semua sesi"
+          :aria-label="t('portal.sessions.btn_revoke_all')"
           class="w-full sm:w-fit"
           @click="revocation.askRevokeAll()"
         >
-          {{ revocation.pendingGlobalLogout.value ? 'Memproses…' : 'Akhiri Semua Sesi' }}
+          {{ revocation.pendingGlobalLogout.value ? t('portal.sessions.processing') : t('portal.sessions.btn_revoke_all') }}
         </Button>
       </div>
     </div>
@@ -154,18 +156,18 @@ function compareSessions(
 
     <ConfirmDialog
       v-model:open="confirmSingleOpen"
-      title="Akhiri sesi ini?"
-      :description="`Perangkat yang memakai sesi ini akan dipaksa logout dan ${pendingDisconnectedApps} koneksi aplikasi dari sesi ini akan terputus.`"
-      confirm-label="Akhiri Sesi"
+      :title="t('portal.sessions.confirm_single_title')"
+      :description="t('portal.sessions.confirm_single_description', { count: pendingDisconnectedApps })"
+      :confirm-label="t('portal.sessions.confirm_single_btn')"
       destructive
       @confirm="revocation.confirmRevokeSession"
     />
 
     <ConfirmDialog
       v-model:open="confirmGlobalOpen"
-      title="Akhiri semua sesi?"
-      description="Semua perangkat akan dikeluarkan, termasuk perangkat ini. Kamu harus login ulang. Lanjutkan?"
-      confirm-label="Akhiri Semua Sesi"
+      :title="t('portal.sessions.confirm_global_title')"
+      :description="t('portal.sessions.confirm_global_description')"
+      :confirm-label="t('portal.sessions.confirm_global_btn')"
       destructive
       @confirm="revocation.confirmRevokeAll"
     />

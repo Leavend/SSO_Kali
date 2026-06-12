@@ -144,6 +144,22 @@ const createRoleOptions = [
   { value: 'admin', label: 'admin' },
 ] as const
 
+const isDisplayNameManuallyEdited = ref(false)
+
+const createDisplayNamePreview = computed<string>(
+  () => composeProfileDisplayName(createGivenName.value, createFamilyName.value) ?? '—',
+)
+
+const isCreateFormInvalid = computed<boolean>(() => {
+  return !createEmail.value.trim() || !createDisplayName.value.trim()
+})
+
+watch([createGivenName, createFamilyName], () => {
+  if (!isDisplayNameManuallyEdited.value) {
+    createDisplayName.value = composeProfileDisplayName(createGivenName.value, createFamilyName.value) ?? ''
+  }
+})
+
 const syncEmail = ref('')
 const syncGivenName = ref('')
 const syncFamilyName = ref('')
@@ -298,6 +314,7 @@ function resetCreateForm(): void {
   createRole.value = 'user'
   createPassword.value = ''
   createLocalAccountEnabled.value = true
+  isDisplayNameManuallyEdited.value = false
 }
 
 async function submitCreateUser(): Promise<void> {
@@ -592,66 +609,89 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
             </button>
           </div>
 
-          <div class="user-form-grid">
-            <UiFormField id="create-email" :label="t('users.label_email')" required>
-              <UiInput
-                id="create-email"
-                v-model="createEmail"
-                name="create-email"
-                autocomplete="off"
-              />
-            </UiFormField>
-            <UiFormField id="create-display-name" :label="t('users.label_display_name')" required>
-              <UiInput
-                id="create-display-name"
-                v-model="createDisplayName"
-                name="create-display-name"
-                autocomplete="off"
-              />
-            </UiFormField>
-            <div class="user-form-grid user-form-grid-2">
-              <UiFormField id="create-given-name" :label="t('users.label_given_name')">
+          <div class="user-modal-body">
+            <!-- Group 1: Identitas -->
+            <div class="user-modal-group">
+              <h4 class="user-modal-group-title">{{ t('common.identity') }}</h4>
+              
+              <UiFormField id="create-email" :label="t('users.label_email')" required>
                 <UiInput
-                  id="create-given-name"
-                  v-model="createGivenName"
-                  name="create-given-name"
+                  id="create-email"
+                  v-model="createEmail"
+                  name="create-email"
                   autocomplete="off"
                 />
               </UiFormField>
-              <UiFormField id="create-family-name" :label="t('users.label_family_name')">
+
+              <div class="user-form-grid user-form-grid-2">
+                <UiFormField id="create-given-name" :label="t('users.label_given_name')">
+                  <UiInput
+                    id="create-given-name"
+                    v-model="createGivenName"
+                    name="create-given-name"
+                    autocomplete="off"
+                  />
+                </UiFormField>
+                <UiFormField id="create-family-name" :label="t('users.label_family_name')">
+                  <UiInput
+                    id="create-family-name"
+                    v-model="createFamilyName"
+                    name="create-family-name"
+                    autocomplete="off"
+                  />
+                </UiFormField>
+              </div>
+
+              <UiFormField id="create-display-name" :label="t('users.label_display_name')" required>
                 <UiInput
-                  id="create-family-name"
-                  v-model="createFamilyName"
-                  name="create-family-name"
+                  id="create-display-name"
+                  v-model="createDisplayName"
+                  name="create-display-name"
                   autocomplete="off"
+                  @input="isDisplayNameManuallyEdited = true"
                 />
+                <p class="ui-field-hint">
+                  {{ t('users.label_display_name_preview') }}: <span class="font-semibold text-primary">{{ createDisplayNamePreview }}</span>
+                </p>
               </UiFormField>
             </div>
-            <UiFormField id="create-role" :label="t('users.label_role')" required>
-              <UiSelect
-                id="create-role"
-                v-model="createRole"
-                name="create-role"
-                :options="createRoleOptions"
-              />
-            </UiFormField>
-            <UiFormField id="create-password" :label="t('users.label_password')">
-              <UiInput
-                id="create-password"
-                v-model="createPassword"
-                name="create-password"
-                type="password"
-                autocomplete="off"
-              />
-            </UiFormField>
-            <UiSwitch v-model="createLocalAccountEnabled" :label="t('users.label_local_account')" />
+
+            <!-- Group 2: Akses -->
+            <div class="user-modal-group">
+              <h4 class="user-modal-group-title">{{ t('common.access') }}</h4>
+
+              <UiFormField id="create-role" :label="t('users.label_role')" required>
+                <UiSelect
+                  id="create-role"
+                  v-model="createRole"
+                  name="create-role"
+                  :options="createRoleOptions"
+                />
+              </UiFormField>
+
+              <UiFormField id="create-password" :label="t('users.label_password')">
+                <UiInput
+                  id="create-password"
+                  v-model="createPassword"
+                  name="create-password"
+                  type="password"
+                  autocomplete="off"
+                />
+                <p class="ui-field-hint">{{ t('users.label_password_helper') }}</p>
+              </UiFormField>
+
+              <div class="pt-2">
+                <UiSwitch v-model="createLocalAccountEnabled" :label="t('users.label_local_account')" />
+                <p class="ui-field-hint" style="margin-top: 6px; padding-left: 2px;">{{ t('users.label_local_account_helper') }}</p>
+              </div>
+            </div>
           </div>
 
           <div class="user-modal-footer">
             <UiButton variant="secondary" @click="closeCreateForm">
               {{ t('common.btn_cancel') }}
             </UiButton>
-            <UiButton :disabled="store.actionStatus === 'loading'" @click="submitCreateUser">
+            <UiButton :disabled="store.actionStatus === 'loading' || isCreateFormInvalid" @click="submitCreateUser">
               {{
                 store.actionStatus === 'loading' ? t('common.creating') : t('users.btn_create_user')
               }}
