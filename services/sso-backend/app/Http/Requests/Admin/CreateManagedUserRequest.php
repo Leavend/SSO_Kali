@@ -21,7 +21,7 @@ final class CreateManagedUserRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => ['required', 'email:rfc,dns', 'max:255', 'unique:users,email'],
+            'email' => ['required', 'email:rfc', 'max:255', 'unique:users,email'],
             'display_name' => ['required', 'string', 'max:120'],
             'given_name' => ['nullable', 'string', 'max:80'],
             'family_name' => ['nullable', 'string', 'max:80'],

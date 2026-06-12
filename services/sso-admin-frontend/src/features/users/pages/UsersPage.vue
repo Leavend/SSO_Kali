@@ -930,19 +930,18 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
                   autocomplete="off"
                 />
               </UiFormField>
-              <UiFormField
-                id="sync-display-name-preview"
-                :label="t('users.label_display_name_preview')"
-              >
+              <div class="ui-form-field">
+                <span class="ui-form-field__label">
+                  {{ t('users.label_display_name_preview') }}
+                </span>
                 <div
-                  id="sync-display-name-preview"
                   class="sync-profile-preview"
                   data-testid="sync-display-name-preview"
                   aria-live="polite"
                 >
                   {{ syncDisplayNamePreview }}
                 </div>
-              </UiFormField>
+              </div>
             </div>
             <div class="user-detail-card__actions">
               <UiButton

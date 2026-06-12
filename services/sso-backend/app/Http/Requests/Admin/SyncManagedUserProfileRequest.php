@@ -19,7 +19,7 @@ final class SyncManagedUserProfileRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => ['sometimes', 'email:rfc,dns', 'max:255'],
+            'email' => ['sometimes', 'email:rfc', 'max:255'],
             'display_name' => ['sometimes', 'string', 'max:120'],
             'given_name' => ['sometimes', 'nullable', 'string', 'max:80'],
             'family_name' => ['sometimes', 'nullable', 'string', 'max:80'],

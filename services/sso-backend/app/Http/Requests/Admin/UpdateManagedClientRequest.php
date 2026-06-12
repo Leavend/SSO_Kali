@@ -20,7 +20,7 @@ final class UpdateManagedClientRequest extends FormRequest
     {
         return [
             'display_name' => ['sometimes', 'string', 'max:120'],
-            'owner_email' => ['sometimes', 'email:rfc,dns', 'max:255'],
+            'owner_email' => ['sometimes', 'email:rfc', 'max:255'],
             'redirect_uris' => ['sometimes', 'array', 'min:1'],
             'redirect_uris.*' => ['url', 'starts_with:https://', 'max:2048'],
             'post_logout_redirect_uris' => ['sometimes', 'array'],
