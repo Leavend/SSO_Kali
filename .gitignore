@@ -34,7 +34,7 @@ services/*/storage/logs
 services/*/storage/framework/cache
 services/*/storage/framework/sessions
 services/*/storage/framework/views
-
+apps-sso/
 apps/*/node_modules
 apps/*/node_modules*
 apps/*/.next
