@@ -117,7 +117,7 @@ function counterTone(key: string, value: number): 'neutral' | 'success' | 'warni
 </script>
 
 <template>
-  <section class="dashboard-page max-w-7xl mx-auto px-4 md:px-6 py-8 space-y-8">
+  <section class="dashboard-page max-w-page mx-auto px-4 md:px-6 py-8 space-y-8">
     <header class="hero-card dashboard-hero">
       <span class="eyebrow">{{ t('dashboard.eyebrow') }}</span>
       <h1>{{ t('dashboard.title') }}</h1>

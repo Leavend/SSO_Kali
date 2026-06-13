@@ -21,7 +21,7 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div class="form-page-shell max-w-3xl mx-auto py-8 px-4">
+  <div class="form-page-shell max-w-form mx-auto py-8 px-4">
     <!-- Breadcrumbs -->
     <nav class="mb-4" aria-label="Breadcrumb">
       <ol class="flex items-center gap-2 text-xs text-muted-foreground">
