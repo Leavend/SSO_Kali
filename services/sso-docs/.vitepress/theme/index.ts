@@ -1,13 +1,14 @@
 import { h } from 'vue'
 import type { Theme } from 'vitepress'
 import DefaultTheme from 'vitepress/theme'
+import CopyPageButton from './components/CopyPageButton.vue'
 import './custom.css'
 
 export default {
   extends: DefaultTheme,
   Layout: () => {
     return h(DefaultTheme.Layout, null, {
-      // Add custom slots if needed
+      'doc-before': () => h(CopyPageButton),
     })
   },
   enhanceApp({ app, router, siteData }) {

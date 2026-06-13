@@ -154,4 +154,16 @@ export default defineConfig({
     socialLinks: [{ icon: 'github', link: githubRepository }],
     search: { provider: 'local' },
   },
+
+  /**
+   * Expose raw markdown source to client for integration pages only.
+   * The CopyPageButton component reads frontmatter.rawMarkdown to
+   * enable one-click copying of the page content (e.g. for pasting
+   * into an LLM or issue tracker).
+   */
+  transformPageData(pageData, ctx) {
+    if (pageData.relativePath.includes('integrations/')) {
+      pageData.frontmatter.rawMarkdown = ctx.content
+    }
+  },
 })
