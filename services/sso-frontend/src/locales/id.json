@@ -52,6 +52,7 @@
       "title": "Atur password baru",
       "description": "Setelah berhasil, semua sesi aktif akan otomatis keluar dan kamu perlu masuk ulang.",
       "token": "Token reset",
+      "token_verified": "Token reset terverifikasi dari tautan",
       "password_hint": "Minimal 12 karakter, huruf besar/kecil, angka, karakter spesial, dan belum pernah bocor.",
       "submit": "Reset password"
     },

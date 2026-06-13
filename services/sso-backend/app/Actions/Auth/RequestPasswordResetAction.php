@@ -7,17 +7,29 @@ namespace App\Actions\Auth;
 use App\Models\User;
 use App\Notifications\PasswordResetRequestedNotification;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 
 final class RequestPasswordResetAction
 {
     public function execute(string $email): void
     {
-        $user = User::query()->where('email', mb_strtolower(trim($email)))->first();
+        $normalizedEmail = mb_strtolower(trim($email));
+        $emailKey = 'pwreset:'.sha1($normalizedEmail);
+        $hourlyKey = 'pwreset-hr:'.sha1($normalizedEmail);
+
+        if (RateLimiter::tooManyAttempts($emailKey, 1) || RateLimiter::tooManyAttempts($hourlyKey, 3)) {
+            return;
+        }
+
+        $user = User::query()->where('email', $normalizedEmail)->first();
 
         if (! $user instanceof User || $user->disabled_at !== null || $user->local_account_enabled === false) {
             return;
         }
+
+        RateLimiter::hit($emailKey, 60);
+        RateLimiter::hit($hourlyKey, 3600);
 
         $token = Str::random(48);
         $expiresAt = now()->addMinutes((int) config('sso.auth.password_reset_ttl_minutes', 30));

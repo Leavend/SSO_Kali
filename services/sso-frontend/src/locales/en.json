@@ -52,6 +52,7 @@
       "title": "Set a new password",
       "description": "After a successful reset, all active sessions will be signed out and you will need to sign in again.",
       "token": "Reset token",
+      "token_verified": "Reset token verified from link",
       "password_hint": "At least 12 characters with uppercase and lowercase letters, a number, a special character, and no known breach.",
       "submit": "Reset password"
     },

@@ -43,8 +43,8 @@ Route::prefix('api/auth')->group(function (): void {
     Route::get('/session', SessionController::class)->middleware('throttle:oidc-resource');
     Route::post('/login', LoginController::class)->middleware('throttle:oidc-callback');
     Route::post('/logout', LogoutController::class)->middleware('throttle:oidc-callback');
-    Route::post('/password-reset', PasswordResetRequestController::class)->middleware('throttle:oidc-callback');
-    Route::post('/password-reset/confirm', PasswordResetConfirmController::class)->middleware('throttle:oidc-callback');
+    Route::post('/password-reset', PasswordResetRequestController::class)->middleware('throttle:password-reset');
+    Route::post('/password-reset/confirm', PasswordResetConfirmController::class)->middleware('throttle:password-reset-confirm');
     Route::post('/register', RegisterController::class)->middleware('throttle:oidc-callback');
 });
 

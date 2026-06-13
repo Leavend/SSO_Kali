@@ -85,6 +85,8 @@ class AppServiceProvider extends ServiceProvider
         $this->registerAdminBootstrapLimiter();
         $this->registerAdminReadLimiter();
         $this->registerAdminWriteLimiter();
+        $this->registerPasswordResetLimiter();
+        $this->registerPasswordResetConfirmLimiter();
     }
 
     private function principalLimit(Request $request, string $namespace, int $perMinute): Limit
@@ -206,5 +208,23 @@ class AppServiceProvider extends ServiceProvider
             'oidc-jwks',
             (int) config('sso.rate_limits.jwks_per_minute', 60),
         )->response(fn (Request $request, array $headers) => app(AuthThrottleResponder::class)->adminApi($headers)));
+    }
+
+    private function registerPasswordResetLimiter(): void
+    {
+        RateLimiter::for('password-reset', fn (Request $request): Limit => $this->ipLimit(
+            $request,
+            'password-reset',
+            (int) config('sso.rate_limits.password_reset_per_minute', 5),
+        )->response(fn (Request $request, array $headers) => app(AuthThrottleResponder::class)->callback($request, $headers)));
+    }
+
+    private function registerPasswordResetConfirmLimiter(): void
+    {
+        RateLimiter::for('password-reset-confirm', fn (Request $request): Limit => $this->ipLimit(
+            $request,
+            'password-reset-confirm',
+            (int) config('sso.rate_limits.password_reset_confirm_per_minute', 20),
+        )->response(fn (Request $request, array $headers) => app(AuthThrottleResponder::class)->callback($request, $headers)));
     }
 }

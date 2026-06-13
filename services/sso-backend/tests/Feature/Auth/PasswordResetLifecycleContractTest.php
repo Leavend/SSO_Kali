@@ -91,3 +91,32 @@ it('rejects invalid reset tokens with field-level safe validation errors', funct
     ])->assertStatus(422)
         ->assertJsonPath('errors.token.0', 'Token reset tidak valid atau kedaluwarsa.');
 });
+
+it('throttles password reset link requests per email address', function (): void {
+    Notification::fake();
+    $user = User::factory()->create([
+        'email' => 'throttled-reset@example.test',
+        'password' => Hash::make('OldPassword123!'),
+        'local_account_enabled' => true,
+    ]);
+
+    // First request
+    $this->postJson('/api/auth/password-reset', ['email' => 'throttled-reset@example.test'])
+        ->assertOk()
+        ->assertJsonPath('sent', true);
+
+    $user->refresh();
+    $firstHash = $user->password_reset_token_hash;
+    expect($firstHash)->not->toBeNull();
+
+    // Second request immediately (should be throttled / silently ignored)
+    $this->postJson('/api/auth/password-reset', ['email' => 'throttled-reset@example.test'])
+        ->assertOk()
+        ->assertJsonPath('sent', true);
+
+    $user->refresh();
+    // Hash should not change and no second notification sent
+    expect($user->password_reset_token_hash)->toBe($firstHash);
+
+    Notification::assertSentToTimes($user, PasswordResetRequestedNotification::class, 1);
+});

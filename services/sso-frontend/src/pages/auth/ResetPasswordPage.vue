@@ -17,10 +17,16 @@ import { useI18n } from '@/composables/useI18n'
 
 const { t } = useI18n()
 const route = useRoute()
-const token = computed<string | null>(() =>
-  typeof route.query['token'] === 'string' ? route.query['token'] : null,
-)
+const token = computed<string | null>(() => {
+  const q = route.query['token']
+  if (typeof q === 'string') {
+    const trimmed = q.trim()
+    return trimmed !== '' ? trimmed : null
+  }
+  return null
+})
 const reset = usePasswordResetConfirm(token.value)
+const hasTokenFromUrl = computed<boolean>(() => token.value !== null)
 </script>
 
 <template>
@@ -60,7 +66,13 @@ const reset = usePasswordResetConfirm(token.value)
         :hide-label="true"
       />
 
+      <div v-if="hasTokenFromUrl" class="rounded-lg border border-border/40 bg-background/20 px-3.5 py-2.5 text-xs text-muted-foreground backdrop-blur-sm flex items-center gap-2">
+        <span class="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+        {{ t('auth.reset.token_verified') }}
+      </div>
+
       <SsoGlassFormField
+        v-else
         id="reset-password-token"
         v-model="reset.form.token"
         :label="t('auth.reset.token')"
