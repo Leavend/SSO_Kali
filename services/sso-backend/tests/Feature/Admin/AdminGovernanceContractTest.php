@@ -118,6 +118,9 @@ it('keeps dashboard summary available when cache storage fails', function (): vo
     Cache::shouldReceive('put')->once()->andReturnTrue();
 
     $snapshot = app(AdminDashboardSummaryService::class)->snapshot();
+    if ($snapshot['partial']) {
+        dd($snapshot);
+    }
 
     expect($snapshot['partial'])->toBeFalse()
         ->and($snapshot['counters']['users']['total'])->toBeInt()
