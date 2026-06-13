@@ -220,32 +220,25 @@ function markDisplayNameManual(): void {
       </UiFormField>
     </FormSection>
 
-    <!-- Section 2: Akses & Keamanan -->
+    <!-- Section 2: Akses & Peran -->
     <FormSection
       :title="t('common.access')"
-      description="Konfigurasikan peran tingkat administratif dan metode kredensial masuk."
+      description="Konfigurasikan peran tingkat administratif."
     >
       <UiFormField id="create_role" :label="t('users.label_role')" required>
         <UiSelect id="create_role" v-model="role" name="create_role" :options="roleOptions" />
       </UiFormField>
+    </FormSection>
 
-      <div class="border border-border rounded-xl p-4 bg-card/20 space-y-4">
-        <div class="flex items-center justify-between">
-          <div class="grid gap-0.5">
-            <span class="text-xs font-semibold text-foreground">{{ t('users.label_local_account') }}</span>
-            <span class="text-[11px] text-muted-foreground leading-relaxed">
-              {{ t('users.label_local_account_helper') }}
-            </span>
-          </div>
-          <UiSwitch v-model="isLocalAccountEnabled" :label="t('users.label_local_account')" class="sr-only" />
-          <input
-            type="checkbox"
-            v-model="isLocalAccountEnabled"
-            class="accent-primary rounded border-border w-9 h-5 cursor-pointer"
-          />
-        </div>
+    <!-- Section 3: Akun Lokal & Kredensial -->
+    <FormSection
+      title="Akun Lokal & Kredensial"
+      description="Izinkan user login dengan email + password. Jika nonaktif, user hanya bisa masuk via SSO/federasi dan tidak bisa reset password."
+    >
+      <div class="space-y-6">
+        <UiSwitch v-model="isLocalAccountEnabled" :label="t('users.label_local_account')" />
 
-        <div v-if="isLocalAccountEnabled" class="pt-4 border-t border-border space-y-3">
+        <div v-if="isLocalAccountEnabled" class="space-y-4 pt-4 border-t border-border">
           <UiFormField
             id="create_password"
             :label="t('users.label_password')"
