@@ -40,12 +40,12 @@ const emit = defineEmits<{
     </div>
 
     <!-- Main Form Content -->
-    <div class="space-y-8 pb-24">
+    <div class="space-y-8">
       <slot />
     </div>
 
-    <!-- Sticky Bottom Footer -->
-    <footer class="sticky bottom-0 left-0 right-0 z-10 -mx-4 px-4 py-4 bg-card border-t border-border flex items-center justify-between shadow-lg">
+    <!-- Actions Footer -->
+    <footer class="pt-6 border-t border-border flex items-center justify-between mt-8">
       <slot name="footer-left">
         <UiButton variant="secondary" type="button" :disabled="isSubmitting" @click="emit('cancel')">
           {{ cancelLabel || 'Batal' }}
