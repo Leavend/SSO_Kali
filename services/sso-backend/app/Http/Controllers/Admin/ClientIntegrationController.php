@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Requests\Admin\BuildClientIntegrationDraftRequest;
-use App\Models\User;
 use App\Services\Oidc\ClientIntegrationContractBuilder;
 use App\Services\Oidc\ClientIntegrationRegistrationService;
 use App\Support\Responses\AdminApiResponse;
@@ -33,9 +32,9 @@ final class ClientIntegrationController
     public function stage(BuildClientIntegrationDraftRequest $request, ClientIntegrationRegistrationService $registrations): JsonResponse
     {
         try {
-            $registration = $registrations->stage($request, $this->admin($request), app(ClientIntegrationContractBuilder::class)->draftFrom($request->draftInput()));
+            $registration = $registrations->stage($request, $request->attributes->get('admin_user'), app(ClientIntegrationContractBuilder::class)->draftFrom($request->draftInput()));
         } catch (RuntimeException $exception) {
-            return $this->invalidIntegration($exception);
+            return $this->invalid($exception);
         }
 
         return AdminApiResponse::ok(['registration' => $registrations->payload($registration)]);
@@ -44,10 +43,9 @@ final class ClientIntegrationController
     public function create(BuildClientIntegrationDraftRequest $request, ClientIntegrationRegistrationService $registrations): JsonResponse
     {
         try {
-            $draft = app(ClientIntegrationContractBuilder::class)->draftFrom($request->draftInput());
-            $created = $registrations->create($request, $this->admin($request), $draft);
+            $created = $registrations->create($request, $request->attributes->get('admin_user'), app(ClientIntegrationContractBuilder::class)->draftFrom($request->draftInput()));
         } catch (RuntimeException $exception) {
-            return $this->invalidIntegration($exception);
+            return $this->invalid($exception);
         }
 
         $payload = ['registration' => $registrations->payload($created['registration'])];
@@ -55,16 +53,17 @@ final class ClientIntegrationController
             $payload['plaintext_secret'] = $created['plaintext_secret'];
         }
 
-        return AdminApiResponse::created($payload)
-            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+        return AdminApiResponse::created($payload)->header('Cache-Control', 'no-store, no-cache, must-revalidate, private');
     }
 
     public function activate(Request $request, ClientIntegrationRegistrationService $registrations, string $clientId): JsonResponse
     {
+        $hash = is_string($value = $request->input('secretHash', $request->input('secret_hash'))) && $value !== '' ? $value : null;
+
         try {
-            $registration = $registrations->activate($request, $this->admin($request), $clientId, $this->secretHash($request));
+            $registration = $registrations->activate($request, $request->attributes->get('admin_user'), $clientId, $hash);
         } catch (RuntimeException $exception) {
-            return $this->invalidIntegration($exception);
+            return $this->invalid($exception);
         }
 
         return AdminApiResponse::ok(['registration' => $registrations->payload($registration)]);
@@ -72,47 +71,28 @@ final class ClientIntegrationController
 
     public function disable(Request $request, ClientIntegrationRegistrationService $registrations, string $clientId): JsonResponse
     {
-        try {
-            $reason = is_string($request->input('reason')) ? $request->input('reason') : null;
-            $registration = $registrations->disable($request, $this->admin($request), $clientId, $reason);
-        } catch (RuntimeException $exception) {
-            return $this->invalidIntegration($exception);
-        }
-
-        return AdminApiResponse::ok(['registration' => $registrations->payload($registration)]);
+        return $this->lifecycle($request, $registrations, 'disable', $clientId);
     }
 
     public function decommission(Request $request, ClientIntegrationRegistrationService $registrations, string $clientId): JsonResponse
     {
+        return $this->lifecycle($request, $registrations, 'decommission', $clientId);
+    }
+
+    private function lifecycle(Request $request, ClientIntegrationRegistrationService $registrations, string $method, string $clientId): JsonResponse
+    {
         try {
             $reason = is_string($request->input('reason')) ? $request->input('reason') : null;
-            $registration = $registrations->decommission($request, $this->admin($request), $clientId, $reason);
+            $registration = $registrations->{$method}($request, $request->attributes->get('admin_user'), $clientId, $reason);
         } catch (RuntimeException $exception) {
-            return $this->invalidIntegration($exception);
+            return $this->invalid($exception);
         }
 
         return AdminApiResponse::ok(['registration' => $registrations->payload($registration)]);
     }
 
-    private function admin(Request $request): User
+    private function invalid(RuntimeException $exception): JsonResponse
     {
-        /** @var User */
-        return $request->attributes->get('admin_user');
-    }
-
-    private function secretHash(Request $request): ?string
-    {
-        $value = $request->input('secretHash', $request->input('secret_hash'));
-
-        return is_string($value) && $value !== '' ? $value : null;
-    }
-
-    private function invalidIntegration(RuntimeException $exception): JsonResponse
-    {
-        $status = $exception->getCode() >= 400 && $exception->getCode() <= 599
-            ? $exception->getCode()
-            : 422;
-
-        return AdminApiResponse::error('client_integration_invalid', $exception->getMessage(), $status);
+        return AdminApiResponse::error('client_integration_invalid', $exception->getMessage(), $exception->getCode() >= 400 && $exception->getCode() <= 599 ? $exception->getCode() : 422);
     }
 }
