@@ -369,25 +369,23 @@ function toggleScope(scopeName: string) {
       title="Advanced Settings"
       description="Konfigurasi opsional untuk integrasi siklus hidup otentikasi tingkat lanjut."
     >
-      <AdvancedDisclosure title="Advanced Configurations">
-        <UiFormField
+      <UiFormField
+        id="create_backchannel_logout_uri"
+        :label="t('clients.label_logout_url')"
+        :error="errorFor('backchannelLogoutUri')"
+      >
+        <UiInput
           id="create_backchannel_logout_uri"
-          :label="t('clients.label_logout_url')"
-          :error="errorFor('backchannelLogoutUri')"
-        >
-          <UiInput
-            id="create_backchannel_logout_uri"
-            v-model="form.backchannelLogoutUri"
-            name="create_backchannel_logout_uri"
-            autocomplete="off"
-            placeholder="https://app.company.com/auth/logout"
-            :invalid="Boolean(errors.backchannelLogoutUri)"
-          />
-          <p class="text-xs text-muted-foreground mt-1">
-            Harus valid dan memakai origin domain yang sama dengan Redirect URI callback.
-          </p>
-        </UiFormField>
-      </AdvancedDisclosure>
+          v-model="form.backchannelLogoutUri"
+          name="create_backchannel_logout_uri"
+          autocomplete="off"
+          placeholder="https://app.company.com/auth/logout"
+          :invalid="Boolean(errors.backchannelLogoutUri)"
+        />
+        <p class="text-xs text-muted-foreground mt-1">
+          Harus valid dan memakai origin domain yang sama dengan Redirect URI callback.
+        </p>
+      </UiFormField>
     </FormSection>
   </FormPageShell>
 
