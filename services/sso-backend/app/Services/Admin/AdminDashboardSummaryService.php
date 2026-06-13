@@ -93,6 +93,7 @@ final class AdminDashboardSummaryService
             return $resolver();
         } catch (Throwable $exception) {
             $degraded[] = $name;
+            dump($name.' exception: '.$exception->getMessage()."\n".$exception->getTraceAsString());
             Log::warning('[ADMIN_DASHBOARD_COUNTER_DEGRADED]', [
                 'counter' => $name,
                 'exception' => $exception::class,
