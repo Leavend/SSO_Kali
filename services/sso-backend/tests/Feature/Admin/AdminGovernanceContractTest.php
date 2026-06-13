@@ -127,7 +127,9 @@ it('keeps dashboard summary available when cache storage fails', function (): vo
 it('returns a partial dashboard summary when one counter group fails', function (): void {
     $admin = User::factory()->create(['subject_id' => 'admin_dashboard_partial', 'role' => 'admin']);
 
+    Schema::disableForeignKeyConstraints();
     Schema::drop('data_subject_requests');
+    Schema::enableForeignKeyConstraints();
 
     $response = $this->withToken(adminAccessTokenFor($admin))
         ->getJson('/admin/api/dashboard/summary');
