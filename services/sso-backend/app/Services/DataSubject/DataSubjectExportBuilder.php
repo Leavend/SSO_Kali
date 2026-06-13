@@ -43,7 +43,7 @@ final class DataSubjectExportBuilder
                 ->all(),
             'sessions' => DB::table('sso_sessions')
                 ->where('subject_id', $subjectId)
-                ->get(['session_id', 'created_at', 'last_activity_at', 'expires_at', 'revoked_at'])
+                ->get(['session_id', 'created_at', 'last_seen_at', 'expires_at', 'revoked_at'])
                 ->map(fn (object $row): array => (array) $row)
                 ->all(),
             'rp_sessions' => DB::table('oidc_rp_sessions')
