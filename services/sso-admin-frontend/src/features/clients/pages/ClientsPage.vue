@@ -1157,7 +1157,7 @@ async function deleteClient(): Promise<void> {
                 {{ t('clients.sub_decommission_title') }}
               </h4>
               <p class="user-detail-card__hint">{{ t('clients.decommission_hint') }}</p>
-              <UiFormField id="decommission_confirmation" :label="t('clients.label_decommission')">
+              <UiFormField id="decommission_confirmation" :label="`${t('clients.label_decommission')} (${store.selectedClientId})`">
                 <UiInput
                   id="decommission_confirmation"
                   v-model="lifecycleForm.decommission_confirmation"
@@ -1195,7 +1195,7 @@ async function deleteClient(): Promise<void> {
               >
                 {{ deleteMessage }}
               </p>
-              <UiFormField id="delete_confirmation" label="Ketik client ID untuk konfirmasi hapus permanen">
+              <UiFormField id="delete_confirmation" :label="`Ketik client ID untuk konfirmasi hapus permanen (${store.selectedClientId})`">
                 <UiInput
                   id="delete_confirmation"
                   v-model="lifecycleForm.delete_confirmation"
