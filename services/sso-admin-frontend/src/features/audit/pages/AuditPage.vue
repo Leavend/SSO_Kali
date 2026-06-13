@@ -303,7 +303,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <section class="audit-page" aria-labelledby="audit-title">
+  <section class="audit-page max-w-7xl mx-auto px-4 md:px-6 py-8" aria-labelledby="audit-title">
     <div class="page-heading">
       <p class="eyebrow">{{ t('audit.eyebrow') }}</p>
       <h1 id="audit-title">{{ t('audit.title') }}</h1>

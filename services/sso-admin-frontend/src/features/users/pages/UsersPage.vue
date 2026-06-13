@@ -407,7 +407,7 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
 </script>
 
 <template>
-  <section class="users-page" aria-labelledby="users-title">
+  <section class="users-page max-w-7xl mx-auto px-4 md:px-6 py-8" aria-labelledby="users-title">
     <div class="page-heading">
       <p class="eyebrow">{{ t('users.eyebrow') }}</p>
       <h1 id="users-title">{{ t('users.title') }}</h1>

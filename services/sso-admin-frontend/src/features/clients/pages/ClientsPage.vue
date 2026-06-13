@@ -545,7 +545,7 @@ async function deleteClient(): Promise<void> {
 </script>
 
 <template>
-  <section class="clients-page" aria-labelledby="clients-title">
+  <section class="clients-page max-w-7xl mx-auto px-4 md:px-6 py-8" aria-labelledby="clients-title">
     <div class="page-heading">
       <p class="eyebrow">{{ t('clients.eyebrow') }}</p>
       <h1 id="clients-title">{{ t('clients.title') }}</h1>
