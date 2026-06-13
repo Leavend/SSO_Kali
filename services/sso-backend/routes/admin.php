@@ -326,6 +326,8 @@ Route::middleware([AdminGuard::class, EnsureAdminMfaEnrolled::class])->prefix('a
             ->where('clientId', '[a-z0-9-]+');
         Route::post('/client-integrations/{clientId}/disable', [ClientIntegrationController::class, 'disable'])
             ->where('clientId', '[a-z0-9-]+');
+        Route::post('/client-integrations/{clientId}/decommission', [ClientIntegrationController::class, 'decommission'])
+            ->where('clientId', '[a-z0-9-]+');
         Route::delete('/external-idps/{providerKey}', [ExternalIdentityProviderController::class, 'destroy'])
             ->middleware(RequireAdminPermission::class.':'.AdminPermission::EXTERNAL_IDPS_WRITE)
             ->where('providerKey', '[a-z0-9_-]+');

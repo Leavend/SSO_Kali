@@ -71,7 +71,13 @@ final class ClientController
 
     public function destroy(Request $request, ClientIntegrationRegistrationService $registrations, string $clientId): JsonResponse
     {
-        return $this->integrations->decommission($request, $registrations, $clientId);
+        try {
+            $registrations->delete($request, $request->attributes->get('admin_user'), $clientId);
+        } catch (RuntimeException $exception) {
+            return $this->invalidIntegration($exception);
+        }
+
+        return AdminApiResponse::ok(['message' => 'Client registration deleted successfully.']);
     }
 
     public function rotateSecret(Request $request, RotateClientSecretAction $action, string $clientId): JsonResponse

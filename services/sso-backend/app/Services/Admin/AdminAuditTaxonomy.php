@@ -12,6 +12,8 @@ final class AdminAuditTaxonomy
 
     public const CLIENT_INTEGRATION_DISABLED = 'client_integration_disabled';
 
+    public const CLIENT_INTEGRATION_DELETED = 'client_integration_deleted';
+
     public const CLIENT_INTEGRATION_STAGED = 'client_integration_staged';
 
     public const CLIENT_SECRET_ROTATED = 'client_secret_rotated';

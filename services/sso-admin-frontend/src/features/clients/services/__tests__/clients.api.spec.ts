@@ -39,6 +39,7 @@ describe('clientsApi', () => {
     await clientsApi.rotateSecret('prototype-app-a')
     await clientsApi.disable('prototype-app-a', { reason: 'incident response' })
     await clientsApi.decommission('prototype-app-a')
+    await clientsApi.delete('prototype-app-a')
 
     expect(apiClient.get).toHaveBeenNthCalledWith(1, '/api/admin/clients')
     expect(apiClient.get).toHaveBeenNthCalledWith(2, '/api/admin/client-integrations/registrations')
@@ -65,6 +66,9 @@ describe('clientsApi', () => {
     expect(apiClient.post).toHaveBeenCalledWith(
       '/api/admin/client-integrations/prototype-app-a/disable',
       { reason: 'incident response' },
+    )
+    expect(apiClient.post).toHaveBeenCalledWith(
+      '/api/admin/client-integrations/prototype-app-a/decommission'
     )
     expect(apiClient.delete).toHaveBeenCalledWith('/api/admin/clients/prototype-app-a')
   })

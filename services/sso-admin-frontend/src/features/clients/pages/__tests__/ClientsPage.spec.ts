@@ -303,6 +303,11 @@ describe('ClientsPage', () => {
 
   it('renders scope consent controls and parity warnings', async () => {
     const store = useClientsStore()
+    store.scopes = [
+      { name: 'openid', description: 'OpenID Connect', claims: [], default_allowed: true },
+      { name: 'profile', description: 'Profile info', claims: [], default_allowed: true },
+      { name: 'email', description: 'Email address', claims: [], default_allowed: true },
+    ]
     store.clients = [{ ...client, allowed_scopes: ['openid', 'profile', 'unknown_scope'] }]
     store.selectedClientId = 'prototype-app-a'
     store.status = 'success'
@@ -310,15 +315,49 @@ describe('ClientsPage', () => {
     const syncScopesSpy = vi.spyOn(store, 'syncSelectedScopes').mockResolvedValue()
 
     const wrapper = mount(ClientsPage)
+    await wrapper.vm.$nextTick()
 
     expect(wrapper.text()).toContain('Scope & consent policy')
     expect(wrapper.text()).toContain('Scope label parity warning')
-    expect(wrapper.find('textarea[name="allowed_scopes"]').exists()).toBe(true)
 
-    await wrapper.get('textarea[name="allowed_scopes"]').setValue('openid\nprofile\nemail')
+    const checkboxes = wrapper.findAll('input[type="checkbox"]')
+    expect(checkboxes.length).toBeGreaterThanOrEqual(3)
+
+    const openidInput = checkboxes.find(c => c.attributes('value') === 'openid')
+    expect(openidInput?.attributes('disabled')).toBeDefined()
+
+    const emailInput = checkboxes.find(c => c.attributes('value') === 'email')
+    expect(emailInput).toBeDefined()
+    await (emailInput as any).setChecked(true)
+
     await wrapper.get('form[data-test="scope-policy-form"]').trigger('submit')
 
-    expect(syncScopesSpy).toHaveBeenCalledWith(['openid', 'profile', 'email'])
+    expect(syncScopesSpy).toHaveBeenCalled()
+    const syncCall = syncScopesSpy.mock.calls[0]![0]
+    expect(syncCall).toContain('openid')
+    expect(syncCall).toContain('profile')
+    expect(syncCall).toContain('unknown_scope')
+    expect(syncCall).toContain('email')
+  })
+
+  it('triggers hard delete with exact confirmation', async () => {
+    const store = useClientsStore()
+    store.clients = [client]
+    store.selectedClientId = 'prototype-app-a'
+    store.status = 'success'
+    store.detailStatus = 'success'
+    const deleteSpy = vi.spyOn(store, 'deleteSelected').mockResolvedValue()
+
+    const wrapper = mount(ClientsPage)
+
+    await wrapper.get('input[placeholder="Ketik client ID untuk konfirmasi..."]').setValue('wrong-confirmation')
+    await wrapper.get('button[data-test="delete-client"]').trigger('click')
+    expect(deleteSpy).not.toHaveBeenCalled()
+    expect(wrapper.text()).toContain('Ketik client ID untuk konfirmasi hapus permanen.')
+
+    await wrapper.get('input[placeholder="Ketik client ID untuk konfirmasi..."]').setValue('prototype-app-a')
+    await wrapper.get('button[data-test="delete-client"]').trigger('click')
+    expect(deleteSpy).toHaveBeenCalled()
   })
 
   it('renders destructive client lifecycle controls behind confirmation text', async () => {

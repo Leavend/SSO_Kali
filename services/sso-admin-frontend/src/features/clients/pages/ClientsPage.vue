@@ -30,14 +30,17 @@ import {
   HelpCircle,
   ShieldCheck,
   Copy,
+  Trash2,
 } from 'lucide-vue-next'
 
 import { getAdminEnvironment } from '@/config/adminEnvironment'
+import { useToast } from '@/components/ui/useToast'
 
 const store = useClientsStore()
 const session = useSessionStore()
 const { t } = useI18n()
 const dateFormat = useDateFormat()
+const toast = useToast()
 const docsBaseUrl = getAdminEnvironment().docsBaseUrl
 const canWriteClients = computed(() => session.hasPermission('admin.clients.write'))
 const canManageClientLifecycle = computed(
@@ -46,6 +49,7 @@ const canManageClientLifecycle = computed(
 const lifecycleForm = reactive({
   disable_reason: '',
   decommission_confirmation: '',
+  delete_confirmation: '',
 })
 const form = reactive({
   display_name: '',
@@ -55,12 +59,14 @@ const form = reactive({
   backchannel_logout_uri: '',
   allowed_scopes: '',
 })
+const selectedScopes = ref<string[]>([])
 const uriValidationMessages = ref<readonly string[]>([])
 const lifecycleMessage = ref<string | null>(null)
+const deleteMessage = ref<string | null>(null)
 const uriValidationMessage = computed(() => uriValidationMessages.value.join(' '))
-const knownScopeLabels = new Set(['openid', 'profile', 'email', 'offline_access'])
+const knownScopeLabels = computed(() => new Set(store.scopes.map((s) => s.name)))
 const scopeParityWarnings = computed(() =>
-  (store.selectedClient?.allowed_scopes ?? []).filter((scope) => !knownScopeLabels.has(scope)),
+  (store.selectedClient?.allowed_scopes ?? []).filter((scope) => !knownScopeLabels.value.has(scope)),
 )
 const searchQuery = ref('')
 const filteredClients = computed(() => {
@@ -165,6 +171,7 @@ function onTabKeydown(event: KeyboardEvent, index: number): void {
 }
 
 onMounted(() => {
+  void store.loadScopes()
   if (store.status === 'idle') {
     void store.load().then(() => {
       syncFormFromSelected()
@@ -173,6 +180,23 @@ onMounted(() => {
   }
 
   syncFormFromSelected()
+})
+
+const allAvailableScopes = computed(() => {
+  const catalogScopes = [...store.scopes]
+  const catalogNames = new Set(catalogScopes.map((s) => s.name))
+  const clientScopes = store.selectedClient?.allowed_scopes ?? []
+  for (const name of clientScopes) {
+    if (!catalogNames.has(name)) {
+      catalogScopes.push({
+        name,
+        description: `Custom client scope: ${name}`,
+        claims: [],
+        default_allowed: false,
+      })
+    }
+  }
+  return catalogScopes
 })
 
 function linesToValues(value: string): string[] {
@@ -204,9 +228,12 @@ function syncFormFromSelected(): void {
   form.post_logout_redirect_uris = store.selectedClient?.post_logout_redirect_uris?.join('\n') ?? ''
   form.backchannel_logout_uri = store.selectedClient?.backchannel_logout_uri ?? ''
   form.allowed_scopes = store.selectedClient?.allowed_scopes?.join('\n') ?? ''
+  selectedScopes.value = [...(store.selectedClient?.allowed_scopes ?? [])]
   lifecycleForm.disable_reason = ''
   lifecycleForm.decommission_confirmation = ''
+  lifecycleForm.delete_confirmation = ''
   lifecycleMessage.value = null
+  deleteMessage.value = null
 }
 
 function findUriValidationMessages(
@@ -335,6 +362,11 @@ async function saveMetadata(): Promise<void> {
     })
     if (!store.errorMessage) {
       successMessage.value = 'Metadata client berhasil disimpan.'
+      toast.pushToast({
+        tone: 'success',
+        title: 'Metadata Diperbarui',
+        description: 'Metadata client berhasil disimpan.',
+      })
       setTimeout(() => {
         if (successMessage.value === 'Metadata client berhasil disimpan.') {
           successMessage.value = null
@@ -370,6 +402,11 @@ async function saveUriPolicy(): Promise<void> {
     if (!store.errorMessage) {
       syncFormFromSelected()
       successMessage.value = 'URI policy client berhasil disimpan.'
+      toast.pushToast({
+        tone: 'success',
+        title: 'URI Policy Diperbarui',
+        description: 'URI policy client berhasil disimpan.',
+      })
       setTimeout(() => {
         if (successMessage.value === 'URI policy client berhasil disimpan.') {
           successMessage.value = null
@@ -384,13 +421,16 @@ async function saveUriPolicy(): Promise<void> {
 async function saveScopePolicy(): Promise<void> {
   successMessage.value = null
   store.errorMessage = null
-  const allowedScopes = linesToValues(form.allowed_scopes)
   isSaving.value = true
   try {
-    await store.syncSelectedScopes(allowedScopes)
+    await store.syncSelectedScopes(selectedScopes.value)
     if (!store.errorMessage) {
-      form.allowed_scopes = allowedScopes.join('\n')
       successMessage.value = 'Scope policy client berhasil disimpan.'
+      toast.pushToast({
+        tone: 'success',
+        title: 'Scope Policy Diperbarui',
+        description: 'Scope policy client berhasil disimpan.',
+      })
       setTimeout(() => {
         if (successMessage.value === 'Scope policy client berhasil disimpan.') {
           successMessage.value = null
@@ -412,6 +452,11 @@ async function disableClient(): Promise<void> {
     if (!store.errorMessage) {
       lifecycleForm.disable_reason = ''
       successMessage.value = 'Client berhasil dinonaktifkan.'
+      toast.pushToast({
+        tone: 'success',
+        title: 'Client Dinonaktifkan',
+        description: 'Client berhasil dinonaktifkan.',
+      })
       setTimeout(() => {
         if (successMessage.value === 'Client berhasil dinonaktifkan.') {
           successMessage.value = null
@@ -438,6 +483,11 @@ async function decommissionClient(): Promise<void> {
       lifecycleForm.decommission_confirmation = ''
       lifecycleMessage.value = null
       successMessage.value = 'Client berhasil didecommission.'
+      toast.pushToast({
+        tone: 'success',
+        title: 'Client Didecommission',
+        description: 'Client berhasil didecommission.',
+      })
       setTimeout(() => {
         if (successMessage.value === 'Client berhasil didecommission.') {
           successMessage.value = null
@@ -460,11 +510,41 @@ async function rotateSecret(): Promise<void> {
         await fetchContract(true)
       }
       successMessage.value = 'Client secret berhasil dirotasi.'
+      toast.pushToast({
+        tone: 'success',
+        title: 'Secret Dirotasi',
+        description: 'Client secret berhasil dirotasi.',
+      })
       setTimeout(() => {
         if (successMessage.value === 'Client secret berhasil dirotasi.') {
           successMessage.value = null
         }
       }, 5000)
+    }
+  } finally {
+    isSaving.value = false
+  }
+}
+
+async function deleteClient(): Promise<void> {
+  successMessage.value = null
+  deleteMessage.value = null
+  if (lifecycleForm.delete_confirmation !== store.selectedClient?.client_id) {
+    deleteMessage.value = 'Ketik client ID untuk konfirmasi hapus permanen.'
+    return
+  }
+
+  isSaving.value = true
+  try {
+    await store.deleteSelected()
+    if (!store.errorMessage) {
+      lifecycleForm.delete_confirmation = ''
+      deleteMessage.value = null
+      toast.pushToast({
+        tone: 'success',
+        title: 'Klien Dihapus',
+        description: 'Client berhasil dihapus secara permanen.',
+      })
     }
   } finally {
     isSaving.value = false
@@ -919,17 +999,32 @@ async function rotateSecret(): Promise<void> {
               data-test="scope-policy-form"
               @submit.prevent="saveScopePolicy"
             >
-              <div class="user-form-grid">
-                <UiFormField id="allowed_scopes" :label="t('clients.label_allowed_scopes')">
-                  <UiTextarea
-                    id="allowed_scopes"
-                    v-model="form.allowed_scopes"
-                    name="allowed_scopes"
-                    :rows="4"
+              <div class="scope-checkboxes-grid">
+                <label
+                  v-for="scope in allAvailableScopes"
+                  :key="scope.name"
+                  :class="[
+                    'scope-checkbox-label',
+                    selectedScopes.includes(scope.name) ? 'scope-checkbox-label--selected' : ''
+                  ]"
+                >
+                  <input
+                    type="checkbox"
+                    :value="scope.name"
+                    v-model="selectedScopes"
+                    :disabled="scope.name === 'openid'"
+                    class="scope-checkbox-input"
                   />
-                </UiFormField>
+                  <div class="scope-checkbox-content">
+                    <span class="scope-checkbox-name">
+                      {{ scope.name }}
+                      <span v-if="scope.name === 'openid'" class="scope-required-tag">required</span>
+                    </span>
+                    <p class="scope-checkbox-desc">{{ scope.description }}</p>
+                  </div>
+                </label>
               </div>
-              <div class="user-detail-card__actions">
+              <div class="user-detail-card__actions" style="margin-top: 20px;">
                 <UiButton variant="primary" type="submit" :disabled="isSaving">
                   {{ isSaving ? t('clients.btn_saving') : t('clients.btn_save_scope_policy') }}
                 </UiButton>
@@ -1082,6 +1177,42 @@ async function rotateSecret(): Promise<void> {
                   {{
                     isSaving ? t('clients.btn_processing') : t('clients.btn_decommission_client')
                   }}
+                </UiButton>
+              </div>
+            </div>
+
+            <!-- Sub-action 3: Hard delete client -->
+            <div class="user-detail__sub-actions">
+              <h4 class="user-detail__sub-actions-title" style="color: var(--destructive);">
+                Hapus Permanen Klien
+              </h4>
+              <p class="user-detail-card__hint">Tindakan sangat destruktif: menghapus klien secara permanen dari database. Tindakan ini tidak dapat dibatalkan.</p>
+              <p
+                v-if="deleteMessage"
+                class="ui-action-message ui-action-message--error"
+                role="alert"
+                style="margin-bottom: 12px;"
+              >
+                {{ deleteMessage }}
+              </p>
+              <UiFormField id="delete_confirmation" label="Ketik client ID untuk konfirmasi hapus permanen">
+                <UiInput
+                  id="delete_confirmation"
+                  v-model="lifecycleForm.delete_confirmation"
+                  name="delete_confirmation"
+                  autocomplete="off"
+                  placeholder="Ketik client ID untuk konfirmasi..."
+                />
+              </UiFormField>
+              <div class="user-detail-card__actions">
+                <UiButton
+                  variant="danger"
+                  data-test="delete-client"
+                  type="button"
+                  :disabled="isSaving"
+                  @click="deleteClient"
+                >
+                  {{ isSaving ? t('clients.btn_processing') : 'Hapus Klien Permanen' }}
                 </UiButton>
               </div>
             </div>

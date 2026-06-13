@@ -79,6 +79,7 @@ export type ClientSecretRotation = {
   readonly client_id: string
   readonly client_secret?: string
   readonly plaintext_secret?: string
+  readonly plaintext_once?: string
   readonly secret?: string
   readonly secret_rotated_at?: string | null
   readonly secret_expires_at?: string | null

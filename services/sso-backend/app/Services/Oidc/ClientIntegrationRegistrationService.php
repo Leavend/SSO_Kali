@@ -136,6 +136,35 @@ final class ClientIntegrationRegistrationService
         return $registration;
     }
 
+    public function delete(Request $request, User $admin, string $clientId): void
+    {
+        $registration = $this->rollbackRegistration($clientId);
+
+        if ($registration->provisioning === 'seeded') {
+            throw new RuntimeException(
+                'Klien seeded tidak dapat dihapus. Klien ini adalah infrastruktur inti SSO.',
+                403,
+            );
+        }
+
+        $this->revoker->revoke($registration);
+        $registration->delete();
+        $this->clients->flush();
+
+        $this->audit->succeeded(
+            'delete_client_integration',
+            $request,
+            $admin,
+            [
+                'client_id' => $clientId,
+                'client_type' => $registration->type,
+                'environment' => $registration->environment,
+                'owner_email' => $registration->owner_email,
+            ],
+            AdminAuditTaxonomy::CLIENT_INTEGRATION_DELETED
+        );
+    }
+
     /**
      * @return list<array<string, mixed>>
      */

@@ -50,6 +50,24 @@ it('keeps client response payload secret safe', function (): void {
         ->and($payload['client'])->not->toHaveKey('secret_hash');
 });
 
+it('hard deletes a non-seeded client registration', function (): void {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $client = managedClientFixture();
+
+    $controller = app(ClientController::class);
+    $request = Request::create('/admin/api/clients/prototype-app-a', 'DELETE');
+    $request->attributes->set('admin_user', $admin);
+
+    $response = $controller->destroy($request, app(\App\Services\Oidc\ClientIntegrationRegistrationService::class), 'prototype-app-a');
+    
+    expect($response->status())->toBe(200);
+    expect(OidcClientRegistration::query()->where('client_id', 'prototype-app-a')->exists())->toBeFalse();
+
+    /** @var object $event */
+    $event = DB::table('admin_audit_events')->latest('id')->first();
+    expect($event->taxonomy)->toBe(\App\Services\Admin\AdminAuditTaxonomy::CLIENT_INTEGRATION_DELETED);
+});
+
 function managedClientFixture(): OidcClientRegistration
 {
     return OidcClientRegistration::query()->create([

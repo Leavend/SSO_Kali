@@ -124,7 +124,7 @@ it('decommissions an active client and rejects existing refresh and access token
     ]);
 
     $this->withToken(lifecycleAdminAccessToken($admin))
-        ->deleteJson('/admin/api/clients/'.$registration->client_id)
+        ->postJson('/admin/api/client-integrations/'.$registration->client_id.'/decommission')
         ->assertOk()
         ->assertJsonPath('registration.status', 'decommissioned');
 

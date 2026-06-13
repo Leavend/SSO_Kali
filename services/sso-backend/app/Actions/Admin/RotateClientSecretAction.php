@@ -74,6 +74,7 @@ final class RotateClientSecretAction
 
         return [
             'plaintext_once' => $secret->plaintext,
+            'plaintext_secret' => $secret->plaintext,
             'rotated_at' => $secret->issuedAt->toIso8601String(),
             'expires_at' => $secret->expiresAt->toIso8601String(),
             'client_id' => $registration->client_id,

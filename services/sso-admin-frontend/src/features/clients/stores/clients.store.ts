@@ -142,6 +142,17 @@ export const useClientsStore = defineStore('admin-clients', () => {
     }
   }
 
+  const scopes = ref<Array<{ name: string; description: string; claims: string[]; default_allowed: boolean }>>([])
+
+  async function loadScopes(): Promise<void> {
+    try {
+      const response = await clientsApi.getScopes()
+      scopes.value = response.scopes
+    } catch (error) {
+      console.error('Failed to load scopes', error)
+    }
+  }
+
   async function decommissionSelected(): Promise<void> {
     if (!selectedClientId.value) return
     errorMessage.value = null
@@ -156,6 +167,22 @@ export const useClientsStore = defineStore('admin-clients', () => {
     }
   }
 
+  async function deleteSelected(): Promise<void> {
+    if (!selectedClientId.value) return
+    errorMessage.value = null
+    clearRotationSecret()
+
+    try {
+      await clientsApi.delete(selectedClientId.value)
+      const deletedId = selectedClientId.value
+      clients.value = clients.value.filter((client) => client.client_id !== deletedId)
+      selectedClientId.value = clients.value[0]?.client_id ?? null
+      requestId.value = getLastRequestId()
+    } catch (error) {
+      handleGenericError(error)
+    }
+  }
+
   async function rotateSelectedSecret(): Promise<void> {
     if (!selectedClientId.value) return
     clearRotationSecret()
@@ -163,6 +190,7 @@ export const useClientsStore = defineStore('admin-clients', () => {
     rotationClientId.value = response.rotation.client_id
     rotationSecret.value =
       response.rotation.plaintext_secret ??
+      response.rotation.plaintext_once ??
       response.rotation.client_secret ??
       response.rotation.secret ??
       null
@@ -285,7 +313,10 @@ export const useClientsStore = defineStore('admin-clients', () => {
     syncSelectedScopes,
     disableSelected,
     decommissionSelected,
+    deleteSelected,
     rotateSelectedSecret,
     clearRotationSecret,
+    scopes,
+    loadScopes,
   }
 })

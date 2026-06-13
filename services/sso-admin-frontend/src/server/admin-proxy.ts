@@ -42,6 +42,7 @@ const ALLOWED_ADMIN_ROUTES = new Set([
   'GET /api/admin/client-integrations/registrations',
   'POST /api/admin/client-integrations',
   'POST /api/admin/client-integrations/stage',
+  'GET /api/admin/scopes',
 ])
 const ALLOWED_REQUEST_HEADERS = new Set(['accept', 'content-type', 'x-request-id'])
 const CLIENT_ID_PATTERN = '[a-z0-9-]+'
@@ -62,6 +63,7 @@ const ALLOWED_ADMIN_ROUTE_PATTERNS: readonly RegExp[] = [
   new RegExp(`^PUT /api/admin/clients/${CLIENT_ID_PATTERN}/scopes$`, 'u'),
   new RegExp(`^POST /api/admin/clients/${CLIENT_ID_PATTERN}/rotate-secret$`, 'u'),
   new RegExp(`^POST /api/admin/client-integrations/${CLIENT_ID_PATTERN}/disable$`, 'u'),
+  new RegExp(`^POST /api/admin/client-integrations/${CLIENT_ID_PATTERN}/decommission$`, 'u'),
   new RegExp(`^GET /api/admin/users/${SUBJECT_ID_PATTERN}$`, 'u'),
   new RegExp(`^POST /api/admin/users/${SUBJECT_ID_PATTERN}/lock$`, 'u'),
   new RegExp(`^POST /api/admin/users/${SUBJECT_ID_PATTERN}/unlock$`, 'u'),
