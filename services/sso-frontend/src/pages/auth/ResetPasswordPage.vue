@@ -8,7 +8,7 @@
 
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { ArrowLeft, KeyRound } from 'lucide-vue-next'
+import { ArrowLeft, KeyRound, Mail, Lock } from 'lucide-vue-next'
 import SsoGlassButton from '@/components/atoms/SsoGlassButton.vue'
 import SsoGlassFormField from '@/components/molecules/SsoGlassFormField.vue'
 import SsoAlertBanner from '@/components/molecules/SsoAlertBanner.vue'
@@ -45,7 +45,7 @@ const hasTokenFromUrl = computed<boolean>(() => token.value !== null)
     </header>
 
     <form
-      class="flex w-full max-w-md flex-col items-stretch gap-4"
+      class="flex w-full max-w-md flex-col items-stretch gap-5"
       novalidate
       @submit.prevent="reset.submit"
     >
@@ -64,15 +64,14 @@ const hasTokenFromUrl = computed<boolean>(() => token.value !== null)
         :disabled="reset.pending.value"
         :error="reset.fieldErrors.value['email'] ?? null"
         :hide-label="true"
-      />
-
-      <div v-if="hasTokenFromUrl" class="rounded-lg border border-border/40 bg-background/20 px-3.5 py-2.5 text-xs text-muted-foreground backdrop-blur-sm flex items-center gap-2">
-        <span class="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-        {{ t('auth.reset.token_verified') }}
-      </div>
+      >
+        <template #leading>
+          <Mail class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+        </template>
+      </SsoGlassFormField>
 
       <SsoGlassFormField
-        v-else
+        v-if="!hasTokenFromUrl"
         id="reset-password-token"
         v-model="reset.form.token"
         :label="t('auth.reset.token')"
@@ -83,7 +82,11 @@ const hasTokenFromUrl = computed<boolean>(() => token.value !== null)
         :disabled="reset.pending.value"
         :error="reset.fieldErrors.value['token'] ?? null"
         :hide-label="true"
-      />
+      >
+        <template #leading>
+          <Lock class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+        </template>
+      </SsoGlassFormField>
 
       <SsoGlassFormField
         id="reset-password-new"
@@ -97,7 +100,11 @@ const hasTokenFromUrl = computed<boolean>(() => token.value !== null)
         :disabled="reset.pending.value"
         :error="reset.fieldErrors.value['password'] ?? null"
         :hide-label="true"
-      />
+      >
+        <template #leading>
+          <Lock class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+        </template>
+      </SsoGlassFormField>
 
       <p class="text-center text-xs leading-relaxed text-muted-foreground" aria-live="polite">
         {{
@@ -121,7 +128,11 @@ const hasTokenFromUrl = computed<boolean>(() => token.value !== null)
         :disabled="reset.pending.value"
         :error="reset.fieldErrors.value['password_confirmation'] ?? null"
         :hide-label="true"
-      />
+      >
+        <template #leading>
+          <Lock class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+        </template>
+      </SsoGlassFormField>
 
       <SsoGlassButton
         type="submit"
