@@ -1,5 +1,12 @@
 import { expect, test } from '@playwright/test'
 
+test.use({ locale: 'en-US' })
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem('dev-sso-admin-locale', 'en')
+  })
+})
+
 const principal = {
   principal: {
     subject_id: 'sub_admin',
@@ -89,7 +96,7 @@ test('renders OAuth client console, evidence panel, and one-time client secret f
       body: JSON.stringify({ registrations: [client] }),
     })
   })
-  await page.route('**/api/admin/client-integrations/stage', async (route) => {
+  await page.route('**/api/admin/client-integrations', async (route) => {
     await route.fulfill({
       contentType: 'application/json',
       headers: { 'x-request-id': 'req-create-client-e2e' },
@@ -101,8 +108,10 @@ test('renders OAuth client console, evidence panel, and one-time client secret f
           redirect_uris: ['https://app-b.example.test/callback'],
           post_logout_redirect_uris: ['https://app-b.example.test'],
           backchannel_logout_uri: 'https://app-b.example.test/auth/backchannel/logout',
-          status: 'staged',
+          status: 'active',
+          has_secret_hash: true,
         },
+        plaintext_secret: 'created-secret-once-e2e',
       }),
     })
   })
@@ -168,20 +177,23 @@ test('renders OAuth client console, evidence panel, and one-time client secret f
 
   await page.goto('/clients')
 
-  await expect(page.getByRole('navigation', { name: 'Modul admin' })).toContainText('OAuth Clients')
-  await expect(page.getByRole('navigation', { name: 'Modul admin' })).not.toContainText('Users')
+  await expect(page.getByRole('navigation', { name: 'Admin modules' })).toContainText('Clients')
+  await expect(page.getByRole('navigation', { name: 'Admin modules' })).not.toContainText('Users')
   await expect(page.getByRole('heading', { name: 'OAuth Clients' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Prototype App A' })).toBeVisible()
+  await page.getByRole('tab', { name: 'URIs & Redirects' }).click()
   await expect(page.getByText('https://app.example.test/callback')).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Backchannel logout URI' })).toBeVisible()
   await expect(page.getByText('https://app.example.test/logout')).toBeVisible()
   await expect(page.getByText('Client evidence')).toBeVisible()
   await expect(page.getByText('Kode referensi')).toBeVisible()
-  await expect(page.getByText('req-clients-e2e')).toBeVisible()
+  await expect(page.getByText('REF-IENTSE2E').first()).toBeVisible()
 
+  await page.locator('button.create-client-toggle').click()
   await page.locator('input[name="client_id"]').fill('prototype-app-b')
   await page.locator('input[name="create_display_name"]').fill('Prototype App B')
   await page.locator('input[name="create_owner_email"]').fill('owner@example.test')
+  await page.locator('select[name="client_type"]').selectOption('confidential')
   await page
     .locator('input[name="create_redirect_uri"]')
     .fill('https://app-b.example.test/callback')
@@ -190,14 +202,22 @@ test('renders OAuth client console, evidence panel, and one-time client secret f
     .fill('https://app-b.example.test/auth/backchannel/logout')
   const createRequest = page.waitForRequest(
     (request) =>
-      request.method() === 'POST' && request.url().includes('/api/admin/client-integrations/stage'),
+      request.method() === 'POST' &&
+      request.url().endsWith('/api/admin/client-integrations') &&
+      request.postDataJSON().client_type === 'confidential',
   )
   await page.getByRole('button', { name: 'Create client' }).click()
   await createRequest
+  await expect(page.getByText('created-secret-once-e2e', { exact: true })).toBeVisible()
+  await expect(page.getByText('shown only once')).toBeVisible()
+  await expect(page.getByText('SSO_CLIENT_SECRET=created-secret-once-e2e')).toBeVisible()
+  await page.getByTestId('close-client-create-result').click()
+  await expect(page.getByText('created-secret-once-e2e', { exact: true })).toHaveCount(0)
   await expect(page.getByRole('heading', { name: 'Prototype App B' })).toBeVisible()
-  await expect(page.getByText('req-create-client-e2e')).toBeVisible()
+  await expect(page.getByText('REF-LIENTE2E').first()).toBeVisible()
 
   await page.getByRole('button', { name: /Prototype App A/u }).click()
+  await page.getByRole('tab', { name: 'URIs & Redirects' }).click()
   await expect(page.locator('textarea[name="redirect_uris"]')).toHaveValue(/new-callback/u)
   await page.locator('textarea[name="redirect_uris"]').fill('https://app.example.test/new-callback')
   await page.locator('textarea[name="post_logout_redirect_uris"]').fill('https://app.example.test')
@@ -212,8 +232,9 @@ test('renders OAuth client console, evidence panel, and one-time client secret f
   await page.locator('form[data-test="uri-policy-form"]').getByRole('button').click()
   await uriUpdateResponse
   await expect(page.getByText('https://app.example.test/new-callback')).toBeVisible()
-  await expect(page.getByText('req-update-uri-e2e')).toBeVisible()
+  await expect(page.getByText('REF-TEURIE2E').first()).toBeVisible()
 
+  await page.getByRole('tab', { name: 'Scopes & Access' }).click()
   await expect(page.getByText('Scope & consent policy')).toBeVisible()
   const allowedScopesInput = page.locator('textarea[name="allowed_scopes"]')
   await allowedScopesInput.fill('openid\nprofile\nemail')
@@ -228,23 +249,25 @@ test('renders OAuth client console, evidence panel, and one-time client secret f
   await scopeUpdateRequest
   await expect(allowedScopesInput).toHaveValue(/email/u)
 
+  await page.getByRole('tab', { name: 'Security & Secrets' }).click()
+  await page.getByRole('button', { name: 'Rotate secret' }).click()
+  await expect(page.getByText('once-secret-e2e')).toBeVisible()
+  await expect(page.getByText('REF-OTATEE2E').first()).toBeVisible()
+  await page.locator('button[data-test="clear-rotation-secret"]').click()
+  await expect(page.getByText('once-secret-e2e')).toHaveCount(0)
+
+  await page.getByRole('tab', { name: 'Lifecycle' }).click()
   await expect(page.getByText('Client lifecycle')).toBeVisible()
   await expect(page.getByText('Impact summary')).toBeVisible()
   await page.locator('textarea[name="client_disable_reason"]').fill('incident response')
   await page.getByRole('button', { name: 'Disable client' }).click()
-  await expect(page.getByText('req-disable-e2e')).toBeVisible()
+  await expect(page.getByText('REF-SABLEE2E').first()).toBeVisible()
   await expect(page.locator('.ui-badge')).toContainText('disabled')
   await page.locator('input[name="decommission_confirmation"]').fill('prototype-app-a')
   await page.getByRole('button', { name: 'Decommission client' }).click()
-  await expect(page.getByText('req-decommission-e2e')).toBeVisible()
+  await expect(page.getByText('REF-SSIONE2E').first()).toBeVisible()
   await expect(page.locator('.ui-badge')).toContainText('decommissioned')
 
-  await page.getByRole('button', { name: 'Rotate secret' }).click()
-  await expect(page.getByText('once-secret-e2e')).toBeVisible()
-  await expect(page.getByText('req-rotate-e2e')).toBeVisible()
-
-  await page.getByRole('button', { name: 'Hapus secret dari layar' }).click()
-  await expect(page.getByText('once-secret-e2e')).toHaveCount(0)
   await expect(page.getByText(/Bearer|refreshToken|idToken|secret_hash/u)).toHaveCount(0)
 })
 
@@ -271,6 +294,6 @@ test('shows safe OAuth clients error with request evidence', async ({ page }) =>
   await page.goto('/clients')
 
   await expect(page.getByRole('heading', { name: 'OAuth clients belum bisa dimuat' })).toBeVisible()
-  await expect(page.getByRole('alert')).toContainText('req-clients-fail')
+  await expect(page.getByRole('alert')).toContainText('REF-ENTSFAIL')
   await expect(page.getByText('SQLSTATE')).toHaveCount(0)
 })

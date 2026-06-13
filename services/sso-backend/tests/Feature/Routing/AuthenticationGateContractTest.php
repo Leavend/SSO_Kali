@@ -15,6 +15,7 @@ it('does not expose admin API routes without authentication', function (string $
     'delete admin session' => ['DELETE', '/admin/api/sessions/sid-1'],
     'delete user sessions' => ['DELETE', '/admin/api/users/user-1/sessions'],
     'client registrations' => ['GET', '/admin/api/client-integrations/registrations'],
+    'create client' => ['POST', '/admin/api/client-integrations'],
     'stage client' => ['POST', '/admin/api/client-integrations/stage'],
     'contract client' => ['POST', '/admin/api/client-integrations/contract'],
     'activate client' => ['POST', '/admin/api/client-integrations/app-a/activate'],

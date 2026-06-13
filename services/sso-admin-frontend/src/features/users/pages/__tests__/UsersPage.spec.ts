@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { useSessionStore } from '@/stores/session.store'
 import UsersPage from '../UsersPage.vue'
@@ -275,7 +275,7 @@ describe('UsersPage', () => {
     await wrapper.find('input[name="create-given-name"]').setValue('Ayu')
     await wrapper.find('input[name="create-family-name"]').setValue('Lestari')
     await wrapper.get('[role="switch"]').trigger('click')
-    await submit.trigger('click')
+    await wrapper.get('[data-testid="create-user-form"]').trigger('submit')
 
     expect(usersApi.create).toHaveBeenCalledWith({
       email: 'ayu@example.test',
@@ -286,6 +286,80 @@ describe('UsersPage', () => {
       local_account_enabled: false,
     })
   })
+
+  it('renders duplicate-aware email validation and a live strong-password checklist', async () => {
+    useI18n().setLocale('id')
+    const store = useUsersStore()
+    store.status = 'success'
+    store.users = [user]
+    store.selectedSubjectId = 'sub_admin'
+
+    const wrapper = mount(UsersPage)
+    await wrapper.find('button.create-user-toggle').trigger('click')
+    await wrapper.find('input[name="create-email"]').setValue('admin@example.test')
+
+    expect(wrapper.text()).toContain('Email sudah digunakan')
+    expect(wrapper.get('[data-testid="create-user-submit"]').attributes('disabled')).toBeDefined()
+
+    await wrapper.find('input[name="create-email"]').setValue('new-user@example.test')
+    await wrapper.find('input[name="create-given-name"]').setValue('New')
+    await wrapper.find('input[name="create-family-name"]').setValue('User')
+    await wrapper.find('input[name="create-password"]').setValue('short')
+
+    expect(wrapper.text()).toContain('Minimal 12 karakter')
+    expect(wrapper.text()).toContain('Huruf besar')
+    expect(wrapper.text()).toContain('Huruf kecil')
+    expect(wrapper.text()).toContain('Angka')
+    expect(wrapper.text()).toContain('Karakter spesial')
+    expect(wrapper.get('[data-testid="create-user-submit"]').attributes('disabled')).toBeDefined()
+
+    await wrapper.find('input[name="create-password"]').setValue('StrongPassword12!')
+    expect(wrapper.get('[data-testid="create-user-submit"]').attributes('disabled')).toBeUndefined()
+  })
+
+  it.each([
+    {
+      deliveryStatus: 'queued',
+      expectedMessage: 'sedang diantrikan',
+      forbiddenMessage: 'sudah dikirim',
+    },
+    {
+      deliveryStatus: 'none',
+      expectedMessage: 'Tidak ada email yang dikirim',
+      forbiddenMessage: 'sedang diantrikan',
+    },
+    {
+      deliveryStatus: 'failed',
+      expectedMessage: 'tidak terkirim',
+      forbiddenMessage: 'sedang diantrikan',
+    },
+  ] as const)(
+    'reports $deliveryStatus activation delivery accurately after creating a user',
+    async ({ deliveryStatus, expectedMessage, forbiddenMessage }) => {
+      useI18n().setLocale('id')
+      const { toasts, clearToasts } = useToast()
+      clearToasts()
+      vi.mocked(usersApi.create).mockResolvedValueOnce({
+        user: { ...user, subject_id: 'new-user', email: 'new-user@example.test' },
+        delivery_status: deliveryStatus,
+      })
+      const store = useUsersStore()
+      store.status = 'success'
+      store.users = [user]
+      store.selectedSubjectId = user.subject_id
+
+      const wrapper = mount(UsersPage)
+      await wrapper.find('button.create-user-toggle').trigger('click')
+      await wrapper.find('input[name="create-email"]').setValue('new-user@example.test')
+      await wrapper.find('input[name="create-given-name"]').setValue('New')
+      await wrapper.find('input[name="create-family-name"]').setValue('User')
+      await wrapper.get('[data-testid="create-user-form"]').trigger('submit')
+      await flushPromises()
+
+      expect(toasts.value.some((item) => item.description?.includes(expectedMessage))).toBe(true)
+      expect(toasts.value.some((item) => item.description?.includes(forbiddenMessage))).toBe(false)
+    },
+  )
 
   it('renders revoke user sessions button and calls sessionsStore.revokeUserSessions', async () => {
     const store = useUsersStore()

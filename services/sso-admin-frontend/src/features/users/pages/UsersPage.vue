@@ -13,7 +13,6 @@ import UiInput from '@/components/ui/UiInput.vue'
 import UiSelect from '@/components/ui/UiSelect.vue'
 import UiSkeleton from '@/components/ui/UiSkeleton.vue'
 import UiStatusView from '@/components/ui/UiStatusView.vue'
-import UiSwitch from '@/components/ui/UiSwitch.vue'
 import { buttonVariants } from '@/components/ui/button'
 import { useSessionStore } from '@/stores/session.store'
 import { useUsersStore } from '../stores/users.store'
@@ -24,7 +23,8 @@ import { authApi } from '@/services/auth.api'
 import { formatFriendlyClientName, formatTechnicalPreview } from '@/lib/display-identifiers'
 import { composeProfileDisplayName } from '@/lib/display-name'
 import { useRouter } from 'vue-router'
-import type { CreateUserPayload, SyncProfilePayload } from '../types'
+import UserCreateDialog from '../components/UserCreateDialog.vue'
+import type { CreateUserResponse, SyncProfilePayload } from '../types'
 import {
   Mail,
   CheckCircle,
@@ -118,7 +118,6 @@ const selectedUserLastLoginAt = computed(
 
 const reason = ref('Admin review')
 const showCreateForm = ref(false)
-const createDialogRef = ref<HTMLElement | null>(null)
 const selectedRoles = ref<string[]>([])
 
 type DetailTab = 'overview' | 'security' | 'sessions' | 'lifecycle'
@@ -131,35 +130,6 @@ type DestructiveAction =
   | 'issue_password_reset'
   | 'revoke_user_sessions'
 const pendingAction = ref<DestructiveAction | null>(null)
-
-const createEmail = ref('')
-const createDisplayName = ref('')
-const createGivenName = ref('')
-const createFamilyName = ref('')
-const createRole = ref<'admin' | 'user'>('user')
-const createPassword = ref('')
-const createLocalAccountEnabled = ref(true)
-const createRoleOptions = computed(() => [
-  { value: 'user', label: t('users.role_user') || 'User' },
-  { value: 'admin', label: t('users.role_admin') || 'Administrator' },
-])
-
-const isDisplayNameManuallyEdited = ref(false)
-
-const createDisplayNamePreview = computed<string>(
-  () => composeProfileDisplayName(createGivenName.value, createFamilyName.value) ?? '—',
-)
-
-const isCreateFormInvalid = computed<boolean>(() => {
-  return !createEmail.value.trim() || !createDisplayName.value.trim()
-})
-
-watch([createGivenName, createFamilyName], () => {
-  if (!isDisplayNameManuallyEdited.value) {
-    createDisplayName.value =
-      composeProfileDisplayName(createGivenName.value, createFamilyName.value) ?? ''
-  }
-})
 
 const syncEmail = ref('')
 const syncGivenName = ref('')
@@ -298,61 +268,31 @@ function onTabKeydown(event: KeyboardEvent, index: number): void {
 
 function openCreateForm(): void {
   showCreateForm.value = true
-  void nextTick(() => {
-    createDialogRef.value?.querySelector<HTMLElement>('input, select, button')?.focus()
-  })
 }
 
 function closeCreateForm(): void {
   showCreateForm.value = false
 }
 
-function resetCreateForm(): void {
-  createEmail.value = ''
-  createDisplayName.value = ''
-  createGivenName.value = ''
-  createFamilyName.value = ''
-  createRole.value = 'user'
-  createPassword.value = ''
-  createLocalAccountEnabled.value = true
-  isDisplayNameManuallyEdited.value = false
-}
-
-async function submitCreateUser(): Promise<void> {
-  const payload: Record<string, string | boolean | 'admin' | 'user'> = {
-    email: createEmail.value.trim(),
-    display_name: createDisplayName.value.trim(),
-    role: createRole.value,
-    local_account_enabled: createLocalAccountEnabled.value,
+function handleUserCreated(deliveryStatus: CreateUserResponse['delivery_status']): void {
+  const messages = {
+    queued: {
+      tone: 'success' as const,
+      title: t('users.create_user_success_title'),
+      description: t('users.create_user_success_desc'),
+    },
+    none: {
+      tone: 'info' as const,
+      title: t('users.create_user_no_email_title'),
+      description: t('users.create_user_no_email_desc'),
+    },
+    failed: {
+      tone: 'error' as const,
+      title: t('users.create_user_partial_failure_title'),
+      description: t('users.create_user_partial_failure_desc'),
+    },
   }
-  if (createGivenName.value.trim()) payload.given_name = createGivenName.value.trim()
-  if (createFamilyName.value.trim()) payload.family_name = createFamilyName.value.trim()
-  if (createPassword.value) payload.password = createPassword.value
-
-  await store.createUser(payload as CreateUserPayload)
-  if (store.actionStatus === 'success') {
-    if (store.deliveryStatus === 'queued') {
-      toast.pushToast({
-        tone: 'success',
-        title: t('users.create_user_success_title'),
-        description: t('users.create_user_success_desc'),
-      })
-    } else if (store.deliveryStatus === 'none') {
-      toast.pushToast({
-        tone: 'info',
-        title: t('users.create_user_no_email_title'),
-        description: t('users.create_user_no_email_desc'),
-      })
-    } else if (store.deliveryStatus === 'failed') {
-      toast.pushToast({
-        tone: 'error',
-        title: t('users.create_user_partial_failure_title'),
-        description: t('users.create_user_partial_failure_desc'),
-      })
-    }
-    resetCreateForm()
-    closeCreateForm()
-  }
+  if (deliveryStatus) toast.pushToast(messages[deliveryStatus])
 }
 
 async function submitSyncProfile(): Promise<void> {
@@ -619,141 +559,12 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
         </UiButton>
       </aside>
 
-      <!-- ─── Create user dialog (accessible, inline) ───────────────────── -->
-      <div
-        v-if="canWriteUsers && showCreateForm"
-        class="user-modal-overlay"
-        @click.self="closeCreateForm"
-      >
-        <div
-          ref="createDialogRef"
-          class="user-modal-card"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="create-user-title"
-          tabindex="-1"
-          @keydown.esc="closeCreateForm"
-        >
-          <div class="user-modal-header">
-            <h3 id="create-user-title">{{ t('users.create_user_title') }}</h3>
-            <button
-              class="user-modal-close"
-              type="button"
-              :aria-label="t('common.btn_cancel')"
-              @click="closeCreateForm"
-            >
-              <X :size="18" />
-            </button>
-          </div>
-
-          <div class="user-modal-body">
-            <!-- Group 1: Identitas -->
-            <div class="user-modal-group">
-              <h4 class="user-modal-group-title">{{ t('common.identity') }}</h4>
-
-              <UiFormField id="create-email" :label="t('users.label_email')" required>
-                <UiInput
-                  id="create-email"
-                  v-model="createEmail"
-                  name="create-email"
-                  autocomplete="off"
-                />
-              </UiFormField>
-
-              <div class="user-form-grid user-form-grid-2">
-                <UiFormField id="create-given-name" :label="t('users.label_given_name')">
-                  <UiInput
-                    id="create-given-name"
-                    v-model="createGivenName"
-                    name="create-given-name"
-                    autocomplete="off"
-                  />
-                </UiFormField>
-                <UiFormField id="create-family-name" :label="t('users.label_family_name')">
-                  <UiInput
-                    id="create-family-name"
-                    v-model="createFamilyName"
-                    name="create-family-name"
-                    autocomplete="off"
-                  />
-                </UiFormField>
-              </div>
-
-              <UiFormField id="create-display-name" :label="t('users.label_display_name')" required>
-                <UiInput
-                  id="create-display-name"
-                  v-model="createDisplayName"
-                  name="create-display-name"
-                  autocomplete="off"
-                  @input="isDisplayNameManuallyEdited = true"
-                />
-                <p class="ui-field-hint">
-                  {{ t('users.label_display_name_preview') }}:
-                  <span class="font-semibold text-primary">{{ createDisplayNamePreview }}</span>
-                </p>
-              </UiFormField>
-            </div>
-
-            <!-- Group 2: Akses -->
-            <div class="user-modal-group">
-              <h4 class="user-modal-group-title">{{ t('common.access') }}</h4>
-
-              <UiFormField id="create-role" :label="t('users.label_role')" required>
-                <UiSelect
-                  id="create-role"
-                  v-model="createRole"
-                  name="create-role"
-                  :options="createRoleOptions"
-                />
-              </UiFormField>
-
-              <UiFormField id="create-password" :label="t('users.label_password')">
-                <UiInput
-                  id="create-password"
-                  v-model="createPassword"
-                  name="create-password"
-                  type="password"
-                  autocomplete="off"
-                />
-                <p class="ui-field-hint">{{ t('users.label_password_helper') }}</p>
-              </UiFormField>
-
-              <div class="user-modal-switch-field">
-                <UiSwitch
-                  v-model="createLocalAccountEnabled"
-                  :label="t('users.label_local_account')"
-                />
-                <p class="ui-field-hint">{{ t('users.label_local_account_helper') }}</p>
-              </div>
-            </div>
-          </div>
-
-          <div class="user-modal-footer">
-            <UiButton variant="secondary" @click="closeCreateForm">
-              {{ t('common.btn_cancel') }}
-            </UiButton>
-            <UiButton
-              data-testid="create-user-submit"
-              :disabled="store.actionStatus === 'loading' || isCreateFormInvalid"
-              @click="submitCreateUser"
-            >
-              {{
-                store.actionStatus === 'loading' ? t('common.creating') : t('users.btn_create_user')
-              }}
-            </UiButton>
-          </div>
-
-          <p
-            v-if="store.actionStatus === 'step_up_required' && store.selectedSubjectId === null"
-            class="ui-action-message"
-          >
-            {{ store.errorMessage }}
-          </p>
-          <p v-if="store.actionStatus === 'error'" class="ui-action-message">
-            {{ store.errorMessage }}
-          </p>
-        </div>
-      </div>
+      <UserCreateDialog
+        v-if="canWriteUsers"
+        :open="showCreateForm"
+        @close="closeCreateForm"
+        @created="handleUserCreated"
+      />
 
       <!-- ─── Detail ────────────────────────────────────────────────────── -->
       <div v-if="store.selectedUser" class="user-detail-container">

@@ -137,15 +137,17 @@ describe('useClientsStore', () => {
       ...client,
       client_id: 'prototype-app-b',
       display_name: 'Prototype App B',
+      type: 'public',
       redirect_uris: ['https://app-b.example.test/callback'],
       post_logout_redirect_uris: ['https://app-b.example.test/logout'],
-      status: 'staged',
+      status: 'active',
+      has_secret_hash: false,
     }
     vi.mocked(clientsApi.create).mockResolvedValue({ registration: createdClient })
     const store = useClientsStore()
     store.clients = [client]
 
-    await store.createClient({
+    const result = await store.createClient({
       app_name: 'Prototype App B',
       client_id: 'prototype-app-b',
       environment: 'development',
@@ -155,6 +157,7 @@ describe('useClientsStore', () => {
       logout_path: '/logout',
       owner_email: 'owner@example.test',
       provisioning: 'jit',
+      allowed_scopes: ['openid', 'profile', 'email'],
     })
 
     expect(store.selectedClientId).toBe('prototype-app-b')
@@ -170,16 +173,18 @@ describe('useClientsStore', () => {
       logout_path: '/logout',
       owner_email: 'owner@example.test',
       provisioning: 'jit',
+      allowed_scopes: ['openid', 'profile', 'email'],
     })
+    expect(result).toEqual({ registration: createdClient })
   })
 
-  it('creates confidential client and sets rotationSecret if secret is in response', async () => {
+  it('returns a confidential create secret without storing it in rotation state', async () => {
     const createdClient: AdminClient = {
       ...client,
       client_id: 'conf-app',
       display_name: 'Conf App',
       type: 'confidential',
-      status: 'staged',
+      status: 'active',
     }
     const responseWithSecret = {
       registration: createdClient,
@@ -188,7 +193,7 @@ describe('useClientsStore', () => {
     vi.mocked(clientsApi.create).mockResolvedValue(responseWithSecret)
     const store = useClientsStore()
 
-    await store.createClient({
+    const result = await store.createClient({
       app_name: 'Conf App',
       client_id: 'conf-app',
       environment: 'development',
@@ -198,10 +203,12 @@ describe('useClientsStore', () => {
       logout_path: '/logout',
       owner_email: 'owner@example.test',
       provisioning: 'jit',
+      allowed_scopes: ['openid', 'profile', 'email'],
     })
 
-    expect(store.rotationSecret).toBe('conf-secret-value-123')
-    expect(store.rotationClientId).toBe('conf-app')
+    expect(result).toEqual(responseWithSecret)
+    expect(store.rotationSecret).toBeNull()
+    expect(store.rotationClientId).toBeNull()
   })
 
   it('creates public client and does not set rotationSecret', async () => {
@@ -210,12 +217,13 @@ describe('useClientsStore', () => {
       client_id: 'pub-app',
       display_name: 'Pub App',
       type: 'public',
-      status: 'staged',
+      status: 'active',
+      has_secret_hash: false,
     }
     vi.mocked(clientsApi.create).mockResolvedValue({ registration: createdClient })
     const store = useClientsStore()
 
-    await store.createClient({
+    const result = await store.createClient({
       app_name: 'Pub App',
       client_id: 'pub-app',
       environment: 'development',
@@ -225,8 +233,10 @@ describe('useClientsStore', () => {
       logout_path: '/logout',
       owner_email: 'owner@example.test',
       provisioning: 'jit',
+      allowed_scopes: ['openid'],
     })
 
+    expect(result).toEqual({ registration: createdClient })
     expect(store.rotationSecret).toBeNull()
     expect(store.rotationClientId).toBeNull()
   })

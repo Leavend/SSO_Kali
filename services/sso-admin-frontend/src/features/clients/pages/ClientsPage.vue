@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, reactive, ref, watch, type Component } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref, type Component } from 'vue'
 import { useI18n } from '@/composables/useI18n'
 import { useDateFormat } from '@/composables/useDateFormat'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
@@ -11,10 +11,10 @@ import UiInput from '@/components/ui/UiInput.vue'
 import UiSkeleton from '@/components/ui/UiSkeleton.vue'
 import UiStatusView from '@/components/ui/UiStatusView.vue'
 import UiTextarea from '@/components/ui/UiTextarea.vue'
-import UiSelect from '@/components/ui/UiSelect.vue'
 import { useSessionStore } from '@/stores/session.store'
 import { useClientsStore } from '../stores/clients.store'
 import { clientsApi } from '../services/clients.api'
+import ClientCreateDialog from '../components/ClientCreateDialog.vue'
 import { formatFriendlyClientName } from '@/lib/display-identifiers'
 import {
   Search,
@@ -43,14 +43,6 @@ const canWriteClients = computed(() => session.hasPermission('admin.clients.writ
 const canManageClientLifecycle = computed(
   () => canWriteClients.value && session.hasPermission('admin.sessions.terminate'),
 )
-const createForm = reactive({
-  client_id: '',
-  display_name: '',
-  owner_email: '',
-  redirect_uri: '',
-  backchannel_logout_uri: '',
-  client_type: 'public' as 'public' | 'confidential',
-})
 const lifecycleForm = reactive({
   disable_reason: '',
   decommission_confirmation: '',
@@ -103,7 +95,6 @@ function avatarStyle(name: string): Record<string, string> {
 }
 
 const showCreateForm = ref(false)
-const createDialogRef = ref<HTMLElement | null>(null)
 const successMessage = ref<string | null>(null)
 const isSaving = ref(false)
 const copyFeedback = ref<string | null>(null)
@@ -112,35 +103,19 @@ const copyFeedback = ref<string | null>(null)
 const showContract = ref(false)
 const contractEnvLines = ref<readonly string[]>([])
 const contractIssuer = ref<string | null>(null)
-const contractClientId = ref<string | null>(null)
-const contractRedirectUri = ref<string | null>(null)
-
-// Auto-reset client_type when dialog opens
-watch(showCreateForm, (isOpen) => {
-  if (isOpen) {
-    createForm.client_type = 'public'
-  }
-})
 
 function openCreateForm(): void {
   successMessage.value = null
   store.errorMessage = null
   showCreateForm.value = true
-  void nextTick(() => {
-    createDialogRef.value?.querySelector<HTMLElement>('input, select, button')?.focus()
-  })
 }
 
 function closeCreateForm(): void {
   showCreateForm.value = false
-  createForm.client_id = ''
-  createForm.display_name = ''
-  createForm.owner_email = ''
-  createForm.redirect_uri = ''
-  createForm.backchannel_logout_uri = ''
-  createForm.client_type = 'public'
-  uriValidationMessages.value = []
-  store.errorMessage = null
+}
+
+function handleClientCreated(): void {
+  syncFormFromSelected()
 }
 
 // Tabs support
@@ -275,51 +250,6 @@ function findUriValidationMessages(
   return messages
 }
 
-async function createClient(): Promise<void> {
-  successMessage.value = null
-  store.errorMessage = null
-  const redirectUri = createForm.redirect_uri.trim()
-  const backchannelLogoutUri = createForm.backchannel_logout_uri.trim()
-  uriValidationMessages.value = findUriValidationMessages(
-    redirectUri === '' ? [] : [redirectUri],
-    [],
-    backchannelLogoutUri,
-  )
-
-  if (uriValidationMessages.value.length > 0 || !isValidUrl(redirectUri)) return
-
-  isSaving.value = true
-  try {
-    await store.createClient({
-      app_name: createForm.display_name,
-      client_id: createForm.client_id,
-      environment: 'development',
-      client_type: createForm.client_type,
-      app_base_url: originOf(redirectUri) ?? '',
-      callback_path: pathOf(redirectUri),
-      logout_path: pathOf(backchannelLogoutUri),
-      owner_email: createForm.owner_email,
-      provisioning: 'jit',
-    })
-    if (!store.errorMessage) {
-      // Fetch contract config for display
-      if (store.selectedClient) {
-        await fetchContract(store.rotationSecret ? true : false)
-      }
-      closeCreateForm()
-      syncFormFromSelected()
-      successMessage.value = 'Client berhasil dibuat.'
-      setTimeout(() => {
-        if (successMessage.value === 'Client berhasil dibuat.') {
-          successMessage.value = null
-        }
-      }, 5000)
-    }
-  } finally {
-    isSaving.value = false
-  }
-}
-
 async function copyToClipboard(text: string): Promise<void> {
   try {
     await navigator.clipboard.writeText(text)
@@ -376,11 +306,10 @@ async function fetchContract(hasSecret: boolean): Promise<void> {
         : '',
       owner_email: store.selectedClient?.owner_email ?? '',
       provisioning: 'jit',
+      allowed_scopes: store.selectedClient?.allowed_scopes ?? ['openid', 'profile', 'email'],
     })
     contractEnvLines.value = response.contract.env ?? []
     contractIssuer.value = response.contract.issuer ?? null
-    contractClientId.value = response.contract.clientId ?? null
-    contractRedirectUri.value = response.contract.redirectUri ?? null
     showContract.value = true
   } catch {
     // Contract is non-critical; silently ignore fetch errors
@@ -685,139 +614,13 @@ async function rotateSecret(): Promise<void> {
         </UiButton>
       </aside>
 
-      <!-- ─── Create client dialog (accessible, inline modal) ────────────── -->
-      <div
+      <ClientCreateDialog
         v-if="canWriteClients"
-        class="client-modal-overlay"
-        :class="{ 'client-modal-overlay--open': showCreateForm }"
-        @click.self="closeCreateForm"
-      >
-        <div
-          ref="createDialogRef"
-          class="client-modal-card"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="create-client-title"
-          tabindex="-1"
-          @keydown.esc="closeCreateForm"
-        >
-          <div class="client-modal-header">
-            <h3 id="create-client-title">{{ t('clients.create_title') }}</h3>
-            <button
-              class="client-modal-close"
-              type="button"
-              :aria-label="t('common.btn_cancel')"
-              @click="closeCreateForm"
-            >
-              <X :size="18" />
-            </button>
-          </div>
-
-          <form
-            class="client-form"
-            aria-labelledby="create-client-title"
-            @submit.prevent="createClient"
-          >
-            <p
-              v-if="store.errorMessage"
-              class="ui-action-message ui-action-message--error"
-              role="alert"
-            >
-              {{ store.errorMessage }}
-            </p>
-            <p v-if="uriValidationMessage" class="ui-action-message" role="alert">
-              {{ uriValidationMessage }}
-            </p>
-            <div class="client-modal-body">
-              <!-- Group 1: Identitas / Identity -->
-              <div class="user-modal-group">
-                <h4 class="user-modal-group-title">{{ t('common.identity') }}</h4>
-
-                <UiFormField id="create_client_id" :label="t('clients.label_client_id')" required>
-                  <UiInput
-                    id="create_client_id"
-                    v-model="createForm.client_id"
-                    name="client_id"
-                    autocomplete="off"
-                  />
-                </UiFormField>
-
-                <UiFormField
-                  id="create_display_name"
-                  :label="t('clients.label_display_name')"
-                  required
-                >
-                  <UiInput
-                    id="create_display_name"
-                    v-model="createForm.display_name"
-                    name="create_display_name"
-                    autocomplete="off"
-                  />
-                </UiFormField>
-
-                <UiFormField id="create_owner_email" :label="t('clients.label_owner_email')" required>
-                  <UiInput
-                    id="create_owner_email"
-                    v-model="createForm.owner_email"
-                    name="create_owner_email"
-                    autocomplete="email"
-                  />
-                </UiFormField>
-              </div>
-
-              <!-- Group 2: Konfigurasi / Configuration -->
-              <div class="user-modal-group">
-                <h4 class="user-modal-group-title">{{ t('common.configuration') }}</h4>
-
-                <UiFormField id="create_client_type" :label="t('clients.label_client_type')" required>
-                  <UiSelect
-                    id="create_client_type"
-                    v-model="createForm.client_type"
-                    name="client_type"
-                    :options="[
-                      { value: 'public', label: t('clients.type_public') },
-                      { value: 'confidential', label: t('clients.type_confidential') },
-                    ]"
-                  />
-                </UiFormField>
-
-                <UiFormField
-                  id="create_redirect_uri"
-                  :label="t('clients.label_redirect_uri')"
-                  required
-                >
-                  <UiInput
-                    id="create_redirect_uri"
-                    v-model="createForm.redirect_uri"
-                    name="create_redirect_uri"
-                    autocomplete="url"
-                  />
-                </UiFormField>
-
-                <UiFormField
-                  id="create_backchannel_logout_uri"
-                  :label="t('clients.label_logout_url')"
-                >
-                  <UiInput
-                    id="create_backchannel_logout_uri"
-                    v-model="createForm.backchannel_logout_uri"
-                    name="create_backchannel_logout_uri"
-                    autocomplete="url"
-                  />
-                </UiFormField>
-              </div>
-            </div>
-            <div class="client-modal-footer">
-              <UiButton variant="secondary" type="button" @click="closeCreateForm">
-                {{ t('common.btn_cancel') }}
-              </UiButton>
-              <UiButton variant="primary" type="submit" :disabled="isSaving">
-                {{ isSaving ? t('clients.btn_creating') : t('clients.btn_create_client') }}
-              </UiButton>
-            </div>
-          </form>
-        </div>
-      </div>
+        :open="showCreateForm"
+        :docs-url="docsBaseUrl"
+        @close="closeCreateForm"
+        @created="handleClientCreated"
+      />
 
       <!-- ─── Detail ────────────────────────────────────────────────────── -->
       <article v-if="store.selectedClient" class="client-detail">

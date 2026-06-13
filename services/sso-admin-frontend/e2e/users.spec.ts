@@ -1,5 +1,12 @@
 import { expect, test } from '@playwright/test'
 
+test.use({ locale: 'en-US' })
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem('dev-sso-admin-locale', 'en')
+  })
+})
+
 const principal = {
   principal: {
     subject_id: 'sub_admin',
@@ -63,6 +70,23 @@ test('renders user lifecycle console and safe reset evidence', async ({ page }) 
     await route.fulfill({ contentType: 'application/json', body: JSON.stringify(principal) })
   })
   await page.route('**/api/admin/users', async (route) => {
+    if (route.request().method() === 'POST') {
+      await route.fulfill({
+        contentType: 'application/json',
+        headers: { 'x-request-id': 'req-create-user-e2e' },
+        body: JSON.stringify({
+          user: {
+            ...user,
+            subject_id: 'sub_created',
+            email: 'created@example.test',
+            display_name: 'Created User',
+          },
+          delivery_status: 'queued',
+        }),
+      })
+      return
+    }
+
     await route.fulfill({
       contentType: 'application/json',
       headers: { 'x-request-id': 'req-users-e2e' },
@@ -82,11 +106,20 @@ test('renders user lifecycle console and safe reset evidence', async ({ page }) 
 
   await page.goto('/users')
 
-  await expect(page.getByRole('navigation', { name: 'Modul admin' })).toContainText('Users')
+  await expect(page.getByRole('navigation', { name: 'Admin modules' })).toContainText('Users')
   await expect(page.getByRole('heading', { name: 'Users' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Target User' })).toBeVisible()
-  await expect(page.getByText('req-users-e2e')).toBeVisible()
+  await expect(page.getByText('REF-USERSE2E').first()).toBeVisible()
 
+  await page.locator('button.create-user-toggle').click()
+  await page.locator('input[name="create-email"]').fill('created@example.test')
+  await page.locator('input[name="create-given-name"]').fill('Created')
+  await page.locator('input[name="create-family-name"]').fill('User')
+  await page.getByRole('button', { name: 'Create user' }).click()
+  await expect(page.getByText('Activation email queued for delivery')).toBeVisible()
+  await expect(page.getByText('Activation email sent')).toHaveCount(0)
+
+  await page.getByRole('button', { name: /Target User/u }).click()
   await page.getByRole('button', { name: 'Issue reset link' }).click()
   await page.getByTestId('confirm-dialog-confirm').click()
   await expect(
@@ -95,7 +128,7 @@ test('renders user lifecycle console and safe reset evidence', async ({ page }) 
     ),
   ).toBeVisible()
   await expect(page.getByText('AUD-RESET-E2E')).toBeVisible()
-  await expect(page.getByText('req-reset-e2e')).toBeVisible()
+  await expect(page.getByText('REF-RESETE2E').first()).toBeVisible()
   await expect(page.getByText('reset-token-e2e')).toHaveCount(0)
   await expect(page.getByText(/Bearer|refreshToken|SQLSTATE/u)).toHaveCount(0)
 })

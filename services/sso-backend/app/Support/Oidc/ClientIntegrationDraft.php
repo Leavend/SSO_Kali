@@ -16,5 +16,6 @@ final readonly class ClientIntegrationDraft
         public string $logoutPath,
         public string $ownerEmail,
         public string $provisioning,
+        public array $allowedScopes = [],
     ) {}
 }

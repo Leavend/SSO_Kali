@@ -41,6 +41,24 @@ final class ClientIntegrationController
         return AdminApiResponse::ok(['registration' => $registrations->payload($registration)]);
     }
 
+    public function create(BuildClientIntegrationDraftRequest $request, ClientIntegrationRegistrationService $registrations): JsonResponse
+    {
+        try {
+            $draft = app(ClientIntegrationContractBuilder::class)->draftFrom($request->draftInput());
+            $created = $registrations->create($request, $this->admin($request), $draft);
+        } catch (RuntimeException $exception) {
+            return $this->invalidIntegration($exception);
+        }
+
+        $payload = ['registration' => $registrations->payload($created['registration'])];
+        if (isset($created['plaintext_secret'])) {
+            $payload['plaintext_secret'] = $created['plaintext_secret'];
+        }
+
+        return AdminApiResponse::created($payload)
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    }
+
     public function activate(Request $request, ClientIntegrationRegistrationService $registrations, string $clientId): JsonResponse
     {
         try {

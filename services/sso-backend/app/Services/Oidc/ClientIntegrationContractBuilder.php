@@ -19,16 +19,19 @@ final class ClientIntegrationContractBuilder
      */
     public function draftFrom(array $input): ClientIntegrationDraft
     {
+        $clientType = $this->option($input, 'clientType', 'public');
+
         return new ClientIntegrationDraft(
             appName: $this->field($input, 'appName', 'app_name'),
             clientId: $this->field($input, 'clientId', 'client_id'),
             environment: $this->option($input, 'environment', 'development'),
-            clientType: $this->option($input, 'clientType', 'public'),
+            clientType: $clientType,
             appBaseUrl: $this->field($input, 'appBaseUrl', 'app_base_url'),
             callbackPath: $this->field($input, 'callbackPath', 'callback_path'),
             logoutPath: $this->field($input, 'logoutPath', 'logout_path'),
             ownerEmail: $this->field($input, 'ownerEmail', 'owner_email'),
             provisioning: $this->option($input, 'provisioning', 'jit'),
+            allowedScopes: $this->allowedScopes($input),
         );
     }
 
@@ -45,6 +48,7 @@ final class ClientIntegrationContractBuilder
             ...$this->pathViolations($draft->callbackPath, 'Callback path'),
             ...$this->pathViolations($draft->logoutPath, 'Logout path'),
             ...$this->ownerEmailViolations($draft),
+            ...$this->scopeViolations($draft),
             ...$this->registryViolations($draft),
         ];
     }
@@ -104,6 +108,23 @@ final class ClientIntegrationContractBuilder
         $value = $input[$key] ?? $fallback;
 
         return is_string($value) && $value !== '' ? trim($value) : $fallback;
+    }
+
+    /**
+     * @param  array<string, mixed>  $input
+     * @return list<string>
+     */
+    private function allowedScopes(array $input): array
+    {
+        $value = $input['allowedScopes'] ?? $input['allowed_scopes'] ?? null;
+        if (! is_array($value)) {
+            return $this->defaultScopes();
+        }
+
+        return array_values(array_filter(array_map(
+            static fn (mixed $scope): string => is_string($scope) ? trim($scope) : '',
+            $value,
+        )));
     }
 
     /**
@@ -198,6 +219,24 @@ final class ClientIntegrationContractBuilder
         }
 
         return filter_var($draft->ownerEmail, FILTER_VALIDATE_EMAIL) ? [] : ['Owner email harus valid.'];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function scopeViolations(ClientIntegrationDraft $draft): array
+    {
+        if ($draft->allowedScopes === []) {
+            return ['Minimal satu scope wajib dipilih.'];
+        }
+
+        try {
+            app(ScopePolicy::class)->normalizeAllowedScopes($draft->allowedScopes);
+        } catch (\RuntimeException $exception) {
+            return [$exception->getMessage()];
+        }
+
+        return [];
     }
 
     /**
@@ -308,9 +347,17 @@ final class ClientIntegrationContractBuilder
      */
     private function scopes(ClientIntegrationDraft $draft): array
     {
-        $scopes = ['openid', 'profile', 'email'];
+        return $draft->clientType === 'confidential'
+            ? [...$draft->allowedScopes, 'sso:session.register']
+            : $draft->allowedScopes;
+    }
 
-        return $draft->clientType === 'confidential' ? [...$scopes, 'sso:session.register'] : $scopes;
+    /**
+     * @return list<string>
+     */
+    private function defaultScopes(): array
+    {
+        return ['openid', 'profile', 'email'];
     }
 
     /**

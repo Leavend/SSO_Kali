@@ -9,11 +9,9 @@ use App\Models\User;
 use App\Services\Admin\AdminAuditLogger;
 use App\Services\Admin\AdminAuditTaxonomy;
 use App\Services\Oidc\DownstreamClientRegistry;
-use App\Support\Security\ClientSecretHashPolicy;
+use App\Support\Security\ClientSecretIssuer;
 use DomainException;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
-use Illuminate\Support\Str;
 
 /**
  * FR-009 / UC-61 — Rotate a confidential client's secret.
@@ -39,7 +37,7 @@ use Illuminate\Support\Str;
 final class RotateClientSecretAction
 {
     public function __construct(
-        private readonly ClientSecretHashPolicy $hashes,
+        private readonly ClientSecretIssuer $secrets,
         private readonly DownstreamClientRegistry $clients,
         private readonly AdminAuditLogger $audit,
     ) {}
@@ -52,14 +50,12 @@ final class RotateClientSecretAction
         $registration = $this->findRegistration($clientId);
         $this->assertRotatable($registration);
 
-        $plaintext = $this->generatePlaintext();
-        $rotatedAt = Carbon::now();
-        $expiresAt = $rotatedAt->copy()->addDays($this->ttlDays());
+        $secret = $this->secrets->issue();
 
         $registration->forceFill([
-            'secret_hash' => $this->hashes->make($plaintext),
-            'secret_rotated_at' => $rotatedAt,
-            'secret_expires_at' => $expiresAt,
+            'secret_hash' => $secret->hash,
+            'secret_rotated_at' => $secret->issuedAt,
+            'secret_expires_at' => $secret->expiresAt,
         ])->save();
 
         $this->clients->flush();
@@ -70,16 +66,16 @@ final class RotateClientSecretAction
             $admin,
             [
                 'client_id' => $registration->client_id,
-                'rotated_at' => $rotatedAt->toIso8601String(),
-                'expires_at' => $expiresAt->toIso8601String(),
+                'rotated_at' => $secret->issuedAt->toIso8601String(),
+                'expires_at' => $secret->expiresAt->toIso8601String(),
             ],
             AdminAuditTaxonomy::CLIENT_SECRET_ROTATED,
         );
 
         return [
-            'plaintext_once' => $plaintext,
-            'rotated_at' => $rotatedAt->toIso8601String(),
-            'expires_at' => $expiresAt->toIso8601String(),
+            'plaintext_once' => $secret->plaintext,
+            'rotated_at' => $secret->issuedAt->toIso8601String(),
+            'expires_at' => $secret->expiresAt->toIso8601String(),
             'client_id' => $registration->client_id,
         ];
     }
@@ -103,24 +99,5 @@ final class RotateClientSecretAction
                 422,
             );
         }
-    }
-
-    private function generatePlaintext(): string
-    {
-        return Str::random($this->plaintextLength());
-    }
-
-    private function plaintextLength(): int
-    {
-        $length = (int) config('sso.client_secret.plaintext_length', 64);
-
-        return $length >= 32 ? $length : 64;
-    }
-
-    private function ttlDays(): int
-    {
-        $days = (int) config('sso.client_secret.ttl_days', 90);
-
-        return $days > 0 ? $days : 90;
     }
 }

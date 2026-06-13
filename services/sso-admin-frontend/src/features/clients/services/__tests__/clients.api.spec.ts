@@ -32,6 +32,7 @@ describe('clientsApi', () => {
       logout_path: '/logout',
       owner_email: 'owner@example.test',
       provisioning: 'jit',
+      allowed_scopes: ['openid', 'profile', 'email'],
     })
     await clientsApi.update('prototype-app-a', { display_name: 'Prototype App A' })
     await clientsApi.syncScopes('prototype-app-a', { scopes: ['openid', 'profile', 'email'] })
@@ -42,7 +43,7 @@ describe('clientsApi', () => {
     expect(apiClient.get).toHaveBeenNthCalledWith(1, '/api/admin/clients')
     expect(apiClient.get).toHaveBeenNthCalledWith(2, '/api/admin/client-integrations/registrations')
     expect(apiClient.get).toHaveBeenNthCalledWith(3, '/api/admin/clients/prototype-app-a')
-    expect(apiClient.post).toHaveBeenCalledWith('/api/admin/client-integrations/stage', {
+    expect(apiClient.post).toHaveBeenCalledWith('/api/admin/client-integrations', {
       app_name: 'Prototype App A',
       client_id: 'prototype-app-a',
       environment: 'development',
@@ -52,6 +53,7 @@ describe('clientsApi', () => {
       logout_path: '/logout',
       owner_email: 'owner@example.test',
       provisioning: 'jit',
+      allowed_scopes: ['openid', 'profile', 'email'],
     })
     expect(apiClient.patch).toHaveBeenCalledWith('/api/admin/clients/prototype-app-a', {
       display_name: 'Prototype App A',

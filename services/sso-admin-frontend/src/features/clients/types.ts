@@ -51,13 +51,12 @@ export type ClientCreatePayload = {
   readonly logout_path: string
   readonly owner_email: string
   readonly provisioning: 'jit' | 'scim'
+  readonly allowed_scopes: readonly string[]
 }
 
 export type ClientCreateResponse = {
   readonly registration: AdminClient
   readonly plaintext_secret?: string
-  readonly client_secret?: string
-  readonly secret?: string
 }
 
 export type ClientScopeSyncPayload = {

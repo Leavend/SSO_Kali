@@ -21,7 +21,7 @@ withDefaults(defineProps<Props>(), {
       <span v-if="required" aria-hidden="true">*</span>
     </label>
     <slot />
-    <p v-if="hint" class="ui-form-field__hint">{{ hint }}</p>
-    <p v-if="error" class="ui-form-field__error" role="alert">{{ error }}</p>
+    <p v-if="hint" :id="`${id}-hint`" class="ui-form-field__hint">{{ hint }}</p>
+    <p v-if="error" :id="`${id}-error`" class="ui-form-field__error" role="alert">{{ error }}</p>
   </div>
 </template>

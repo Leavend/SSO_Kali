@@ -274,6 +274,7 @@ Route::middleware([AdminGuard::class, EnsureAdminMfaEnrolled::class])->prefix('a
     ])->group(function (): void {
         // FR-009 / UC-61 — admin-triggered secret rotation. Returns the new
         // plaintext ONCE; caller must deliver it out-of-band.
+        Route::post('/client-integrations', [ClientIntegrationController::class, 'create']);
         Route::post('/clients/{clientId}/rotate-secret', [ClientController::class, 'rotateSecret'])
             ->where('clientId', '[a-z0-9-]+');
     });

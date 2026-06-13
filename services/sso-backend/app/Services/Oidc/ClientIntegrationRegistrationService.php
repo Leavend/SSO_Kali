@@ -11,6 +11,8 @@ use App\Services\Admin\AdminAuditTaxonomy;
 use App\Support\Oidc\ClientIntegrationDraft;
 use App\Support\Oidc\ClientUrlOrigin;
 use App\Support\Security\ClientSecretHashPolicy;
+use App\Support\Security\ClientSecretIssuer;
+use App\Support\Security\IssuedClientSecret;
 use Illuminate\Http\Request;
 use RuntimeException;
 
@@ -19,6 +21,7 @@ final class ClientIntegrationRegistrationService
     public function __construct(
         private readonly ClientIntegrationContractBuilder $builder,
         private readonly ClientSecretHashPolicy $hashes,
+        private readonly ClientSecretIssuer $secrets,
         private readonly AdminAuditLogger $audit,
         private readonly ClientIntegrationRollbackRevoker $revoker,
         private readonly DownstreamClientRegistry $clients,
@@ -43,6 +46,22 @@ final class ClientIntegrationRegistrationService
         $this->auditSuccess('stage_client_integration', $request, $admin, $registration);
 
         return $registration;
+    }
+
+    /**
+     * @return array{registration: OidcClientRegistration, plaintext_secret?: string}
+     */
+    public function create(Request $request, User $admin, ClientIntegrationDraft $draft): array
+    {
+        $this->assertValid($draft);
+        $secret = $draft->clientType === 'confidential' ? $this->secrets->issue() : null;
+        $registration = OidcClientRegistration::query()->create($this->creationPayload($admin, $draft, $secret));
+        $this->clients->flush();
+        $this->auditSuccess('create_client_integration', $request, $admin, $registration);
+
+        return $secret instanceof IssuedClientSecret
+            ? ['registration' => $registration, 'plaintext_secret' => $secret->plaintext]
+            : ['registration' => $registration];
     }
 
     public function activate(Request $request, User $admin, string $clientId, ?string $secretHash): OidcClientRegistration
@@ -140,7 +159,7 @@ final class ClientIntegrationRegistrationService
             ...$registration->only([
                 'client_id', 'display_name', 'type', 'environment', 'app_base_url',
                 'redirect_uris', 'post_logout_redirect_uris', 'backchannel_logout_uri',
-                'owner_email', 'provisioning', 'status', 'activated_at', 'disabled_at',
+                'allowed_scopes', 'owner_email', 'provisioning', 'status', 'activated_at', 'disabled_at',
             ]),
             'has_secret_hash' => is_string($registration->secret_hash) && $registration->secret_hash !== '',
         ];
@@ -200,6 +219,22 @@ final class ClientIntegrationRegistrationService
     }
 
     /**
+     * @return array<string, mixed>
+     */
+    private function creationPayload(
+        User $admin,
+        ClientIntegrationDraft $draft,
+        ?IssuedClientSecret $secret,
+    ): array {
+        return [
+            ...$this->stagePayload($admin, $draft),
+            ...$this->activationPayload($admin, $secret?->hash),
+            'secret_rotated_at' => $secret?->issuedAt,
+            'secret_expires_at' => $secret?->expiresAt,
+        ];
+    }
+
+    /**
      * @param  array<string, mixed>  $contract
      * @return array<string, mixed>
      */
@@ -216,6 +251,7 @@ final class ClientIntegrationRegistrationService
             'redirect_uris' => [(string) $contract['redirectUri']],
             'post_logout_redirect_uris' => [$baseUrl],
             'backchannel_logout_uri' => (string) $contract['backchannelLogoutUri'],
+            'allowed_scopes' => $draft->allowedScopes,
             'owner_email' => $draft->ownerEmail,
             'provisioning' => $draft->provisioning,
         ];
@@ -290,6 +326,7 @@ final class ClientIntegrationRegistrationService
     private function taxonomy(string $action): string
     {
         return match ($action) {
+            'create_client_integration',
             'activate_client_integration' => AdminAuditTaxonomy::CLIENT_INTEGRATION_ACTIVATED,
             'disable_client_integration' => AdminAuditTaxonomy::CLIENT_INTEGRATION_DISABLED,
             'decommission_client_integration' => AdminAuditTaxonomy::CLIENT_INTEGRATION_DECOMMISSIONED,

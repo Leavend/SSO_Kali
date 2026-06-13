@@ -153,6 +153,20 @@ describe('admin BFF API proxy', () => {
     expect(request.init.method).toBe('POST')
   })
 
+  it('allows POST /api/admin/client-integrations through the admin BFF API proxy', () => {
+    const request = buildAdminApiRequest({
+      internalBaseUrl: 'https://backend.internal',
+      pathname: '/api/admin/client-integrations',
+      search: '',
+      method: 'POST',
+      headers: { accept: 'application/json', 'x-request-id': 'req-client-create' },
+      session,
+    })
+
+    expect(request.url).toBe('https://backend.internal/admin/api/client-integrations')
+    expect(request.init.method).toBe('POST')
+  })
+
   it('returns structured 502 error with request_id and support_reference when fetch fails', async () => {
     vi.resetModules()
     vi.doMock('../sso-session-resolver.js', () => ({

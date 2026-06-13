@@ -3193,6 +3193,15 @@ select.ui-control {
   overflow: hidden;
 }
 
+.ui-dialog-content {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 1001;
+  transform: translate(-50%, -50%);
+  animation: uiDialogScaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 @media (min-width: 640px) {
   .user-modal-card {
     padding: 32px;
@@ -3244,6 +3253,7 @@ select.ui-control {
   background: var(--muted-foreground);
 }
 
+.user-modal-header h2,
 .user-modal-header h3 {
   font-size: 1.25rem;
   font-weight: 800;
@@ -3282,6 +3292,17 @@ select.ui-control {
   }
   to {
     transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes uiDialogScaleIn {
+  from {
+    transform: translate(-50%, -48%) scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, -50%) scale(1);
     opacity: 1;
   }
 }
@@ -4839,6 +4860,96 @@ button.user-card-item {
   margin: 0;
   padding-bottom: 6px;
   border-bottom: 1px dashed var(--border);
+}
+
+.ui-dialog-card--wide {
+  max-width: 720px;
+}
+
+.create-step-indicator {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+  color: var(--muted-foreground);
+  font-size: 0.78rem;
+}
+
+.create-step-indicator strong {
+  color: var(--primary);
+}
+
+.client-create-result {
+  display: grid;
+  gap: 18px;
+  overflow-y: auto;
+}
+
+.client-create-result__heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  color: var(--primary);
+}
+
+.client-create-result__heading h4,
+.client-create-result__heading p {
+  margin: 0;
+}
+
+.client-create-result__heading p {
+  margin-top: 6px;
+  color: var(--muted-foreground);
+  line-height: 1.5;
+}
+
+.credential-field {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--muted);
+}
+
+.credential-field > span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted-foreground);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.credential-field code {
+  overflow-wrap: anywhere;
+  font-family: var(--font-mono);
+  font-weight: 700;
+}
+
+.credential-field--secret {
+  border-color: color-mix(in srgb, var(--destructive) 45%, var(--border));
+}
+
+.password-checklist {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 0;
+  margin: -4px 0 4px;
+  list-style: none;
+}
+
+.password-checklist li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+}
+
+.password-checklist__item--met {
+  color: var(--primary);
 }
 
 .ui-field-hint {

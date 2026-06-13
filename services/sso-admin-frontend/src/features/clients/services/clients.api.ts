@@ -27,7 +27,7 @@ export const clientsApi = {
     return apiClient.get<ClientDetailResponse>(`/api/admin/clients/${clientId}`)
   },
   create(payload: ClientCreatePayload): Promise<ClientCreateResponse> {
-    return apiClient.post<ClientCreateResponse>('/api/admin/client-integrations/stage', payload)
+    return apiClient.post<ClientCreateResponse>('/api/admin/client-integrations', payload)
   },
   update(clientId: string, payload: ClientUpdatePayload): Promise<ClientDetailResponse> {
     return apiClient.patch<ClientDetailResponse>(`/api/admin/clients/${clientId}`, payload)

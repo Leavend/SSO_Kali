@@ -35,6 +35,10 @@ final class BuildClientIntegrationDraftRequest extends FormRequest
             'ownerEmail' => ['sometimes', 'string', 'max:255'],
             'owner_email' => ['sometimes', 'string', 'max:255'],
             'provisioning' => ['sometimes', 'string', 'in:jit,scim'],
+            'allowedScopes' => ['sometimes', 'array', 'min:1'],
+            'allowedScopes.*' => ['string', 'max:80'],
+            'allowed_scopes' => ['sometimes', 'array', 'min:1'],
+            'allowed_scopes.*' => ['string', 'max:80'],
         ];
     }
 
@@ -60,6 +64,8 @@ final class BuildClientIntegrationDraftRequest extends FormRequest
             'ownerEmail',
             'owner_email',
             'provisioning',
+            'allowedScopes',
+            'allowed_scopes',
         ]);
     }
 }

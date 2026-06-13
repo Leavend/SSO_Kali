@@ -1,6 +1,10 @@
 import type { IncomingHttpHeaders, IncomingMessage } from 'node:http'
 import { getConfig } from './config.js'
-import { buildProxyResponseHeaders, resolveBffRequestId, deriveSupportReference } from './proxy-headers.js'
+import {
+  buildProxyResponseHeaders,
+  resolveBffRequestId,
+  deriveSupportReference,
+} from './proxy-headers.js'
 import type { AppResponse } from './response.js'
 import { json } from './response.js'
 import type { PortalSession } from './session.js'
@@ -36,6 +40,7 @@ const ALLOWED_ADMIN_ROUTES = new Set([
   'POST /api/admin/external-idps',
   'GET /api/admin/ops/readiness',
   'GET /api/admin/client-integrations/registrations',
+  'POST /api/admin/client-integrations',
   'POST /api/admin/client-integrations/stage',
 ])
 const ALLOWED_REQUEST_HEADERS = new Set(['accept', 'content-type', 'x-request-id'])
@@ -201,7 +206,12 @@ export async function handleAdminApiProxy(context: {
 
     return json(
       400,
-      { error: 'proxy_policy_error', message: msg, request_id: reqId, support_reference: supportRef },
+      {
+        error: 'proxy_policy_error',
+        message: msg,
+        request_id: reqId,
+        support_reference: supportRef,
+      },
       sessionHeaders(resolved),
     )
   }
