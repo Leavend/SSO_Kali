@@ -128,7 +128,8 @@ it('returns a partial dashboard summary when one counter group fails', function 
     $admin = User::factory()->create(['subject_id' => 'admin_dashboard_partial', 'role' => 'admin']);
 
     Schema::disableForeignKeyConstraints();
-    Schema::drop('data_subject_requests');
+    Schema::dropIfExists('dsr_fulfillment_artifacts');
+    Schema::dropIfExists('data_subject_requests');
     Schema::enableForeignKeyConstraints();
 
     $response = $this->withToken(adminAccessTokenFor($admin))
