@@ -22,4 +22,14 @@ describe('LocaleSwitcher', () => {
     expect(window.localStorage.getItem('dev-sso-admin-locale')).toBe('en')
     expect(wrapper.get('button').attributes('aria-label')).toBe('Switch language to Indonesian')
   })
+
+  it('shows only current locale code when collapsed is true', () => {
+    const wrapper = mount(LocaleSwitcher, {
+      props: {
+        collapsed: true,
+      },
+    })
+    expect(wrapper.text()).toBe('ID')
+    expect(wrapper.text()).not.toContain('EN')
+  })
 })

@@ -294,7 +294,7 @@ async function handleMenuClick(menu: AdminPermissionMenu, index: number) {
           <span>{{ session.principal.email }}</span>
         </div>
         <div class="admin-principal__preferences">
-          <LocaleSwitcher />
+          <LocaleSwitcher :collapsed="isCollapsed" />
           <div class="admin-principal__actions">
             <UiThemeToggle />
             <a data-testid="admin-logout-action" class="admin-logout" :href="logoutHref">

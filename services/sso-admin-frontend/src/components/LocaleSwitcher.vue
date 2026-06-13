@@ -2,6 +2,10 @@
 import { computed } from 'vue'
 import { useI18n } from '@/composables/useI18n'
 
+defineProps<{
+  collapsed?: boolean
+}>()
+
 const { locale, t, setLocale } = useI18n()
 
 const ariaLabel = computed<string>(() =>
@@ -16,8 +20,13 @@ function toggleLocale(): void {
 
 <template>
   <button class="admin-locale-switcher" type="button" :aria-label="ariaLabel" @click="toggleLocale">
-    <span :class="{ 'admin-locale-selected': locale === 'id' }">ID</span>
-    <span class="admin-locale-divider" aria-hidden="true">|</span>
-    <span :class="{ 'admin-locale-selected': locale === 'en' }">EN</span>
+    <template v-if="collapsed">
+      <span class="admin-locale-selected">{{ locale.toUpperCase() }}</span>
+    </template>
+    <template v-else>
+      <span :class="{ 'admin-locale-selected': locale === 'id' }">ID</span>
+      <span class="admin-locale-divider" aria-hidden="true">|</span>
+      <span :class="{ 'admin-locale-selected': locale === 'en' }">EN</span>
+    </template>
   </button>
 </template>
