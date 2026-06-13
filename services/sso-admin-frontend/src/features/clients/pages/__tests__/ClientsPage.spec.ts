@@ -93,7 +93,7 @@ describe('ClientsPage', () => {
     expect(wrapper.text()).not.toMatch(/Bearer|refreshToken|secret_hash/i)
   })
 
-  it('renders active-client create and URI policy controls with backchannel logout fields', async () => {
+  it('renders active-client URI policy controls with backchannel logout fields', async () => {
     const store = useClientsStore()
     store.clients = [client]
     store.selectedClientId = 'prototype-app-a'
@@ -102,157 +102,10 @@ describe('ClientsPage', () => {
 
     const wrapper = mount(ClientsPage)
 
-    await wrapper.get('button.create-client-toggle').trigger('click')
-    expect(wrapper.text()).toContain('Create OAuth client')
-    expect(wrapper.find('input[name="create_redirect_uri"]').exists()).toBe(true)
-    expect(wrapper.find('input[name="create_backchannel_logout_uri"]').exists()).toBe(true)
     expect(wrapper.find('textarea[name="redirect_uris"]').exists()).toBe(true)
     expect(wrapper.find('textarea[name="post_logout_redirect_uris"]').exists()).toBe(true)
     expect(wrapper.find('input[name="backchannel_logout_uri"]').exists()).toBe(true)
     expect(wrapper.text()).toContain('Simpan URI policy')
-  })
-
-  it('submits client creation as an active integration request', async () => {
-    const store = useClientsStore()
-    store.clients = [client]
-    store.selectedClientId = 'prototype-app-a'
-    store.status = 'success'
-    store.detailStatus = 'success'
-    const createdClient = {
-      ...client,
-      client_id: 'prototype-app-b',
-      display_name: 'Prototype App B',
-      type: 'public',
-      status: 'active',
-      has_secret_hash: false,
-    }
-    const createSpy = vi
-      .spyOn(store, 'createClient')
-      .mockResolvedValue({ registration: createdClient })
-
-    const wrapper = mount(ClientsPage)
-
-    await wrapper.get('button.create-client-toggle').trigger('click')
-    await wrapper.get('input[name="client_id"]').setValue('prototype-app-b')
-    await wrapper.get('input[name="create_display_name"]').setValue('Prototype App B')
-    await wrapper.get('input[name="create_owner_email"]').setValue('owner@example.test')
-    await wrapper
-      .get('input[name="create_redirect_uri"]')
-      .setValue('https://app-b.example.test/callback')
-    await wrapper
-      .get('input[name="create_backchannel_logout_uri"]')
-      .setValue('https://app-b.example.test/auth/backchannel/logout')
-    await wrapper.get('[data-testid="create-client-form"]').trigger('submit')
-
-    expect(createSpy).toHaveBeenCalledWith({
-      app_name: 'Prototype App B',
-      client_id: 'prototype-app-b',
-      environment: 'development',
-      client_type: 'public',
-      app_base_url: 'https://app-b.example.test',
-      callback_path: '/callback',
-      logout_path: '/auth/backchannel/logout',
-      owner_email: 'owner@example.test',
-      provisioning: 'jit',
-      allowed_scopes: ['openid', 'profile', 'email'],
-    })
-    expect(wrapper.text()).toContain('Public client created')
-    expect(wrapper.text()).toContain('SSO_CLIENT_ID=prototype-app-b')
-    expect(wrapper.text()).not.toContain('SSO_CLIENT_SECRET')
-  })
-
-  it('shows a create-specific success step with the confidential secret once', async () => {
-    useI18n().setLocale('id')
-    const store = useClientsStore()
-    store.clients = [client]
-    store.selectedClientId = 'prototype-app-a'
-    store.status = 'success'
-    store.detailStatus = 'success'
-    vi.spyOn(store, 'createClient').mockResolvedValue({
-      registration: {
-        ...client,
-        client_id: 'server-app',
-        display_name: 'Server App',
-        status: 'active',
-        has_secret_hash: true,
-      },
-      plaintext_secret: 'created-secret-once',
-    })
-
-    const wrapper = mount(ClientsPage)
-    await wrapper.get('button.create-client-toggle').trigger('click')
-    await wrapper.get('input[name="client_id"]').setValue('server-app')
-    await wrapper.get('input[name="create_display_name"]').setValue('Server App')
-    await wrapper.get('input[name="create_owner_email"]').setValue('owner@example.test')
-    await wrapper.get('select[name="client_type"]').setValue('confidential')
-    await wrapper
-      .get('input[name="create_redirect_uri"]')
-      .setValue('https://server.example.test/auth/callback')
-    await wrapper
-      .get('input[name="create_backchannel_logout_uri"]')
-      .setValue('https://server.example.test/auth/backchannel/logout')
-    await wrapper.get('[data-testid="create-client-form"]').trigger('submit')
-
-    expect(wrapper.text()).toContain('Client confidential berhasil dibuat')
-    expect(wrapper.text()).toContain('created-secret-once')
-    expect(wrapper.text()).toContain('hanya ditampilkan sekali')
-    expect(wrapper.text()).toContain('SSO_CLIENT_ID=server-app')
-    expect(wrapper.text()).toContain('SSO_CLIENT_SECRET=created-secret-once')
-    expect(wrapper.text()).not.toContain('Secret baru untuk')
-
-    await wrapper.get('[data-testid="close-client-create-result"]').trigger('click')
-    expect(wrapper.text()).not.toContain('created-secret-once')
-  })
-
-  it('disables client creation and renders inline validation for invalid fields', async () => {
-    useI18n().setLocale('id')
-    const store = useClientsStore()
-    store.clients = [client]
-    store.selectedClientId = client.client_id
-    store.status = 'success'
-    const createSpy = vi.spyOn(store, 'createClient')
-
-    const wrapper = mount(ClientsPage)
-    await wrapper.get('button.create-client-toggle').trigger('click')
-    await wrapper.get('input[name="client_id"]').setValue('INVALID ID')
-    await wrapper.get('input[name="create_display_name"]').setValue('Invalid App')
-    await wrapper.get('input[name="create_owner_email"]').setValue('not-an-email')
-    await wrapper.get('input[name="create_redirect_uri"]').setValue('not-a-url')
-
-    expect(wrapper.text()).toContain('Client ID harus berupa slug')
-    expect(wrapper.text()).toContain('Email pemilik tidak valid')
-    expect(wrapper.text()).toContain('Redirect URI harus berupa URL')
-    expect(wrapper.get('[data-testid="create-client-submit"]').attributes('disabled')).toBeDefined()
-    expect(createSpy).not.toHaveBeenCalled()
-  })
-
-  it('blocks client creation when redirect and logout origins differ', async () => {
-    useI18n().setLocale('id')
-    const store = useClientsStore()
-    store.clients = [client]
-    store.selectedClientId = 'prototype-app-a'
-    store.status = 'success'
-    store.detailStatus = 'success'
-    const createSpy = vi.spyOn(store, 'createClient')
-
-    const wrapper = mount(ClientsPage)
-
-    await wrapper.get('button.create-client-toggle').trigger('click')
-    await wrapper.get('input[name="client_id"]').setValue('prototype-app-b')
-    await wrapper.get('input[name="create_display_name"]').setValue('Prototype App B')
-    await wrapper.get('input[name="create_owner_email"]').setValue('owner@example.test')
-    await wrapper
-      .get('input[name="create_redirect_uri"]')
-      .setValue('https://app-b.example.test/callback')
-    await wrapper
-      .get('input[name="create_backchannel_logout_uri"]')
-      .setValue('https://logout.example.test/auth/backchannel/logout')
-    await wrapper.get('[data-testid="create-client-form"]').trigger('submit')
-
-    expect(wrapper.text()).toContain(
-      'Logout URL harus valid dan memakai origin yang sama dengan Redirect URI.',
-    )
-    expect(createSpy).not.toHaveBeenCalled()
   })
 
   it('updates URI policy with backchannel logout URI through the API', async () => {

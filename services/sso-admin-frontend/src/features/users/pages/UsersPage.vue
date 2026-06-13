@@ -23,7 +23,6 @@ import { authApi } from '@/services/auth.api'
 import { formatFriendlyClientName, formatTechnicalPreview } from '@/lib/display-identifiers'
 import { composeProfileDisplayName } from '@/lib/display-name'
 import { useRouter } from 'vue-router'
-import UserCreateDialog from '../components/UserCreateDialog.vue'
 import type { CreateUserResponse, SyncProfilePayload } from '../types'
 import {
   Mail,
@@ -117,7 +116,6 @@ const selectedUserLastLoginAt = computed(
 )
 
 const reason = ref('Admin review')
-const showCreateForm = ref(false)
 const selectedRoles = ref<string[]>([])
 
 type DetailTab = 'overview' | 'security' | 'sessions' | 'lifecycle'
@@ -267,32 +265,7 @@ function onTabKeydown(event: KeyboardEvent, index: number): void {
 }
 
 function openCreateForm(): void {
-  showCreateForm.value = true
-}
-
-function closeCreateForm(): void {
-  showCreateForm.value = false
-}
-
-function handleUserCreated(deliveryStatus: CreateUserResponse['delivery_status']): void {
-  const messages = {
-    queued: {
-      tone: 'success' as const,
-      title: t('users.create_user_success_title'),
-      description: t('users.create_user_success_desc'),
-    },
-    none: {
-      tone: 'info' as const,
-      title: t('users.create_user_no_email_title'),
-      description: t('users.create_user_no_email_desc'),
-    },
-    failed: {
-      tone: 'error' as const,
-      title: t('users.create_user_partial_failure_title'),
-      description: t('users.create_user_partial_failure_desc'),
-    },
-  }
-  if (deliveryStatus) toast.pushToast(messages[deliveryStatus])
+  router.push({ name: 'admin.users.create' })
 }
 
 async function submitSyncProfile(): Promise<void> {
@@ -558,13 +531,6 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
           {{ t('users.btn_create_user') }}
         </UiButton>
       </aside>
-
-      <UserCreateDialog
-        v-if="canWriteUsers"
-        :open="showCreateForm"
-        @close="closeCreateForm"
-        @created="handleUserCreated"
-      />
 
       <!-- ─── Detail ────────────────────────────────────────────────────── -->
       <div v-if="store.selectedUser" class="user-detail-container">

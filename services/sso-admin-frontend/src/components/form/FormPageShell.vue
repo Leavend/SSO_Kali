@@ -1,0 +1,66 @@
+<script setup lang="ts">
+import { ChevronRight } from 'lucide-vue-next'
+import UiButton from '@/components/ui/UiButton.vue'
+
+interface Props {
+  readonly parentLabel: string
+  readonly activeLabel: string
+  readonly title: string
+  readonly description?: string
+  readonly submitLabel: string
+  readonly cancelLabel?: string
+  readonly isSubmitting?: boolean
+  readonly isInvalid?: boolean
+}
+
+defineProps<Props>()
+const emit = defineEmits<{
+  (event: 'submit'): void
+  (event: 'cancel'): void
+}>()
+</script>
+
+<template>
+  <div class="form-page-shell max-w-3xl mx-auto py-8 px-4">
+    <!-- Breadcrumbs -->
+    <nav class="mb-4" aria-label="Breadcrumb">
+      <ol class="flex items-center gap-2 text-xs text-muted-foreground">
+        <li>{{ parentLabel }}</li>
+        <li><ChevronRight :size="12" class="opacity-50" /></li>
+        <li class="font-medium text-foreground">{{ activeLabel }}</li>
+      </ol>
+    </nav>
+
+    <!-- Header Section -->
+    <div class="mb-8">
+      <h1 class="text-2xl font-bold tracking-tight text-foreground">{{ title }}</h1>
+      <p v-if="description" class="text-muted-foreground mt-1 text-sm">
+        {{ description }}
+      </p>
+    </div>
+
+    <!-- Main Form Content -->
+    <div class="space-y-8 pb-24">
+      <slot />
+    </div>
+
+    <!-- Sticky Bottom Footer -->
+    <footer class="sticky bottom-0 left-0 right-0 z-10 -mx-4 px-4 py-4 bg-card border-t border-border flex items-center justify-between shadow-lg">
+      <slot name="footer-left">
+        <UiButton variant="secondary" type="button" :disabled="isSubmitting" @click="emit('cancel')">
+          {{ cancelLabel || 'Batal' }}
+        </UiButton>
+      </slot>
+      <slot name="footer-right">
+        <UiButton
+          variant="primary"
+          type="button"
+          :disabled="isInvalid || isSubmitting"
+          @click="emit('submit')"
+        >
+          {{ isSubmitting ? 'Memproses...' : submitLabel }}
+        </UiButton>
+      </slot>
+    </footer>
+  </div>
+</template>

@@ -36,10 +36,22 @@ const router = createRouter({
           meta: { requiresAdmin: true, permissions: ['admin.clients.read'] },
         },
         {
+          path: 'clients/new',
+          name: 'admin.clients.create',
+          component: () => import('@/features/clients/pages/ClientCreatePage.vue'),
+          meta: { requiresAdmin: true, permissions: ['admin.clients.write'] },
+        },
+        {
           path: 'users',
           name: 'admin.users',
           component: () => import('@/features/users/pages/UsersPage.vue'),
           meta: { requiresAdmin: true, permissions: ['admin.users.read'] },
+        },
+        {
+          path: 'users/new',
+          name: 'admin.users.create',
+          component: () => import('@/features/users/pages/UserCreatePage.vue'),
+          meta: { requiresAdmin: true, permissions: ['admin.users.write'] },
         },
         {
           path: 'audit',

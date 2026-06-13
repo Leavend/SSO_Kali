@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { flushPromises, mount } from '@vue/test-utils'
+import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { useSessionStore } from '@/stores/session.store'
 import UsersPage from '../UsersPage.vue'
@@ -8,7 +8,6 @@ import { useSessionsStore } from '../../../sessions/stores/sessions.store'
 import { useRolesStore } from '../../../roles/stores/roles.store'
 import { useToast } from '@/components/ui/useToast'
 import { useI18n } from '@/composables/useI18n'
-import { usersApi } from '../../services/users.api'
 import type { AdminUser } from '../../types'
 
 vi.mock('vue-router', () => ({
@@ -222,144 +221,7 @@ describe('UsersPage', () => {
     await wrapper.vm.$nextTick()
     // The searchable list itself uses shared form primitives.
     expect(wrapper.find('input#search-users').exists()).toBe(true)
-    await wrapper.find('button.create-user-toggle').trigger('click')
-    expect(wrapper.find('.ui-form-field').exists()).toBe(true)
-    expect(wrapper.find('.ui-control').exists()).toBe(true)
   })
-
-  it('renders create user form with email, display_name, role inputs', async () => {
-    const store = useUsersStore()
-    store.status = 'success'
-    store.users = [user]
-    store.selectedSubjectId = 'sub_admin'
-
-    const wrapper = mount(UsersPage)
-
-    expect(wrapper.text()).toContain('Create User')
-    await wrapper.find('button.create-user-toggle').trigger('click')
-    expect(wrapper.find('input[name="create-email"]').exists()).toBe(true)
-    expect(wrapper.find('input[name="create-display-name"]').exists()).toBe(true)
-    expect(wrapper.find('select[name="create-role"]').exists()).toBe(true)
-  })
-
-  it('explains optional password and local account behavior and previews the composed name', async () => {
-    useI18n().setLocale('id')
-    const store = useUsersStore()
-    store.status = 'success'
-    store.users = [user]
-    store.selectedSubjectId = 'sub_admin'
-
-    const wrapper = mount(UsersPage)
-    await wrapper.find('button.create-user-toggle').trigger('click')
-    await wrapper.find('input[name="create-given-name"]').setValue('Ayu')
-    await wrapper.find('input[name="create-family-name"]').setValue('Lestari')
-
-    expect(wrapper.text()).toContain('Kosongkan untuk mengirim link aktivasi/reset')
-    expect(wrapper.text()).toContain('user hanya bisa masuk via SSO/federasi')
-    expect(wrapper.text()).toContain('Preview Nama Tampilan: Ayu Lestari')
-  })
-
-  it('submits the create-user payload and disables submit while invalid', async () => {
-    vi.mocked(usersApi.create).mockResolvedValueOnce({ user })
-    const store = useUsersStore()
-    store.status = 'success'
-    store.users = [user]
-    store.selectedSubjectId = 'sub_admin'
-
-    const wrapper = mount(UsersPage)
-    await wrapper.find('button.create-user-toggle').trigger('click')
-    const submit = wrapper.get('[data-testid="create-user-submit"]')
-    expect(submit.attributes('disabled')).toBeDefined()
-
-    await wrapper.find('input[name="create-email"]').setValue('ayu@example.test')
-    await wrapper.find('input[name="create-given-name"]').setValue('Ayu')
-    await wrapper.find('input[name="create-family-name"]').setValue('Lestari')
-    await wrapper.get('[role="switch"]').trigger('click')
-    await wrapper.get('[data-testid="create-user-form"]').trigger('submit')
-
-    expect(usersApi.create).toHaveBeenCalledWith({
-      email: 'ayu@example.test',
-      display_name: 'Ayu Lestari',
-      given_name: 'Ayu',
-      family_name: 'Lestari',
-      role: 'user',
-      local_account_enabled: false,
-    })
-  })
-
-  it('renders duplicate-aware email validation and a live strong-password checklist', async () => {
-    useI18n().setLocale('id')
-    const store = useUsersStore()
-    store.status = 'success'
-    store.users = [user]
-    store.selectedSubjectId = 'sub_admin'
-
-    const wrapper = mount(UsersPage)
-    await wrapper.find('button.create-user-toggle').trigger('click')
-    await wrapper.find('input[name="create-email"]').setValue('admin@example.test')
-
-    expect(wrapper.text()).toContain('Email sudah digunakan')
-    expect(wrapper.get('[data-testid="create-user-submit"]').attributes('disabled')).toBeDefined()
-
-    await wrapper.find('input[name="create-email"]').setValue('new-user@example.test')
-    await wrapper.find('input[name="create-given-name"]').setValue('New')
-    await wrapper.find('input[name="create-family-name"]').setValue('User')
-    await wrapper.find('input[name="create-password"]').setValue('short')
-
-    expect(wrapper.text()).toContain('Minimal 12 karakter')
-    expect(wrapper.text()).toContain('Huruf besar')
-    expect(wrapper.text()).toContain('Huruf kecil')
-    expect(wrapper.text()).toContain('Angka')
-    expect(wrapper.text()).toContain('Karakter spesial')
-    expect(wrapper.get('[data-testid="create-user-submit"]').attributes('disabled')).toBeDefined()
-
-    await wrapper.find('input[name="create-password"]').setValue('StrongPassword12!')
-    expect(wrapper.get('[data-testid="create-user-submit"]').attributes('disabled')).toBeUndefined()
-  })
-
-  it.each([
-    {
-      deliveryStatus: 'queued',
-      expectedMessage: 'sedang diantrikan',
-      forbiddenMessage: 'sudah dikirim',
-    },
-    {
-      deliveryStatus: 'none',
-      expectedMessage: 'Tidak ada email yang dikirim',
-      forbiddenMessage: 'sedang diantrikan',
-    },
-    {
-      deliveryStatus: 'failed',
-      expectedMessage: 'tidak terkirim',
-      forbiddenMessage: 'sedang diantrikan',
-    },
-  ] as const)(
-    'reports $deliveryStatus activation delivery accurately after creating a user',
-    async ({ deliveryStatus, expectedMessage, forbiddenMessage }) => {
-      useI18n().setLocale('id')
-      const { toasts, clearToasts } = useToast()
-      clearToasts()
-      vi.mocked(usersApi.create).mockResolvedValueOnce({
-        user: { ...user, subject_id: 'new-user', email: 'new-user@example.test' },
-        delivery_status: deliveryStatus,
-      })
-      const store = useUsersStore()
-      store.status = 'success'
-      store.users = [user]
-      store.selectedSubjectId = user.subject_id
-
-      const wrapper = mount(UsersPage)
-      await wrapper.find('button.create-user-toggle').trigger('click')
-      await wrapper.find('input[name="create-email"]').setValue('new-user@example.test')
-      await wrapper.find('input[name="create-given-name"]').setValue('New')
-      await wrapper.find('input[name="create-family-name"]').setValue('User')
-      await wrapper.get('[data-testid="create-user-form"]').trigger('submit')
-      await flushPromises()
-
-      expect(toasts.value.some((item) => item.description?.includes(expectedMessage))).toBe(true)
-      expect(toasts.value.some((item) => item.description?.includes(forbiddenMessage))).toBe(false)
-    },
-  )
 
   it('renders revoke user sessions button and calls sessionsStore.revokeUserSessions', async () => {
     const store = useUsersStore()

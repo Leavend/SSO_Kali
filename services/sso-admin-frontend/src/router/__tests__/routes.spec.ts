@@ -31,4 +31,24 @@ describe('admin routes', () => {
       permissions: ['admin.security-policy.read'],
     })
   })
+
+  it('registers the client create route behind clients write permission', () => {
+    const route = router.getRoutes().find((entry) => entry.name === 'admin.clients.create')
+
+    expect(route?.path).toBe('/clients/new')
+    expect(route?.meta).toMatchObject({
+      requiresAdmin: true,
+      permissions: ['admin.clients.write'],
+    })
+  })
+
+  it('registers the user create route behind users write permission', () => {
+    const route = router.getRoutes().find((entry) => entry.name === 'admin.users.create')
+
+    expect(route?.path).toBe('/users/new')
+    expect(route?.meta).toMatchObject({
+      requiresAdmin: true,
+      permissions: ['admin.users.write'],
+    })
+  })
 })

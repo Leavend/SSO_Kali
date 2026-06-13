@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, reactive, ref, type Component } from 'vue'
+import { useRouter } from 'vue-router'
 import { useI18n } from '@/composables/useI18n'
 import { useDateFormat } from '@/composables/useDateFormat'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
@@ -14,7 +15,6 @@ import UiTextarea from '@/components/ui/UiTextarea.vue'
 import { useSessionStore } from '@/stores/session.store'
 import { useClientsStore } from '../stores/clients.store'
 import { clientsApi } from '../services/clients.api'
-import ClientCreateDialog from '../components/ClientCreateDialog.vue'
 import { formatFriendlyClientName } from '@/lib/display-identifiers'
 import {
   Search,
@@ -36,6 +36,7 @@ import {
 import { getAdminEnvironment } from '@/config/adminEnvironment'
 import { useToast } from '@/components/ui/useToast'
 
+const router = useRouter()
 const store = useClientsStore()
 const session = useSessionStore()
 const { t } = useI18n()
@@ -100,7 +101,6 @@ function avatarStyle(name: string): Record<string, string> {
   return { background: `linear-gradient(135deg, ${color.start}, ${color.end})` }
 }
 
-const showCreateForm = ref(false)
 const successMessage = ref<string | null>(null)
 const isSaving = ref(false)
 const copyFeedback = ref<string | null>(null)
@@ -113,15 +113,7 @@ const contractIssuer = ref<string | null>(null)
 function openCreateForm(): void {
   successMessage.value = null
   store.errorMessage = null
-  showCreateForm.value = true
-}
-
-function closeCreateForm(): void {
-  showCreateForm.value = false
-}
-
-function handleClientCreated(): void {
-  syncFormFromSelected()
+  router.push({ name: 'admin.clients.create' })
 }
 
 // Tabs support
@@ -693,14 +685,6 @@ async function deleteClient(): Promise<void> {
           {{ t('clients.btn_create_client') }}
         </UiButton>
       </aside>
-
-      <ClientCreateDialog
-        v-if="canWriteClients"
-        :open="showCreateForm"
-        :docs-url="docsBaseUrl"
-        @close="closeCreateForm"
-        @created="handleClientCreated"
-      />
 
       <!-- ─── Detail ────────────────────────────────────────────────────── -->
       <article v-if="store.selectedClient" class="client-detail">
