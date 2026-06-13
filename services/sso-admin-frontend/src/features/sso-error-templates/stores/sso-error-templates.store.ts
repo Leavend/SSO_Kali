@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import { ApiError, getLastRequestId } from '@/lib/api/api-client'
+import { isAdminProxyTransportFailure, formatTransportErrorMessage } from '@/lib/display-identifiers'
 import { triggerStepUpReauth } from '@/lib/stepup/stepup'
 import { ssoErrorTemplatesApi } from '../services/sso-error-templates.api'
 import type { SsoErrorTemplate, UpsertSsoErrorTemplatePayload } from '../types'
@@ -97,9 +98,13 @@ export const useSsoErrorTemplatesStore = defineStore('admin-sso-error-templates'
     }
 
     status.value = 'error'
-    errorMessage.value = requestId.value
-      ? `SSO error templates belum bisa dimuat. Gunakan request ID ${requestId.value} untuk investigasi.`
-      : 'SSO error templates belum bisa dimuat. Coba lagi beberapa saat lagi.'
+    if (isAdminProxyTransportFailure(error)) {
+      errorMessage.value = formatTransportErrorMessage(requestId.value) ?? 'SSO error templates belum bisa dimuat.'
+    } else {
+      errorMessage.value = requestId.value
+        ? `SSO error templates belum bisa dimuat. Gunakan request ID ${requestId.value} untuk investigasi.`
+        : 'SSO error templates belum bisa dimuat. Coba lagi beberapa saat lagi.'
+    }
   }
 
   function handleActionError(error: unknown): void {
@@ -121,9 +126,13 @@ export const useSsoErrorTemplatesStore = defineStore('admin-sso-error-templates'
     }
 
     actionStatus.value = 'error'
-    errorMessage.value = requestId.value
-      ? `Operasi template gagal. Gunakan request ID ${requestId.value} untuk investigasi.`
-      : 'Operasi template gagal. Coba lagi beberapa saat lagi.'
+    if (isAdminProxyTransportFailure(error)) {
+      errorMessage.value = formatTransportErrorMessage(requestId.value) ?? 'Operasi template gagal.'
+    } else {
+      errorMessage.value = requestId.value
+        ? `Operasi template gagal. Gunakan request ID ${requestId.value} untuk investigasi.`
+        : 'Operasi template gagal. Coba lagi beberapa saat lagi.'
+    }
   }
 
   return {

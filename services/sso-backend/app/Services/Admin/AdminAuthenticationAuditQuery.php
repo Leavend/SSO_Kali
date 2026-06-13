@@ -28,6 +28,18 @@ final class AdminAuthenticationAuditQuery
             }
         }
 
+        // Support Reference: match against request_id suffix (mirrors formatSupportReference derivation).
+        // REF is derived as `REF-` + last 8 alphanumeric characters (uppercase) of request_id.
+        // Accept both `REF-XXXXXXXX` and bare `XXXXXXXX` forms; collision (>1 candidate) is acceptable
+        // for support lookup — operator can refine with from/to/subject or exact request_id.
+        if (is_string($filters['support_reference'] ?? null) && $filters['support_reference'] !== '') {
+            $suffix = SupportReference::suffixOf($filters['support_reference']);
+            if ($suffix !== '') {
+                $expr = SupportReference::normalizedColumnExpr('request_id');
+                $query->whereRaw("{$expr} LIKE ?", ['%'.$suffix]);
+            }
+        }
+
         if (is_string($filters['consent_action'] ?? null) && $filters['consent_action'] !== '') {
             $query->where('context->decision', $filters['consent_action']);
         }

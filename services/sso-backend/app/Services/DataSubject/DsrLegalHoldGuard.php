@@ -38,7 +38,7 @@ final class DsrLegalHoldGuard
     private function record(DataSubjectRequest $request, User $reviewer, Request $httpRequest): void
     {
         $this->audit->succeeded('data_subject_request.on_hold', $httpRequest, $reviewer, [
-            'request_id' => $request->request_id,
+            'dsr_request_id' => $request->request_id,
             'type' => $request->type,
             'legal_hold_status' => 'active',
         ], AdminAuditTaxonomy::DESTRUCTIVE_ACTION_WITH_STEP_UP);

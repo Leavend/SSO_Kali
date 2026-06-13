@@ -28,7 +28,11 @@ import UiStatusView from '@/components/ui/UiStatusView.vue'
 import { useSessionStore } from '@/stores/session.store'
 import { useAuditStore } from '@/features/audit/stores/audit.store'
 import type { SectionKey } from '@/features/audit/stores/audit.store'
-import { formatFriendlyClientName, formatTechnicalPreview } from '@/lib/display-identifiers'
+import {
+  formatFriendlyClientName,
+  formatTechnicalPreview,
+  formatSupportReference,
+} from '@/lib/display-identifiers'
 import type {
   AuditExportFilters,
   ComplianceEvidencePackFilters,
@@ -75,6 +79,7 @@ const exportTo = ref('')
 const exportAction = ref('')
 const exportOutcome = ref('')
 const searchRequestId = ref('')
+const searchSupportReference = ref('')
 const searchSessionId = ref('')
 const searchAction = ref('')
 const searchOutcome = ref('')
@@ -100,11 +105,18 @@ async function submitSearch(): Promise<void> {
       ...(filled(searchAdminSubjectId.value) && {
         admin_subject_id: filled(searchAdminSubjectId.value),
       }),
+      ...(filled(searchRequestId.value) && { request_id: filled(searchRequestId.value) }),
+      ...(filled(searchSupportReference.value) && {
+        support_reference: filled(searchSupportReference.value),
+      }),
       ...(searchFrom.value && { from: searchFrom.value }),
       ...(searchTo.value && { to: searchTo.value }),
     }),
     store.searchAuthenticationEvents({
       ...(filled(searchRequestId.value) && { request_id: filled(searchRequestId.value) }),
+      ...(filled(searchSupportReference.value) && {
+        support_reference: filled(searchSupportReference.value),
+      }),
       ...(filled(searchSessionId.value) && { session_id: filled(searchSessionId.value) }),
       ...(filled(searchSubjectId.value) && { subject_id: filled(searchSubjectId.value) }),
       ...(filled(searchClientId.value) && { client_id: filled(searchClientId.value) }),
@@ -117,6 +129,7 @@ async function submitSearch(): Promise<void> {
 
 async function resetSearch(): Promise<void> {
   searchRequestId.value = ''
+  searchSupportReference.value = ''
   searchSessionId.value = ''
   searchAction.value = ''
   searchOutcome.value = ''
@@ -451,6 +464,17 @@ onMounted(() => {
                   autocomplete="off"
                 />
               </UiFormField>
+              <UiFormField
+                id="audit-search-support-reference"
+                :label="t('audit.support_reference')"
+              >
+                <UiInput
+                  id="audit-search-support-reference"
+                  name="audit-search-support-reference"
+                  v-model="searchSupportReference"
+                  autocomplete="off"
+                />
+              </UiFormField>
               <UiFormField id="audit-search-session-id" :label="t('audit.sid')">
                 <UiInput
                   id="audit-search-session-id"
@@ -680,6 +704,27 @@ onMounted(() => {
                       {{ dateFormat.smart(store.selectedEvent.occurred_at) }}
                     </dd>
                   </div>
+                  <div
+                    v-if="
+                      store.selectedEvent.context?.request_id ||
+                      store.selectedEvent.context?.support_reference
+                    "
+                    class="flex flex-col gap-1 border-t border-border pt-2"
+                  >
+                    <dt class="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+                      {{ t('audit.correlation_ids') }}
+                    </dt>
+                    <dd class="text-sm font-mono break-anywhere space-y-1">
+                      <div v-if="store.selectedEvent.context?.request_id">
+                        <span class="font-bold">{{ t('audit.request_id') }}:</span>
+                        {{ store.selectedEvent.context.request_id }}
+                      </div>
+                      <div v-if="store.selectedEvent.context?.support_reference">
+                        <span class="font-bold">{{ t('audit.support_ref') }}:</span>
+                        {{ store.selectedEvent.context.support_reference }}
+                      </div>
+                    </dd>
+                  </div>
                 </dl>
               </article>
               <div
@@ -801,6 +846,30 @@ onMounted(() => {
                     </dt>
                     <dd class="text-sm text-destructive font-semibold">
                       {{ store.selectedAuthenticationEvent.error_code }}
+                    </dd>
+                  </div>
+                  <div
+                    class="flex flex-col gap-1 border-t border-border pt-2"
+                    v-if="store.selectedAuthenticationEvent.request?.request_id"
+                  >
+                    <dt class="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+                      {{ t('audit.request_id') }}
+                    </dt>
+                    <dd class="text-sm font-mono break-anywhere">
+                      {{ store.selectedAuthenticationEvent.request.request_id }}
+                    </dd>
+                  </div>
+                  <div
+                    class="flex flex-col gap-1 border-t border-border pt-2"
+                    v-if="store.selectedAuthenticationEvent.request?.request_id"
+                  >
+                    <dt class="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+                      {{ t('audit.support_ref') }}
+                    </dt>
+                    <dd class="text-sm font-mono break-anywhere">
+                      {{
+                        formatSupportReference(store.selectedAuthenticationEvent.request.request_id)
+                      }}
                     </dd>
                   </div>
                 </dl>

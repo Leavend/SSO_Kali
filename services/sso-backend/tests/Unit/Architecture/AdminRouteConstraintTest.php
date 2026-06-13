@@ -86,7 +86,9 @@ it('does not require fresh auth for routine admin read endpoints', function (): 
 });
 
 it('enforces freshness on mutating and sensitive admin endpoints', function (): void {
-    $safePostReads = ['admin/api/client-integrations/contract'];
+    $safePostReads = [
+        'admin/api/client-integrations/contract',
+    ];
 
     $sensitiveRoutes = collect(app('router')->getRoutes()->getRoutes())
         ->filter(fn ($route) => str_starts_with($route->uri(), 'admin/api/'))

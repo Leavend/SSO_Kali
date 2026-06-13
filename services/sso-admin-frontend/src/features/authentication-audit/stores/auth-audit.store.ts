@@ -1,6 +1,7 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { ApiError, getLastRequestId } from '@/lib/api/api-client'
+import { isAdminProxyTransportFailure, formatTransportErrorMessage } from '@/lib/display-identifiers'
 import { authAuditApi } from '../services/auth-audit.api'
 import type { AuthAuditEvent, AuthAuditFilters, AuthAuditPagination } from '../types'
 
@@ -129,9 +130,13 @@ export const useAuthAuditStore = defineStore('admin-authentication-audit', () =>
     }
 
     status.value = 'error'
-    errorMessage.value = requestId.value
-      ? `Authentication audit belum bisa dimuat. Gunakan request ID ${requestId.value} untuk investigasi.`
-      : 'Authentication audit belum bisa dimuat. Coba lagi beberapa saat lagi.'
+    if (isAdminProxyTransportFailure(error)) {
+      errorMessage.value = formatTransportErrorMessage(requestId.value) ?? 'Authentication audit belum bisa dimuat.'
+    } else {
+      errorMessage.value = requestId.value
+        ? `Authentication audit belum bisa dimuat. Gunakan request ID ${requestId.value} untuk investigasi.`
+        : 'Authentication audit belum bisa dimuat. Coba lagi beberapa saat lagi.'
+    }
   }
 
   return {

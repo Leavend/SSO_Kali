@@ -32,6 +32,7 @@ final class ListAuthenticationAuditEventsRequest extends FormRequest
             'consent_action' => ['sometimes', 'string', Rule::in(['allow', 'deny', 'revoke'])],
             'from' => ['sometimes', 'date'],
             'to' => ['sometimes', 'date', 'after_or_equal:from'],
+            'support_reference' => ['sometimes', 'string', 'max:20'],
         ];
     }
 }

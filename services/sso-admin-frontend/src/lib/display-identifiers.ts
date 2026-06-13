@@ -34,17 +34,60 @@ export function formatFriendlyClientName(value: string | null | undefined): stri
 }
 
 import { ApiError, getLastRequestId } from '@/lib/api/api-client'
+import { translate } from '@/composables/useI18n'
+
+export function isAdminProxyTransportFailure(error: unknown): boolean {
+  return error instanceof ApiError && error.code === 'admin_proxy_failed'
+}
+
+/**
+ * Resolve a localized transport-failure message using i18n keys.
+ * Works outside Vue setup context via module-level `translate`.
+ * Returns null only when both the key and template are absent (the ?. fallback).
+ */
+export function resolveTransportErrorMessage(
+  requestId: string | null | undefined,
+): string | null {
+  const ref = formatSupportReference(requestId)
+  if (ref) {
+    return translate('audit.transport_error', { ref }) || null
+  }
+  return translate('audit.transport_error_no_ref') || null
+}
+
+export function formatTransportErrorMessage(
+  requestId: string | null | undefined,
+  localizedMessage?: string,
+): string | null {
+  const ref = formatSupportReference(requestId)
+
+  if (localizedMessage) {
+    if (ref) return localizedMessage.replace('{ref}', ref)
+    // When there's no reference code, just remove the {ref} placeholder.
+    return localizedMessage.replace('{ref}', '').trim() || null
+  }
+
+  // Default: use i18n-aware localized message.
+  return resolveTransportErrorMessage(requestId)
+}
 
 export function formatSectionError(
   label: string,
   error: unknown,
   customRequestId?: string | null,
+  transportMessageTemplate?: string,
 ): string {
   const status = error instanceof ApiError ? error.status : null
   const reqId =
     error instanceof ApiError
       ? (error.requestId ?? getLastRequestId())
       : (customRequestId ?? getLastRequestId())
+
+  // Transport failures (admin_proxy_failed): use specific copy, not "investigasi".
+  if (isAdminProxyTransportFailure(error)) {
+    return formatTransportErrorMessage(reqId, transportMessageTemplate) ?? `${label} gagal dimuat.`
+  }
+
   const ref = formatSupportReference(reqId)
 
   if (status === 401) {

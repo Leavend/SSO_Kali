@@ -8,6 +8,7 @@ use App\Models\AdminAuditEvent;
 use App\Services\Admin\AdminAuditLogger;
 use App\Services\Admin\AdminAuditTaxonomy;
 use App\Services\Admin\AdminAuditTrailPresenter;
+use App\Services\Admin\SupportReference;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -74,7 +75,7 @@ final class ExportAdminAuditEventsAction
                     'format' => $format,
                     'row_count' => $rows->count(),
                     'truncated' => $exceeded,
-                    'filters' => array_intersect_key($filters, array_flip(['from', 'to', 'action', 'outcome', 'taxonomy', 'admin_subject_id'])),
+                    'filters' => array_intersect_key($filters, array_flip(['from', 'to', 'action', 'outcome', 'taxonomy', 'admin_subject_id', 'request_id', 'support_reference'])),
                     'request_id' => $request->headers->get('X-Request-Id'),
                 ],
                 AdminAuditTaxonomy::DESTRUCTIVE_ACTION_WITH_STEP_UP,
@@ -96,6 +97,12 @@ final class ExportAdminAuditEventsAction
             if (is_string($filters[$field] ?? null) && $filters[$field] !== '') {
                 $query->where($field, $filters[$field]);
             }
+        }
+        if (is_string($filters['request_id'] ?? null) && $filters['request_id'] !== '') {
+            $query->where('context->request_id', $filters['request_id']);
+        }
+        if (is_string($filters['support_reference'] ?? null) && $filters['support_reference'] !== '') {
+            $query->where(SupportReference::whereSuffixOrExact($filters['support_reference']));
         }
         if (is_string($filters['from'] ?? null) && $filters['from'] !== '') {
             $query->where('occurred_at', '>=', $filters['from']);

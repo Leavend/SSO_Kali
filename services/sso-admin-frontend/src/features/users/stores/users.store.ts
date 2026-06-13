@@ -1,7 +1,11 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { ApiError, getLastRequestId } from '@/lib/api/api-client'
-import { formatSupportReference } from '@/lib/display-identifiers'
+import {
+  formatSupportReference,
+  isAdminProxyTransportFailure,
+  formatTransportErrorMessage,
+} from '@/lib/display-identifiers'
 import { triggerStepUpReauth } from '@/lib/stepup/stepup'
 import { usersApi } from '../services/users.api'
 import type {
@@ -28,6 +32,7 @@ export const useUsersStore = defineStore('admin-users', () => {
   const auditEventId = ref<string | null>(null)
   const passwordResetToken = ref<string | null>(null)
   const passwordResetExpiresAt = ref<string | null>(null)
+  const deliveryStatus = ref<'none' | 'queued' | 'failed' | null>(null)
 
   const selectedUser = computed<AdminUser | null>(
     () => users.value.find((user) => user.subject_id === selectedSubjectId.value) ?? null,
@@ -156,6 +161,7 @@ export const useUsersStore = defineStore('admin-users', () => {
       selectedSubjectId.value = response.user.subject_id
       auditEventId.value = null
       requestId.value = getLastRequestId()
+      deliveryStatus.value = response.delivery_status ?? null
       actionStatus.value = 'success'
     } catch (error) {
       handleActionError(error)
@@ -210,6 +216,7 @@ export const useUsersStore = defineStore('admin-users', () => {
       passwordResetToken.value = null
       passwordResetExpiresAt.value = response.password_reset?.expires_at ?? null
       auditEventId.value = response.audit_event_id ?? null
+      deliveryStatus.value = response.delivery_status ?? null
       requestId.value = getLastRequestId()
 
       const subjectId = selectedSubjectId.value
@@ -415,9 +422,14 @@ export const useUsersStore = defineStore('admin-users', () => {
 
     status.value = 'error'
     const ref = formatSupportReference(requestId.value)
-    errorMessage.value = ref
-      ? `Users admin belum bisa dimuat. Gunakan kode referensi ${ref} untuk investigasi.`
-      : 'Users admin belum bisa dimuat. Coba lagi beberapa saat lagi.'
+
+    if (isAdminProxyTransportFailure(error)) {
+      errorMessage.value = formatTransportErrorMessage(requestId.value) ?? 'Users admin belum bisa dimuat.'
+    } else {
+      errorMessage.value = ref
+        ? `Users admin belum bisa dimuat. Gunakan kode referensi ${ref} untuk investigasi.`
+        : 'Users admin belum bisa dimuat. Coba lagi beberapa saat lagi.'
+    }
   }
 
   function handleActionError(error: unknown): void {
@@ -440,9 +452,14 @@ export const useUsersStore = defineStore('admin-users', () => {
 
     actionStatus.value = 'error'
     const ref = formatSupportReference(requestId.value)
-    errorMessage.value = ref
-      ? `Operasi user gagal. Gunakan kode referensi ${ref} untuk investigasi.`
-      : 'Operasi user gagal. Coba lagi beberapa saat lagi.'
+
+    if (isAdminProxyTransportFailure(error)) {
+      errorMessage.value = formatTransportErrorMessage(requestId.value) ?? 'Operasi user gagal.'
+    } else {
+      errorMessage.value = ref
+        ? `Operasi user gagal. Gunakan kode referensi ${ref} untuk investigasi.`
+        : 'Operasi user gagal. Coba lagi beberapa saat lagi.'
+    }
   }
 
   return {
@@ -476,5 +493,6 @@ export const useUsersStore = defineStore('admin-users', () => {
     savePendingIntent,
     clearPendingIntent,
     restorePendingIntent,
+    deliveryStatus,
   }
 })

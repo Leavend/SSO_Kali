@@ -1,6 +1,7 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { ApiError, getLastRequestId } from '@/lib/api/api-client'
+import { isAdminProxyTransportFailure, formatTransportErrorMessage } from '@/lib/display-identifiers'
 import { dashboardApi } from '../services/dashboard.api'
 import type { DashboardSummary } from '../types'
 
@@ -57,9 +58,13 @@ export const useDashboardStore = defineStore('admin-dashboard', () => {
 
       if (!silent) {
         status.value = 'error'
-        errorMessage.value = requestId.value
-          ? `Dashboard admin belum bisa dimuat. Coba lagi atau gunakan request ID ${requestId.value} untuk investigasi.`
-          : 'Dashboard admin belum bisa dimuat. Coba lagi beberapa saat lagi.'
+        if (isAdminProxyTransportFailure(error)) {
+          errorMessage.value = formatTransportErrorMessage(requestId.value) ?? 'Dashboard admin belum bisa dimuat.'
+        } else {
+          errorMessage.value = requestId.value
+            ? `Dashboard admin belum bisa dimuat. Coba lagi atau gunakan request ID ${requestId.value} untuk investigasi.`
+            : 'Dashboard admin belum bisa dimuat. Coba lagi beberapa saat lagi.'
+        }
       }
     }
   }

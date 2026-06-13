@@ -278,6 +278,16 @@ describe('buildAdminApiRequest', () => {
     expect(detailRequest.url).toBe('https://backend.internal/admin/api/users/sub_admin')
     expect(lockRequest.url).toBe('https://backend.internal/admin/api/users/sub_admin/lock')
     expect(resetMfaRequest.url).toBe('https://backend.internal/admin/api/users/sub_admin/reset-mfa')
+
+    const createRequest = buildAdminApiRequest({
+      internalBaseUrl: 'https://backend.internal/',
+      pathname: '/api/admin/users',
+      search: '',
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      session: portalSession(),
+    })
+    expect(createRequest.url).toBe('https://backend.internal/admin/api/users')
     expect(() =>
       buildAdminApiRequest({
         internalBaseUrl: 'https://backend.internal/',
@@ -534,7 +544,7 @@ describe('handleAdminApiProxy', () => {
       request: {
         method: 'GET',
         headers: { cookie: '__Host-sso-portal-session=session-id' },
-      } as IncomingMessage,
+      } as unknown as IncomingMessage,
       requestUrl: new URL('https://sso.test/api/admin/oidc-foundation'),
     })
 
@@ -542,5 +552,33 @@ describe('handleAdminApiProxy', () => {
     expect(response.headers?.['set-cookie']).toEqual(['__Host-sso-portal-session=; Max-Age=0'])
     expect(response.body?.toString()).toContain('no_session')
     expect(clearSessionCookie).toHaveBeenCalled()
+  })
+
+  it('returns structured 502 error with request_id and support_reference when fetch fails', async () => {
+    vi.mocked(resolveSsoSession).mockResolvedValue({
+      session: portalSession(),
+      cookies: [],
+    })
+    const originalFetch = global.fetch
+    global.fetch = vi.fn().mockRejectedValue(new Error('connection refused'))
+
+    const response = await handleAdminApiProxy({
+      request: {
+        method: 'POST',
+        headers: {
+          cookie: '__Host-sso-portal-session=session-id',
+          'x-request-id': 'test-req-1234567890'
+        },
+      } as unknown as IncomingMessage,
+      requestUrl: new URL('https://sso.test/api/admin/users'),
+    })
+
+    global.fetch = originalFetch
+
+    expect(response.status).toBe(502)
+    const body = JSON.parse(response.body!.toString())
+    expect(body.error).toBe('admin_proxy_failed')
+    expect(body.request_id).toBe('test-req-1234567890')
+    expect(body.support_reference).toBe('REF-34567890')
   })
 })

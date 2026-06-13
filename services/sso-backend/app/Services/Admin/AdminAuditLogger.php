@@ -74,6 +74,14 @@ final class AdminAuditLogger
         array $context,
         ?string $taxonomy,
     ): array {
+        $requestId = $request->header('X-Request-Id');
+        $supportReference = SupportReference::fromRequestId($requestId);
+
+        $mergedContext = array_merge($context, [  // caller context first (loses on collision)
+            'request_id' => $requestId,
+            'support_reference' => $supportReference,  // canonical wins
+        ]);
+
         return [
             'action' => $action,
             'method' => $request->method(),
@@ -84,7 +92,7 @@ final class AdminAuditLogger
             'admin_role' => $admin?->role,
             'admin_subject_id' => $admin?->subject_id,
             'reason' => is_string($context['reason'] ?? null) ? $context['reason'] : null,
-            'context' => $context,
+            'context' => $mergedContext,
             'occurred_at' => now(),
         ];
     }

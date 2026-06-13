@@ -28,7 +28,7 @@ final class DsrFulfillmentAuditRecorder
         ?array $executedArtifact = null,
     ): void {
         $this->audit->succeeded('fulfill_data_subject_request', $httpRequest, $reviewer, [
-            'request_id' => $request->request_id,
+            'dsr_request_id' => $request->request_id,
             'type' => $request->type,
             'dry_run' => $dryRun,
             'artifact_id' => $artifact->id,

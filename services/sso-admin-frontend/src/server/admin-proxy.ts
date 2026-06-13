@@ -1,6 +1,6 @@
 import type { IncomingHttpHeaders, IncomingMessage } from 'node:http'
 import { getConfig } from './config.js'
-import { buildProxyResponseHeaders, resolveBffRequestId } from './proxy-headers.js'
+import { buildProxyResponseHeaders, resolveBffRequestId, deriveSupportReference } from './proxy-headers.js'
 import type { AppResponse } from './response.js'
 import { json } from './response.js'
 import type { PortalSession } from './session.js'
@@ -10,12 +10,14 @@ import type { ResolvedSsoSession } from './sso-session-resolver.js'
 
 const ADMIN_BFF_PREFIX = '/api/admin'
 const ADMIN_BACKEND_PREFIX = '/admin/api'
+
 const ALLOWED_ADMIN_ROUTES = new Set([
   'GET /api/admin/me',
   'GET /api/admin/oidc-foundation',
   'GET /api/admin/dashboard/summary',
   'GET /api/admin/clients',
   'GET /api/admin/users',
+  'POST /api/admin/users',
   'GET /api/admin/audit/events',
   'GET /api/admin/audit/authentication-events',
   'GET /api/admin/audit/integrity',
@@ -170,8 +172,12 @@ export async function handleAdminApiProxy(context: {
     )
   }
 
+  // Build the backend request OUTSIDE the transport-catch block so that
+  // allowlist / method-policy errors (thrown by buildAdminApiRequest) are not
+  // mislabelled as a transport failure (admin_proxy_failed).
+  let adminRequest: AdminApiRequest
   try {
-    const { url, init } = buildAdminApiRequest({
+    adminRequest = buildAdminApiRequest({
       internalBaseUrl: getConfig().internalBaseUrl,
       pathname: context.requestUrl.pathname,
       search: context.requestUrl.search,
@@ -180,8 +186,28 @@ export async function handleAdminApiProxy(context: {
       session: resolved.session,
       body: context.request as unknown as RequestInit['body'],
     })
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error)
+    const reqId = resolveBffRequestId(context.request.headers)
+    const supportRef = deriveSupportReference(reqId)
 
-    const response = await fetch(url, init)
+    console.error('[ADMIN_BFF_PROXY_POLICY]', {
+      request_id: reqId,
+      support_reference: supportRef,
+      path: context.requestUrl.pathname,
+      method: context.request.method,
+      error: msg,
+    })
+
+    return json(
+      400,
+      { error: 'proxy_policy_error', message: msg, request_id: reqId, support_reference: supportRef },
+      sessionHeaders(resolved),
+    )
+  }
+
+  try {
+    const response = await fetch(adminRequest.url, adminRequest.init)
     const body = Buffer.from(await response.arrayBuffer())
     if (response.ok && isBootstrapPrincipalRequest(context)) {
       await refreshCachedRoleFromPrincipalResponse(resolved, body)
@@ -193,10 +219,28 @@ export async function handleAdminApiProxy(context: {
       body,
     }
   } catch (error) {
-    console.error('Admin API proxy failed:', error instanceof Error ? error.message : error)
+    const reqId = resolveBffRequestId(context.request.headers)
+    const supportRef = deriveSupportReference(reqId)
+    const bffError = error instanceof Error ? error.message : String(error)
+
+    console.error('[ADMIN_BFF_PROXY_502]', {
+      request_id: reqId,
+      support_reference: supportRef,
+      path: context.requestUrl.pathname,
+      method: context.request.method,
+      error: bffError,
+    })
+
     return json(
       502,
-      { error: 'admin_proxy_failed', message: 'Admin API proxy failed.' },
+      {
+        error: 'admin_proxy_failed',
+        message: supportRef
+          ? `Backend service unreachable. Incident reference: ${supportRef} (check server logs).`
+          : 'Backend service unreachable.',
+        request_id: reqId,
+        support_reference: supportRef,
+      },
       sessionHeaders(resolved),
     )
   }

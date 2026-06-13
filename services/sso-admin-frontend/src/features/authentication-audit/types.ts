@@ -50,6 +50,7 @@ export type AuthAuditFilters = {
   readonly session_id?: string
   readonly request_id?: string
   readonly error_code?: string
+  readonly support_reference?: string
   readonly from?: string
   readonly to?: string
 }

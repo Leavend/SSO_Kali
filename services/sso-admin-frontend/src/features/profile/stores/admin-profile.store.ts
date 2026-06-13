@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import { ApiError, getLastRequestId } from '@/lib/api/api-client'
+import { isAdminProxyTransportFailure, formatTransportErrorMessage } from '@/lib/display-identifiers'
 import { profileApi } from '../services/profile.api'
 import type { AdminPrincipal } from '../types'
 
@@ -53,9 +54,13 @@ export const useAdminProfileStore = defineStore('admin-profile', () => {
     }
 
     status.value = 'error'
-    errorMessage.value = requestId.value
-      ? `Profil admin belum bisa dimuat. Gunakan request ID ${requestId.value} untuk investigasi.`
-      : 'Profil admin belum bisa dimuat. Coba lagi beberapa saat lagi.'
+    if (isAdminProxyTransportFailure(error)) {
+      errorMessage.value = formatTransportErrorMessage(requestId.value) ?? 'Profil admin belum bisa dimuat.'
+    } else {
+      errorMessage.value = requestId.value
+        ? `Profil admin belum bisa dimuat. Gunakan request ID ${requestId.value} untuk investigasi.`
+        : 'Profil admin belum bisa dimuat. Coba lagi beberapa saat lagi.'
+    }
   }
 
   return {

@@ -52,18 +52,6 @@ export type UserDetailResponse = {
   readonly sessions?: readonly AdminUserSession[]
 }
 
-export type UserMutationResponse = {
-  readonly user?: AdminUser
-  readonly audit_event_id?: string | null
-  readonly password_reset?: {
-    readonly token?: string
-    readonly expires_at?: string | null
-  }
-  readonly reset?: boolean
-  readonly message?: string
-  readonly reenrollment_required?: boolean
-}
-
 export type CreateUserPayload = {
   readonly email: string
   readonly display_name: string
@@ -76,6 +64,20 @@ export type CreateUserPayload = {
 
 export type CreateUserResponse = {
   readonly user: AdminUser
+  readonly delivery_status?: 'none' | 'queued' | 'failed'
+}
+
+export type UserMutationResponse = {
+  readonly user?: AdminUser
+  readonly audit_event_id?: string | null
+  readonly delivery_status?: 'none' | 'queued' | 'failed'
+  readonly password_reset?: {
+    readonly token?: string
+    readonly expires_at?: string | null
+  }
+  readonly reset?: boolean
+  readonly message?: string
+  readonly reenrollment_required?: boolean
 }
 
 export type UserReasonPayload = {

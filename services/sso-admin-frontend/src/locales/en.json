@@ -211,6 +211,8 @@
     "empty_desc": "Create a new user or check filters and admin permissions.",
     "create_user_title": "Create User",
     "btn_create_user": "Create User",
+    "create_user_partial_failure_title": "User created, activation email could not be sent",
+    "create_user_partial_failure_desc": "User was created but the activation email could not be dispatched. Use the Reset Password action in the Lifecycle tab to send a new activation link.",
     "sync_profile_title": "Sync Profile",
     "tab_overview": "Overview",
     "tab_security": "Security & MFA",
@@ -282,7 +284,15 @@
     "roles_sync_success": "User roles synced successfully.",
     "roles_self_warn": "You updated your own roles. Please re-authenticate/login again to refresh your token claims.",
     "roles_other_warn": "Role changes will take effect after the user logs in again or the token is refreshed.",
-    "roles_min_required": "At least one role must be selected."
+    "roles_min_required": "At least one role must be selected.",
+    "create_user_success_title": "User created",
+    "create_user_success_desc": "User created. Activation email queued for delivery to the user.",
+    "create_user_no_email_title": "User created",
+    "create_user_no_email_desc": "User created. No email was sent.",
+    "reset_password_success_title": "Password reset queued",
+    "reset_password_success_desc": "Password reset link queued for delivery to the user's email.",
+    "reset_password_failed_title": "Password reset delivery failed",
+    "reset_password_failed_desc": "Password reset token was saved but delivery failed. Please try again."
   },
   "clients": {
     "eyebrow": "Client Management",
@@ -438,6 +448,7 @@
     "btn_load_more_audit": "Load more audit events",
     "btn_load_more_security": "Load more security notification evidence",
     "no_audit_events": "No audit events yet.",
+    "transport_error_no_ref": "Backend service temporarily unreachable. Try again later or contact technical support.",
     "no_security_events": "No security notification evidence yet.",
     "no_retention": "Retention status not yet available.",
     "col_event_id": "Event code",
@@ -472,6 +483,7 @@
     "candidate_rows": "Candidate rows",
     "search_desc": "Search evidence by correlation/request code, session code, action, outcome, taxonomy, account, or date range.",
     "correlation_id": "Correlation / request code",
+    "support_reference": "Support reference",
     "sid": "Session code",
     "taxonomy": "Taxonomy",
     "admin_subject": "Admin code",
@@ -497,7 +509,12 @@
     "session_logout_title": "Session / logout evidence console",
     "session_logout_desc": "SID propagation, RP sessions, and front/back-channel logout outcomes use audit evidence.",
     "safe_error_title": "Safe error regression review",
-    "safe_error_desc": "Admin evidence pages show reference codes and safe copy instead of raw backend/OIDC errors."
+    "safe_error_desc": "Admin evidence pages show reference codes and safe copy instead of raw backend/OIDC errors.",
+    "correlation_ids": "Correlation IDs",
+    "request_id": "Request ID",
+    "support_ref": "Support Ref",
+    "transport_error_title": "Backend Service Unreachable",
+    "transport_error": "Backend service is currently unreachable. Submit incident code {ref} to the technical team for server log review."
   },
   "auth_audit": {
     "eyebrow": "Security",

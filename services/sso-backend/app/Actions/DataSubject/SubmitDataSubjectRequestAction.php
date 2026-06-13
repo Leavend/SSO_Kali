@@ -59,7 +59,7 @@ final class SubmitDataSubjectRequestAction
     private function recordAudit(DataSubjectRequest $dataSubjectRequest, User $subject, Request $request): void
     {
         $this->audit->succeeded('submit_data_subject_request', $request, $subject, [
-            'request_id' => $dataSubjectRequest->request_id,
+            'dsr_request_id' => $dataSubjectRequest->request_id,
             'type' => $dataSubjectRequest->type,
             'sla_due_at' => $dataSubjectRequest->sla_due_at?->toIso8601String(),
         ], AdminAuditTaxonomy::PROFILE_SELF_UPDATE);

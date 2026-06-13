@@ -20,6 +20,8 @@ final class AuditTrailExportController
             'outcome' => ['nullable', 'in:succeeded,denied,failed'],
             'taxonomy' => ['nullable', 'string', 'max:64'],
             'admin_subject_id' => ['nullable', 'string', 'max:64'],
+            'request_id' => ['nullable', 'string', 'max:128'],
+            'support_reference' => ['nullable', 'string', 'max:64'],
         ]);
 
         return $action->execute($request, $filters);

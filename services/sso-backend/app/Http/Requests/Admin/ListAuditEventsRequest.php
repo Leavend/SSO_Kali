@@ -26,6 +26,8 @@ final class ListAuditEventsRequest extends FormRequest
             'outcome' => ['sometimes', 'string', Rule::in(['denied', 'failed', 'succeeded'])],
             'taxonomy' => ['sometimes', 'string', 'max:120'],
             'admin_subject_id' => ['sometimes', 'string', 'max:160'],
+            'request_id' => ['sometimes', 'string', 'max:128'],
+            'support_reference' => ['sometimes', 'string', 'max:64'],
             'from' => ['sometimes', 'date'],
             'to' => ['sometimes', 'date', 'after_or_equal:from'],
         ];

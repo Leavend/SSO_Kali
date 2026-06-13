@@ -211,6 +211,8 @@
     "empty_desc": "Buat pengguna baru atau periksa filter dan permission admin.",
     "create_user_title": "Buat Pengguna",
     "btn_create_user": "Buat Pengguna",
+    "create_user_partial_failure_title": "User dibuat, surel aktivasi gagal dikirim",
+    "create_user_partial_failure_desc": "User berhasil dibuat tapi surel aktivasi tidak terkirim. Gunakan fitur Reset Sandi di tab Lifecycle untuk mengirimkan tautan aktivasi baru.",
     "sync_profile_title": "Sinkronisasi Profil",
     "tab_overview": "Ringkasan",
     "tab_security": "Keamanan & MFA",
@@ -282,7 +284,15 @@
     "roles_sync_success": "Peran pengguna berhasil disinkronkan.",
     "roles_self_warn": "Anda memperbarui peran Anda sendiri. Silakan re-autentikasi/login kembali untuk menyegarkan token klaim Anda.",
     "roles_other_warn": "Perubahan peran akan berlaku setelah pengguna login kembali atau token disegarkan.",
-    "roles_min_required": "Minimal satu peran harus dipilih."
+    "roles_min_required": "Minimal satu peran harus dipilih.",
+    "create_user_success_title": "User berhasil dibuat",
+    "create_user_success_desc": "User berhasil dibuat. Email aktivasi sedang diantrikan untuk dikirim.",
+    "create_user_no_email_title": "User berhasil dibuat",
+    "create_user_no_email_desc": "User berhasil dibuat. Tidak ada email yang dikirim.",
+    "reset_password_success_title": "Reset sandi diantrikan",
+    "reset_password_success_desc": "Tautan reset sandi sedang diantrikan untuk dikirim ke email user.",
+    "reset_password_failed_title": "Reset sandi gagal dikirim",
+    "reset_password_failed_desc": "Tautan reset sandi tersimpan tetapi gagal dikirim. Coba lagi."
   },
   "clients": {
     "eyebrow": "Manajemen Klien",
@@ -438,6 +448,7 @@
     "btn_load_more_audit": "Muat lebih banyak audit event",
     "btn_load_more_security": "Muat lebih banyak security notification evidence",
     "no_audit_events": "Belum ada audit event.",
+    "transport_error_no_ref": "Layanan backend sedang tidak terjangkau. Coba lagi beberapa saat atau hubungi tim teknis.",
     "no_security_events": "Belum ada security notification evidence.",
     "no_retention": "Status retensi belum tersedia.",
     "col_event_id": "Kode event",
@@ -472,6 +483,7 @@
     "candidate_rows": "Baris kandidat",
     "search_desc": "Cari evidence berdasarkan kode korelasi/request, kode sesi, action, outcome, taxonomy, akun, atau rentang tanggal.",
     "correlation_id": "Kode korelasi / request",
+    "support_reference": "Referensi dukungan",
     "sid": "Kode sesi",
     "taxonomy": "Taksonomi",
     "admin_subject": "Kode admin",
@@ -497,7 +509,12 @@
     "session_logout_title": "Konsol bukti sesi / logout",
     "session_logout_desc": "Propagasi SID, sesi RP, dan hasil logout front/back-channel menggunakan bukti audit.",
     "safe_error_title": "Peninjauan regresi error yang aman",
-    "safe_error_desc": "Halaman bukti admin menampilkan kode referensi dan salinan pesan yang aman, bukan error backend/OIDC mentah."
+    "safe_error_desc": "Halaman bukti admin menampilkan kode referensi dan salinan pesan yang aman, bukan error backend/OIDC mentah.",
+    "correlation_ids": "ID Korelasi",
+    "request_id": "Request ID",
+    "support_ref": "Ref Dukungan",
+    "transport_error_title": "Layanan Backend Tidak Terjangkau",
+    "transport_error": "Layanan backend sedang tidak terjangkau. Sampaikan kode insiden {ref} ke tim teknis untuk pemeriksaan log server."
   },
   "auth_audit": {
     "eyebrow": "Keamanan",

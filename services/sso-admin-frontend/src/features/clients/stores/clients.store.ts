@@ -1,7 +1,11 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { ApiError, getLastRequestId } from '@/lib/api/api-client'
-import { formatSupportReference } from '@/lib/display-identifiers'
+import {
+  formatSupportReference,
+  isAdminProxyTransportFailure,
+  formatTransportErrorMessage,
+} from '@/lib/display-identifiers'
 import { triggerStepUpReauth } from '@/lib/stepup/stepup'
 import { clientsApi } from '../services/clients.api'
 import type {
@@ -213,9 +217,14 @@ export const useClientsStore = defineStore('admin-clients', () => {
 
     status.value = 'error'
     const ref = formatSupportReference(requestId.value)
-    errorMessage.value = ref
-      ? `OAuth clients belum bisa dimuat. Gunakan kode referensi ${ref} untuk investigasi.`
-      : 'OAuth clients belum bisa dimuat. Coba lagi beberapa saat lagi.'
+
+    if (isAdminProxyTransportFailure(error)) {
+      errorMessage.value = formatTransportErrorMessage(requestId.value) ?? 'OAuth clients belum bisa dimuat.'
+    } else {
+      errorMessage.value = ref
+        ? `OAuth clients belum bisa dimuat. Gunakan kode referensi ${ref} untuk investigasi.`
+        : 'OAuth clients belum bisa dimuat. Coba lagi beberapa saat lagi.'
+    }
   }
 
   function handleGenericError(error: unknown): void {
@@ -245,9 +254,14 @@ export const useClientsStore = defineStore('admin-clients', () => {
     }
 
     const ref = formatSupportReference(requestId.value)
-    errorMessage.value = ref
-      ? `Operasi OAuth client gagal. Gunakan kode referensi ${ref} untuk investigasi.`
-      : 'Operasi OAuth client gagal. Coba lagi beberapa saat lagi.'
+
+    if (isAdminProxyTransportFailure(error)) {
+      errorMessage.value = formatTransportErrorMessage(requestId.value) ?? 'Operasi OAuth client gagal.'
+    } else {
+      errorMessage.value = ref
+        ? `Operasi OAuth client gagal. Gunakan kode referensi ${ref} untuk investigasi.`
+        : 'Operasi OAuth client gagal. Coba lagi beberapa saat lagi.'
+    }
   }
 
   return {

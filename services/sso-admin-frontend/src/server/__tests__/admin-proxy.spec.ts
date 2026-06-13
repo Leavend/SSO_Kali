@@ -138,6 +138,98 @@ describe('admin BFF API proxy', () => {
 
     expect(response.status).toBe(403)
   })
+
+  it('allows POST /api/admin/users through the admin BFF API proxy', () => {
+    const request = buildAdminApiRequest({
+      internalBaseUrl: 'https://backend.internal',
+      pathname: '/api/admin/users',
+      search: '',
+      method: 'POST',
+      headers: { accept: 'application/json', 'x-request-id': 'req-1' },
+      session,
+    })
+
+    expect(request.url).toBe('https://backend.internal/admin/api/users')
+    expect(request.init.method).toBe('POST')
+  })
+
+  it('returns structured 502 error with request_id and support_reference when fetch fails', async () => {
+    vi.resetModules()
+    vi.doMock('../sso-session-resolver.js', () => ({
+      resolveSsoSession: async () => ({
+        sessionId: 'session-id',
+        session,
+        cookies: [],
+      }),
+      sessionHeaders: () => ({ 'set-cookie': ['session-cookie'] }),
+    }))
+    vi.doMock('../config.js', () => ({
+      getConfig: () => ({ internalBaseUrl: 'https://backend.internal' }),
+    }))
+    const originalFetch = global.fetch
+    global.fetch = vi.fn<typeof global.fetch>().mockRejectedValue(new Error('connection refused'))
+
+    const { handleAdminApiProxy } = await import('../admin-proxy.js')
+    const response = await handleAdminApiProxy({
+      request: {
+        method: 'POST',
+        headers: {
+          cookie: '__Host-sso-portal-session=session-id',
+          'x-request-id': 'test-req-1234567890',
+        },
+      } as never,
+      requestUrl: new URL('https://admin-sso.example.test/api/admin/users'),
+    })
+
+    global.fetch = originalFetch
+
+    expect(response.status).toBe(502)
+    const body = JSON.parse(response.body!.toString())
+    expect(body.error).toBe('admin_proxy_failed')
+    expect(body.request_id).toBe('test-req-1234567890')
+    expect(body.support_reference).toBe('REF-34567890')
+  })
+
+  it('returns support_reference in 502 response and does not call any second endpoint', async () => {
+    vi.resetModules()
+    vi.doMock('../sso-session-resolver.js', () => ({
+      resolveSsoSession: async () => ({
+        sessionId: 'session-id',
+        session,
+        cookies: [],
+      }),
+      sessionHeaders: () => ({ 'set-cookie': ['session-cookie'] }),
+    }))
+    vi.doMock('../config.js', () => ({
+      getConfig: () => ({ internalBaseUrl: 'https://backend.internal' }),
+    }))
+
+    const originalFetch = global.fetch
+    const fetchMock = vi.fn<typeof global.fetch>()
+    fetchMock.mockRejectedValueOnce(new Error('connection refused'))
+    global.fetch = fetchMock
+
+    const { handleAdminApiProxy } = await import('../admin-proxy.js')
+    const response = await handleAdminApiProxy({
+      request: {
+        method: 'POST',
+        headers: {
+          cookie: '__Host-sso-portal-session=session-id',
+          'x-request-id': 'test-req-999',
+        },
+      } as never,
+      requestUrl: new URL('https://admin-sso.example.test/api/admin/users'),
+    })
+
+    global.fetch = originalFetch
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(response.status).toBe(502)
+    const body = JSON.parse(response.body!.toString())
+    expect(body.error).toBe('admin_proxy_failed')
+    expect(body.request_id).toBe('test-req-999')
+    expect(body.support_reference).toBe('REF-STREQ999')
+  })
 })
 
 function headers(request: ReturnType<typeof buildAdminApiRequest>): Headers {

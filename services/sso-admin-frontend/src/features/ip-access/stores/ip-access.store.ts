@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import { ApiError, getLastRequestId } from '@/lib/api/api-client'
+import { isAdminProxyTransportFailure, formatTransportErrorMessage } from '@/lib/display-identifiers'
 import { triggerStepUpReauth } from '@/lib/stepup/stepup'
 import { ipAccessApi } from '../services/ip-access.api'
 import type { IpAccessRule, IpAccessRuleCreatePayload } from '../types'
@@ -84,9 +85,13 @@ export const useIpAccessStore = defineStore('admin-ip-access', () => {
     }
 
     status.value = 'error'
-    errorMessage.value = requestId.value
-      ? `IP access rules belum bisa dimuat. Gunakan request ID ${requestId.value} untuk investigasi.`
-      : 'IP access rules belum bisa dimuat. Coba lagi beberapa saat lagi.'
+    if (isAdminProxyTransportFailure(error)) {
+      errorMessage.value = formatTransportErrorMessage(requestId.value) ?? 'IP access rules belum bisa dimuat.'
+    } else {
+      errorMessage.value = requestId.value
+        ? `IP access rules belum bisa dimuat. Gunakan request ID ${requestId.value} untuk investigasi.`
+        : 'IP access rules belum bisa dimuat. Coba lagi beberapa saat lagi.'
+    }
   }
 
   function handleActionError(error: unknown): void {
@@ -108,9 +113,13 @@ export const useIpAccessStore = defineStore('admin-ip-access', () => {
     }
 
     actionStatus.value = 'error'
-    errorMessage.value = requestId.value
-      ? `Operasi IP access rule gagal. Gunakan request ID ${requestId.value} untuk investigasi.`
-      : 'Operasi IP access rule gagal. Coba lagi beberapa saat lagi.'
+    if (isAdminProxyTransportFailure(error)) {
+      errorMessage.value = formatTransportErrorMessage(requestId.value) ?? 'Operasi IP access rule gagal.'
+    } else {
+      errorMessage.value = requestId.value
+        ? `Operasi IP access rule gagal. Gunakan request ID ${requestId.value} untuk investigasi.`
+        : 'Operasi IP access rule gagal. Coba lagi beberapa saat lagi.'
+    }
   }
 
   return {

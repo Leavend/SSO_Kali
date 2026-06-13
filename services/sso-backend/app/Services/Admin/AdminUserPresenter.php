@@ -99,18 +99,14 @@ final class AdminUserPresenter
             ->first();
     }
 
-    /**
-     * @param  array{user: User, reset_token: string, expires_at: string}  $result
-     * @return array<string, mixed>
-     */
     public function passwordReset(array $result): array
     {
         return [
             'user' => $this->user($result['user']),
             'password_reset' => [
-                'token' => $result['reset_token'],
                 'expires_at' => $result['expires_at'],
             ],
+            'delivery_status' => $result['delivery_status'],
         ];
     }
 }

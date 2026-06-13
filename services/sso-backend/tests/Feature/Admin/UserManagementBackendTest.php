@@ -16,11 +16,13 @@ use App\Services\Admin\AdminAuditTaxonomy;
 use App\Services\Admin\AdminUserPresenter;
 use App\Services\Oidc\LocalTokenService;
 use App\Services\Security\LoginContextRecorder;
+use Illuminate\Contracts\Notifications\Dispatcher;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 
 it('creates local fallback users without leaking plaintext passwords to audit context', function (): void {
-    $user = app(CreateManagedUserAction::class)->execute([
+    $result = app(CreateManagedUserAction::class)->execute([
         'email' => 'fallback@example.com',
         'display_name' => 'Fallback User',
         'given_name' => 'Fallback',
@@ -30,23 +32,29 @@ it('creates local fallback users without leaking plaintext passwords to audit co
         'local_account_enabled' => true,
     ]);
 
-    expect($user->subject_id)->toStartWith('usr_')
+    $user = $result['user'];
+
+    expect($result['delivery_status'])->toBe('none')
+        ->and($user->subject_id)->toStartWith('usr_')
         ->and($user->status)->toBe('active')
         ->and($user->local_account_enabled)->toBeTrue()
         ->and(Hash::check('very-secure-password', (string) $user->password))->toBeTrue();
 });
 
-it('sends activation instructions when a local user is created without a password', function (): void {
+it('queues activation instructions when a local user is created without a password', function (): void {
     Notification::fake();
 
-    $user = app(CreateManagedUserAction::class)->execute([
+    $result = app(CreateManagedUserAction::class)->execute([
         'email' => 'activation@example.com',
         'display_name' => 'Activation User',
         'role' => 'user',
         'local_account_enabled' => true,
     ]);
 
-    expect($user->password)->toBeNull()
+    $user = $result['user'];
+
+    expect($result['delivery_status'])->toBe('queued')
+        ->and($user->password)->toBeNull()
         ->and($user->password_reset_token_hash)->not->toBeNull()
         ->and($user->password_reset_token_expires_at)->not->toBeNull();
 
@@ -315,3 +323,63 @@ function adminUserShowAccessToken(User $user): string
 
     return (string) $tokens['access_token'];
 }
+
+it('rolls back user creation and does not send password reset notification if user creation fails', function (): void {
+    Notification::fake();
+
+    User::factory()->create(['email' => 'duplicate@example.com']);
+
+    try {
+        app(CreateManagedUserAction::class)->execute([
+            'email' => 'duplicate@example.com',
+            'display_name' => 'Duplicate User',
+            'role' => 'user',
+            'local_account_enabled' => true,
+        ]);
+        $this->fail('Expected QueryException to be thrown');
+    } catch (QueryException $e) {
+        // Expected
+    }
+
+    Notification::assertNothingSent();
+});
+
+it('creates the user successfully even if the activation/password-reset instruction fails to dispatch', function (): void {
+    $mockDispatcher = Mockery::mock(Dispatcher::class);
+    $mockDispatcher->shouldReceive('send')->andThrow(new RuntimeException('Queue connection failed'));
+    $this->app->instance(Dispatcher::class, $mockDispatcher);
+
+    $result = app(CreateManagedUserAction::class)->execute([
+        'email' => 'nonfatal@example.com',
+        'display_name' => 'Nonfatal User',
+        'role' => 'user',
+        'local_account_enabled' => true,
+    ]);
+
+    $user = $result['user'];
+
+    expect($result['delivery_status'])->toBe('failed')
+        ->and($user->subject_id)->toStartWith('usr_')
+        ->and($user->status)->toBe('active')
+        ->and($user->local_account_enabled)->toBeTrue();
+});
+
+it('rolls back user creation if saving the reset token fails', function (): void {
+    Hash::shouldReceive('make')
+        ->once()
+        ->andThrow(new RuntimeException('Hash generation failed'));
+
+    try {
+        app(CreateManagedUserAction::class)->execute([
+            'email' => 'rollback-token@example.com',
+            'display_name' => 'Rollback Token User',
+            'role' => 'user',
+            'local_account_enabled' => true,
+        ]);
+        $this->fail('Expected RuntimeException to be thrown');
+    } catch (RuntimeException $e) {
+        expect($e->getMessage())->toBe('Hash generation failed');
+    }
+
+    $this->assertDatabaseMissing('users', ['email' => 'rollback-token@example.com']);
+});

@@ -69,7 +69,7 @@ final class ReviewDataSubjectRequestAction
         string $decision,
     ): void {
         $this->audit->succeeded('review_data_subject_request', $request, $reviewer, [
-            'request_id' => $dataSubjectRequest->request_id,
+            'dsr_request_id' => $dataSubjectRequest->request_id,
             'type' => $dataSubjectRequest->type,
             'decision' => $decision,
             'sla_due_at' => $dataSubjectRequest->sla_due_at?->toIso8601String(),

@@ -156,7 +156,8 @@ const isCreateFormInvalid = computed<boolean>(() => {
 
 watch([createGivenName, createFamilyName], () => {
   if (!isDisplayNameManuallyEdited.value) {
-    createDisplayName.value = composeProfileDisplayName(createGivenName.value, createFamilyName.value) ?? ''
+    createDisplayName.value =
+      composeProfileDisplayName(createGivenName.value, createFamilyName.value) ?? ''
   }
 })
 
@@ -330,6 +331,25 @@ async function submitCreateUser(): Promise<void> {
 
   await store.createUser(payload as CreateUserPayload)
   if (store.actionStatus === 'success') {
+    if (store.deliveryStatus === 'queued') {
+      toast.pushToast({
+        tone: 'success',
+        title: t('users.create_user_success_title'),
+        description: t('users.create_user_success_desc'),
+      })
+    } else if (store.deliveryStatus === 'none') {
+      toast.pushToast({
+        tone: 'info',
+        title: t('users.create_user_no_email_title'),
+        description: t('users.create_user_no_email_desc'),
+      })
+    } else if (store.deliveryStatus === 'failed') {
+      toast.pushToast({
+        tone: 'error',
+        title: t('users.create_user_partial_failure_title'),
+        description: t('users.create_user_partial_failure_desc'),
+      })
+    }
     resetCreateForm()
     closeCreateForm()
   }
@@ -418,7 +438,24 @@ async function confirmDestructiveAction(): Promise<void> {
   if (action === 'lock') await store.lockSelected(reason.value)
   if (action === 'deactivate') await store.deactivateSelected(reason.value)
   if (action === 'reset_mfa') await store.resetMfaSelected(reason.value)
-  if (action === 'issue_password_reset') await store.issuePasswordResetSelected()
+  if (action === 'issue_password_reset') {
+    await store.issuePasswordResetSelected()
+    if (store.actionStatus === 'success') {
+      if (store.deliveryStatus === 'queued') {
+        toast.pushToast({
+          tone: 'success',
+          title: t('users.reset_password_success_title'),
+          description: t('users.reset_password_success_desc'),
+        })
+      } else if (store.deliveryStatus === 'failed') {
+        toast.pushToast({
+          tone: 'error',
+          title: t('users.reset_password_failed_title'),
+          description: t('users.reset_password_failed_desc'),
+        })
+      }
+    }
+  }
   if (action === 'revoke_user_sessions' && store.selectedUser) {
     await sessionsStore.revokeUserSessions(store.selectedUser.subject_id)
     await store.selectUser(store.selectedUser.subject_id)
@@ -613,7 +650,7 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
             <!-- Group 1: Identitas -->
             <div class="user-modal-group">
               <h4 class="user-modal-group-title">{{ t('common.identity') }}</h4>
-              
+
               <UiFormField id="create-email" :label="t('users.label_email')" required>
                 <UiInput
                   id="create-email"
@@ -651,7 +688,8 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
                   @input="isDisplayNameManuallyEdited = true"
                 />
                 <p class="ui-field-hint">
-                  {{ t('users.label_display_name_preview') }}: <span class="font-semibold text-primary">{{ createDisplayNamePreview }}</span>
+                  {{ t('users.label_display_name_preview') }}:
+                  <span class="font-semibold text-primary">{{ createDisplayNamePreview }}</span>
                 </p>
               </UiFormField>
             </div>
@@ -681,7 +719,10 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
               </UiFormField>
 
               <div class="user-modal-switch-field">
-                <UiSwitch v-model="createLocalAccountEnabled" :label="t('users.label_local_account')" />
+                <UiSwitch
+                  v-model="createLocalAccountEnabled"
+                  :label="t('users.label_local_account')"
+                />
                 <p class="ui-field-hint">{{ t('users.label_local_account_helper') }}</p>
               </div>
             </div>

@@ -24,6 +24,18 @@ export type UseI18nReturn = {
   readonly t: (key: string, params?: Record<string, unknown>) => string
 }
 
+/**
+ * Module-level translation — works outside Vue setup context (e.g. Pinia stores).
+ * Falls back to DEFAULT_LOCALE when the key doesn't exist in the active locale.
+ */
+export function translate(key: string, params?: Record<string, unknown>): string {
+  const template =
+    resolveKey(locales[activeLocale.value], key) ?? resolveKey(locales[DEFAULT_LOCALE], key)
+  if (!template) return key
+
+  return params ? interpolate(template, params) : template
+}
+
 export function useI18n(): UseI18nReturn {
   const locale = computed<SupportedLocale>(() => activeLocale.value)
 

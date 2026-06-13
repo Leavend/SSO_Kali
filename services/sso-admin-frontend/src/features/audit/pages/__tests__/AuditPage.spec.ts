@@ -349,6 +349,7 @@ describe('AuditPage', () => {
       outcome: 'failed',
       taxonomy: 'user_lifecycle',
       admin_subject_id: 'admin-1',
+      request_id: 'req-auth-event-1',
       from: '2026-05-01',
       to: '2026-05-30',
     })

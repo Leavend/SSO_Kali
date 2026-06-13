@@ -22,3 +22,10 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Generated SQLite databases (may contain credentials)
+/sso_backend
+*.sqlite
+*.sqlite3
+database/*.sqlite*
+/database/database.sqlite

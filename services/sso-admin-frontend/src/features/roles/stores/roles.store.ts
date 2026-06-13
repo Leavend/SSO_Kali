@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import { ApiError, getLastRequestId } from '@/lib/api/api-client'
+import { isAdminProxyTransportFailure, formatTransportErrorMessage } from '@/lib/display-identifiers'
 import { triggerStepUpReauth } from '@/lib/stepup/stepup'
 import { rolesApi } from '../services/roles.api'
 import type {
@@ -120,9 +121,13 @@ export const useRolesStore = defineStore('admin-roles', () => {
     }
 
     status.value = 'error'
-    errorMessage.value = requestId.value
-      ? `Roles & Permissions belum bisa dimuat. Gunakan request ID ${requestId.value} untuk investigasi.`
-      : 'Roles & Permissions belum bisa dimuat. Coba lagi beberapa saat lagi.'
+    if (isAdminProxyTransportFailure(error)) {
+      errorMessage.value = formatTransportErrorMessage(requestId.value) ?? 'Roles & Permissions belum bisa dimuat.'
+    } else {
+      errorMessage.value = requestId.value
+        ? `Roles & Permissions belum bisa dimuat. Gunakan request ID ${requestId.value} untuk investigasi.`
+        : 'Roles & Permissions belum bisa dimuat. Coba lagi beberapa saat lagi.'
+    }
   }
 
   function handleActionError(error: unknown): void {

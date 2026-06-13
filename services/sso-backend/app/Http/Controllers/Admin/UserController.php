@@ -47,7 +47,14 @@ final class UserController
 
     public function store(CreateManagedUserRequest $request, CreateManagedUserAction $action): JsonResponse
     {
-        return $this->mutate($request, 'create_managed_user', ['email' => $request->validated('email'), 'role' => $request->validated('role')], fn (): array => ['user' => $this->presenter->user($action->execute($request->validated()))], 201);
+        return $this->mutate($request, 'create_managed_user', ['email' => $request->validated('email'), 'role' => $request->validated('role')], function () use ($request, $action): array {
+            $result = $action->execute($request->validated());
+
+            return [
+                'user' => $this->presenter->user($result['user']),
+                'delivery_status' => $result['delivery_status'],
+            ];
+        }, 201);
     }
 
     public function deactivate(DeactivateManagedUserRequest $request, DeactivateManagedUserAction $action, string $subjectId): JsonResponse
