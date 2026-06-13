@@ -42,7 +42,7 @@ it('finds auth events by support_reference matching request_id suffix', function
     /** @var TestCase $this */
     // Create events with distinctive request_ids
     AuthenticationAuditEvent::query()->create([
-        'event_id' => (string) Str::uuid(),
+        'event_id' => (string) Str::ulid(),
         'event_type' => 'login_started',
         'outcome' => 'succeeded',
         'subject_id' => 'sub-match-1',
@@ -51,7 +51,7 @@ it('finds auth events by support_reference matching request_id suffix', function
     ]);
 
     AuthenticationAuditEvent::query()->create([
-        'event_id' => (string) Str::uuid(),
+        'event_id' => (string) Str::ulid(),
         'event_type' => 'login_succeeded',
         'outcome' => 'succeeded',
         'subject_id' => 'sub-match-2',
@@ -61,7 +61,7 @@ it('finds auth events by support_reference matching request_id suffix', function
 
     // Event with non-matching request_id suffix
     AuthenticationAuditEvent::query()->create([
-        'event_id' => (string) Str::uuid(),
+        'event_id' => (string) Str::ulid(),
         'event_type' => 'login_failed',
         'outcome' => 'failed',
         'subject_id' => 'sub-no-match',
@@ -85,7 +85,7 @@ it('finds auth events by support_reference matching request_id suffix', function
 it('accepts support_reference without REF- prefix', function (): void {
     /** @var TestCase $this */
     AuthenticationAuditEvent::query()->create([
-        'event_id' => (string) Str::uuid(),
+        'event_id' => (string) Str::ulid(),
         'event_type' => 'login_started',
         'outcome' => 'succeeded',
         'subject_id' => 'sub-bare',
@@ -94,7 +94,7 @@ it('accepts support_reference without REF- prefix', function (): void {
     ]);
 
     AuthenticationAuditEvent::query()->create([
-        'event_id' => (string) Str::uuid(),
+        'event_id' => (string) Str::ulid(),
         'event_type' => 'login_other',
         'outcome' => 'succeeded',
         'subject_id' => 'sub-other',
@@ -115,7 +115,7 @@ it('accepts support_reference without REF- prefix', function (): void {
 it('returns empty collection for non-matching support_reference', function (): void {
     /** @var TestCase $this */
     AuthenticationAuditEvent::query()->create([
-        'event_id' => (string) Str::uuid(),
+        'event_id' => (string) Str::ulid(),
         'event_type' => 'login_started',
         'outcome' => 'succeeded',
         'subject_id' => 'sub-only',
@@ -134,7 +134,7 @@ it('returns empty collection for non-matching support_reference', function (): v
 it('ignores support_reference when empty', function (): void {
     /** @var TestCase $this */
     AuthenticationAuditEvent::query()->create([
-        'event_id' => (string) Str::uuid(),
+        'event_id' => (string) Str::ulid(),
         'event_type' => 'login_started',
         'outcome' => 'succeeded',
         'subject_id' => 'sub-empty',
