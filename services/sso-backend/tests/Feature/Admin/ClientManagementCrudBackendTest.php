@@ -6,6 +6,8 @@ use App\Actions\Admin\UpdateManagedClientAction;
 use App\Http\Controllers\Admin\ClientController;
 use App\Models\OidcClientRegistration;
 use App\Models\User;
+use App\Services\Admin\AdminAuditTaxonomy;
+use App\Services\Oidc\ClientIntegrationRegistrationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -58,14 +60,14 @@ it('hard deletes a non-seeded client registration', function (): void {
     $request = Request::create('/admin/api/clients/prototype-app-a', 'DELETE');
     $request->attributes->set('admin_user', $admin);
 
-    $response = $controller->destroy($request, app(\App\Services\Oidc\ClientIntegrationRegistrationService::class), 'prototype-app-a');
-    
+    $response = $controller->destroy($request, app(ClientIntegrationRegistrationService::class), 'prototype-app-a');
+
     expect($response->status())->toBe(200);
     expect(OidcClientRegistration::query()->where('client_id', 'prototype-app-a')->exists())->toBeFalse();
 
     /** @var object $event */
     $event = DB::table('admin_audit_events')->latest('id')->first();
-    expect($event->taxonomy)->toBe(\App\Services\Admin\AdminAuditTaxonomy::CLIENT_INTEGRATION_DELETED);
+    expect($event->taxonomy)->toBe(AdminAuditTaxonomy::CLIENT_INTEGRATION_DELETED);
 });
 
 function managedClientFixture(): OidcClientRegistration
