@@ -56,6 +56,7 @@
   "common": {
     "identity": "Identitas",
     "access": "Akses",
+    "configuration": "Konfigurasi",
     "loading": "Memuat...",
     "session_expired_title": "Sesi admin berakhir",
     "session_expired_desc": "Login ulang dari portal untuk melanjutkan.",

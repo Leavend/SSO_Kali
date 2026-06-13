@@ -728,69 +728,84 @@ async function rotateSecret(): Promise<void> {
             <p v-if="uriValidationMessage" class="ui-action-message" role="alert">
               {{ uriValidationMessage }}
             </p>
-            <div class="user-form-grid">
-              <UiFormField id="create_client_id" :label="t('clients.label_client_id')" required>
-                <UiInput
-                  id="create_client_id"
-                  v-model="createForm.client_id"
-                  name="client_id"
-                  autocomplete="off"
-                />
-              </UiFormField>
-              <UiFormField
-                id="create_display_name"
-                :label="t('clients.label_display_name')"
-                required
-              >
-                <UiInput
+            <div class="client-modal-body">
+              <!-- Group 1: Identitas / Identity -->
+              <div class="user-modal-group">
+                <h4 class="user-modal-group-title">{{ t('common.identity') }}</h4>
+
+                <UiFormField id="create_client_id" :label="t('clients.label_client_id')" required>
+                  <UiInput
+                    id="create_client_id"
+                    v-model="createForm.client_id"
+                    name="client_id"
+                    autocomplete="off"
+                  />
+                </UiFormField>
+
+                <UiFormField
                   id="create_display_name"
-                  v-model="createForm.display_name"
-                  name="create_display_name"
-                  autocomplete="off"
-                />
-              </UiFormField>
-              <UiFormField id="create_owner_email" :label="t('clients.label_owner_email')" required>
-                <UiInput
-                  id="create_owner_email"
-                  v-model="createForm.owner_email"
-                  name="create_owner_email"
-                  autocomplete="email"
-                />
-              </UiFormField>
-              <UiFormField id="create_client_type" :label="t('clients.label_client_type')" required>
-                <UiSelect
-                  id="create_client_type"
-                  v-model="createForm.client_type"
-                  name="client_type"
-                  :options="[
-                    { value: 'public', label: t('clients.type_public') },
-                    { value: 'confidential', label: t('clients.type_confidential') },
-                  ]"
-                />
-              </UiFormField>
-              <UiFormField
-                id="create_redirect_uri"
-                :label="t('clients.label_redirect_uri')"
-                required
-              >
-                <UiInput
+                  :label="t('clients.label_display_name')"
+                  required
+                >
+                  <UiInput
+                    id="create_display_name"
+                    v-model="createForm.display_name"
+                    name="create_display_name"
+                    autocomplete="off"
+                  />
+                </UiFormField>
+
+                <UiFormField id="create_owner_email" :label="t('clients.label_owner_email')" required>
+                  <UiInput
+                    id="create_owner_email"
+                    v-model="createForm.owner_email"
+                    name="create_owner_email"
+                    autocomplete="email"
+                  />
+                </UiFormField>
+              </div>
+
+              <!-- Group 2: Konfigurasi / Configuration -->
+              <div class="user-modal-group">
+                <h4 class="user-modal-group-title">{{ t('common.configuration') }}</h4>
+
+                <UiFormField id="create_client_type" :label="t('clients.label_client_type')" required>
+                  <UiSelect
+                    id="create_client_type"
+                    v-model="createForm.client_type"
+                    name="client_type"
+                    :options="[
+                      { value: 'public', label: t('clients.type_public') },
+                      { value: 'confidential', label: t('clients.type_confidential') },
+                    ]"
+                  />
+                </UiFormField>
+
+                <UiFormField
                   id="create_redirect_uri"
-                  v-model="createForm.redirect_uri"
-                  name="create_redirect_uri"
-                  autocomplete="url"
-                />
-              </UiFormField>
-              <UiFormField
-                id="create_backchannel_logout_uri"
-                :label="t('clients.label_logout_url')"
-              >
-                <UiInput
+                  :label="t('clients.label_redirect_uri')"
+                  required
+                >
+                  <UiInput
+                    id="create_redirect_uri"
+                    v-model="createForm.redirect_uri"
+                    name="create_redirect_uri"
+                    autocomplete="url"
+                  />
+                </UiFormField>
+
+                <UiFormField
                   id="create_backchannel_logout_uri"
-                  v-model="createForm.backchannel_logout_uri"
-                  name="create_backchannel_logout_uri"
-                  autocomplete="url"
-                />
-              </UiFormField>
+                  :label="t('clients.label_logout_url')"
+                >
+                  <UiInput
+                    id="create_backchannel_logout_uri"
+                    v-model="createForm.backchannel_logout_uri"
+                    name="create_backchannel_logout_uri"
+                    autocomplete="url"
+                  />
+                </UiFormField>
+              </div>
             </div>
             <div class="client-modal-footer">
               <UiButton variant="secondary" type="button" @click="closeCreateForm">

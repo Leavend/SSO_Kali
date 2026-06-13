@@ -56,6 +56,7 @@
   "common": {
     "identity": "Identity",
     "access": "Access",
+    "configuration": "Configuration",
     "loading": "Loading...",
     "session_expired_title": "Admin session expired",
     "session_expired_desc": "Login again from the portal to continue.",
