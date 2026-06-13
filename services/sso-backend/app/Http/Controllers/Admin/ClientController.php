@@ -25,7 +25,6 @@ final class ClientController
     public function __construct(
         private readonly AdminClientQuery $clients,
         private readonly AdminClientPresenter $presenter,
-        private readonly ClientIntegrationController $integrations,
     ) {}
 
     public function index(): JsonResponse
