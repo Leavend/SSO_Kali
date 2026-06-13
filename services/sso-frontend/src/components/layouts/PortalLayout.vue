@@ -37,7 +37,7 @@ useSessionHeartbeat({
 
     <main
       id="portal-main"
-      class="relative z-10 mx-auto w-full max-w-6xl flex-1 px-4 pt-20 pb-6 sm:px-6 sm:pt-24 sm:pb-8"
+      class="relative z-10 mx-auto w-full max-w-7xl flex-1 px-4 pt-20 pb-6 sm:px-6 sm:pt-24 sm:pb-8"
       tabindex="-1"
     >
       <RouterView v-slot="{ Component }">
@@ -52,7 +52,7 @@ useSessionHeartbeat({
       class="portal-footer-glass relative z-10 mt-auto border-t border-[var(--glass-border-subtle)] bg-[var(--glass-bg-primary)] py-6 text-center text-xs text-[var(--text-secondary)] backdrop-blur-[var(--glass-blur-md)]"
     >
       <div
-        class="mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 px-4 sm:flex-row sm:px-6"
+        class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-4 sm:flex-row sm:px-6"
       >
         <span class="flex items-center gap-2">
           <UserCircle2 class="size-4" /> Dev-SSO {{ t('portal.brand') }}
