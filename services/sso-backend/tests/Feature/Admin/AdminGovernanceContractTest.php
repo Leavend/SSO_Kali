@@ -117,24 +117,7 @@ it('keeps dashboard summary available when cache storage fails', function (): vo
     Cache::shouldReceive('get')->once()->andThrow(new RuntimeException('redis unavailable'));
     Cache::shouldReceive('put')->once()->andReturnTrue();
 
-    try {
-        DB::table('oidc_client_registrations')->count();
-    } catch (Throwable $e) {
-        dump('clients error: '.$e->getMessage());
-    }
-    try {
-        DB::table('admin_audit_events')->count();
-    } catch (Throwable $e) {
-        dump('audit error: '.$e->getMessage());
-    }
-    try {
-        DB::table('data_subject_requests')->count();
-    } catch (Throwable $e) {
-        dump('dsr error: '.$e->getMessage());
-    }
-
     $snapshot = app(AdminDashboardSummaryService::class)->snapshot();
-    dd($snapshot);
 
     expect($snapshot['partial'])->toBeFalse()
         ->and($snapshot['counters']['users']['total'])->toBeInt()

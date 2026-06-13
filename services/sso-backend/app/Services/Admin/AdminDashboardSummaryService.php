@@ -93,7 +93,6 @@ final class AdminDashboardSummaryService
             return $resolver();
         } catch (Throwable $exception) {
             $degraded[] = $name;
-            dump($name.' exception: '.$exception->getMessage()."\n".$exception->getTraceAsString());
             Log::warning('[ADMIN_DASHBOARD_COUNTER_DEGRADED]', [
                 'counter' => $name,
                 'exception' => $exception::class,
@@ -171,9 +170,9 @@ final class AdminDashboardSummaryService
 
         return [
             'total' => (int) $registrations->clone()->count(),
-            'active' => (int) $registrations->clone()->where('lifecycle_stage', 'active')->count(),
-            'staged' => (int) $registrations->clone()->where('lifecycle_stage', 'staged')->count(),
-            'decommissioned' => (int) $registrations->clone()->where('lifecycle_stage', 'decommissioned')->count(),
+            'active' => (int) $registrations->clone()->where('status', 'active')->count(),
+            'staged' => (int) $registrations->clone()->where('status', 'staged')->count(),
+            'decommissioned' => (int) $registrations->clone()->where('status', 'decommissioned')->count(),
         ];
     }
 
