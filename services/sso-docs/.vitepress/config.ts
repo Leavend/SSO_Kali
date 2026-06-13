@@ -1,4 +1,6 @@
 import { defineConfig } from 'vitepress'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 
 const githubRepository = 'https://github.com/Leavend/SSO_Kali'
 
@@ -160,10 +162,18 @@ export default defineConfig({
    * The CopyPageButton component reads frontmatter.rawMarkdown to
    * enable one-click copying of the page content (e.g. for pasting
    * into an LLM or issue tracker).
+   *
+   * Note: ctx (TransformPageContext) only exposes { siteConfig }, not
+   * the raw content — so we read the source file from disk directly.
    */
   transformPageData(pageData, ctx) {
     if (pageData.relativePath.includes('integrations/')) {
-      pageData.frontmatter.rawMarkdown = ctx.content
+      const raw = readFileSync(
+        join(ctx.siteConfig.srcDir, pageData.filePath),
+        'utf-8',
+      )
+      // Strip frontmatter block (--- ... ---) so users get clean markdown
+      pageData.frontmatter.rawMarkdown = raw.replace(/^---[\s\S]*?---\n*/g, '')
     }
   },
 })
