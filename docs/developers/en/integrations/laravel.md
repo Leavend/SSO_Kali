@@ -5,7 +5,10 @@ Laravel runs as a **confidential client**. Authorization codes, tokens, refresh 
 > [!IMPORTANT]
 > PKCE with `code_challenge_method=S256` is mandatory at this provider, including for confidential clients.
 
-Refer to the [API Reference](../api-reference.md) for endpoint contracts.
+> [!TIP]
+> Do not hardcode endpoint paths. Read `authorization_endpoint`, `token_endpoint`, `jwks_uri`, and `end_session_endpoint` from `/.well-known/openid-configuration`, cache the document, and treat discovery as the source of truth.
+
+Start with the [Integration Checklist](../integration-checklist.md), then use the [API Reference](../api-reference.md) for endpoint contracts.
 
 ## 1. Install Dependencies
 
@@ -36,11 +39,23 @@ Never expose `SSO_CLIENT_SECRET` to Blade or browser JavaScript.
 ],
 ```
 
-## 3. Authorize + PKCE
+## 3. Discovery + Authorize + PKCE
 
-Store verifier, state, and nonce in the server session:
+Cache the discovery document, then use its endpoints. Store verifier, state, and nonce in the server session:
 
 ```php
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
+
+function oidcDiscovery(): array
+{
+    $issuer = rtrim(config('services.sso.issuer'), '/');
+
+    return Cache::remember('oidc.discovery', now()->addHour(), fn (): array =>
+        Http::get($issuer.'/.well-known/openid-configuration')->throw()->json()
+    );
+}
+
 public function redirect(): RedirectResponse
 {
     $verifier = Str::random(64);
@@ -53,37 +68,75 @@ public function redirect(): RedirectResponse
         'client_id' => config('services.sso.client_id'),
         'redirect_uri' => config('services.sso.redirect_uri'),
         'response_type' => 'code',
-        'scope' => 'openid profile email offline_access',
+        'scope' => 'openid profile email offline_access roles',
         'state' => $state,
         'nonce' => $nonce,
         'code_challenge' => $challenge,
         'code_challenge_method' => 'S256',
     ]);
-    return redirect(config('services.sso.issuer').'/authorize?'.$query);
+    return redirect(oidcDiscovery()['authorization_endpoint'].'?'.$query);
 }
 ```
 
-## 4. Callback and Exchange
+`id_token` is for local login, so its `aud` must equal `client_id`. `access_token` is for resource-server calls and has a different audience.
 
-Validate state, then exchange on the server:
+## 4. Callback, Exchange, and `id_token` Validation
 
 ```php
-$tokens = Http::asForm()->post(config('services.sso.issuer').'/token', [
-    'grant_type' => 'authorization_code',
-    'client_id' => config('services.sso.client_id'),
-    'client_secret' => config('services.sso.client_secret'),
-    'code' => $request->string('code')->toString(),
-    'redirect_uri' => config('services.sso.redirect_uri'),
-    'code_verifier' => session()->pull('oidc.verifier'),
-])->throw()->json();
+use Firebase\JWT\JWK;
+use Firebase\JWT\JWT;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
+
+public function callback(Request $request): RedirectResponse
+{
+    abort_unless(
+        is_string($request->state) && hash_equals((string) session()->pull('oidc.state'), $request->state),
+        403,
+    );
+
+    $discovery = oidcDiscovery();
+    $verifier = session()->pull('oidc.verifier');
+    $nonce = session()->pull('oidc.nonce');
+
+    $tokens = Http::asForm()->post($discovery['token_endpoint'], [
+        'grant_type' => 'authorization_code',
+        'client_id' => config('services.sso.client_id'),
+        'client_secret' => config('services.sso.client_secret'),
+        'code' => $request->string('code')->toString(),
+        'redirect_uri' => config('services.sso.redirect_uri'),
+        'code_verifier' => $verifier,
+    ])->throw()->json();
+
+    $jwks = Cache::remember('oidc.jwks', now()->addHour(), fn (): array =>
+        Http::get($discovery['jwks_uri'])->throw()->json()
+    );
+
+    JWT::$leeway = 60;
+    $keys = JWK::parseKeySet($jwks, 'ES256');
+    $claims = (array) JWT::decode((string) $tokens['id_token'], $keys);
+
+    abort_unless(($claims['iss'] ?? null) === rtrim(config('services.sso.issuer'), '/'), 403);
+
+    $aud = $claims['aud'] ?? null;
+    $clientId = config('services.sso.client_id');
+    $audOk = is_array($aud) ? in_array($clientId, $aud, true) : $aud === $clientId;
+    abort_unless($audOk, 403);
+
+    abort_unless(($claims['nonce'] ?? null) === $nonce, 403);
+
+    // JWT::decode() validates signature + exp/nbf.
+    // `iss`, `aud`, and `nonce` still require explicit checks.
+    return redirect('/dashboard');
+}
 ```
 
-Validate ID token signature, issuer, audience, expiry, and nonce before creating a local session. Encrypt refresh tokens at rest.
+`JWK::parseKeySet($jwks, 'ES256')` matters because a JWK set may omit `alg`, so you must pin the signing algorithm explicitly.
 
 ## 5. Refresh
 
 ```php
-$tokens = Http::asForm()->post(config('services.sso.issuer').'/token', [
+$tokens = Http::asForm()->post(oidcDiscovery()['token_endpoint'], [
     'grant_type' => 'refresh_token',
     'client_id' => config('services.sso.client_id'),
     'client_secret' => config('services.sso.client_secret'),
@@ -93,11 +146,34 @@ $tokens = Http::asForm()->post(config('services.sso.issuer').'/token', [
 
 Atomically replace the previous refresh token with the rotated token.
 
-## 6. Logout
+## 6. Role and Permission Mapping
 
-Revoke the refresh token with confidential client authentication, delete the local session, and redirect to `/connect/logout` with a registered post-logout URI.
+If the application needs local RBAC, request the `roles` and/or `permissions` scopes, then read `roles[]` / `permissions[]` from the `id_token` or `userinfo` response.
 
-## 7. Troubleshooting
+```php
+use Spatie\Permission\Models\Role;
+
+$roles = collect($claims['roles'] ?? [])->filter()->values();
+$permissions = collect($claims['permissions'] ?? [])->filter()->values();
+$localRoles = $roles->filter(fn (string $role): bool => Role::where('name', $role)->exists());
+
+if ($localRoles->isNotEmpty()) {
+    $user->syncRoles($localRoles->all());
+}
+```
+
+If SSO roles have not been provisioned in the local `roles` table, `syncRoles()` can throw `RoleDoesNotExist`. Filter as above, or provision roles first with a seeder / `Role::findOrCreate()`.
+
+> [!WARNING]
+> The claim name is `roles` (plural, array) — **not** `role`.
+
+Optional scopes such as `roles`, `permissions`, and `offline_access` are emitted only when they are allow-listed for the client in the admin panel.
+
+## 7. Logout
+
+Revoke the refresh token with confidential client authentication, delete the local session, and redirect to the discovery-provided end-session endpoint with a registered post-logout URI.
+
+## 8. Troubleshooting
 
 | Symptom | Check |
 |---|---|

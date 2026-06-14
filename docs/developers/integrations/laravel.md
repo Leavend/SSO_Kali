@@ -5,7 +5,10 @@ Panduan ini memakai Laravel sebagai **confidential client**. Authorization code,
 > [!IMPORTANT]
 > PKCE dengan `code_challenge_method=S256` wajib di IdP ini, termasuk untuk confidential client.
 
-Detail parameter dan response endpoint tersedia di [API Reference](../api-reference.md).
+> [!TIP]
+> Jangan hardcode path endpoint. Ambil `authorization_endpoint`, `token_endpoint`, `jwks_uri`, dan `end_session_endpoint` dari discovery `/.well-known/openid-configuration`, cache hasilnya, lalu pakai nilai discovery sebagai source of truth.
+
+Mulai dari [Integration Checklist](../integration-checklist.md), lalu rujuk [API Reference](../api-reference.md) untuk kontrak endpoint.
 
 ## 1. Install Dependencies
 
@@ -38,13 +41,24 @@ Jangan memakai prefix frontend atau mengirim `SSO_CLIENT_SECRET` ke Blade/JavaSc
 ],
 ```
 
-## 3. Authorize + PKCE
+## 3. Discovery + Authorize + PKCE
 
-Simpan verifier, state, dan nonce di session server:
+Simpan dokumen discovery di cache, lalu pakai endpoint darinya. Simpan verifier, state, dan nonce di session server:
 
 ```php
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+
+function oidcDiscovery(): array
+{
+    $issuer = rtrim(config('services.sso.issuer'), '/');
+
+    return Cache::remember('oidc.discovery', now()->addHour(), fn (): array =>
+        Http::get($issuer.'/.well-known/openid-configuration')->throw()->json()
+    );
+}
 
 public function redirect(): RedirectResponse
 {
@@ -63,21 +77,26 @@ public function redirect(): RedirectResponse
         'client_id' => config('services.sso.client_id'),
         'redirect_uri' => config('services.sso.redirect_uri'),
         'response_type' => 'code',
-        'scope' => 'openid profile email offline_access',
+        'scope' => 'openid profile email offline_access roles',
         'state' => $state,
         'nonce' => $nonce,
         'code_challenge' => $challenge,
         'code_challenge_method' => 'S256',
     ]);
 
-    return redirect(config('services.sso.issuer').'/authorize?'.$query);
+    return redirect(oidcDiscovery()['authorization_endpoint'].'?'.$query);
 }
 ```
 
-## 4. Callback dan Exchange
+`id_token` dipakai untuk login lokal → `aud` harus sama dengan `client_id`. `access_token` dipakai memanggil API resource server → `aud`-nya berbeda; jangan tertukar.
+
+## 4. Callback, Exchange, dan Verifikasi `id_token`
 
 ```php
+use Firebase\JWT\JWK;
+use Firebase\JWT\JWT;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
 public function callback(Request $request): RedirectResponse
@@ -87,25 +106,49 @@ public function callback(Request $request): RedirectResponse
         403,
     );
 
-    $tokens = Http::asForm()->post(config('services.sso.issuer').'/token', [
+    $discovery = oidcDiscovery();
+    $verifier = session()->pull('oidc.verifier');
+    $nonce = session()->pull('oidc.nonce');
+
+    $tokens = Http::asForm()->post($discovery['token_endpoint'], [
         'grant_type' => 'authorization_code',
         'client_id' => config('services.sso.client_id'),
         'client_secret' => config('services.sso.client_secret'),
         'code' => $request->string('code')->toString(),
         'redirect_uri' => config('services.sso.redirect_uri'),
-        'code_verifier' => session()->pull('oidc.verifier'),
+        'code_verifier' => $verifier,
     ])->throw()->json();
 
-    // Validasi signature, iss, aud, exp, dan nonce ID token sebelum membuat session lokal.
+    $jwks = Cache::remember('oidc.jwks', now()->addHour(), fn (): array =>
+        Http::get($discovery['jwks_uri'])->throw()->json()
+    );
+
+    JWT::$leeway = 60;
+    $keys = JWK::parseKeySet($jwks, 'ES256');
+    $claims = (array) JWT::decode((string) $tokens['id_token'], $keys);
+
+    abort_unless(($claims['iss'] ?? null) === rtrim(config('services.sso.issuer'), '/'), 403);
+
+    $aud = $claims['aud'] ?? null;
+    $clientId = config('services.sso.client_id');
+    $audOk = is_array($aud) ? in_array($clientId, $aud, true) : $aud === $clientId;
+    abort_unless($audOk, 403);
+
+    abort_unless(($claims['nonce'] ?? null) === $nonce, 403);
+
+    // Signature + exp/nbf diverifikasi oleh JWT::decode().
+    // `iss`, `aud`, dan `nonce` tetap wajib dicek manual.
     // Simpan refresh token terenkripsi di server; browser hanya menerima cookie session.
     return redirect('/dashboard');
 }
 ```
 
+`JWK::parseKeySet($jwks, 'ES256')` penting: JWK bisa tidak membawa `alg`, jadi algoritma signing harus ditegaskan eksplisit.
+
 ## 5. Refresh
 
 ```php
-$tokens = Http::asForm()->post(config('services.sso.issuer').'/token', [
+$tokens = Http::asForm()->post(oidcDiscovery()['token_endpoint'], [
     'grant_type' => 'refresh_token',
     'client_id' => config('services.sso.client_id'),
     'client_secret' => config('services.sso.client_secret'),
@@ -115,7 +158,30 @@ $tokens = Http::asForm()->post(config('services.sso.issuer').'/token', [
 
 Ganti refresh token lama secara atomik dengan token baru karena rotasi wajib.
 
-## 6. Logout
+## 6. Role & Permission Mapping
+
+Jika app perlu RBAC lokal, minta scope `roles` dan/atau `permissions`, lalu baca claim `roles[]` / `permissions[]` dari `id_token` atau `userinfo`.
+
+```php
+use Spatie\Permission\Models\Role;
+
+$roles = collect($claims['roles'] ?? [])->filter()->values();
+$permissions = collect($claims['permissions'] ?? [])->filter()->values();
+$localRoles = $roles->filter(fn (string $role): bool => Role::where('name', $role)->exists());
+
+if ($localRoles->isNotEmpty()) {
+    $user->syncRoles($localRoles->all());
+}
+```
+
+Jika role SSO belum diprovisikan di tabel `roles`, `syncRoles()` bisa melempar `RoleDoesNotExist`. Filter seperti di atas, atau provisikan role lebih dulu dengan seeder / `Role::findOrCreate()`.
+
+> [!WARNING]
+> Nama claim adalah `roles` (jamak, array) — **bukan** `role`.
+
+Scope opsional seperti `roles`, `permissions`, dan `offline_access` hanya terbit bila masuk allow-list client di admin panel.
+
+## 7. Logout
 
 Cabut refresh token dari server, hapus session lokal, lalu redirect browser ke RP-initiated logout:
 
@@ -127,14 +193,14 @@ Http::asForm()->post(config('services.sso.issuer').'/revocation', [
     'token_type_hint' => 'refresh_token',
 ]);
 
-return redirect(config('services.sso.issuer').'/connect/logout?'.http_build_query([
+return redirect(oidcDiscovery()['end_session_endpoint'].'?'.http_build_query([
     'id_token_hint' => $idToken,
     'post_logout_redirect_uri' => config('services.sso.post_logout_uri'),
     'state' => Str::random(40),
 ]));
 ```
 
-## 7. Troubleshooting
+## 8. Troubleshooting
 
 | Gejala | Periksa |
 |---|---|
