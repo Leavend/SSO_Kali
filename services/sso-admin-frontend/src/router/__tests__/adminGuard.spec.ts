@@ -183,6 +183,17 @@ describe('resolveAdminGuard', () => {
     })
   })
 
+  it('routes admins without MFA assurance to the step-up view', async () => {
+    vi.mocked(authApi.getPrincipal).mockRejectedValue(
+      new ApiError(403, 'Admin MFA assurance is required', 'mfa_required'),
+    )
+
+    await expect(resolveAdminGuard(route())).resolves.toEqual({
+      name: 'admin.step-up-required',
+      query: { return_to: '/' },
+    })
+  })
+
   it('routes stale admin assurance bootstrap failures to the step-up view', async () => {
     vi.mocked(authApi.getPrincipal).mockRejectedValue(
       new ApiError(428, 'Step up required', 'step_up_required'),

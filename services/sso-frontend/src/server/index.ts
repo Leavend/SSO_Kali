@@ -12,6 +12,7 @@ import {
   handleLogout,
   handleRefresh,
 } from './auth-handlers.js'
+import { handleBackChannelLogout } from './backchannel-logout.js'
 import { getConfig, warnIfClientSecretMissing } from './config.js'
 import type { AppResponse } from './response.js'
 import { html, methodNotAllowed, send, text } from './response.js'
@@ -70,6 +71,8 @@ async function route(request: IncomingMessage, requestUrl: URL): Promise<AppResp
     return method === 'GET' ? handleLogout(request) : methodNotAllowed()
   if (pathname === '/auth/refresh')
     return method === 'POST' ? handleRefresh(request) : methodNotAllowed()
+  if (pathname === '/auth/backchannel/logout')
+    return method === 'POST' ? handleBackChannelLogout(request) : methodNotAllowed()
 
   if (pathname === '/api/session')
     return method === 'GET' ? handleSession(request) : methodNotAllowed()

@@ -1,6 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { encryptSession } from '../session-crypto.js'
-import { readSession, sessionCookie, type PortalSession } from '../session.js'
+import {
+  readSession,
+  sessionCookie,
+  type PortalSession,
+} from '../session.js'
 
 function portalSession(): PortalSession {
   const now = Math.floor(Date.now() / 1000)
@@ -70,6 +74,18 @@ describe('opaque portal session store', () => {
     }
 
     expect(await readSession(request as never)).toBeNull()
+  })
+
+  it('indexes sessions by sid and subject for targeted revocation', async () => {
+    const session = { ...portalSession(), sid: 'sid-portal-1' }
+    const cookie = (await sessionCookie(session)).split(';')[0]
+    const sessionId = cookie.split('=')[1] ?? ''
+    const { findSessionRecordIdsBySid, findSessionRecordIdsBySubject } = await import(
+      '../session-store.js'
+    )
+
+    expect(await findSessionRecordIdsBySid('sid-portal-1')).toContain(sessionId)
+    expect(await findSessionRecordIdsBySubject('user-1')).toContain(sessionId)
   })
 
   it('fails closed in production when a shared Redis session store is missing', async () => {

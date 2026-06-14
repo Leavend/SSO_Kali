@@ -21,11 +21,11 @@
     "mfa_required": {
       "enrollment_eyebrow": "MFA admin diperlukan",
       "enrollment_title": "Daftarkan autentikasi multi-faktor sebelum membuka admin.",
-      "enrollment_description": "Akun admin wajib memiliki faktor kedua terverifikasi. Buka portal keamanan, daftarkan MFA, lalu kembali ke admin frontend.",
+      "enrollment_description": "Akses admin terpisah dari sesi portal biasa. Akun admin wajib memiliki faktor kedua terverifikasi. Buka portal keamanan, daftarkan MFA, lalu kembali ke admin frontend.",
       "enrollment_action": "Daftarkan MFA",
       "step_up_eyebrow": "Autentikasi ulang diperlukan",
       "step_up_title": "Sesi admin perlu disegarkan.",
-      "step_up_description": "Session admin masih aktif, tetapi umur autentikasi tidak cukup untuk membuka panel. Login ulang melalui portal SSO.",
+      "step_up_description": "Session admin masih aktif, tetapi akses admin membutuhkan jendela autentikasi yang fresh dan MFA assurance. Login ulang melalui portal SSO.",
       "step_up_action": "Autentikasi ulang",
       "secondary_action": "Kembali ke Portal SSO"
     }

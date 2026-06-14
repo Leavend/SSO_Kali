@@ -9,6 +9,10 @@ describe('portal BFF proxy route inventory', () => {
     expect(shouldProxyPortalPath('/connect/logout/frontchannel')).toBe(true)
   })
 
+  it('keeps portal back-channel logout as a local BFF endpoint', () => {
+    expect(shouldProxyPortalPath('/auth/backchannel/logout')).toBe(false)
+  })
+
   it('proxies SSO completion so logged-in portal users can finish admin authorize requests', () => {
     expect(shouldProxyPortalPath('/connect/sso-complete')).toBe(true)
   })

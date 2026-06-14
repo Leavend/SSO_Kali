@@ -22,6 +22,7 @@ export type PortalSession = PortalSessionView & {
   readonly idToken: string
   readonly refreshToken: string
   readonly sub: string
+  readonly sid?: string
   readonly displayName: string
   readonly issuedAt: number
   readonly absoluteExpiresAt: number
@@ -108,6 +109,7 @@ export function sessionFromBootstrap(
     readonly idToken: string
     readonly refreshToken: string
     readonly expiresAt: number
+    readonly sid?: string
   },
   principal: SsoPrincipal,
 ): PortalSession {
@@ -118,6 +120,7 @@ export function sessionFromBootstrap(
     idToken: tokens.idToken,
     refreshToken: tokens.refreshToken,
     sub: principal.subjectId,
+    sid: tokens.sid,
     subject: principal.subjectId,
     email: principal.email,
     displayName: principal.displayName,

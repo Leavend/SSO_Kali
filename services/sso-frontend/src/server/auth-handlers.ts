@@ -28,6 +28,7 @@ import {
   sessionCookieForId,
   sessionFromBootstrap,
   transactionCookie,
+  unixTime,
 } from './session.js'
 import type { PortalSession } from './session.js'
 import { refreshPortalSession, sessionNeedsRefresh } from './session-refresh.js'
@@ -41,6 +42,7 @@ import {
   generateState,
 } from './pkce.js'
 import { resolveBffRequestId } from './proxy-headers.js'
+import { registerClientSession } from './session-registration.js'
 
 const jwksByUrl = new Map<string, ReturnType<typeof createRemoteJWKSet>>()
 
@@ -164,12 +166,16 @@ export async function handleRefresh(request: IncomingMessage): Promise<AppRespon
   try {
     if (!sessionNeedsRefresh(session)) return refreshResponse(sessionId, session)
 
+    const requestId = resolveBffRequestId(request.headers)
     const refreshedSession = await refreshPortalSession(session, {
-      requestId: resolveBffRequestId(request.headers),
+      requestId,
     })
-    await replaceSession(sessionId, refreshedSession)
+    const registeredSession = (await registerClientSession(refreshedSession.accessToken, requestId))
+      ? { ...refreshedSession, rpSessionRegisteredAt: unixTime() }
+      : refreshedSession
+    await replaceSession(sessionId, registeredSession)
 
-    return refreshResponse(sessionId, refreshedSession)
+    return refreshResponse(sessionId, registeredSession)
   } catch (error) {
     console.error('Token refresh failed:', error instanceof Error ? error.message : error)
     return json(
@@ -294,18 +300,24 @@ async function completeCallbackSession(
       throw new Error('Portal principal subject does not match the verified ID token subject.')
     }
 
+    const baseSession = sessionFromBootstrap(
+      {
+        accessToken: tokens.access_token,
+        idToken: tokens.id_token,
+        refreshToken: tokens.refresh_token,
+        expiresAt: Math.floor(Date.now() / 1000) + tokens.expires_in,
+        sid: claims.sid,
+      },
+      principal,
+    )
+    const session = (await registerClientSession(tokens.access_token, requestId))
+      ? { ...baseSession, rpSessionRegisteredAt: unixTime() }
+      : baseSession
+
     return {
       ok: true,
       returnTo: normalizeReturnTo(tx.returnTo) ?? '/home',
-      session: sessionFromBootstrap(
-        {
-          accessToken: tokens.access_token,
-          idToken: tokens.id_token,
-          refreshToken: tokens.refresh_token,
-          expiresAt: Math.floor(Date.now() / 1000) + tokens.expires_in,
-        },
-        principal,
-      ),
+      session,
     }
   } catch (error) {
     logCallbackFailure(error, verifiedSubjectId)
@@ -375,7 +387,7 @@ async function verifyIdToken(
   token: string,
   expectedNonce: string,
   discovery: DiscoveryMetadata,
-): Promise<{ readonly sub: string; readonly exp: number }> {
+): Promise<{ readonly sub: string; readonly exp: number; readonly sid?: string }> {
   const config = getConfig()
   const jwksUrl = discovery.jwks_uri
   let jwks = jwksByUrl.get(jwksUrl)
@@ -392,13 +404,14 @@ async function verifyIdToken(
   const sub = payload.sub
   const exp = payload.exp
   const nonce = Reflect.get(payload, 'nonce')
+  const sid = typeof Reflect.get(payload, 'sid') === 'string' ? (Reflect.get(payload, 'sid') as string) : undefined
 
   if (typeof sub !== 'string' || sub === '')
     throw new Error("ID token is missing a valid 'sub' claim.")
   if (typeof exp !== 'number') throw new Error("ID token is missing a valid 'exp' claim.")
   if (nonce !== expectedNonce) throw new Error('ID token nonce validation failed.')
 
-  return { sub, exp }
+  return { sub, exp, sid }
 }
 
 async function revokeSession(
