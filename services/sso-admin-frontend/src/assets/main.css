@@ -68,8 +68,8 @@
   --text-3xl--line-height: 2.25rem;
 
   /* Custom Layout Containers */
-  --width-form: 48rem;
-  --width-page: 80rem;
+  --container-form: 48rem;
+  --container-page: 80rem;
 }
 
 :root {
