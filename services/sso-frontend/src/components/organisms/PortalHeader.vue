@@ -59,7 +59,7 @@ function closeMenu(): void {
   >
     <div
       data-testid="portal-header-row"
-      class="mx-auto flex h-14 max-w-6xl min-w-0 items-center gap-2 px-4 sm:gap-3 sm:px-6 lg:gap-4"
+      class="mx-auto flex h-14 max-w-7xl min-w-0 items-center gap-2 px-4 sm:gap-3 sm:px-6 lg:gap-4"
     >
       <RouterLink
         data-testid="portal-header-brand"
