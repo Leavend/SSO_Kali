@@ -20,7 +20,7 @@ it('keeps push-triggered deploy-main resilient to transient ssh keyscan failures
         ->and($content)->toContain('ConnectTimeout=20')
         ->and($content)->toContain('ConnectionAttempts=1')
         // Exponential backoff and per-step retry counts are documented as env defaults.
-        ->and($content)->toContain("VPS_SSH_ATTEMPTS || '8'")
+        ->and($content)->toContain("VPS_SSH_ATTEMPTS || '12'")
         // Port availability probe before SSH attempts. The gate fails fast with
         // operator guidance when the port stays unreachable (firewall/fail2ban),
         // rather than burning the full SSH retry budget on a doomed connection.
