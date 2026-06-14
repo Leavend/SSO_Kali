@@ -4,12 +4,18 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
-use App\Models\Role;
 use App\Models\User;
+use App\Support\Admin\SingleRoleAssignment;
 use Illuminate\Console\Command;
+use RuntimeException;
 
 final class AssignAdminRole extends Command
 {
+    public function __construct(
+        private readonly SingleRoleAssignment $singleRoleAssignment,
+    ) {
+        parent::__construct();
+    }
     protected $signature = 'admin:assign-role {email? : Email to promote} {--list : Show current admins}';
 
     protected $description = 'Assign the admin role to a user by email, or list current admins';
@@ -31,19 +37,17 @@ final class AssignAdminRole extends Command
         $user = User::query()->where('email', $email)->first();
 
         if ($user instanceof User) {
-            $adminRole = Role::query()->where('slug', 'admin')->first();
+            try {
+                $this->singleRoleAssignment->assign($user, 'admin');
+                $this->info("✓ Admin role assigned to {$user->email} (Subject ID: {$user->subject_id})");
+            } catch (RuntimeException $e) {
+                $this->error("Failed to assign admin role: {$e->getMessage()}");
 
-            $user->role = 'admin';
-            $user->save();
-
-            if ($adminRole instanceof Role) {
-                $user->roles()->syncWithoutDetaching([$adminRole->id]);
+                return self::FAILURE;
             }
-
-            $this->info("✓ Admin role assigned to {$user->email} (Subject ID: {$user->subject_id})");
         } else {
             $this->warn("User '{$email}' hasn't logged in yet.");
-            $this->info('The admin role will be auto-assigned on first login via ADMIN_PANEL_ADMIN_EMAIL config.');
+            $this->info('Please ask the user to log in first, then assign the admin role from the admin panel or via this command.');
         }
 
         return self::SUCCESS;

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Actions\Admin;
 
-use App\Models\Role;
 use App\Models\User;
 use App\Notifications\PasswordResetRequestedNotification;
+use App\Support\Admin\SingleRoleAssignment;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -14,6 +14,9 @@ use Illuminate\Support\Str;
 
 final class CreateManagedUserAction
 {
+    public function __construct(
+        private readonly SingleRoleAssignment $singleRoleAssignment,
+    ) {}
     /**
      * @param  array<string, mixed>  $data
      * @return array{user: User, delivery_status: string}
@@ -87,10 +90,6 @@ final class CreateManagedUserAction
 
     private function attachRole(User $user, string $roleSlug): void
     {
-        $role = Role::query()->where('slug', $roleSlug)->first();
-
-        if ($role instanceof Role) {
-            $user->roles()->syncWithoutDetaching([$role->id]);
-        }
+        $this->singleRoleAssignment->assign($user, $roleSlug);
     }
 }

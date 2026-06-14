@@ -426,15 +426,13 @@ describe('useUsersStore', () => {
   })
 
   describe('assignRoles', () => {
-    const roleSlugs = ['admin', 'auditor']
+    const roleSlug = 'admin'
 
     it('posts sync role payload and updates user', async () => {
       const updatedUser: AdminUser = {
         ...user,
-        roles: [
-          { slug: 'admin', name: 'Admin', is_system: true },
-          { slug: 'auditor', name: 'Auditor', is_system: false },
-        ],
+        role: 'admin',
+        roles: [{ slug: 'admin', name: 'Admin', is_system: true }],
       }
       vi.mocked(usersApi.syncUserRoles).mockResolvedValue({
         user: updatedUser,
@@ -444,10 +442,10 @@ describe('useUsersStore', () => {
       store.users = [user]
       store.selectedSubjectId = 'sub_admin'
 
-      await store.assignRoles('sub_admin', roleSlugs)
+      await store.assignRoles('sub_admin', roleSlug)
 
-      expect(usersApi.syncUserRoles).toHaveBeenCalledWith('sub_admin', roleSlugs)
-      expect(store.selectedUser?.roles).toHaveLength(2)
+      expect(usersApi.syncUserRoles).toHaveBeenCalledWith('sub_admin', roleSlug)
+      expect(store.selectedUser?.roles).toHaveLength(1)
       expect(store.auditEventId).toBe('AUD-ROLES-1')
       expect(store.actionStatus).toBe('success')
     })
@@ -458,7 +456,7 @@ describe('useUsersStore', () => {
       )
       const store = useUsersStore()
 
-      await store.assignRoles('sub_admin', roleSlugs)
+      await store.assignRoles('sub_admin', roleSlug)
 
       expect(store.status).toBe('forbidden')
       expect(store.actionStatus).toBe('error')
@@ -470,7 +468,7 @@ describe('useUsersStore', () => {
       )
       const store = useUsersStore()
 
-      await store.assignRoles('sub_admin', roleSlugs)
+      await store.assignRoles('sub_admin', roleSlug)
 
       expect(store.status).toBe('unauthenticated')
       expect(store.actionStatus).toBe('error')

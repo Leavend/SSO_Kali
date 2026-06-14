@@ -47,9 +47,9 @@ export const usersApi = {
       payload,
     )
   },
-  syncUserRoles(subjectId: string, roleSlugs: readonly string[]): Promise<UserMutationResponse> {
+  syncUserRoles(subjectId: string, roleSlug: string): Promise<UserMutationResponse> {
     return apiClient.put<UserMutationResponse>(`/api/admin/users/${subjectId}/roles`, {
-      role_slugs: roleSlugs,
+      role_slugs: [roleSlug],
     })
   },
 }

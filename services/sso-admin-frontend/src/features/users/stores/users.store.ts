@@ -269,14 +269,14 @@ export const useUsersStore = defineStore('admin-users', () => {
     }
   }
 
-  async function assignRoles(subjectId: string, roleSlugs: readonly string[]): Promise<void> {
-    savePendingIntent('assign_roles', subjectId, { roleSlugs })
+  async function assignRoles(subjectId: string, roleSlug: string): Promise<void> {
+    savePendingIntent('assign_roles', subjectId, { roleSlug })
     actionStatus.value = 'loading'
     errorMessage.value = null
     clearPasswordResetToken()
 
     try {
-      const response = await usersApi.syncUserRoles(subjectId, roleSlugs)
+      const response = await usersApi.syncUserRoles(subjectId, roleSlug)
       if (response.user) upsertUser(response.user)
       auditEventId.value = response.audit_event_id ?? null
       requestId.value = getLastRequestId()

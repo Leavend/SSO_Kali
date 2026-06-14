@@ -74,8 +74,16 @@ final class RoleController
         $target = $this->roles->findUser($subjectId);
 
         return $target instanceof User
-            ? $this->mutate($request, 'sync_user_roles', ['target_subject_id' => $subjectId, 'role_slugs' => $request->validated('role_slugs')], fn (): array => ['user' => $this->presenter->userRole($action->execute($target, $request->validated('role_slugs')))])
+            ? $this->mutate($request, 'sync_user_roles', ['target_subject_id' => $subjectId, 'role_slugs' => $request->validated('role_slugs')], fn (): array => ['user' => $this->presenter->userRole($action->execute($this->admin($request), $target, $request->validated('role_slugs')))])
             : AdminApiResponse::error('not_found', 'User not found.', 404);
+    }
+
+    private function admin(Request $request): User
+    {
+        /** @var User $admin */
+        $admin = $request->attributes->get('admin_user');
+
+        return $admin;
     }
 
     /** @param Closure(): array<string, mixed> $callback */

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Admin;
 
+use App\Exceptions\RoleManagementException;
 use App\Models\User;
 use App\Support\Responses\AdminApiResponse;
 use Closure;
@@ -31,7 +32,20 @@ final class AdminMutationResponder
 
         try {
             $result = $callback();
+        } catch (RoleManagementException $exception) {
+            // Surface RoleManagementException with its specific message to the client
+            $this->audit->failed(
+                $action,
+                $request,
+                $admin,
+                $exception,
+                $context,
+                AdminAuditTaxonomy::DESTRUCTIVE_ACTION_WITH_STEP_UP,
+            );
+
+            return AdminApiResponse::error('role_management_failed', $exception->getMessage(), 422);
         } catch (Throwable $exception) {
+            // Generic fallback for other exceptions
             $this->audit->failed(
                 $action,
                 $request,
@@ -70,7 +84,20 @@ final class AdminMutationResponder
 
         try {
             $result = $callback();
+        } catch (RoleManagementException $exception) {
+            // Surface RoleManagementException with its specific message to the client
+            $this->audit->failed(
+                $action,
+                $request,
+                $admin,
+                $exception,
+                [...$context, 'freshness_level' => 'step_up'],
+                AdminAuditTaxonomy::DESTRUCTIVE_ACTION_WITH_STEP_UP,
+            );
+
+            return AdminApiResponse::error('role_management_failed', $exception->getMessage(), 422);
         } catch (Throwable $exception) {
+            // Generic fallback for other exceptions
             $this->audit->failed(
                 $action,
                 $request,

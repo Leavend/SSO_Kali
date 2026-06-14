@@ -20,8 +20,18 @@ final class SyncUserRolesRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'role_slugs' => ['required', 'array', 'min:1'],
+            'role_slugs' => ['required', 'array', 'size:1'],
             'role_slugs.*' => ['string', Rule::exists('roles', 'slug')],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'role_slugs.size' => 'Satu akun hanya boleh memiliki satu peran.',
         ];
     }
 }

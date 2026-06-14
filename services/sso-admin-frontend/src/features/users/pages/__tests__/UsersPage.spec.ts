@@ -498,9 +498,10 @@ describe('UsersPage', () => {
       false,
     )
     expect(wrapper.find('#user-panel-overview').attributes('hidden')).toBeUndefined()
-    expect(wrapper.text()).toContain('Assign Roles')
+    expect(wrapper.text()).toContain('Assign Role')
     expect(wrapper.text()).toContain('Administrator')
     expect(wrapper.text()).toContain('User')
+    expect(wrapper.findAll('input[type="radio"]').length).toBe(2)
     expect(wrapper.find('.save-roles-button').exists()).toBe(true)
   })
 
@@ -589,7 +590,7 @@ describe('UsersPage', () => {
     expect(saveBtn.exists()).toBe(true)
     await saveBtn.trigger('click')
 
-    expect(assignSpy).toHaveBeenCalledWith('admin-1', ['admin'])
+    expect(assignSpy).toHaveBeenCalledWith('admin-1', 'admin')
     expect(selectSpy).toHaveBeenCalledWith('admin-1')
     expect(ensureSpy).toHaveBeenCalledWith(true)
 
@@ -650,7 +651,7 @@ describe('UsersPage', () => {
     const saveBtn = wrapper.find('.save-roles-button')
     await saveBtn.trigger('click')
 
-    expect(assignSpy).toHaveBeenCalledWith('other-user-1', ['user'])
+    expect(assignSpy).toHaveBeenCalledWith('other-user-1', 'user')
     expect(selectSpy).toHaveBeenCalledWith('other-user-1')
     expect(ensureSpy).not.toHaveBeenCalled()
 

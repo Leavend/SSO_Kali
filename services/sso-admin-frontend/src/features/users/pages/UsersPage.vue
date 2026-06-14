@@ -116,7 +116,7 @@ const selectedUserLastLoginAt = computed(
 )
 
 const reason = ref('Admin review')
-const selectedRoles = ref<string[]>([])
+const selectedRole = ref('')
 
 type DetailTab = 'overview' | 'security' | 'sessions' | 'lifecycle'
 const activeDetailTab = ref<DetailTab>('overview')
@@ -179,7 +179,7 @@ watch(
     syncEmail.value = user?.email ?? ''
     syncGivenName.value = user?.given_name ?? ''
     syncFamilyName.value = user?.family_name ?? ''
-    selectedRoles.value = user?.roles ? user.roles.map((r) => r.slug) : []
+    selectedRole.value = user?.roles?.[0]?.slug ?? user?.role ?? ''
     activeDetailTab.value = 'overview'
   },
   { immediate: true },
@@ -285,7 +285,7 @@ async function submitSyncProfile(): Promise<void> {
 async function submitAssignRoles(): Promise<void> {
   if (!store.selectedUser) return
   const subjectId = store.selectedUser.subject_id
-  await store.assignRoles(subjectId, selectedRoles.value)
+  await store.assignRoles(subjectId, selectedRole.value)
   if (store.actionStatus === 'success') {
     await store.selectUser(subjectId)
     if (subjectId === session.user?.subject_id) {
@@ -787,8 +787,8 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
                   <label :for="`role-${role.slug}`" class="role-checkbox-label">
                     <input
                       :id="`role-${role.slug}`"
-                      v-model="selectedRoles"
-                      type="checkbox"
+                      v-model="selectedRole"
+                      type="radio"
                       :value="role.slug"
                       class="role-checkbox-input"
                     />
@@ -801,7 +801,7 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
                 </div>
               </div>
             </div>
-            <p v-if="selectedRoles.length === 0" class="roles-selection-error">
+            <p v-if="selectedRole === ''" class="roles-selection-error">
               {{ t('users.roles_min_required') }}
             </p>
             <div class="user-detail-card__actions">
@@ -810,7 +810,7 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
                 :disabled="
                   store.actionStatus === 'loading' ||
                   rolesStore.status === 'loading' ||
-                  selectedRoles.length === 0
+                  selectedRole === ''
                 "
                 @click="submitAssignRoles"
               >
