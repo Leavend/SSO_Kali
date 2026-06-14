@@ -1,12 +1,14 @@
 import type { ClientCreatePayload } from '../types'
 
+export type ClientType = 'public' | 'confidential'
+
 export type ClientCreateForm = {
   clientId: string
   displayName: string
   ownerEmail: string
   redirectUri: string
   backchannelLogoutUri: string
-  clientType: 'public' | 'confidential'
+  clientType: ClientType | null
   scopes: string
 }
 
@@ -19,7 +21,7 @@ export function initialClientCreateForm(): ClientCreateForm {
     ownerEmail: '',
     redirectUri: '',
     backchannelLogoutUri: '',
-    clientType: 'public',
+    clientType: null,
     scopes: 'openid\nprofile\nemail',
   }
 }
@@ -28,6 +30,9 @@ export function validateClientCreateForm(form: ClientCreateForm): ClientCreateEr
   const errors: ClientCreateErrors = {}
   if (!/^[a-z0-9][a-z0-9-]{2,62}$/u.test(form.clientId.trim())) {
     errors.clientId = 'clients.validation_client_id'
+  }
+  if (form.clientType === null) {
+    errors.clientType = 'clients.validation_client_type'
   }
   if (form.displayName.trim() === '') errors.displayName = 'clients.validation_display_name'
   if (!isEmail(form.ownerEmail)) errors.ownerEmail = 'clients.validation_owner_email'
@@ -43,6 +48,10 @@ export function validateClientCreateForm(form: ClientCreateForm): ClientCreateEr
 }
 
 export function toClientCreatePayload(form: ClientCreateForm): ClientCreatePayload {
+  if (form.clientType === null) {
+    throw new Error('Client type must be selected before submitting.')
+  }
+
   const redirect = new URL(form.redirectUri.trim())
   const logoutPath = form.backchannelLogoutUri.trim()
     ? new URL(form.backchannelLogoutUri.trim()).pathname

@@ -59,6 +59,13 @@ export type ClientCreateResponse = {
   readonly plaintext_secret?: string
 }
 
+export type ClientCreationIntent = {
+  readonly clientId: string
+  readonly type: 'public' | 'confidential'
+  readonly plaintextSecret?: string
+  readonly envSnippet: string
+}
+
 export type ClientScopeSyncPayload = {
   readonly scopes: readonly string[]
 }

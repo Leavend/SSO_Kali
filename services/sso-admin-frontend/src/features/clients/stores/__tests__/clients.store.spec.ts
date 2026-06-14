@@ -178,6 +178,32 @@ describe('useClientsStore', () => {
     expect(result).toEqual({ registration: createdClient })
   })
 
+  it('stores a transient created-client intent after successful creation', () => {
+    const store = useClientsStore()
+
+    store.setCreatedClientIntent({
+      clientId: 'prototype-app-a',
+      type: 'confidential',
+      plaintextSecret: 'secret-once',
+      envSnippet: 'SSO_CLIENT_ID=prototype-app-a',
+    })
+
+    expect(store.createdClientIntent).toEqual({
+      clientId: 'prototype-app-a',
+      type: 'confidential',
+      plaintextSecret: 'secret-once',
+      envSnippet: 'SSO_CLIENT_ID=prototype-app-a',
+    })
+    expect(store.consumeCreatedClientIntent('different-client')).toBeNull()
+    expect(store.consumeCreatedClientIntent('prototype-app-a')).toEqual({
+      clientId: 'prototype-app-a',
+      type: 'confidential',
+      plaintextSecret: 'secret-once',
+      envSnippet: 'SSO_CLIENT_ID=prototype-app-a',
+    })
+    expect(store.createdClientIntent).toBeNull()
+  })
+
   it('returns a confidential create secret without storing it in rotation state', async () => {
     const createdClient: AdminClient = {
       ...client,
@@ -330,6 +356,29 @@ describe('useClientsStore', () => {
 
     expect(store.rotationSecret).toBeNull()
     expect(store.rotationClientId).toBeNull()
+  })
+
+  it('maps step-up create failures to state without redirecting directly', async () => {
+    vi.mocked(clientsApi.create).mockRejectedValue(
+      new ApiError(428, 'Step up required', 'step_up_required', null, 'req-step-up'),
+    )
+    const store = useClientsStore()
+
+    const result = await store.createClient({
+      app_name: 'Conf App',
+      client_id: 'conf-app',
+      environment: 'development',
+      client_type: 'confidential',
+      app_base_url: 'https://conf.example.test',
+      callback_path: '/callback',
+      logout_path: '/logout',
+      owner_email: 'owner@example.test',
+      provisioning: 'jit',
+      allowed_scopes: ['openid', 'profile', 'email'],
+    })
+
+    expect(result).toBeNull()
+    expect(store.actionStatus).toBe('step_up_required')
   })
 
   it('maps backend validation errors to safe copy with request evidence', async () => {

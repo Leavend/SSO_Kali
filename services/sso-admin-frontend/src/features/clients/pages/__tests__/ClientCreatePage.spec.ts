@@ -7,9 +7,9 @@ import FormPageShell from '@/components/form/FormPageShell.vue'
 import { useClientsStore } from '../../stores/clients.store'
 import { useToast } from '@/components/ui/useToast'
 import { useI18n } from '@/composables/useI18n'
-import type { AdminClient } from '../../types'
+import type { AdminClient, ClientCreationIntent } from '../../types'
 
-const pushSpy = vi.fn<(to: any) => any>()
+const pushSpy = vi.fn<(to: { name: string; query?: Record<string, string> }) => void>()
 vi.mock('vue-router', () => ({
   useRouter: () => ({
     push: pushSpy,
@@ -93,6 +93,7 @@ describe('ClientCreatePage', () => {
       client_id: 'prototype-app-b',
       display_name: 'Prototype App B',
       type: 'public',
+      allowed_scopes: ['openid', 'profile', 'email'],
       status: 'active',
     }
     const createSpy = vi
@@ -103,6 +104,13 @@ describe('ClientCreatePage', () => {
     await wrapper.get('input[name="create_display_name"]').setValue('Prototype App B')
     await wrapper.get('input[name="create_owner_email"]').setValue('owner@example.test')
     await wrapper.get('input[name="create_redirect_uri"]').setValue('https://app-b.example.test/callback')
+
+    const buttons = wrapper.findAll('button')
+    const publicButton = buttons.find((button) => button.text().toLowerCase().includes('public'))
+    if (publicButton) {
+      await publicButton.trigger('click')
+    }
+
     await wrapper.findComponent(FormPageShell).vm.$emit('submit')
 
     expect(createSpy).toHaveBeenCalledWith({
@@ -118,6 +126,14 @@ describe('ClientCreatePage', () => {
       allowed_scopes: ['openid', 'profile', 'email'],
     })
 
+    const intent = store.createdClientIntent as unknown as ClientCreationIntent | null
+    expect(intent?.clientId).toBe('prototype-app-b')
+    expect(intent?.type).toBe('public')
+    expect(intent?.envSnippet).toContain('SSO_ISSUER=')
+    expect(pushSpy).toHaveBeenCalledWith({
+      name: 'admin.clients',
+      query: { created: 'prototype-app-b' },
+    })
     expect(toast.toasts.value).toHaveLength(1)
     expect(toast.toasts.value[0]?.title).toBe(useI18n().t('clients.create_public_success'))
   })
@@ -132,11 +148,12 @@ describe('ClientCreatePage', () => {
       client_id: 'prototype-app-c',
       display_name: 'Prototype App C',
       type: 'confidential',
+      allowed_scopes: ['openid', 'profile', 'email', 'roles'],
       status: 'active',
     }
     const createSpy = vi
       .spyOn(store, 'createClient')
-      .mockResolvedValue({ registration: createdClient })
+      .mockResolvedValue({ registration: createdClient, plaintext_secret: 'secret-once' })
 
     const wrapper = mount(ClientCreatePage)
     await wrapper.get('input[name="create_display_name"]').setValue('Prototype App C')
@@ -165,7 +182,21 @@ describe('ClientCreatePage', () => {
       allowed_scopes: ['openid', 'profile', 'email'],
     })
 
+    const intent = store.createdClientIntent as unknown as ClientCreationIntent | null
+    expect(intent?.plaintextSecret).toBe('secret-once')
+    expect(intent?.envSnippet).toContain('SSO_CLIENT_SECRET=secret-once')
     expect(toast.toasts.value).toHaveLength(1)
     expect(toast.toasts.value[0]?.title).toBe(useI18n().t('clients.create_confidential_success'))
+  })
+
+  it('requires explicit client type selection before submit', async () => {
+    const wrapper = mount(ClientCreatePage)
+    await wrapper.get('input[name="create_display_name"]').setValue('Prototype App D')
+    await wrapper.get('input[name="create_owner_email"]').setValue('owner@example.test')
+    await wrapper.get('input[name="create_redirect_uri"]').setValue('https://app-d.example.test/auth/callback')
+
+    expect(wrapper.text()).toContain('Choose a client type before creating the integration.')
+    expect(wrapper.findComponent(FormPageShell).find('button[disabled]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('This redirect URI looks like a server callback.')
   })
 })

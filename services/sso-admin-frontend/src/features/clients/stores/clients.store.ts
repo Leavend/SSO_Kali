@@ -6,12 +6,12 @@ import {
   isAdminProxyTransportFailure,
   formatTransportErrorMessage,
 } from '@/lib/display-identifiers'
-import { triggerStepUpReauth } from '@/lib/stepup/stepup'
 import { clientsApi } from '../services/clients.api'
 import type {
   AdminClient,
   ClientCreatePayload,
   ClientCreateResponse,
+  ClientCreationIntent,
   ClientLifecyclePayload,
   ClientUpdatePayload,
 } from '../types'
@@ -36,6 +36,7 @@ export const useClientsStore = defineStore('admin-clients', () => {
   const requestId = ref<string | null>(null)
   const rotationSecret = ref<string | null>(null)
   const rotationClientId = ref<string | null>(null)
+  const createdClientIntent = ref<ClientCreationIntent | null>(null)
 
   const selectedClient = computed<AdminClient | null>(
     () => clients.value.find((client) => client.client_id === selectedClientId.value) ?? null,
@@ -83,6 +84,7 @@ export const useClientsStore = defineStore('admin-clients', () => {
     actionStatus.value = 'loading'
     errorMessage.value = null
     clearRotationSecret()
+    createdClientIntent.value = null
 
     try {
       const response = await clientsApi.create(payload)
@@ -202,6 +204,18 @@ export const useClientsStore = defineStore('admin-clients', () => {
     rotationClientId.value = null
   }
 
+  function setCreatedClientIntent(intent: ClientCreationIntent): void {
+    createdClientIntent.value = intent
+  }
+
+  function consumeCreatedClientIntent(clientId?: string | null): ClientCreationIntent | null {
+    const intent = createdClientIntent.value
+    if (intent === null) return null
+    if (clientId && intent.clientId !== clientId) return null
+    createdClientIntent.value = null
+    return intent
+  }
+
   function upsertClient(nextClient: AdminClient): void {
     const index = clients.value.findIndex((client) => client.client_id === nextClient.client_id)
     clients.value =
@@ -270,7 +284,6 @@ export const useClientsStore = defineStore('admin-clients', () => {
       actionStatus.value = 'step_up_required'
       errorMessage.value =
         'Aksi OAuth client membutuhkan fresh-auth atau MFA assurance. Ulangi login admin lalu coba lagi.'
-      triggerStepUpReauth()
       return
     }
 
@@ -305,6 +318,7 @@ export const useClientsStore = defineStore('admin-clients', () => {
     requestId,
     rotationSecret,
     rotationClientId,
+    createdClientIntent,
     isLoading,
     load,
     selectClient,
@@ -316,6 +330,8 @@ export const useClientsStore = defineStore('admin-clients', () => {
     deleteSelected,
     rotateSelectedSecret,
     clearRotationSecret,
+    setCreatedClientIntent,
+    consumeCreatedClientIntent,
     scopes,
     loadScopes,
   }

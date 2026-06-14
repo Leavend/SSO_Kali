@@ -1,11 +1,25 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
+import type { LocationQuery, RouteLocationNormalizedLoaded } from 'vue-router'
 import { useSessionStore } from '@/stores/session.store'
 import ClientsPage from '../ClientsPage.vue'
 import { useClientsStore } from '../../stores/clients.store'
 import { useI18n } from '@/composables/useI18n'
 import type { AdminClient } from '../../types'
+
+const routeQuery: LocationQuery = {}
+const replaceSpy = vi.fn()
+
+vi.mock('vue-router', () => ({
+  useRoute: (): Pick<RouteLocationNormalizedLoaded, 'query'> => ({
+    query: routeQuery,
+  }),
+  useRouter: () => ({
+    replace: replaceSpy,
+    push: vi.fn(),
+  }),
+}))
 
 vi.mock('../../services/clients.api', () => ({
   clientsApi: {
@@ -68,6 +82,8 @@ describe('ClientsPage', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     useI18n().setLocale('en')
+    delete routeQuery.created
+    replaceSpy.mockClear()
     seedFullAccessPrincipal()
   })
 
@@ -282,6 +298,32 @@ describe('ClientsPage', () => {
 
     expect(store.rotationSecret).toBeNull()
     expect(wrapper.text()).not.toContain('once-secret')
+  })
+
+  it('reveals created client modal from query intent and clears query on close', async () => {
+    const store = useClientsStore()
+    store.clients = [client]
+    store.selectedClientId = 'prototype-app-a'
+    store.status = 'success'
+    store.detailStatus = 'success'
+    store.setCreatedClientIntent({
+      clientId: 'prototype-app-a',
+      type: 'confidential',
+      plaintextSecret: 'secret-once',
+      envSnippet: 'SSO_CLIENT_ID=prototype-app-a',
+    })
+    routeQuery.created = 'prototype-app-a'
+
+    const wrapper = mount(ClientsPage)
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.text()).toContain('Confidential client created')
+    expect(wrapper.text()).toContain('secret-once')
+    expect(wrapper.text()).toContain('SSO_CLIENT_ID=prototype-app-a')
+
+    await wrapper.get('[data-testid="close-created-client-dialog"]').trigger('click')
+
+    expect(replaceSpy).toHaveBeenCalledWith({ name: 'admin.clients', query: {} })
   })
 
   it('renders empty state when no clients are available', () => {

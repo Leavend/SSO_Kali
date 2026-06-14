@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, reactive, ref, type Component } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, nextTick, onMounted, reactive, ref, watch, type Component } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from '@/composables/useI18n'
 import { useDateFormat } from '@/composables/useDateFormat'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
 import UiButton from '@/components/ui/UiButton.vue'
+import UiDialog from '@/components/ui/UiDialog.vue'
 import { buttonVariants } from '@/components/ui/button'
 import UiEmptyState from '@/components/ui/UiEmptyState.vue'
 import UiFormField from '@/components/ui/UiFormField.vue'
@@ -35,7 +36,9 @@ import {
 
 import { getAdminEnvironment } from '@/config/adminEnvironment'
 import { useToast } from '@/components/ui/useToast'
+import type { ClientCreationIntent } from '../types'
 
+const route = useRoute()
 const router = useRouter()
 const store = useClientsStore()
 const session = useSessionStore()
@@ -109,11 +112,39 @@ const copyFeedback = ref<string | null>(null)
 const showContract = ref(false)
 const contractEnvLines = ref<readonly string[]>([])
 const contractIssuer = ref<string | null>(null)
+const createdClientIntent = ref<ClientCreationIntent | null>(null)
+const highlightedClientId = ref<string | null>(null)
+const showCreatedClientDialog = ref(false)
 
 function openCreateForm(): void {
   successMessage.value = null
   store.errorMessage = null
   router.push({ name: 'admin.clients.create' })
+}
+
+function syncCreatedClientDialog(): void {
+  const created = typeof route.query.created === 'string' ? route.query.created : null
+  highlightedClientId.value = created
+  if (created === null) {
+    createdClientIntent.value = null
+    showCreatedClientDialog.value = false
+    return
+  }
+
+  createdClientIntent.value = store.consumeCreatedClientIntent(created)
+  if (createdClientIntent.value !== null) {
+    store.selectedClientId = created
+    syncFormFromSelected()
+    showCreatedClientDialog.value = true
+  }
+}
+
+function closeCreatedClientDialog(): void {
+  createdClientIntent.value = null
+  showCreatedClientDialog.value = false
+  const nextQuery = { ...route.query }
+  delete nextQuery.created
+  router.replace({ name: 'admin.clients', query: nextQuery })
 }
 
 // Tabs support
@@ -167,12 +198,21 @@ onMounted(() => {
   if (store.status === 'idle') {
     void store.load().then(() => {
       syncFormFromSelected()
+      syncCreatedClientDialog()
     })
     return
   }
 
   syncFormFromSelected()
+  syncCreatedClientDialog()
 })
+
+watch(
+  () => route.query.created,
+  () => {
+    syncCreatedClientDialog()
+  },
+)
 
 const allAvailableScopes = computed(() => {
   const catalogScopes = [...store.scopes]
@@ -641,6 +681,7 @@ async function deleteClient(): Promise<void> {
                 type="button"
                 :class="{
                   'user-card-item--active': client.client_id === store.selectedClientId,
+                  'ring-2 ring-success-700/30': client.client_id === highlightedClientId,
                 }"
                 :aria-current="client.client_id === store.selectedClientId ? 'true' : undefined"
                 @click="selectClient(client.client_id)"
@@ -1224,4 +1265,69 @@ async function deleteClient(): Promise<void> {
       :client-id="store.selectedClient?.client_id ?? store.rotationClientId"
     />
   </section>
+
+  <UiDialog
+    :open="showCreatedClientDialog && createdClientIntent !== null"
+    title-id="created-client-dialog"
+    :title="createdClientIntent?.type === 'confidential' ? t('clients.create_confidential_success') : t('clients.create_public_success')"
+    :description="createdClientIntent?.type === 'confidential' ? t('clients.create_secret_warning') : t('clients.create_public_hint')"
+    :close-label="t('common.btn_close')"
+    wide
+    @close="closeCreatedClientDialog"
+  >
+    <div v-if="createdClientIntent" class="space-y-5 p-6">
+      <div class="space-y-2">
+        <label class="text-xs font-semibold text-muted-foreground">{{ t('clients.label_client_id') }}</label>
+        <div class="flex items-center gap-2 rounded-xl border border-border bg-muted/50 p-3">
+          <code class="flex-1 select-all font-mono text-sm text-foreground">{{ createdClientIntent.clientId }}</code>
+          <UiButton size="sm" variant="secondary" @click="copyToClipboard(createdClientIntent.clientId)">
+            {{ t('common.copy') }}
+          </UiButton>
+        </div>
+      </div>
+
+      <div
+        v-if="createdClientIntent.plaintextSecret"
+        class="space-y-2 rounded-xl border border-destructive/20 bg-destructive/5 p-4"
+        aria-live="polite"
+      >
+        <div class="flex items-center gap-2 text-destructive">
+          <AlertTriangle :size="16" aria-hidden="true" />
+          <span class="text-xs font-bold">{{ t('clients.client_secret_label') }}</span>
+        </div>
+        <p class="text-[11px] text-muted-foreground">{{ t('clients.create_secret_warning') }}</p>
+        <div class="flex items-center gap-2 rounded-lg border border-border bg-card p-3">
+          <code class="flex-1 select-all font-mono text-sm text-foreground">{{ createdClientIntent.plaintextSecret }}</code>
+          <UiButton size="sm" variant="secondary" @click="copyToClipboard(createdClientIntent.plaintextSecret)">
+            {{ t('clients.btn_copy_secret') }}
+          </UiButton>
+        </div>
+      </div>
+
+      <div v-else class="rounded-xl border border-warning-700/20 bg-warning-50 p-4 text-xs text-warning-700 dark:bg-warning-700/10">
+        {{ t('clients.create_public_recreate_hint') }}
+      </div>
+
+      <div class="space-y-2">
+        <h4 class="text-xs font-semibold text-muted-foreground">{{ t('clients.config_block_title') }}</h4>
+        <div class="relative max-h-56 overflow-y-auto rounded-xl border border-border bg-muted/70 p-4 font-mono text-xs text-foreground">
+          <pre><code>{{ createdClientIntent.envSnippet }}</code></pre>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between gap-3 border-t border-border pt-4">
+        <a :href="docsBaseUrl + '/onboarding'" target="_blank" rel="noopener noreferrer" class="text-xs font-medium text-primary hover:underline">
+          {{ t('clients.onboarding_guide') }}
+        </a>
+        <div class="flex items-center gap-3">
+          <UiButton variant="secondary" @click="copyToClipboard(createdClientIntent.envSnippet)">
+            {{ t('clients.btn_copy_all_config') }}
+          </UiButton>
+          <UiButton data-testid="close-created-client-dialog" @click="closeCreatedClientDialog">
+            {{ t('clients.btn_done') }}
+          </UiButton>
+        </div>
+      </div>
+    </div>
+  </UiDialog>
 </template>
