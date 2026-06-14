@@ -36,7 +36,7 @@ env:
   # block GitHub Actions runner IPs for several minutes; exponential backoff
   # in the retry helper (20 → 40 → 80 → 120s capped) means 8 attempts can
   # wait up to ~12 minutes total — well past any standard ban window.
-  VPS_SSH_ATTEMPTS: ${{ vars.VPS_SSH_ATTEMPTS || '8' }}
+  VPS_SSH_ATTEMPTS: ${{ vars.VPS_SSH_ATTEMPTS || '12' }}
   VPS_SSH_COMMAND_TIMEOUT: ${{ vars.VPS_SSH_COMMAND_TIMEOUT || '60' }}
   COMPOSE_PROJECT_NAME: sso-backend-prod
 
@@ -231,38 +231,50 @@ jobs:
           EOF
 
       - name: Wait for VPS SSH port availability
-        # Poll the SSH port and fail with clear operator guidance once the wait
-        # window is exhausted. Default 180s keeps production deploys from being
-        # stuck in progress when a GitHub-hosted runner IP is blocked by VPS
-        # firewall/fail2ban. Increase only temporarily via
-        # VPS_SSH_PORT_WAIT_SECONDS after confirming the VPS will unblock soon.
+        # Probe SSH port by making the first actual SSH connection (which
+        # establishes the ControlMaster multiplexing socket). All subsequent
+        # ssh_with_retry calls reuse this single TCP connection, avoiding
+        # fail2ban rate-limits entirely. Default 300s (5 min) overhead ensures
+        # the probe survives lengthy ban windows.
         shell: bash
         env:
-          VPS_SSH_PORT_WAIT_SECONDS: ${{ vars.VPS_SSH_PORT_WAIT_SECONDS || '180' }}
+          VPS_SSH_PORT_WAIT_SECONDS: ${{ vars.VPS_SSH_PORT_WAIT_SECONDS || '300' }}
         run: |
           set -euo pipefail
           host="${{ secrets.VPS_HOST }}"
           port="${VPS_SSH_PORT}"
           wait_seconds="${VPS_SSH_PORT_WAIT_SECONDS}"
-          interval=10
           runner_ip="$(curl -fsS --max-time 5 https://api.ipify.org 2>/dev/null || echo 'unknown')"
 
-          echo "Runner outgoing IP: ${runner_ip}"
-          echo "Probing VPS port ${port} for SSH availability for up to ${wait_seconds}s..."
+          echo "Runner IP: ${runner_ip}"
+          echo "Establishing SSH ControlMaster connection to [${host}]:${port} (timeout ${wait_seconds}s)..."
 
           deadline=$((SECONDS + wait_seconds))
           attempt=1
           while [ "${SECONDS}" -lt "${deadline}" ]; do
-            if nc -z -w 5 "$host" "$port" 2>/dev/null; then
-              echo "VPS port ${port} is reachable (probe ${attempt})."
+            if ssh -i ~/.ssh/deploy_key \
+              -p "$port" \
+              -o BatchMode=yes \
+              -o ConnectTimeout=15 \
+              -o ConnectionAttempts=1 \
+              -o StrictHostKeyChecking=accept-new \
+              -o ServerAliveInterval=10 \
+              -o ServerAliveCountMax=3 \
+              -o ControlMaster=auto \
+              -o ControlPath=~/.ssh/control-%r@%h:%p \
+              -o ControlPersist=15m \
+              -o RequestTTY=no \
+              "${{ secrets.VPS_USER }}@$host" \
+              "echo 'SSH probe ok (ControlMaster established)'" 2>/dev/null; then
+              echo "ControlMaster socket established (probe ${attempt})."
               exit 0
             fi
-            echo "Port not reachable (probe ${attempt}); retrying in ${interval}s..."
+            echo "SSH not reachable (probe ${attempt}); retrying in 15s..."
             attempt=$((attempt + 1))
-            sleep "${interval}"
+            sleep 15
           done
 
-          echo "::error::VPS SSH port ${port} is unreachable from runner IP ${runner_ip} after ${wait_seconds}s."
+          echo "::error::VPS SSH port ${port} unreachable from runner IP ${runner_ip} after ${wait_seconds}s."
           echo "If blocked by VPS firewall/fail2ban, unban runner IP manually:"
           echo "  sudo fail2ban-client unban ${runner_ip}"
           echo "  sudo ufw delete deny from ${runner_ip}"
