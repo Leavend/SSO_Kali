@@ -9,7 +9,7 @@ import { useI18n } from '@/composables/useI18n'
 import type { AdminClient } from '../../types'
 
 const routeQuery: LocationQuery = {}
-const replaceSpy = vi.fn()
+const replaceSpy = vi.fn<(to: { name: string; query?: Record<string, string> }) => void>()
 
 vi.mock('vue-router', () => ({
   useRoute: (): Pick<RouteLocationNormalizedLoaded, 'query'> => ({
@@ -17,7 +17,7 @@ vi.mock('vue-router', () => ({
   }),
   useRouter: () => ({
     replace: replaceSpy,
-    push: vi.fn(),
+    push: vi.fn<() => void>(),
   }),
 }))
 
