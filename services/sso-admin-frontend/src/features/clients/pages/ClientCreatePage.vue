@@ -321,38 +321,42 @@ function confirmStepUpReauth(): void {
         <div class="grid grid-cols-1 gap-4 mt-2 md:grid-cols-2">
           <button
             type="button"
-            class="flex flex-col rounded-xl border bg-card/50 p-4 text-left transition-all cursor-pointer"
+            class="flex flex-col h-full rounded-xl border bg-card/50 p-4 text-left transition-all cursor-pointer"
             :class="form.clientType === 'public' ? 'border-primary ring-2 ring-primary/20 bg-primary/5' : 'border-border hover:border-muted-foreground/30'"
             @click="selectClientType('public')"
           >
             <span class="flex items-center gap-2 text-sm font-semibold text-foreground">
-              <CheckCircle v-if="form.clientType === 'public'" :size="16" class="text-primary" />
+              <CheckCircle v-if="form.clientType === 'public'" :size="16" class="text-primary shrink-0" />
               {{ t('clients.type_public') }}
             </span>
             <span class="mt-2 text-xs leading-relaxed text-muted-foreground">
               {{ t('clients.type_public_hint') }}
             </span>
-            <span class="mt-3 text-[11px] font-medium text-warning-700">
-              {{ t('clients.type_public_helper') }}
-            </span>
+            <div class="mt-auto pt-3">
+              <span class="text-[11px] font-medium text-warning-700 block">
+                {{ t('clients.type_public_helper') }}
+              </span>
+            </div>
           </button>
 
           <button
             type="button"
-            class="flex flex-col rounded-xl border bg-card/50 p-4 text-left transition-all cursor-pointer"
+            class="flex flex-col h-full rounded-xl border bg-card/50 p-4 text-left transition-all cursor-pointer"
             :class="form.clientType === 'confidential' ? 'border-primary ring-2 ring-primary/20 bg-primary/5' : 'border-border hover:border-muted-foreground/30'"
             @click="selectClientType('confidential')"
           >
             <span class="flex items-center gap-2 text-sm font-semibold text-foreground">
-              <CheckCircle v-if="form.clientType === 'confidential'" :size="16" class="text-primary" />
+              <CheckCircle v-if="form.clientType === 'confidential'" :size="16" class="text-primary shrink-0" />
               {{ t('clients.type_confidential') }}
-              <span class="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
-                {{ t('clients.type_confidential_recommended') }}
-              </span>
             </span>
             <span class="mt-2 text-xs leading-relaxed text-muted-foreground">
               {{ t('clients.type_confidential_hint') }}
             </span>
+            <div class="mt-auto pt-3">
+              <span class="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-primary whitespace-nowrap">
+                {{ t('clients.type_confidential_recommended') }}
+              </span>
+            </div>
           </button>
         </div>
         <p v-if="isBackendCallbackHintVisible" class="mt-2 text-xs text-primary">
