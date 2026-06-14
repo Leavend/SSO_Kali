@@ -231,11 +231,10 @@ jobs:
           EOF
 
       - name: Wait for VPS SSH port availability
-        # Probe SSH port by making the first actual SSH connection (which
-        # establishes the ControlMaster multiplexing socket). All subsequent
-        # ssh_with_retry calls reuse this single TCP connection, avoiding
-        # fail2ban rate-limits entirely. Default 300s (5 min) overhead ensures
-        # the probe survives lengthy ban windows.
+        # Single-shot SSH ControlMaster connection. Only 1 TCP connection and
+        # 1 SSH auth attempt — fail2ban won't trigger. The 300s ConnectTimeout
+        # gives the VPS plenty of time to accept the connection; ControlMaster
+        # multiplex socket persists for all subsequent ssh_with_retry calls.
         shell: bash
         env:
           VPS_SSH_PORT_WAIT_SECONDS: ${{ vars.VPS_SSH_PORT_WAIT_SECONDS || '300' }}
@@ -247,35 +246,28 @@ jobs:
           runner_ip="$(curl -fsS --max-time 5 https://api.ipify.org 2>/dev/null || echo 'unknown')"
 
           echo "Runner IP: ${runner_ip}"
-          echo "Establishing SSH ControlMaster connection to [${host}]:${port} (timeout ${wait_seconds}s)..."
+          echo "Single-shot SSH ControlMaster connect to [${host}]:${port} (timeout ${wait_seconds}s)..."
 
-          deadline=$((SECONDS + wait_seconds))
-          attempt=1
-          while [ "${SECONDS}" -lt "${deadline}" ]; do
-            if ssh -i ~/.ssh/deploy_key \
-              -p "$port" \
-              -o BatchMode=yes \
-              -o ConnectTimeout=15 \
-              -o ConnectionAttempts=1 \
-              -o StrictHostKeyChecking=accept-new \
-              -o ServerAliveInterval=10 \
-              -o ServerAliveCountMax=3 \
-              -o ControlMaster=auto \
-              -o ControlPath=~/.ssh/control-%r@%h:%p \
-              -o ControlPersist=15m \
-              -o RequestTTY=no \
-              "${{ secrets.VPS_USER }}@$host" \
-              "echo 'SSH probe ok (ControlMaster established)'" 2>/dev/null; then
-              echo "ControlMaster socket established (probe ${attempt})."
-              exit 0
-            fi
-            echo "SSH not reachable (probe ${attempt}); retrying in 15s..."
-            attempt=$((attempt + 1))
-            sleep 15
-          done
+          if ssh -i ~/.ssh/deploy_key \
+            -p "$port" \
+            -o BatchMode=yes \
+            -o ConnectTimeout="${wait_seconds}" \
+            -o ConnectionAttempts=1 \
+            -o StrictHostKeyChecking=accept-new \
+            -o ServerAliveInterval=10 \
+            -o ServerAliveCountMax=3 \
+            -o ControlMaster=auto \
+            -o ControlPath=~/.ssh/control-%r@%h:%p \
+            -o ControlPersist=15m \
+            -o RequestTTY=no \
+            "${{ secrets.VPS_USER }}@$host" \
+            "echo 'SSH probe ok (ControlMaster established)'" 2>/dev/null; then
+            echo "ControlMaster socket established."
+            exit 0
+          fi
 
           echo "::error::VPS SSH port ${port} unreachable from runner IP ${runner_ip} after ${wait_seconds}s."
-          echo "If blocked by VPS firewall/fail2ban, unban runner IP manually:"
+          echo "Check VPS is running. If blocked by fail2ban, unban runner IP:"
           echo "  sudo fail2ban-client unban ${runner_ip}"
           echo "  sudo ufw delete deny from ${runner_ip}"
           exit 1
