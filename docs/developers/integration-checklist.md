@@ -7,7 +7,7 @@ Gunakan checklist ini sebelum go-live integrasi client SSO. Halaman ini merangku
 - [ ] Pilih tipe client yang benar: **public** untuk SPA/mobile, **confidential** untuk app dengan backend/BFF.
 - [ ] Daftarkan `redirect_uri` exact match: skema, host, port, path, slash akhir harus identik.
 - [ ] Gunakan client development dan production terpisah.
-- [ ] Simpan `client_secret` hanya untuk confidential client, sekali tampil → vault/env server. Jangan commit. Detail → [Onboarding](../onboarding/client-web-app-onboarding.md).
+- [ ] Simpan `client_secret` hanya untuk confidential client, sekali tampil → vault/env server. Jangan commit. Detail → [Onboarding](/onboarding).
 - [ ] Minta scope minimal yang benar: `openid` wajib; tambah `profile`, `email`, `offline_access`, `roles`, `permissions` hanya bila perlu.
 
 ## 2. Discovery dan Endpoint

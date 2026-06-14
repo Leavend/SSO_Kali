@@ -123,6 +123,7 @@ https://admin-sso.timeh.my.id
 Pilih panduan sesuai arsitektur aplikasi. Halaman ini tidak mengulang glue code
 framework agar kontrak keamanan tetap konsisten:
 
+- [Integration Checklist](/integration-checklist)
 - [Laravel confidential client](/integrations/laravel)
 - [Next.js route-handler BFF](/integrations/nextjs)
 - [Vue.js public SPA](/integrations/vuejs)

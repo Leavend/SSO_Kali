@@ -7,7 +7,7 @@ Use this checklist before taking an SSO client integration live. It consolidates
 - [ ] Choose the correct client type: **public** for SPA/mobile, **confidential** for applications with a backend/BFF.
 - [ ] Register an exact-match `redirect_uri`: scheme, host, port, path, and trailing slash must match exactly.
 - [ ] Use separate development and production clients.
-- [ ] Store `client_secret` only for confidential clients; it is shown once and must go into a vault/server env. Never commit it. Details → [Onboarding](../../onboarding/en/client-web-app-onboarding.md).
+- [ ] Store `client_secret` only for confidential clients; it is shown once and must go into a vault/server env. Never commit it. Details → [Onboarding](/en/onboarding).
 - [ ] Request the minimum scopes you actually need: `openid` is required; add `profile`, `email`, `offline_access`, `roles`, and `permissions` only when needed.
 
 ## 2. Discovery and Endpoints

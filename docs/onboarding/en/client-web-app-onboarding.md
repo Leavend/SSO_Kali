@@ -45,6 +45,7 @@ For confidential clients, the secret is displayed once. Store it in a vault or s
 
 Use the framework guide matching the application architecture:
 
+- [Integration Checklist](/en/integration-checklist)
 - [Laravel confidential client](/en/integrations/laravel)
 - [Next.js confidential BFF](/en/integrations/nextjs)
 - [Vue.js public SPA](/en/integrations/vuejs)
