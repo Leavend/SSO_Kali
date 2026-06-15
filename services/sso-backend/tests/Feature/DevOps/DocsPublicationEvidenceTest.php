@@ -20,6 +20,7 @@ it('defines sso-docs service in docker-compose with correct upstream port', func
         ->toContain('SSO_DOCS_BIND')
         ->toContain('8190')
         ->toContain('sso-main')
+        ->toContain('docs.sso.timeh.my.id')
         ->toContain('wget -qO- http://127.0.0.1/');
 });
 
@@ -190,7 +191,7 @@ it('includes sso-docs in the VPS deploy script', function (): void {
 
     expect($script)
         ->toContain('compose pull sso-backend sso-backend-worker sso-backend-scheduler sso-frontend sso-admin-frontend sso-docs')
-        ->toContain('compose up -d --remove-orphans sso-backend sso-backend-worker sso-backend-scheduler sso-frontend sso-admin-frontend sso-docs')
+        ->toContain('compose up -d --remove-orphans --force-recreate sso-backend sso-backend-worker sso-backend-scheduler sso-frontend sso-admin-frontend sso-docs proxy')
         ->toContain('wait_for_service sso-docs');
 });
 

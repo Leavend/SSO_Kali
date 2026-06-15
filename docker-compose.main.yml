@@ -374,7 +374,7 @@ services:
       - traefik.enable=true
       - traefik.docker.network=sso-main
       - traefik.http.services.sso-docs.loadbalancer.server.port=80
-      - traefik.http.routers.sso-docs.rule=Host(`${SSO_DOCS_DOMAIN:-docs.timeh.my.id}`)
+      - traefik.http.routers.sso-docs.rule=Host(`${SSO_DOCS_DOMAIN:-docs.sso.timeh.my.id}`)
       - traefik.http.routers.sso-docs.entrypoints=web
       - traefik.http.routers.sso-docs.service=sso-docs
       - traefik.http.routers.sso-docs.priority=40

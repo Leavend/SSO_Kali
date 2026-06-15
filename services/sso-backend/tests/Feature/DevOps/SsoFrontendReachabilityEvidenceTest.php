@@ -24,7 +24,9 @@ it('keeps the deploy script on compose-managed networking instead of manual netw
     $script = file_get_contents(frontend_reachability_file('scripts/vps-deploy-main.sh'));
 
     expect($script)->toBeString()
-        ->and($script)->toContain('compose up -d --remove-orphans sso-backend sso-backend-worker sso-backend-scheduler sso-frontend sso-admin-frontend')
+        ->and($script)->toContain('compose up -d --remove-orphans --force-recreate sso-backend sso-backend-worker sso-backend-scheduler sso-frontend sso-admin-frontend sso-docs proxy')
+        ->and($script)->toContain('assert_service_on_network sso-frontend sso-main')
+        ->and($script)->toContain('assert_service_on_network proxy sso-main')
         ->and($script)->not->toContain('reattach_frontend_to_backend_network')
         ->and($script)->not->toContain('docker network connect')
         ->and($script)->not->toContain('_sso-main');

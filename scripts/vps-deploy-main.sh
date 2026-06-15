@@ -10,6 +10,7 @@ IMAGE_PREFIX="${IMAGE_PREFIX:-ghcr.io/leavend/sso-kali}"
 DEPLOY_TAG="${DEPLOY_TAG:-main}"
 COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-sso-backend-prod}"
 HEALTH_TIMEOUT_SECONDS="${HEALTH_TIMEOUT_SECONDS:-180}"
+PROXY_ROUTE_READY_TIMEOUT_SECONDS="${PROXY_ROUTE_READY_TIMEOUT_SECONDS:-30}"
 
 export COMPOSE_PROJECT_NAME
 
@@ -124,6 +125,19 @@ wait_for_service() {
   die "Timed out waiting for $service"
 }
 
+assert_service_on_network() {
+  local service="$1" expected_network="$2" container_id networks_json
+
+  container_id="$(compose ps -q "$service" 2>/dev/null || true)"
+  [[ -n "$container_id" ]] || die "Missing running $service container while checking docker network"
+
+  networks_json="$(docker inspect --format '{{json .NetworkSettings.Networks}}' "$container_id" 2>/dev/null || true)"
+  [[ "$networks_json" == *"\"${expected_network}\":"* ]] || \
+    die "$service is not attached to required docker network '$expected_network'"
+
+  log "$service attached to docker network '$expected_network'"
+}
+
 run_migrations() {
   if compose config --services | grep -qx 'sso-backend'; then
     log 'Running Laravel migrations'
@@ -184,26 +198,38 @@ frontend_asset_path() {
 }
 
 smoke_proxy_route() {
-  local label="$1" host="$2" path="$3" expected="${4:-^(200)$}" require_compression="${5:-true}" headers status proxy_url content_encoding vary
+  local label="$1" host="$2" path="$3" expected="${4:-^(200)$}" require_compression="${5:-true}" headers status proxy_url content_encoding vary elapsed=0
   proxy_url="http://${PROXY_HTTP_BIND_IP:-127.0.0.1}:${PROXY_HTTP_PUBLISHED_PORT:-18080}"
 
-  headers="$(mktemp)"
-  status="$(curl -ksS -o /dev/null -D "$headers" -w '%{http_code}' --max-time 20 \
-    -H "Host: $host" \
-    -H 'Accept-Encoding: br,gzip' \
-    "${proxy_url%/}${path}" || true)"
+  while (( elapsed <= PROXY_ROUTE_READY_TIMEOUT_SECONDS )); do
+    headers="$(mktemp)"
+    status="$(curl -ksS -o /dev/null -D "$headers" -w '%{http_code}' --max-time 20 \
+      -H "Host: $host" \
+      -H 'Accept-Encoding: br,gzip' \
+      "${proxy_url%/}${path}" || true)"
 
-  content_encoding="$(awk 'BEGIN{IGNORECASE=1} /^content-encoding:/ {sub(/^[^:]+:[[:space:]]*/, ""); sub(/\r$/, ""); print; exit}' "$headers")"
-  vary="$(awk 'BEGIN{IGNORECASE=1} /^vary:/ {sub(/^[^:]+:[[:space:]]*/, ""); sub(/\r$/, ""); print; exit}' "$headers")"
-  rm -f "$headers"
+    content_encoding="$(awk 'BEGIN{IGNORECASE=1} /^content-encoding:/ {sub(/^[^:]+:[[:space:]]*/, ""); sub(/\r$/, ""); print; exit}' "$headers")"
+    vary="$(awk 'BEGIN{IGNORECASE=1} /^vary:/ {sub(/^[^:]+:[[:space:]]*/, ""); sub(/\r$/, ""); print; exit}' "$headers")"
+    rm -f "$headers"
 
-  [[ "$status" =~ $expected ]] || die "$label proxy smoke failed: ${proxy_url%/}${path} for host '$host' returned ${status:-000}"
-  if [[ "$require_compression" == "true" ]]; then
-    [[ "$vary" == *Accept-Encoding* ]] || die "$label proxy smoke missing Vary: Accept-Encoding via Traefik"
-    [[ "$content_encoding" =~ ^(br|gzip|zstd)$ ]] || die "$label proxy smoke missing compression via Traefik (got '${content_encoding:-none}')"
-  fi
+    if [[ "$status" =~ $expected ]]; then
+      if [[ "$require_compression" == "true" ]]; then
+        [[ "$vary" == *Accept-Encoding* ]] || die "$label proxy smoke missing Vary: Accept-Encoding via Traefik"
+        [[ "$content_encoding" =~ ^(br|gzip|zstd)$ ]] || die "$label proxy smoke missing compression via Traefik (got '${content_encoding:-none}')"
+      fi
 
-  log "$label proxy smoke OK ($status, encoding=${content_encoding}): ${proxy_url%/}${path} host=$host"
+      log "$label proxy smoke OK ($status, encoding=${content_encoding}): ${proxy_url%/}${path} host=$host"
+      return 0
+    fi
+
+    if (( elapsed == PROXY_ROUTE_READY_TIMEOUT_SECONDS )); then
+      docker logs --tail 80 "${SSO_PROXY_CONTAINER:-sso-traefik-prod}" >&2 || true
+      die "$label proxy smoke failed: ${proxy_url%/}${path} for host '$host' returned ${status:-000}"
+    fi
+
+    sleep 3
+    elapsed=$((elapsed + 3))
+  done
 }
 
 run_smoke_tests() {
@@ -297,12 +323,16 @@ main() {
   run_migrations
 
   adopt_legacy_frontend_container
-  compose up -d --remove-orphans sso-backend sso-backend-worker sso-backend-scheduler sso-frontend sso-admin-frontend sso-docs proxy
+  compose up -d --remove-orphans --force-recreate sso-backend sso-backend-worker sso-backend-scheduler sso-frontend sso-admin-frontend sso-docs proxy
   wait_for_service sso-backend 240
   wait_for_service sso-frontend 180
   wait_for_service sso-admin-frontend 180
   wait_for_service sso-docs 60
   wait_for_service proxy 120
+  assert_service_on_network sso-frontend sso-main
+  assert_service_on_network sso-admin-frontend sso-main
+  assert_service_on_network sso-docs sso-main
+  assert_service_on_network proxy sso-main
   log 'sso-backend-worker and sso-backend-scheduler started; health is supervised by restart policy and logs'
 
   verify_frontend_release

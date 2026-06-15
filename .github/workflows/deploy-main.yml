@@ -196,7 +196,7 @@ jobs:
           # attempts the helper can wait up to ~12 min total, which outlasts
           # typical VPS firewall / fail2ban block windows.
           ssh_with_retry() {
-            local attempt delay=20
+            local attempt delay=20 exit_code
             for attempt in $(seq 1 "${VPS_SSH_ATTEMPTS}"); do
               if timeout "${VPS_SSH_COMMAND_TIMEOUT}s" ssh -i ~/.ssh/deploy_key -p "${VPS_SSH_PORT}" \
                 -o BatchMode=yes \
@@ -208,7 +208,17 @@ jobs:
                 -o ServerAliveCountMax=3 \
                 "$@"; then
                 return 0
+              else
+                exit_code="$?"
               fi
+              case "$exit_code" in
+                124|137|255)
+                  ;;
+                *)
+                  echo "ssh command failed with exit ${exit_code}; not retrying because the remote command ran and returned a deterministic failure." >&2
+                  return "$exit_code"
+                  ;;
+              esac
               echo "ssh attempt ${attempt}/${VPS_SSH_ATTEMPTS} failed; retrying in ${delay}s..." >&2
               sleep "$delay"
               [ "$delay" -lt 120 ] && delay=$(( delay * 2 )) || true

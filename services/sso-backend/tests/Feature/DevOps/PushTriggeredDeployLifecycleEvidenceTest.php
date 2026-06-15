@@ -27,6 +27,10 @@ it('keeps push-triggered deploy-main resilient to transient ssh keyscan failures
         // The wait window is configurable via VPS_SSH_PORT_WAIT_SECONDS.
         ->and($content)->toContain('Wait for VPS SSH port availability')
         ->and($content)->toContain('VPS_SSH_PORT_WAIT_SECONDS')
+        // Remote deploy-script errors (for example deterministic smoke 404s)
+        // must fail fast instead of burning the full SSH retry budget.
+        ->and($content)->toContain('ssh command failed with exit ${exit_code}; not retrying')
+        ->and($content)->toContain('124|137|255')
         // Host-key fetch is a single best-effort ssh-keyscan (no retry loop),
         // so the runner cannot self-trip the VPS SSH connection-rate limit.
         ->and($content)->toContain('ssh-keyscan -T 10')
