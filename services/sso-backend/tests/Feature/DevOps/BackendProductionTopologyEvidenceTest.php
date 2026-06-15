@@ -10,6 +10,7 @@ it('keeps main production compose on dedicated SSO services without legacy apps'
         ->and($compose)->toContain('sso-backend-worker:')
         ->and($compose)->toContain('sso-backend-scheduler:')
         ->and($compose)->toContain('sso-frontend:')
+        ->and($compose)->toContain('traefik.http.routers.sso-frontend.rule=Host(`${SSO_DOMAIN:-sso.timeh.my.id}`)')
         ->and($compose)->toContain('sso-admin-frontend:')
         ->and($compose)->toContain('SSO_ADMIN_FRONTEND_BIND')
         ->and($compose)->toContain('127.0.0.1:3091')

@@ -312,7 +312,7 @@ services:
       - traefik.enable=true
       - traefik.docker.network=sso-main
       - traefik.http.services.sso-frontend.loadbalancer.server.port=3000
-      - traefik.http.routers.sso-frontend.rule=Host(`${SSO_DOMAIN}`)
+      - traefik.http.routers.sso-frontend.rule=Host(`${SSO_DOMAIN:-sso.timeh.my.id}`)
       - traefik.http.routers.sso-frontend.entrypoints=web
       - traefik.http.routers.sso-frontend.service=sso-frontend
       - traefik.http.routers.sso-frontend.priority=50
