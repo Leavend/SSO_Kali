@@ -8,12 +8,11 @@ on:
       - 'packages/dev-sso-parent-ui/**'
       - 'tools/frontend-security/**'
       - '.github/workflows/sso-frontend.yml'
-    # Suppress CI-only runs when push only touches artifacts that never
-    # affect the production build (unit tests, test dirs, docs).
-    paths-ignore:
-      - 'services/sso-frontend/**/*.spec.ts'
-      - 'services/sso-frontend/**/__tests__/**'
-      - 'services/sso-frontend/**/*.md'
+      # Suppress CI-only runs when push only touches artifacts that never
+      # affect the production build (unit tests, test dirs, docs).
+      - '!services/sso-frontend/**/*.spec.ts'
+      - '!services/sso-frontend/**/__tests__/**'
+      - '!services/sso-frontend/**/*.md'
   pull_request:
     branches: [main]
     paths:

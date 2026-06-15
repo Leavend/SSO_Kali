@@ -6,12 +6,12 @@ on:
     paths:
       - 'services/sso-admin-frontend/**'
       - '.github/workflows/sso-admin-frontend.yml'
-    # Suppress CI-only runs when push only touches unit tests, test
-    # dirs, or documentation — none of which affect the production build.
-    paths-ignore:
-      - 'services/sso-admin-frontend/**/*.spec.ts'
-      - 'services/sso-admin-frontend/**/__tests__/**'
-      - 'services/sso-admin-frontend/**/*.md'
+      # Suppress CI-only runs when push only touches unit tests, test
+      # dirs, or documentation; use negated path filters because GitHub
+      # Actions does not allow `paths` and `paths-ignore` together.
+      - '!services/sso-admin-frontend/**/*.spec.ts'
+      - '!services/sso-admin-frontend/**/__tests__/**'
+      - '!services/sso-admin-frontend/**/*.md'
   pull_request:
     branches: [main]
     paths:
