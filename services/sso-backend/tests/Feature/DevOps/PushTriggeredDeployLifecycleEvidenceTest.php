@@ -21,12 +21,12 @@ it('keeps push-triggered deploy-main resilient to transient ssh keyscan failures
         ->and($content)->toContain('ConnectionAttempts=1')
         // Exponential backoff and per-step retry counts are documented as env defaults.
         ->and($content)->toContain("VPS_SSH_ATTEMPTS || '12'")
-        // Port availability probe before SSH attempts. The gate fails fast with
-        // operator guidance when the port stays unreachable (firewall/fail2ban),
-        // rather than burning the full SSH retry budget on a doomed connection.
-        // The wait window is configurable via VPS_SSH_PORT_WAIT_SECONDS.
-        ->and($content)->toContain('Wait for VPS SSH port availability')
+        // Best-effort SSH warm-up stays informative, but no longer aborts the
+        // deploy before ssh_with_retry can apply the bounded backoff budget for
+        // transient firewall/fail2ban blocks.
+        ->and($content)->toContain('Warm SSH control socket')
         ->and($content)->toContain('VPS_SSH_PORT_WAIT_SECONDS')
+        ->and($content)->toContain('SSH warm-up failed from runner IP')
         // Remote deploy-script errors (for example deterministic smoke 404s)
         // must fail fast instead of burning the full SSH retry budget.
         ->and($content)->toContain('ssh command failed with exit ${exit_code}; not retrying')

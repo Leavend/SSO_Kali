@@ -240,14 +240,15 @@ jobs:
           }
           EOF
 
-      - name: Wait for VPS SSH port availability
-        # Single-shot SSH ControlMaster connection. Only 1 TCP connection and
-        # 1 SSH auth attempt — fail2ban won't trigger. The 300s ConnectTimeout
-        # gives the VPS plenty of time to accept the connection; ControlMaster
-        # multiplex socket persists for all subsequent ssh_with_retry calls.
+      - name: Warm SSH control socket
+        # Best-effort warm-up only. A single long probe is brittle when hosted
+        # runners hit transient firewall / fail2ban blocks: it can fail before
+        # the real ssh_with_retry helper gets a chance to back off and recover.
+        # Keep this step informative, but let the retrying deploy steps decide
+        # whether SSH is actually unavailable.
         shell: bash
         env:
-          VPS_SSH_PORT_WAIT_SECONDS: ${{ vars.VPS_SSH_PORT_WAIT_SECONDS || '300' }}
+          VPS_SSH_PORT_WAIT_SECONDS: ${{ vars.VPS_SSH_PORT_WAIT_SECONDS || '30' }}
         run: |
           set -euo pipefail
           host="${{ secrets.VPS_HOST }}"
@@ -256,7 +257,7 @@ jobs:
           runner_ip="$(curl -fsS --max-time 5 https://api.ipify.org 2>/dev/null || echo 'unknown')"
 
           echo "Runner IP: ${runner_ip}"
-          echo "Single-shot SSH ControlMaster connect to [${host}]:${port} (timeout ${wait_seconds}s)..."
+          echo "Single-shot SSH ControlMaster warm-up to [${host}]:${port} (timeout ${wait_seconds}s)..."
 
           if ssh -i ~/.ssh/deploy_key \
             -p "$port" \
@@ -276,11 +277,11 @@ jobs:
             exit 0
           fi
 
-          echo "::error::VPS SSH port ${port} unreachable from runner IP ${runner_ip} after ${wait_seconds}s."
-          echo "Check VPS is running. If blocked by fail2ban, unban runner IP:"
+          echo "::warning::SSH warm-up failed from runner IP ${runner_ip}; continuing so ssh_with_retry can apply bounded retries and backoff."
+          echo "If later SSH steps still fail, check VPS reachability / bans for runner IP:"
           echo "  sudo fail2ban-client unban ${runner_ip}"
           echo "  sudo ufw delete deny from ${runner_ip}"
-          exit 1
+          exit 0
 
       - name: Prepare remote directories
         id: prepare_remote

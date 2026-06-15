@@ -16,13 +16,16 @@ it('deploys the production frontend from the same immutable GHCR release as back
         ->and($compose)->toContain('ghcr.io/leavend/sso-kali}/sso-frontend:${SSO_DEPLOY_TAG:-main}')
         ->and($compose)->toContain('container_name: ${SSO_FRONTEND_CONTAINER:-sso-frontend-prod}')
         ->and($compose)->toContain('SSO_BACKEND_UPSTREAM: sso-backend:8000')
-        ->and($script)->toContain('compose pull sso-backend sso-backend-worker sso-backend-scheduler sso-frontend')
+        ->and($script)->toContain('compose pull sso-backend sso-backend-worker sso-backend-scheduler sso-frontend sso-admin-frontend sso-docs || compose pull')
+        ->and($script)->toContain('compose pull proxy')
         ->and($script)->toContain('adopt_legacy_frontend_container')
         ->and($script)->toContain('docker rm -f "$frontend_container"')
-        ->and($script)->toContain('compose up -d --remove-orphans sso-backend sso-backend-worker sso-backend-scheduler sso-frontend')
+        ->and($script)->toContain('compose up -d --remove-orphans --force-recreate sso-backend sso-backend-worker sso-backend-scheduler sso-frontend sso-admin-frontend sso-docs proxy')
         ->and($script)->toContain('ensure_session_encryption_secret')
         ->and($script)->toContain('SESSION_ENCRYPTION_SECRET')
         ->and($script)->toContain('wait_for_service sso-frontend')
+        ->and($script)->toContain('assert_service_on_network sso-frontend sso-main')
+        ->and($script)->toContain('assert_service_on_network proxy sso-main')
         ->and($script)->toContain('verify_frontend_release');
 });
 
