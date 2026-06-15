@@ -34,7 +34,7 @@ it('deploys dedicated production services and removes legacy admin frontend orph
         ->and($deploy)->toContain('sso-backend-scheduler')
         ->and($deploy)->toContain('sso-frontend')
         ->and($deploy)->toContain('sso-admin-frontend')
-        ->and($deploy)->toContain('compose up -d --remove-orphans sso-backend sso-backend-worker sso-backend-scheduler sso-frontend sso-admin-frontend')
+        ->and($deploy)->toContain('compose up -d --remove-orphans --force-recreate sso-backend sso-backend-worker sso-backend-scheduler sso-frontend sso-admin-frontend sso-docs proxy')
         ->and($deploy)->not->toContain('docker network connect')
         ->and($deploy)->not->toContain('nginx -s reload')
         ->and($deploy)->not->toContain('sso-admin-vue');
