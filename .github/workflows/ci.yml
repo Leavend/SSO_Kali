@@ -62,8 +62,12 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ${{ matrix.component.path }}/vendor
-          key: composer-${{ matrix.component.name }}-${{ hashFiles(format('{0}/composer.lock', matrix.component.path)) }}
-          restore-keys: composer-${{ matrix.component.name }}-
+          # Include pint binary version in key to invalidate stale caches
+          # with outdated code style tooling (CI #862 had 6 phantom style
+          # issues from a cached older pint — keeping the cache tied to
+          # the actual installed pint binary prevents that regression).
+          key: composer-v2-${{ matrix.component.name }}-${{ hashFiles(format('{0}/composer.lock', matrix.component.path), format('{0}/vendor/laravel/pint/builds/pint', matrix.component.path)) }}
+          restore-keys: composer-v2-${{ matrix.component.name }}-
 
       - name: Install dependencies
         run: composer install --no-interaction --no-progress --prefer-dist --optimize-autoloader

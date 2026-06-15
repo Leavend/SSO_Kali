@@ -67,7 +67,7 @@ it('syncs a single normalized role to users by slug and mirrors users.role', fun
 });
 
 it('rejects multi-role payloads in the sync request', function (): void {
-    $request = new SyncUserRolesRequest();
+    $request = new SyncUserRolesRequest;
     $validator = validator(
         ['role_slugs' => ['admin', 'auditor']],
         $request->rules(),

@@ -380,6 +380,27 @@ jobs:
                fi
              done"
 
+      - name: Install protected admin emails on VPS
+        if: ${{ vars.ADMIN_PANEL_PROTECTED_ADMIN_EMAILS != '' }}
+        shell: bash
+        env:
+          PROTECTED_ADMIN_EMAILS: ${{ vars.ADMIN_PANEL_PROTECTED_ADMIN_EMAILS || '' }}
+        run: |
+          if [ -z "${PROTECTED_ADMIN_EMAILS}" ]; then
+            echo "ADMIN_PANEL_PROTECTED_ADMIN_EMAILS is not configured; skipping protected admin emails setup."
+            exit 0
+          fi
+          source /tmp/sso-backend-ssh-helpers.sh
+          env_file="${{ env.VPS_PROJECT_DIR }}/.env.prod"
+          ssh_with_retry "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+            "set -euo pipefail
+             env_file='${env_file}'
+             tmp=\"\$(mktemp)\"
+             grep -v '^ADMIN_PANEL_PROTECTED_ADMIN_EMAILS=' \"\${env_file}\" > \"\${tmp}\" || true
+             printf 'ADMIN_PANEL_PROTECTED_ADMIN_EMAILS=%s\\n' '${PROTECTED_ADMIN_EMAILS}' >> \"\${tmp}\"
+             install -m 0600 \"\${tmp}\" \"\${env_file}\"
+             rm -f \"\${tmp}\""
+
       - name: Login VPS to GHCR
         shell: bash
         env:

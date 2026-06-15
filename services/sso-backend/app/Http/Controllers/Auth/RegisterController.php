@@ -20,6 +20,7 @@ final class RegisterController
     public function __construct(
         private readonly SingleRoleAssignment $singleRoleAssignment,
     ) {}
+
     public function __invoke(Request $request): JsonResponse
     {
         $validator = Validator::make($request->only(['name', 'email', 'password', 'password_confirmation']), [

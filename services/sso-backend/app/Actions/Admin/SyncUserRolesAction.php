@@ -18,6 +18,7 @@ final class SyncUserRolesAction
 
     /**
      * @param  list<string>  $roleSlugs
+     *
      * @throws RoleManagementException User-facing error message
      */
     public function execute(User $actor, User $user, array $roleSlugs): User

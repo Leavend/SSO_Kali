@@ -16,6 +16,7 @@ final class AssignAdminRole extends Command
     ) {
         parent::__construct();
     }
+
     protected $signature = 'admin:assign-role {email? : Email to promote} {--list : Show current admins}';
 
     protected $description = 'Assign the admin role to a user by email, or list current admins';

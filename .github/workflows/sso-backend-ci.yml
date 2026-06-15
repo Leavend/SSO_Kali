@@ -72,8 +72,13 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ env.SERVICE_DIR }}/vendor
-          key: sso-backend-composer-${{ hashFiles('services/sso-backend/composer.lock') }}
-          restore-keys: sso-backend-composer-
+          # Include pint binary version in key to invalidate stale caches
+          # with outdated code style tooling (SSO Backend CI #371 had
+          # 5 phantom style issues from a cached older pint — keeping
+          # the cache tied to the actual installed pint binary prevents
+          # that regression).
+          key: sso-backend-composer-v2-${{ hashFiles('services/sso-backend/composer.lock', 'services/sso-backend/vendor/laravel/pint/builds/pint') }}
+          restore-keys: sso-backend-composer-v2-
 
       - name: Install dependencies
         run: composer install --no-interaction --no-progress --prefer-dist --optimize-autoloader
@@ -128,8 +133,10 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ env.SERVICE_DIR }}/vendor
-          key: sso-backend-composer-${{ hashFiles('services/sso-backend/composer.lock') }}
-          restore-keys: sso-backend-composer-
+          # Tied to pint binary so stale vendor caches (containing an
+          # older pint) get evicted on pint upgrades.
+          key: sso-backend-composer-v2-${{ hashFiles('services/sso-backend/composer.lock', 'services/sso-backend/vendor/laravel/pint/builds/pint') }}
+          restore-keys: sso-backend-composer-v2-
 
       - name: Install dependencies
         run: composer install --no-interaction --no-progress --prefer-dist --optimize-autoloader

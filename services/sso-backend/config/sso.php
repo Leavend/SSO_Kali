@@ -184,7 +184,7 @@ return [
     ],
     'admin_emails' => array_filter(array_map(
         'trim',
-        explode(',', env('ADMIN_PANEL_ADMIN_EMAIL', '')),
+        explode(',', env('ADMIN_PANEL_PROTECTED_ADMIN_EMAILS', '')),
     )),
     'mfa' => [
         'totp' => [

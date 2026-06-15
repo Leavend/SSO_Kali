@@ -17,6 +17,7 @@ final class CreateManagedUserAction
     public function __construct(
         private readonly SingleRoleAssignment $singleRoleAssignment,
     ) {}
+
     /**
      * @param  array<string, mixed>  $data
      * @return array{user: User, delivery_status: string}
