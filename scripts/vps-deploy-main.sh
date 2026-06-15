@@ -164,6 +164,15 @@ smoke_cors_preflight() {
   log "CORS preflight OK (${status}): ${base_url%/}/api/auth/login allows $origin"
 }
 
+host_from_url() {
+  local url="$1"
+  url="${url#http://}"
+  url="${url#https://}"
+  url="${url%%/*}"
+  url="${url%%:*}"
+  printf '%s\n' "$url"
+}
+
 frontend_asset_path() {
   local service="$1" container_id
 
@@ -202,8 +211,11 @@ run_smoke_tests() {
   source "$ENV_FILE" || true
 
   local base_url="${SSO_INTERNAL_BASE_URL:-${SSO_BASE_URL:-${APP_URL:-}}}"
-  local frontend_asset admin_asset
+  local frontend_asset admin_asset frontend_host admin_host docs_host
   base_url="${base_url%/}"
+  frontend_host="${SSO_DOMAIN:-$(host_from_url "${SSO_FRONTEND_URL:-https://sso.timeh.my.id}")}"
+  admin_host="${SSO_ADMIN_DOMAIN:-admin-sso.timeh.my.id}"
+  docs_host="${SSO_DOCS_DOMAIN:-docs.sso.timeh.my.id}"
 
   smoke_url 'SSO /up' "$base_url/up" '^(200)$'
   smoke_url 'SSO /health' "$base_url/health" '^(200)$'
@@ -215,13 +227,13 @@ run_smoke_tests() {
 
   frontend_asset="$(frontend_asset_path sso-frontend)"
   [[ -n "$frontend_asset" ]] || die 'Unable to resolve sso-frontend asset path for proxy smoke'
-  smoke_proxy_route 'Frontend proxy asset' "${SSO_DOMAIN}" "/${frontend_asset}"
+  smoke_proxy_route 'Frontend proxy asset' "$frontend_host" "/${frontend_asset}"
 
   admin_asset="$(frontend_asset_path sso-admin-frontend)"
   [[ -n "$admin_asset" ]] || die 'Unable to resolve sso-admin-frontend asset path for proxy smoke'
-  smoke_proxy_route 'Admin proxy asset' "${SSO_ADMIN_DOMAIN:-admin-sso.timeh.my.id}" "/${admin_asset}"
+  smoke_proxy_route 'Admin proxy asset' "$admin_host" "/${admin_asset}"
 
-  smoke_proxy_route 'Docs proxy root' "${SSO_DOCS_DOMAIN:-docs.timeh.my.id}" '/' '^(200)$' false
+  smoke_proxy_route 'Docs proxy root' "$docs_host" '/' '^(200)$' false
 
   :
 }
@@ -311,7 +323,8 @@ main() {
   export SSO_DEPLOY_TAG="$DEPLOY_TAG"
 
   compose config >/dev/null
-  compose pull proxy sso-backend sso-backend-worker sso-backend-scheduler sso-frontend sso-admin-frontend sso-docs || compose pull
+  compose pull sso-backend sso-backend-worker sso-backend-scheduler sso-frontend sso-admin-frontend sso-docs || compose pull
+  compose pull proxy
 
   compose up -d postgres redis
   wait_for_service postgres 180
