@@ -3,40 +3,41 @@
 declare(strict_types=1);
 
 /**
- * Regression guard for the 2026-05-13 incident where the atomic deploy
- * recreated the backend on network `sso-main` while sso-frontend-prod
- * stayed attached only to the pre-rename `sso-backend` network. nginx
- * in the frontend then returned HTTP 502 for every /api/auth/session
- * and /api/auth/login call.
- *
- * The fix is to make vps-deploy-main.sh reattach the sso-frontend-prod
- * container to the deploy network idempotently on every run, so any
- * compose recreate (which assigns a new IP) never loses reachability.
+ * Regression guard for the 2026-06-15 production incident where Traefik
+ * routed through a configured Docker network name (`sso-main`) that did not
+ * actually exist because Compose prefixed the network with the project name.
+ * The result was a broken proxy path for hashed frontend assets and 404s from
+ * the production smoke checks.
  */
-it('reattaches the sso-frontend container to the backend network on every deploy', function (): void {
+it('pins the production proxy and frontend services to the same stable docker network', function (): void {
+    $compose = file_get_contents(frontend_reachability_file('docker-compose.main.yml'));
+
+    expect($compose)->toBeString()
+        ->and($compose)->toContain('--providers.docker.network=sso-main')
+        ->and($compose)->toContain('name: sso-main')
+        ->and($compose)->toContain('traefik.docker.network=sso-main')
+        ->and($compose)->toContain('sso-frontend:')
+        ->and($compose)->toContain('sso-admin-frontend:');
+});
+
+it('keeps the deploy script on compose-managed networking instead of manual network patching', function (): void {
     $script = file_get_contents(frontend_reachability_file('scripts/vps-deploy-main.sh'));
 
     expect($script)->toBeString()
-        ->and($script)->toContain('reattach_frontend_to_backend_network')
-        ->and($script)->toContain('sso-frontend-prod')
-        ->and($script)->toContain('docker network connect');
+        ->and($script)->toContain('compose up -d --remove-orphans sso-backend sso-backend-worker sso-backend-scheduler sso-frontend sso-admin-frontend')
+        ->and($script)->not->toContain('reattach_frontend_to_backend_network')
+        ->and($script)->not->toContain('docker network connect')
+        ->and($script)->not->toContain('_sso-main');
 });
 
-it('computes the deploy network name from COMPOSE_PROJECT_NAME and compose file', function (): void {
+it('verifies the frontend release through proxied asset smoke on the prod host route', function (): void {
     $script = file_get_contents(frontend_reachability_file('scripts/vps-deploy-main.sh'));
 
-    expect($script)
-        ->toContain('COMPOSE_PROJECT_NAME')
-        ->toContain('_sso-main');
-});
-
-it('keeps the docker-compose.main.yml network name in lockstep with the deploy script', function (): void {
-    $compose = file_get_contents(frontend_reachability_file('docker-compose.main.yml'));
-    $script = file_get_contents(frontend_reachability_file('scripts/vps-deploy-main.sh'));
-
-    expect($compose)->toContain('sso-main:')
-        ->and($compose)->toContain('driver: bridge')
-        ->and($script)->toContain('sso-main');
+    expect($script)->toBeString()
+        ->and($script)->toContain('frontend_asset_path sso-frontend')
+        ->and($script)->toContain("smoke_proxy_route 'Frontend proxy asset'")
+        ->and($script)->toContain('PROXY_HTTP_PUBLISHED_PORT:-18080')
+        ->and($script)->toContain('Host: $host');
 });
 
 function frontend_reachability_file(string $path): string
