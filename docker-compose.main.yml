@@ -121,7 +121,6 @@ services:
       - --providers.docker=true
       - --providers.docker.exposedbydefault=false
       - --providers.docker.network=sso-main
-      - --providers.file.filename=/etc/traefik/dynamic-compress.yml
       - --entrypoints.web.address=:80
       - --entrypoints.web.forwardedheaders.insecure=false
       - --entrypoints.web.forwardedheaders.trustedips=127.0.0.1/32,::1/128,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
@@ -138,7 +137,6 @@ services:
       - ${PROXY_HTTP_BIND_IP:-127.0.0.1}:${PROXY_HTTP_PUBLISHED_PORT:-18080}:80
       - ${PROXY_HTTPS_BIND_IP:-127.0.0.1}:${PROXY_HTTPS_PUBLISHED_PORT:-18443}:443
     volumes:
-      - ./infra/traefik/dynamic-compress.yml:/etc/traefik/dynamic-compress.yml:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
     depends_on:
       sso-frontend:
@@ -306,17 +304,20 @@ services:
     networks:
       - sso-main
     # ISS-PERF1 (P0): route + edge-compress through the prod Traefik proxy.
-    # The `proxy` service above loads infra/traefik/dynamic-compress.yml, which
-    # exposes the `edge-compress@file` middleware for gzip + brotli + zstd.
+    # `edge-compress` is defined here via Docker labels (no file provider /
+    # bind-mount) so it negotiates gzip + brotli + zstd for all routers.
     labels:
       - traefik.enable=true
       - traefik.docker.network=sso-main
+      - traefik.http.middlewares.edge-compress.compress.minresponsebodybytes=1024
+      - traefik.http.middlewares.edge-compress.compress.encodings=gzip,br,zstd
+      - traefik.http.middlewares.edge-compress.compress.defaultencoding=gzip
       - traefik.http.services.sso-frontend.loadbalancer.server.port=3000
       - traefik.http.routers.sso-frontend.rule=Host(`${SSO_DOMAIN:-sso.timeh.my.id}`)
       - traefik.http.routers.sso-frontend.entrypoints=web
       - traefik.http.routers.sso-frontend.service=sso-frontend
       - traefik.http.routers.sso-frontend.priority=50
-      - traefik.http.routers.sso-frontend.middlewares=edge-compress@file
+      - traefik.http.routers.sso-frontend.middlewares=edge-compress@docker
     mem_limit: 256m
     cpus: "0.25"
 
@@ -350,7 +351,7 @@ services:
       - traefik.http.routers.sso-admin-frontend.entrypoints=web
       - traefik.http.routers.sso-admin-frontend.service=sso-admin-frontend
       - traefik.http.routers.sso-admin-frontend.priority=175
-      - traefik.http.routers.sso-admin-frontend.middlewares=edge-compress@file
+      - traefik.http.routers.sso-admin-frontend.middlewares=edge-compress@docker
     mem_limit: 256m
     cpus: "0.20"
 
@@ -378,7 +379,7 @@ services:
       - traefik.http.routers.sso-docs.entrypoints=web
       - traefik.http.routers.sso-docs.service=sso-docs
       - traefik.http.routers.sso-docs.priority=40
-      - traefik.http.routers.sso-docs.middlewares=edge-compress@file
+      - traefik.http.routers.sso-docs.middlewares=edge-compress@docker
     mem_limit: 128m
     cpus: "0.10"
 
