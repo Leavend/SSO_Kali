@@ -177,7 +177,8 @@ it('locks runtime verification and production devops hardening evidence', functi
             '../../.github/workflows/deploy-main.yml' => [
                 'push:',
                 'branches: [main]',
-                'Wait for VPS SSH port availability',
+                'Warm SSH control socket',
+                'SSH warm-up failed from runner IP',
             ],
         ],
         'production_oauth_token_flow_smoke' => [

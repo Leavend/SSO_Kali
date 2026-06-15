@@ -126,7 +126,8 @@ it('locks oidcBackend oidc backend aggregate and logout hardening evidence', fun
             '../../.github/workflows/deploy-main.yml' => [
                 'push:',
                 'branches: [main]',
-                'Wait for VPS SSH port availability',
+                'Warm SSH control socket',
+                'SSH warm-up failed from runner IP',
             ],
         ],
         'production_oauth_token_flow_smoke' => [
