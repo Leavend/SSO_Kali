@@ -16,7 +16,7 @@ it('locks adminBackend user management backend lifecycle into production hardeni
             'issue_managed_user_password_reset',
             'sync_managed_user_profile',
         ],
-        'app/Actions/Admin/CreateManagedUserAction.php' => ['local_account_enabled', 'syncWithoutDetaching'],
+        'app/Actions/Admin/CreateManagedUserAction.php' => ['local_account_enabled', 'SingleRoleAssignment'],
         'app/Actions/Admin/DeactivateManagedUserAction.php' => ['Administrators cannot deactivate their own account'],
         'app/Actions/Admin/IssueManagedUserPasswordResetAction.php' => ['Hash::make($token)', 'reset_token'],
         'app/Actions/Admin/SyncManagedUserProfileAction.php' => ['profile_synced_at', 'array_intersect_key'],

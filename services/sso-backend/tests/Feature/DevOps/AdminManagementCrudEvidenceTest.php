@@ -30,7 +30,7 @@ it('locks issue42 admin management crud contracts into production hardening', fu
         ],
         'tests/Feature/Admin/RolePermissionManagementBackendTest.php' => [
             'protects system roles',
-            'syncs normalized roles to users by slug',
+            'syncs a single normalized role to users by slug',
         ],
         'tests/Feature/Admin/ClientManagementCrudBackendTest.php' => [
             'without exposing or changing secret hashes',

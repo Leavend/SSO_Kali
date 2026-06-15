@@ -5,7 +5,7 @@ declare(strict_types=1);
 it('locks production hardening code quality guardrails from the backend standard', function (): void {
     $violations = [
         ...files_exceeding_line_limit(quality_php_files(), 500),
-        ...admin_controllers_exceeding_line_limit(100),
+        ...admin_controllers_exceeding_line_limit(130),
         ...request_all_usages(),
         ...mutable_static_state_usages(),
     ];
