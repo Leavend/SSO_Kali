@@ -289,7 +289,7 @@ jobs:
         run: |
           source /tmp/sso-backend-ssh-helpers.sh
           ssh_with_retry "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
-            "mkdir -p /tmp/sso-backend-deploy '${{ env.VPS_PROJECT_DIR }}/scripts'"
+            "mkdir -p /tmp/sso-backend-deploy '${{ env.VPS_PROJECT_DIR }}/scripts' '${{ env.VPS_PROJECT_DIR }}/infra/traefik'"
 
       - name: Sync deployment control files
         shell: bash
@@ -301,6 +301,7 @@ jobs:
             scripts/vps-apply-sso-admin-frontend-route.sh \
             scripts/vps-apply-sso-docs-route.sh \
             docker-compose.main.yml \
+            infra/traefik/dynamic-compress.yml \
             "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/tmp/sso-backend-deploy/"
 
       - name: Install control files on VPS
@@ -310,6 +311,8 @@ jobs:
           ssh_with_retry "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
             "set -e
              install -m 0644 /tmp/sso-backend-deploy/docker-compose.main.yml '${{ env.VPS_PROJECT_DIR }}/docker-compose.main.yml'
+             rm -rf '${{ env.VPS_PROJECT_DIR }}/infra/traefik/dynamic-compress.yml'
+             install -D -m 0644 /tmp/sso-backend-deploy/dynamic-compress.yml '${{ env.VPS_PROJECT_DIR }}/infra/traefik/dynamic-compress.yml'
              install -m 0755 /tmp/sso-backend-deploy/vps-deploy-main.sh '${{ env.VPS_PROJECT_DIR }}/scripts/vps-deploy-main.sh'
              install -m 0755 /tmp/sso-backend-deploy/vps-apply-sso-operational-route-optimization.sh '${{ env.VPS_PROJECT_DIR }}/scripts/vps-apply-sso-operational-route-optimization.sh'
              install -m 0755 /tmp/sso-backend-deploy/vps-apply-sso-admin-frontend-route.sh '${{ env.VPS_PROJECT_DIR }}/scripts/vps-apply-sso-admin-frontend-route.sh'
