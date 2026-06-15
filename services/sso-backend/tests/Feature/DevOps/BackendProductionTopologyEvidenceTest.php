@@ -9,7 +9,10 @@ it('keeps main production compose on dedicated SSO services without legacy apps'
         ->and($compose)->toContain('sso-backend:')
         ->and($compose)->toContain('sso-backend-worker:')
         ->and($compose)->toContain('sso-backend-scheduler:')
+        ->and($compose)->toContain('--providers.docker.network=sso-main')
         ->and($compose)->toContain('sso-frontend:')
+        ->and($compose)->toContain('name: sso-main')
+        ->and($compose)->toContain('traefik.docker.network=sso-main')
         ->and($compose)->toContain('traefik.http.routers.sso-frontend.rule=Host(`${SSO_DOMAIN:-sso.timeh.my.id}`)')
         ->and($compose)->toContain('sso-admin-frontend:')
         ->and($compose)->toContain('SSO_ADMIN_FRONTEND_BIND')
@@ -32,6 +35,8 @@ it('deploys dedicated production services and removes legacy admin frontend orph
         ->and($deploy)->toContain('sso-frontend')
         ->and($deploy)->toContain('sso-admin-frontend')
         ->and($deploy)->toContain('compose up -d --remove-orphans sso-backend sso-backend-worker sso-backend-scheduler sso-frontend sso-admin-frontend')
+        ->and($deploy)->not->toContain('docker network connect')
+        ->and($deploy)->not->toContain('nginx -s reload')
         ->and($deploy)->not->toContain('sso-admin-vue');
 });
 

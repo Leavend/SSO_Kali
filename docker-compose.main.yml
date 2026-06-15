@@ -384,6 +384,7 @@ services:
 
 networks:
   sso-main:
+    name: sso-main
     driver: bridge
 
 volumes:
