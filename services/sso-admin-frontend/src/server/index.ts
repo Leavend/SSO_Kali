@@ -1,7 +1,7 @@
 import { createReadStream } from 'node:fs'
 import { access } from 'node:fs/promises'
-import { createServer } from 'node:http'
 import type { IncomingMessage, ServerResponse } from 'node:http'
+import { createServer } from 'node:http'
 import { extname, join, normalize, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { handleAdminApiProxy } from './admin-proxy.js'
@@ -12,12 +12,20 @@ import {
   handleLogout,
   handleRefresh,
 } from './auth-handlers.js'
+import {
+  decideCompression,
+  isCompressibleExtension,
+  loadGzippedAsset,
+} from './compression.js'
 import { getConfig, warnIfClientSecretMissing } from './config.js'
 import type { AppResponse } from './response.js'
 import { html, methodNotAllowed, send, text } from './response.js'
 
 const clientDir = fileURLToPath(new URL('../../client/', import.meta.url))
-const assetCache = new Map<string, { readonly path: string; readonly immutable: boolean } | null>()
+const assetCache = new Map<
+  string,
+  { readonly path: string; readonly immutable: boolean } | null
+>()
 const config = getConfig()
 
 warnIfClientSecretMissing(config)
@@ -32,7 +40,7 @@ const server = createServer(async (request, response) => {
       return
     }
 
-    await serveStatic(requestUrl, response)
+    await serveStatic(request, requestUrl, response)
   } catch (error) {
     console.error(error)
     send(
@@ -50,11 +58,15 @@ server.listen(config.port, '0.0.0.0', () => {
   console.log(`sso-admin-frontend BFF listening on :${config.port}`)
 })
 
-async function route(request: IncomingMessage, requestUrl: URL): Promise<AppResponse | null> {
+async function route(
+  request: IncomingMessage,
+  requestUrl: URL,
+): Promise<AppResponse | null> {
   const method = request.method ?? 'GET'
   const pathname = requestUrl.pathname
 
-  if (pathname === '/healthz') return text(200, 'ok\n', { 'cache-control': 'no-store' })
+  if (pathname === '/healthz')
+    return text(200, 'ok\n', { 'cache-control': 'no-store' })
 
   if (pathname === '/auth/login')
     return method === 'GET' ? handleLogin(requestUrl) : methodNotAllowed()
@@ -68,23 +80,69 @@ async function route(request: IncomingMessage, requestUrl: URL): Promise<AppResp
   if (pathname === '/auth/refresh')
     return method === 'POST' ? handleRefresh(request) : methodNotAllowed()
 
-  if (pathname.startsWith('/api/admin/')) return handleAdminApiProxy({ request, requestUrl })
+  if (pathname.startsWith('/api/admin/'))
+    return handleAdminApiProxy({ request, requestUrl })
 
   return null
 }
 
-async function serveStatic(requestUrl: URL, response: ServerResponse): Promise<void> {
+async function serveStatic(
+  request: IncomingMessage,
+  requestUrl: URL,
+  response: ServerResponse,
+): Promise<void> {
   const asset = await resolveAsset(requestUrl.pathname)
 
   if (!asset) {
     send(
       response,
-      errorPage(404, 'Halaman tidak ditemukan', 'URL ini tidak tersedia di Admin SSO.'),
+      errorPage(
+        404,
+        'Halaman tidak ditemukan',
+        'URL ini tidak tersedia di Admin SSO.',
+      ),
     )
     return
   }
 
-  response.writeHead(200, staticHeaders(asset))
+  const mimeType = contentType(asset.path)
+  const headers = staticHeaders(asset)
+  const compression = await decideCompression(
+    request,
+    response,
+    asset.path,
+    mimeType,
+  )
+
+  // Single-gate: only commit to a gzipped body (and therefore the
+  // Content-Encoding: gzip header) when BOTH `decideCompression` says the
+  // response is compressible AND the asset extension is in the safe set.
+  // Merging the header before this check is the footgun the audit
+  // (ISS-PERF1) flagged: a header/body mismatch would surface as
+  // ERR_CONTENT_DECODING_FAILED in the browser.
+  const doGzip = compression.apply && isCompressibleExtension(asset.path)
+  if (doGzip) {
+    Object.assign(headers, compression.headers)
+  } else if (compression.headers.Vary) {
+    // Vary must always be set so caches stay correct, but Content-Encoding
+    // is intentionally omitted when the body is sent uncompressed.
+    headers.Vary = compression.headers.Vary
+  }
+
+  if (doGzip) {
+    // Reuse the cached gzip buffer for this immutable asset. The mtime
+    // is sourced from the same `stat()` call that `decideCompression`
+    // already made, so we don't pay for it twice and we never race
+    // against a file replacement between the two checks.
+    const mtimeMs = compression.mtimeMs ?? 0
+    const { buffer, size: gzippedSize } = loadGzippedAsset(asset.path, mtimeMs)
+    headers['content-length'] = String(gzippedSize)
+    response.writeHead(200, headers)
+    response.end(buffer)
+    return
+  }
+
+  response.writeHead(200, headers)
   createReadStream(asset.path).pipe(response)
 }
 
@@ -95,7 +153,10 @@ async function resolveAsset(
   if (cached !== undefined) return cached
 
   const requestedPath = pathname === '/' ? '/index.html' : pathname
-  const normalized = normalize(decodeURIComponent(requestedPath)).replace(/^(\.\.[/\\])+/, '')
+  const normalized = normalize(decodeURIComponent(requestedPath)).replace(
+    /^(\.\.[/\\])+/,
+    '',
+  )
   const target = join(clientDir, normalized)
   const asset = await resolveSafeAsset(target, normalized)
 
@@ -111,7 +172,9 @@ async function resolveSafeAsset(
     return { path: target, immutable: normalized.startsWith('/assets/') }
   }
 
-  return extname(normalized) ? null : { path: join(clientDir, 'index.html'), immutable: false }
+  return extname(normalized)
+    ? null
+    : { path: join(clientDir, 'index.html'), immutable: false }
 }
 
 async function exists(path: string): Promise<boolean> {
@@ -138,7 +201,11 @@ function staticHeaders(asset: {
   }
 }
 
-function errorPage(status: number, title: string, message: string): AppResponse {
+function errorPage(
+  status: number,
+  title: string,
+  message: string,
+): AppResponse {
   return html(
     status,
     `<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)} · Admin SSO</title><style>:root{color-scheme:light dark;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f8fafc;color:#0f172a}body{min-height:100vh;margin:0;display:grid;place-items:center;padding:24px;background:#f8fafc}.card{width:min(100%,480px);border:1px solid #dbe3ef;border-radius:18px;padding:32px;text-align:center;background:rgba(255,255,255,.94);box-shadow:0 24px 70px rgba(15,23,42,.14)}.badge{display:inline-flex;margin-bottom:14px;border-radius:999px;padding:6px 12px;background:#dbeafe;color:#1d4ed8;font-weight:800;font-size:12px;letter-spacing:.06em}h1{margin:0;color:#0f172a;font-size:28px;line-height:1.15}p{margin:12px 0 24px;color:#475569;line-height:1.65}a{display:inline-flex;align-items:center;justify-content:center;min-height:44px;border-radius:12px;padding:0 18px;text-decoration:none;font-weight:800;background:#2563eb;color:white}@media (prefers-color-scheme:dark){:root{background:#020617;color:#e2e8f0}body{background:#020617}.card{background:rgba(15,23,42,.9);border-color:#334155;box-shadow:0 24px 70px rgba(0,0,0,.34)}h1{color:#f8fafc}p{color:#94a3b8}}</style></head><body><main class="card"><span class="badge">${status}</span><h1>${escapeHtml(title)}</h1><p>${escapeHtml(message)}</p><a href="/dashboard">Buka Dashboard</a></main></body></html>`,

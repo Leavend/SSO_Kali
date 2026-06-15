@@ -6,6 +6,12 @@ on:
     paths:
       - 'services/sso-admin-frontend/**'
       - '.github/workflows/sso-admin-frontend.yml'
+    # Suppress CI-only runs when push only touches unit tests, test
+    # dirs, or documentation — none of which affect the production build.
+    paths-ignore:
+      - 'services/sso-admin-frontend/**/*.spec.ts'
+      - 'services/sso-admin-frontend/**/__tests__/**'
+      - 'services/sso-admin-frontend/**/*.md'
   pull_request:
     branches: [main]
     paths:
@@ -79,48 +85,6 @@ jobs:
           path: services/sso-admin-frontend/dist
           retention-days: 7
 
-  # ─── Docker: Build & Push Image ──────────────────────────────────
-  docker:
-    name: Docker Build & Push
-    runs-on: ubuntu-latest
-    needs: build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/checkout@v5
-
-      - name: Log in to Container Registry
-        uses: docker/login-action@v4
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v6
-        with:
-          images: ${{ env.IMAGE_NAME }}
-          tags: |
-            type=sha,prefix=sha-,format=short
-            type=raw,value=latest
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v7
-        with:
-          context: services/sso-admin-frontend
-          file: services/sso-admin-frontend/Dockerfile
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            VITE_ADMIN_BASE_URL=https://admin-sso.timeh.my.id
-            VITE_PUBLIC_BASE_PATH=/
-            VITE_SSO_BASE_URL=https://sso.timeh.my.id
-            VITE_ZITADEL_ISSUER_URL=https://id.dev-sso.timeh.my.id
-
-  # Production deploy is intentionally centralized in deploy-main.yml.
-  # This workflow remains a component quality/build signal only; the live VPS
-  # container is recreated by Deploy Main to VPS using the immutable sha-* tag.
+  # Production Docker build and deploy are centralized in deploy-main.yml.
+  # This workflow is a component quality/build signal only; the canonical
+  # image is built with the immutable sha-<commit> tag by deploy-main.yml.

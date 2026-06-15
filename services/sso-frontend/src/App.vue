@@ -12,7 +12,7 @@ import { updateDocumentTitle } from '@/router'
 const route = useRoute()
 const theme = useThemeStore()
 const { isOnline, cleanup } = useNetworkStatus()
-const { locale, t } = useI18n()
+const { locale, t, loadLocale } = useI18n()
 
 watch(locale, () => {
   updateDocumentTitle(route.meta.titleKey)
@@ -22,6 +22,12 @@ const Layout = computed(() => (route.meta.layout === 'portal' ? PortalLayout : A
 
 onMounted((): void => {
   theme.initialize()
+  // ISS-PERF2: kick off the full locale load in the background. The shell
+  // translations (brand, nav, splash, login submit) are already inlined in
+  // index.html, so the first paint is unblocked. Non-shell t() lookups
+  // trigger this same promise via ensureMessagesLoaded — both paths share
+  // the module-scope cache, so the chunk is fetched at most once.
+  void loadLocale(locale.value)
   // Session hydration is handled by router.beforeEach for auth-gated routes.
   // Calling ensureSession here would duplicate the request and block main thread
   // during LCP measurement window on hard refresh (affects render delay).

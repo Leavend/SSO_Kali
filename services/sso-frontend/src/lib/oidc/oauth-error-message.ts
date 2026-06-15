@@ -23,7 +23,7 @@
  *     `oauth.support_ref` template with the chosen reference.
  */
 
-import idLocale from '@/locales/id.json'
+import idLocale from '@/locales/id/messages.json'
 import { formatSupportReference as formatDisplaySupportReference } from '@/lib/display-identifiers'
 
 export type OAuthErrorInput =

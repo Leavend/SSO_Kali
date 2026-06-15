@@ -59,6 +59,15 @@ describe('router guest session restore', () => {
 
   it('routes /login to the login page while preserving query parameters', async () => {
     setActivePinia(createPinia())
+    // Install a stub (not a once-mock) so subsequent `.not.toHaveBeenCalled()`
+    // assertions can see the spy. The previous test in this file cleared all
+    // mocks; without this stub the global `vi.restoreAllMocks()` in afterEach
+    // would have removed the spy entirely and `.not.toHaveBeenCalled()` would
+    // throw "is not a spy or a call to a spy!".
+    vi.spyOn(authApi, 'getSession').mockResolvedValue({
+      authenticated: false,
+      user: null,
+    })
     vi.clearAllMocks()
 
     await router.push('/login?auth_request_id=test123&client=sso-admin-panel')

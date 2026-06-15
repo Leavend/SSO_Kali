@@ -15,10 +15,10 @@ vi.mock('@/services/profile.api', () => ({
 }))
 
 describe('HomePage', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks()
     setActivePinia(createPinia())
-    useI18n().setLocale('id')
+    await useI18n().setLocale('id')
   })
 
   it('renders English copy reactively without Indonesian dashboard text', async () => {
@@ -29,7 +29,10 @@ describe('HomePage', () => {
       display_name: 'Ayu',
       roles: ['member'],
     }
-    useI18n().setLocale('en')
+    // setLocale is now async (it triggers the lazy load of the en bundle);
+    // we must wait for the en messages to apply before mounting so the
+    // page renders in English from the first render.
+    await useI18n().setLocale('en')
 
     const wrapper = mount(HomePage, {
       global: {

@@ -164,11 +164,45 @@ smoke_cors_preflight() {
   log "CORS preflight OK (${status}): ${base_url%/}/api/auth/login allows $origin"
 }
 
+frontend_asset_path() {
+  local service="$1" container_id
+
+  container_id="$(compose ps -q "$service" 2>/dev/null || true)"
+  [[ -n "$container_id" ]] || die "Missing running $service container while resolving release asset"
+
+  docker exec "$container_id" sh -lc \
+    "grep -Eo 'assets/index-[^\" ]+\\.(js|css)' /app/dist/client/index.html | sort -u | head -n 1" 2>/dev/null || true
+}
+
+smoke_proxy_route() {
+  local label="$1" host="$2" path="$3" expected="${4:-^(200)$}" require_compression="${5:-true}" headers status proxy_url content_encoding vary
+  proxy_url="http://${PROXY_HTTP_BIND_IP:-127.0.0.1}:${PROXY_HTTP_PUBLISHED_PORT:-18080}"
+
+  headers="$(mktemp)"
+  status="$(curl -ksS -o /dev/null -D "$headers" -w '%{http_code}' --max-time 20 \
+    -H "Host: $host" \
+    -H 'Accept-Encoding: br,gzip' \
+    "${proxy_url%/}${path}" || true)"
+
+  content_encoding="$(awk 'BEGIN{IGNORECASE=1} /^content-encoding:/ {sub(/^[^:]+:[[:space:]]*/, ""); sub(/\r$/, ""); print; exit}' "$headers")"
+  vary="$(awk 'BEGIN{IGNORECASE=1} /^vary:/ {sub(/^[^:]+:[[:space:]]*/, ""); sub(/\r$/, ""); print; exit}' "$headers")"
+  rm -f "$headers"
+
+  [[ "$status" =~ $expected ]] || die "$label proxy smoke failed: ${proxy_url%/}${path} for host '$host' returned ${status:-000}"
+  if [[ "$require_compression" == "true" ]]; then
+    [[ "$vary" == *Accept-Encoding* ]] || die "$label proxy smoke missing Vary: Accept-Encoding via Traefik"
+    [[ "$content_encoding" =~ ^(br|gzip|zstd)$ ]] || die "$label proxy smoke missing compression via Traefik (got '${content_encoding:-none}')"
+  fi
+
+  log "$label proxy smoke OK ($status, encoding=${content_encoding}): ${proxy_url%/}${path} host=$host"
+}
+
 run_smoke_tests() {
   # shellcheck disable=SC1090
   source "$ENV_FILE" || true
 
   local base_url="${SSO_INTERNAL_BASE_URL:-${SSO_BASE_URL:-${APP_URL:-}}}"
+  local frontend_asset admin_asset
   base_url="${base_url%/}"
 
   smoke_url 'SSO /up' "$base_url/up" '^(200)$'
@@ -178,6 +212,16 @@ run_smoke_tests() {
   smoke_cors_preflight "$base_url" "${SSO_FRONTEND_URL:-https://sso.timeh.my.id}"
   smoke_url 'Admin frontend internal health' "${SSO_ADMIN_FRONTEND_INTERNAL_URL:-http://127.0.0.1:3091}/healthz" '^(200)$'
   smoke_url 'Docs site internal health' "${SSO_DOCS_UPSTREAM:-http://127.0.0.1:8190}/" '^(200)$'
+
+  frontend_asset="$(frontend_asset_path sso-frontend)"
+  [[ -n "$frontend_asset" ]] || die 'Unable to resolve sso-frontend asset path for proxy smoke'
+  smoke_proxy_route 'Frontend proxy asset' "${SSO_DOMAIN}" "/${frontend_asset}"
+
+  admin_asset="$(frontend_asset_path sso-admin-frontend)"
+  [[ -n "$admin_asset" ]] || die 'Unable to resolve sso-admin-frontend asset path for proxy smoke'
+  smoke_proxy_route 'Admin proxy asset' "${SSO_ADMIN_DOMAIN:-admin-sso.timeh.my.id}" "/${admin_asset}"
+
+  smoke_proxy_route 'Docs proxy root' "${SSO_DOCS_DOMAIN:-docs.timeh.my.id}" '/' '^(200)$' false
 
   :
 }
@@ -267,7 +311,7 @@ main() {
   export SSO_DEPLOY_TAG="$DEPLOY_TAG"
 
   compose config >/dev/null
-  compose pull sso-backend sso-backend-worker sso-backend-scheduler sso-frontend sso-admin-frontend sso-docs || compose pull
+  compose pull proxy sso-backend sso-backend-worker sso-backend-scheduler sso-frontend sso-admin-frontend sso-docs || compose pull
 
   compose up -d postgres redis
   wait_for_service postgres 180
@@ -276,11 +320,12 @@ main() {
   run_migrations
 
   adopt_legacy_frontend_container
-  compose up -d --remove-orphans sso-backend sso-backend-worker sso-backend-scheduler sso-frontend sso-admin-frontend sso-docs
+  compose up -d --remove-orphans sso-backend sso-backend-worker sso-backend-scheduler sso-frontend sso-admin-frontend sso-docs proxy
   wait_for_service sso-backend 240
   wait_for_service sso-frontend 180
   wait_for_service sso-admin-frontend 180
   wait_for_service sso-docs 60
+  wait_for_service proxy 120
   log 'sso-backend-worker and sso-backend-scheduler started; health is supervised by restart policy and logs'
 
   reattach_frontend_to_backend_network

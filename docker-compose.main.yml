@@ -112,6 +112,56 @@ x-sso-admin-frontend-env: &sso-admin-frontend-env
   SESSION_ENCRYPTION_SECRET: ${SESSION_ENCRYPTION_SECRET:?SESSION_ENCRYPTION_SECRET is required}
 
 services:
+  proxy:
+    image: ${TRAEFIK_IMAGE:-traefik:v3.6.8}
+    container_name: ${SSO_PROXY_CONTAINER:-sso-traefik-prod}
+    restart: unless-stopped
+    init: true
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=sso-main
+      - --providers.file.filename=/etc/traefik/dynamic-compress.yml
+      - --entrypoints.web.address=:80
+      - --entrypoints.web.forwardedheaders.insecure=false
+      - --entrypoints.web.forwardedheaders.trustedips=127.0.0.1/32,::1/128,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
+      - --entrypoints.websecure.address=:443
+      - --entrypoints.websecure.forwardedheaders.insecure=false
+      - --entrypoints.websecure.forwardedheaders.trustedips=127.0.0.1/32,::1/128,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
+      - --api.dashboard=${TRAEFIK_DASHBOARD_ENABLED:-false}
+      - --api.insecure=false
+      - --ping=true
+      - --ping.entrypoint=web
+      - --log.level=${TRAEFIK_LOG_LEVEL:-INFO}
+      - --accesslog=${TRAEFIK_ACCESSLOG_ENABLED:-true}
+    ports:
+      - ${PROXY_HTTP_BIND_IP:-127.0.0.1}:${PROXY_HTTP_PUBLISHED_PORT:-18080}:80
+      - ${PROXY_HTTPS_BIND_IP:-127.0.0.1}:${PROXY_HTTPS_PUBLISHED_PORT:-18443}:443
+    volumes:
+      - ./infra/traefik/dynamic-compress.yml:/etc/traefik/dynamic-compress.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      sso-frontend:
+        condition: service_healthy
+      sso-admin-frontend:
+        condition: service_healthy
+      sso-docs:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -q -O - http://127.0.0.1/ping >/dev/null
+      interval: 45s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - sso-main
+    mem_limit: 128m
+    cpus: "0.15"
+
   postgres:
     image: ${POSTGRES_IMAGE:-postgres:17-alpine}
     restart: unless-stopped
@@ -255,6 +305,18 @@ services:
       - ${SSO_FRONTEND_BIND:-127.0.0.1:3080}:3000
     networks:
       - sso-main
+    # ISS-PERF1 (P0): route + edge-compress through the prod Traefik proxy.
+    # The `proxy` service above loads infra/traefik/dynamic-compress.yml, which
+    # exposes the `edge-compress@file` middleware for gzip + brotli + zstd.
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=sso-main
+      - traefik.http.services.sso-frontend.loadbalancer.server.port=3000
+      - traefik.http.routers.sso-frontend.rule=Host(`${SSO_DOMAIN}`)
+      - traefik.http.routers.sso-frontend.entrypoints=web
+      - traefik.http.routers.sso-frontend.service=sso-frontend
+      - traefik.http.routers.sso-frontend.priority=50
+      - traefik.http.routers.sso-frontend.middlewares=edge-compress@file
     mem_limit: 256m
     cpus: "0.25"
 
@@ -279,6 +341,16 @@ services:
       - ${SSO_ADMIN_FRONTEND_BIND:-127.0.0.1:3091}:8080
     networks:
       - sso-main
+    # ISS-PERF1 (P0): edge-compress for admin assets as well.
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=sso-main
+      - traefik.http.services.sso-admin-frontend.loadbalancer.server.port=8080
+      - traefik.http.routers.sso-admin-frontend.rule=Host(`${SSO_ADMIN_DOMAIN:-admin-sso.timeh.my.id}`)
+      - traefik.http.routers.sso-admin-frontend.entrypoints=web
+      - traefik.http.routers.sso-admin-frontend.service=sso-admin-frontend
+      - traefik.http.routers.sso-admin-frontend.priority=175
+      - traefik.http.routers.sso-admin-frontend.middlewares=edge-compress@file
     mem_limit: 256m
     cpus: "0.20"
 
@@ -297,6 +369,16 @@ services:
       - ${SSO_DOCS_BIND:-127.0.0.1:8190}:80
     networks:
       - sso-main
+    # ISS-PERF1 (P0): docs site is mostly static HTML/CSS — apply edge-compress.
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=sso-main
+      - traefik.http.services.sso-docs.loadbalancer.server.port=80
+      - traefik.http.routers.sso-docs.rule=Host(`${SSO_DOCS_DOMAIN:-docs.timeh.my.id}`)
+      - traefik.http.routers.sso-docs.entrypoints=web
+      - traefik.http.routers.sso-docs.service=sso-docs
+      - traefik.http.routers.sso-docs.priority=40
+      - traefik.http.routers.sso-docs.middlewares=edge-compress@file
     mem_limit: 128m
     cpus: "0.10"
 

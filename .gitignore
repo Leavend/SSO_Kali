@@ -65,4 +65,6 @@ docs/*
 !docs/onboarding/**/*.md
 !docs/developers/
 !docs/developers/**/*.md
+!docs/design/
+!docs/design/**/*.md
 node_modules

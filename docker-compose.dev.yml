@@ -644,6 +644,8 @@ services:
       - traefik.http.routers.sso-frontend.entrypoints=web
       - traefik.http.routers.sso-frontend.service=sso-frontend
       - traefik.http.routers.sso-frontend.priority=50
+      # ISS-PERF1: apply edge-compress middleware to negotiate gzip/brotli/zstd.
+      - traefik.http.routers.sso-frontend.middlewares=edge-compress@file
     <<: *small-web-limits
 
   sso-admin-frontend:
@@ -679,6 +681,8 @@ services:
       - traefik.http.routers.sso-admin-frontend.entrypoints=web
       - traefik.http.routers.sso-admin-frontend.service=sso-admin-frontend
       - traefik.http.routers.sso-admin-frontend.priority=175
+      # ISS-PERF1: apply edge-compress middleware to negotiate gzip/brotli/zstd.
+      - traefik.http.routers.sso-admin-frontend.middlewares=edge-compress@file
     <<: *small-web-limits
 
   app-a-next:

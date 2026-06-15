@@ -8,12 +8,19 @@ on:
       - 'packages/dev-sso-parent-ui/**'
       - 'tools/frontend-security/**'
       - '.github/workflows/sso-frontend.yml'
+    # Suppress CI-only runs when push only touches artifacts that never
+    # affect the production build (unit tests, test dirs, docs).
+    paths-ignore:
+      - 'services/sso-frontend/**/*.spec.ts'
+      - 'services/sso-frontend/**/__tests__/**'
+      - 'services/sso-frontend/**/*.md'
   pull_request:
     branches: [main]
     paths:
       - 'services/sso-frontend/**'
       - 'packages/dev-sso-parent-ui/**'
       - 'tools/frontend-security/**'
+      - '.github/workflows/sso-frontend.yml'
 
 env:
   REGISTRY: ghcr.io
@@ -30,9 +37,9 @@ jobs:
     name: Quality Gate
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -63,9 +70,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: quality-gate
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -90,49 +97,7 @@ jobs:
           path: services/sso-frontend/dist
           retention-days: 7
 
-  # ─── Docker: Build & Push Image ──────────────────────────────────
-  docker:
-    name: Docker Build & Push
-    runs-on: ubuntu-latest
-    needs: build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Log in to Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=sha,prefix=
-            type=raw,value=latest
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: services/sso-frontend/Dockerfile
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            VITE_SSO_API_URL=
-            VITE_APP_NAME=Dev-SSO Portal
-            VITE_SSO_FRONTEND_BASE_URL=https://sso.timeh.my.id
-            VITE_OIDC_ISSUER=
-            VITE_OIDC_CLIENT_ID=sso-frontend-portal
-
-  # Production deploy is intentionally centralized in deploy-main.yml.
-  # This workflow remains a component quality/build signal only; the live VPS
-  # container is recreated by Deploy Main to VPS using the immutable sha-* tag.
+  # Production Docker build and deploy are centralized in deploy-main.yml.
+  # This workflow is a component quality/build signal only; the canonical
+  # image is built from root context (to include packages/dev-sso-parent-ui)
+  # and pushed with the immutable sha-<commit> tag by deploy-main.yml.

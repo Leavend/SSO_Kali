@@ -1,0 +1,38 @@
+{
+  "app": {
+    "name": "Dev-SSO"
+  },
+  "common": {
+    "loading": "Memuat..."
+  },
+  "auth": {
+    "login": {
+      "title": "Masuk ke akunmu",
+      "submit": "Masuk"
+    }
+  },
+  "portal": {
+    "brand": "Portal Pengguna",
+    "nav": {
+      "home": "Beranda",
+      "profile": "Profil",
+      "apps": "Aplikasi",
+      "sessions": "Sesi Aktif",
+      "security": "Keamanan",
+      "privacy": "Privasi"
+    }
+  },
+  "language": {
+    "label": "Bahasa",
+    "id": "ID",
+    "en": "EN"
+  },
+  "routes": {
+    "home": "Beranda",
+    "profile": "Profil",
+    "apps": "Aplikasi Terhubung",
+    "sessions": "Sesi Aktif",
+    "security": "Keamanan",
+    "privacy": "Privasi & Data"
+  }
+}

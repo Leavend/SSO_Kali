@@ -5,12 +5,41 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Dev-SSO Portal — Single Sign-On Platform" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!--
+      ISS-PERF5: preconnect to the SSO API origin so the first auth/session
+      request starts its TCP+TLS handshake before Vue finishes mounting.
+    -->
+    <link rel="preconnect" href="https://api-sso.timeh.my.id" crossorigin />
+    <link rel="dns-prefetch" href="https://api-sso.timeh.my.id" />
+
+    <!--
+      ISS-PERF3 (P1): self-hosted Instrument Serif woff2.
+      - Removed the render-blocking Google Fonts <link> stylesheet.
+      - Inlined preload tells the browser to fetch the woff2 with high
+        priority so the LCP element is painted with the correct face
+        on the first frame, not after a 300-800 ms third-party handshake.
+      - `font-display: swap` in main.css guarantees the text remains
+        visible during the font swap.
+    -->
     <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap"
+      rel="preload"
+      href="/fonts/instrument-serif-regular.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
     />
+
+    <!--
+      ISS-PERF2 (P1): i18n shell. The Vite plugin `injectI18nShell` reads
+      `src/locales/{id,en}/shell.json` and replaces this marker with a
+      <script type="application/json" id="__sso_i18n_shell__">{…}</script>
+      tag containing the per-locale shell translations. This lets the SPA
+      render brand/nav/splash/login labels **synchronously** with no JS
+      download and no FOUC.
+    -->
+    <!-- sso:i18n:shell -->
+
     <title>Dev-SSO Portal</title>
     <style>
       /* Inline critical loading screen — visible before Vue mounts */
@@ -43,9 +72,11 @@
         pointer-events: none;
       }
       #app-loader .loader-brand {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-family:
+          'Instrument Serif', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+          Roboto, sans-serif;
         font-size: 1.125rem;
-        font-weight: 600;
+        font-weight: 400;
         color: #f4f4f5;
         letter-spacing: -0.01em;
       }
@@ -58,7 +89,8 @@
         animation: spin 0.8s linear infinite;
       }
       #app-loader .loader-hint {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         font-size: 0.8125rem;
         color: var(--splash-text);
       }

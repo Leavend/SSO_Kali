@@ -18,7 +18,7 @@
  * dan meminimalkan bocor data sensitif ke log.
  */
 
-import idLocale from '@/locales/id.json'
+import idLocale from '@/locales/id/messages.json'
 import type { ApiValidationPayload, ApiViolation } from '@/types/api.types'
 
 export type ApiErrorKind =

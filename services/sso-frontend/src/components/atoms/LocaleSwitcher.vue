@@ -8,9 +8,14 @@ const ariaLabel = computed<string>(() =>
   locale.value === 'id' ? t('language.switch_to_en') : t('language.switch_to_id'),
 )
 
-function toggleLocale(): void {
+async function toggleLocale(): Promise<void> {
   const nextLocale = locale.value === 'id' ? 'en' : 'id'
-  setLocale(nextLocale)
+  // setLocale is async (ISS-PERF2) because it lazy-loads the non-default
+  // locale chunk on first switch. Awaiting here guarantees the button's
+  // aria-label (which depends on the new locale) updates atomically with
+  // the click — no intermediate state where locale has flipped but
+  // messages haven't.
+  await setLocale(nextLocale)
 }
 </script>
 

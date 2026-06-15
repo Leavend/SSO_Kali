@@ -1,0 +1,25 @@
+# Traefik dynamic config — frontend edge compression (ISS-PERF1, P0).
+#
+# Hot-reloaded by the Traefik proxy container whenever this file changes.
+# Mounted into the proxy at /etc/traefik/dynamic-compress.yml (read-only).
+#
+# The compress middleware transparently negotiates gzip, brotli, and zstd
+# based on the client's Accept-Encoding header. We skip the response body
+# for assets smaller than 1024 bytes (the typical HTML shell) to avoid the
+# CPU overhead of compressing trivial payloads.
+#
+# Per request: Vary: Accept-Encoding is added automatically by Traefik.
+http:
+  middlewares:
+    edge-compress:
+      compress:
+        minResponseBodyBytes: 1024
+        # Default encodings = gzip, br, zstd (Traefik picks the best match).
+        encodings:
+          - gzip
+          - br
+          - zstd
+        # Prefer brotli for text assets when the client supports it.
+        # `defaultEncoding: gzip` ensures correctness for clients that send
+        # an Accept-Encoding header that doesn't match any advertised encoding.
+        defaultEncoding: gzip

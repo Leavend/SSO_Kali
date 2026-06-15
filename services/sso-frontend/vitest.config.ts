@@ -29,5 +29,6 @@ export default defineConfig({
       'e2e/**',
     ],
     globals: true,
+    setupFiles: ['./vitest.setup.ts'],
   },
 })

@@ -11,6 +11,7 @@
     "src/**/*.ts",
     "src/**/*.vue",
     "src/shared/**/*.ts",
-    "src/server/**/*.ts"
+    "src/server/**/*.ts",
+    "vitest.setup.ts"
   ]
 }

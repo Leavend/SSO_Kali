@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import enLocale from '@/locales/en.json'
-import idLocale from '@/locales/id.json'
+import enLocale from '@/locales/en/messages.json'
+import idLocale from '@/locales/id/messages.json'
 import { useI18n } from '../useI18n'
 
 function flattenKeys(value: unknown, prefix = ''): string[] {
@@ -19,43 +19,59 @@ function leafValues(value: unknown): unknown[] {
 describe('useI18n', () => {
   afterEach(() => {
     window.localStorage.removeItem('dev-sso-locale')
-    useI18n().setLocale('id')
+    void useI18n().setLocale('id')
     vi.unstubAllGlobals()
   })
 
-  it('defaults to Indonesian even when browser locale is English', async () => {
+  it('falls back to browser navigator language when no storage or document locale', async () => {
+    // After the ISS-PERF2 refactor, detectInitialLocale now chains
+    //   storage → document → navigator → DEFAULT_LOCALE.
+    // jsdom defaults <html lang> to '' and localStorage to empty, so the
+    // navigator stub is the only signal the resolver can use here.
     vi.resetModules()
     vi.stubGlobal('navigator', { language: 'en-US' })
     window.localStorage.removeItem('dev-sso-locale')
+    document.documentElement.setAttribute('lang', '')
 
     const { useI18n: useFreshI18n } = await import('../useI18n')
-    const { locale, t } = useFreshI18n()
+    const { locale } = useFreshI18n()
 
-    expect(locale.value).toBe('id')
-    expect(t('auth.login.title')).toBe('Masuk ke akunmu')
+    expect(locale.value).toBe('en')
   })
 
-  it('resolves simple dot-notation key', () => {
+  it('falls back to default id when navigator is unsupported and storage is empty', async () => {
+    vi.resetModules()
+    vi.stubGlobal('navigator', { language: 'fr-FR' })
+    window.localStorage.removeItem('dev-sso-locale')
+    document.documentElement.setAttribute('lang', '')
+
+    const { useI18n: useFreshI18n } = await import('../useI18n')
+    const { locale } = useFreshI18n()
+
+    expect(locale.value).toBe('id')
+  })
+
+  it('resolves simple dot-notation key', async () => {
     const { setLocale, t } = useI18n()
-    setLocale('id')
+    await setLocale('id')
     expect(t('app.name')).toBe('Dev-SSO')
   })
 
-  it('resolves nested key', () => {
+  it('resolves nested key', async () => {
     const { setLocale, t } = useI18n()
-    setLocale('id')
+    await setLocale('id')
     expect(t('auth.login.title')).toBe('Masuk ke akunmu')
   })
 
-  it('resolves English messages without falling back to Indonesian', () => {
+  it('resolves English messages without falling back to Indonesian', async () => {
     const { setLocale, t } = useI18n()
-    setLocale('en')
+    await setLocale('en')
     expect(t('auth.login.title')).toBe('Sign in to your account')
   })
 
-  it('interpolates {placeholder} params', () => {
+  it('interpolates {placeholder} params', async () => {
     const { setLocale, t } = useI18n()
-    setLocale('id')
+    await setLocale('id')
     expect(t('portal.footer', { year: 2026 })).toBe('© 2026 Dev-SSO Platform')
   })
 
@@ -64,15 +80,15 @@ describe('useI18n', () => {
     expect(t('nonexistent.key')).toBe('nonexistent.key')
   })
 
-  it('handles missing params gracefully (keeps placeholder)', () => {
+  it('handles missing params gracefully (keeps placeholder)', async () => {
     const { setLocale, t } = useI18n()
-    setLocale('id')
+    await setLocale('id')
     expect(t('portal.footer')).toBe('© {year} Dev-SSO Platform')
   })
 
-  it('updates document lang when locale changes', () => {
+  it('updates document lang when locale changes', async () => {
     const { locale, setLocale } = useI18n()
-    setLocale('en')
+    await setLocale('en')
     expect(locale.value).toBe('en')
     expect(document.documentElement.getAttribute('lang')).toBe('en')
   })

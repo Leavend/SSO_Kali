@@ -13,6 +13,11 @@ import {
   handleRefresh,
 } from './auth-handlers.js'
 import { handleBackChannelLogout } from './backchannel-logout.js'
+import {
+  decideCompression,
+  isCompressibleExtension,
+  loadGzippedAsset,
+} from './compression.js'
 import { getConfig, warnIfClientSecretMissing } from './config.js'
 import type { AppResponse } from './response.js'
 import { html, methodNotAllowed, send, text } from './response.js'
@@ -36,7 +41,7 @@ const server = createServer(async (request, response) => {
       return
     }
 
-    await serveStatic(requestUrl, response)
+    await serveStatic(request, requestUrl, response)
   } catch (error) {
     console.error(error)
     send(
@@ -83,7 +88,11 @@ async function route(request: IncomingMessage, requestUrl: URL): Promise<AppResp
   return await redirectForLegacyError(requestUrl)
 }
 
-async function serveStatic(requestUrl: URL, response: ServerResponse): Promise<void> {
+async function serveStatic(
+  request: IncomingMessage,
+  requestUrl: URL,
+  response: ServerResponse,
+): Promise<void> {
   const asset = await resolveAsset(requestUrl.pathname)
 
   if (!asset) {
@@ -94,7 +103,34 @@ async function serveStatic(requestUrl: URL, response: ServerResponse): Promise<v
     return
   }
 
-  response.writeHead(200, staticHeaders(asset))
+  const mimeType = contentType(asset.path)
+  const headers = staticHeaders(asset)
+  const compression = await decideCompression(
+    request,
+    response,
+    asset.path,
+    mimeType,
+  )
+
+  // Keep the gzip header and body branch behind one shared boolean so we
+  // never advertise Content-Encoding for a raw asset body.
+  const doGzip = compression.apply && isCompressibleExtension(asset.path)
+  if (doGzip) {
+    Object.assign(headers, compression.headers)
+  } else if (compression.headers.Vary) {
+    headers.Vary = compression.headers.Vary
+  }
+
+  if (doGzip) {
+    const mtimeMs = compression.mtimeMs ?? 0
+    const { buffer, size: gzippedSize } = loadGzippedAsset(asset.path, mtimeMs)
+    headers['content-length'] = String(gzippedSize)
+    response.writeHead(200, headers)
+    response.end(buffer)
+    return
+  }
+
+  response.writeHead(200, headers)
   createReadStream(asset.path).pipe(response)
 }
 

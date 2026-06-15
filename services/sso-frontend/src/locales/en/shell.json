@@ -1,0 +1,38 @@
+{
+  "app": {
+    "name": "Dev-SSO"
+  },
+  "common": {
+    "loading": "Loading…"
+  },
+  "auth": {
+    "login": {
+      "title": "Sign in to your account",
+      "submit": "Sign in"
+    }
+  },
+  "portal": {
+    "brand": "User Portal",
+    "nav": {
+      "home": "Home",
+      "profile": "Profile",
+      "apps": "Apps",
+      "sessions": "Sessions",
+      "security": "Security",
+      "privacy": "Privacy"
+    }
+  },
+  "language": {
+    "label": "Language",
+    "id": "ID",
+    "en": "EN"
+  },
+  "routes": {
+    "home": "Home",
+    "profile": "Profile",
+    "apps": "Connected Apps",
+    "sessions": "Active Sessions",
+    "security": "Security",
+    "privacy": "Privacy & Data"
+  }
+}
