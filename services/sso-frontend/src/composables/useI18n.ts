@@ -36,6 +36,7 @@ export type SupportedLocale = 'id' | 'en'
 
 const STORAGE_KEY = 'dev-sso-locale' as const
 const DEFAULT_LOCALE: SupportedLocale = 'id'
+type NonDefaultLocale = Exclude<SupportedLocale, typeof DEFAULT_LOCALE>
 
 /**
  * Static import of the default locale. This is the only locale that ships
@@ -45,7 +46,13 @@ const DEFAULT_LOCALE: SupportedLocale = 'id'
  */
 const defaultLocaleBundle: LocaleMessages = idLocale as LocaleMessages
 const defaultShellBundle: LocaleMessages = readInjectedShell(DEFAULT_LOCALE)
-const defaultMergedBundle: LocaleMessages = { ...defaultLocaleBundle, ...defaultShellBundle }
+const defaultMergedBundle: LocaleMessages = mergeLocaleMessages(
+  defaultLocaleBundle,
+  defaultShellBundle,
+)
+const localeLoaders: Record<NonDefaultLocale, LocaleLoader> = {
+  en: () => import('@/locales/en/messages.json'),
+}
 
 /**
  * Active-locale messages wrapped in a `shallowRef` so Vue's reactivity
@@ -56,9 +63,13 @@ const defaultMergedBundle: LocaleMessages = { ...defaultLocaleBundle, ...default
  * `activeMessages` therefore re-evaluate exactly once per locale switch
  * — no extra invalidation churn.
  */
-const activeMessages: ShallowRef<LocaleMessages> = shallowRef({ ...defaultMergedBundle })
+const activeMessages: ShallowRef<LocaleMessages> = shallowRef(
+  cloneLocaleMessages(defaultMergedBundle),
+)
 /** Fallback messages (always the default locale). Reactive for the same reason. */
-const fallbackMessages: ShallowRef<LocaleMessages> = shallowRef({ ...defaultMergedBundle })
+const fallbackMessages: ShallowRef<LocaleMessages> = shallowRef(
+  cloneLocaleMessages(defaultMergedBundle),
+)
 /** In-flight promises for lazy non-default locale loads. */
 const localeLoadPromises = new Map<SupportedLocale, Promise<LocaleMessages>>()
 
@@ -118,13 +129,13 @@ export function useI18n(): UseI18nReturn {
       // No-op switch (same locale). Still re-apply the messages so test
       // resets (e.g. `useI18n().setLocale('id')` in `afterEach`) restore
       // a known state regardless of what was last loaded.
-      activeMessages.value = { ...defaultMergedBundle }
+      activeMessages.value = cloneLocaleMessages(defaultMergedBundle)
     } else {
       activeLocale.value = locale
       // Reset to the default bundle first so any non-shell `t()` lookup
       // made *before* the new chunk loads falls back to the default
       // language rather than showing a stale previous-locale translation.
-      activeMessages.value = { ...defaultMergedBundle }
+      activeMessages.value = cloneLocaleMessages(defaultMergedBundle)
     }
     syncDocumentLocale(locale)
     persistLocale(locale)
@@ -149,10 +160,10 @@ function applyLoadedBundle(locale: SupportedLocale, loaded: LocaleMessages): voi
     // Reassign the WHOLE shallowRef so any computed that called `t()`
     // (and therefore read `activeMessages.value`) re-evaluates once. The
     // new value also overlays the shell so shell keys remain stable.
-    activeMessages.value = { ...defaultMergedBundle, ...loaded }
+    activeMessages.value = mergeLocaleMessages(defaultMergedBundle, loaded)
   }
   if (locale === DEFAULT_LOCALE) {
-    fallbackMessages.value = { ...defaultMergedBundle, ...loaded }
+    fallbackMessages.value = mergeLocaleMessages(defaultMergedBundle, loaded)
   }
 }
 
@@ -168,14 +179,15 @@ async function ensureMessagesLoaded(locale: SupportedLocale): Promise<LocaleMess
     applyLoadedBundle(locale, loaded)
     return loaded
   }
-  return triggerLocaleLoad(locale)
+  return triggerLocaleLoad(locale as NonDefaultLocale)
 }
 
-function triggerLocaleLoad(locale: SupportedLocale): Promise<LocaleMessages> {
-  // Vite/Rollup turns this into a separate per-locale dynamic chunk.
-  const promise = import(
-    /* @vite-ignore */ `@/locales/${locale}/messages.json` as string
-  ) as Promise<{ default: LocaleMessages } | LocaleMessages>
+function triggerLocaleLoad(locale: NonDefaultLocale): Promise<LocaleMessages> {
+  const loader = localeLoaders[locale]
+  if (!loader) return Promise.resolve(defaultMergedBundle)
+
+  // Literal imports keep Vite/Rollup able to emit a separate per-locale chunk.
+  const promise = loader()
   const normalized = promise.then((mod) => {
     const messages = (mod as { default?: LocaleMessages }).default ?? (mod as LocaleMessages)
     const result = messages as LocaleMessages
@@ -187,15 +199,36 @@ function triggerLocaleLoad(locale: SupportedLocale): Promise<LocaleMessages> {
   return normalized
 }
 
+type LocaleLoader = () => Promise<{ default: LocaleMessages } | LocaleMessages>
+
+function mergeLocaleMessages(base: LocaleMessages, overlay: LocaleMessages): LocaleMessages {
+  const merged: LocaleMessages = { ...base }
+
+  for (const [key, overlayValue] of Object.entries(overlay)) {
+    const baseValue = merged[key]
+    merged[key] =
+      isPlainObject(baseValue) && isPlainObject(overlayValue)
+        ? mergeLocaleMessages(baseValue, overlayValue)
+        : overlayValue
+  }
+
+  return merged
+}
+
+function cloneLocaleMessages(messages: LocaleMessages): LocaleMessages {
+  return mergeLocaleMessages(messages, {})
+}
+
+function isPlainObject(value: unknown): value is LocaleMessages {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
 function readInjectedShell(locale: SupportedLocale): LocaleMessages {
   if (typeof document === 'undefined') return {}
   const script = document.getElementById('__sso_i18n_shell__')
   if (!script?.textContent) return {}
   try {
-    const parsed = JSON.parse(script.textContent) as Record<
-      SupportedLocale,
-      LocaleMessages
-    >
+    const parsed = JSON.parse(script.textContent) as Record<SupportedLocale, LocaleMessages>
     return (parsed[locale] ?? {}) as LocaleMessages
   } catch {
     return {}

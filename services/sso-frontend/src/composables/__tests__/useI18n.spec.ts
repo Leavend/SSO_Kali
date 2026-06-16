@@ -63,10 +63,50 @@ describe('useI18n', () => {
     expect(t('auth.login.title')).toBe('Masuk ke akunmu')
   })
 
+  it('keeps full portal messages when shell namespace overlaps', async () => {
+    vi.resetModules()
+    const script = document.createElement('script')
+    script.id = '__sso_i18n_shell__'
+    script.type = 'application/json'
+    script.textContent = JSON.stringify({
+      id: {
+        portal: {
+          brand: 'Portal Pengguna',
+          nav: { home: 'Beranda' },
+        },
+      },
+    })
+    document.head.appendChild(script)
+
+    try {
+      const { useI18n: useFreshI18n } = await import('../useI18n')
+      const { setLocale, t } = useFreshI18n()
+      await setLocale('id')
+
+      expect(t('portal.nav.home')).toBe('Beranda')
+      expect(t('portal.home.title', { name: 'Ayu' })).toBe('Halo, Ayu 👋')
+      expect(t('portal.profile.title')).not.toBe('portal.profile.title')
+      expect(t('portal.apps.title')).not.toBe('portal.apps.title')
+      expect(t('portal.sessions.title')).not.toBe('portal.sessions.title')
+      expect(t('portal.security.title')).not.toBe('portal.security.title')
+      expect(t('portal.privacy.title')).not.toBe('portal.privacy.title')
+    } finally {
+      document.head.removeChild(script)
+    }
+  })
+
   it('resolves English messages without falling back to Indonesian', async () => {
     const { setLocale, t } = useI18n()
     await setLocale('en')
     expect(t('auth.login.title')).toBe('Sign in to your account')
+  })
+
+  it('loads English portal messages through the lazy bundle', async () => {
+    const { setLocale, t } = useI18n()
+    await setLocale('en')
+
+    expect(t('portal.home.title', { name: 'Ayu' })).toBe('Hello, Ayu 👋')
+    expect(t('portal.nav.home')).toBe('Home')
   })
 
   it('interpolates {placeholder} params', async () => {
