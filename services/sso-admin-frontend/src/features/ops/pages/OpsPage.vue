@@ -20,7 +20,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <section class="ops-page" aria-labelledby="ops-title">
+  <section class="ops-page max-w-page mx-auto px-4 md:px-6 py-8" aria-labelledby="ops-title">
     <div class="page-heading">
       <p class="eyebrow">{{ t('ops.eyebrow') }}</p>
       <h1 id="ops-title">{{ t('ops.title') }}</h1>

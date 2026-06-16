@@ -173,7 +173,7 @@ const confirmDescription = computed<string>(() => {
 </script>
 
 <template>
-  <section class="policy-page" aria-labelledby="policy-title">
+  <section class="policy-page max-w-page mx-auto px-4 md:px-6 py-8" aria-labelledby="policy-title">
     <div class="page-heading">
       <p class="eyebrow">{{ t('policy.eyebrow') }}</p>
       <h1 id="policy-title">{{ t('policy.title') }}</h1>

@@ -97,7 +97,10 @@ function templateFor(code: string): SsoErrorTemplate | undefined {
 </script>
 
 <template>
-  <section class="policy-page" aria-labelledby="sso-templates-title">
+  <section
+    class="policy-page max-w-page mx-auto px-4 md:px-6 py-8"
+    aria-labelledby="sso-templates-title"
+  >
     <div class="page-heading">
       <p class="eyebrow">{{ t('sso_templates.eyebrow') }}</p>
       <h1 id="sso-templates-title">{{ t('sso_templates.title') }}</h1>

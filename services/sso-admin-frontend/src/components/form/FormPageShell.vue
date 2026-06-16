@@ -21,7 +21,7 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div class="form-page-shell max-w-form mx-auto py-8 px-4">
+  <div class="form-page-shell max-w-form mx-auto px-4 md:px-6 py-8">
     <!-- Breadcrumbs -->
     <nav class="mb-4" aria-label="Breadcrumb">
       <ol class="flex items-center gap-2 text-xs text-muted-foreground">
@@ -47,7 +47,12 @@ const emit = defineEmits<{
     <!-- Actions Footer -->
     <footer class="pt-6 border-t border-border flex items-center justify-between mt-8">
       <slot name="footer-left">
-        <UiButton variant="secondary" type="button" :disabled="isSubmitting" @click="emit('cancel')">
+        <UiButton
+          variant="secondary"
+          type="button"
+          :disabled="isSubmitting"
+          @click="emit('cancel')"
+        >
           {{ cancelLabel || 'Batal' }}
         </UiButton>
       </slot>

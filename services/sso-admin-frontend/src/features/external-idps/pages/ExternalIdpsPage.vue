@@ -365,7 +365,10 @@ onMounted(() => {
 </script>
 
 <template>
-  <section class="external-idps-page" aria-labelledby="idp-title">
+  <section
+    class="external-idps-page max-w-page mx-auto px-4 md:px-6 py-8"
+    aria-labelledby="idp-title"
+  >
     <div class="page-heading">
       <p class="eyebrow">{{ t('external_idps.eyebrow') }}</p>
       <h1 id="idp-title">{{ t('external_idps.title') }}</h1>

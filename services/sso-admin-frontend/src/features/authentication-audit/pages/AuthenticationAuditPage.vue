@@ -134,7 +134,10 @@ onMounted(() => {
 </script>
 
 <template>
-  <section class="authentication-audit-page" aria-labelledby="auth-audit-title">
+  <section
+    class="authentication-audit-page max-w-page mx-auto px-4 md:px-6 py-8"
+    aria-labelledby="auth-audit-title"
+  >
     <div class="page-heading">
       <p class="eyebrow">{{ t('auth_audit.eyebrow') }}</p>
       <h1 id="auth-audit-title">{{ t('auth_audit.title') }}</h1>

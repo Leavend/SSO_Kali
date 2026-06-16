@@ -20,7 +20,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <section class="oidc-foundation-page">
+  <section class="oidc-foundation-page max-w-page mx-auto px-4 md:px-6 py-8">
     <div class="oidc-foundation-layout">
       <header class="hero-card oidc-hero">
         <span class="eyebrow">{{ t('oidc.eyebrow') }}</span>

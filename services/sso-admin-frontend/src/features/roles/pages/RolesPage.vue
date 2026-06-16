@@ -200,7 +200,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <section class="roles-page" aria-labelledby="roles-title">
+  <section class="roles-page max-w-page mx-auto px-4 md:px-6 py-8" aria-labelledby="roles-title">
     <div
       class="page-heading"
       style="display: flex; justify-content: space-between; align-items: flex-start"

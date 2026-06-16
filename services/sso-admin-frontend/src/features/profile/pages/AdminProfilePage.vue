@@ -71,7 +71,10 @@ onMounted(() => {
 </script>
 
 <template>
-  <section class="admin-profile-page" aria-labelledby="admin-profile-title">
+  <section
+    class="admin-profile-page max-w-page mx-auto px-4 md:px-6 py-8"
+    aria-labelledby="admin-profile-title"
+  >
     <div class="page-heading">
       <p class="eyebrow">{{ t('profile.eyebrow') }}</p>
       <h1 id="admin-profile-title">{{ t('profile.title') }}</h1>

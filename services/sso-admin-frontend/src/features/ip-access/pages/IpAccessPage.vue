@@ -87,7 +87,10 @@ const confirmDescription = computed<string>(() => {
 </script>
 
 <template>
-  <section class="ip-access-page" aria-labelledby="ip-access-title">
+  <section
+    class="ip-access-page max-w-page mx-auto px-4 md:px-6 py-8"
+    aria-labelledby="ip-access-title"
+  >
     <div class="page-heading">
       <p class="eyebrow">{{ t('ip_access.eyebrow') }}</p>
       <h1 id="ip-access-title">{{ t('ip_access.title') }}</h1>
