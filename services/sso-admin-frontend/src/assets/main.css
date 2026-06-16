@@ -207,8 +207,11 @@ select {
 }
 
 .admin-control-plane {
+  --sidebar-w: 248px;
+  --sidebar-w-collapsed: 60px;
+
   display: grid;
-  grid-template-columns: 280px minmax(0, 1fr);
+  grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
   min-height: 100vh;
   background: var(--admin-shell-bg);
 }
@@ -239,9 +242,10 @@ select {
   top: 0;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 16px;
+  width: var(--sidebar-w);
   height: 100vh;
-  padding: 22px 18px 28px 18px;
+  padding: 16px 14px;
   border-right: 1px solid var(--border);
   background: var(--sidebar-bg);
   backdrop-filter: blur(18px);
@@ -339,7 +343,7 @@ select {
   z-index: 1;
   display: flex;
   align-items: center;
-  padding: 10px 14px;
+  padding: 8px 12px;
   color: var(--muted-foreground);
   text-decoration: none;
   border-radius: 8px;
@@ -366,7 +370,7 @@ select {
   border-top: 1px solid var(--border);
   border-radius: 0 0 8px 8px;
   margin-top: 4px;
-  padding-top: 14px;
+  padding-top: 12px;
 }
 
 .admin-nav__link--external .admin-nav__text {
@@ -375,13 +379,13 @@ select {
 
 .admin-nav__label {
   display: inline-flex;
-  gap: 12px;
+  gap: 10px;
   align-items: center;
   width: 100%;
 }
 
 .admin-nav__icon {
-  opacity: 0.65;
+  opacity: 0.7;
   transition: all 0.2s ease;
 }
 
@@ -2153,12 +2157,11 @@ select.ui-control {
 /* Sidebar collapsed rules for desktop viewport */
 @media (min-width: 761px) {
   .admin-control-plane--collapsed {
-    grid-template-columns: 78px minmax(0, 1fr);
+    --sidebar-w: var(--sidebar-w-collapsed);
   }
 
   .admin-control-plane--collapsed .admin-sidebar {
-    width: 78px;
-    padding: 22px 10px;
+    padding: 16px 8px;
     align-items: center;
   }
 
@@ -2206,7 +2209,9 @@ select.ui-control {
 
   .admin-control-plane--collapsed .admin-nav__link {
     justify-content: center;
-    padding: 12px;
+    min-width: 40px;
+    min-height: 40px;
+    padding: 10px;
     position: relative;
   }
 
