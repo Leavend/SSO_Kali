@@ -3636,7 +3636,7 @@ button.user-card-item {
 }
 
 .user-detail-status--empty {
-  visibility: hidden;
+  display: none;
 }
 
 /* Active sessions list. */

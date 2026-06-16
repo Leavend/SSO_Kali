@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { useSessionStore } from '@/stores/session.store'
 import UsersPage from '../UsersPage.vue'
 import { useUsersStore } from '../../stores/users.store'
@@ -214,6 +216,14 @@ describe('UsersPage', () => {
     expect(wrapper.find('.ui-skeleton').exists()).toBe(false)
     expect(wrapper.findAll('.user-card-item--skeleton')).toHaveLength(6)
     expect(wrapper.find('.user-detail-loading-shell').exists()).toBe(true)
+  })
+
+  it('collapses the empty cross-tab status region so overview content follows the tabs', () => {
+    const css = readFileSync(resolve(process.cwd(), 'src/assets/main.css'), 'utf8')
+    const emptyStatusRule = css.match(/\.user-detail-status--empty\s*\{(?<body>[^}]+)\}/)
+
+    expect(emptyStatusRule?.groups?.body).toContain('display: none')
+    expect(emptyStatusRule?.groups?.body).not.toContain('visibility: hidden')
   })
 
   it('uses shared status, data, and form primitives', async () => {
