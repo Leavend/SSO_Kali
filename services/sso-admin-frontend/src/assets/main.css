@@ -323,7 +323,10 @@ select {
 .admin-nav {
   position: relative;
   display: grid;
+  flex: 1 1 auto;
   gap: 4px;
+  align-content: start;
+  overflow-y: auto;
 }
 
 .admin-nav__pill {
@@ -367,7 +370,6 @@ select {
 
 .admin-nav__link--external {
   justify-content: space-between;
-  border-top: 1px solid var(--border);
   border-radius: 0 0 8px 8px;
   margin-top: 4px;
   padding-top: 12px;
@@ -398,7 +400,6 @@ select {
 .admin-principal {
   display: grid;
   gap: 8px;
-  margin-top: auto;
   margin-bottom: 8px;
   padding: 16px 4px 0 4px;
   border-top: 1px solid var(--border);

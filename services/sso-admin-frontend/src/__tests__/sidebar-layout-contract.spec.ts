@@ -32,4 +32,15 @@ describe('admin sidebar layout contract', () => {
     expect(collapsedNavLink).toContain('min-height: 40px;')
     expect(collapsedNavLink).toContain('padding: 10px;')
   })
+
+  it('keeps Documentation clustered with the principal footer without a desktop gap', () => {
+    const nav = cssBlock('.admin-nav')
+    const externalLink = cssBlock('.admin-nav__link--external')
+    const principal = cssBlock('.admin-principal')
+
+    expect(nav).toContain('flex: 1 1 auto;')
+    expect(nav).toContain('overflow-y: auto;')
+    expect(externalLink).not.toContain('border-top')
+    expect(principal).not.toContain('margin-top: auto;')
+  })
 })
