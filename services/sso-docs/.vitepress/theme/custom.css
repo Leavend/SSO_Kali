@@ -46,6 +46,31 @@
   font-weight: 500;
 }
 
+.vp-doc div[class*='language-'] {
+  max-width: 100%;
+}
+
+.vp-doc div[class*='language-'] pre {
+  -webkit-overflow-scrolling: touch;
+}
+
+.vp-doc div[class*='language-'] button.copy {
+  z-index: 2;
+}
+
+.vp-doc .mermaid {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.vp-doc .mermaid svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
 /* Navigation */
 .VPNavBar .title {
   font-weight: 600;
@@ -145,4 +170,52 @@
 
 .vp-copy-page-button__label {
   line-height: 1;
+}
+
+@media (max-width: 640px) {
+  .VPHero .tagline {
+    font-size: 1rem;
+    line-height: 1.55;
+  }
+
+  .vp-doc div[class*='language-'] {
+    border-radius: 8px;
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .vp-doc div[class*='language-'] code {
+    font-size: 0.78rem;
+    line-height: 1.55;
+  }
+
+  .vp-doc div[class*='language-'] pre {
+    padding-right: 2.75rem;
+  }
+
+  .vp-doc div[class*='language-'] button.copy {
+    right: 6px;
+    top: 6px;
+  }
+
+  .vp-doc table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .vp-doc th,
+  .vp-doc td {
+    padding: 0.5rem 0.6rem;
+  }
+
+  .custom-block {
+    padding: 12px 14px 10px;
+  }
+
+  .vp-copy-page-button {
+    max-width: 100%;
+    padding: 6px 10px;
+    white-space: normal;
+  }
 }

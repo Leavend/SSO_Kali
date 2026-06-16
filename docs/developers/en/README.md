@@ -34,7 +34,7 @@ sequenceDiagram
     OP-->>C: issuer, endpoints, jwks_uri, S256
     C->>C: Generate state, nonce, code_verifier, S256 code_challenge
     U->>C: Click login
-    C->>OP: GET /authorize?response_type=code&client_id&redirect_uri&scope&state&nonce&code_challenge&code_challenge_method=S256
+    C->>OP: GET /authorize with code, PKCE S256, state, and nonce
     OP->>U: Login and consent if required
     OP-->>C: Redirect redirect_uri?code&state
     C->>C: Validate state

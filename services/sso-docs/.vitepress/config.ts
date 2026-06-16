@@ -1,6 +1,7 @@
 import { defineConfig } from 'vitepress'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { withMermaid } from 'vitepress-plugin-mermaid'
 
 const githubRepository = 'https://github.com/Leavend/SSO_Kali'
 
@@ -18,9 +19,29 @@ const integrationItemsEn = [
   { text: 'Express', link: '/en/integrations/express' },
 ]
 
-export default defineConfig({
+const config = defineConfig({
   title: 'Dev-SSO Developer Docs',
   description: 'Dokumentasi integrasi OpenID Connect untuk aplikasi pihak ketiga',
+
+  mermaid: {
+    theme: 'base',
+    securityLevel: 'strict',
+    sequence: {
+      mirrorActors: false,
+      wrap: true,
+      width: 140,
+    },
+    themeVariables: {
+      primaryColor: '#eef2ff',
+      primaryBorderColor: '#6366f1',
+      primaryTextColor: '#1f2937',
+      lineColor: '#6366f1',
+      actorBorder: '#6366f1',
+      actorTextColor: '#1f2937',
+      noteBkgColor: '#f5f3ff',
+      noteTextColor: '#1f2937',
+    },
+  },
 
   locales: {
     root: {
@@ -177,3 +198,5 @@ export default defineConfig({
     }
   },
 })
+
+export default withMermaid(config)
