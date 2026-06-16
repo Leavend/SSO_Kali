@@ -17,6 +17,7 @@ interface Props {
   readonly title: string
   readonly description: string
   readonly closeLabel: string
+  readonly overlayClass?: string
   readonly wide?: boolean
 }
 
@@ -33,7 +34,7 @@ function handleOpenChange(open: boolean): void {
 <template>
   <DialogRoot :open="open" @update:open="handleOpenChange">
     <DialogPortal disabled>
-      <DialogOverlay class="user-modal-overlay" />
+      <DialogOverlay :class="cn('user-modal-overlay', overlayClass)" />
       <DialogContent
         :class="cn('user-modal-card', 'ui-dialog-content', props.wide && 'ui-dialog-card--wide')"
         :data-dialog-id="titleId"

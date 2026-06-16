@@ -265,6 +265,54 @@ describe('AuditPage', () => {
     expect(wrapper.text()).toContain('Reset')
   })
 
+  it('keeps advanced audit filters collapsed by default without dropping their values', async () => {
+    const store = useAuditStore()
+    store.status = 'success'
+    store.events = [event]
+    store.authenticationEvents = [authEvent]
+    store.integrity = { verified: true, checked_events: 1 }
+    const searchAuthSpy = vi.spyOn(store, 'searchAuthenticationEvents').mockResolvedValue()
+
+    const wrapper = mount(AuditPage)
+
+    expect(wrapper.get('input[name="audit-search-request-id"]').isVisible()).toBe(true)
+    expect(wrapper.get('input[name="audit-search-action"]').isVisible()).toBe(true)
+    expect(wrapper.get('input[name="audit-search-outcome"]').isVisible()).toBe(true)
+    expect(wrapper.get('input[name="audit-search-session-id"]').isVisible()).toBe(false)
+
+    await wrapper.get('button.audit-advanced-filter-button').trigger('click')
+    expect(wrapper.get('input[name="audit-search-session-id"]').isVisible()).toBe(true)
+
+    await wrapper.find('input[name="audit-search-session-id"]').setValue('sid-advanced')
+    await wrapper.get('button.audit-advanced-filter-button').trigger('click')
+    await wrapper.find('button.audit-search-button').trigger('click')
+
+    expect(searchAuthSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ session_id: 'sid-advanced' }),
+    )
+  })
+
+  it('opens audit event details in a shared dialog instead of an inline detail pane', async () => {
+    const store = useAuditStore()
+    store.status = 'success'
+    store.events = [event]
+    store.authenticationEvents = [authEvent]
+    store.integrity = { verified: true, checked_events: 1 }
+
+    const wrapper = mount(AuditPage)
+
+    expect(wrapper.find('.audit-master-detail').exists()).toBe(false)
+    expect(wrapper.find('[data-dialog-id="audit-event-detail-dialog"]').exists()).toBe(false)
+
+    await wrapper.find('button').trigger('click')
+    const viewButtons = wrapper.findAll('button').filter((button) => button.text() === 'View')
+    await viewButtons[0]?.trigger('click')
+
+    expect(wrapper.find('[data-dialog-id="audit-event-detail-dialog"]').exists()).toBe(true)
+    expect(wrapper.find('.user-modal-overlay.audit-detail-overlay').exists()).toBe(true)
+    expect(wrapper.text()).toContain('/admin/api/users/sub_target/lock')
+  })
+
   it('applies the consent quick filter to authentication audit and revoke audit events', async () => {
     const store = useAuditStore()
     store.status = 'success'

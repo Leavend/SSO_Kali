@@ -80,7 +80,8 @@
     "generating": "Generating...",
     "back_to_list": "Back to list",
     "copy": "Copy",
-    "copied": "Copied!"
+    "copied": "Copied!",
+    "close": "Close"
   },
   "dashboard": {
     "eyebrow": "Admin Governance",
@@ -472,7 +473,11 @@
     "search_title": "Search audit events",
     "consent_title": "Consent events",
     "events_title": "Audit events",
+    "event_detail_title": "Event detail",
+    "event_detail_desc": "Detailed audit event evidence.",
     "security_evidence_title": "Security notification evidence",
+    "security_event_detail_title": "Security event detail",
+    "security_event_detail_desc": "Detailed authentication security event evidence.",
     "challenge_title": "Suspicious login challenge matrix",
     "acr_title": "ACR permissive policy (NG-03)",
     "portal_evidence_title": "Portal/backend observable evidence",
@@ -482,6 +487,8 @@
     "btn_export": "Export",
     "btn_generate_pack": "Generate evidence pack",
     "btn_all_consent": "All consent",
+    "btn_advanced_filters": "Advanced filters",
+    "btn_view_detail": "View",
     "btn_load_more_audit": "Load more audit events",
     "btn_load_more_security": "Load more security notification evidence",
     "no_audit_events": "No audit events yet.",

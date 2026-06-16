@@ -38,6 +38,7 @@ const router = useRouter()
 const currentIndex = ref(0)
 const isAnimating = ref(false)
 const navRef = ref<HTMLElement | null>(null)
+const sidebarRef = ref<HTMLElement | null>(null)
 const pillStyle = ref({ top: '0px', height: '0px', opacity: '0' })
 
 const isTest = import.meta.env.MODE === 'test'
@@ -100,6 +101,10 @@ function closeNav(): void {
   isNavOpen.value = false
 }
 
+function openNav(): void {
+  isNavOpen.value = true
+}
+
 const isCollapsed = ref(false)
 const isMobile = ref(false)
 function checkMobile() {
@@ -118,6 +123,83 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('resize', checkMobile)
+})
+
+let previousBodyOverflow = ''
+let didLockBodyScroll = false
+
+function lockBodyScroll(): void {
+  if (didLockBodyScroll) return
+  previousBodyOverflow = document.body.style.overflow
+  document.body.style.overflow = 'hidden'
+  didLockBodyScroll = true
+}
+
+function unlockBodyScroll(): void {
+  if (!didLockBodyScroll) return
+  document.body.style.overflow = previousBodyOverflow
+  didLockBodyScroll = false
+}
+
+function getFocusableSidebarElements(): HTMLElement[] {
+  if (!sidebarRef.value) return []
+  return Array.from(
+    sidebarRef.value.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    ),
+  ).filter((element) => element.offsetParent !== null || isTest)
+}
+
+function handleDocumentKeydown(event: KeyboardEvent): void {
+  if (!isNavOpen.value || !isMobile.value) return
+
+  if (event.key === 'Escape') {
+    event.preventDefault()
+    closeNav()
+    return
+  }
+
+  if (event.key !== 'Tab') return
+
+  const focusableElements = getFocusableSidebarElements()
+  if (focusableElements.length === 0) return
+
+  const firstElement = focusableElements[0]
+  const lastElement = focusableElements[focusableElements.length - 1]
+  const activeElement = document.activeElement
+
+  if (event.shiftKey && activeElement === firstElement) {
+    event.preventDefault()
+    lastElement?.focus()
+  } else if (!event.shiftKey && activeElement === lastElement) {
+    event.preventDefault()
+    firstElement?.focus()
+  }
+}
+
+watch(
+  [isNavOpen, isMobile],
+  ([open, mobile]) => {
+    if (typeof document === 'undefined') return
+
+    if (open && mobile) {
+      lockBodyScroll()
+      document.addEventListener('keydown', handleDocumentKeydown)
+      requestAnimationFrame(() => {
+        getFocusableSidebarElements()[0]?.focus()
+      })
+      return
+    }
+
+    unlockBodyScroll()
+    document.removeEventListener('keydown', handleDocumentKeydown)
+  },
+  { flush: 'post' },
+)
+
+onUnmounted(() => {
+  unlockBodyScroll()
+  document.removeEventListener('keydown', handleDocumentKeydown)
 })
 
 function handleToggle(): void {
@@ -223,7 +305,15 @@ async function handleMenuClick(menu: AdminPermissionMenu, index: number) {
     }"
   >
     <a class="skip-link" href="#admin-main">{{ t('admin.skip_link') }}</a>
-    <aside class="admin-sidebar" :aria-label="t('admin.sidebar_label')">
+    <button
+      v-if="isNavOpen"
+      class="admin-sidebar__backdrop"
+      type="button"
+      :aria-label="t('admin.close_navigation')"
+      @click="closeNav"
+    ></button>
+
+    <aside ref="sidebarRef" class="admin-sidebar" :aria-label="t('admin.sidebar_label')">
       <div class="admin-sidebar__header">
         <div class="admin-brand">
           <span class="eyebrow"
@@ -329,7 +419,7 @@ async function handleMenuClick(menu: AdminPermissionMenu, index: number) {
             type="button"
             :aria-label="t('admin.open_navigation')"
             :aria-expanded="isNavOpen"
-            @click="isNavOpen = true"
+            @click="openNav"
           >
             <Menu :size="18" aria-hidden="true" />
           </button>

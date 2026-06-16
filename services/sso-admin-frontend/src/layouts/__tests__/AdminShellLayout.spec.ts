@@ -44,6 +44,8 @@ describe('AdminShellLayout', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     useSessionStore().setPrincipal(principal)
+    Object.defineProperty(window, 'innerWidth', { value: 1024, configurable: true })
+    document.body.style.overflow = ''
   })
 
   it('renders only visible backend-computed admin menus', () => {
@@ -98,5 +100,68 @@ describe('AdminShellLayout', () => {
     expect(wrapper.get('[data-testid="admin-logout-action"]').attributes('href')).toBe(
       '/auth/logout',
     )
+  })
+
+  it('opens the mobile drawer with backdrop and closes it from the backdrop', async () => {
+    Object.defineProperty(window, 'innerWidth', { value: 390, configurable: true })
+
+    const wrapper = mount(AdminShellLayout, {
+      global: {
+        stubs: {
+          RouterLink: { template: '<a :href="to"><slot /></a>', props: ['to'] },
+          RouterView: true,
+        },
+      },
+    })
+
+    await wrapper.get('[data-testid="admin-mobile-menu-toggle"]').trigger('click')
+
+    expect(wrapper.classes()).toContain('admin-control-plane--nav-open')
+    expect(wrapper.find('.admin-sidebar__backdrop').exists()).toBe(true)
+    expect(document.body.style.overflow).toBe('hidden')
+
+    await wrapper.get('.admin-sidebar__backdrop').trigger('click')
+
+    expect(wrapper.classes()).not.toContain('admin-control-plane--nav-open')
+    expect(document.body.style.overflow).toBe('')
+  })
+
+  it('closes the mobile drawer with Escape', async () => {
+    Object.defineProperty(window, 'innerWidth', { value: 390, configurable: true })
+
+    const wrapper = mount(AdminShellLayout, {
+      global: {
+        stubs: {
+          RouterLink: { template: '<a :href="to"><slot /></a>', props: ['to'] },
+          RouterView: true,
+        },
+      },
+    })
+
+    await wrapper.get('[data-testid="admin-mobile-menu-toggle"]').trigger('click')
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.classes()).not.toContain('admin-control-plane--nav-open')
+    expect(document.body.style.overflow).toBe('')
+  })
+
+  it('does not clear another component body scroll lock on resize while drawer is closed', async () => {
+    document.body.style.overflow = 'hidden'
+
+    mount(AdminShellLayout, {
+      global: {
+        stubs: {
+          RouterLink: { template: '<a :href="to"><slot /></a>', props: ['to'] },
+          RouterView: true,
+        },
+      },
+    })
+
+    Object.defineProperty(window, 'innerWidth', { value: 390, configurable: true })
+    window.dispatchEvent(new Event('resize'))
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(document.body.style.overflow).toBe('hidden')
   })
 })

@@ -16,6 +16,8 @@ import {
   Settings,
   Key,
   RefreshCw,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-vue-next'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
 import UiDataList, { type UiDataListRow } from '@/components/ui/UiDataList.vue'
@@ -23,6 +25,7 @@ import UiEmptyState from '@/components/ui/UiEmptyState.vue'
 import UiFormField from '@/components/ui/UiFormField.vue'
 import UiInput from '@/components/ui/UiInput.vue'
 import UiButton from '@/components/ui/UiButton.vue'
+import UiDialog from '@/components/ui/UiDialog.vue'
 import UiSkeleton from '@/components/ui/UiSkeleton.vue'
 import UiStatusView from '@/components/ui/UiStatusView.vue'
 import { useSessionStore } from '@/stores/session.store'
@@ -90,6 +93,8 @@ const searchClientId = ref('')
 const searchFrom = ref('')
 const searchTo = ref('')
 const selectedConsentAction = ref<'all' | 'allow' | 'deny' | 'revoke'>('all')
+const showAdvancedFilters = ref(false)
+const activeDetailDialog = ref<'audit' | 'authentication' | null>(null)
 
 function filled(value: string): string | undefined {
   const trimmed = value.trim()
@@ -284,6 +289,20 @@ const authenticationEventRows = computed<readonly UiDataListRow[]>(() =>
   })),
 )
 
+function openAuditEventDetail(eventId: string): void {
+  store.selectEvent(eventId)
+  activeDetailDialog.value = 'audit'
+}
+
+function openAuthenticationEventDetail(eventId: string): void {
+  store.selectAuthenticationEvent(eventId)
+  activeDetailDialog.value = 'authentication'
+}
+
+function closeDetailDialog(): void {
+  activeDetailDialog.value = null
+}
+
 function retentionWindowLabel(item: RetentionStatusItem): string {
   if (item.window.days !== undefined) return `${item.window.days} hari`
   if (item.window.hours !== undefined) return `${item.window.hours} jam`
@@ -455,31 +474,12 @@ onMounted(() => {
               </div>
             </div>
 
-            <div class="audit-grid audit-grid-3 mt-4">
+            <div class="audit-grid audit-grid-3 mt-4 audit-filter-grid">
               <UiFormField id="audit-search-request-id" :label="t('audit.correlation_id')">
                 <UiInput
                   id="audit-search-request-id"
                   name="audit-search-request-id"
                   v-model="searchRequestId"
-                  autocomplete="off"
-                />
-              </UiFormField>
-              <UiFormField
-                id="audit-search-support-reference"
-                :label="t('audit.support_reference')"
-              >
-                <UiInput
-                  id="audit-search-support-reference"
-                  name="audit-search-support-reference"
-                  v-model="searchSupportReference"
-                  autocomplete="off"
-                />
-              </UiFormField>
-              <UiFormField id="audit-search-session-id" :label="t('audit.sid')">
-                <UiInput
-                  id="audit-search-session-id"
-                  name="audit-search-session-id"
-                  v-model="searchSessionId"
                   autocomplete="off"
                 />
               </UiFormField>
@@ -496,6 +496,28 @@ onMounted(() => {
                   id="audit-search-outcome"
                   name="audit-search-outcome"
                   v-model="searchOutcome"
+                  autocomplete="off"
+                />
+              </UiFormField>
+            </div>
+
+            <div v-show="showAdvancedFilters" class="audit-grid audit-grid-3 audit-filter-grid">
+              <UiFormField
+                id="audit-search-support-reference"
+                :label="t('audit.support_reference')"
+              >
+                <UiInput
+                  id="audit-search-support-reference"
+                  name="audit-search-support-reference"
+                  v-model="searchSupportReference"
+                  autocomplete="off"
+                />
+              </UiFormField>
+              <UiFormField id="audit-search-session-id" :label="t('audit.sid')">
+                <UiInput
+                  id="audit-search-session-id"
+                  name="audit-search-session-id"
+                  v-model="searchSessionId"
                   autocomplete="off"
                 />
               </UiFormField>
@@ -549,7 +571,17 @@ onMounted(() => {
               </UiFormField>
             </div>
 
-            <div class="flex gap-2 pt-2">
+            <div class="audit-filter-actions pt-2">
+              <UiButton
+                variant="secondary"
+                class="audit-advanced-filter-button"
+                :aria-expanded="showAdvancedFilters"
+                @click="showAdvancedFilters = !showAdvancedFilters"
+              >
+                <ChevronDown v-if="showAdvancedFilters" class="size-4" aria-hidden="true" />
+                <ChevronRight v-else class="size-4" aria-hidden="true" />
+                {{ t('audit.btn_advanced_filters') }}
+              </UiButton>
               <UiButton variant="primary" class="audit-search-button" @click="submitSearch">
                 {{ t('audit.btn_search') }}
               </UiButton>
@@ -609,9 +641,7 @@ onMounted(() => {
             </div>
           </section>
 
-          <!-- Master-Detail Audit Events -->
-          <section class="audit-master-detail" aria-labelledby="events-title">
-            <!-- Table View -->
+          <section class="audit-events-section" aria-labelledby="events-title">
             <div class="ui-card space-y-4">
               <h2 id="events-title" class="text-base font-bold">{{ t('audit.events_title') }}</h2>
               <div class="audit-table-wrapper">
@@ -627,9 +657,9 @@ onMounted(() => {
                       :class="
                         row.id === store.selectedEventId ? 'border-primary text-primary' : undefined
                       "
-                      @click="store.selectEvent(row.id)"
+                      @click="openAuditEventDetail(row.id)"
                     >
-                      View
+                      {{ t('audit.btn_view_detail') }}
                     </UiButton>
                   </template>
                 </UiDataList>
@@ -648,102 +678,12 @@ onMounted(() => {
                 </UiButton>
               </div>
             </div>
-
-            <!-- Detail Pane -->
-            <div class="space-y-4">
-              <article v-if="store.selectedEvent" class="ui-card space-y-4">
-                <h2 class="text-base font-bold">Event detail</h2>
-                <div class="border-b border-border pb-2">
-                  <span
-                    class="audit-badge"
-                    :class="
-                      store.selectedEvent.outcome === 'succeeded'
-                        ? 'audit-badge--success'
-                        : 'audit-badge--danger'
-                    "
-                  >
-                    {{ store.selectedEvent.outcome }}
-                  </span>
-                </div>
-                <dl class="space-y-3">
-                  <div class="flex flex-col gap-1">
-                    <dt class="text-xs font-bold text-muted-foreground uppercase tracking-wide">
-                      Actor
-                    </dt>
-                    <dd class="text-sm font-semibold break-anywhere">
-                      {{
-                        store.selectedEvent.actor?.email ??
-                        formatTechnicalPreview(store.selectedEvent.actor?.subject_id)
-                      }}
-                    </dd>
-                  </div>
-                  <div class="flex flex-col gap-1 border-t border-border pt-2">
-                    <dt class="text-xs font-bold text-muted-foreground uppercase tracking-wide">
-                      Request
-                    </dt>
-                    <dd class="text-sm break-anywhere bg-muted p-2 rounded-lg font-mono">
-                      <span class="font-bold text-primary mr-1">{{
-                        store.selectedEvent.request?.method ?? 'GET'
-                      }}</span>
-                      {{ store.selectedEvent.request?.path }}
-                    </dd>
-                  </div>
-                  <div class="flex flex-col gap-1 border-t border-border pt-2">
-                    <dt class="text-xs font-bold text-muted-foreground uppercase tracking-wide">
-                      Reason
-                    </dt>
-                    <dd class="text-sm break-anywhere">
-                      {{ store.selectedEvent.reason ?? 'No reason evidence' }}
-                    </dd>
-                  </div>
-                  <div class="flex flex-col gap-1 border-t border-border pt-2">
-                    <dt class="text-xs font-bold text-muted-foreground uppercase tracking-wide">
-                      Occurred at
-                    </dt>
-                    <dd class="text-sm font-mono">
-                      {{ dateFormat.smart(store.selectedEvent.occurred_at) }}
-                    </dd>
-                  </div>
-                  <div
-                    v-if="
-                      store.selectedEvent.context?.request_id ||
-                      store.selectedEvent.context?.support_reference
-                    "
-                    class="flex flex-col gap-1 border-t border-border pt-2"
-                  >
-                    <dt class="text-xs font-bold text-muted-foreground uppercase tracking-wide">
-                      {{ t('audit.correlation_ids') }}
-                    </dt>
-                    <dd class="text-sm font-mono break-anywhere space-y-1">
-                      <div v-if="store.selectedEvent.context?.request_id">
-                        <span class="font-bold">{{ t('audit.request_id') }}:</span>
-                        {{ store.selectedEvent.context.request_id }}
-                      </div>
-                      <div v-if="store.selectedEvent.context?.support_reference">
-                        <span class="font-bold">{{ t('audit.support_ref') }}:</span>
-                        {{ store.selectedEvent.context.support_reference }}
-                      </div>
-                    </dd>
-                  </div>
-                </dl>
-              </article>
-              <div
-                v-else
-                class="ui-card flex flex-col items-center justify-center py-16 text-center text-muted-foreground border-dashed"
-              >
-                <ClipboardList class="size-8 mb-2 opacity-40 text-primary animate-pulse" />
-                <p class="text-sm font-semibold text-muted-foreground">
-                  Pilih event untuk melihat detail secara mendalam.
-                </p>
-              </div>
-            </div>
           </section>
         </div>
 
         <!-- Tab 2: Security Notification -->
         <div v-show="activeTab === 'security'" class="space-y-6">
-          <section class="audit-master-detail" aria-labelledby="security-evidence-title">
-            <!-- Table View -->
+          <section class="audit-events-section" aria-labelledby="security-evidence-title">
             <div class="ui-card space-y-4">
               <h2 id="security-evidence-title" class="text-base font-bold">
                 {{ t('audit.security_evidence_title') }}
@@ -763,9 +703,9 @@ onMounted(() => {
                           ? 'border-primary text-primary'
                           : undefined
                       "
-                      @click="store.selectAuthenticationEvent(row.id)"
+                      @click="openAuthenticationEventDetail(row.id)"
                     >
-                      View
+                      {{ t('audit.btn_view_detail') }}
                     </UiButton>
                   </template>
                 </UiDataList>
@@ -788,100 +728,6 @@ onMounted(() => {
                 >
                   {{ t('audit.btn_load_more_security') }}
                 </UiButton>
-              </div>
-            </div>
-
-            <!-- Detail Pane -->
-            <div class="space-y-4">
-              <article v-if="store.selectedAuthenticationEvent" class="ui-card space-y-4">
-                <h2 class="text-base font-bold">Security event detail</h2>
-                <div class="border-b border-border pb-2">
-                  <span
-                    class="audit-badge"
-                    :class="
-                      store.selectedAuthenticationEvent.outcome === 'succeeded'
-                        ? 'audit-badge--success'
-                        : 'audit-badge--danger'
-                    "
-                  >
-                    {{ store.selectedAuthenticationEvent.outcome }}
-                  </span>
-                </div>
-                <dl class="space-y-3">
-                  <div class="flex flex-col gap-1">
-                    <dt class="text-xs font-bold text-muted-foreground uppercase tracking-wide">
-                      Subject
-                    </dt>
-                    <dd class="text-sm font-semibold break-anywhere">
-                      {{
-                        store.selectedAuthenticationEvent.subject?.email ??
-                        formatTechnicalPreview(
-                          store.selectedAuthenticationEvent.subject?.subject_id,
-                        )
-                      }}
-                    </dd>
-                  </div>
-                  <div class="flex flex-col gap-1 border-t border-border pt-2">
-                    <dt class="text-xs font-bold text-muted-foreground uppercase tracking-wide">
-                      Client
-                    </dt>
-                    <dd class="text-sm break-anywhere font-semibold">
-                      {{ formatFriendlyClientName(store.selectedAuthenticationEvent.client_id) }}
-                    </dd>
-                  </div>
-                  <div class="flex flex-col gap-1 border-t border-border pt-2">
-                    <dt class="text-xs font-bold text-muted-foreground uppercase tracking-wide">
-                      Kode sesi
-                    </dt>
-                    <dd class="text-sm font-mono break-anywhere">
-                      {{ formatTechnicalPreview(store.selectedAuthenticationEvent.session_id) }}
-                    </dd>
-                  </div>
-                  <div
-                    class="flex flex-col gap-1 border-t border-border pt-2"
-                    v-if="store.selectedAuthenticationEvent.error_code"
-                  >
-                    <dt class="text-xs font-bold text-muted-foreground uppercase tracking-wide">
-                      Error code
-                    </dt>
-                    <dd class="text-sm text-destructive font-semibold">
-                      {{ store.selectedAuthenticationEvent.error_code }}
-                    </dd>
-                  </div>
-                  <div
-                    class="flex flex-col gap-1 border-t border-border pt-2"
-                    v-if="store.selectedAuthenticationEvent.request?.request_id"
-                  >
-                    <dt class="text-xs font-bold text-muted-foreground uppercase tracking-wide">
-                      {{ t('audit.request_id') }}
-                    </dt>
-                    <dd class="text-sm font-mono break-anywhere">
-                      {{ store.selectedAuthenticationEvent.request.request_id }}
-                    </dd>
-                  </div>
-                  <div
-                    class="flex flex-col gap-1 border-t border-border pt-2"
-                    v-if="store.selectedAuthenticationEvent.request?.request_id"
-                  >
-                    <dt class="text-xs font-bold text-muted-foreground uppercase tracking-wide">
-                      {{ t('audit.support_ref') }}
-                    </dt>
-                    <dd class="text-sm font-mono break-anywhere">
-                      {{
-                        formatSupportReference(store.selectedAuthenticationEvent.request.request_id)
-                      }}
-                    </dd>
-                  </div>
-                </dl>
-              </article>
-              <div
-                v-else
-                class="ui-card flex flex-col items-center justify-center py-16 text-center text-muted-foreground border-dashed"
-              >
-                <ShieldCheck class="size-8 mb-2 opacity-40 text-primary animate-pulse" />
-                <p class="text-sm font-semibold text-muted-foreground">
-                  Pilih event untuk melihat detail secara mendalam.
-                </p>
               </div>
             </div>
           </section>
@@ -1389,5 +1235,170 @@ onMounted(() => {
       :client-id="selectedClientId"
       :subject-id="selectedSubjectId"
     />
+
+    <UiDialog
+      :open="activeDetailDialog === 'audit' && !!store.selectedEvent"
+      title-id="audit-event-detail-dialog"
+      :title="t('audit.event_detail_title')"
+      :description="t('audit.event_detail_desc')"
+      :close-label="t('common.close')"
+      overlay-class="audit-detail-overlay"
+      wide
+      @close="closeDetailDialog"
+    >
+      <article v-if="store.selectedEvent" class="audit-detail-dialog space-y-4">
+        <div class="border-b border-border pb-2">
+          <span
+            class="audit-badge"
+            :class="
+              store.selectedEvent.outcome === 'succeeded'
+                ? 'audit-badge--success'
+                : 'audit-badge--danger'
+            "
+          >
+            {{ store.selectedEvent.outcome }}
+          </span>
+        </div>
+        <dl class="space-y-3">
+          <div class="flex flex-col gap-1">
+            <dt class="text-xs font-bold text-muted-foreground uppercase tracking-wide">Actor</dt>
+            <dd class="text-sm font-semibold break-anywhere">
+              {{
+                store.selectedEvent.actor?.email ??
+                formatTechnicalPreview(store.selectedEvent.actor?.subject_id)
+              }}
+            </dd>
+          </div>
+          <div class="flex flex-col gap-1 border-t border-border pt-2">
+            <dt class="text-xs font-bold text-muted-foreground uppercase tracking-wide">Request</dt>
+            <dd class="text-sm break-anywhere bg-muted p-2 rounded-lg font-mono">
+              <span class="font-bold text-primary mr-1">{{
+                store.selectedEvent.request?.method ?? 'GET'
+              }}</span>
+              {{ store.selectedEvent.request?.path }}
+            </dd>
+          </div>
+          <div class="flex flex-col gap-1 border-t border-border pt-2">
+            <dt class="text-xs font-bold text-muted-foreground uppercase tracking-wide">Reason</dt>
+            <dd class="text-sm break-anywhere">
+              {{ store.selectedEvent.reason ?? 'No reason evidence' }}
+            </dd>
+          </div>
+          <div class="flex flex-col gap-1 border-t border-border pt-2">
+            <dt class="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+              Occurred at
+            </dt>
+            <dd class="text-sm font-mono">
+              {{ dateFormat.smart(store.selectedEvent.occurred_at) }}
+            </dd>
+          </div>
+          <div
+            v-if="
+              store.selectedEvent.context?.request_id ||
+              store.selectedEvent.context?.support_reference
+            "
+            class="flex flex-col gap-1 border-t border-border pt-2"
+          >
+            <dt class="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+              {{ t('audit.correlation_ids') }}
+            </dt>
+            <dd class="text-sm font-mono break-anywhere space-y-1">
+              <div v-if="store.selectedEvent.context?.request_id">
+                <span class="font-bold">{{ t('audit.request_id') }}:</span>
+                {{ store.selectedEvent.context.request_id }}
+              </div>
+              <div v-if="store.selectedEvent.context?.support_reference">
+                <span class="font-bold">{{ t('audit.support_ref') }}:</span>
+                {{ store.selectedEvent.context.support_reference }}
+              </div>
+            </dd>
+          </div>
+        </dl>
+      </article>
+    </UiDialog>
+
+    <UiDialog
+      :open="activeDetailDialog === 'authentication' && !!store.selectedAuthenticationEvent"
+      title-id="authentication-event-detail-dialog"
+      :title="t('audit.security_event_detail_title')"
+      :description="t('audit.security_event_detail_desc')"
+      :close-label="t('common.close')"
+      overlay-class="audit-detail-overlay"
+      wide
+      @close="closeDetailDialog"
+    >
+      <article v-if="store.selectedAuthenticationEvent" class="audit-detail-dialog space-y-4">
+        <div class="border-b border-border pb-2">
+          <span
+            class="audit-badge"
+            :class="
+              store.selectedAuthenticationEvent.outcome === 'succeeded'
+                ? 'audit-badge--success'
+                : 'audit-badge--danger'
+            "
+          >
+            {{ store.selectedAuthenticationEvent.outcome }}
+          </span>
+        </div>
+        <dl class="space-y-3">
+          <div class="flex flex-col gap-1">
+            <dt class="text-xs font-bold text-muted-foreground uppercase tracking-wide">Subject</dt>
+            <dd class="text-sm font-semibold break-anywhere">
+              {{
+                store.selectedAuthenticationEvent.subject?.email ??
+                formatTechnicalPreview(store.selectedAuthenticationEvent.subject?.subject_id)
+              }}
+            </dd>
+          </div>
+          <div class="flex flex-col gap-1 border-t border-border pt-2">
+            <dt class="text-xs font-bold text-muted-foreground uppercase tracking-wide">Client</dt>
+            <dd class="text-sm break-anywhere font-semibold">
+              {{ formatFriendlyClientName(store.selectedAuthenticationEvent.client_id) }}
+            </dd>
+          </div>
+          <div class="flex flex-col gap-1 border-t border-border pt-2">
+            <dt class="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+              Kode sesi
+            </dt>
+            <dd class="text-sm font-mono break-anywhere">
+              {{ formatTechnicalPreview(store.selectedAuthenticationEvent.session_id) }}
+            </dd>
+          </div>
+          <div
+            v-if="store.selectedAuthenticationEvent.error_code"
+            class="flex flex-col gap-1 border-t border-border pt-2"
+          >
+            <dt class="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+              Error code
+            </dt>
+            <dd class="text-sm text-destructive font-semibold">
+              {{ store.selectedAuthenticationEvent.error_code }}
+            </dd>
+          </div>
+          <div
+            v-if="store.selectedAuthenticationEvent.request?.request_id"
+            class="flex flex-col gap-1 border-t border-border pt-2"
+          >
+            <dt class="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+              {{ t('audit.request_id') }}
+            </dt>
+            <dd class="text-sm font-mono break-anywhere">
+              {{ store.selectedAuthenticationEvent.request.request_id }}
+            </dd>
+          </div>
+          <div
+            v-if="store.selectedAuthenticationEvent.request?.request_id"
+            class="flex flex-col gap-1 border-t border-border pt-2"
+          >
+            <dt class="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+              {{ t('audit.support_ref') }}
+            </dt>
+            <dd class="text-sm font-mono break-anywhere">
+              {{ formatSupportReference(store.selectedAuthenticationEvent.request.request_id) }}
+            </dd>
+          </div>
+        </dl>
+      </article>
+    </UiDialog>
   </section>
 </template>

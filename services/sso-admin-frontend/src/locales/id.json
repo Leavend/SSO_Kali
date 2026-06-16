@@ -80,7 +80,8 @@
     "generating": "Membuat...",
     "back_to_list": "Kembali ke daftar",
     "copy": "Salin",
-    "copied": "Disalin!"
+    "copied": "Disalin!",
+    "close": "Tutup"
   },
   "dashboard": {
     "eyebrow": "Admin Governance",
@@ -472,7 +473,11 @@
     "search_title": "Cari audit event",
     "consent_title": "Consent events",
     "events_title": "Audit events",
+    "event_detail_title": "Detail event",
+    "event_detail_desc": "Bukti detail audit event.",
     "security_evidence_title": "Security notification evidence",
+    "security_event_detail_title": "Detail security event",
+    "security_event_detail_desc": "Bukti detail event keamanan autentikasi.",
     "challenge_title": "Suspicious login challenge matrix",
     "acr_title": "ACR permissive policy (NG-03)",
     "portal_evidence_title": "Portal/backend observable evidence",
@@ -482,6 +487,8 @@
     "btn_export": "Ekspor",
     "btn_generate_pack": "Buat evidence pack",
     "btn_all_consent": "Semua consent",
+    "btn_advanced_filters": "Filter lanjutan",
+    "btn_view_detail": "Lihat",
     "btn_load_more_audit": "Muat lebih banyak audit event",
     "btn_load_more_security": "Muat lebih banyak security notification evidence",
     "no_audit_events": "Belum ada audit event.",
