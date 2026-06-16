@@ -47,10 +47,13 @@ const searchSessionId = ref('')
 const searchRequestId = ref('')
 const searchEventType = ref('')
 const searchOutcome = ref('')
+const searchErrorCode = ref('')
+const searchSupportReference = ref('')
+const searchConsentAction = ref('')
 const searchFrom = ref('')
 const searchTo = ref('')
 
-const filtersExpanded = ref(true)
+const filtersExpanded = ref(false)
 const contextExpanded = ref(false)
 const copied = ref(false)
 
@@ -110,6 +113,11 @@ async function submitSearch(): Promise<void> {
     ...(filled(searchRequestId.value) && { request_id: filled(searchRequestId.value) }),
     ...(filled(searchEventType.value) && { event_type: filled(searchEventType.value) }),
     ...(filled(searchOutcome.value) && { outcome: filled(searchOutcome.value) }),
+    ...(filled(searchErrorCode.value) && { error_code: filled(searchErrorCode.value) }),
+    ...(filled(searchSupportReference.value) && {
+      support_reference: filled(searchSupportReference.value),
+    }),
+    ...(filled(searchConsentAction.value) && { consent_action: filled(searchConsentAction.value) }),
     ...(searchFrom.value && { from: searchFrom.value }),
     ...(searchTo.value && { to: searchTo.value }),
   }
@@ -123,6 +131,9 @@ async function resetSearch(): Promise<void> {
   searchRequestId.value = ''
   searchEventType.value = ''
   searchOutcome.value = ''
+  searchErrorCode.value = ''
+  searchSupportReference.value = ''
+  searchConsentAction.value = ''
   searchFrom.value = ''
   searchTo.value = ''
   await store.search({})
@@ -207,6 +218,17 @@ onMounted(() => {
             </span>
           </button>
 
+          <div class="filters-primary mt-4">
+            <UiFormField id="auth-audit-request-id" :label="t('auth_audit.request_id')">
+              <UiInput
+                id="auth-audit-request-id"
+                v-model="searchRequestId"
+                name="auth-audit-request-id"
+                autocomplete="off"
+              />
+            </UiFormField>
+          </div>
+
           <div v-show="filtersExpanded" class="filters-content mt-4">
             <div class="filters-grid">
               <UiFormField id="auth-audit-subject-id" :label="t('auth_audit.subject_id')">
@@ -233,14 +255,6 @@ onMounted(() => {
                   autocomplete="off"
                 />
               </UiFormField>
-              <UiFormField id="auth-audit-request-id" :label="t('auth_audit.request_id')">
-                <UiInput
-                  id="auth-audit-request-id"
-                  v-model="searchRequestId"
-                  name="auth-audit-request-id"
-                  autocomplete="off"
-                />
-              </UiFormField>
               <UiFormField id="auth-audit-event-type" :label="t('auth_audit.event_type')">
                 <UiInput
                   id="auth-audit-event-type"
@@ -260,6 +274,37 @@ onMounted(() => {
                   ]"
                 />
               </UiFormField>
+              <UiFormField id="auth-audit-error-code" :label="t('auth_audit.error_code')">
+                <UiInput
+                  id="auth-audit-error-code"
+                  v-model="searchErrorCode"
+                  name="auth-audit-error-code"
+                  autocomplete="off"
+                />
+              </UiFormField>
+              <UiFormField
+                id="auth-audit-support-reference"
+                :label="t('auth_audit.support_reference')"
+              >
+                <UiInput
+                  id="auth-audit-support-reference"
+                  v-model="searchSupportReference"
+                  name="auth-audit-support-reference"
+                  autocomplete="off"
+                />
+              </UiFormField>
+              <UiFormField id="auth-audit-consent-action" :label="t('auth_audit.consent_action')">
+                <UiSelect
+                  id="auth-audit-consent-action"
+                  v-model="searchConsentAction"
+                  :options="[
+                    { value: '', label: t('auth_audit.consent_action_all') },
+                    { value: 'allow', label: t('auth_audit.consent_action_allow') },
+                    { value: 'deny', label: t('auth_audit.consent_action_deny') },
+                    { value: 'revoke', label: t('auth_audit.consent_action_revoke') },
+                  ]"
+                />
+              </UiFormField>
               <UiFormField id="auth-audit-from" :label="t('auth_audit.from')">
                 <UiInput
                   id="auth-audit-from"
@@ -272,24 +317,25 @@ onMounted(() => {
                 <UiInput id="auth-audit-to" v-model="searchTo" name="auth-audit-to" type="date" />
               </UiFormField>
             </div>
-            <div class="action-row compact-actions mt-4">
-              <UiButton
-                variant="primary"
-                class="auth-audit-search-button flex-1"
-                type="button"
-                @click="submitSearch"
-              >
-                {{ t('auth_audit.btn_filter') }}
-              </UiButton>
-              <UiButton
-                variant="secondary"
-                class="auth-audit-reset-button flex-1"
-                type="button"
-                @click="resetSearch"
-              >
-                {{ t('auth_audit.btn_reset') }}
-              </UiButton>
-            </div>
+          </div>
+
+          <div class="action-row compact-actions mt-4">
+            <UiButton
+              variant="primary"
+              class="auth-audit-search-button flex-1"
+              type="button"
+              @click="submitSearch"
+            >
+              {{ t('auth_audit.btn_filter') }}
+            </UiButton>
+            <UiButton
+              variant="secondary"
+              class="auth-audit-reset-button flex-1"
+              type="button"
+              @click="resetSearch"
+            >
+              {{ t('auth_audit.btn_reset') }}
+            </UiButton>
           </div>
         </section>
 

@@ -97,23 +97,72 @@ describe('AuthenticationAuditPage', () => {
     expect(wrapper.text()).toContain('user@example.test')
   })
 
-  it('collapses and expands search filters section', async () => {
+  it('shows request code as the default filter and expands advanced filters', async () => {
     const store = useAuthAuditStore()
     store.events = [mockEvent]
     store.status = 'success'
 
     const wrapper = mount(AuthenticationAuditPage)
 
-    // Filters should be expanded by default (no inline style attribute)
-    expect(wrapper.find('.filters-content').attributes('style')).toBeUndefined()
+    expect(wrapper.find('.filters-toggle-btn').attributes('aria-expanded')).toBe('false')
+    expect(wrapper.find('#auth-audit-request-id').exists()).toBe(true)
+    expect(wrapper.find('.filters-content').attributes('style')).toContain('display: none')
 
-    // Click collapse toggle button
     await wrapper.find('.filters-toggle-btn').trigger('click')
-
-    // Wait for the next tick to ensure Vue has updated the DOM
     await wrapper.vm.$nextTick()
 
-    expect(wrapper.find('.filters-content').attributes('style')).toContain('display: none')
+    expect(wrapper.find('.filters-toggle-btn').attributes('aria-expanded')).toBe('true')
+    expect(wrapper.find('.filters-content').attributes('style')).not.toContain('display: none')
+    expect(wrapper.find('#auth-audit-error-code').exists()).toBe(true)
+    expect(wrapper.find('#auth-audit-support-reference').exists()).toBe(true)
+    expect(wrapper.find('#auth-audit-consent-action').exists()).toBe(true)
+  })
+
+  it('submits maximal authentication audit filters', async () => {
+    const store = useAuthAuditStore()
+    store.events = [mockEvent]
+    store.status = 'success'
+    const searchSpy = vi.spyOn(store, 'search').mockResolvedValue(undefined)
+
+    const wrapper = mount(AuthenticationAuditPage)
+
+    await wrapper.find('#auth-audit-request-id').setValue('req-abc-123')
+    await wrapper.find('.filters-toggle-btn').trigger('click')
+    await wrapper.find('#auth-audit-error-code').setValue('invalid_credentials')
+    await wrapper.find('#auth-audit-support-reference').setValue('REF-ABC12345')
+    await wrapper.find('#auth-audit-consent-action').setValue('revoke')
+    await wrapper.find('.auth-audit-search-button').trigger('click')
+
+    expect(searchSpy).toHaveBeenCalledWith({
+      request_id: 'req-abc-123',
+      error_code: 'invalid_credentials',
+      support_reference: 'REF-ABC12345',
+      consent_action: 'revoke',
+    })
+  })
+
+  it('resets maximal authentication audit filters', async () => {
+    const store = useAuthAuditStore()
+    store.events = [mockEvent]
+    store.status = 'success'
+    const searchSpy = vi.spyOn(store, 'search').mockResolvedValue(undefined)
+
+    const wrapper = mount(AuthenticationAuditPage)
+
+    await wrapper.find('#auth-audit-request-id').setValue('req-abc-123')
+    await wrapper.find('.filters-toggle-btn').trigger('click')
+    await wrapper.find('#auth-audit-error-code').setValue('invalid_credentials')
+    await wrapper.find('#auth-audit-support-reference').setValue('REF-ABC12345')
+    await wrapper.find('#auth-audit-consent-action').setValue('deny')
+    await wrapper.find('.auth-audit-reset-button').trigger('click')
+
+    await wrapper.vm.$nextTick()
+
+    expect(searchSpy).toHaveBeenCalledWith({})
+    expect((wrapper.find('#auth-audit-request-id').element as HTMLInputElement).value).toBe('')
+    expect((wrapper.find('#auth-audit-error-code').element as HTMLInputElement).value).toBe('')
+    expect((wrapper.find('#auth-audit-support-reference').element as HTMLInputElement).value).toBe('')
+    expect((wrapper.find('#auth-audit-consent-action').element as HTMLSelectElement).value).toBe('')
   })
 
   it('triggers store.selectEvent when audit event card is clicked', async () => {

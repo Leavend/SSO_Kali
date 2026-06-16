@@ -105,10 +105,27 @@ describe('useAuthAuditStore', () => {
       vi.mocked(authAuditApi.listEvents).mockResolvedValue(mockListResponse)
 
       const store = useAuthAuditStore()
-      await store.search({ subject_id: 'user-1', outcome: 'succeeded' })
+      await store.search({
+        subject_id: 'user-1',
+        outcome: 'succeeded',
+        error_code: 'invalid_credentials',
+        support_reference: 'REF-ABC12345',
+        consent_action: 'revoke',
+      })
 
       expect(store.status).toBe('success')
       expect(store.filters.subject_id).toBe('user-1')
+      expect(store.filters.error_code).toBe('invalid_credentials')
+      expect(store.filters.support_reference).toBe('REF-ABC12345')
+      expect(store.filters.consent_action).toBe('revoke')
+      expect(authAuditApi.listEvents).toHaveBeenCalledWith({
+        subject_id: 'user-1',
+        outcome: 'succeeded',
+        error_code: 'invalid_credentials',
+        support_reference: 'REF-ABC12345',
+        consent_action: 'revoke',
+        limit: 50,
+      })
       expect(store.selectedEventDetail).toBeNull()
     })
   })
