@@ -202,13 +202,27 @@ describe('UsersPage', () => {
     expect(wrapper.find('.ui-empty-state').exists()).toBe(true)
   })
 
-  it('uses shared loading, status, data, and form primitives', async () => {
+  it('renders loading inside the final users layout shell to prevent layout shift', () => {
     const store = useUsersStore()
     store.status = 'loading'
 
     const wrapper = mount(UsersPage)
 
-    expect(wrapper.find('.ui-skeleton').exists()).toBe(true)
+    expect(wrapper.find('.users-layout').exists()).toBe(true)
+    expect(wrapper.find('.users-list').exists()).toBe(true)
+    expect(wrapper.find('.user-detail-container').exists()).toBe(true)
+    expect(wrapper.find('.ui-skeleton').exists()).toBe(false)
+    expect(wrapper.findAll('.user-card-item--skeleton')).toHaveLength(6)
+    expect(wrapper.find('.user-detail-loading-shell').exists()).toBe(true)
+  })
+
+  it('uses shared status, data, and form primitives', async () => {
+    const store = useUsersStore()
+    store.status = 'loading'
+
+    const wrapper = mount(UsersPage)
+
+    expect(wrapper.find('.users-layout').exists()).toBe(true)
 
     store.status = 'forbidden'
     store.errorMessage = 'Kamu tidak memiliki izin untuk melihat users admin.'

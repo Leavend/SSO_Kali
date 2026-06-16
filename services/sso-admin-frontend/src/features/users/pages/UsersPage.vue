@@ -11,7 +11,6 @@ import UiEmptyState from '@/components/ui/UiEmptyState.vue'
 import UiFormField from '@/components/ui/UiFormField.vue'
 import UiInput from '@/components/ui/UiInput.vue'
 import UiSelect from '@/components/ui/UiSelect.vue'
-import UiSkeleton from '@/components/ui/UiSkeleton.vue'
 import UiStatusView from '@/components/ui/UiStatusView.vue'
 import { buttonVariants } from '@/components/ui/button'
 import { useSessionStore } from '@/stores/session.store'
@@ -117,6 +116,7 @@ const selectedUserLastLoginAt = computed(
 
 const reason = ref('Admin review')
 const selectedRole = ref('')
+const loadingSkeletonRows = Array.from({ length: 6 }, (_, index) => index)
 
 type DetailTab = 'overview' | 'security' | 'sessions' | 'lifecycle'
 const activeDetailTab = ref<DetailTab>('overview')
@@ -414,10 +414,8 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
       <p class="page-summary">{{ t('users.summary') }}</p>
     </div>
 
-    <UiSkeleton v-if="store.status === 'loading'" :label="t('users.loading')" />
-
     <UiStatusView
-      v-else-if="store.status === 'forbidden'"
+      v-if="store.status === 'forbidden'"
       tone="forbidden"
       eyebrow="User Lifecycle"
       :title="t('users.forbidden_title')"
@@ -455,8 +453,42 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
     >
       <!-- ─── Sidebar: searchable user list ─────────────────────────────── -->
       <aside class="users-list" :aria-label="t('users.title')">
+        <div
+          v-if="store.status === 'loading'"
+          class="users-list-loading"
+          role="status"
+          :aria-label="t('users.loading')"
+        >
+          <div class="users-search users-search--skeleton" aria-hidden="true">
+            <span class="users-search__label-skeleton skeleton-line skeleton-line--short"></span>
+            <span class="users-search__control-skeleton skeleton-block"></span>
+          </div>
+
+          <ul class="user-cards-list" role="list" aria-hidden="true">
+            <li v-for="row in loadingSkeletonRows" :key="row">
+              <div class="user-card-item user-card-item--skeleton">
+                <span class="user-card-item__avatar skeleton-circle"></span>
+                <span class="user-card-item__content">
+                  <span class="user-card-item__name-row">
+                    <span class="skeleton-line skeleton-line--name"></span>
+                    <span class="skeleton-line skeleton-line--badge"></span>
+                  </span>
+                  <span class="skeleton-line skeleton-line--email"></span>
+                  <span class="skeleton-line skeleton-line--role"></span>
+                </span>
+              </div>
+            </li>
+          </ul>
+
+          <span
+            v-if="canWriteUsers"
+            class="users-list__create users-list__create--skeleton skeleton-block"
+            aria-hidden="true"
+          ></span>
+        </div>
+
         <UiEmptyState
-          v-if="store.users.length === 0"
+          v-else-if="store.users.length === 0"
           :title="t('users.empty_title')"
           :description="t('users.empty_desc')"
         />
@@ -523,7 +555,7 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
         </template>
 
         <UiButton
-          v-if="canWriteUsers"
+          v-if="store.status !== 'loading' && canWriteUsers"
           class="create-user-toggle users-list__create"
           @click="openCreateForm"
         >
@@ -533,7 +565,44 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
       </aside>
 
       <!-- ─── Detail ────────────────────────────────────────────────────── -->
-      <div v-if="store.selectedUser" class="user-detail-container">
+      <div
+        v-if="store.status === 'loading'"
+        class="user-detail-container user-detail-loading-shell"
+        aria-hidden="true"
+      >
+        <div class="user-detail-card user-profile-hero user-profile-hero--skeleton">
+          <span class="user-profile-hero__avatar skeleton-circle"></span>
+          <div class="user-profile-hero__content">
+            <span class="skeleton-line skeleton-line--hero-title"></span>
+            <span class="skeleton-line skeleton-line--hero-meta"></span>
+            <span class="skeleton-line skeleton-line--hero-code"></span>
+          </div>
+        </div>
+
+        <div class="user-detail-tabs user-detail-tabs--skeleton">
+          <span v-for="row in 4" :key="row" class="skeleton-block user-detail-tab--skeleton"></span>
+        </div>
+
+        <div class="user-detail-status user-detail-status--empty"></div>
+
+        <div class="user-detail-panel">
+          <div class="user-stats-grid">
+            <div v-for="row in 4" :key="row" class="user-stat-card user-stat-card--skeleton">
+              <span class="user-stat-card__icon-wrapper skeleton-circle"></span>
+              <span class="user-stat-card__info">
+                <span class="skeleton-line skeleton-line--short"></span>
+                <span class="skeleton-line skeleton-line--value"></span>
+              </span>
+            </div>
+          </div>
+          <div class="user-detail-card user-detail-card--skeleton">
+            <span class="skeleton-line skeleton-line--section-title"></span>
+            <span class="skeleton-block skeleton-block--form"></span>
+          </div>
+        </div>
+      </div>
+
+      <div v-else-if="store.selectedUser" class="user-detail-container">
         <!-- Mobile back button to list view -->
         <div class="user-detail-back-bar">
           <UiButton variant="secondary" size="sm" @click="store.selectedSubjectId = null">
@@ -626,8 +695,14 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
 
         <!-- Cross-tab status (errors + reset evidence stay visible) -->
         <div
-          v-if="store.errorMessage || store.passwordResetToken || store.auditEventId"
           class="user-detail-status"
+          :class="{
+            'user-detail-status--empty': !(
+              store.errorMessage ||
+              store.passwordResetToken ||
+              store.auditEventId
+            ),
+          }"
           aria-live="polite"
         >
           <p v-if="store.errorMessage" class="ui-action-message" role="alert">
@@ -1062,7 +1137,7 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
     </div>
 
     <EvidenceContextPanel
-      v-if="!store.selectedUser"
+      v-if="store.status !== 'loading' && !store.selectedUser"
       title="Users evidence"
       :request-id="store.requestId"
     />

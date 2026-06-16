@@ -211,7 +211,6 @@ select {
   grid-template-columns: 280px minmax(0, 1fr);
   min-height: 100vh;
   background: var(--admin-shell-bg);
-  transition: grid-template-columns 200ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .admin-control-plane.admin-control-plane--nav-open .admin-sidebar {
@@ -988,6 +987,61 @@ select {
   gap: 10px;
 }
 
+.users-list {
+  min-height: 600px;
+}
+
+.users-list-loading {
+  display: grid;
+  gap: 10px;
+}
+
+.users-search--skeleton {
+  display: grid;
+  gap: 8px;
+}
+
+.users-search__label-skeleton {
+  width: 42%;
+}
+
+.users-search__control-skeleton {
+  height: 44px;
+}
+
+.user-card-item--skeleton {
+  min-height: 92px;
+  cursor: default;
+  pointer-events: none;
+}
+
+.user-card-item--skeleton .user-card-item__avatar,
+.user-profile-hero--skeleton .user-profile-hero__avatar {
+  width: 44px;
+  height: 44px;
+}
+
+.skeleton-line--name {
+  width: min(150px, 62%);
+}
+
+.skeleton-line--badge {
+  width: 64px;
+  height: 22px;
+}
+
+.skeleton-line--email {
+  width: 78%;
+}
+
+.skeleton-line--role {
+  width: 38%;
+}
+
+.users-list__create--skeleton {
+  height: 44px;
+}
+
 .client-list-item,
 .user-list-item {
   display: grid;
@@ -1230,6 +1284,32 @@ select {
   100% {
     background-position: -200% 0;
   }
+}
+
+.skeleton-line,
+.skeleton-block,
+.skeleton-circle {
+  display: block;
+  overflow: hidden;
+  background: linear-gradient(90deg, var(--muted) 0%, var(--secondary) 50%, var(--muted) 100%);
+  background-size: 200% 100%;
+  animation: admin-skeleton 1.5s infinite linear;
+}
+
+.skeleton-line {
+  width: 100%;
+  height: 14px;
+  border-radius: 999px;
+}
+
+.skeleton-block {
+  width: 100%;
+  border-radius: 14px;
+}
+
+.skeleton-circle {
+  flex: 0 0 auto;
+  border-radius: 999px;
 }
 
 .ui-empty-state {
@@ -2665,9 +2745,63 @@ select.ui-control {
   gap: 24px;
   width: 100%;
   grid-column: 2;
+  min-height: 720px;
   min-width: 0;
   container-type: inline-size;
   container-name: userdetail;
+}
+
+.user-detail-loading-shell {
+  contain: layout paint;
+}
+
+.user-profile-hero--skeleton {
+  min-height: 156px;
+  align-items: center;
+}
+
+.skeleton-line--hero-title {
+  width: min(340px, 72%);
+  height: 28px;
+}
+
+.skeleton-line--hero-meta {
+  width: min(220px, 48%);
+}
+
+.skeleton-line--hero-code {
+  width: min(260px, 64%);
+}
+
+.user-detail-tabs--skeleton {
+  min-height: 52px;
+}
+
+.user-detail-tab--skeleton {
+  height: 44px;
+}
+
+.user-stat-card--skeleton {
+  min-height: 92px;
+}
+
+.user-stat-card--skeleton .user-stat-card__icon-wrapper {
+  width: 40px;
+  height: 40px;
+}
+
+.skeleton-line--value {
+  width: 72%;
+}
+
+.skeleton-line--section-title {
+  width: min(260px, 54%);
+  height: 20px;
+  margin-bottom: 18px;
+}
+
+.skeleton-block--form {
+  min-height: 128px;
 }
 
 .user-detail-card {
@@ -3498,6 +3632,11 @@ button.user-card-item {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-height: 52px;
+}
+
+.user-detail-status--empty {
+  visibility: hidden;
 }
 
 /* Active sessions list. */
@@ -3576,7 +3715,7 @@ button.user-card-item {
   flex-direction: column;
   justify-content: flex-start;
   align-items: center;
-  min-height: 400px;
+  min-height: 720px;
   width: 100%;
   grid-column: 2;
   min-width: 0;
