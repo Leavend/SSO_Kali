@@ -43,4 +43,10 @@ describe('admin sidebar layout contract', () => {
     expect(externalLink).not.toContain('border-top')
     expect(principal).not.toContain('margin-top: auto;')
   })
+
+  it('keeps collapsed desktop nav overflow visible so tooltips are not clipped', () => {
+    const collapsedNav = cssBlock('.admin-control-plane--collapsed .admin-nav')
+
+    expect(collapsedNav).toContain('overflow: visible;')
+  })
 })

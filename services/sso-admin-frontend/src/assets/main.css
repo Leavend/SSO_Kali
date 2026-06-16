@@ -2222,6 +2222,11 @@ select.ui-control {
     text-transform: uppercase;
   }
 
+  .admin-control-plane--collapsed .admin-nav {
+    /* Collapsed tooltips render outside the rail; non-visible overflow clips them. */
+    overflow: visible;
+  }
+
   .admin-control-plane--collapsed .admin-nav__text {
     display: none;
   }
