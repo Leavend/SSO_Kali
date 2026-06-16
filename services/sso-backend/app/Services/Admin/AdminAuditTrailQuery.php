@@ -32,6 +32,20 @@ final class AdminAuditTrailQuery
             $query->where('context->request_id', $filters['request_id']);
         }
 
+        if (is_string($filters['subject_id'] ?? null) && $filters['subject_id'] !== '') {
+            $query->where(function ($query) use ($filters): void {
+                $query
+                    ->where('context->subject_id', $filters['subject_id'])
+                    ->orWhere('context->target_subject_id', $filters['subject_id']);
+            });
+        }
+
+        foreach (['client_id', 'session_id'] as $field) {
+            if (is_string($filters[$field] ?? null) && $filters[$field] !== '') {
+                $query->where('context->'.$field, $filters[$field]);
+            }
+        }
+
         if (is_string($filters['support_reference'] ?? null) && $filters['support_reference'] !== '') {
             $query->where(SupportReference::whereSuffixOrExact($filters['support_reference']));
         }

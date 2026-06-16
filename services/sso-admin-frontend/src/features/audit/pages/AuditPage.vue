@@ -38,6 +38,7 @@ import {
 } from '@/lib/display-identifiers'
 import type {
   AuditExportFilters,
+  AuthenticationAuditEventFilters,
   ComplianceEvidencePackFilters,
   RetentionStatusItem,
 } from '../types'
@@ -129,6 +130,7 @@ async function submitSearch(): Promise<void> {
       ...(searchFrom.value && { from: searchFrom.value }),
       ...(searchTo.value && { to: searchTo.value }),
     }),
+    store.searchConsentEvents(consentEventFilters(selectedConsentAction.value)),
   ])
 }
 
@@ -145,38 +147,38 @@ async function resetSearch(): Promise<void> {
   selectedConsentAction.value = 'all'
   searchFrom.value = ''
   searchTo.value = ''
-  await Promise.all([store.searchEvents({}), store.searchAuthenticationEvents({})])
+  await Promise.all([
+    store.searchEvents({}),
+    store.searchAuthenticationEvents({}),
+    store.searchConsentEvents(consentEventFilters('all')),
+  ])
+}
+
+function consentEventFilters(
+  action: 'all' | 'allow' | 'deny' | 'revoke',
+): AuthenticationAuditEventFilters {
+  return {
+    event_type: 'consent_decision',
+    ...(action !== 'all' && { consent_action: action }),
+    ...(action === 'allow' || action === 'revoke' ? { outcome: 'succeeded' } : {}),
+    ...(action === 'deny' ? { outcome: 'failed' } : {}),
+    ...(filled(searchRequestId.value) && { request_id: filled(searchRequestId.value) }),
+    ...(filled(searchSupportReference.value) && {
+      support_reference: filled(searchSupportReference.value),
+    }),
+    ...(filled(searchSessionId.value) && { session_id: filled(searchSessionId.value) }),
+    ...(filled(searchSubjectId.value) && { subject_id: filled(searchSubjectId.value) }),
+    ...(filled(searchClientId.value) && { client_id: filled(searchClientId.value) }),
+    ...(searchFrom.value && { from: searchFrom.value }),
+    ...(searchTo.value && { to: searchTo.value }),
+  }
 }
 
 async function applyConsentFilter(
   action: 'all' | 'allow' | 'deny' | 'revoke' = 'all',
 ): Promise<void> {
   selectedConsentAction.value = action
-  searchAction.value = action === 'revoke' ? 'profile.connected_app.revoke' : ''
-  searchTaxonomy.value = action === 'revoke' ? 'profile.connected_app_revoked' : ''
-  searchOutcome.value =
-    action === 'allow' || action === 'revoke' ? 'succeeded' : action === 'deny' ? 'failed' : ''
-  await Promise.all([
-    store.searchEvents({
-      ...(action === 'revoke' && { action: 'profile.connected_app.revoke' }),
-      ...(action === 'revoke' && { taxonomy: 'profile.connected_app_revoked' }),
-      ...(filled(searchAdminSubjectId.value) && {
-        admin_subject_id: filled(searchAdminSubjectId.value),
-      }),
-      ...(searchFrom.value && { from: searchFrom.value }),
-      ...(searchTo.value && { to: searchTo.value }),
-    }),
-    store.searchAuthenticationEvents({
-      event_type: 'consent_decision',
-      ...(action !== 'all' && { consent_action: action }),
-      ...(action === 'allow' || action === 'revoke' ? { outcome: 'succeeded' } : {}),
-      ...(action === 'deny' ? { outcome: 'failed' } : {}),
-      ...(filled(searchSubjectId.value) && { subject_id: filled(searchSubjectId.value) }),
-      ...(filled(searchClientId.value) && { client_id: filled(searchClientId.value) }),
-      ...(searchFrom.value && { from: searchFrom.value }),
-      ...(searchTo.value && { to: searchTo.value }),
-    }),
-  ])
+  await store.searchConsentEvents(consentEventFilters(action))
 }
 
 function queryValue(value: unknown): string {
@@ -224,6 +226,7 @@ const hasAuditEvidence = computed(
   () =>
     store.events.length > 0 ||
     store.authenticationEvents.length > 0 ||
+    store.consentEvents.length > 0 ||
     store.dataSubjectRequests.length > 0 ||
     store.integrity !== null ||
     store.retentionStatus !== null,
@@ -281,6 +284,15 @@ const auditEventRows = computed<readonly UiDataListRow[]>(() =>
 )
 const authenticationEventRows = computed<readonly UiDataListRow[]>(() =>
   store.authenticationEvents.map((event) => ({
+    id: event.event_id,
+    event_id: formatTechnicalPreview(event.event_id),
+    event_type: event.event_type,
+    outcome: event.outcome,
+    request_id: formatTechnicalPreview(event.request?.request_id),
+  })),
+)
+const consentEventRows = computed<readonly UiDataListRow[]>(() =>
+  store.consentEvents.map((event) => ({
     id: event.event_id,
     event_id: formatTechnicalPreview(event.event_id),
     event_type: event.event_type,
@@ -637,6 +649,42 @@ onMounted(() => {
                 @click="applyConsentFilter('revoke')"
               >
                 Revoke
+              </UiButton>
+            </div>
+
+            <div class="audit-table-wrapper">
+              <UiDataList
+                caption="Consent event table"
+                :columns="authenticationEventColumns"
+                :rows="consentEventRows"
+              >
+                <template #actions="{ row }">
+                  <UiButton
+                    variant="secondary"
+                    size="sm"
+                    :class="
+                      row.id === store.selectedAuthenticationEventId
+                        ? 'border-primary text-primary'
+                        : undefined
+                    "
+                    @click="openAuthenticationEventDetail(row.id)"
+                  >
+                    {{ t('audit.btn_view_detail') }}
+                  </UiButton>
+                </template>
+              </UiDataList>
+            </div>
+            <p v-if="store.consentEvents.length === 0" class="text-sm text-muted-foreground pt-2">
+              No consent events match the selected filter.
+            </p>
+            <div class="pt-2">
+              <UiButton
+                v-if="store.consentEventPagination?.has_more && store.consentEventPagination?.next_cursor"
+                variant="primary"
+                class="consent-load-more-button"
+                @click="store.loadMoreConsentEvents"
+              >
+                Load more consent events
               </UiButton>
             </div>
           </section>

@@ -224,6 +224,42 @@ describe('useAuditStore', () => {
     expect(store.authenticationEventPagination?.next_cursor).toBe('cursor-auth-2')
   })
 
+  it('searches consent audit events without replacing security authentication events', async () => {
+    const consentEvent: AuthenticationAuditEvent = {
+      ...authEvent,
+      event_id: 'CONSENT01',
+      event_type: 'consent_decision',
+      outcome: 'succeeded',
+      context: { decision: 'allow', consent_action: 'allow' },
+    }
+    vi.mocked(auditApi.listAuthenticationEvents).mockResolvedValue({
+      events: [consentEvent],
+      pagination: { next_cursor: 'cursor-consent-2', has_more: true },
+    })
+    const store = useAuditStore()
+    store.authenticationEvents = [authEvent]
+
+    await store.searchConsentEvents({
+      event_type: 'consent_decision',
+      consent_action: 'allow',
+      outcome: 'succeeded',
+      subject_id: 'sub_target',
+      client_id: 'prototype-app-a',
+    })
+
+    expect(auditApi.listAuthenticationEvents).toHaveBeenCalledWith({
+      event_type: 'consent_decision',
+      consent_action: 'allow',
+      outcome: 'succeeded',
+      subject_id: 'sub_target',
+      client_id: 'prototype-app-a',
+      limit: 25,
+    })
+    expect(store.authenticationEvents).toEqual([authEvent])
+    expect(store.consentEvents).toEqual([consentEvent])
+    expect(store.consentEventPagination?.next_cursor).toBe('cursor-consent-2')
+  })
+
   it('loads more authentication audit events with the stored cursor', async () => {
     vi.mocked(auditApi.listAuthenticationEvents).mockResolvedValue({
       events: [{ ...authEvent, event_id: 'AUTH02', session_id: 'sid-456' }],

@@ -63,6 +63,12 @@ export const useAuditStore = defineStore('admin-audit', () => {
   const authenticationEvents = ref<readonly AuthenticationAuditEvent[]>([])
   const authenticationEventFilters = ref<AuthenticationAuditEventFilters>({ limit: 25 })
   const authenticationEventPagination = ref<AuditPagination | null>(null)
+  const consentEvents = ref<readonly AuthenticationAuditEvent[]>([])
+  const consentEventFilters = ref<AuthenticationAuditEventFilters>({
+    event_type: 'consent_decision',
+    limit: 25,
+  })
+  const consentEventPagination = ref<AuditPagination | null>(null)
   const selectedAuthenticationEventId = ref<string | null>(null)
   const selectedAuthenticationEventDetail = ref<AuthenticationAuditEvent | null>(null)
   const errorMessage = ref<string | null>(null)
@@ -267,6 +273,22 @@ export const useAuditStore = defineStore('admin-audit', () => {
     }
   }
 
+  async function searchConsentEvents(filters: AuthenticationAuditEventFilters): Promise<void> {
+    consentEventFilters.value = { ...filters, event_type: 'consent_decision', limit: 25 }
+
+    try {
+      const response = await auditApi.listAuthenticationEvents(consentEventFilters.value)
+      consentEvents.value = response.events
+      consentEventPagination.value = response.pagination ?? null
+      requestId.value = getLastRequestId()
+      status.value = 'success'
+    } catch (error) {
+      consentEvents.value = []
+      consentEventPagination.value = null
+      handleActionError(error)
+    }
+  }
+
   async function loadMoreAuthenticationEvents(): Promise<void> {
     const cursor = authenticationEventPagination.value?.next_cursor
     if (!cursor) return
@@ -278,6 +300,23 @@ export const useAuditStore = defineStore('admin-audit', () => {
       })
       authenticationEvents.value = [...authenticationEvents.value, ...response.events]
       authenticationEventPagination.value = response.pagination ?? null
+      requestId.value = getLastRequestId()
+    } catch (error) {
+      handleActionError(error)
+    }
+  }
+
+  async function loadMoreConsentEvents(): Promise<void> {
+    const cursor = consentEventPagination.value?.next_cursor
+    if (!cursor) return
+
+    try {
+      const response = await auditApi.listAuthenticationEvents({
+        ...consentEventFilters.value,
+        cursor,
+      })
+      consentEvents.value = [...consentEvents.value, ...response.events]
+      consentEventPagination.value = response.pagination ?? null
       requestId.value = getLastRequestId()
     } catch (error) {
       handleActionError(error)
@@ -523,6 +562,9 @@ export const useAuditStore = defineStore('admin-audit', () => {
     authenticationEvents,
     authenticationEventFilters,
     authenticationEventPagination,
+    consentEvents,
+    consentEventFilters,
+    consentEventPagination,
     selectedAuthenticationEventId,
     selectedAuthenticationEvent,
     selectedAuthenticationEventDetail,
@@ -535,6 +577,8 @@ export const useAuditStore = defineStore('admin-audit', () => {
     loadMoreEvents,
     searchAuthenticationEvents,
     loadMoreAuthenticationEvents,
+    searchConsentEvents,
+    loadMoreConsentEvents,
     selectEvent,
     selectAuthenticationEvent,
     reviewRequest,

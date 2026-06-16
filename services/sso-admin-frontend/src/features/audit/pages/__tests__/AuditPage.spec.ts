@@ -220,6 +220,21 @@ describe('AuditPage', () => {
     expect(wrapper.find('.ui-empty-state').exists()).toBe(true)
   })
 
+  it('renders the consent table when consent evidence is the only loaded slice', () => {
+    const store = useAuditStore()
+    store.status = 'success'
+    store.events = []
+    store.authenticationEvents = []
+    store.consentEvents = [{ ...authEvent, event_id: 'CONSENT01', event_type: 'consent_decision' }]
+    store.dataSubjectRequests = []
+    store.integrity = null
+
+    const wrapper = mount(AuditPage)
+
+    expect(wrapper.text()).toContain('Consent event table')
+    expect(wrapper.find('.ui-empty-state').exists()).toBe(false)
+  })
+
   it('uses shared loading, status, data, and form primitives', async () => {
     const store = useAuditStore()
     store.status = 'loading'
@@ -313,7 +328,7 @@ describe('AuditPage', () => {
     expect(wrapper.text()).toContain('/admin/api/users/sub_target/lock')
   })
 
-  it('applies the consent quick filter to authentication audit and revoke audit events', async () => {
+  it('applies the consent quick filter to the dedicated consent audit slice', async () => {
     const store = useAuditStore()
     store.status = 'success'
     store.events = [event]
@@ -321,6 +336,7 @@ describe('AuditPage', () => {
     store.integrity = { verified: true, checked_events: 1 }
     const searchEventsSpy = vi.spyOn(store, 'searchEvents').mockResolvedValue()
     const searchAuthSpy = vi.spyOn(store, 'searchAuthenticationEvents').mockResolvedValue()
+    const searchConsentSpy = vi.spyOn(store, 'searchConsentEvents').mockResolvedValue()
 
     const wrapper = mount(AuditPage)
 
@@ -328,11 +344,9 @@ describe('AuditPage', () => {
     await wrapper.find('input[name="audit-search-client-id"]').setValue('prototype-app-a')
     await wrapper.find('button.consent-filter-revoke-button').trigger('click')
 
-    expect(searchEventsSpy).toHaveBeenCalledWith({
-      action: 'profile.connected_app.revoke',
-      taxonomy: 'profile.connected_app_revoked',
-    })
-    expect(searchAuthSpy).toHaveBeenCalledWith({
+    expect(searchEventsSpy).not.toHaveBeenCalled()
+    expect(searchAuthSpy).not.toHaveBeenCalled()
+    expect(searchConsentSpy).toHaveBeenCalledWith({
       event_type: 'consent_decision',
       consent_action: 'revoke',
       outcome: 'succeeded',
@@ -355,12 +369,14 @@ describe('AuditPage', () => {
     store.integrity = { verified: true, checked_events: 1 }
     const searchEventsSpy = vi.spyOn(store, 'searchEvents').mockResolvedValue()
     const searchAuthSpy = vi.spyOn(store, 'searchAuthenticationEvents').mockResolvedValue()
+    const searchConsentSpy = vi.spyOn(store, 'searchConsentEvents').mockResolvedValue()
 
     mount(AuditPage)
     await Promise.resolve()
 
-    expect(searchEventsSpy).toHaveBeenCalledWith({ admin_subject_id: 'sub_query' })
-    expect(searchAuthSpy).toHaveBeenCalledWith({
+    expect(searchEventsSpy).not.toHaveBeenCalled()
+    expect(searchAuthSpy).not.toHaveBeenCalled()
+    expect(searchConsentSpy).toHaveBeenCalledWith({
       event_type: 'consent_decision',
       consent_action: 'deny',
       outcome: 'failed',

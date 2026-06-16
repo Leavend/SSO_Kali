@@ -66,6 +66,44 @@ it('lists filters and paginates safe audit trail events', function (): void {
         ->assertJsonCount(1, 'events');
 });
 
+it('filters admin audit events by target account application and session context', function (): void {
+    $admin = auditTrailAdmin([AdminPermission::AUDIT_READ]);
+
+    auditTrailStore()->append(auditTrailPayload('succeeded', 'revoke_session', [
+        'target_subject_id' => 'usr-target-a',
+        'client_id' => 'prototype-app-a',
+        'session_id' => 'sid-target-a',
+    ]));
+    auditTrailStore()->append(auditTrailPayload('succeeded', 'revoke_session', [
+        'subject_id' => 'usr-target-b',
+        'client_id' => 'prototype-app-b',
+        'session_id' => 'sid-target-b',
+    ]));
+    auditTrailStore()->append(auditTrailPayload('succeeded', 'revoke_session', [
+        'target_subject_id' => 'usr-target-a',
+        'client_id' => 'prototype-app-b',
+        'session_id' => 'sid-target-c',
+    ]));
+
+    $this->getJson('/admin/api/audit/events?'.http_build_query([
+        'subject_id' => 'usr-target-a',
+        'client_id' => 'prototype-app-a',
+        'session_id' => 'sid-target-a',
+    ]), auditTrailHeaders($admin))
+        ->assertOk()
+        ->assertJsonCount(1, 'events')
+        ->assertJsonPath('events.0.context.target_subject_id', 'usr-target-a')
+        ->assertJsonPath('events.0.context.client_id', 'prototype-app-a')
+        ->assertJsonPath('events.0.context.session_id', 'sid-target-a');
+
+    $this->getJson('/admin/api/audit/events?'.http_build_query([
+        'subject_id' => 'usr-target-b',
+    ]), auditTrailHeaders($admin))
+        ->assertOk()
+        ->assertJsonCount(1, 'events')
+        ->assertJsonPath('events.0.context.subject_id', 'usr-target-b');
+});
+
 it('shows one safe audit event and returns not found for unknown event ids', function (): void {
     $admin = auditTrailAdmin([AdminPermission::AUDIT_READ]);
     auditTrailStore()->append(auditTrailPayload('succeeded', 'update_profile_portal', ['password' => 'secret-password']));
