@@ -201,10 +201,7 @@ onMounted(() => {
 
 <template>
   <section class="roles-page max-w-page mx-auto px-4 md:px-6 py-8" aria-labelledby="roles-title">
-    <div
-      class="page-heading"
-      style="display: flex; justify-content: space-between; align-items: flex-start"
-    >
+    <div class="page-heading page-heading--with-action">
       <div>
         <p class="eyebrow">{{ t('roles.eyebrow') }}</p>
         <h1 id="roles-title">{{ t('roles.title') }}</h1>
@@ -618,6 +615,7 @@ onMounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  white-space: nowrap;
 }
 
 .system-badge {

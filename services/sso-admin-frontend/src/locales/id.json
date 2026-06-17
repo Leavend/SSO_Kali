@@ -374,6 +374,7 @@
     "validation_scopes": "Pilih minimal satu scope dan sertakan openid.",
     "label_disable_reason": "Alasan nonaktif",
     "label_decommission": "Ketik client ID untuk decommission",
+    "label_delete_confirmation": "Ketik client ID untuk hapus permanen",
     "val_unknown": "tidak diketahui",
     "val_not_set": "Belum diisi",
     "val_no_evidence": "Belum ada evidence",
@@ -394,6 +395,7 @@
     "btn_rotate_secret": "Rotate secret",
     "btn_disable_client": "Disable client",
     "btn_decommission_client": "Decommission client",
+    "btn_delete_client": "Hapus client permanen",
     "secret_hint": "Rotasi secret hanya menampilkan plaintext satu kali. Salin lalu hapus dari layar.",
     "secret_reveal_title": "Secret baru untuk",
     "secret_reveal_warning": "Simpan secret ini dengan aman di key vault Anda. Secret ini tidak akan ditampilkan lagi setelah Anda menutup layar atau menekan tombol di bawah.",
@@ -420,7 +422,11 @@
     "disable_placeholder": "Masukkan alasan penonaktifan client...",
     "sub_decommission_title": "Decommission Client",
     "decommission_hint": "Tindakan destruktif: menghapus konfigurasi client secara permanen. Tindakan ini tidak dapat dibatalkan.",
-    "decommission_placeholder": "Ketik client ID untuk konfirmasi..."
+    "decommission_placeholder": "Ketik client ID",
+    "sub_delete_title": "Hapus permanen client",
+    "delete_hint": "Tindakan sangat destruktif: menghapus client secara permanen dari database. Tindakan ini tidak dapat dibatalkan.",
+    "delete_placeholder": "Ketik client ID",
+    "delete_confirmation_error": "Ketik client ID untuk konfirmasi hapus permanen."
   },
   "sessions": {
     "title": "Sesi",

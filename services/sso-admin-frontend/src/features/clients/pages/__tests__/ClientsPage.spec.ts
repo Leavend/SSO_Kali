@@ -109,6 +109,25 @@ describe('ClientsPage', () => {
     expect(wrapper.text()).not.toMatch(/Bearer|refreshToken|secret_hash/i)
   })
 
+  it('marks long client identifiers and URI evidence as mobile breakable', () => {
+    const store = useClientsStore()
+    store.clients = [client]
+    store.selectedClientId = 'prototype-app-a'
+    store.status = 'success'
+    store.detailStatus = 'success'
+
+    const wrapper = mount(ClientsPage)
+
+    expect(wrapper.get('.client-profile-hero__client-id .stat-value').classes()).toContain(
+      'break-anywhere',
+    )
+    expect(wrapper.get('.client-detail-tabs').classes()).toContain('scroll-edge-indicator')
+
+    const uriCodes = wrapper.findAll('.client-uri-value')
+    expect(uriCodes).toHaveLength(3)
+    expect(uriCodes.every((code) => code.classes().includes('break-anywhere'))).toBe(true)
+  })
+
   it('renders active-client URI policy controls with backchannel logout fields', async () => {
     const store = useClientsStore()
     store.clients = [client]
@@ -192,10 +211,10 @@ describe('ClientsPage', () => {
     const checkboxes = wrapper.findAll('input[type="checkbox"]')
     expect(checkboxes.length).toBeGreaterThanOrEqual(3)
 
-    const openidInput = checkboxes.find(c => c.attributes('value') === 'openid')
+    const openidInput = checkboxes.find((c) => c.attributes('value') === 'openid')
     expect(openidInput?.attributes('disabled')).toBeDefined()
 
-    const emailInput = checkboxes.find(c => c.attributes('value') === 'email')
+    const emailInput = checkboxes.find((c) => c.attributes('value') === 'email')
     expect(emailInput).toBeDefined()
     await (emailInput as any).setChecked(true)
 
@@ -219,12 +238,12 @@ describe('ClientsPage', () => {
 
     const wrapper = mount(ClientsPage)
 
-    await wrapper.get('input[placeholder="Ketik client ID untuk konfirmasi..."]').setValue('wrong-confirmation')
+    await wrapper.get('input[name="delete_confirmation"]').setValue('wrong-confirmation')
     await wrapper.get('button[data-test="delete-client"]').trigger('click')
     expect(deleteSpy).not.toHaveBeenCalled()
-    expect(wrapper.text()).toContain('Ketik client ID untuk konfirmasi hapus permanen.')
+    expect(wrapper.text()).toContain('Type the client ID to confirm permanent deletion.')
 
-    await wrapper.get('input[placeholder="Ketik client ID untuk konfirmasi..."]').setValue('prototype-app-a')
+    await wrapper.get('input[name="delete_confirmation"]').setValue('prototype-app-a')
     await wrapper.get('button[data-test="delete-client"]').trigger('click')
     expect(deleteSpy).toHaveBeenCalled()
   })
@@ -242,6 +261,7 @@ describe('ClientsPage', () => {
 
     expect(wrapper.text()).toContain('Client lifecycle')
     expect(wrapper.text()).toContain('Impact summary')
+    expect(wrapper.text()).toContain('Permanently delete client')
 
     await wrapper.get('textarea[name="client_disable_reason"]').setValue('incident response')
     await wrapper.get('button[data-test="disable-client"]').trigger('click')

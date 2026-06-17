@@ -925,7 +925,7 @@ select {
 }
 
 .break-anywhere {
-  overflow-wrap: break-word;
+  overflow-wrap: anywhere;
   word-break: break-word;
 }
 
@@ -955,6 +955,22 @@ select {
   line-height: 1;
   font-weight: 900;
   letter-spacing: -0.03em;
+}
+
+.page-heading--with-action {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.page-heading--with-action > :first-child {
+  min-width: 0;
+}
+
+.scroll-edge-indicator {
+  position: relative;
+  mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
 }
 
 .page-summary,
@@ -2736,6 +2752,18 @@ select.ui-control {
 }
 
 @media (max-width: 640px) {
+  .page-heading--with-action {
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 12px;
+  }
+
+  .page-heading--with-action .create-role-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
   .audit-page {
     padding-top: 20px !important;
   }
@@ -2782,6 +2810,16 @@ select.ui-control {
 
   .audit-detail-dialog {
     max-height: 58vh;
+  }
+
+  .user-detail-card__actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .user-detail-card__actions .ui-action,
+  .user-detail-card__actions button {
+    width: 100%;
   }
 }
 .audit-badge--info {
@@ -3175,11 +3213,21 @@ select.ui-control {
   display: flex;
   align-items: center;
   gap: 0.15rem;
+  min-width: 0;
 }
 
 .stat-value--with-copy .stat-value--truncate {
   flex: 1;
   min-width: 0;
+}
+
+.stat-value--with-copy .stat-value {
+  flex: 1;
+  min-width: 0;
+}
+
+.create-role-btn {
+  white-space: nowrap;
 }
 /* Container-driven 2‑column switch: the detail panel’s own width
    determines the column count, not the viewport (ISS-UI3). */
@@ -4306,6 +4354,7 @@ button.user-card-item {
   display: flex;
   flex-direction: column;
   gap: 24px;
+  min-width: 0;
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 20px;
@@ -4328,6 +4377,7 @@ button.user-card-item {
   display: flex;
   align-items: center;
   gap: 20px;
+  min-width: 0;
   padding: 24px;
   background: var(--muted);
   border: 1px solid var(--border);
@@ -4359,11 +4409,13 @@ button.user-card-item {
   margin-bottom: 4px;
 }
 .client-profile-hero__header-row h2 {
+  min-width: 0;
   font-size: 1.35rem;
   font-weight: 850;
   letter-spacing: -0.02em;
   margin: 0;
   color: var(--foreground);
+  overflow-wrap: anywhere;
 }
 .client-profile-hero__status-badge {
   text-transform: uppercase;
@@ -4390,6 +4442,15 @@ button.user-card-item {
 .client-profile-hero__actions {
   display: flex;
   align-items: center;
+  min-width: 0;
+}
+
+.client-uri-value,
+.secret-code-value {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 /* Tabs styling */
@@ -4549,6 +4610,14 @@ button.user-card-item {
 
 .user-detail__sub-actions + .user-detail__sub-actions {
   margin-top: 24px;
+}
+
+.client-delete-title {
+  color: var(--destructive);
+}
+
+.detail-section--danger .ui-action-message {
+  margin-bottom: 12px;
 }
 .secret-reveal__actions {
   margin-top: 12px;
@@ -4990,6 +5059,7 @@ button.user-card-item {
 @media (max-width: 760px) {
   .clients-layout {
     grid-template-columns: 1fr !important;
+    min-width: 0;
   }
 
   .client-detail-back-bar {
@@ -5008,23 +5078,38 @@ button.user-card-item {
 
   .client-profile-hero {
     flex-direction: column;
-    text-align: center;
+    align-items: stretch;
+    text-align: left;
     gap: 16px;
     padding: 20px;
   }
 
   .client-profile-hero__header-row {
-    justify-content: center;
+    align-items: flex-start;
+    justify-content: flex-start;
+    flex-wrap: wrap;
   }
 
   .client-profile-hero__actions {
-    justify-content: center;
+    justify-content: stretch;
     width: 100%;
   }
 
   .client-profile-hero__actions .ui-action {
     width: 100%;
     text-align: center;
+  }
+
+  .client-detail {
+    border-radius: 14px;
+    padding: 16px;
+  }
+
+  .client-detail-tabs {
+    margin-right: -16px;
+    margin-left: -16px;
+    padding-right: 16px;
+    padding-left: 16px;
   }
 }
 

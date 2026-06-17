@@ -89,6 +89,19 @@ describe('RolesPage', () => {
     expect(wrapper.text()).toContain('admin.users.read')
   })
 
+  it('uses a responsive action heading instead of inline desktop flex styles', () => {
+    const store = useRolesStore()
+    store.status = 'success'
+    store.roles = [mockRole]
+
+    const wrapper = mount(RolesPage)
+    const heading = wrapper.get('.page-heading')
+
+    expect(heading.classes()).toContain('page-heading--with-action')
+    expect(heading.attributes('style')).toBeUndefined()
+    expect(wrapper.get('.create-role-btn').classes()).toContain('create-role-btn')
+  })
+
   it('hides edit and delete controls for system roles', () => {
     const store = useRolesStore()
     store.status = 'success'

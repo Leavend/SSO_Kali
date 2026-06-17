@@ -416,7 +416,7 @@ onMounted(() => {
 
     <div v-else class="space-y-6">
       <!-- Horizontal Tab System -->
-      <div class="audit-tabs-container">
+      <div class="audit-tabs-container scroll-edge-indicator">
         <nav class="audit-tabs" aria-label="Audit navigation tabs">
           <button
             class="audit-tab-btn"
@@ -679,7 +679,10 @@ onMounted(() => {
             </p>
             <div class="pt-2">
               <UiButton
-                v-if="store.consentEventPagination?.has_more && store.consentEventPagination?.next_cursor"
+                v-if="
+                  store.consentEventPagination?.has_more &&
+                  store.consentEventPagination?.next_cursor
+                "
                 variant="primary"
                 class="consent-load-more-button"
                 @click="store.loadMoreConsentEvents"

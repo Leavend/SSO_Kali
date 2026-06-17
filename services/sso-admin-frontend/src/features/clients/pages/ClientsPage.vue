@@ -70,7 +70,9 @@ const deleteMessage = ref<string | null>(null)
 const uriValidationMessage = computed(() => uriValidationMessages.value.join(' '))
 const knownScopeLabels = computed(() => new Set(store.scopes.map((s) => s.name)))
 const scopeParityWarnings = computed(() =>
-  (store.selectedClient?.allowed_scopes ?? []).filter((scope) => !knownScopeLabels.value.has(scope)),
+  (store.selectedClient?.allowed_scopes ?? []).filter(
+    (scope) => !knownScopeLabels.value.has(scope),
+  ),
 )
 const searchQuery = ref('')
 const filteredClients = computed(() => {
@@ -562,7 +564,7 @@ async function deleteClient(): Promise<void> {
   successMessage.value = null
   deleteMessage.value = null
   if (lifecycleForm.delete_confirmation !== store.selectedClient?.client_id) {
-    deleteMessage.value = 'Ketik client ID untuk konfirmasi hapus permanen.'
+    deleteMessage.value = t('clients.delete_confirmation_error')
     return
   }
 
@@ -585,7 +587,10 @@ async function deleteClient(): Promise<void> {
 </script>
 
 <template>
-  <section class="clients-page max-w-page mx-auto px-4 md:px-6 py-8" aria-labelledby="clients-title">
+  <section
+    class="clients-page max-w-page mx-auto px-4 md:px-6 py-8"
+    aria-labelledby="clients-title"
+  >
     <div class="page-heading">
       <p class="eyebrow">{{ t('clients.eyebrow') }}</p>
       <h1 id="clients-title">{{ t('clients.title') }}</h1>
@@ -759,11 +764,9 @@ async function deleteClient(): Promise<void> {
               {{ store.selectedClient.environment ?? t('clients.val_unknown') }}
             </p>
             <p class="client-profile-hero__client-id stat-value--with-copy">
-              <span
-                class="stat-value stat-value--truncate stat-value--mono"
-                title="Kode aplikasi"
-                >{{ formatFriendlyClientName(store.selectedClient.client_id) }}</span
-              >
+              <span class="stat-value stat-value--mono break-anywhere" title="Kode aplikasi">
+                {{ formatFriendlyClientName(store.selectedClient.client_id) }}
+              </span>
               <button
                 class="pill__copy"
                 type="button"
@@ -789,7 +792,11 @@ async function deleteClient(): Promise<void> {
         </header>
 
         <!-- Tabs Navigation -->
-        <nav class="client-detail-tabs" role="tablist" :aria-label="t('clients.detail_tabs_label')">
+        <nav
+          class="client-detail-tabs scroll-edge-indicator"
+          role="tablist"
+          :aria-label="t('clients.detail_tabs_label')"
+        >
           <button
             v-for="(tab, index) in detailTabs"
             :key="tab.key"
@@ -907,7 +914,7 @@ async function deleteClient(): Promise<void> {
             <h3 id="redirect-uris-title">{{ t('clients.redirect_uris_title') }}</h3>
             <ul v-if="store.selectedClient.redirect_uris.length > 0">
               <li v-for="uri in store.selectedClient.redirect_uris" :key="uri">
-                <code>{{ uri }}</code>
+                <code class="client-uri-value break-anywhere">{{ uri }}</code>
               </li>
             </ul>
             <p v-else class="text-muted">{{ t('clients.no_redirect_uris') }}</p>
@@ -917,7 +924,7 @@ async function deleteClient(): Promise<void> {
             <h3 id="logout-uris-title">{{ t('clients.logout_uris_title') }}</h3>
             <ul v-if="(store.selectedClient.post_logout_redirect_uris ?? []).length > 0">
               <li v-for="uri in store.selectedClient.post_logout_redirect_uris ?? []" :key="uri">
-                <code>{{ uri }}</code>
+                <code class="client-uri-value break-anywhere">{{ uri }}</code>
               </li>
             </ul>
             <p v-else class="text-muted">{{ t('clients.no_logout_uris') }}</p>
@@ -926,7 +933,7 @@ async function deleteClient(): Promise<void> {
           <section class="detail-section" aria-labelledby="backchannel-logout-uri-title">
             <h3 id="backchannel-logout-uri-title">{{ t('clients.backchannel_uri_title') }}</h3>
             <p>
-              <code>{{
+              <code class="client-uri-value break-anywhere">{{
                 store.selectedClient.backchannel_logout_uri ?? t('clients.val_no_evidence')
               }}</code>
             </p>
@@ -1030,7 +1037,7 @@ async function deleteClient(): Promise<void> {
                   :key="scope.name"
                   :class="[
                     'scope-checkbox-label',
-                    selectedScopes.includes(scope.name) ? 'scope-checkbox-label--selected' : ''
+                    selectedScopes.includes(scope.name) ? 'scope-checkbox-label--selected' : '',
                   ]"
                 >
                   <input
@@ -1043,13 +1050,15 @@ async function deleteClient(): Promise<void> {
                   <div class="scope-checkbox-content">
                     <span class="scope-checkbox-name">
                       {{ scope.name }}
-                      <span v-if="scope.name === 'openid'" class="scope-required-tag">required</span>
+                      <span v-if="scope.name === 'openid'" class="scope-required-tag"
+                        >required</span
+                      >
                     </span>
                     <p class="scope-checkbox-desc">{{ scope.description }}</p>
                   </div>
                 </label>
               </div>
-              <div class="user-detail-card__actions" style="margin-top: 20px;">
+              <div class="user-detail-card__actions" style="margin-top: 20px">
                 <UiButton variant="primary" type="submit" :disabled="isSaving">
                   {{ isSaving ? t('clients.btn_saving') : t('clients.btn_save_scope_policy') }}
                 </UiButton>
@@ -1086,7 +1095,9 @@ async function deleteClient(): Promise<void> {
               </div>
               <p class="secret-reveal__warning">{{ t('clients.secret_reveal_warning') }}</p>
               <div class="secret-reveal__code-wrapper">
-                <code id="revealed-secret">{{ store.rotationSecret }}</code>
+                <code id="revealed-secret" class="secret-code-value break-anywhere">{{
+                  store.rotationSecret
+                }}</code>
                 <button
                   class="secret-reveal__copy-btn"
                   type="button"
@@ -1103,7 +1114,7 @@ async function deleteClient(): Promise<void> {
                 <h4 class="contract-block__title">{{ t('clients.config_block_title') }}</h4>
                 <pre
                   class="contract-block__pre"
-                ><code>{{ contractEnvLines.join('\n') }}</code></pre>
+                ><code class="break-anywhere">{{ contractEnvLines.join('\n') }}</code></pre>
                 <div class="user-detail-card__actions contract-block__actions">
                   <UiButton variant="secondary" size="sm" type="button" @click="copyAllConfig">
                     <ShieldCheck :size="14" />
@@ -1182,7 +1193,10 @@ async function deleteClient(): Promise<void> {
                 {{ t('clients.sub_decommission_title') }}
               </h4>
               <p class="user-detail-card__hint">{{ t('clients.decommission_hint') }}</p>
-              <UiFormField id="decommission_confirmation" :label="`${t('clients.label_decommission')} (${store.selectedClientId})`">
+              <UiFormField
+                id="decommission_confirmation"
+                :label="`${t('clients.label_decommission')} (${store.selectedClientId})`"
+              >
                 <UiInput
                   id="decommission_confirmation"
                   v-model="lifecycleForm.decommission_confirmation"
@@ -1208,25 +1222,27 @@ async function deleteClient(): Promise<void> {
 
             <!-- Sub-action 3: Hard delete client -->
             <div class="user-detail__sub-actions">
-              <h4 class="user-detail__sub-actions-title" style="color: var(--destructive);">
-                Hapus Permanen Klien
+              <h4 class="user-detail__sub-actions-title client-delete-title">
+                {{ t('clients.sub_delete_title') }}
               </h4>
-              <p class="user-detail-card__hint">Tindakan sangat destruktif: menghapus klien secara permanen dari database. Tindakan ini tidak dapat dibatalkan.</p>
+              <p class="user-detail-card__hint">{{ t('clients.delete_hint') }}</p>
               <p
                 v-if="deleteMessage"
                 class="ui-action-message ui-action-message--error"
                 role="alert"
-                style="margin-bottom: 12px;"
               >
                 {{ deleteMessage }}
               </p>
-              <UiFormField id="delete_confirmation" :label="`Ketik client ID untuk konfirmasi hapus permanen (${store.selectedClientId})`">
+              <UiFormField
+                id="delete_confirmation"
+                :label="`${t('clients.label_delete_confirmation')} (${store.selectedClientId})`"
+              >
                 <UiInput
                   id="delete_confirmation"
                   v-model="lifecycleForm.delete_confirmation"
                   name="delete_confirmation"
                   autocomplete="off"
-                  placeholder="Ketik client ID untuk konfirmasi..."
+                  :placeholder="t('clients.delete_placeholder')"
                 />
               </UiFormField>
               <div class="user-detail-card__actions">
@@ -1237,7 +1253,7 @@ async function deleteClient(): Promise<void> {
                   :disabled="isSaving"
                   @click="deleteClient"
                 >
-                  {{ isSaving ? t('clients.btn_processing') : 'Hapus Klien Permanen' }}
+                  {{ isSaving ? t('clients.btn_processing') : t('clients.btn_delete_client') }}
                 </UiButton>
               </div>
             </div>
@@ -1269,18 +1285,35 @@ async function deleteClient(): Promise<void> {
   <UiDialog
     :open="showCreatedClientDialog && createdClientIntent !== null"
     title-id="created-client-dialog"
-    :title="createdClientIntent?.type === 'confidential' ? t('clients.create_confidential_success') : t('clients.create_public_success')"
-    :description="createdClientIntent?.type === 'confidential' ? t('clients.create_secret_warning') : t('clients.create_public_hint')"
+    :title="
+      createdClientIntent?.type === 'confidential'
+        ? t('clients.create_confidential_success')
+        : t('clients.create_public_success')
+    "
+    :description="
+      createdClientIntent?.type === 'confidential'
+        ? t('clients.create_secret_warning')
+        : t('clients.create_public_hint')
+    "
     :close-label="t('common.btn_close')"
     wide
     @close="closeCreatedClientDialog"
   >
     <div v-if="createdClientIntent" class="space-y-5 p-6">
       <div class="space-y-2">
-        <label class="text-xs font-semibold text-muted-foreground">{{ t('clients.label_client_id') }}</label>
+        <label class="text-xs font-semibold text-muted-foreground">{{
+          t('clients.label_client_id')
+        }}</label>
         <div class="flex items-center gap-2 rounded-xl border border-border bg-muted/50 p-3">
-          <code class="flex-1 select-all font-mono text-sm text-foreground">{{ createdClientIntent.clientId }}</code>
-          <UiButton size="sm" variant="secondary" @click="copyToClipboard(createdClientIntent.clientId)">
+          <code
+            class="flex-1 min-w-0 select-all font-mono text-sm text-foreground break-anywhere"
+            >{{ createdClientIntent.clientId }}</code
+          >
+          <UiButton
+            size="sm"
+            variant="secondary"
+            @click="copyToClipboard(createdClientIntent.clientId)"
+          >
             {{ t('common.copy') }}
           </UiButton>
         </div>
@@ -1297,26 +1330,45 @@ async function deleteClient(): Promise<void> {
         </div>
         <p class="text-[11px] text-muted-foreground">{{ t('clients.create_secret_warning') }}</p>
         <div class="flex items-center gap-2 rounded-lg border border-border bg-card p-3">
-          <code class="flex-1 select-all font-mono text-sm text-foreground">{{ createdClientIntent.plaintextSecret }}</code>
-          <UiButton size="sm" variant="secondary" @click="copyToClipboard(createdClientIntent.plaintextSecret)">
+          <code
+            class="flex-1 min-w-0 select-all font-mono text-sm text-foreground break-anywhere"
+            >{{ createdClientIntent.plaintextSecret }}</code
+          >
+          <UiButton
+            size="sm"
+            variant="secondary"
+            @click="copyToClipboard(createdClientIntent.plaintextSecret)"
+          >
             {{ t('clients.btn_copy_secret') }}
           </UiButton>
         </div>
       </div>
 
-      <div v-else class="rounded-xl border border-warning-700/20 bg-warning-50 p-4 text-xs text-warning-700 dark:bg-warning-700/10">
+      <div
+        v-else
+        class="rounded-xl border border-warning-700/20 bg-warning-50 p-4 text-xs text-warning-700 dark:bg-warning-700/10"
+      >
         {{ t('clients.create_public_recreate_hint') }}
       </div>
 
       <div class="space-y-2">
-        <h4 class="text-xs font-semibold text-muted-foreground">{{ t('clients.config_block_title') }}</h4>
-        <div class="relative max-h-56 overflow-y-auto rounded-xl border border-border bg-muted/70 p-4 font-mono text-xs text-foreground">
-          <pre><code>{{ createdClientIntent.envSnippet }}</code></pre>
+        <h4 class="text-xs font-semibold text-muted-foreground">
+          {{ t('clients.config_block_title') }}
+        </h4>
+        <div
+          class="relative max-h-56 overflow-y-auto rounded-xl border border-border bg-muted/70 p-4 font-mono text-xs text-foreground"
+        >
+          <pre><code class="break-anywhere">{{ createdClientIntent.envSnippet }}</code></pre>
         </div>
       </div>
 
       <div class="flex items-center justify-between gap-3 border-t border-border pt-4">
-        <a :href="docsBaseUrl + '/onboarding'" target="_blank" rel="noopener noreferrer" class="text-xs font-medium text-primary hover:underline">
+        <a
+          :href="docsBaseUrl + '/onboarding'"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="text-xs font-medium text-primary hover:underline"
+        >
           {{ t('clients.onboarding_guide') }}
         </a>
         <div class="flex items-center gap-3">

@@ -374,6 +374,7 @@
     "validation_scopes": "Select at least one scope and include openid.",
     "label_disable_reason": "Disable reason",
     "label_decommission": "Type client ID to decommission",
+    "label_delete_confirmation": "Type client ID to delete permanently",
     "val_unknown": "unknown",
     "val_not_set": "Not set",
     "val_no_evidence": "No evidence yet",
@@ -394,6 +395,7 @@
     "btn_rotate_secret": "Rotate secret",
     "btn_disable_client": "Disable client",
     "btn_decommission_client": "Decommission client",
+    "btn_delete_client": "Delete client permanently",
     "secret_hint": "Rotating the secret reveals the plaintext only once. Copy it, then clear it from the screen.",
     "secret_reveal_title": "New secret for",
     "secret_reveal_warning": "Store this secret securely in your key vault. It will not be shown again after you close the screen or press the button below.",
@@ -420,7 +422,11 @@
     "disable_placeholder": "Enter the reason for disabling this client...",
     "sub_decommission_title": "Decommission Client",
     "decommission_hint": "Destructive action: permanently removes the client configuration. This cannot be undone.",
-    "decommission_placeholder": "Type the client ID to confirm..."
+    "decommission_placeholder": "Type client ID",
+    "sub_delete_title": "Permanently delete client",
+    "delete_hint": "Highly destructive action: permanently deletes the client from the database. This cannot be undone.",
+    "delete_placeholder": "Type client ID",
+    "delete_confirmation_error": "Type the client ID to confirm permanent deletion."
   },
   "sessions": {
     "title": "Sessions",
