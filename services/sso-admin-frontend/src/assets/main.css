@@ -1685,16 +1685,15 @@ select.ui-control {
 
 .audit-table-region {
   position: relative;
-  min-height: 320px;
 }
 
 .audit-table-wrapper {
-  min-height: 320px;
+  min-height: 220px;
 }
 
 .audit-table-wrapper .ui-data-list__viewport {
   max-height: min(560px, 64vh);
-  min-height: 320px;
+  min-height: 220px;
   overflow: auto;
 }
 
@@ -1775,7 +1774,7 @@ select.ui-control {
 
 .audit-table-skeleton {
   display: grid;
-  min-height: 320px;
+  min-height: 220px;
   border: 1px solid var(--border);
   border-radius: 14px;
   background: var(--card);
@@ -1814,11 +1813,27 @@ select.ui-control {
 .audit-table-empty-state {
   display: grid;
   align-content: center;
-  position: absolute;
-  inset: 84px 16px 16px;
-  min-height: 220px;
+  min-height: 140px;
   margin: 0;
-  pointer-events: none;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--card);
+}
+
+.audit-table-empty-state--compact,
+.audit-consent-idle-prompt {
+  min-height: 140px;
+}
+
+.audit-consent-idle-prompt {
+  display: grid;
+  align-content: center;
+  margin: 0;
+  padding: 20px;
+  border: 1px dashed var(--border);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--muted) 36%, transparent);
 }
 
 .audit-data-value,
@@ -2945,14 +2960,20 @@ select.ui-control {
   .audit-table-wrapper,
   .ui-data-list__viewport {
     max-width: 100%;
-    min-height: 260px;
+    min-height: 220px;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
 
   .audit-table-wrapper .ui-data-list__viewport,
   .audit-table-skeleton {
-    min-height: 260px;
+    min-height: 220px;
+  }
+
+  .audit-table-empty-state,
+  .audit-consent-idle-prompt {
+    min-height: 128px;
+    padding: 16px;
   }
 
   .audit-table-wrapper--mobile-priority table {

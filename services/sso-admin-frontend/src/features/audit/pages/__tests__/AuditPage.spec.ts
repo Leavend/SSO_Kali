@@ -218,6 +218,9 @@ describe('AuditPage', () => {
 
     expect(wrapper.text()).toContain('Search audit events')
     expect(wrapper.text()).toContain('No audit events yet.')
+    expect(wrapper.text()).toContain('Choose All, Allow, Deny, or Revoke')
+    expect(wrapper.find('[data-test="audit-consent-idle-prompt"]').exists()).toBe(true)
+    expect(wrapper.text()).not.toContain('No consent events match the selected filter.')
     expect(wrapper.find('.ui-empty-state').exists()).toBe(false)
   })
 
@@ -251,8 +254,9 @@ describe('AuditPage', () => {
     expect(wrapper.find('button.consent-filter-all-button').exists()).toBe(true)
     expect(wrapper.find('.audit-tabs-container').exists()).toBe(true)
     expect(wrapper.find('[data-test="audit-loading-search-shell"]').exists()).toBe(false)
-    expect(wrapper.findAll('[data-test="audit-loading-table-shell"]')).toHaveLength(3)
-    expect(wrapper.findAll('.audit-table-skeleton__row').length).toBeGreaterThanOrEqual(15)
+    expect(wrapper.find('[data-test="audit-consent-idle-prompt"]').exists()).toBe(true)
+    expect(wrapper.findAll('[data-test="audit-loading-table-shell"]')).toHaveLength(2)
+    expect(wrapper.findAll('.audit-table-skeleton__row')).toHaveLength(8)
     expect(wrapper.find('.audit-table-empty-state').exists()).toBe(false)
     expect(wrapper.text()).not.toMatch(/Bearer|refreshToken|SQLSTATE/i)
 
@@ -375,6 +379,8 @@ describe('AuditPage', () => {
     await wrapper.find('input[name="audit-search-subject-id"]').setValue('sub_target')
     await wrapper.find('input[name="audit-search-client-id"]').setValue('prototype-app-a')
     await wrapper.find('button.consent-filter-revoke-button').trigger('click')
+    await Promise.resolve()
+    await wrapper.vm.$nextTick()
 
     expect(searchEventsSpy).not.toHaveBeenCalled()
     expect(searchAuthSpy).not.toHaveBeenCalled()
@@ -385,6 +391,8 @@ describe('AuditPage', () => {
       subject_id: 'sub_target',
       client_id: 'prototype-app-a',
     })
+    expect(wrapper.find('[data-test="audit-consent-idle-prompt"]').exists()).toBe(false)
+    expect(wrapper.text()).toContain('No consent events match the selected filter.')
   })
 
   it('applies consent audit route query from client or user detail links', async () => {
@@ -403,8 +411,9 @@ describe('AuditPage', () => {
     const searchAuthSpy = vi.spyOn(store, 'searchAuthenticationEvents').mockResolvedValue()
     const searchConsentSpy = vi.spyOn(store, 'searchConsentEvents').mockResolvedValue()
 
-    mount(AuditPage)
+    const wrapper = mount(AuditPage)
     await Promise.resolve()
+    await wrapper.vm.$nextTick()
 
     expect(searchEventsSpy).not.toHaveBeenCalled()
     expect(searchAuthSpy).not.toHaveBeenCalled()
@@ -415,6 +424,7 @@ describe('AuditPage', () => {
       subject_id: 'sub_query',
       client_id: 'client-query',
     })
+    expect(wrapper.find('[data-test="audit-consent-idle-prompt"]').exists()).toBe(false)
   })
 
   it('submits audit and authentication search filters', async () => {

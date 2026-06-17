@@ -92,9 +92,11 @@ const searchClientId = ref('')
 const searchFrom = ref('')
 const searchTo = ref('')
 const selectedConsentAction = ref<'all' | 'allow' | 'deny' | 'revoke'>('all')
+const hasRequestedConsentEvents = ref(false)
+const isConsentSearchPending = ref(false)
 const showAdvancedFilters = ref(false)
 const activeDetailDialog = ref<'audit' | 'authentication' | null>(null)
-const loadingTableRows = Array.from({ length: 7 }, (_, index) => index)
+const loadingTableRows = Array.from({ length: 4 }, (_, index) => index)
 
 function filled(value: string): string | undefined {
   const trimmed = value.trim()
@@ -102,35 +104,41 @@ function filled(value: string): string | undefined {
 }
 
 async function submitSearch(): Promise<void> {
-  await Promise.all([
-    store.searchEvents({
-      ...(filled(searchAction.value) && { action: filled(searchAction.value) }),
-      ...(filled(searchOutcome.value) && { outcome: filled(searchOutcome.value) }),
-      ...(filled(searchTaxonomy.value) && { taxonomy: filled(searchTaxonomy.value) }),
-      ...(filled(searchAdminSubjectId.value) && {
-        admin_subject_id: filled(searchAdminSubjectId.value),
+  hasRequestedConsentEvents.value = true
+  isConsentSearchPending.value = true
+  try {
+    await Promise.all([
+      store.searchEvents({
+        ...(filled(searchAction.value) && { action: filled(searchAction.value) }),
+        ...(filled(searchOutcome.value) && { outcome: filled(searchOutcome.value) }),
+        ...(filled(searchTaxonomy.value) && { taxonomy: filled(searchTaxonomy.value) }),
+        ...(filled(searchAdminSubjectId.value) && {
+          admin_subject_id: filled(searchAdminSubjectId.value),
+        }),
+        ...(filled(searchRequestId.value) && { request_id: filled(searchRequestId.value) }),
+        ...(filled(searchSupportReference.value) && {
+          support_reference: filled(searchSupportReference.value),
+        }),
+        ...(searchFrom.value && { from: searchFrom.value }),
+        ...(searchTo.value && { to: searchTo.value }),
       }),
-      ...(filled(searchRequestId.value) && { request_id: filled(searchRequestId.value) }),
-      ...(filled(searchSupportReference.value) && {
-        support_reference: filled(searchSupportReference.value),
+      store.searchAuthenticationEvents({
+        ...(filled(searchRequestId.value) && { request_id: filled(searchRequestId.value) }),
+        ...(filled(searchSupportReference.value) && {
+          support_reference: filled(searchSupportReference.value),
+        }),
+        ...(filled(searchSessionId.value) && { session_id: filled(searchSessionId.value) }),
+        ...(filled(searchSubjectId.value) && { subject_id: filled(searchSubjectId.value) }),
+        ...(filled(searchClientId.value) && { client_id: filled(searchClientId.value) }),
+        ...(filled(searchOutcome.value) && { outcome: filled(searchOutcome.value) }),
+        ...(searchFrom.value && { from: searchFrom.value }),
+        ...(searchTo.value && { to: searchTo.value }),
       }),
-      ...(searchFrom.value && { from: searchFrom.value }),
-      ...(searchTo.value && { to: searchTo.value }),
-    }),
-    store.searchAuthenticationEvents({
-      ...(filled(searchRequestId.value) && { request_id: filled(searchRequestId.value) }),
-      ...(filled(searchSupportReference.value) && {
-        support_reference: filled(searchSupportReference.value),
-      }),
-      ...(filled(searchSessionId.value) && { session_id: filled(searchSessionId.value) }),
-      ...(filled(searchSubjectId.value) && { subject_id: filled(searchSubjectId.value) }),
-      ...(filled(searchClientId.value) && { client_id: filled(searchClientId.value) }),
-      ...(filled(searchOutcome.value) && { outcome: filled(searchOutcome.value) }),
-      ...(searchFrom.value && { from: searchFrom.value }),
-      ...(searchTo.value && { to: searchTo.value }),
-    }),
-    store.searchConsentEvents(consentEventFilters(selectedConsentAction.value)),
-  ])
+      store.searchConsentEvents(consentEventFilters(selectedConsentAction.value)),
+    ])
+  } finally {
+    isConsentSearchPending.value = false
+  }
 }
 
 async function resetSearch(): Promise<void> {
@@ -144,13 +152,19 @@ async function resetSearch(): Promise<void> {
   searchSubjectId.value = ''
   searchClientId.value = ''
   selectedConsentAction.value = 'all'
+  hasRequestedConsentEvents.value = true
+  isConsentSearchPending.value = true
   searchFrom.value = ''
   searchTo.value = ''
-  await Promise.all([
-    store.searchEvents({}),
-    store.searchAuthenticationEvents({}),
-    store.searchConsentEvents(consentEventFilters('all')),
-  ])
+  try {
+    await Promise.all([
+      store.searchEvents({}),
+      store.searchAuthenticationEvents({}),
+      store.searchConsentEvents(consentEventFilters('all')),
+    ])
+  } finally {
+    isConsentSearchPending.value = false
+  }
 }
 
 function consentEventFilters(
@@ -177,7 +191,13 @@ async function applyConsentFilter(
   action: 'all' | 'allow' | 'deny' | 'revoke' = 'all',
 ): Promise<void> {
   selectedConsentAction.value = action
-  await store.searchConsentEvents(consentEventFilters(action))
+  hasRequestedConsentEvents.value = true
+  isConsentSearchPending.value = true
+  try {
+    await store.searchConsentEvents(consentEventFilters(action))
+  } finally {
+    isConsentSearchPending.value = false
+  }
 }
 
 function queryValue(value: unknown): string {
@@ -246,7 +266,12 @@ const isAuthenticationEventsLoading = computed(
 )
 const isConsentEventsLoading = computed(
   () =>
-    (store.status === 'idle' || store.status === 'loading') && store.consentEvents.length === 0,
+    hasRequestedConsentEvents.value &&
+    isConsentSearchPending.value &&
+    store.consentEvents.length === 0,
+)
+const showConsentEventsPrompt = computed(
+  () => !hasRequestedConsentEvents.value && store.consentEvents.length === 0,
 )
 const showAuditEventsEmpty = computed(
   () => !isAuditEventsLoading.value && store.events.length === 0,
@@ -255,7 +280,10 @@ const showAuthenticationEventsEmpty = computed(
   () => !isAuthenticationEventsLoading.value && store.authenticationEvents.length === 0,
 )
 const showConsentEventsEmpty = computed(
-  () => !isConsentEventsLoading.value && store.consentEvents.length === 0,
+  () =>
+    hasRequestedConsentEvents.value &&
+    !isConsentEventsLoading.value &&
+    store.consentEvents.length === 0,
 )
 
 // ISS-C3: per-section error + retry
@@ -670,7 +698,20 @@ onMounted(() => {
             </div>
 
             <div class="audit-table-region">
-              <div class="audit-table-wrapper audit-table-wrapper--mobile-priority">
+              <p
+                v-if="showConsentEventsPrompt"
+                class="audit-consent-idle-prompt text-sm text-muted-foreground"
+                data-test="audit-consent-idle-prompt"
+              >
+                Choose All, Allow, Deny, or Revoke to load consent audit events.
+              </p>
+              <p
+                v-else-if="showConsentEventsEmpty"
+                class="audit-table-empty-state audit-table-empty-state--compact text-sm text-muted-foreground"
+              >
+                No consent events match the selected filter.
+              </p>
+              <div v-else class="audit-table-wrapper audit-table-wrapper--mobile-priority">
                 <div
                   v-if="isConsentEventsLoading"
                   class="audit-table-skeleton"
@@ -717,12 +758,6 @@ onMounted(() => {
                   </template>
                 </UiDataList>
               </div>
-              <p
-                v-if="showConsentEventsEmpty"
-                class="audit-table-empty-state text-sm text-muted-foreground"
-              >
-                No consent events match the selected filter.
-              </p>
             </div>
             <div class="pt-2">
               <UiButton
@@ -743,7 +778,13 @@ onMounted(() => {
             <div class="ui-card space-y-4">
               <h2 id="events-title" class="text-base font-bold">{{ t('audit.events_title') }}</h2>
               <div class="audit-table-region">
-                <div class="audit-table-wrapper audit-table-wrapper--mobile-priority">
+                <p
+                  v-if="showAuditEventsEmpty"
+                  class="audit-table-empty-state text-sm text-muted-foreground"
+                >
+                  {{ t('audit.no_audit_events') }}
+                </p>
+                <div v-else class="audit-table-wrapper audit-table-wrapper--mobile-priority">
                   <div
                     v-if="isAuditEventsLoading"
                     class="audit-table-skeleton"
@@ -790,12 +831,6 @@ onMounted(() => {
                     </template>
                   </UiDataList>
                 </div>
-                <p
-                  v-if="showAuditEventsEmpty"
-                  class="audit-table-empty-state text-sm text-muted-foreground"
-                >
-                  {{ t('audit.no_audit_events') }}
-                </p>
               </div>
               <div class="pt-2">
                 <UiButton
@@ -819,7 +854,13 @@ onMounted(() => {
                 {{ t('audit.security_evidence_title') }}
               </h2>
               <div class="audit-table-region">
-                <div class="audit-table-wrapper audit-table-wrapper--mobile-priority">
+                <p
+                  v-if="showAuthenticationEventsEmpty"
+                  class="audit-table-empty-state text-sm text-muted-foreground"
+                >
+                  {{ t('audit.no_security_events') }}
+                </p>
+                <div v-else class="audit-table-wrapper audit-table-wrapper--mobile-priority">
                   <div
                     v-if="isAuthenticationEventsLoading"
                     class="audit-table-skeleton"
@@ -866,12 +907,6 @@ onMounted(() => {
                     </template>
                   </UiDataList>
                 </div>
-                <p
-                  v-if="showAuthenticationEventsEmpty"
-                  class="audit-table-empty-state text-sm text-muted-foreground"
-                >
-                  {{ t('audit.no_security_events') }}
-                </p>
               </div>
               <div class="pt-2">
                 <UiButton
