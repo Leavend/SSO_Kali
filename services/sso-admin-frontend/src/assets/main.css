@@ -2955,9 +2955,27 @@ select.ui-control {
     min-height: 260px;
   }
 
+  .audit-table-wrapper--mobile-priority table {
+    min-width: 24rem;
+  }
+
+  .audit-table-wrapper--mobile-priority th:nth-child(2),
+  .audit-table-wrapper--mobile-priority td:nth-child(2),
+  .audit-table-wrapper--mobile-priority th:nth-child(4),
+  .audit-table-wrapper--mobile-priority td:nth-child(4) {
+    display: none;
+  }
+
   .audit-table-skeleton__header,
   .audit-table-skeleton__row {
     grid-template-columns: 120px 160px 110px 140px;
+  }
+
+  .consent-filter-all-button,
+  .consent-filter-allow-button,
+  .consent-filter-deny-button,
+  .consent-filter-revoke-button {
+    min-height: 36px;
   }
 
   .audit-detail-dialog {

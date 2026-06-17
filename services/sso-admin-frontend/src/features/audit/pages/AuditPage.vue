@@ -21,7 +21,6 @@ import {
 } from 'lucide-vue-next'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
 import UiDataList, { type UiDataListRow } from '@/components/ui/UiDataList.vue'
-import UiEmptyState from '@/components/ui/UiEmptyState.vue'
 import UiFormField from '@/components/ui/UiFormField.vue'
 import UiInput from '@/components/ui/UiInput.vue'
 import UiButton from '@/components/ui/UiButton.vue'
@@ -231,6 +230,33 @@ const hasAuditEvidence = computed(
     store.integrity !== null ||
     store.retentionStatus !== null,
 )
+const isAuditEventsLoading = computed(
+  () =>
+    (store.status === 'idle' ||
+      store.status === 'loading' ||
+      store.sections.events.status === 'loading') &&
+    store.events.length === 0,
+)
+const isAuthenticationEventsLoading = computed(
+  () =>
+    (store.status === 'idle' ||
+      store.status === 'loading' ||
+      store.sections.authEvents.status === 'loading') &&
+    store.authenticationEvents.length === 0,
+)
+const isConsentEventsLoading = computed(
+  () =>
+    (store.status === 'idle' || store.status === 'loading') && store.consentEvents.length === 0,
+)
+const showAuditEventsEmpty = computed(
+  () => !isAuditEventsLoading.value && store.events.length === 0,
+)
+const showAuthenticationEventsEmpty = computed(
+  () => !isAuthenticationEventsLoading.value && store.authenticationEvents.length === 0,
+)
+const showConsentEventsEmpty = computed(
+  () => !isConsentEventsLoading.value && store.consentEvents.length === 0,
+)
 
 // ISS-C3: per-section error + retry
 const sectionLabels: Record<SectionKey, string> = {
@@ -341,104 +367,8 @@ onMounted(() => {
       <p class="page-summary">{{ t('audit.summary') }}</p>
     </div>
 
-    <div v-if="store.status === 'loading'" class="audit-loading-shell space-y-6" aria-busy="true">
-      <div class="audit-tabs-container scroll-edge-indicator" aria-hidden="true">
-        <nav class="audit-tabs" aria-label="Audit loading navigation tabs">
-          <span class="audit-tab-btn audit-tab-btn--active audit-loading-tab">
-            <ClipboardList class="size-4" />
-            <span>{{ t('audit.tab_logs') }}</span>
-          </span>
-          <span class="audit-tab-btn audit-loading-tab">
-            <ShieldCheck class="size-4" />
-            <span>{{ t('audit.tab_security') }}</span>
-          </span>
-          <span
-            v-if="canExportAudit || canGenerateEvidencePack"
-            class="audit-tab-btn audit-loading-tab"
-          >
-            <Download class="size-4" />
-            <span>{{ t('audit.tab_reports') }}</span>
-          </span>
-          <span class="audit-tab-btn audit-loading-tab">
-            <History class="size-4" />
-            <span>{{ t('audit.tab_retention') }}</span>
-          </span>
-        </nav>
-      </div>
-
-      <section
-        class="ui-card space-y-4 audit-loading-card"
-        data-test="audit-loading-search-shell"
-        aria-label="Audit search loading"
-      >
-        <div class="flex items-start gap-3">
-          <FileSearch class="size-5 mt-1 text-primary" />
-          <div class="audit-loading-copy">
-            <span class="audit-skeleton-line audit-skeleton-line--title" />
-            <span class="audit-skeleton-line audit-skeleton-line--text" />
-          </div>
-        </div>
-        <div class="audit-grid audit-grid-3 audit-filter-grid">
-          <span class="audit-skeleton-field" />
-          <span class="audit-skeleton-field" />
-          <span class="audit-skeleton-field" />
-        </div>
-        <div class="audit-filter-actions pt-2">
-          <span class="audit-skeleton-button" />
-          <span class="audit-skeleton-button" />
-          <span class="audit-skeleton-button" />
-        </div>
-      </section>
-
-      <section
-        v-for="label in ['Consent event table', 'Admin event table', 'Authentication event table']"
-        :key="label"
-        class="ui-card space-y-4 audit-loading-card"
-        data-test="audit-loading-table-shell"
-        :aria-label="label"
-      >
-        <div class="audit-loading-section-heading">
-          <span class="audit-skeleton-line audit-skeleton-line--title" />
-          <span class="audit-skeleton-line audit-skeleton-line--short" />
-        </div>
-        <div class="audit-table-wrapper">
-          <div class="audit-table-skeleton" role="presentation">
-            <div class="audit-table-skeleton__header">
-              <span />
-              <span />
-              <span />
-              <span />
-            </div>
-            <div
-              v-for="row in loadingTableRows"
-              :key="`${label}-${row}`"
-              class="audit-table-skeleton__row"
-            >
-              <span />
-              <span />
-              <span />
-              <span />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <div class="audit-grid audit-grid-2 audit-loading-evidence" aria-hidden="true">
-        <section class="ui-card audit-card-premium space-y-3">
-          <span class="audit-skeleton-line audit-skeleton-line--title" />
-          <span class="audit-skeleton-line audit-skeleton-line--text" />
-          <span class="audit-skeleton-line audit-skeleton-line--short" />
-        </section>
-        <section class="ui-card audit-card-premium space-y-3">
-          <span class="audit-skeleton-line audit-skeleton-line--title" />
-          <span class="audit-skeleton-line audit-skeleton-line--text" />
-          <span class="audit-skeleton-line audit-skeleton-line--short" />
-        </section>
-      </div>
-    </div>
-
     <UiStatusView
-      v-else-if="store.status === 'forbidden'"
+      v-if="store.status === 'forbidden'"
       tone="forbidden"
       eyebrow="Compliance Evidence"
       :title="t('audit.forbidden_title')"
@@ -458,7 +388,7 @@ onMounted(() => {
     />
 
     <UiStatusView
-      v-else-if="store.status === 'error' && !hasAnySectionErrored"
+      v-else-if="store.status === 'error' && !hasAuditEvidence"
       tone="api"
       eyebrow="Admin API"
       :title="t('audit.error_title')"
@@ -467,48 +397,41 @@ onMounted(() => {
       :standalone="false"
     />
 
-    <!-- ISS-C3: per-section error cards -->
-    <section v-else-if="hasAnySectionErrored" class="space-y-3" aria-label="Section errors">
-      <div
-        v-for="key in erroredSectionKeys"
-        :key="key"
-        class="ui-card border-destructive/40 bg-destructive/5 p-4 space-y-2"
-        role="alert"
-      >
-        <div class="flex items-start justify-between gap-3">
-          <div class="flex items-start gap-3 min-w-0">
-            <AlertTriangle class="size-5 mt-0.5 text-destructive shrink-0" />
-            <div class="min-w-0">
-              <h3 class="text-sm font-bold text-destructive">{{ sectionLabel(key) }}</h3>
-              <p class="text-xs text-muted-foreground leading-relaxed mt-1 break-words">
-                {{ store.sections[key]?.error ?? 'Failed to load.' }}
-              </p>
+    <div v-else class="audit-workspace space-y-6" :aria-busy="store.status === 'loading'">
+      <!-- ISS-C3: per-section error cards -->
+      <section v-if="hasAnySectionErrored" class="space-y-3" aria-label="Section errors">
+        <div
+          v-for="key in erroredSectionKeys"
+          :key="key"
+          class="ui-card border-destructive/40 bg-destructive/5 p-4 space-y-2"
+          role="alert"
+        >
+          <div class="flex items-start justify-between gap-3">
+            <div class="flex items-start gap-3 min-w-0">
+              <AlertTriangle class="size-5 mt-0.5 text-destructive shrink-0" />
+              <div class="min-w-0">
+                <h3 class="text-sm font-bold text-destructive">{{ sectionLabel(key) }}</h3>
+                <p class="text-xs text-muted-foreground leading-relaxed mt-1 break-words">
+                  {{ store.sections[key]?.error ?? 'Failed to load.' }}
+                </p>
+              </div>
             </div>
+            <UiButton
+              variant="secondary"
+              size="sm"
+              class="shrink-0"
+              :disabled="store.sections[key]?.status === 'loading'"
+              @click="retrySection(key)"
+            >
+              <RefreshCw
+                class="size-4 mr-1"
+                :class="{ 'animate-spin': store.sections[key]?.status === 'loading' }"
+              />
+              Retry
+            </UiButton>
           </div>
-          <UiButton
-            variant="secondary"
-            size="sm"
-            class="shrink-0"
-            :disabled="store.sections[key]?.status === 'loading'"
-            @click="retrySection(key)"
-          >
-            <RefreshCw
-              class="size-4 mr-1"
-              :class="{ 'animate-spin': store.sections[key]?.status === 'loading' }"
-            />
-            Retry
-          </UiButton>
         </div>
-      </div>
-    </section>
-
-    <UiEmptyState
-      v-else-if="!hasAuditEvidence"
-      :title="t('audit.empty_title')"
-      :description="t('audit.empty_desc')"
-    />
-
-    <div v-else class="space-y-6">
+      </section>
       <!-- Horizontal Tab System -->
       <div class="audit-tabs-container scroll-edge-indicator">
         <nav class="audit-tabs" aria-label="Audit navigation tabs">
@@ -747,8 +670,33 @@ onMounted(() => {
             </div>
 
             <div class="audit-table-region">
-              <div class="audit-table-wrapper">
+              <div class="audit-table-wrapper audit-table-wrapper--mobile-priority">
+                <div
+                  v-if="isConsentEventsLoading"
+                  class="audit-table-skeleton"
+                  data-test="audit-loading-table-shell"
+                  role="presentation"
+                  aria-label="Consent event table loading"
+                >
+                  <div class="audit-table-skeleton__header">
+                    <span />
+                    <span />
+                    <span />
+                    <span />
+                  </div>
+                  <div
+                    v-for="row in loadingTableRows"
+                    :key="`consent-${row}`"
+                    class="audit-table-skeleton__row"
+                  >
+                    <span />
+                    <span />
+                    <span />
+                    <span />
+                  </div>
+                </div>
                 <UiDataList
+                  v-else
                   caption="Consent event table"
                   :columns="authenticationEventColumns"
                   :rows="consentEventRows"
@@ -770,7 +718,7 @@ onMounted(() => {
                 </UiDataList>
               </div>
               <p
-                v-if="store.consentEvents.length === 0"
+                v-if="showConsentEventsEmpty"
                 class="audit-table-empty-state text-sm text-muted-foreground"
               >
                 No consent events match the selected filter.
@@ -795,8 +743,33 @@ onMounted(() => {
             <div class="ui-card space-y-4">
               <h2 id="events-title" class="text-base font-bold">{{ t('audit.events_title') }}</h2>
               <div class="audit-table-region">
-                <div class="audit-table-wrapper">
+                <div class="audit-table-wrapper audit-table-wrapper--mobile-priority">
+                  <div
+                    v-if="isAuditEventsLoading"
+                    class="audit-table-skeleton"
+                    data-test="audit-loading-table-shell"
+                    role="presentation"
+                    aria-label="Admin event table loading"
+                  >
+                    <div class="audit-table-skeleton__header">
+                      <span />
+                      <span />
+                      <span />
+                      <span />
+                    </div>
+                    <div
+                      v-for="row in loadingTableRows"
+                      :key="`admin-${row}`"
+                      class="audit-table-skeleton__row"
+                    >
+                      <span />
+                      <span />
+                      <span />
+                      <span />
+                    </div>
+                  </div>
                   <UiDataList
+                    v-else
                     caption="Admin event table"
                     :columns="auditEventColumns"
                     :rows="auditEventRows"
@@ -818,7 +791,7 @@ onMounted(() => {
                   </UiDataList>
                 </div>
                 <p
-                  v-if="store.events.length === 0"
+                  v-if="showAuditEventsEmpty"
                   class="audit-table-empty-state text-sm text-muted-foreground"
                 >
                   {{ t('audit.no_audit_events') }}
@@ -846,8 +819,33 @@ onMounted(() => {
                 {{ t('audit.security_evidence_title') }}
               </h2>
               <div class="audit-table-region">
-                <div class="audit-table-wrapper">
+                <div class="audit-table-wrapper audit-table-wrapper--mobile-priority">
+                  <div
+                    v-if="isAuthenticationEventsLoading"
+                    class="audit-table-skeleton"
+                    data-test="audit-loading-table-shell"
+                    role="presentation"
+                    aria-label="Authentication event table loading"
+                  >
+                    <div class="audit-table-skeleton__header">
+                      <span />
+                      <span />
+                      <span />
+                      <span />
+                    </div>
+                    <div
+                      v-for="row in loadingTableRows"
+                      :key="`authentication-${row}`"
+                      class="audit-table-skeleton__row"
+                    >
+                      <span />
+                      <span />
+                      <span />
+                      <span />
+                    </div>
+                  </div>
                   <UiDataList
+                    v-else
                     caption="Authentication event table"
                     :columns="authenticationEventColumns"
                     :rows="authenticationEventRows"
@@ -869,7 +867,7 @@ onMounted(() => {
                   </UiDataList>
                 </div>
                 <p
-                  v-if="store.authenticationEvents.length === 0"
+                  v-if="showAuthenticationEventsEmpty"
                   class="audit-table-empty-state text-sm text-muted-foreground"
                 >
                   {{ t('audit.no_security_events') }}

@@ -206,7 +206,7 @@ describe('AuditPage', () => {
     expect(wrapper.text()).not.toMatch(/Bearer|SQLSTATE/i)
   })
 
-  it('renders empty state when audit evidence is not available yet', () => {
+  it('keeps the audit workspace available when audit evidence is not available yet', () => {
     const store = useAuditStore()
     store.status = 'success'
     store.events = []
@@ -216,8 +216,9 @@ describe('AuditPage', () => {
 
     const wrapper = mount(AuditPage)
 
-    expect(wrapper.text()).toContain('No audit evidence to display.')
-    expect(wrapper.find('.ui-empty-state').exists()).toBe(true)
+    expect(wrapper.text()).toContain('Search audit events')
+    expect(wrapper.text()).toContain('No audit events yet.')
+    expect(wrapper.find('.ui-empty-state').exists()).toBe(false)
   })
 
   it('renders the consent table when consent evidence is the only loaded slice', () => {
@@ -235,17 +236,24 @@ describe('AuditPage', () => {
     expect(wrapper.find('.ui-empty-state').exists()).toBe(false)
   })
 
-  it('uses shared loading, status, data, and form primitives', async () => {
+  it('renders static audit controls immediately while reserving loading table space', async () => {
     const store = useAuditStore()
     store.status = 'loading'
 
     const wrapper = mount(AuditPage)
 
-    expect(wrapper.find('.audit-loading-shell').exists()).toBe(true)
+    expect(wrapper.text()).toContain('Search audit events')
+    expect(wrapper.text()).toContain('Correlation / request code')
+    expect(wrapper.get('input[name="audit-search-request-id"]').isVisible()).toBe(true)
+    expect(wrapper.get('input[name="audit-search-action"]').isVisible()).toBe(true)
+    expect(wrapper.get('input[name="audit-search-outcome"]').isVisible()).toBe(true)
+    expect(wrapper.find('button.audit-advanced-filter-button').exists()).toBe(true)
+    expect(wrapper.find('button.consent-filter-all-button').exists()).toBe(true)
     expect(wrapper.find('.audit-tabs-container').exists()).toBe(true)
-    expect(wrapper.find('[data-test="audit-loading-search-shell"]').exists()).toBe(true)
+    expect(wrapper.find('[data-test="audit-loading-search-shell"]').exists()).toBe(false)
     expect(wrapper.findAll('[data-test="audit-loading-table-shell"]')).toHaveLength(3)
     expect(wrapper.findAll('.audit-table-skeleton__row').length).toBeGreaterThanOrEqual(15)
+    expect(wrapper.find('.audit-table-empty-state').exists()).toBe(false)
     expect(wrapper.text()).not.toMatch(/Bearer|refreshToken|SQLSTATE/i)
 
     store.status = 'forbidden'
@@ -261,6 +269,25 @@ describe('AuditPage', () => {
     expect(wrapper.find('.ui-data-list').exists()).toBe(true)
     expect(wrapper.find('.ui-form-field').exists()).toBe(true)
     expect(wrapper.find('.ui-control').exists()).toBe(true)
+  })
+
+  it('keeps static audit controls usable when a section fails', () => {
+    const store = useAuditStore()
+    store.status = 'partial'
+    store.events = [event]
+    store.authenticationEvents = [authEvent]
+    store.sections.events = {
+      status: 'error',
+      error: 'Admin audit events failed to load.',
+      requestId: 'req-events-failed',
+    }
+
+    const wrapper = mount(AuditPage)
+
+    expect(wrapper.text()).toContain('Search audit events')
+    expect(wrapper.text()).toContain('Admin audit events failed to load.')
+    expect(wrapper.find('button.audit-search-button').exists()).toBe(true)
+    expect(wrapper.find('.ui-data-list').exists()).toBe(true)
   })
 
   it('renders audit search controls for incident correlation', () => {
