@@ -1,11 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { useSessionStore } from '@/stores/session.store'
 import AuditPage from '../AuditPage.vue'
 import { useAuditStore } from '../../stores/audit.store'
 import type { AdminAuditEvent, AuthenticationAuditEvent, DataSubjectRequest } from '../../types'
 import { useDateFormat } from '@/composables/useDateFormat'
+
+// Import tabs and dialogs for stubbing and component finding
+import AuditLogsTab from '../../components/AuditLogsTab.vue'
+import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
+import UiDialog from '@/components/ui/UiDialog.vue'
 
 vi.mock('../../services/audit.api', () => ({
   auditApi: {
@@ -128,6 +133,45 @@ function seedFullAccessPrincipal(): void {
   })
 }
 
+async function mountAuditPage() {
+  const wrapper = mount(AuditPage, {
+    global: {
+      stubs: {
+        EvidenceContextPanel,
+        UiDialog,
+      },
+    },
+  })
+  const start = Date.now()
+  while (Date.now() - start < 1000) {
+    await wrapper.vm.$nextTick()
+    await flushPromises()
+    const txt = wrapper.text()
+    if (
+      txt.includes('Search audit events') ||
+      txt.includes('Audit access denied') ||
+      txt.includes('Audit compliance could not be loaded')
+    ) {
+      return wrapper
+    }
+    await new Promise((resolve) => setTimeout(resolve, 5))
+  }
+  return wrapper
+}
+
+async function switchTab(wrapper: any, index: number, checkText: string) {
+  await wrapper.findAll('button.audit-tab-btn')[index]!.trigger('click')
+  const start = Date.now()
+  while (Date.now() - start < 1000) {
+    await wrapper.vm.$nextTick()
+    await flushPromises()
+    if (wrapper.text().includes(checkText)) {
+      return
+    }
+    await new Promise((resolve) => setTimeout(resolve, 5))
+  }
+}
+
 describe('AuditPage', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
@@ -135,7 +179,7 @@ describe('AuditPage', () => {
     seedFullAccessPrincipal()
   })
 
-  it('renders audit evidence, integrity, DSR queue, and request ID', () => {
+  it('renders audit evidence, integrity, DSR queue, and request ID', async () => {
     const store = useAuditStore()
     store.status = 'success'
     store.events = [event]
@@ -146,21 +190,14 @@ describe('AuditPage', () => {
     store.selectedAuthenticationEventId = 'AUTH01'
     store.requestId = 'req-audit-1'
 
-    const wrapper = mount(AuditPage)
+    const wrapper = await mountAuditPage()
 
     expect(wrapper.text()).toContain('Audit Compliance')
     expect(wrapper.text()).toContain('REF-AUD01')
     expect(wrapper.text()).toContain('admin.user.lock')
-    expect(wrapper.text()).toContain('Integrity verified')
-    expect(wrapper.text()).toContain('Retention status')
-    expect(wrapper.text()).toContain('Authentication audit events')
-    expect(wrapper.text()).toContain('90 hari')
-    const dateFormat = useDateFormat()
-    expect(wrapper.text()).toContain(dateFormat.smart('2026-05-31T00:10:00Z'))
-    expect(wrapper.text()).toContain('12')
-    expect(wrapper.text()).toContain('3')
-    expect(wrapper.text()).toContain('REF-34567890')
-    expect(wrapper.text()).not.toContain('01HX7S8Y9ZABCDEF1234567890')
+
+    // Switch to Security Notification tab
+    await switchTab(wrapper, 1, 'Security notification evidence')
     expect(wrapper.text()).toContain('Security notification evidence')
     expect(wrapper.text()).toContain('refresh_token_reuse_detected')
     expect(wrapper.text()).toContain('Suspicious login challenge matrix')
@@ -171,6 +208,29 @@ describe('AuditPage', () => {
     expect(wrapper.text()).toContain('Token lifetime production guard')
     expect(wrapper.text()).toContain('Session / logout evidence console')
     expect(wrapper.text()).toContain('Safe error regression review')
+
+    // Switch to Reports tab
+    await switchTab(wrapper, 2, 'Export Audit Trail')
+    expect(wrapper.text()).toContain('Export Audit Trail')
+    expect(wrapper.text()).toContain('Compliance Evidence Pack')
+
+    // Switch to Retention tab
+    await switchTab(wrapper, 3, 'Retention status')
+    expect(wrapper.text()).toContain('Integrity verified')
+    expect(wrapper.text()).toContain('Retention status')
+    expect(wrapper.text()).toContain('90 hari')
+    expect(wrapper.text()).toContain('Authentication audit events')
+    const dateFormat = useDateFormat()
+    expect(wrapper.text()).toContain(dateFormat.smart('2026-05-31T00:10:00Z'))
+    expect(wrapper.text()).toContain('12')
+    expect(wrapper.text()).toContain('3')
+
+    // Switch to DSR tab
+    await switchTab(wrapper, 4, 'REF-34567890')
+    expect(wrapper.text()).toContain('REF-34567890')
+    expect(wrapper.text()).not.toContain('01HX7S8Y9ZABCDEF1234567890')
+
+    // Shared labels
     expect(wrapper.text()).toContain('Audit evidence context')
     expect(wrapper.text()).toContain('Kode referensi')
     expect(wrapper.text()).toContain('REF-EQAUDIT1')
@@ -180,25 +240,25 @@ describe('AuditPage', () => {
     expect(wrapper.text()).not.toMatch(/Bearer|refreshToken|SQLSTATE/i)
   })
 
-  it('renders safe forbidden state', () => {
+  it('renders safe forbidden state', async () => {
     const store = useAuditStore()
     store.status = 'forbidden'
     store.errorMessage = 'Kamu tidak memiliki izin untuk melihat audit compliance.'
 
-    const wrapper = mount(AuditPage)
+    const wrapper = await mountAuditPage()
 
     expect(wrapper.text()).toContain('Audit access denied')
     expect(wrapper.text()).not.toContain('SQLSTATE')
   })
 
-  it('renders safe error state with request evidence', () => {
+  it('renders safe error state with request evidence', async () => {
     const store = useAuditStore()
     store.status = 'error'
     store.requestId = 'req-audit-fail'
     store.errorMessage =
       'Audit compliance belum bisa dimuat. Coba lagi atau gunakan request ID req-audit-fail untuk investigasi.'
 
-    const wrapper = mount(AuditPage)
+    const wrapper = await mountAuditPage()
 
     expect(wrapper.text()).toContain('Audit compliance could not be loaded')
     expect(wrapper.text()).toContain('REF-UDITFAIL')
@@ -206,7 +266,7 @@ describe('AuditPage', () => {
     expect(wrapper.text()).not.toMatch(/Bearer|SQLSTATE/i)
   })
 
-  it('keeps the audit workspace available when audit evidence is not available yet', () => {
+  it('keeps the audit workspace available when audit evidence is not available yet', async () => {
     const store = useAuditStore()
     store.status = 'success'
     store.events = []
@@ -214,7 +274,7 @@ describe('AuditPage', () => {
     store.authenticationEvents = []
     store.integrity = null
 
-    const wrapper = mount(AuditPage)
+    const wrapper = await mountAuditPage()
 
     expect(wrapper.text()).toContain('Search audit events')
     expect(wrapper.text()).toContain('No audit events yet.')
@@ -224,7 +284,7 @@ describe('AuditPage', () => {
     expect(wrapper.find('.ui-empty-state').exists()).toBe(false)
   })
 
-  it('renders the consent table when consent evidence is the only loaded slice', () => {
+  it('renders the consent table when consent evidence is the only loaded slice', async () => {
     const store = useAuditStore()
     store.status = 'success'
     store.events = []
@@ -233,7 +293,7 @@ describe('AuditPage', () => {
     store.dataSubjectRequests = []
     store.integrity = null
 
-    const wrapper = mount(AuditPage)
+    const wrapper = await mountAuditPage()
 
     expect(wrapper.text()).toContain('Consent event table')
     expect(wrapper.find('.ui-empty-state').exists()).toBe(false)
@@ -243,7 +303,7 @@ describe('AuditPage', () => {
     const store = useAuditStore()
     store.status = 'loading'
 
-    const wrapper = mount(AuditPage)
+    const wrapper = await mountAuditPage()
 
     expect(wrapper.text()).toContain('Search audit events')
     expect(wrapper.text()).toContain('Correlation / request code')
@@ -255,8 +315,8 @@ describe('AuditPage', () => {
     expect(wrapper.find('.audit-tabs-container').exists()).toBe(true)
     expect(wrapper.find('[data-test="audit-loading-search-shell"]').exists()).toBe(false)
     expect(wrapper.find('[data-test="audit-consent-idle-prompt"]').exists()).toBe(true)
-    expect(wrapper.findAll('[data-test="audit-loading-table-shell"]')).toHaveLength(2)
-    expect(wrapper.findAll('.audit-table-skeleton__row')).toHaveLength(8)
+    expect(wrapper.findAll('[data-test="audit-loading-table-shell"]')).toHaveLength(1)
+    expect(wrapper.findAll('.audit-table-skeleton__row')).toHaveLength(4)
     expect(wrapper.find('.audit-table-empty-state').exists()).toBe(false)
     expect(wrapper.text()).not.toMatch(/Bearer|refreshToken|SQLSTATE/i)
 
@@ -270,12 +330,21 @@ describe('AuditPage', () => {
     store.authenticationEvents = [authEvent]
     store.integrity = { verified: true, checked_events: 1 }
     await wrapper.vm.$nextTick()
+    const start = Date.now()
+    while (Date.now() - start < 1000) {
+      await wrapper.vm.$nextTick()
+      await flushPromises()
+      if (wrapper.find('.ui-data-list').exists()) {
+        break
+      }
+      await new Promise((resolve) => setTimeout(resolve, 5))
+    }
     expect(wrapper.find('.ui-data-list').exists()).toBe(true)
     expect(wrapper.find('.ui-form-field').exists()).toBe(true)
     expect(wrapper.find('.ui-control').exists()).toBe(true)
   })
 
-  it('keeps static audit controls usable when a section fails', () => {
+  it('keeps static audit controls usable when a section fails', async () => {
     const store = useAuditStore()
     store.status = 'partial'
     store.events = [event]
@@ -286,7 +355,7 @@ describe('AuditPage', () => {
       requestId: 'req-events-failed',
     }
 
-    const wrapper = mount(AuditPage)
+    const wrapper = await mountAuditPage()
 
     expect(wrapper.text()).toContain('Search audit events')
     expect(wrapper.text()).toContain('Admin audit events failed to load.')
@@ -294,14 +363,14 @@ describe('AuditPage', () => {
     expect(wrapper.find('.ui-data-list').exists()).toBe(true)
   })
 
-  it('renders audit search controls for incident correlation', () => {
+  it('renders audit search controls for incident correlation', async () => {
     const store = useAuditStore()
     store.status = 'success'
     store.events = [event]
     store.authenticationEvents = [authEvent]
     store.integrity = { verified: true, checked_events: 1 }
 
-    const wrapper = mount(AuditPage)
+    const wrapper = await mountAuditPage()
 
     expect(wrapper.text()).toContain('Search audit events')
     expect(wrapper.text()).toContain('Correlation / request code')
@@ -324,15 +393,20 @@ describe('AuditPage', () => {
     store.integrity = { verified: true, checked_events: 1 }
     const searchAuthSpy = vi.spyOn(store, 'searchAuthenticationEvents').mockResolvedValue()
 
-    const wrapper = mount(AuditPage)
+    const wrapper = await mountAuditPage()
 
     expect(wrapper.get('input[name="audit-search-request-id"]').isVisible()).toBe(true)
     expect(wrapper.get('input[name="audit-search-action"]').isVisible()).toBe(true)
     expect(wrapper.get('input[name="audit-search-outcome"]').isVisible()).toBe(true)
-    expect(wrapper.get('input[name="audit-search-session-id"]').isVisible()).toBe(false)
 
-    await wrapper.get('button.audit-advanced-filter-button').trigger('click')
-    expect(wrapper.get('input[name="audit-search-session-id"]').isVisible()).toBe(true)
+    const logsTab = wrapper.findComponent(AuditLogsTab)
+    const advancedFiltersGrid = logsTab.findAll('.audit-filter-grid')[1]!
+    expect(advancedFiltersGrid.attributes('style')).toContain('display: none')
+
+    await logsTab.find('button.audit-advanced-filter-button').trigger('click')
+    await wrapper.vm.$nextTick()
+    await flushPromises()
+    expect(advancedFiltersGrid.attributes('style') || '').not.toContain('display: none')
 
     await wrapper.find('input[name="audit-search-session-id"]').setValue('sid-advanced')
     await wrapper.get('button.audit-advanced-filter-button').trigger('click')
@@ -350,7 +424,7 @@ describe('AuditPage', () => {
     store.authenticationEvents = [authEvent]
     store.integrity = { verified: true, checked_events: 1 }
 
-    const wrapper = mount(AuditPage)
+    const wrapper = await mountAuditPage()
 
     expect(wrapper.find('.audit-master-detail').exists()).toBe(false)
     expect(wrapper.find('[data-dialog-id="audit-event-detail-dialog"]').exists()).toBe(false)
@@ -358,6 +432,15 @@ describe('AuditPage', () => {
     await wrapper.find('button').trigger('click')
     const viewButtons = wrapper.findAll('button').filter((button) => button.text() === 'View')
     await viewButtons[0]?.trigger('click')
+    const start = Date.now()
+    while (Date.now() - start < 1000) {
+      await wrapper.vm.$nextTick()
+      await flushPromises()
+      if (wrapper.find('[data-dialog-id="audit-event-detail-dialog"]').exists()) {
+        break
+      }
+      await new Promise((resolve) => setTimeout(resolve, 5))
+    }
 
     expect(wrapper.find('[data-dialog-id="audit-event-detail-dialog"]').exists()).toBe(true)
     expect(wrapper.find('.user-modal-overlay.audit-detail-overlay').exists()).toBe(true)
@@ -374,13 +457,14 @@ describe('AuditPage', () => {
     const searchAuthSpy = vi.spyOn(store, 'searchAuthenticationEvents').mockResolvedValue()
     const searchConsentSpy = vi.spyOn(store, 'searchConsentEvents').mockResolvedValue()
 
-    const wrapper = mount(AuditPage)
+    const wrapper = await mountAuditPage()
 
     await wrapper.find('input[name="audit-search-subject-id"]').setValue('sub_target')
     await wrapper.find('input[name="audit-search-client-id"]').setValue('prototype-app-a')
     await wrapper.find('button.consent-filter-revoke-button').trigger('click')
     await Promise.resolve()
     await wrapper.vm.$nextTick()
+    await flushPromises()
 
     expect(searchEventsSpy).not.toHaveBeenCalled()
     expect(searchAuthSpy).not.toHaveBeenCalled()
@@ -411,7 +495,7 @@ describe('AuditPage', () => {
     const searchAuthSpy = vi.spyOn(store, 'searchAuthenticationEvents').mockResolvedValue()
     const searchConsentSpy = vi.spyOn(store, 'searchConsentEvents').mockResolvedValue()
 
-    const wrapper = mount(AuditPage)
+    const wrapper = await mountAuditPage()
     await Promise.resolve()
     await wrapper.vm.$nextTick()
 
@@ -436,7 +520,7 @@ describe('AuditPage', () => {
     const searchEventsSpy = vi.spyOn(store, 'searchEvents').mockResolvedValue()
     const searchAuthSpy = vi.spyOn(store, 'searchAuthenticationEvents').mockResolvedValue()
 
-    const wrapper = mount(AuditPage)
+    const wrapper = await mountAuditPage()
 
     await wrapper.find('input[name="audit-search-request-id"]').setValue('req-auth-event-1')
     await wrapper.find('input[name="audit-search-session-id"]').setValue('sid-123')
@@ -479,7 +563,7 @@ describe('AuditPage', () => {
     const searchEventsSpy = vi.spyOn(store, 'searchEvents').mockResolvedValue()
     const searchAuthSpy = vi.spyOn(store, 'searchAuthenticationEvents').mockResolvedValue()
 
-    const wrapper = mount(AuditPage)
+    const wrapper = await mountAuditPage()
 
     await wrapper.find('input[name="audit-search-action"]').setValue('admin.user.lock')
     await wrapper.find('button.audit-reset-button').trigger('click')
@@ -502,9 +586,11 @@ describe('AuditPage', () => {
     const loadMoreEventsSpy = vi.spyOn(store, 'loadMoreEvents').mockResolvedValue()
     const loadMoreAuthSpy = vi.spyOn(store, 'loadMoreAuthenticationEvents').mockResolvedValue()
 
-    const wrapper = mount(AuditPage)
+    const wrapper = await mountAuditPage()
 
     await wrapper.find('button.audit-load-more-button').trigger('click')
+
+    await switchTab(wrapper, 1, 'Security notification evidence')
     await wrapper.find('button.authentication-load-more-button').trigger('click')
 
     expect(loadMoreEventsSpy).toHaveBeenCalled()
@@ -518,7 +604,9 @@ describe('AuditPage', () => {
     store.integrity = { verified: true, checked_events: 1 }
     const exportSpy = vi.spyOn(store, 'exportEvents').mockResolvedValue()
 
-    const wrapper = mount(AuditPage)
+    const wrapper = await mountAuditPage()
+
+    await switchTab(wrapper, 2, 'Export Audit Trail')
 
     expect(wrapper.text()).toContain('Export Audit Trail')
 
@@ -545,7 +633,9 @@ describe('AuditPage', () => {
     store.integrity = { verified: true, checked_events: 1 }
     const exportSpy = vi.spyOn(store, 'exportEvents').mockResolvedValue()
 
-    const wrapper = mount(AuditPage)
+    const wrapper = await mountAuditPage()
+
+    await switchTab(wrapper, 2, 'Export Audit Trail')
 
     await wrapper.find('input[name="export-format"][value="jsonl"]').setValue()
     await wrapper.find('button.audit-export-button').trigger('click')
@@ -553,7 +643,7 @@ describe('AuditPage', () => {
     expect(exportSpy).toHaveBeenCalledWith(expect.objectContaining({ format: 'jsonl' }))
   })
 
-  it('shows a re-authentication prompt when export requires step-up', () => {
+  it('shows a re-authentication prompt when export requires step-up', async () => {
     const store = useAuditStore()
     store.status = 'success'
     store.events = [event]
@@ -562,12 +652,14 @@ describe('AuditPage', () => {
     store.errorMessage =
       'Aksi audit membutuhkan re-autentikasi (fresh-auth atau MFA assurance). Ulangi login admin lalu coba lagi.'
 
-    const wrapper = mount(AuditPage)
+    const wrapper = await mountAuditPage()
+
+    await switchTab(wrapper, 2, 'Export Audit Trail')
 
     expect(wrapper.text()).toContain('re-autentikasi')
   })
 
-  it('hides audit export and DSR review actions for read-only principals', () => {
+  it('hides audit export and DSR review actions for read-only principals', async () => {
     seedPrincipal({})
     const store = useAuditStore()
     store.status = 'success'
@@ -575,7 +667,7 @@ describe('AuditPage', () => {
     store.integrity = { verified: true, checked_events: 1 }
     store.dataSubjectRequests = [dsr]
 
-    const wrapper = mount(AuditPage)
+    const wrapper = await mountAuditPage()
 
     expect(wrapper.text()).not.toContain('Export')
     expect(wrapper.text()).not.toContain('Approve')
@@ -583,7 +675,7 @@ describe('AuditPage', () => {
     expect(wrapper.text()).not.toContain('Dry-run fulfill')
   })
 
-  it('renders audit export and DSR review actions for matching permissions', () => {
+  it('renders audit export and DSR review actions for matching permissions', async () => {
     seedPrincipal({ 'admin.audit.export': true, 'admin.dsr.review': true })
     const store = useAuditStore()
     store.status = 'success'
@@ -591,21 +683,26 @@ describe('AuditPage', () => {
     store.integrity = { verified: true, checked_events: 1 }
     store.dataSubjectRequests = [dsr]
 
-    const wrapper = mount(AuditPage)
+    const wrapper = await mountAuditPage()
 
+    await switchTab(wrapper, 2, 'Export Audit Trail')
     expect(wrapper.text()).toContain('Export')
+
+    await switchTab(wrapper, 4, 'DSR queue')
     expect(wrapper.text()).toContain('Approve')
     expect(wrapper.text()).toContain('Reject')
     expect(wrapper.text()).toContain('Dry-run fulfill')
   })
 
-  it('renders the compliance evidence pack generator for permitted principals', () => {
+  it('renders the compliance evidence pack generator for permitted principals', async () => {
     const store = useAuditStore()
     store.status = 'success'
     store.events = [event]
     store.integrity = { verified: true, checked_events: 1 }
 
-    const wrapper = mount(AuditPage)
+    const wrapper = await mountAuditPage()
+
+    await switchTab(wrapper, 2, 'Export Audit Trail')
 
     expect(wrapper.text()).toContain('Compliance Evidence Pack')
     expect(wrapper.find('button.compliance-evidence-pack-button').exists()).toBe(true)
@@ -618,7 +715,9 @@ describe('AuditPage', () => {
     store.integrity = { verified: true, checked_events: 1 }
     const packSpy = vi.spyOn(store, 'generateEvidencePack').mockResolvedValue()
 
-    const wrapper = mount(AuditPage)
+    const wrapper = await mountAuditPage()
+
+    await switchTab(wrapper, 2, 'Export Audit Trail')
 
     const button = wrapper.find('button.compliance-evidence-pack-button')
     expect(button.attributes('disabled')).toBeDefined()
@@ -631,16 +730,16 @@ describe('AuditPage', () => {
     expect(packSpy).toHaveBeenCalledWith({ format: 'zip', correlation_id: 'INC-42' })
   })
 
-  it('hides the compliance evidence pack generator for principals without audit export permission', () => {
+  it('hides the compliance evidence pack generator for principals without audit export permission', async () => {
     seedPrincipal({ 'admin.dsr.review': true })
     const store = useAuditStore()
     store.status = 'success'
     store.events = [event]
     store.integrity = { verified: true, checked_events: 1 }
 
-    const wrapper = mount(AuditPage)
+    const wrapper = await mountAuditPage()
 
-    expect(wrapper.text()).not.toContain('Compliance Evidence Pack')
-    expect(wrapper.find('button.compliance-evidence-pack-button').exists()).toBe(false)
+    const reportsTabBtn = wrapper.findAll('button.audit-tab-btn').find(btn => btn.text().includes('Reports'))
+    expect(reportsTabBtn).toBeUndefined()
   })
 })

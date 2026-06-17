@@ -2783,6 +2783,9 @@ select.ui-control {
   border-bottom: 1px solid var(--border);
   overflow-x: auto;
   scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  mask-image: linear-gradient(to right, transparent, black 16px, black calc(100% - 16px), transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 16px, black calc(100% - 16px), transparent);
 }
 .audit-tabs-container::-webkit-scrollbar {
   display: none;
@@ -2927,6 +2930,19 @@ select.ui-control {
   .audit-page .page-heading h1 {
     font-size: clamp(1.6rem, 9vw, 2.1rem);
     line-height: 1.1;
+  }
+
+  .audit-workspace {
+    gap: 12px !important;
+  }
+
+  .audit-workspace .space-y-6 > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 12px !important;
+  }
+
+  .audit-workspace .ui-card,
+  .audit-workspace section.ui-card {
+    padding: 16px !important;
   }
 
   .audit-tabs-container {
@@ -5587,4 +5603,8 @@ button.user-card-item {
   color: var(--muted-foreground);
   margin-top: 4px;
   line-height: 1.4;
+}
+
+.audit-tab-loading-fallback {
+  min-height: 480px;
 }
