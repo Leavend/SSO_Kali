@@ -1,7 +1,10 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import { ApiError, getLastRequestId } from '@/lib/api/api-client'
-import { isAdminProxyTransportFailure, formatTransportErrorMessage } from '@/lib/display-identifiers'
+import {
+  isAdminProxyTransportFailure,
+  formatTransportErrorMessage,
+} from '@/lib/display-identifiers'
 import { triggerStepUpReauth } from '@/lib/stepup/stepup'
 import { ssoErrorTemplatesApi } from '../services/sso-error-templates.api'
 import type { SsoErrorTemplate, UpsertSsoErrorTemplatePayload } from '../types'
@@ -99,7 +102,8 @@ export const useSsoErrorTemplatesStore = defineStore('admin-sso-error-templates'
 
     status.value = 'error'
     if (isAdminProxyTransportFailure(error)) {
-      errorMessage.value = formatTransportErrorMessage(requestId.value) ?? 'SSO error templates belum bisa dimuat.'
+      errorMessage.value =
+        formatTransportErrorMessage(requestId.value) ?? 'SSO error templates belum bisa dimuat.'
     } else {
       errorMessage.value = requestId.value
         ? `SSO error templates belum bisa dimuat. Gunakan request ID ${requestId.value} untuk investigasi.`

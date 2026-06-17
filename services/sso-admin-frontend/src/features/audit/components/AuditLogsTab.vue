@@ -2,23 +2,14 @@
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from '@/composables/useI18n'
 import { useRoute } from 'vue-router'
-import {
-  FileSearch,
-  CheckCircle,
-  ChevronDown,
-  ChevronRight,
-} from 'lucide-vue-next'
+import { FileSearch, CheckCircle, ChevronDown, ChevronRight } from 'lucide-vue-next'
 import UiFormField from '@/components/ui/UiFormField.vue'
 import UiInput from '@/components/ui/UiInput.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiDataList, { type UiDataListRow } from '@/components/ui/UiDataList.vue'
 import { useAuditStore } from '@/features/audit/stores/audit.store'
-import {
-  formatTechnicalPreview,
-} from '@/lib/display-identifiers'
-import type {
-  AuthenticationAuditEventFilters,
-} from '../types'
+import { formatTechnicalPreview } from '@/lib/display-identifiers'
+import type { AuthenticationAuditEventFilters } from '../types'
 
 const store = useAuditStore()
 const route = useRoute()
@@ -280,10 +271,7 @@ onMounted(() => {
       </div>
 
       <div v-show="showAdvancedFilters" class="audit-grid audit-grid-3 audit-filter-grid">
-        <UiFormField
-          id="audit-search-support-reference"
-          :label="t('audit.support_reference')"
-        >
+        <UiFormField id="audit-search-support-reference" :label="t('audit.support_reference')">
           <UiInput
             id="audit-search-support-reference"
             name="audit-search-support-reference"
@@ -340,12 +328,7 @@ onMounted(() => {
           />
         </UiFormField>
         <UiFormField id="audit-search-to" :label="t('audit.to')">
-          <UiInput
-            id="audit-search-to"
-            name="audit-search-to"
-            v-model="searchTo"
-            type="date"
-          />
+          <UiInput id="audit-search-to" name="audit-search-to" v-model="searchTo" type="date" />
         </UiFormField>
       </div>
 
@@ -482,10 +465,7 @@ onMounted(() => {
       </div>
       <div class="pt-2">
         <UiButton
-          v-if="
-            store.consentEventPagination?.has_more &&
-            store.consentEventPagination?.next_cursor
-          "
+          v-if="store.consentEventPagination?.has_more && store.consentEventPagination?.next_cursor"
           variant="primary"
           class="consent-load-more-button"
           @click="store.loadMoreConsentEvents"
@@ -541,9 +521,7 @@ onMounted(() => {
                   variant="secondary"
                   size="sm"
                   :class="
-                    row.id === store.selectedEventId
-                      ? 'border-primary text-primary'
-                      : undefined
+                    row.id === store.selectedEventId ? 'border-primary text-primary' : undefined
                   "
                   @click="openAuditEventDetail(row.id)"
                 >

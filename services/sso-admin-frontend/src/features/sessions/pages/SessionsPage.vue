@@ -178,7 +178,10 @@ watch(
 </script>
 
 <template>
-  <section class="sessions-page max-w-page mx-auto px-4 md:px-6 py-8" aria-labelledby="sessions-title">
+  <section
+    class="sessions-page max-w-page mx-auto px-4 md:px-6 py-8"
+    aria-labelledby="sessions-title"
+  >
     <div class="page-heading">
       <p class="eyebrow">{{ t('sessions.eyebrow') }}</p>
       <h1 id="sessions-title">{{ t('sessions.title') }}</h1>

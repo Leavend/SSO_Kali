@@ -424,7 +424,8 @@ export const useUsersStore = defineStore('admin-users', () => {
     const ref = formatSupportReference(requestId.value)
 
     if (isAdminProxyTransportFailure(error)) {
-      errorMessage.value = formatTransportErrorMessage(requestId.value) ?? 'Users admin belum bisa dimuat.'
+      errorMessage.value =
+        formatTransportErrorMessage(requestId.value) ?? 'Users admin belum bisa dimuat.'
     } else {
       errorMessage.value = ref
         ? `Users admin belum bisa dimuat. Gunakan kode referensi ${ref} untuk investigasi.`

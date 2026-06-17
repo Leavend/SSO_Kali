@@ -52,10 +52,12 @@ const isLogoutUriValid = computed(() => {
   try {
     const redirectUrl = new URL(form.redirectUri.trim())
     const logoutUrl = new URL(logoutValue)
-    return ['http:', 'https:'].includes(logoutUrl.protocol) &&
+    return (
+      ['http:', 'https:'].includes(logoutUrl.protocol) &&
       !logoutValue.includes('*') &&
       logoutUrl.search === '' &&
       redirectUrl.origin === logoutUrl.origin
+    )
   } catch {
     return false
   }
@@ -108,11 +110,14 @@ function slugify(text: string): string {
 }
 
 // Watch display name to generate slug suggest
-watch(() => form.displayName, (name) => {
-  if (!isClientIdEdited.value) {
-    form.clientId = slugify(name).slice(0, 63)
-  }
-})
+watch(
+  () => form.displayName,
+  (name) => {
+    if (!isClientIdEdited.value) {
+      form.clientId = slugify(name).slice(0, 63)
+    }
+  },
+)
 
 onMounted(async () => {
   await store.loadScopes()
@@ -132,7 +137,10 @@ async function submit(): Promise<void> {
       stepUpLoginHref.value = buildStepUpLoginUrl('/clients/new')
       return
     }
-    toast.pushToast({ tone: 'error', title: 'Gagal membuat OAuth client. Silakan periksa input Anda.' })
+    toast.pushToast({
+      tone: 'error',
+      title: 'Gagal membuat OAuth client. Silakan periksa input Anda.',
+    })
     return
   }
 
@@ -236,7 +244,11 @@ function confirmStepUpReauth(): void {
     @submit="submit"
     @cancel="cancel"
   >
-    <div v-if="store.errorMessage" class="ui-action-message ui-action-message--error mb-6" role="alert">
+    <div
+      v-if="store.errorMessage"
+      class="ui-action-message ui-action-message--error mb-6"
+      role="alert"
+    >
       {{ store.errorMessage }}
     </div>
 
@@ -281,7 +293,10 @@ function confirmStepUpReauth(): void {
             <span class="text-muted-foreground">
               Hanya huruf kecil, angka, dan tanda hubung (3-63 karakter).
             </span>
-            <span v-if="form.clientId" :class="isClientIdValid ? 'text-success-700' : 'text-destructive'">
+            <span
+              v-if="form.clientId"
+              :class="isClientIdValid ? 'text-success-700' : 'text-destructive'"
+            >
               {{ isClientIdValid ? 'Format valid' : 'Format tidak valid' }}
             </span>
           </div>
@@ -322,11 +337,19 @@ function confirmStepUpReauth(): void {
           <button
             type="button"
             class="flex flex-col h-full rounded-xl border bg-card/50 p-4 text-left transition-all cursor-pointer"
-            :class="form.clientType === 'public' ? 'border-primary ring-2 ring-primary/20 bg-primary/5' : 'border-border hover:border-muted-foreground/30'"
+            :class="
+              form.clientType === 'public'
+                ? 'border-primary ring-2 ring-primary/20 bg-primary/5'
+                : 'border-border hover:border-muted-foreground/30'
+            "
             @click="selectClientType('public')"
           >
             <span class="flex items-center gap-2 text-sm font-semibold text-foreground">
-              <CheckCircle v-if="form.clientType === 'public'" :size="16" class="text-primary shrink-0" />
+              <CheckCircle
+                v-if="form.clientType === 'public'"
+                :size="16"
+                class="text-primary shrink-0"
+              />
               {{ t('clients.type_public') }}
             </span>
             <span class="mt-2 text-xs leading-relaxed text-muted-foreground">
@@ -342,18 +365,28 @@ function confirmStepUpReauth(): void {
           <button
             type="button"
             class="flex flex-col h-full rounded-xl border bg-card/50 p-4 text-left transition-all cursor-pointer"
-            :class="form.clientType === 'confidential' ? 'border-primary ring-2 ring-primary/20 bg-primary/5' : 'border-border hover:border-muted-foreground/30'"
+            :class="
+              form.clientType === 'confidential'
+                ? 'border-primary ring-2 ring-primary/20 bg-primary/5'
+                : 'border-border hover:border-muted-foreground/30'
+            "
             @click="selectClientType('confidential')"
           >
             <span class="flex items-center gap-2 text-sm font-semibold text-foreground">
-              <CheckCircle v-if="form.clientType === 'confidential'" :size="16" class="text-primary shrink-0" />
+              <CheckCircle
+                v-if="form.clientType === 'confidential'"
+                :size="16"
+                class="text-primary shrink-0"
+              />
               {{ t('clients.type_confidential') }}
             </span>
             <span class="mt-2 text-xs leading-relaxed text-muted-foreground">
               {{ t('clients.type_confidential_hint') }}
             </span>
             <div class="mt-auto pt-3">
-              <span class="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-primary whitespace-nowrap">
+              <span
+                class="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-primary whitespace-nowrap"
+              >
                 {{ t('clients.type_confidential_recommended') }}
               </span>
             </div>
@@ -390,7 +423,9 @@ function confirmStepUpReauth(): void {
         :error="errorFor('scopes')"
         required
       >
-        <div class="border border-border rounded-xl p-4 space-y-3 bg-card/20 max-h-60 overflow-y-auto mt-2">
+        <div
+          class="border border-border rounded-xl p-4 space-y-3 bg-card/20 max-h-60 overflow-y-auto mt-2"
+        >
           <label
             v-for="scope in store.scopes"
             :key="scope.name"
@@ -408,11 +443,16 @@ function confirmStepUpReauth(): void {
             <div class="grid gap-0.5">
               <span class="text-xs font-semibold text-foreground flex items-center gap-1.5">
                 {{ scope.name }}
-                <span v-if="scope.name === 'openid'" class="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-normal">
+                <span
+                  v-if="scope.name === 'openid'"
+                  class="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-normal"
+                >
                   Wajib
                 </span>
               </span>
-              <span class="text-[11px] text-muted-foreground">{{ scope.description || 'Tidak ada deskripsi' }}</span>
+              <span class="text-[11px] text-muted-foreground">{{
+                scope.description || 'Tidak ada deskripsi'
+              }}</span>
             </div>
           </label>
         </div>

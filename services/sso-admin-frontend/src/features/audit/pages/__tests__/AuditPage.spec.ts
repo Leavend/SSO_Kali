@@ -739,7 +739,9 @@ describe('AuditPage', () => {
 
     const wrapper = await mountAuditPage()
 
-    const reportsTabBtn = wrapper.findAll('button.audit-tab-btn').find(btn => btn.text().includes('Reports'))
+    const reportsTabBtn = wrapper
+      .findAll('button.audit-tab-btn')
+      .find((btn) => btn.text().includes('Reports'))
     expect(reportsTabBtn).toBeUndefined()
   })
 })

@@ -161,7 +161,9 @@ describe('AuthenticationAuditPage', () => {
     expect(searchSpy).toHaveBeenCalledWith({})
     expect((wrapper.find('#auth-audit-request-id').element as HTMLInputElement).value).toBe('')
     expect((wrapper.find('#auth-audit-error-code').element as HTMLInputElement).value).toBe('')
-    expect((wrapper.find('#auth-audit-support-reference').element as HTMLInputElement).value).toBe('')
+    expect((wrapper.find('#auth-audit-support-reference').element as HTMLInputElement).value).toBe(
+      '',
+    )
     expect((wrapper.find('#auth-audit-consent-action').element as HTMLSelectElement).value).toBe('')
   })
 

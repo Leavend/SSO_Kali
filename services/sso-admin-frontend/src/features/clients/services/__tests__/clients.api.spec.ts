@@ -68,7 +68,7 @@ describe('clientsApi', () => {
       { reason: 'incident response' },
     )
     expect(apiClient.post).toHaveBeenCalledWith(
-      '/api/admin/client-integrations/prototype-app-a/decommission'
+      '/api/admin/client-integrations/prototype-app-a/decommission',
     )
     expect(apiClient.delete).toHaveBeenCalledWith('/api/admin/clients/prototype-app-a')
   })

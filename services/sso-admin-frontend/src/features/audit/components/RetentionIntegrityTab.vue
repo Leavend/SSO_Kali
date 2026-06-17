@@ -25,9 +25,7 @@ function retentionNumber(value: number | null | undefined): string {
   <div class="space-y-6">
     <!-- Integrity Card -->
     <section class="ui-card space-y-4" aria-labelledby="integrity-title">
-      <div
-        class="flex items-center justify-between flex-wrap gap-4 border-b border-border pb-4"
-      >
+      <div class="flex items-center justify-between flex-wrap gap-4 border-b border-border pb-4">
         <div class="flex items-center gap-3">
           <ShieldCheck class="size-6 text-emerald-500" v-if="store.integrity?.verified" />
           <AlertCircle class="size-6 text-amber-500" v-else />
@@ -110,17 +108,13 @@ function retentionNumber(value: number | null | undefined): string {
             </div>
             <div class="flex justify-between items-center border-b border-border/50 pb-1">
               <dt class="text-muted-foreground">{{ t('audit.pruned_rows') }}</dt>
-              <dd
-                class="text-foreground font-mono bg-secondary px-2 py-0.5 rounded text-right"
-              >
+              <dd class="text-foreground font-mono bg-secondary px-2 py-0.5 rounded text-right">
                 {{ retentionNumber(item.last_pruned_count) }}
               </dd>
             </div>
             <div class="flex justify-between items-center">
               <dt class="text-muted-foreground">{{ t('audit.candidate_rows') }}</dt>
-              <dd
-                class="text-foreground font-mono bg-secondary px-2 py-0.5 rounded text-right"
-              >
+              <dd class="text-foreground font-mono bg-secondary px-2 py-0.5 rounded text-right">
                 {{ retentionNumber(item.candidate_count) }}
               </dd>
             </div>

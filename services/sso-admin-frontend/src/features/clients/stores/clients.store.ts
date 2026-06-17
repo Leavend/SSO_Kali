@@ -144,7 +144,9 @@ export const useClientsStore = defineStore('admin-clients', () => {
     }
   }
 
-  const scopes = ref<Array<{ name: string; description: string; claims: string[]; default_allowed: boolean }>>([])
+  const scopes = ref<
+    Array<{ name: string; description: string; claims: string[]; default_allowed: boolean }>
+  >([])
 
   async function loadScopes(): Promise<void> {
     try {

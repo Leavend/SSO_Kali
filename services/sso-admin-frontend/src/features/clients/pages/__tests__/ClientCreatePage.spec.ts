@@ -103,7 +103,9 @@ describe('ClientCreatePage', () => {
     const wrapper = mount(ClientCreatePage)
     await wrapper.get('input[name="create_display_name"]').setValue('Prototype App B')
     await wrapper.get('input[name="create_owner_email"]').setValue('owner@example.test')
-    await wrapper.get('input[name="create_redirect_uri"]').setValue('https://app-b.example.test/callback')
+    await wrapper
+      .get('input[name="create_redirect_uri"]')
+      .setValue('https://app-b.example.test/callback')
 
     const buttons = wrapper.findAll('button')
     const publicButton = buttons.find((button) => button.text().toLowerCase().includes('public'))
@@ -158,11 +160,13 @@ describe('ClientCreatePage', () => {
     const wrapper = mount(ClientCreatePage)
     await wrapper.get('input[name="create_display_name"]').setValue('Prototype App C')
     await wrapper.get('input[name="create_owner_email"]').setValue('owner@example.test')
-    await wrapper.get('input[name="create_redirect_uri"]').setValue('https://app-c.example.test/callback')
-    
+    await wrapper
+      .get('input[name="create_redirect_uri"]')
+      .setValue('https://app-c.example.test/callback')
+
     // Select confidential type (simulate UI button click)
     const buttons = wrapper.findAll('button')
-    const confidentialButton = buttons.find(b => b.text().toLowerCase().includes('confidential'))
+    const confidentialButton = buttons.find((b) => b.text().toLowerCase().includes('confidential'))
     if (confidentialButton) {
       await confidentialButton.trigger('click')
     }
@@ -193,7 +197,9 @@ describe('ClientCreatePage', () => {
     const wrapper = mount(ClientCreatePage)
     await wrapper.get('input[name="create_display_name"]').setValue('Prototype App D')
     await wrapper.get('input[name="create_owner_email"]').setValue('owner@example.test')
-    await wrapper.get('input[name="create_redirect_uri"]').setValue('https://app-d.example.test/auth/callback')
+    await wrapper
+      .get('input[name="create_redirect_uri"]')
+      .setValue('https://app-d.example.test/auth/callback')
 
     expect(wrapper.text()).toContain('Choose a client type before creating the integration.')
     expect(wrapper.findComponent(FormPageShell).find('button[disabled]').exists()).toBe(true)

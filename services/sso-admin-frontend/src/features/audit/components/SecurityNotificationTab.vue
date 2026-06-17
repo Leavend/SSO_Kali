@@ -1,11 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from '@/composables/useI18n'
-import {
-  AlertTriangle,
-  Key,
-  Settings,
-} from 'lucide-vue-next'
+import { AlertTriangle, Key, Settings } from 'lucide-vue-next'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiDataList, { type UiDataListRow } from '@/components/ui/UiDataList.vue'
 import { useAuditStore } from '@/features/audit/stores/audit.store'

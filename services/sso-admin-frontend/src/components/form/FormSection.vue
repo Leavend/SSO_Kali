@@ -8,7 +8,9 @@ defineProps<Props>()
 </script>
 
 <template>
-  <section class="grid grid-cols-1 md:grid-cols-3 gap-6 py-6 border-b border-border last:border-b-0">
+  <section
+    class="grid grid-cols-1 md:grid-cols-3 gap-6 py-6 border-b border-border last:border-b-0"
+  >
     <!-- Left Column: Title & Description -->
     <div class="md:col-span-1">
       <h2 class="text-sm font-semibold text-foreground">{{ title }}</h2>

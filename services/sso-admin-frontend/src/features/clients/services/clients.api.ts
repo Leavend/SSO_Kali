@@ -49,8 +49,17 @@ export const clientsApi = {
   delete(clientId: string): Promise<unknown> {
     return apiClient.delete<unknown>(`/api/admin/clients/${clientId}`)
   },
-  getScopes(): Promise<{ scopes: Array<{ name: string; description: string; claims: string[]; default_allowed: boolean }> }> {
-    return apiClient.get<{ scopes: Array<{ name: string; description: string; claims: string[]; default_allowed: boolean }> }>('/api/admin/scopes')
+  getScopes(): Promise<{
+    scopes: Array<{ name: string; description: string; claims: string[]; default_allowed: boolean }>
+  }> {
+    return apiClient.get<{
+      scopes: Array<{
+        name: string
+        description: string
+        claims: string[]
+        default_allowed: boolean
+      }>
+    }>('/api/admin/scopes')
   },
   rotateSecret(clientId: string): Promise<ClientSecretRotationResponse> {
     return apiClient.post<ClientSecretRotationResponse>(

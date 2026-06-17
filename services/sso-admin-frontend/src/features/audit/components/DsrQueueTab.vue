@@ -78,10 +78,7 @@ const reviewNotes = ref('Evidence verified')
             </div>
           </div>
 
-          <div
-            v-if="canReviewDsr"
-            class="flex flex-wrap gap-2 pt-2 border-t border-border/50"
-          >
+          <div v-if="canReviewDsr" class="flex flex-wrap gap-2 pt-2 border-t border-border/50">
             <UiButton
               variant="primary"
               size="sm"
@@ -107,10 +104,7 @@ const reviewNotes = ref('Evidence verified')
         </div>
       </div>
 
-      <p
-        v-if="store.dataSubjectRequests.length === 0"
-        class="text-sm text-muted-foreground italic"
-      >
+      <p v-if="store.dataSubjectRequests.length === 0" class="text-sm text-muted-foreground italic">
         {{ t('audit.no_dsr') }}
       </p>
     </section>

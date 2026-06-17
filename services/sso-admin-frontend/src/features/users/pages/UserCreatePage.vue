@@ -152,7 +152,11 @@ function markDisplayNameManual(): void {
     @submit="submit"
     @cancel="cancel"
   >
-    <div v-if="store.errorMessage" class="ui-action-message ui-action-message--error mb-6" role="alert">
+    <div
+      v-if="store.errorMessage"
+      class="ui-action-message ui-action-message--error mb-6"
+      role="alert"
+    >
       {{ store.errorMessage }}
     </div>
 
@@ -161,12 +165,7 @@ function markDisplayNameManual(): void {
       :title="t('common.identity')"
       description="Masukkan data identitas dasar pengguna baru."
     >
-      <UiFormField
-        id="create_email"
-        :label="t('users.label_email')"
-        :error="emailError"
-        required
-      >
+      <UiFormField id="create_email" :label="t('users.label_email')" :error="emailError" required>
         <UiInput
           id="create_email"
           v-model="email"
@@ -215,7 +214,8 @@ function markDisplayNameManual(): void {
           @input="markDisplayNameManual"
         />
         <p class="text-xs text-muted-foreground mt-1">
-          {{ t('users.label_display_name_preview') }}: <strong class="text-foreground">{{ displayNamePreview }}</strong>
+          {{ t('users.label_display_name_preview') }}:
+          <strong class="text-foreground">{{ displayNamePreview }}</strong>
         </p>
       </UiFormField>
     </FormSection>

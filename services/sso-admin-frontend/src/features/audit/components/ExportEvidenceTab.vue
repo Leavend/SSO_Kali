@@ -195,12 +195,7 @@ async function submitEvidencePack(): Promise<void> {
           />
         </UiFormField>
         <UiFormField id="evidence-pack-to" :label="t('audit.to')">
-          <UiInput
-            id="evidence-pack-to"
-            name="evidence-pack-to"
-            v-model="packTo"
-            type="date"
-          />
+          <UiInput id="evidence-pack-to" name="evidence-pack-to" v-model="packTo" type="date" />
         </UiFormField>
         <UiFormField
           id="evidence-pack-correlation-id"
@@ -230,9 +225,7 @@ async function submitEvidencePack(): Promise<void> {
           :disabled="store.actionStatus === 'loading' || !canSubmitEvidencePack"
           @click="submitEvidencePack"
         >
-          {{
-            store.actionStatus === 'loading' ? 'Generating...' : t('audit.btn_generate_pack')
-          }}
+          {{ store.actionStatus === 'loading' ? 'Generating...' : t('audit.btn_generate_pack') }}
         </UiButton>
       </div>
       <p

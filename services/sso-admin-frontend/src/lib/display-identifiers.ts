@@ -45,9 +45,7 @@ export function isAdminProxyTransportFailure(error: unknown): boolean {
  * Works outside Vue setup context via module-level `translate`.
  * Returns null only when both the key and template are absent (the ?. fallback).
  */
-export function resolveTransportErrorMessage(
-  requestId: string | null | undefined,
-): string | null {
+export function resolveTransportErrorMessage(requestId: string | null | undefined): string | null {
   const ref = formatSupportReference(requestId)
   if (ref) {
     return translate('audit.transport_error', { ref }) || null

@@ -1,7 +1,10 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { ApiError, getLastRequestId } from '@/lib/api/api-client'
-import { isAdminProxyTransportFailure, formatTransportErrorMessage } from '@/lib/display-identifiers'
+import {
+  isAdminProxyTransportFailure,
+  formatTransportErrorMessage,
+} from '@/lib/display-identifiers'
 import { triggerStepUpReauth } from '@/lib/stepup/stepup'
 import { externalIdpsApi } from '../services/external-idps.api'
 import type {
@@ -155,7 +158,8 @@ export const useExternalIdpsStore = defineStore('admin-external-idps', () => {
 
     status.value = 'error'
     if (isAdminProxyTransportFailure(error)) {
-      errorMessage.value = formatTransportErrorMessage(requestId.value) ?? 'External IdP admin belum bisa dimuat.'
+      errorMessage.value =
+        formatTransportErrorMessage(requestId.value) ?? 'External IdP admin belum bisa dimuat.'
     } else {
       errorMessage.value = requestId.value
         ? `External IdP admin belum bisa dimuat. Coba lagi atau gunakan request ID ${requestId.value} untuk investigasi.`
@@ -183,7 +187,8 @@ export const useExternalIdpsStore = defineStore('admin-external-idps', () => {
 
     actionStatus.value = 'error'
     if (isAdminProxyTransportFailure(error)) {
-      errorMessage.value = formatTransportErrorMessage(requestId.value) ?? 'Operasi External IdP gagal.'
+      errorMessage.value =
+        formatTransportErrorMessage(requestId.value) ?? 'Operasi External IdP gagal.'
     } else {
       errorMessage.value = requestId.value
         ? `Operasi External IdP gagal. Gunakan request ID ${requestId.value} untuk investigasi.`

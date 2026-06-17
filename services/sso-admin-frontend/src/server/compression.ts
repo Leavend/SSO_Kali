@@ -60,7 +60,7 @@ export async function decideCompression(
   if (existingEncoding) {
     return {
       apply: false,
-      headers: { 'Vary': 'Accept-Encoding' },
+      headers: { Vary: 'Accept-Encoding' },
       reason: 'upstream-already-encoded',
     }
   }
@@ -69,7 +69,7 @@ export async function decideCompression(
   if (!isCompressibleMime(mimeType)) {
     return {
       apply: false,
-      headers: { 'Vary': 'Accept-Encoding' },
+      headers: { Vary: 'Accept-Encoding' },
       reason: 'mime-not-compressible',
     }
   }
@@ -84,14 +84,14 @@ export async function decideCompression(
   } catch {
     return {
       apply: false,
-      headers: { 'Vary': 'Accept-Encoding' },
+      headers: { Vary: 'Accept-Encoding' },
       reason: 'stat-failed',
     }
   }
   if (size < MIN_COMPRESS_BYTES) {
     return {
       apply: false,
-      headers: { 'Vary': 'Accept-Encoding' },
+      headers: { Vary: 'Accept-Encoding' },
       reason: 'size-too-small',
       mtimeMs,
     }
@@ -102,7 +102,7 @@ export async function decideCompression(
   if (!acceptEncoding.includes('gzip')) {
     return {
       apply: false,
-      headers: { 'Vary': 'Accept-Encoding' },
+      headers: { Vary: 'Accept-Encoding' },
       reason: 'no-gzip-accept',
       mtimeMs,
     }
@@ -112,7 +112,7 @@ export async function decideCompression(
     apply: true,
     headers: {
       'Content-Encoding': 'gzip',
-      'Vary': 'Accept-Encoding',
+      Vary: 'Accept-Encoding',
     },
     reason: 'gzip-negotiated',
     mtimeMs,

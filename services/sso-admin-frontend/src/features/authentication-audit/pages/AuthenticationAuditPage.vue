@@ -454,7 +454,7 @@ onMounted(() => {
           </h2>
           <div class="detail-event-id-wrap">
             <span class="label">Kode event:</span>
-            <code class="value font-mono break-all">{{
+            <code class="value font-mono break-anywhere">{{
               formatTechnicalPreview(store.selectedEvent.event_id)
             }}</code>
             <button
@@ -498,7 +498,7 @@ onMounted(() => {
             </div>
             <div>
               <dt>Kode akun</dt>
-              <dd class="font-mono break-all">
+              <dd class="font-mono break-anywhere">
                 {{ formatTechnicalPreview(store.selectedEvent.subject?.subject_id) }}
               </dd>
             </div>
@@ -510,7 +510,7 @@ onMounted(() => {
             </div>
             <div>
               <dt>Kode sesi</dt>
-              <dd class="font-mono break-all">
+              <dd class="font-mono break-anywhere">
                 {{ formatTechnicalPreview(store.selectedEvent.session_id) }}
               </dd>
             </div>
@@ -533,7 +533,7 @@ onMounted(() => {
           <dl class="detail-metadata-grid">
             <div>
               <dt>Kode request</dt>
-              <dd class="font-mono break-all">
+              <dd class="font-mono break-anywhere">
                 {{ formatTechnicalPreview(store.selectedEvent.request.request_id) }}
               </dd>
             </div>
@@ -1123,6 +1123,40 @@ onMounted(() => {
 
   .auth-audit-detail-back-bar {
     display: block;
+  }
+
+  .auth-audit-detail {
+    padding: 16px !important;
+    gap: 16px !important;
+  }
+
+  .detail-header-card {
+    padding: 14px !important;
+  }
+
+  .detail-title {
+    font-size: 1.25rem !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+  }
+
+  .detail-section {
+    padding: 14px !important;
+  }
+
+  .detail-metadata-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  .detail-metadata-grid dd {
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+  }
+
+  .compact-actions {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
   }
 }
 </style>

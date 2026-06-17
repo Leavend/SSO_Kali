@@ -6,7 +6,9 @@ const cssSource = readFileSync(join(process.cwd(), 'src/assets/main.css'), 'utf8
 
 function cssBlock(selector: string): string {
   const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  return cssSource.match(new RegExp(`(?:^|\\n)\\s*${escapedSelector}\\s*\\{([^}]*)\\}`, 's'))?.[1] ?? ''
+  return (
+    cssSource.match(new RegExp(`(?:^|\\n)\\s*${escapedSelector}\\s*\\{([^}]*)\\}`, 's'))?.[1] ?? ''
+  )
 }
 
 describe('admin sidebar layout contract', () => {
