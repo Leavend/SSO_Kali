@@ -1683,8 +1683,18 @@ select.ui-control {
   text-transform: uppercase;
 }
 
+.audit-table-region {
+  position: relative;
+  min-height: 320px;
+}
+
+.audit-table-wrapper {
+  min-height: 320px;
+}
+
 .audit-table-wrapper .ui-data-list__viewport {
   max-height: min(560px, 64vh);
+  min-height: 320px;
   overflow: auto;
 }
 
@@ -1694,6 +1704,137 @@ select.ui-control {
   z-index: 2;
   background: var(--card);
   box-shadow: inset 0 -1px 0 var(--border);
+}
+
+.audit-loading-shell {
+  display: grid;
+  gap: 24px;
+}
+
+.audit-loading-card {
+  min-width: 0;
+}
+
+.audit-loading-copy,
+.audit-loading-section-heading {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.audit-loading-tab,
+.audit-skeleton-line,
+.audit-skeleton-field,
+.audit-skeleton-button,
+.audit-table-skeleton span {
+  position: relative;
+  overflow: hidden;
+}
+
+.audit-skeleton-line,
+.audit-skeleton-field,
+.audit-skeleton-button,
+.audit-table-skeleton span {
+  display: block;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    var(--muted),
+    color-mix(in srgb, var(--muted) 72%, var(--card)),
+    var(--muted)
+  );
+  background-size: 180% 100%;
+  animation: audit-skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+.audit-skeleton-line--title {
+  width: min(220px, 70%);
+  height: 18px;
+}
+
+.audit-skeleton-line--text {
+  width: min(520px, 100%);
+  height: 12px;
+}
+
+.audit-skeleton-line--short {
+  width: min(160px, 52%);
+  height: 12px;
+}
+
+.audit-skeleton-field {
+  height: 42px;
+  border-radius: 10px;
+}
+
+.audit-skeleton-button {
+  width: 136px;
+  height: 40px;
+  border-radius: 10px;
+}
+
+.audit-table-skeleton {
+  display: grid;
+  min-height: 320px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--card);
+  overflow: hidden;
+}
+
+.audit-table-skeleton__header {
+  display: grid;
+  grid-template-columns:
+    minmax(120px, 1.2fr) minmax(160px, 2fr) minmax(110px, 1fr)
+    minmax(140px, 1.2fr);
+  gap: 14px;
+  align-items: center;
+  padding: 12px 14px;
+  min-height: 43px;
+  background: var(--card);
+}
+
+.audit-table-skeleton__row {
+  display: grid;
+  grid-template-columns:
+    minmax(120px, 1.2fr) minmax(160px, 2fr) minmax(110px, 1fr)
+    minmax(140px, 1.2fr);
+  gap: 14px;
+  align-items: center;
+  padding: 12px 14px;
+  border-top: 1px solid var(--border);
+  min-height: 49px;
+}
+
+.audit-table-skeleton__header span,
+.audit-table-skeleton__row span {
+  height: 12px;
+}
+
+.audit-table-empty-state {
+  display: grid;
+  align-content: center;
+  position: absolute;
+  inset: 84px 16px 16px;
+  min-height: 220px;
+  margin: 0;
+  pointer-events: none;
+}
+
+.audit-data-value,
+.audit-table-wrapper .ui-data-list td {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+@keyframes audit-skeleton-pulse {
+  0% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0 50%;
+  }
 }
 
 .ui-data-list__cell--right {
@@ -2804,8 +2945,19 @@ select.ui-control {
   .audit-table-wrapper,
   .ui-data-list__viewport {
     max-width: 100%;
+    min-height: 260px;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+  }
+
+  .audit-table-wrapper .ui-data-list__viewport,
+  .audit-table-skeleton {
+    min-height: 260px;
+  }
+
+  .audit-table-skeleton__header,
+  .audit-table-skeleton__row {
+    grid-template-columns: 120px 160px 110px 140px;
   }
 
   .audit-detail-dialog {

@@ -128,6 +128,31 @@ describe('ClientsPage', () => {
     expect(uriCodes.every((code) => code.classes().includes('break-anywhere'))).toBe(true)
   })
 
+  it('renders client type once outside the hero status when the type is unknown', () => {
+    const store = useClientsStore()
+    store.clients = [
+      {
+        ...client,
+        client_id: 'sso-frontend-portal-with-a-very-long-identifier',
+        display_name: 'SSO Frontend Portal With A Very Long Production Name',
+        type: null,
+        environment: null,
+      },
+    ]
+    store.selectedClientId = 'sso-frontend-portal-with-a-very-long-identifier'
+    store.status = 'success'
+    store.detailStatus = 'success'
+
+    const wrapper = mount(ClientsPage)
+
+    expect(wrapper.find('.client-profile-hero__header-row h2').classes()).toContain(
+      'break-anywhere',
+    )
+    expect(wrapper.find('.client-profile-hero__type-badge').exists()).toBe(false)
+    expect(wrapper.find('.client-profile-hero__status-badge').text()).toBe('active')
+    expect(wrapper.find('[data-test="client-overview-type"]').text()).toBe('unknown')
+  })
+
   it('renders active-client URI policy controls with backchannel logout fields', async () => {
     const store = useClientsStore()
     store.clients = [client]

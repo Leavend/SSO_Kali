@@ -233,9 +233,27 @@ export const useClientsStore = defineStore('admin-clients', () => {
     const merged = new Map<string, AdminClient>()
 
     for (const client of registrationClients) merged.set(client.client_id, client)
-    for (const client of runtimeClients) merged.set(client.client_id, client)
+    for (const client of runtimeClients) {
+      const registration = merged.get(client.client_id)
+      merged.set(client.client_id, mergeClientMetadata(registration, client))
+    }
 
     return [...merged.values()]
+  }
+
+  function mergeClientMetadata(
+    registration: AdminClient | undefined,
+    runtime: AdminClient,
+  ): AdminClient {
+    if (registration === undefined) return runtime
+
+    const merged: Record<string, unknown> = { ...registration }
+
+    for (const key of Object.keys(runtime) as Array<keyof AdminClient>) {
+      merged[key] = runtime[key] ?? registration[key]
+    }
+
+    return merged as AdminClient
   }
 
   function handleListError(error: unknown): void {

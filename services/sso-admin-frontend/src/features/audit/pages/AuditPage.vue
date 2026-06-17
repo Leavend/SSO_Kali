@@ -26,7 +26,6 @@ import UiFormField from '@/components/ui/UiFormField.vue'
 import UiInput from '@/components/ui/UiInput.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiDialog from '@/components/ui/UiDialog.vue'
-import UiSkeleton from '@/components/ui/UiSkeleton.vue'
 import UiStatusView from '@/components/ui/UiStatusView.vue'
 import { useSessionStore } from '@/stores/session.store'
 import { useAuditStore } from '@/features/audit/stores/audit.store'
@@ -96,6 +95,7 @@ const searchTo = ref('')
 const selectedConsentAction = ref<'all' | 'allow' | 'deny' | 'revoke'>('all')
 const showAdvancedFilters = ref(false)
 const activeDetailDialog = ref<'audit' | 'authentication' | null>(null)
+const loadingTableRows = Array.from({ length: 7 }, (_, index) => index)
 
 function filled(value: string): string | undefined {
   const trimmed = value.trim()
@@ -341,7 +341,101 @@ onMounted(() => {
       <p class="page-summary">{{ t('audit.summary') }}</p>
     </div>
 
-    <UiSkeleton v-if="store.status === 'loading'" :label="t('audit.loading')" />
+    <div v-if="store.status === 'loading'" class="audit-loading-shell space-y-6" aria-busy="true">
+      <div class="audit-tabs-container scroll-edge-indicator" aria-hidden="true">
+        <nav class="audit-tabs" aria-label="Audit loading navigation tabs">
+          <span class="audit-tab-btn audit-tab-btn--active audit-loading-tab">
+            <ClipboardList class="size-4" />
+            <span>{{ t('audit.tab_logs') }}</span>
+          </span>
+          <span class="audit-tab-btn audit-loading-tab">
+            <ShieldCheck class="size-4" />
+            <span>{{ t('audit.tab_security') }}</span>
+          </span>
+          <span
+            v-if="canExportAudit || canGenerateEvidencePack"
+            class="audit-tab-btn audit-loading-tab"
+          >
+            <Download class="size-4" />
+            <span>{{ t('audit.tab_reports') }}</span>
+          </span>
+          <span class="audit-tab-btn audit-loading-tab">
+            <History class="size-4" />
+            <span>{{ t('audit.tab_retention') }}</span>
+          </span>
+        </nav>
+      </div>
+
+      <section
+        class="ui-card space-y-4 audit-loading-card"
+        data-test="audit-loading-search-shell"
+        aria-label="Audit search loading"
+      >
+        <div class="flex items-start gap-3">
+          <FileSearch class="size-5 mt-1 text-primary" />
+          <div class="audit-loading-copy">
+            <span class="audit-skeleton-line audit-skeleton-line--title" />
+            <span class="audit-skeleton-line audit-skeleton-line--text" />
+          </div>
+        </div>
+        <div class="audit-grid audit-grid-3 audit-filter-grid">
+          <span class="audit-skeleton-field" />
+          <span class="audit-skeleton-field" />
+          <span class="audit-skeleton-field" />
+        </div>
+        <div class="audit-filter-actions pt-2">
+          <span class="audit-skeleton-button" />
+          <span class="audit-skeleton-button" />
+          <span class="audit-skeleton-button" />
+        </div>
+      </section>
+
+      <section
+        v-for="label in ['Consent event table', 'Admin event table', 'Authentication event table']"
+        :key="label"
+        class="ui-card space-y-4 audit-loading-card"
+        data-test="audit-loading-table-shell"
+        :aria-label="label"
+      >
+        <div class="audit-loading-section-heading">
+          <span class="audit-skeleton-line audit-skeleton-line--title" />
+          <span class="audit-skeleton-line audit-skeleton-line--short" />
+        </div>
+        <div class="audit-table-wrapper">
+          <div class="audit-table-skeleton" role="presentation">
+            <div class="audit-table-skeleton__header">
+              <span />
+              <span />
+              <span />
+              <span />
+            </div>
+            <div
+              v-for="row in loadingTableRows"
+              :key="`${label}-${row}`"
+              class="audit-table-skeleton__row"
+            >
+              <span />
+              <span />
+              <span />
+              <span />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="audit-grid audit-grid-2 audit-loading-evidence" aria-hidden="true">
+        <section class="ui-card audit-card-premium space-y-3">
+          <span class="audit-skeleton-line audit-skeleton-line--title" />
+          <span class="audit-skeleton-line audit-skeleton-line--text" />
+          <span class="audit-skeleton-line audit-skeleton-line--short" />
+        </section>
+        <section class="ui-card audit-card-premium space-y-3">
+          <span class="audit-skeleton-line audit-skeleton-line--title" />
+          <span class="audit-skeleton-line audit-skeleton-line--text" />
+          <span class="audit-skeleton-line audit-skeleton-line--short" />
+        </section>
+      </div>
+    </div>
 
     <UiStatusView
       v-else-if="store.status === 'forbidden'"
@@ -652,31 +746,36 @@ onMounted(() => {
               </UiButton>
             </div>
 
-            <div class="audit-table-wrapper">
-              <UiDataList
-                caption="Consent event table"
-                :columns="authenticationEventColumns"
-                :rows="consentEventRows"
+            <div class="audit-table-region">
+              <div class="audit-table-wrapper">
+                <UiDataList
+                  caption="Consent event table"
+                  :columns="authenticationEventColumns"
+                  :rows="consentEventRows"
+                >
+                  <template #actions="{ row }">
+                    <UiButton
+                      variant="secondary"
+                      size="sm"
+                      :class="
+                        row.id === store.selectedAuthenticationEventId
+                          ? 'border-primary text-primary'
+                          : undefined
+                      "
+                      @click="openAuthenticationEventDetail(row.id)"
+                    >
+                      {{ t('audit.btn_view_detail') }}
+                    </UiButton>
+                  </template>
+                </UiDataList>
+              </div>
+              <p
+                v-if="store.consentEvents.length === 0"
+                class="audit-table-empty-state text-sm text-muted-foreground"
               >
-                <template #actions="{ row }">
-                  <UiButton
-                    variant="secondary"
-                    size="sm"
-                    :class="
-                      row.id === store.selectedAuthenticationEventId
-                        ? 'border-primary text-primary'
-                        : undefined
-                    "
-                    @click="openAuthenticationEventDetail(row.id)"
-                  >
-                    {{ t('audit.btn_view_detail') }}
-                  </UiButton>
-                </template>
-              </UiDataList>
+                No consent events match the selected filter.
+              </p>
             </div>
-            <p v-if="store.consentEvents.length === 0" class="text-sm text-muted-foreground pt-2">
-              No consent events match the selected filter.
-            </p>
             <div class="pt-2">
               <UiButton
                 v-if="
@@ -695,29 +794,36 @@ onMounted(() => {
           <section class="audit-events-section" aria-labelledby="events-title">
             <div class="ui-card space-y-4">
               <h2 id="events-title" class="text-base font-bold">{{ t('audit.events_title') }}</h2>
-              <div class="audit-table-wrapper">
-                <UiDataList
-                  caption="Admin event table"
-                  :columns="auditEventColumns"
-                  :rows="auditEventRows"
+              <div class="audit-table-region">
+                <div class="audit-table-wrapper">
+                  <UiDataList
+                    caption="Admin event table"
+                    :columns="auditEventColumns"
+                    :rows="auditEventRows"
+                  >
+                    <template #actions="{ row }">
+                      <UiButton
+                        variant="secondary"
+                        size="sm"
+                        :class="
+                          row.id === store.selectedEventId
+                            ? 'border-primary text-primary'
+                            : undefined
+                        "
+                        @click="openAuditEventDetail(row.id)"
+                      >
+                        {{ t('audit.btn_view_detail') }}
+                      </UiButton>
+                    </template>
+                  </UiDataList>
+                </div>
+                <p
+                  v-if="store.events.length === 0"
+                  class="audit-table-empty-state text-sm text-muted-foreground"
                 >
-                  <template #actions="{ row }">
-                    <UiButton
-                      variant="secondary"
-                      size="sm"
-                      :class="
-                        row.id === store.selectedEventId ? 'border-primary text-primary' : undefined
-                      "
-                      @click="openAuditEventDetail(row.id)"
-                    >
-                      {{ t('audit.btn_view_detail') }}
-                    </UiButton>
-                  </template>
-                </UiDataList>
+                  {{ t('audit.no_audit_events') }}
+                </p>
               </div>
-              <p v-if="store.events.length === 0" class="text-sm text-muted-foreground pt-2">
-                {{ t('audit.no_audit_events') }}
-              </p>
               <div class="pt-2">
                 <UiButton
                   v-if="store.eventPagination?.has_more && store.eventPagination?.next_cursor"
@@ -739,34 +845,36 @@ onMounted(() => {
               <h2 id="security-evidence-title" class="text-base font-bold">
                 {{ t('audit.security_evidence_title') }}
               </h2>
-              <div class="audit-table-wrapper">
-                <UiDataList
-                  caption="Authentication event table"
-                  :columns="authenticationEventColumns"
-                  :rows="authenticationEventRows"
+              <div class="audit-table-region">
+                <div class="audit-table-wrapper">
+                  <UiDataList
+                    caption="Authentication event table"
+                    :columns="authenticationEventColumns"
+                    :rows="authenticationEventRows"
+                  >
+                    <template #actions="{ row }">
+                      <UiButton
+                        variant="secondary"
+                        size="sm"
+                        :class="
+                          row.id === store.selectedAuthenticationEventId
+                            ? 'border-primary text-primary'
+                            : undefined
+                        "
+                        @click="openAuthenticationEventDetail(row.id)"
+                      >
+                        {{ t('audit.btn_view_detail') }}
+                      </UiButton>
+                    </template>
+                  </UiDataList>
+                </div>
+                <p
+                  v-if="store.authenticationEvents.length === 0"
+                  class="audit-table-empty-state text-sm text-muted-foreground"
                 >
-                  <template #actions="{ row }">
-                    <UiButton
-                      variant="secondary"
-                      size="sm"
-                      :class="
-                        row.id === store.selectedAuthenticationEventId
-                          ? 'border-primary text-primary'
-                          : undefined
-                      "
-                      @click="openAuthenticationEventDetail(row.id)"
-                    >
-                      {{ t('audit.btn_view_detail') }}
-                    </UiButton>
-                  </template>
-                </UiDataList>
+                  {{ t('audit.no_security_events') }}
+                </p>
               </div>
-              <p
-                v-if="store.authenticationEvents.length === 0"
-                class="text-sm text-muted-foreground pt-2"
-              >
-                {{ t('audit.no_security_events') }}
-              </p>
               <div class="pt-2">
                 <UiButton
                   v-if="

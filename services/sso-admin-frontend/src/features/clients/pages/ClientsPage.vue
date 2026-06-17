@@ -106,6 +106,13 @@ function avatarStyle(name: string): Record<string, string> {
   return { background: `linear-gradient(135deg, ${color.start}, ${color.end})` }
 }
 
+function displayClientType(type: string | null | undefined): string {
+  const normalized = type?.trim().toLowerCase()
+  if (normalized === 'public') return 'public'
+  if (normalized === 'confidential') return 'confidential'
+  return t('clients.val_unknown')
+}
+
 const successMessage = ref<string | null>(null)
 const isSaving = ref(false)
 const copyFeedback = ref<string | null>(null)
@@ -714,7 +721,7 @@ async function deleteClient(): Promise<void> {
                     client.owner_email ?? formatFriendlyClientName(client.client_id)
                   }}</span>
                   <span class="user-card-item__meta">
-                    <span class="user-card-item__role">{{ client.type ?? 'public' }}</span>
+                    <span class="user-card-item__role">{{ displayClientType(client.type) }}</span>
                   </span>
                 </span>
               </button>
@@ -755,7 +762,9 @@ async function deleteClient(): Promise<void> {
           </div>
           <div class="client-profile-hero__content">
             <div class="client-profile-hero__header-row">
-              <h2>{{ store.selectedClient.display_name ?? store.selectedClient.client_id }}</h2>
+              <h2 class="break-anywhere">
+                {{ store.selectedClient.display_name ?? store.selectedClient.client_id }}
+              </h2>
               <span class="ui-badge client-profile-hero__status-badge">{{
                 store.selectedClient.status ?? 'unknown'
               }}</span>
@@ -850,7 +859,9 @@ async function deleteClient(): Promise<void> {
           <dl class="detail-grid">
             <div>
               <dt>{{ t('clients.ov_type') }}</dt>
-              <dd>{{ store.selectedClient.type ?? t('clients.val_unknown') }}</dd>
+              <dd data-test="client-overview-type">
+                {{ displayClientType(store.selectedClient.type) }}
+              </dd>
             </div>
             <div>
               <dt>{{ t('clients.ov_owner') }}</dt>

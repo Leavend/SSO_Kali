@@ -241,7 +241,12 @@ describe('AuditPage', () => {
 
     const wrapper = mount(AuditPage)
 
-    expect(wrapper.find('.ui-skeleton').exists()).toBe(true)
+    expect(wrapper.find('.audit-loading-shell').exists()).toBe(true)
+    expect(wrapper.find('.audit-tabs-container').exists()).toBe(true)
+    expect(wrapper.find('[data-test="audit-loading-search-shell"]').exists()).toBe(true)
+    expect(wrapper.findAll('[data-test="audit-loading-table-shell"]')).toHaveLength(3)
+    expect(wrapper.findAll('.audit-table-skeleton__row').length).toBeGreaterThanOrEqual(15)
+    expect(wrapper.text()).not.toMatch(/Bearer|refreshToken|SQLSTATE/i)
 
     store.status = 'forbidden'
     store.errorMessage = 'Kamu tidak memiliki izin untuk melihat audit compliance.'

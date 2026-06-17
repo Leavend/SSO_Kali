@@ -121,6 +121,42 @@ describe('useClientsStore', () => {
     expect(store.requestId).toBe('req-clients-1')
   })
 
+  it('preserves registration metadata when runtime clients have incomplete display fields', async () => {
+    const registrationClient: AdminClient = {
+      ...client,
+      client_id: 'sso-frontend-portal',
+      display_name: 'SSO Frontend Portal',
+      type: 'confidential',
+      environment: 'production',
+      owner_email: 'identity@example.test',
+      backchannel_logout_uri: 'https://frontend.example.test/backchannel-logout',
+    }
+    const runtimeClient: AdminClient = {
+      ...registrationClient,
+      display_name: null,
+      type: null,
+      environment: null,
+      owner_email: null,
+      backchannel_logout_uri: null,
+      redirect_uris: ['https://frontend.example.test/callback'],
+    }
+    vi.mocked(clientsApi.list).mockResolvedValue({ clients: [runtimeClient] })
+    vi.mocked(clientsApi.registrations).mockResolvedValue({ registrations: [registrationClient] })
+    const store = useClientsStore()
+
+    await store.load()
+
+    expect(store.selectedClient).toMatchObject({
+      client_id: 'sso-frontend-portal',
+      display_name: 'SSO Frontend Portal',
+      type: 'confidential',
+      environment: 'production',
+      owner_email: 'identity@example.test',
+      backchannel_logout_uri: 'https://frontend.example.test/backchannel-logout',
+      redirect_uris: ['https://frontend.example.test/callback'],
+    })
+  })
+
   it('loads selected client detail', async () => {
     vi.mocked(clientsApi.show).mockResolvedValue({ client })
     const store = useClientsStore()
