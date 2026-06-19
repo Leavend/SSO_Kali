@@ -72,6 +72,27 @@ jobs:
       - name: Install dependencies
         run: composer install --no-interaction --no-progress --prefer-dist --optimize-autoloader
 
+      - name: Composer audit (production dependencies)
+        run: |
+          if [ -n "${COMPOSER_AUDIT_IGNORES:-}" ]; then
+            export COMPOSER_HOME="${RUNNER_TEMP:-/tmp}/composer-audit-home"
+            mkdir -p "${COMPOSER_HOME}"
+
+            php -r '
+              $advisories = preg_split("/\\s+/", trim(getenv("COMPOSER_AUDIT_IGNORES") ?: ""), -1, PREG_SPLIT_NO_EMPTY);
+              $config = ["config" => ["audit" => ["ignore" => array_values($advisories)]]];
+              file_put_contents(getenv("COMPOSER_HOME") . "/config.json", json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+            '
+          fi
+
+          composer audit --locked --no-dev
+        env:
+          # Composer has no Grype-equivalent `only-fixed` mode. Keep this gate
+          # strict by default, but allow temporary, reviewed exceptions for
+          # production advisories that have no patched release yet. Values are
+          # whitespace-separated advisory IDs loaded into config.audit.ignore.
+          COMPOSER_AUDIT_IGNORES: ${{ vars.COMPOSER_AUDIT_IGNORES }}
+
       - name: Prepare Laravel runtime directories
         run: mkdir -p storage/app storage/framework/cache storage/framework/sessions storage/framework/testing storage/framework/views storage/logs bootstrap/cache
 

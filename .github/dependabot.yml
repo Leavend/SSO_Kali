@@ -1,0 +1,101 @@
+version: 2
+updates:
+  - package-ecosystem: composer
+    directory: /services/sso-backend
+    target-branch: main
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Makassar
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - sso-backend
+    groups:
+      composer-patch-and-minor:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+
+  - package-ecosystem: npm
+    directory: /services/sso-admin-frontend
+    target-branch: main
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:15"
+      timezone: Asia/Makassar
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - sso-admin-frontend
+    groups:
+      admin-frontend-patch-and-minor:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+
+  - package-ecosystem: npm
+    directory: /services/sso-frontend
+    target-branch: main
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:30"
+      timezone: Asia/Makassar
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - sso-frontend
+    groups:
+      frontend-patch-and-minor:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+
+  - package-ecosystem: npm
+    directory: /services/sso-docs
+    target-branch: main
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:45"
+      timezone: Asia/Makassar
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - sso-docs
+    groups:
+      docs-patch-and-minor:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: main
+    schedule:
+      interval: weekly
+      day: monday
+      time: "10:00"
+      timezone: Asia/Makassar
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - github-actions
+    groups:
+      github-actions-patch-and-minor:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
