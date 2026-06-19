@@ -2,6 +2,7 @@
 import { computed, defineAsyncComponent, onMounted, ref, watch, nextTick } from 'vue'
 import { useI18n } from '@/composables/useI18n'
 import { useDateFormat } from '@/composables/useDateFormat'
+import { useTabPill } from '@/composables/useTabPill'
 import { useRoute } from 'vue-router'
 import {
   ClipboardList,
@@ -128,25 +129,34 @@ function closeDetailDialog(): void {
   activeDetailDialog.value = null
 }
 
-function scrollActiveTabIntoView() {
-  const container = document.querySelector('.audit-tabs-container')
-  const activeBtn = container?.querySelector('.audit-tab-btn--active')
-  if (activeBtn) {
-    activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
+const visibleTabs = computed(() => {
+  const tabs: Array<'logs' | 'security' | 'reports' | 'retention' | 'dsr'> = ['logs', 'security']
+  if (canExportAudit.value || canGenerateEvidencePack.value) {
+    tabs.push('reports')
   }
-}
+  tabs.push('retention')
+  if (canReviewDsr.value) {
+    tabs.push('dsr')
+  }
+  return tabs
+})
+
+const tabsContainerRef = ref<HTMLElement | null>(null)
+const { pillStyle, updatePillPosition } = useTabPill({
+  containerRef: tabsContainerRef,
+  activeSelector: '.audit-tab-btn--active',
+  scrollActiveIntoView: true,
+})
 
 watch(activeTab, () => {
   nextTick(() => {
-    scrollActiveTabIntoView()
+    updatePillPosition()
   })
 })
 
-onMounted(() => {
-  nextTick(() => {
-    scrollActiveTabIntoView()
-  })
-})
+function selectTab(tab: 'logs' | 'security' | 'reports' | 'retention' | 'dsr'): void {
+  activeTab.value = tab
+}
 </script>
 
 <template>
@@ -225,12 +235,13 @@ onMounted(() => {
 
       <!-- Horizontal Tab System -->
       <div class="audit-tabs-container scroll-edge-indicator">
-        <nav class="audit-tabs" aria-label="Audit navigation tabs">
+        <nav ref="tabsContainerRef" class="audit-tabs" aria-label="Audit navigation tabs">
+          <div class="audit-tabs__pill" :style="pillStyle"></div>
           <button
             class="audit-tab-btn"
             :class="{ 'audit-tab-btn--active': activeTab === 'logs' }"
             type="button"
-            @click="activeTab = 'logs'"
+            @click="selectTab('logs')"
           >
             <ClipboardList class="size-4" />
             <span>{{ t('audit.tab_logs') }}</span>
@@ -239,7 +250,7 @@ onMounted(() => {
             class="audit-tab-btn"
             :class="{ 'audit-tab-btn--active': activeTab === 'security' }"
             type="button"
-            @click="activeTab = 'security'"
+            @click="selectTab('security')"
           >
             <ShieldCheck class="size-4" />
             <span>{{ t('audit.tab_security') }}</span>
@@ -249,7 +260,7 @@ onMounted(() => {
             class="audit-tab-btn"
             :class="{ 'audit-tab-btn--active': activeTab === 'reports' }"
             type="button"
-            @click="activeTab = 'reports'"
+            @click="selectTab('reports')"
           >
             <Download class="size-4" />
             <span>{{ t('audit.tab_reports') }}</span>
@@ -258,7 +269,7 @@ onMounted(() => {
             class="audit-tab-btn"
             :class="{ 'audit-tab-btn--active': activeTab === 'retention' }"
             type="button"
-            @click="activeTab = 'retention'"
+            @click="selectTab('retention')"
           >
             <History class="size-4" />
             <span>{{ t('audit.tab_retention') }}</span>
@@ -268,7 +279,7 @@ onMounted(() => {
             class="audit-tab-btn"
             :class="{ 'audit-tab-btn--active': activeTab === 'dsr' }"
             type="button"
-            @click="activeTab = 'dsr'"
+            @click="selectTab('dsr')"
           >
             <UserX class="size-4" />
             <span>{{ t('audit.tab_dsr') }}</span>

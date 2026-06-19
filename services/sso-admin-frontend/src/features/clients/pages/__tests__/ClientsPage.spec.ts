@@ -128,6 +128,26 @@ describe('ClientsPage', () => {
     expect(uriCodes.every((code) => code.classes().includes('break-anywhere'))).toBe(true)
   })
 
+  it('uses the last selected client detail tab during rapid clicks', async () => {
+    const store = useClientsStore()
+    store.clients = [client]
+    store.selectedClientId = 'prototype-app-a'
+    store.status = 'success'
+    store.detailStatus = 'success'
+
+    const wrapper = mount(ClientsPage)
+    const tabs = wrapper.findAll('[role="tab"]')
+    const overviewTab = tabs.find((tab) => tab.text().includes('Overview'))!
+    const lifecycleTab = tabs.find((tab) => tab.text().includes('Lifecycle'))!
+
+    await lifecycleTab.trigger('click')
+    await overviewTab.trigger('click')
+
+    expect(overviewTab.attributes('aria-selected')).toBe('true')
+    expect(lifecycleTab.attributes('aria-selected')).toBe('false')
+    expect(wrapper.find('#client-panel-overview').isVisible()).toBe(true)
+  })
+
   it('renders client type once outside the hero status when the type is unknown', () => {
     const store = useClientsStore()
     store.clients = [

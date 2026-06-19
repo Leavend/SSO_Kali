@@ -3,6 +3,7 @@ import { computed, nextTick, onMounted, ref, watch, type Component } from 'vue'
 import { useI18n } from '@/composables/useI18n'
 import { useDateFormat } from '@/composables/useDateFormat'
 import { useAutoRefresh } from '@/composables/useAutoRefresh'
+import { useTabPill } from '@/composables/useTabPill'
 import { getAdminEnvironment } from '@/config/adminEnvironment'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
@@ -237,6 +238,28 @@ const detailTabs = computed<Array<{ key: DetailTab; label: string; icon: Compone
   return tabs
 })
 
+const tabsContainerRef = ref<HTMLElement | null>(null)
+const { pillStyle, updatePillPosition, schedulePillUpdate } = useTabPill({
+  containerRef: tabsContainerRef,
+  activeSelector: '.user-detail-tab--active',
+})
+
+watch(activeDetailTab, () => {
+  nextTick(() => {
+    updatePillPosition()
+  })
+})
+
+watch(
+  () => store.selectedUser?.subject_id,
+  () => {
+    nextTick(() => {
+      updatePillPosition()
+    })
+    schedulePillUpdate()
+  }
+)
+
 function selectDetailTab(key: DetailTab): void {
   activeDetailTab.value = key
 }
@@ -258,7 +281,7 @@ function onTabKeydown(event: KeyboardEvent, index: number): void {
   event.preventDefault()
   const next = tabs[nextIndex]
   if (!next) return
-  activeDetailTab.value = next.key
+  selectDetailTab(next.key)
   void nextTick(() => {
     document.getElementById(`user-tab-${next.key}`)?.focus()
   })
@@ -673,7 +696,13 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
         </div>
 
         <!-- Tab navigation -->
-        <div class="user-detail-tabs" role="tablist" :aria-label="t('users.detail_tabs_label')">
+        <div
+          ref="tabsContainerRef"
+          class="user-detail-tabs"
+          role="tablist"
+          :aria-label="t('users.detail_tabs_label')"
+        >
+          <div class="user-detail-tabs__pill" :style="pillStyle"></div>
           <button
             v-for="(tab, index) in detailTabs"
             :id="`user-tab-${tab.key}`"

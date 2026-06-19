@@ -2829,11 +2829,29 @@ select.ui-control {
   display: none;
 }
 .audit-tabs {
+  position: relative;
   display: flex;
   gap: 8px;
   padding-bottom: 8px;
 }
+.audit-tabs__pill {
+  position: absolute;
+  top: 0;
+  bottom: 8px;
+  border-radius: 8px;
+  background: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--primary) 15%, transparent);
+  transition: all 0.22s cubic-bezier(0.25, 1, 0.5, 1);
+  pointer-events: none;
+  z-index: 0;
+}
+.dark .audit-tabs__pill {
+  background: var(--primary);
+  border-color: transparent;
+}
 .audit-tab-btn {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -2854,13 +2872,16 @@ select.ui-control {
 }
 .audit-tab-btn--active {
   color: var(--primary);
-  background: var(--accent);
-  border-color: rgba(99, 102, 241, 0.15);
+  background: transparent !important;
+  border-color: transparent !important;
+}
+.audit-tab-btn--active:hover {
+  background: transparent !important;
 }
 .dark .audit-tab-btn--active {
   color: var(--foreground);
-  background: var(--primary);
-  border-color: transparent;
+  background: transparent !important;
+  border-color: transparent !important;
 }
 
 .audit-grid {
@@ -3996,6 +4017,7 @@ button.user-card-item {
 
 /* ── User detail tabs (accessible; mirrors the audit tab visual) ─────────── */
 .user-detail-tabs {
+  position: relative;
   display: flex;
   gap: 8px;
   overflow-x: auto;
@@ -4006,7 +4028,24 @@ button.user-card-item {
 .user-detail-tabs::-webkit-scrollbar {
   display: none;
 }
+.user-detail-tabs__pill {
+  position: absolute;
+  top: 0;
+  bottom: 8px;
+  border-radius: 10px;
+  background: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--primary) 15%, transparent);
+  transition: all 0.22s cubic-bezier(0.25, 1, 0.5, 1);
+  pointer-events: none;
+  z-index: 0;
+}
+.dark .user-detail-tabs__pill {
+  background: var(--primary);
+  border-color: transparent;
+}
 .user-detail-tab {
+  position: relative;
+  z-index: 1;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -4031,13 +4070,16 @@ button.user-card-item {
 }
 .user-detail-tab--active {
   color: var(--primary);
-  background: var(--accent);
-  border-color: color-mix(in srgb, var(--primary) 15%, transparent);
+  background: transparent !important;
+  border-color: transparent !important;
+}
+.user-detail-tab--active:hover {
+  background: transparent !important;
 }
 .dark .user-detail-tab--active {
   color: var(--foreground);
-  background: var(--primary);
-  border-color: transparent;
+  background: transparent !important;
+  border-color: transparent !important;
 }
 .user-detail-tab:focus-visible {
   outline: 2px solid var(--primary);
@@ -4708,6 +4750,7 @@ button.user-card-item {
 
 /* Tabs styling */
 .client-detail-tabs {
+  position: relative;
   display: flex;
   gap: 8px;
   overflow-x: auto;
@@ -4719,7 +4762,24 @@ button.user-card-item {
 .client-detail-tabs::-webkit-scrollbar {
   display: none;
 }
+.client-detail-tabs__pill {
+  position: absolute;
+  top: 0;
+  bottom: 8px;
+  border-radius: 10px;
+  background: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--primary) 15%, transparent);
+  transition: all 0.22s cubic-bezier(0.25, 1, 0.5, 1);
+  pointer-events: none;
+  z-index: 0;
+}
+.dark .client-detail-tabs__pill {
+  background: var(--primary);
+  border-color: transparent;
+}
 .client-detail-tab {
+  position: relative;
+  z-index: 1;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -4744,13 +4804,16 @@ button.user-card-item {
 }
 .client-detail-tab--active {
   color: var(--primary);
-  background: var(--accent);
-  border-color: color-mix(in srgb, var(--primary) 15%, transparent);
+  background: transparent !important;
+  border-color: transparent !important;
+}
+.client-detail-tab--active:hover {
+  background: transparent !important;
 }
 .dark .client-detail-tab--active {
   color: var(--foreground);
-  background: var(--primary);
-  border-color: transparent;
+  background: transparent !important;
+  border-color: transparent !important;
 }
 .client-detail-tab:focus-visible {
   outline: 2px solid var(--primary);
@@ -5653,6 +5716,14 @@ button.user-card-item {
 
 .audit-tab-loading-fallback {
   min-height: 480px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .audit-tabs__pill,
+  .user-detail-tabs__pill,
+  .client-detail-tabs__pill {
+    transition: none;
+  }
 }
 
 @media (max-width: 760px) {

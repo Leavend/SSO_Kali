@@ -3,6 +3,7 @@ import { computed, nextTick, onMounted, reactive, ref, watch, type Component } f
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from '@/composables/useI18n'
 import { useDateFormat } from '@/composables/useDateFormat'
+import { useTabPill } from '@/composables/useTabPill'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiDialog from '@/components/ui/UiDialog.vue'
@@ -175,6 +176,28 @@ const detailTabs = computed<Array<{ key: DetailTab; label: string; icon: Compone
   return tabs
 })
 
+const tabsContainerRef = ref<HTMLElement | null>(null)
+const { pillStyle, updatePillPosition, schedulePillUpdate } = useTabPill({
+  containerRef: tabsContainerRef,
+  activeSelector: '.client-detail-tab--active',
+})
+
+watch(activeDetailTab, () => {
+  nextTick(() => {
+    updatePillPosition()
+  })
+})
+
+watch(
+  () => store.selectedClientId,
+  () => {
+    nextTick(() => {
+      updatePillPosition()
+    })
+    schedulePillUpdate()
+  }
+)
+
 function selectDetailTab(key: DetailTab): void {
   activeDetailTab.value = key
 }
@@ -196,7 +219,7 @@ function onTabKeydown(event: KeyboardEvent, index: number): void {
   event.preventDefault()
   const next = tabs[nextIndex]
   if (!next) return
-  activeDetailTab.value = next.key
+  selectDetailTab(next.key)
   void nextTick(() => {
     document.getElementById(`client-tab-${next.key}`)?.focus()
   })
@@ -802,10 +825,12 @@ async function deleteClient(): Promise<void> {
 
         <!-- Tabs Navigation -->
         <nav
+          ref="tabsContainerRef"
           class="client-detail-tabs scroll-edge-indicator"
           role="tablist"
           :aria-label="t('clients.detail_tabs_label')"
         >
+          <div class="client-detail-tabs__pill" :style="pillStyle"></div>
           <button
             v-for="(tab, index) in detailTabs"
             :key="tab.key"

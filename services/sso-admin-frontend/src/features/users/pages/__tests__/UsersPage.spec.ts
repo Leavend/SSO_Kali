@@ -483,6 +483,25 @@ describe('UsersPage', () => {
     expect(wrapper.find('#user-panel-overview').attributes('hidden')).toBeDefined()
   })
 
+  it('uses the last selected user detail tab during rapid clicks', async () => {
+    const store = useUsersStore()
+    store.status = 'success'
+    store.users = [user]
+    store.selectedSubjectId = 'sub_admin'
+
+    const wrapper = mount(UsersPage)
+    const tabs = wrapper.findAll('[role="tab"]')
+    const overviewTab = tabs.find((tab) => tab.text().includes('Overview'))!
+    const lifecycleTab = tabs.find((tab) => tab.text().includes('Lifecycle'))!
+
+    await lifecycleTab.trigger('click')
+    await overviewTab.trigger('click')
+
+    expect(overviewTab.attributes('aria-selected')).toBe('true')
+    expect(lifecycleTab.attributes('aria-selected')).toBe('false')
+    expect(wrapper.find('#user-panel-overview').attributes('hidden')).toBeUndefined()
+  })
+
   it('keeps Assign Roles in the Overview panel for role writers and limits choices to primary roles', async () => {
     seedPrincipal({
       'admin.users.write': true,

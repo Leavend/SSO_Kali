@@ -240,6 +240,27 @@ describe('AuditPage', () => {
     expect(wrapper.text()).not.toMatch(/Bearer|refreshToken|SQLSTATE/i)
   })
 
+  it('uses the last selected audit tab during rapid cross-tab clicks', async () => {
+    const store = useAuditStore()
+    store.status = 'success'
+    store.events = [event]
+    store.integrity = { verified: true, checked_events: 1 }
+    store.retentionStatus = retentionStatus
+    store.dataSubjectRequests = [dsr]
+    store.authenticationEvents = [authEvent]
+
+    const wrapper = await mountAuditPage()
+    const tabs = wrapper.findAll('button.audit-tab-btn')
+
+    await tabs[4]!.trigger('click')
+    await tabs[0]!.trigger('click')
+    await wrapper.vm.$nextTick()
+
+    const refreshedTabs = wrapper.findAll('button.audit-tab-btn')
+    expect(refreshedTabs[0]!.classes()).toContain('audit-tab-btn--active')
+    expect(refreshedTabs[4]!.classes()).not.toContain('audit-tab-btn--active')
+  })
+
   it('renders safe forbidden state', async () => {
     const store = useAuditStore()
     store.status = 'forbidden'

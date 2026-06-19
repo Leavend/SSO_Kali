@@ -68,4 +68,12 @@ describe('audit table layout contract', () => {
     expect(css).toContain('display: none')
     expect(css).toContain('min-width: 24rem')
   })
+
+  it('honors reduced motion for animated tab pill indicators', () => {
+    expect(css).toContain('@media (prefers-reduced-motion: reduce)')
+    expect(css).toContain('.audit-tabs__pill')
+    expect(css).toContain('.user-detail-tabs__pill')
+    expect(css).toContain('.client-detail-tabs__pill')
+    expect(css).toContain('transition: none')
+  })
 })
