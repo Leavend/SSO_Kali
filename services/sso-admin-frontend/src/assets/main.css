@@ -2812,15 +2812,13 @@ select.ui-control {
   -webkit-overflow-scrolling: touch;
   mask-image: linear-gradient(
     to right,
-    transparent,
-    black 16px,
+    black,
     black calc(100% - 16px),
     transparent
   );
   -webkit-mask-image: linear-gradient(
     to right,
-    transparent,
-    black 16px,
+    black,
     black calc(100% - 16px),
     transparent
   );
