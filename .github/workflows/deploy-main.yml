@@ -596,8 +596,13 @@ jobs:
             cat "$root_headers_file" >&2
             exit 1
           fi
-          if ! grep -qi '^cache-control: .*no-store' "$root_headers_file"; then
-            echo 'expected / cache-control no-store, got:' >&2
+          if ! grep -qi '^cache-control: private, no-cache' "$root_headers_file"; then
+            echo 'expected / cache-control private, no-cache, got:' >&2
+            cat "$root_headers_file" >&2
+            exit 1
+          fi
+          if ! grep -qi '^etag: ' "$root_headers_file"; then
+            echo 'expected / etag for shell revalidation, got:' >&2
             cat "$root_headers_file" >&2
             exit 1
           fi

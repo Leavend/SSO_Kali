@@ -1,9 +1,10 @@
 import { createReadStream } from 'node:fs'
-import { access } from 'node:fs/promises'
+import { access, readFile } from 'node:fs/promises'
 import { createServer } from 'node:http'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { extname, join, normalize, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { gzipSync } from 'node:zlib'
 import { handleAdminApiProxy } from './admin-proxy.js'
 import {
   handleCallback,
@@ -19,6 +20,7 @@ import {
   loadGzippedAsset,
 } from './compression.js'
 import { getConfig, warnIfClientSecretMissing } from './config.js'
+import { createEntityTag, requestHasMatchingEtag } from './http-cache.js'
 import type { AppResponse } from './response.js'
 import { html, methodNotAllowed, send, text } from './response.js'
 import { shouldProxyPortalPath } from './proxy-routes.js'
@@ -26,8 +28,17 @@ import { proxyToSsoBackend } from './sso-backend-proxy.js'
 import { handleSession, handleUserApi, redirectForLegacyError } from './user-handlers.js'
 
 const clientDir = fileURLToPath(new URL('../../client/', import.meta.url))
+const indexHtmlPath = join(clientDir, 'index.html')
 const assetCache = new Map<string, { readonly path: string; readonly immutable: boolean } | null>()
+let htmlShellCache: HtmlShell | undefined
 const config = getConfig()
+
+type HtmlShell = {
+  readonly body: string
+  readonly byteLength: number
+  readonly etag: string
+  gzip?: Buffer
+}
 
 warnIfClientSecretMissing(config)
 
@@ -105,6 +116,12 @@ async function serveStatic(
 
   const mimeType = contentType(asset.path)
   const headers = staticHeaders(asset)
+
+  if (asset.path === indexHtmlPath) {
+    await serveHtmlShell(request, response, asset.path, headers)
+    return
+  }
+
   const compression = await decideCompression(
     request,
     response,
@@ -132,6 +149,52 @@ async function serveStatic(
 
   response.writeHead(200, headers)
   createReadStream(asset.path).pipe(response)
+}
+
+async function serveHtmlShell(
+  request: IncomingMessage,
+  response: ServerResponse,
+  absolutePath: string,
+  headers: Record<string, string>,
+): Promise<void> {
+  const shell = await loadHtmlShell(absolutePath)
+  const acceptsGzip = (request.headers['accept-encoding'] ?? '').toLowerCase().includes('gzip')
+
+  headers.Vary = 'Accept-Encoding'
+  headers.ETag = shell.etag
+
+  if (requestHasMatchingEtag(request, shell.etag)) {
+    response.writeHead(304, headers)
+    response.end()
+    return
+  }
+
+  if (acceptsGzip && shell.byteLength >= 1024) {
+    const compressed = shell.gzip ?? gzipSync(shell.body, { level: 6 })
+    shell.gzip = compressed
+    headers['Content-Encoding'] = 'gzip'
+    headers['content-length'] = String(compressed.length)
+    response.writeHead(200, headers)
+    response.end(compressed)
+    return
+  }
+
+  headers['content-length'] = String(shell.byteLength)
+  response.writeHead(200, headers)
+  response.end(shell.body)
+}
+
+async function loadHtmlShell(absolutePath: string): Promise<HtmlShell> {
+  if (htmlShellCache) return htmlShellCache
+
+  const body = await readFile(absolutePath, 'utf8')
+  htmlShellCache = {
+    body,
+    byteLength: Buffer.byteLength(body),
+    etag: createEntityTag(body),
+  }
+
+  return htmlShellCache
 }
 
 async function resolveAsset(

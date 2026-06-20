@@ -33,9 +33,10 @@ Jika hanya browser tertentu masih membuka redirect lama ke
 `admin-sso.timeh.my.id`, lalu akses entry point canonical:
 `https://admin-sso.timeh.my.id/`.
 
-Admin BFF menyajikan HTML shell dengan `Cache-Control: no-store`; deploy smoke
-juga memverifikasi `/` dan `/auth/login?return_to=/dashboard` tidak pernah
-mengarah ke upstream edge auth atau redirect lama dengan `client_id=` kosong.
+Admin BFF menyajikan HTML shell dengan `Cache-Control: private, no-cache`
+dan ETag untuk revalidasi 304; deploy smoke juga memverifikasi `/` dan
+`/auth/login?return_to=/dashboard` tidak pernah mengarah ke upstream edge auth
+atau redirect lama dengan `client_id=` kosong.
 
 ## Project Setup
 

@@ -11,6 +11,30 @@ const config = read('.vitepress/config.ts')
 const css = read('.vitepress/theme/custom.css')
 const indexId = read('index.md')
 const indexEn = read('en/index.md')
+const nginx = read('nginx.conf')
+
+const locationBlock = (header) => {
+  const lines = nginx.split('\n')
+  const start = lines.findIndex((line) => line.trim() === header)
+  assert.notEqual(start, -1, `nginx.conf must define ${header}`)
+  const end = lines.findIndex((line, index) => index > start && line.trim() === '}')
+  assert.notEqual(end, -1, `nginx.conf must close ${header}`)
+  return lines.slice(start + 1, end).join('\n')
+}
+
+const assertSecurityHeaders = (source, label) => {
+  assert.match(source, /add_header X-Frame-Options "DENY" always;/, `${label} must keep X-Frame-Options`)
+  assert.match(
+    source,
+    /add_header X-Content-Type-Options "nosniff" always;/,
+    `${label} must keep X-Content-Type-Options`,
+  )
+  assert.match(
+    source,
+    /add_header Referrer-Policy "strict-origin-when-cross-origin" always;/,
+    `${label} must keep Referrer-Policy`,
+  )
+}
 
 assert.equal(
   packageJson.devDependencies?.mermaid,
@@ -50,5 +74,36 @@ assert.doesNotMatch(
 assert.match(css, /\.vp-doc \.mermaid\s*\{[^}]*overflow-x: auto/s)
 assert.match(css, /\.vp-doc \.mermaid svg\s*\{[^}]*max-width: 100%;[^}]*height: auto/s)
 assert.match(css, /\.VPHero \.tagline\s*\{[^}]*font-size: 1rem/s)
+
+assert.doesNotMatch(
+  nginx,
+  /location\s+~\*\s+\\\.html\$/,
+  'Docs HTML cache headers must live on location / so homepage and VitePress clean URLs are covered.',
+)
+
+const vitePressFallback = locationBlock('location / {')
+assert.match(vitePressFallback, /try_files \$uri \$uri\/ \$uri\.html \/index\.html;/)
+assert.match(vitePressFallback, /add_header Cache-Control "no-cache" always;/)
+assertSecurityHeaders(vitePressFallback, 'VitePress fallback')
+
+const immutableAssets = locationBlock(
+  'location ~* ^/assets/.+\\.[a-f0-9]+\\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2)$ {',
+)
+assert.match(immutableAssets, /add_header Cache-Control "public, max-age=31536000, immutable";/)
+assert.doesNotMatch(
+  immutableAssets,
+  /add_header Cache-Control "public, max-age=31536000, immutable" always;/,
+  'Immutable asset cache headers must not use always, otherwise nginx can cache error responses for a year.',
+)
+assertSecurityHeaders(immutableAssets, 'Immutable asset location')
+
+const staticAssets = locationBlock('location ~* \\.(png|jpg|jpeg|gif|ico|svg|woff|woff2)$ {')
+assert.match(staticAssets, /add_header Cache-Control "public, max-age=2592000";/)
+assert.doesNotMatch(
+  staticAssets,
+  /add_header Cache-Control "public, max-age=2592000" always;/,
+  'Static asset cache headers must not use always, otherwise nginx can cache error responses for 30 days.',
+)
+assertSecurityHeaders(staticAssets, 'Static asset location')
 
 console.log('Responsive docs contract passed')

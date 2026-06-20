@@ -15,6 +15,7 @@ import {
 } from './auth-handlers.js'
 import { decideCompression, isCompressibleExtension, loadGzippedAsset } from './compression.js'
 import { getConfig, warnIfClientSecretMissing } from './config.js'
+import { createEntityTag, requestHasMatchingEtag } from './http-cache.js'
 import { createInitialRoutePreloadLinks, type ViteManifest } from './preload-links.js'
 import type { AppResponse } from './response.js'
 import { html, methodNotAllowed, send, text } from './response.js'
@@ -31,6 +32,7 @@ const config = getConfig()
 interface HtmlShellVariant {
   readonly body: string
   readonly byteLength: number
+  readonly etag: string
   gzip?: Buffer
 }
 
@@ -162,6 +164,13 @@ async function serveHtmlShell(
   const acceptsGzip = (request.headers['accept-encoding'] ?? '').toLowerCase().includes('gzip')
 
   headers.Vary = 'Accept-Encoding'
+  headers.ETag = shell.etag
+
+  if (requestHasMatchingEtag(request, shell.etag)) {
+    response.writeHead(304, headers)
+    response.end()
+    return
+  }
 
   if (acceptsGzip && shell.byteLength >= 1024) {
     const compressed = shell.gzip ?? gzipSync(shell.body, { level: 6 })
@@ -192,6 +201,7 @@ function getHtmlShellVariant(source: string, preloadLinks: string): HtmlShellVar
   const shell: HtmlShellVariant = {
     body,
     byteLength: Buffer.byteLength(body),
+    etag: createEntityTag(body),
   }
 
   htmlShellCache.set(cacheKey, shell)
@@ -252,7 +262,9 @@ function staticHeaders(asset: {
   return {
     'cache-control': asset.immutable
       ? 'public, max-age=31536000, immutable'
-      : 'no-store, no-cache, private, max-age=0',
+      : asset.path === indexHtmlPath
+        ? 'private, no-cache'
+      : 'no-cache',
     'content-type': contentType(asset.path),
     'permissions-policy': 'camera=(), microphone=(), geolocation=()',
     'referrer-policy': 'same-origin',
