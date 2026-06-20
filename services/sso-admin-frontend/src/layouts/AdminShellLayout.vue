@@ -82,7 +82,7 @@ const activeMenuLabel = computed<string>(() => {
 })
 
 watch(
-  [() => route?.path, locale],
+  [activeMenuLabel, locale],
   () => {
     if (activeMenuLabel.value) {
       document.title = `${activeMenuLabel.value} | ${t('admin.brand_eyebrow')}`
@@ -254,8 +254,8 @@ function updatePillPosition() {
 }
 
 watch(
-  () => route?.path,
-  (newPath) => {
+  [() => route?.path, visibleMenus],
+  ([newPath]) => {
     if (newPath && !isAnimating.value) {
       const idx = getMenuIndexByPath(newPath)
       if (idx !== -1) {

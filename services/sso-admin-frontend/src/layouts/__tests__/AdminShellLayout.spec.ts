@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
+import { nextTick } from 'vue'
+import { createMemoryHistory, createRouter } from 'vue-router'
 import AdminShellLayout from '../AdminShellLayout.vue'
 import { useSessionStore } from '@/stores/session.store'
 import type { AdminPrincipal } from '@/types/auth.types'
@@ -60,6 +62,67 @@ describe('AdminShellLayout', () => {
 
     expect(wrapper.get('nav').text()).toContain('Dashboard')
     expect(wrapper.text()).not.toContain('Users')
+  })
+
+  it('resyncs the active sidebar item when shell-first menus arrive after route render', async () => {
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        {
+          path: '/dashboard',
+          component: { template: '<section>Dashboard</section>' },
+          meta: { requiresAdmin: true },
+        },
+        {
+          path: '/clients',
+          component: { template: '<section>Clients</section>' },
+          meta: { requiresAdmin: true },
+        },
+      ],
+    })
+    await router.push('/clients')
+    await router.isReady()
+
+    const session = useSessionStore()
+    session.clear()
+
+    const wrapper = mount(AdminShellLayout, {
+      global: {
+        plugins: [router],
+        stubs: {
+          RouterView: true,
+        },
+      },
+    })
+
+    expect(wrapper.find('.admin-nav__link--active').exists()).toBe(false)
+
+    session.setPrincipal({
+      ...principal,
+      permissions: {
+        ...principal.permissions,
+        menus: [
+          {
+            id: 'dashboard',
+            label: 'Dashboard',
+            required_permission: 'admin.dashboard.view',
+            visible: true,
+          },
+          {
+            id: 'clients',
+            label: 'Clients',
+            required_permission: 'admin.clients.read',
+            visible: true,
+          },
+        ],
+      },
+    })
+    await nextTick()
+    await nextTick()
+
+    expect(wrapper.get('.admin-nav__link--active').text()).toContain('Clients')
+    expect(wrapper.get('[aria-label="Breadcrumb"]').text()).toContain('Clients')
+    expect(document.title).toContain('Clients')
   })
 
   it('shows principal identity without exposing tokens', () => {
