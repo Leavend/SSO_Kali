@@ -1,9 +1,10 @@
 import { createReadStream } from 'node:fs'
-import { access } from 'node:fs/promises'
+import { access, readFile } from 'node:fs/promises'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { createServer } from 'node:http'
 import { extname, join, normalize, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { gzipSync } from 'node:zlib'
 import { handleAdminApiProxy } from './admin-proxy.js'
 import {
   handleCallback,
@@ -14,12 +15,24 @@ import {
 } from './auth-handlers.js'
 import { decideCompression, isCompressibleExtension, loadGzippedAsset } from './compression.js'
 import { getConfig, warnIfClientSecretMissing } from './config.js'
+import { createInitialRoutePreloadLinks, type ViteManifest } from './preload-links.js'
 import type { AppResponse } from './response.js'
 import { html, methodNotAllowed, send, text } from './response.js'
 
 const clientDir = fileURLToPath(new URL('../../client/', import.meta.url))
+const indexHtmlPath = join(clientDir, 'index.html')
+const manifestPath = join(clientDir, '.vite/manifest.json')
 const assetCache = new Map<string, { readonly path: string; readonly immutable: boolean } | null>()
+const htmlShellCache = new Map<string, HtmlShellVariant>()
+let manifestCache: ViteManifest | null | undefined
+let indexHtmlSourceCache: string | undefined
 const config = getConfig()
+
+interface HtmlShellVariant {
+  readonly body: string
+  readonly byteLength: number
+  gzip?: Buffer
+}
 
 warnIfClientSecretMissing(config)
 
@@ -91,6 +104,12 @@ async function serveStatic(
 
   const mimeType = contentType(asset.path)
   const headers = staticHeaders(asset)
+
+  if (asset.path === indexHtmlPath) {
+    await serveHtmlShell(request, requestUrl, response, asset.path, headers)
+    return
+  }
+
   const compression = await decideCompression(request, response, asset.path, mimeType)
 
   // Single-gate: only commit to a gzipped body (and therefore the
@@ -123,6 +142,72 @@ async function serveStatic(
 
   response.writeHead(200, headers)
   createReadStream(asset.path).pipe(response)
+}
+
+async function serveHtmlShell(
+  request: IncomingMessage,
+  requestUrl: URL,
+  response: ServerResponse,
+  absolutePath: string,
+  headers: Record<string, string>,
+): Promise<void> {
+  const source = await loadIndexHtmlSource(absolutePath)
+  const manifest = await loadManifest()
+  const preloadLinks = createInitialRoutePreloadLinks(
+    requestUrl.pathname,
+    manifest,
+    config.publicBasePath,
+  )
+  const shell = getHtmlShellVariant(source, preloadLinks)
+  const acceptsGzip = (request.headers['accept-encoding'] ?? '').toLowerCase().includes('gzip')
+
+  headers.Vary = 'Accept-Encoding'
+
+  if (acceptsGzip && shell.byteLength >= 1024) {
+    const compressed = shell.gzip ?? gzipSync(shell.body, { level: 6 })
+    shell.gzip = compressed
+    headers['Content-Encoding'] = 'gzip'
+    headers['content-length'] = String(compressed.length)
+    response.writeHead(200, headers)
+    response.end(compressed)
+    return
+  }
+
+  headers['content-length'] = String(shell.byteLength)
+  response.writeHead(200, headers)
+  response.end(shell.body)
+}
+
+async function loadIndexHtmlSource(absolutePath: string): Promise<string> {
+  indexHtmlSourceCache ??= await readFile(absolutePath, 'utf8')
+  return indexHtmlSourceCache
+}
+
+function getHtmlShellVariant(source: string, preloadLinks: string): HtmlShellVariant {
+  const cacheKey = preloadLinks
+  const cached = htmlShellCache.get(cacheKey)
+  if (cached) return cached
+
+  const body = preloadLinks ? source.replace('</head>', `${preloadLinks}\n  </head>`) : source
+  const shell: HtmlShellVariant = {
+    body,
+    byteLength: Buffer.byteLength(body),
+  }
+
+  htmlShellCache.set(cacheKey, shell)
+  return shell
+}
+
+async function loadManifest(): Promise<ViteManifest | null> {
+  if (manifestCache !== undefined) return manifestCache
+
+  try {
+    manifestCache = JSON.parse(await readFile(manifestPath, 'utf8')) as ViteManifest
+  } catch {
+    manifestCache = null
+  }
+
+  return manifestCache
 }
 
 async function resolveAsset(

@@ -34,6 +34,7 @@ export default defineConfig(({ mode }) => {
   return {
     base: normalizeBasePath(env.VITE_PUBLIC_BASE_PATH),
     build: {
+      manifest: true,
       outDir: 'dist/client',
     },
     plugins: [vue(), tailwindcss()],

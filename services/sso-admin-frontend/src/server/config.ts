@@ -12,6 +12,7 @@ export type PortalConfig = {
   readonly clientSecret: string | null
   readonly redirectUri: string
   readonly appBaseUrl: string
+  readonly publicBasePath: string
   readonly sessionIdleTtlSeconds: number
   readonly sessionAbsoluteTtlSeconds: number
   readonly freshAuthTtlSeconds: number
@@ -39,10 +40,18 @@ export function getConfig(): PortalConfig {
     clientSecret: env('ADMIN_OIDC_CLIENT_SECRET') ?? null,
     redirectUri: `${appBase}/auth/callback`,
     appBaseUrl: appBase,
+    publicBasePath: normalizeBasePath(env('VITE_PUBLIC_BASE_PATH')),
     ...sessionConfig(),
     sessionRedisUrl: env('SSO_ADMIN_SESSION_REDIS_URL') ?? env('REDIS_URL') ?? null,
     port: Number(env('PORT') ?? 8080),
   }
+}
+
+function normalizeBasePath(path: string | undefined): string {
+  if (!path || path === '/') return '/'
+
+  const prefixed = path.startsWith('/') ? path : `/${path}`
+  return prefixed.endsWith('/') ? prefixed : `${prefixed}/`
 }
 
 export function warnIfClientSecretMissing(config: PortalConfig = getConfig()): void {
