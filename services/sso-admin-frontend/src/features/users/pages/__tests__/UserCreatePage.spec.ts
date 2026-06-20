@@ -23,10 +23,10 @@ vi.mock('../../services/users.api', () => ({
 }))
 
 describe('UserCreatePage', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     setActivePinia(createPinia())
     pushSpy.mockClear()
-    useI18n().setLocale('en')
+    await useI18n().setLocale('en')
     useSessionStore().setPrincipal({
       subject_id: 'admin-1',
       email: 'admin@example.test',

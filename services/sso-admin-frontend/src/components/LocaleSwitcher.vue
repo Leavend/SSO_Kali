@@ -12,9 +12,9 @@ const ariaLabel = computed<string>(() =>
   locale.value === 'id' ? t('language.switch_to_en') : t('language.switch_to_id'),
 )
 
-function toggleLocale(): void {
+async function toggleLocale(): Promise<void> {
   const nextLocale = locale.value === 'id' ? 'en' : 'id'
-  setLocale(nextLocale)
+  await setLocale(nextLocale)
 }
 </script>
 

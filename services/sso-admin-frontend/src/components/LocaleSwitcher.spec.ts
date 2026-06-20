@@ -4,9 +4,9 @@ import LocaleSwitcher from './LocaleSwitcher.vue'
 import { useI18n } from '@/composables/useI18n'
 
 describe('LocaleSwitcher', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     window.localStorage.clear()
-    useI18n().setLocale('id')
+    await useI18n().setLocale('id')
   })
 
   it('flips locale in one click, persists it, and updates the target-language label', async () => {
@@ -17,6 +17,8 @@ describe('LocaleSwitcher', () => {
     expect(wrapper.text()).toContain('EN')
 
     await wrapper.get('button').trigger('click')
+    await useI18n().loadLocale('en')
+    await wrapper.vm.$nextTick()
 
     expect(useI18n().locale.value).toBe('en')
     expect(window.localStorage.getItem('dev-sso-admin-locale')).toBe('en')

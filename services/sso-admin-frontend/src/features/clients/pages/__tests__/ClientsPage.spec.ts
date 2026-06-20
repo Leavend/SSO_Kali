@@ -81,9 +81,9 @@ function seedFullAccessPrincipal(): void {
 }
 
 describe('ClientsPage', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     setActivePinia(createPinia())
-    useI18n().setLocale('en')
+    await useI18n().setLocale('en')
     delete routeQuery.created
     replaceSpy.mockClear()
     seedFullAccessPrincipal()

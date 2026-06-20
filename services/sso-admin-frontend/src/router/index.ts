@@ -6,6 +6,25 @@ import AdminErrorView from '@/views/AdminErrorView.vue'
 import AdminMfaRequiredView from '@/views/AdminMfaRequiredView.vue'
 import AdminShellLayout from '@/layouts/AdminShellLayout.vue'
 
+const dashboardPage = () => import('@/features/dashboard/pages/DashboardPage.vue')
+const oidcFoundationPage = () => import('@/features/oidc-foundation/pages/OidcFoundationPage.vue')
+const clientsPage = () => import('@/features/clients/pages/ClientsPage.vue')
+const clientCreatePage = () => import('@/features/clients/pages/ClientCreatePage.vue')
+const usersPage = () => import('@/features/users/pages/UsersPage.vue')
+const userCreatePage = () => import('@/features/users/pages/UserCreatePage.vue')
+const auditPage = () => import('@/features/audit/pages/AuditPage.vue')
+const sessionsPage = () => import('@/features/sessions/pages/SessionsPage.vue')
+const policyPage = () => import('@/features/policy/pages/PolicyPage.vue')
+const ssoErrorTemplatesPage = () =>
+  import('@/features/sso-error-templates/pages/SsoErrorTemplatesPage.vue')
+const externalIdpsPage = () => import('@/features/external-idps/pages/ExternalIdpsPage.vue')
+const ipAccessPage = () => import('@/features/ip-access/pages/IpAccessPage.vue')
+const opsPage = () => import('@/features/ops/pages/OpsPage.vue')
+const rolesPage = () => import('@/features/roles/pages/RolesPage.vue')
+const authenticationAuditPage = () =>
+  import('@/features/authentication-audit/pages/AuthenticationAuditPage.vue')
+const adminProfilePage = () => import('@/features/profile/pages/AdminProfilePage.vue')
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -20,98 +39,97 @@ const router = createRouter({
         {
           path: 'dashboard',
           name: 'admin.dashboard',
-          component: () => import('@/features/dashboard/pages/DashboardPage.vue'),
+          component: dashboardPage,
           meta: { requiresAdmin: true, permissions: ['admin.dashboard.view'] },
         },
         {
           path: 'oidc-foundation',
           name: 'admin.oidc-foundation',
-          component: () => import('@/features/oidc-foundation/pages/OidcFoundationPage.vue'),
+          component: oidcFoundationPage,
           meta: { requiresAdmin: true, permissions: ['admin.dashboard.view'] },
         },
         {
           path: 'clients',
           name: 'admin.clients',
-          component: () => import('@/features/clients/pages/ClientsPage.vue'),
+          component: clientsPage,
           meta: { requiresAdmin: true, permissions: ['admin.clients.read'] },
         },
         {
           path: 'clients/new',
           name: 'admin.clients.create',
-          component: () => import('@/features/clients/pages/ClientCreatePage.vue'),
+          component: clientCreatePage,
           meta: { requiresAdmin: true, permissions: ['admin.clients.write'] },
         },
         {
           path: 'users',
           name: 'admin.users',
-          component: () => import('@/features/users/pages/UsersPage.vue'),
+          component: usersPage,
           meta: { requiresAdmin: true, permissions: ['admin.users.read'] },
         },
         {
           path: 'users/new',
           name: 'admin.users.create',
-          component: () => import('@/features/users/pages/UserCreatePage.vue'),
+          component: userCreatePage,
           meta: { requiresAdmin: true, permissions: ['admin.users.write'] },
         },
         {
           path: 'audit',
           name: 'admin.audit',
-          component: () => import('@/features/audit/pages/AuditPage.vue'),
+          component: auditPage,
           meta: { requiresAdmin: true, permissions: ['admin.audit.read'] },
         },
         {
           path: 'sessions',
           name: 'admin.sessions',
-          component: () => import('@/features/sessions/pages/SessionsPage.vue'),
+          component: sessionsPage,
           meta: { requiresAdmin: true, permissions: ['admin.sessions.terminate'] },
         },
         {
           path: 'policy',
           name: 'admin.policy',
-          component: () => import('@/features/policy/pages/PolicyPage.vue'),
+          component: policyPage,
           meta: { requiresAdmin: true, permissions: ['admin.security-policy.read'] },
         },
         {
           path: 'sso-error-templates',
           name: 'admin.sso-error-templates',
-          component: () => import('@/features/sso-error-templates/pages/SsoErrorTemplatesPage.vue'),
+          component: ssoErrorTemplatesPage,
           meta: { requiresAdmin: true, permissions: ['admin.security-policy.read'] },
         },
         {
           path: 'external-idps',
           name: 'admin.external-idps',
-          component: () => import('@/features/external-idps/pages/ExternalIdpsPage.vue'),
+          component: externalIdpsPage,
           meta: { requiresAdmin: true, permissions: ['admin.external-idps.read'] },
         },
         {
           path: 'ip-access',
           name: 'admin.ip-access',
-          component: () => import('@/features/ip-access/pages/IpAccessPage.vue'),
+          component: ipAccessPage,
           meta: { requiresAdmin: true, permissions: ['admin.ip-access.read'] },
         },
         {
           path: 'ops',
           name: 'admin.ops',
-          component: () => import('@/features/ops/pages/OpsPage.vue'),
+          component: opsPage,
           meta: { requiresAdmin: true, permissions: ['admin.dashboard.view'] },
         },
         {
           path: 'roles',
           name: 'admin.roles',
-          component: () => import('@/features/roles/pages/RolesPage.vue'),
+          component: rolesPage,
           meta: { requiresAdmin: true, permissions: ['admin.roles.read'] },
         },
         {
           path: 'authentication-audit',
           name: 'admin.authentication-audit',
-          component: () =>
-            import('@/features/authentication-audit/pages/AuthenticationAuditPage.vue'),
+          component: authenticationAuditPage,
           meta: { requiresAdmin: true, permissions: ['admin.authentication-audit.read'] },
         },
         {
           path: 'profile',
           name: 'admin.profile',
-          component: () => import('@/features/profile/pages/AdminProfilePage.vue'),
+          component: adminProfilePage,
           meta: { requiresAdmin: true, permissions: ['profile.read'] },
         },
       ],
@@ -151,5 +169,26 @@ const router = createRouter({
 })
 
 router.beforeEach(resolveAdminGuard)
+
+export function preloadInitialAdminRoute(pathname: string): Promise<unknown> | null {
+  const resolved = router.resolve(pathname === '/' ? '/dashboard' : pathname)
+  const leafRoute = resolved.matched[resolved.matched.length - 1]
+  const component: unknown = leafRoute?.components?.default
+
+  if (!isLazyRouteComponent(component)) return null
+
+  const preload = component()
+  return isPromiseLike(preload) ? preload : null
+}
+
+type LazyRouteComponent = () => unknown
+
+function isLazyRouteComponent(component: unknown): component is LazyRouteComponent {
+  return typeof component === 'function'
+}
+
+function isPromiseLike(value: unknown): value is Promise<unknown> {
+  return typeof value === 'object' && value !== null && 'then' in value
+}
 
 export default router

@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { enableAutoUnmount, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -41,6 +41,8 @@ vi.mock('../../../sessions/services/sessions.api', () => ({
     revokeUserSessions: vi.fn<() => Promise<unknown>>(),
   },
 }))
+
+enableAutoUnmount(afterEach)
 
 const user: AdminUser = {
   subject_id: 'sub_admin',
@@ -86,9 +88,13 @@ function seedFullAccessPrincipal(): void {
 }
 
 describe('UsersPage', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     setActivePinia(createPinia())
-    useI18n().setLocale('en')
+    vi.stubGlobal('location', {
+      assign: vi.fn<(url: string) => void>(),
+      pathname: '/users',
+    })
+    await useI18n().setLocale('en')
     seedFullAccessPrincipal()
   })
 
@@ -639,6 +645,52 @@ describe('UsersPage', () => {
 
     // Check warning toast
     expect(toasts.value.some((t) => t.title.includes('updated your own roles'))).toBe(true)
+  })
+
+  it('redirects to login when self role refresh loses the active session', async () => {
+    seedPrincipal({
+      'admin.users.write': true,
+      'admin.roles.write': true,
+    })
+    const store = useUsersStore()
+    const session = useSessionStore()
+    const rolesStore = useRolesStore()
+
+    store.status = 'success'
+    store.users = [
+      {
+        subject_id: 'admin-1',
+        email: 'admin@example.test',
+        display_name: 'Admin One',
+        role: 'admin',
+        roles: [{ slug: 'admin', name: 'Admin', is_system: true }],
+        status: 'active',
+        local_account_enabled: true,
+      },
+    ]
+    store.selectedSubjectId = 'admin-1'
+
+    rolesStore.roles = [
+      {
+        slug: 'admin',
+        label: 'Admin',
+        is_system: true,
+        permissions: [],
+        user_count: 1,
+      },
+    ]
+
+    vi.spyOn(store, 'assignRoles').mockImplementation(async () => {
+      store.actionStatus = 'success'
+    })
+    vi.spyOn(store, 'selectUser').mockResolvedValue()
+    vi.spyOn(session, 'ensureSession').mockResolvedValue('unauthenticated')
+
+    const wrapper = mount(UsersPage)
+
+    await wrapper.find('.save-roles-button').trigger('click')
+
+    expect(window.location.assign).toHaveBeenCalledWith('/auth/login?return_to=%2Fusers')
   })
 
   it('displays a warning toast that changes take effect after relogin when assigning roles to another user', async () => {

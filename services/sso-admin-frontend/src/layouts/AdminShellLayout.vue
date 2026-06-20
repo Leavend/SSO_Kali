@@ -24,6 +24,7 @@ import { useRoute, useRouter } from 'vue-router'
 import LocaleSwitcher from '@/components/LocaleSwitcher.vue'
 import UiThemeToggle from '@/components/ui/UiThemeToggle.vue'
 import { useI18n } from '@/composables/useI18n'
+import { resolveBootstrapFailure, resolveLoadedAdminAccess } from '@/router/guards'
 import { useSessionStore } from '@/stores/session.store'
 import type { AdminPermissionMenu } from '@/types/auth.types'
 import { getAdminEnvironment } from '@/config/adminEnvironment'
@@ -45,6 +46,28 @@ const isTest = import.meta.env.MODE === 'test'
 
 const visibleMenus = computed<readonly AdminPermissionMenu[]>(() =>
   (session.principal?.permissions.menus ?? []).filter((menu) => menu.visible),
+)
+
+function applyAdminBootstrapOutcome(): void {
+  if (!route?.meta?.requiresAdmin || !router) return
+
+  const bootstrapRedirect = resolveBootstrapFailure(session.lastEnsureResult, route.fullPath)
+  if (bootstrapRedirect === false) return
+  if (bootstrapRedirect) {
+    void router.replace(bootstrapRedirect)
+    return
+  }
+
+  const accessRedirect = resolveLoadedAdminAccess(route)
+  if (accessRedirect !== true) {
+    void router.replace(accessRedirect)
+  }
+}
+
+watch(
+  [() => session.lastEnsureResult, () => session.principal, () => route?.fullPath],
+  applyAdminBootstrapOutcome,
+  { immediate: true },
 )
 
 function translateMenuLabel(menu: AdminPermissionMenu): string {

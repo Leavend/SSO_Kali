@@ -18,6 +18,8 @@ export const useSessionStore = defineStore('admin-session', () => {
   const user = ref<SsoUser | null>(null)
   const principal = ref<AdminPrincipal | null>(null)
   const status = ref<SessionStatus>('idle')
+  const lastEnsureResult = ref<SessionEnsureResult | null>(null)
+  let bootstrapPromise: Promise<SessionEnsureResult> | null = null
 
   const isAuthenticated = computed<boolean>(() => user.value !== null)
   const roles = computed<readonly string[]>(() => user.value?.roles ?? [])
@@ -40,29 +42,53 @@ export const useSessionStore = defineStore('admin-session', () => {
     user.value = null
     principal.value = null
     status.value = 'idle'
+    lastEnsureResult.value = null
   }
 
   async function ensureSession(force = false): Promise<SessionEnsureResult> {
-    if (!force && principal.value !== null) return 'authenticated'
+    if (!force && principal.value !== null) return rememberEnsureResult('authenticated')
 
     status.value = 'loading'
     try {
       const response = await authApi.getPrincipal()
       setPrincipal(response.principal)
+      lastEnsureResult.value = 'authenticated'
       return 'authenticated'
     } catch (error) {
       clear()
 
       if (error instanceof ApiError) {
-        if (error.code === 'mfa_enrollment_required') return 'mfa_enrollment_required'
-        if (error.code === 'invalid_upstream_response') return 'api_unreachable'
-        if (requiresStepUp(error)) return 'step_up_required'
-        if (error.status === 401) return 'unauthenticated'
-        if (error.status === 403) return 'forbidden'
+        if (error.code === 'mfa_enrollment_required')
+          return rememberEnsureResult('mfa_enrollment_required')
+        if (error.code === 'invalid_upstream_response')
+          return rememberEnsureResult('api_unreachable')
+        if (requiresStepUp(error)) return rememberEnsureResult('step_up_required')
+        if (error.status === 401) return rememberEnsureResult('unauthenticated')
+        if (error.status === 403) return rememberEnsureResult('forbidden')
       }
 
-      return 'error'
+      return rememberEnsureResult('error')
     }
+  }
+
+  function rememberEnsureResult(result: SessionEnsureResult): SessionEnsureResult {
+    lastEnsureResult.value = result
+    return result
+  }
+
+  function startSessionBootstrap(force = false): Promise<SessionEnsureResult> {
+    if (!force && principal.value !== null) {
+      lastEnsureResult.value = 'authenticated'
+      return Promise.resolve('authenticated')
+    }
+
+    if (!force && bootstrapPromise) return bootstrapPromise
+
+    bootstrapPromise = ensureSession(force).finally(() => {
+      bootstrapPromise = null
+    })
+
+    return bootstrapPromise
   }
 
   async function ensurePrincipal(force = false): Promise<SessionEnsureResult> {
@@ -98,6 +124,7 @@ export const useSessionStore = defineStore('admin-session', () => {
     user,
     principal,
     status,
+    lastEnsureResult,
     isAuthenticated,
     roles,
     permissions,
@@ -106,6 +133,7 @@ export const useSessionStore = defineStore('admin-session', () => {
     clear,
     ensureSession,
     ensurePrincipal,
+    startSessionBootstrap,
     hasPermission,
     hasEveryPermission,
   }

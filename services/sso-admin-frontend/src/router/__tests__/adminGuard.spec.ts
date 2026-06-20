@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { RouteLocationNormalized } from 'vue-router'
 import { createPinia, setActivePinia } from 'pinia'
-import { resolveAdminGuard } from '../guards'
+import { resolveAdminGuard, resolveBootstrapFailure, resolveLoadedAdminAccess } from '../guards'
 import { useSessionStore } from '@/stores/session.store'
 import { ApiError } from '@/lib/api/api-client'
 import { authApi } from '@/services/auth.api'
@@ -87,20 +87,29 @@ describe('resolveAdminGuard', () => {
     expect(authApi.getPrincipal).not.toHaveBeenCalled()
   })
 
-  it('redirects unauthenticated visitors to the same-origin admin BFF login', async () => {
+  it('starts session bootstrap without blocking first render for protected routes', async () => {
+    const pendingPrincipal = new Promise<AdminPrincipalResponse>(() => {})
+    vi.mocked(authApi.getPrincipal).mockReturnValue(pendingPrincipal)
+
+    await expect(resolveAdminGuard(route({ fullPath: '/audit' }))).resolves.toBe(true)
+
+    expect(authApi.getPrincipal).toHaveBeenCalledTimes(1)
+  })
+
+  it('redirects unauthenticated bootstrap failures to the same-origin admin BFF login', () => {
     vi.mocked(authApi.getPrincipal).mockRejectedValue(new ApiError(401, 'No active SSO session.'))
 
-    await expect(resolveAdminGuard(route({ fullPath: '/' }))).resolves.toBe(false)
+    expect(resolveBootstrapFailure('unauthenticated', '/')).toBe(false)
 
     expect(window.location.assign).toHaveBeenCalledWith(
       'https://sso.test/auth/login?return_to=%2F__vue-preview%2F',
     )
   })
 
-  it('sends authenticated non-admin users to the forbidden route', async () => {
-    vi.mocked(authApi.getPrincipal).mockResolvedValue(userPrincipal)
+  it('sends authenticated non-admin users to the forbidden route after bootstrap', () => {
+    useSessionStore().setPrincipal(userPrincipal.principal)
 
-    await expect(resolveAdminGuard(route())).resolves.toEqual({ name: 'admin.forbidden' })
+    expect(resolveLoadedAdminAccess(route())).toEqual({ name: 'admin.forbidden' })
   })
 
   it('allows authenticated admin users to access the admin frontend', async () => {
@@ -117,112 +126,67 @@ describe('resolveAdminGuard', () => {
     expect(authApi.getPrincipal).not.toHaveBeenCalled()
   })
 
-  it('sends admins without required route permissions to the forbidden route', async () => {
-    vi.mocked(authApi.getPrincipal).mockResolvedValue({
-      principal: {
-        ...adminPrincipal.principal,
-        permissions: {
-          view_admin_panel: true,
-          manage_sessions: false,
-          permissions: ['admin.panel.view'],
-          capabilities: {
-            'admin.panel.view': true,
-            'admin.dashboard.view': false,
-          },
-          menus: [],
+  it('sends admins without required route permissions to the forbidden route after bootstrap', () => {
+    useSessionStore().setPrincipal({
+      ...adminPrincipal.principal,
+      permissions: {
+        view_admin_panel: true,
+        manage_sessions: false,
+        permissions: ['admin.panel.view'],
+        capabilities: {
+          'admin.panel.view': true,
+          'admin.dashboard.view': false,
         },
+        menus: [],
       },
     })
 
-    await expect(
-      resolveAdminGuard(
+    expect(
+      resolveLoadedAdminAccess(
         route({ meta: { requiresAdmin: true, permissions: ['admin.dashboard.view'] } }),
       ),
-    ).resolves.toEqual({ name: 'admin.forbidden' })
+    ).toEqual({ name: 'admin.forbidden' })
   })
 
-  it('redirects to login when principal loading returns 401', async () => {
-    vi.mocked(authApi.getPrincipal).mockRejectedValue(new ApiError(401, 'No active SSO session.'))
-
-    await expect(
-      resolveAdminGuard(
-        route({
-          fullPath: '/oidc-foundation',
-          meta: { requiresAdmin: true, permissions: ['admin.dashboard.view'] },
-        }),
-      ),
-    ).resolves.toBe(false)
+  it('redirects to login when bootstrap returns 401', () => {
+    expect(resolveBootstrapFailure('unauthenticated', '/oidc-foundation')).toBe(false)
 
     expect(window.location.assign).toHaveBeenCalledWith(
       'https://sso.test/auth/login?return_to=%2F__vue-preview%2Foidc-foundation',
     )
   })
 
-  it('shows retryable admin error state instead of forbidden on principal service failures', async () => {
-    vi.mocked(authApi.getPrincipal).mockRejectedValue(new ApiError(502, 'upstream unavailable'))
-
-    await expect(resolveAdminGuard(route())).resolves.toEqual({ name: 'admin.error' })
+  it('shows retryable admin error state instead of forbidden on principal service failures', () => {
+    expect(resolveBootstrapFailure('error', '/')).toEqual({ name: 'admin.error' })
   })
 
-  it('routes invalid upstream bootstrap responses to the API unreachable view', async () => {
-    vi.mocked(authApi.getPrincipal).mockRejectedValue(
-      new ApiError(502, 'Invalid upstream response', 'invalid_upstream_response'),
-    )
-
-    await expect(resolveAdminGuard(route())).resolves.toEqual({ name: 'admin.api-unreachable' })
+  it('routes invalid upstream bootstrap responses to the API unreachable view', () => {
+    expect(resolveBootstrapFailure('api_unreachable', '/')).toEqual({
+      name: 'admin.api-unreachable',
+    })
   })
 
-  it('routes admins without enrolled MFA to the MFA required view', async () => {
-    vi.mocked(authApi.getPrincipal).mockRejectedValue(
-      new ApiError(403, 'MFA enrollment required', 'mfa_enrollment_required'),
-    )
-
-    await expect(resolveAdminGuard(route())).resolves.toEqual({
+  it('routes admins without enrolled MFA to the MFA required view', () => {
+    expect(resolveBootstrapFailure('mfa_enrollment_required', '/')).toEqual({
       name: 'admin.mfa-required',
       query: { return_to: '/' },
     })
   })
 
-  it('routes admins without MFA assurance to the step-up view', async () => {
-    vi.mocked(authApi.getPrincipal).mockRejectedValue(
-      new ApiError(403, 'Admin MFA assurance is required', 'mfa_required'),
-    )
-
-    await expect(resolveAdminGuard(route())).resolves.toEqual({
-      name: 'admin.step-up-required',
-      query: { return_to: '/' },
-    })
-  })
-
-  it('routes stale admin assurance bootstrap failures to the step-up view', async () => {
-    vi.mocked(authApi.getPrincipal).mockRejectedValue(
-      new ApiError(428, 'Step up required', 'step_up_required'),
-    )
-
-    await expect(resolveAdminGuard(route())).resolves.toEqual({
-      name: 'admin.step-up-required',
-      query: { return_to: '/' },
-    })
-  })
-
-  it('routes current backend reauth_required bootstrap failures to the step-up view', async () => {
-    vi.mocked(authApi.getPrincipal).mockRejectedValue(
-      new ApiError(401, 'Fresh authentication is required', 'reauth_required'),
-    )
-
-    await expect(resolveAdminGuard(route())).resolves.toEqual({
+  it('routes admins without MFA assurance to the step-up view', () => {
+    expect(resolveBootstrapFailure('step_up_required', '/')).toEqual({
       name: 'admin.step-up-required',
       query: { return_to: '/' },
     })
   })
 
   it('allows admins with required route permissions', async () => {
-    vi.mocked(authApi.getPrincipal).mockResolvedValue(adminPrincipal)
+    useSessionStore().setPrincipal(adminPrincipal.principal)
 
-    await expect(
-      resolveAdminGuard(
+    expect(
+      resolveLoadedAdminAccess(
         route({ meta: { requiresAdmin: true, permissions: ['admin.dashboard.view'] } }),
       ),
-    ).resolves.toBe(true)
+    ).toBe(true)
   })
 })

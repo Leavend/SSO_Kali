@@ -1,5 +1,4 @@
 import { computed, ref, type ComputedRef } from 'vue'
-import enLocale from '@/locales/en.json'
 import idLocale from '@/locales/id.json'
 
 type LocaleMessages = Record<string, unknown>
@@ -10,17 +9,20 @@ const STORAGE_KEY = 'dev-sso-admin-locale' as const
 
 const locales: Record<SupportedLocale, LocaleMessages> = {
   id: idLocale as LocaleMessages,
-  en: enLocale as LocaleMessages,
+  en: {},
 }
+const loadingLocales = new Map<SupportedLocale, Promise<void>>()
 
 const activeLocale = ref<SupportedLocale>(detectInitialLocale())
+const localeVersion = ref(0)
 
 syncDocumentLocale(activeLocale.value)
 
 export type UseI18nReturn = {
   readonly availableLocales: readonly SupportedLocale[]
   readonly locale: ComputedRef<SupportedLocale>
-  readonly setLocale: (locale: SupportedLocale) => void
+  readonly setLocale: (locale: SupportedLocale) => Promise<void>
+  readonly loadLocale: (locale: SupportedLocale) => Promise<void>
   readonly t: (key: string, params?: Record<string, unknown>) => string
 }
 
@@ -30,7 +32,7 @@ export type UseI18nReturn = {
  */
 export function translate(key: string, params?: Record<string, unknown>): string {
   const template =
-    resolveKey(locales[activeLocale.value], key) ?? resolveKey(locales[DEFAULT_LOCALE], key)
+    resolveKey(messagesFor(activeLocale.value), key) ?? resolveKey(messagesFor(DEFAULT_LOCALE), key)
   if (!template) return key
 
   return params ? interpolate(template, params) : template
@@ -41,19 +43,46 @@ export function useI18n(): UseI18nReturn {
 
   function t(key: string, params?: Record<string, unknown>): string {
     const template =
-      resolveKey(locales[locale.value], key) ?? resolveKey(locales[DEFAULT_LOCALE], key)
+      resolveKey(messagesFor(locale.value), key) ?? resolveKey(messagesFor(DEFAULT_LOCALE), key)
     if (!template) return key
 
     return params ? interpolate(template, params) : template
   }
 
-  function setLocale(locale: SupportedLocale): void {
+  async function setLocale(locale: SupportedLocale): Promise<void> {
+    await loadLocale(locale)
     activeLocale.value = locale
     syncDocumentLocale(locale)
     persistLocale(locale)
   }
 
-  return { availableLocales: ['id', 'en'], locale, setLocale, t }
+  return { availableLocales: ['id', 'en'], locale, setLocale, loadLocale, t }
+}
+
+export async function loadLocale(locale: SupportedLocale): Promise<void> {
+  if (locale === 'id') return
+  if (Object.keys(locales[locale]).length > 0) return
+
+  const existing = loadingLocales.get(locale)
+  if (existing) return existing
+
+  const nextLoad = import('@/locales/en.json').then((module) => {
+    locales.en = (module.default ?? module) as LocaleMessages
+    localeVersion.value += 1
+  })
+  loadingLocales.set(locale, nextLoad)
+
+  try {
+    await nextLoad
+  } finally {
+    loadingLocales.delete(locale)
+  }
+}
+
+function messagesFor(locale: SupportedLocale): LocaleMessages {
+  // Track lazy locale loads so existing render effects re-run when messages arrive.
+  void localeVersion.value
+  return locales[locale]
 }
 
 function resolveKey(messages: LocaleMessages, key: string): string | undefined {
@@ -114,4 +143,8 @@ function persistLocale(locale: SupportedLocale): void {
   } catch {
     // Preference persistence is best-effort.
   }
+}
+
+if (activeLocale.value !== DEFAULT_LOCALE) {
+  void loadLocale(activeLocale.value)
 }

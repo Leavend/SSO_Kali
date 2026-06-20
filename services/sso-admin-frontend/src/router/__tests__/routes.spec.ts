@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import router from '../index'
+import router, { preloadInitialAdminRoute } from '../index'
+import AdminShellLayout from '@/layouts/AdminShellLayout.vue'
 
 describe('admin routes', () => {
   it('registers the dashboard route behind dashboard permission', () => {
@@ -50,5 +51,31 @@ describe('admin routes', () => {
       requiresAdmin: true,
       permissions: ['admin.users.write'],
     })
+  })
+
+  it('keeps every requiresAdmin route under the admin shell enforcement layout', () => {
+    const protectedRoutes = router.getRoutes().filter((route) => route.meta.requiresAdmin === true)
+
+    expect(protectedRoutes.length).toBeGreaterThan(0)
+
+    for (const protectedRoute of protectedRoutes) {
+      const resolvedRoute = router.resolve(protectedRoute.path)
+      expect(
+        resolvedRoute.matched.some((match) => match.components?.default === AdminShellLayout),
+      ).toBe(true)
+    }
+  })
+
+  it('preloads the initial route from the registered route component instead of a parallel map', async () => {
+    const clientsCreateRoute = router.resolve('/clients/new')
+    const registeredComponent =
+      clientsCreateRoute.matched[clientsCreateRoute.matched.length - 1]?.components?.default
+
+    const [preloadedModule, registeredModule] = await Promise.all([
+      preloadInitialAdminRoute('/clients/new'),
+      (registeredComponent as () => Promise<unknown>)(),
+    ])
+
+    expect(preloadedModule).toStrictEqual(registeredModule)
   })
 })
