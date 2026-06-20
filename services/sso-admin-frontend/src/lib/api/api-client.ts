@@ -41,8 +41,17 @@ export type BlobResponse = {
   readonly filename: string | null
 }
 
+export type ApiResponseWithRequestId<T> = {
+  readonly data: T
+  readonly requestId: string | null
+}
+
 export type ApiClient = {
   get<T>(path: string, options?: Omit<RequestOptions, 'method' | 'body'>): Promise<T>
+  getWithRequestId<T>(
+    path: string,
+    options?: Omit<RequestOptions, 'method' | 'body'>,
+  ): Promise<ApiResponseWithRequestId<T>>
   getBlob(path: string, options?: Omit<RequestOptions, 'method' | 'body'>): Promise<BlobResponse>
   post<T>(path: string, body?: unknown, options?: Omit<RequestOptions, 'method'>): Promise<T>
   patch<T>(path: string, body?: unknown, options?: Omit<RequestOptions, 'method'>): Promise<T>
@@ -117,6 +126,26 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   if (response.status === 204) return undefined as T
 
   return (await jsonPayloadFromSuccess(response)) as T
+}
+
+async function requestWithRequestId<T>(
+  path: string,
+  options: RequestOptions = {},
+): Promise<ApiResponseWithRequestId<T>> {
+  if (isMockEnabled()) {
+    return {
+      data: await request<T>(path, options),
+      requestId: getLastRequestId() ?? 'mock-req-id',
+    }
+  }
+
+  const response = await sendRequest(path, options)
+  const requestId = response.headers.get('X-Request-Id') ?? getLastRequestId()
+
+  return {
+    data: response.status === 204 ? (undefined as T) : ((await jsonPayloadFromSuccess(response)) as T),
+    requestId,
+  }
 }
 
 async function requestBlob(path: string, options: RequestOptions = {}): Promise<BlobResponse> {
@@ -244,6 +273,11 @@ function generateRequestId(): string {
 export const apiClient: ApiClient = {
   get: <T>(path: string, options?: Omit<RequestOptions, 'method' | 'body'>): Promise<T> =>
     request<T>(path, { ...options, method: 'GET' }),
+  getWithRequestId: <T>(
+    path: string,
+    options?: Omit<RequestOptions, 'method' | 'body'>,
+  ): Promise<ApiResponseWithRequestId<T>> =>
+    requestWithRequestId<T>(path, { ...options, method: 'GET' }),
   getBlob: (
     path: string,
     options?: Omit<RequestOptions, 'method' | 'body'>,

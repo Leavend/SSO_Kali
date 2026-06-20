@@ -41,9 +41,11 @@ class AdminAuditEventStore
         if (isset($payload['reason']) && is_string($payload['reason'])) {
             $payload['reason'] = mb_convert_encoding($payload['reason'], 'UTF-8', 'UTF-8');
         }
+        $correlation = $this->correlationColumns($payload['context'] ?? []);
 
         $record = [
             ...$payload,
+            ...$correlation,
             'event_id' => (string) Str::ulid(),
             'previous_hash' => $previousHash,
             'signing_key_id' => $signingKeyId,
@@ -123,5 +125,33 @@ class AdminAuditEventStore
         }
 
         return $value;
+    }
+
+    /**
+     * @return array<string, string|null>
+     */
+    private function correlationColumns(mixed $context): array
+    {
+        $context = is_array($context) ? $context : [];
+        $requestId = $this->stringValue($context, 'request_id');
+
+        return [
+            'request_id' => $requestId,
+            'support_reference' => $this->stringValue($context, 'support_reference') ?? SupportReference::fromRequestId($requestId),
+            'subject_id' => $this->stringValue($context, 'subject_id'),
+            'target_subject_id' => $this->stringValue($context, 'target_subject_id'),
+            'client_id' => $this->stringValue($context, 'client_id'),
+            'session_id' => $this->stringValue($context, 'session_id'),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     */
+    private function stringValue(array $context, string $key): ?string
+    {
+        $value = $context[$key] ?? null;
+
+        return is_string($value) && $value !== '' ? $value : null;
     }
 }

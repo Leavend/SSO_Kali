@@ -88,6 +88,26 @@ final class SupportReference
     }
 
     /**
+     * Build a WHERE closure for admin audit rows with indexed correlation columns.
+     *
+     * Accepts either a displayed REF code or a raw request ID. The canonical
+     * support_reference column is populated from request_id on write/backfill.
+     *
+     * @return Closure(Builder): void
+     */
+    public static function whereIndexedOrRequestId(string $supportRef): Closure
+    {
+        return function (Builder $query) use ($supportRef): void {
+            $canonical = self::fromRequestId($supportRef) ?? $supportRef;
+            $query->where('support_reference', $canonical);
+
+            if ($supportRef !== $canonical) {
+                $query->orWhere('request_id', $supportRef);
+            }
+        };
+    }
+
+    /**
      * Build a driver-aware SQL expression that strips non-alphanumeric
      * characters and uppercases a column/expression for suffix matching.
      *

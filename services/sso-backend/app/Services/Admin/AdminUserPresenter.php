@@ -45,19 +45,27 @@ final class AdminUserPresenter
      */
     public function user(User $user): array
     {
+        $methods = MfaCredential::query()->forUser($user->id)->verified()->pluck('method')->all();
+
+        return $this->userWithMfaMethods($user, $methods);
+    }
+
+    /**
+     * @param  array<int, string>  $methods
+     * @return array<string, mixed>
+     */
+    public function userWithMfaMethods(User $user, array $methods): array
+    {
         $user->loadMissing('roles');
+        $methods = array_values(array_unique($methods));
 
         return [
             ...$user->only($this->columns()),
             'effective_status' => $user->effective_status,
-            'mfa_enrolled' => MfaCredential::query()->forUser($user->id)->verified()->exists(),
-            'mfa_methods' => MfaCredential::query()->forUser($user->id)->verified()->pluck('method')->unique()->values()->all(),
+            'mfa_enrolled' => $methods !== [],
+            'mfa_methods' => $methods,
             'mfa_mandatory' => (bool) $user->mfa_mandatory,
-            'roles' => $user->roles
-                ->map(fn (Role $role): array => $role->only(['slug', 'name', 'is_system']))
-                ->sortBy('slug')
-                ->values()
-                ->all(),
+            'roles' => $this->roles($user),
         ];
     }
 
@@ -80,10 +88,13 @@ final class AdminUserPresenter
             ];
         }
 
+        $sessionIpAddress = $latestSession === null ? null : $latestSession->ip_address;
+        $sessionLastSeenAt = $latestSession === null ? null : $latestSession->last_seen_at;
+
         return [
-            'ip_address' => $latestSession->ip_address ?? $ctx->ip_address,
+            'ip_address' => $sessionIpAddress ?? $ctx->ip_address,
             'mfa_required' => (bool) $ctx->mfa_required,
-            'last_seen_at' => $latestSession->last_seen_at ?? $ctx->last_seen_at,
+            'last_seen_at' => $sessionLastSeenAt ?? $ctx->last_seen_at,
         ];
     }
 
@@ -97,6 +108,18 @@ final class AdminUserPresenter
             ->orderByDesc('authenticated_at')
             ->orderByDesc('id')
             ->first();
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function roles(User $user): array
+    {
+        return $user->roles
+            ->map(fn (Role $role): array => $role->only(['slug', 'name', 'is_system']))
+            ->sortBy('slug')
+            ->values()
+            ->all();
     }
 
     public function passwordReset(array $result): array

@@ -49,12 +49,12 @@ export const useClientsStore = defineStore('admin-clients', () => {
     clearRotationSecret()
 
     try {
-      const response = await clientsApi.list()
-      const listRequestId = getLastRequestId()
-      const registrations = await clientsApi.registrations()
-      clients.value = mergeClients(response.clients, registrations.registrations)
+      const listRequest = clientsApi.listWithRequestId()
+      const registrationsRequest = clientsApi.registrations()
+      const [response, registrations] = await Promise.all([listRequest, registrationsRequest])
+      clients.value = mergeClients(response.data.clients, registrations.registrations)
       selectedClientId.value = clients.value[0]?.client_id ?? null
-      requestId.value = listRequestId
+      requestId.value = response.requestId
       status.value = 'success'
     } catch (error) {
       clients.value = []

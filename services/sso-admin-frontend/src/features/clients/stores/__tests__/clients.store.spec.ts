@@ -8,6 +8,8 @@ import type { AdminClient } from '../../types'
 vi.mock('../../services/clients.api', () => ({
   clientsApi: {
     list: vi.fn<() => Promise<{ clients: readonly AdminClient[] }>>(),
+    listWithRequestId:
+      vi.fn<() => Promise<{ data: { clients: readonly AdminClient[] }; requestId: string | null }>>(),
     show: vi.fn<(clientId: string) => Promise<{ client: AdminClient }>>(),
     registrations: vi.fn<() => Promise<{ registrations: readonly AdminClient[] }>>(),
     update: vi.fn<(clientId: string, payload: unknown) => Promise<{ client: AdminClient }>>(),
@@ -59,6 +61,7 @@ describe('useClientsStore', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.mocked(clientsApi.list).mockReset()
+    vi.mocked(clientsApi.listWithRequestId).mockReset()
     vi.mocked(clientsApi.show).mockReset()
     vi.mocked(clientsApi.registrations).mockReset()
     vi.mocked(clientsApi.update).mockReset()
@@ -71,7 +74,10 @@ describe('useClientsStore', () => {
   })
 
   it('loads runtime clients, merges staged registrations, and stores request evidence', async () => {
-    vi.mocked(clientsApi.list).mockResolvedValue({ clients: [client] })
+    vi.mocked(clientsApi.listWithRequestId).mockResolvedValue({
+      data: { clients: [client] },
+      requestId: 'req-clients-1',
+    })
     vi.mocked(clientsApi.registrations).mockResolvedValue({
       registrations: [
         client,
@@ -106,9 +112,9 @@ describe('useClientsStore', () => {
   })
 
   it('keeps runtime client request evidence when registrations load also updates the last request id', async () => {
-    vi.mocked(clientsApi.list).mockImplementation(async () => {
-      vi.mocked(getLastRequestId).mockReturnValue('req-clients-1')
-      return { clients: [client] }
+    vi.mocked(clientsApi.listWithRequestId).mockResolvedValue({
+      data: { clients: [client] },
+      requestId: 'req-clients-1',
     })
     vi.mocked(clientsApi.registrations).mockImplementation(async () => {
       vi.mocked(getLastRequestId).mockReturnValue('req-client-registrations-1')
@@ -118,6 +124,43 @@ describe('useClientsStore', () => {
 
     await store.load()
 
+    expect(store.requestId).toBe('req-clients-1')
+  })
+
+  it('loads runtime clients and registrations in parallel', async () => {
+    let resolveList!: (value: {
+      data: { clients: readonly AdminClient[] }
+      requestId: string | null
+    }) => void
+    let resolveRegistrations!: (value: { registrations: readonly AdminClient[] }) => void
+    vi.mocked(clientsApi.listWithRequestId).mockReturnValue(
+      new Promise((resolve) => {
+        resolveList = resolve
+      }),
+    )
+    vi.mocked(clientsApi.registrations).mockReturnValue(
+      new Promise((resolve) => {
+        resolveRegistrations = resolve
+      }),
+    )
+    const store = useClientsStore()
+
+    const loading = store.load()
+    await Promise.resolve()
+
+    expect(clientsApi.listWithRequestId).toHaveBeenCalledTimes(1)
+    expect(clientsApi.registrations).toHaveBeenCalledTimes(1)
+
+    vi.mocked(getLastRequestId).mockReturnValue('req-client-registrations-1')
+    resolveRegistrations({ registrations: [client] })
+    await Promise.resolve()
+    expect(store.status).toBe('loading')
+
+    vi.mocked(getLastRequestId).mockReturnValue('req-clients-1')
+    resolveList({ data: { clients: [client] }, requestId: 'req-clients-1' })
+    await loading
+
+    expect(store.status).toBe('success')
     expect(store.requestId).toBe('req-clients-1')
   })
 
@@ -140,7 +183,10 @@ describe('useClientsStore', () => {
       backchannel_logout_uri: null,
       redirect_uris: ['https://frontend.example.test/callback'],
     }
-    vi.mocked(clientsApi.list).mockResolvedValue({ clients: [runtimeClient] })
+    vi.mocked(clientsApi.listWithRequestId).mockResolvedValue({
+      data: { clients: [runtimeClient] },
+      requestId: 'req-clients-1',
+    })
     vi.mocked(clientsApi.registrations).mockResolvedValue({ registrations: [registrationClient] })
     const store = useClientsStore()
 
@@ -441,7 +487,7 @@ describe('useClientsStore', () => {
   })
 
   it('maps forbidden errors to safe copy without raw backend details', async () => {
-    vi.mocked(clientsApi.list).mockRejectedValue(
+    vi.mocked(clientsApi.listWithRequestId).mockRejectedValue(
       new ApiError(403, 'SQLSTATE leaked forbidden trace'),
     )
     const store = useClientsStore()
@@ -454,7 +500,7 @@ describe('useClientsStore', () => {
   })
 
   it('maps server errors to safe copy with request evidence', async () => {
-    vi.mocked(clientsApi.list).mockRejectedValue(
+    vi.mocked(clientsApi.listWithRequestId).mockRejectedValue(
       new ApiError(500, 'raw token Bearer abc', 'server_error', null, 'req-clients-fail'),
     )
     const store = useClientsStore()

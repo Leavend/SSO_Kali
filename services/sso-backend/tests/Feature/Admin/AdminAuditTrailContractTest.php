@@ -104,6 +104,43 @@ it('filters admin audit events by target account application and session context
         ->assertJsonPath('events.0.context.subject_id', 'usr-target-b');
 });
 
+it('filters and exports admin audit events through indexed correlation columns', function (): void {
+    $admin = auditTrailAdmin([AdminPermission::AUDIT_READ, AdminPermission::AUDIT_EXPORT]);
+    auditTrailStore()->append(auditTrailPayload('succeeded', 'revoke_session', [
+        'request_id' => 'req-indexed-123',
+        'target_subject_id' => 'usr-indexed-target',
+        'client_id' => 'client-indexed',
+        'session_id' => 'sid-indexed',
+    ]));
+
+    $event = AdminAuditEvent::query()->latest('id')->firstOrFail();
+
+    expect($event->request_id)->toBe('req-indexed-123')
+        ->and($event->support_reference)->toBe('REF-DEXED123')
+        ->and($event->target_subject_id)->toBe('usr-indexed-target')
+        ->and($event->client_id)->toBe('client-indexed')
+        ->and($event->session_id)->toBe('sid-indexed');
+
+    DB::table('admin_audit_events')->where('id', $event->id)->update([
+        'context' => json_encode(['request_id' => 'req-context-mismatch'], JSON_THROW_ON_ERROR),
+    ]);
+
+    $this->getJson('/admin/api/audit/events?'.http_build_query([
+        'request_id' => 'req-indexed-123',
+    ]), auditTrailHeaders($admin))
+        ->assertOk()
+        ->assertJsonCount(1, 'events')
+        ->assertJsonPath('events.0.event_id', $event->event_id);
+
+    $response = $this->get('/admin/api/audit/export?'.http_build_query([
+        'format' => 'csv',
+        'support_reference' => 'REF-DEXED123',
+    ]), auditTrailHeaders($admin));
+
+    $response->assertOk();
+    expect(array_filter(explode("\n", trim($response->streamedContent()))))->toHaveCount(2);
+});
+
 it('shows one safe audit event and returns not found for unknown event ids', function (): void {
     $admin = auditTrailAdmin([AdminPermission::AUDIT_READ]);
     auditTrailStore()->append(auditTrailPayload('succeeded', 'update_profile_portal', ['password' => 'secret-password']));

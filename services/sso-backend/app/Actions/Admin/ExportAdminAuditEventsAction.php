@@ -99,10 +99,10 @@ final class ExportAdminAuditEventsAction
             }
         }
         if (is_string($filters['request_id'] ?? null) && $filters['request_id'] !== '') {
-            $query->where('context->request_id', $filters['request_id']);
+            $query->where('request_id', $filters['request_id']);
         }
         if (is_string($filters['support_reference'] ?? null) && $filters['support_reference'] !== '') {
-            $query->where(SupportReference::whereSuffixOrExact($filters['support_reference']));
+            $query->where(SupportReference::whereIndexedOrRequestId($filters['support_reference']));
         }
         if (is_string($filters['from'] ?? null) && $filters['from'] !== '') {
             $query->where('occurred_at', '>=', $filters['from']);

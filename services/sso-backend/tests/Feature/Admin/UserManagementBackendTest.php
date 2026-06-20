@@ -8,12 +8,15 @@ use App\Actions\Admin\IssueManagedUserPasswordResetAction;
 use App\Actions\Admin\ReactivateManagedUserAction;
 use App\Actions\Admin\SyncManagedUserProfileAction;
 use App\Models\AdminAuditEvent;
+use App\Models\MfaCredential;
+use App\Models\Role;
 use App\Models\SsoSession;
 use App\Models\User;
 use App\Notifications\PasswordResetRequestedNotification;
 use App\Services\Admin\AdminAuditLogger;
 use App\Services\Admin\AdminAuditTaxonomy;
 use App\Services\Admin\AdminUserPresenter;
+use App\Services\Admin\AdminUserQuery;
 use App\Services\Oidc\LocalTokenService;
 use App\Services\Security\LoginContextRecorder;
 use Illuminate\Contracts\Notifications\Dispatcher;
@@ -175,6 +178,82 @@ it('includes email verification status in admin user presentation', function ():
 
     expect(app(AdminUserPresenter::class)->user($target))
         ->toHaveKey('email_verified_at');
+});
+
+it('lists users with preloaded login context roles and mfa evidence using a constant query count', function (): void {
+    $role = Role::query()->create(['slug' => 'query-support', 'name' => 'Query Support']);
+
+    $first = User::factory()->create(['subject_id' => 'usr-query-a', 'role' => 'user']);
+    $second = User::factory()->create(['subject_id' => 'usr-query-b', 'role' => 'user']);
+    $first->roles()->sync([$role->id]);
+    $second->roles()->sync([$role->id]);
+
+    DB::table('login_contexts')->insert([
+        [
+            'subject_id' => $first->subject_id,
+            'ip_address' => '198.51.100.10',
+            'mfa_required' => true,
+            'last_seen_at' => now()->subMinutes(5),
+            'created_at' => now()->subMinutes(5),
+            'updated_at' => now()->subMinutes(5),
+        ],
+        [
+            'subject_id' => $first->subject_id,
+            'ip_address' => '198.51.100.11',
+            'mfa_required' => false,
+            'last_seen_at' => now()->subMinute(),
+            'created_at' => now()->subMinute(),
+            'updated_at' => now()->subMinute(),
+        ],
+    ]);
+    SsoSession::query()->create([
+        'session_id' => 'sess-query-b',
+        'user_id' => $second->id,
+        'subject_id' => $second->subject_id,
+        'ip_address' => '203.0.113.44',
+        'user_agent' => 'Mozilla/5.0',
+        'authenticated_at' => now()->subMinutes(2),
+        'last_seen_at' => now(),
+        'expires_at' => now()->addHour(),
+    ]);
+    MfaCredential::query()->create([
+        'user_id' => $first->id,
+        'method' => 'totp',
+        'secret' => 'encrypted-secret-a',
+        'verified_at' => now(),
+    ]);
+
+    DB::flushQueryLog();
+    DB::enableQueryLog();
+    $users = app(AdminUserQuery::class)->users();
+    $queryCount = count(DB::getQueryLog());
+    DB::disableQueryLog();
+
+    $firstPayload = $users->firstWhere('subject_id', $first->subject_id);
+    $secondPayload = $users->firstWhere('subject_id', $second->subject_id);
+
+    expect($queryCount)->toBeLessThanOrEqual(6)
+        ->and($firstPayload['roles'][0]['slug'])->toBe('query-support')
+        ->and($firstPayload['mfa_enrolled'])->toBeTrue()
+        ->and($firstPayload['mfa_methods'])->toBe(['totp'])
+        ->and($firstPayload['login_context'])->toMatchArray([
+            'ip_address' => '198.51.100.11',
+            'mfa_required' => false,
+        ])
+        ->and($secondPayload['login_context'])->toMatchArray([
+            'ip_address' => '203.0.113.44',
+            'mfa_required' => false,
+        ]);
+
+    User::factory()->count(3)->create(['role' => 'user']);
+
+    DB::flushQueryLog();
+    DB::enableQueryLog();
+    app(AdminUserQuery::class)->users();
+    $largerQueryCount = count(DB::getQueryLog());
+    DB::disableQueryLog();
+
+    expect($largerQueryCount)->toBe($queryCount);
 });
 
 it('backfills legacy profile names from display names', function (): void {

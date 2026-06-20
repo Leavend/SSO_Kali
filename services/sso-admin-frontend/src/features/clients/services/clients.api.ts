@@ -1,4 +1,4 @@
-import { apiClient } from '@/lib/api/api-client'
+import { apiClient, type ApiResponseWithRequestId } from '@/lib/api/api-client'
 import type {
   ClientCreatePayload,
   ClientCreateResponse,
@@ -17,6 +17,9 @@ import type {
 export const clientsApi = {
   list(): Promise<ClientListResponse> {
     return apiClient.get<ClientListResponse>('/api/admin/clients')
+  },
+  listWithRequestId(): Promise<ApiResponseWithRequestId<ClientListResponse>> {
+    return apiClient.getWithRequestId<ClientListResponse>('/api/admin/clients')
   },
   registrations(): Promise<ClientRegistrationsResponse> {
     return apiClient.get<ClientRegistrationsResponse>(
