@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { enableAutoUnmount, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import type { LocationQuery, RouteLocationNormalizedLoaded } from 'vue-router'
 import { useSessionStore } from '@/stores/session.store'
@@ -30,6 +30,8 @@ vi.mock('../../services/clients.api', () => ({
     rotateSecret: vi.fn<() => Promise<unknown>>(),
   },
 }))
+
+enableAutoUnmount(afterEach)
 
 const client: AdminClient = {
   client_id: 'prototype-app-a',

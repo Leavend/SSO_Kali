@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, reactive, ref, watch, type Component } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch, type Component } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from '@/composables/useI18n'
 import { useDateFormat } from '@/composables/useDateFormat'
@@ -68,6 +68,7 @@ const selectedScopes = ref<string[]>([])
 const uriValidationMessages = ref<readonly string[]>([])
 const lifecycleMessage = ref<string | null>(null)
 const deleteMessage = ref<string | null>(null)
+const messageTimers = new Set<number>()
 const uriValidationMessage = computed(() => uriValidationMessages.value.join(' '))
 const knownScopeLabels = computed(() => new Set(store.scopes.map((s) => s.name)))
 const scopeParityWarnings = computed(() =>
@@ -85,6 +86,21 @@ const filteredClients = computed(() => {
       client.client_id.toLowerCase().includes(query),
   )
 })
+
+function scheduleMessageClear(callback: () => void, delayMs: number): void {
+  const timer = window.setTimeout(() => {
+    messageTimers.delete(timer)
+    callback()
+  }, delayMs)
+  messageTimers.add(timer)
+}
+
+function clearMessageTimers(): void {
+  for (const timer of messageTimers) {
+    window.clearTimeout(timer)
+  }
+  messageTimers.clear()
+}
 
 function avatarInitial(name: string): string {
   return name.charAt(0).toUpperCase()
@@ -239,6 +255,10 @@ onMounted(() => {
   syncCreatedClientDialog()
 })
 
+onUnmounted(() => {
+  clearMessageTimers()
+})
+
 watch(
   () => route.query.created,
   () => {
@@ -362,7 +382,7 @@ async function copyToClipboard(text: string): Promise<void> {
       document.body.removeChild(textarea)
     }
   }
-  setTimeout(() => {
+  scheduleMessageClear(() => {
     if (
       copyFeedback.value === t('clients.copy_success') ||
       copyFeedback.value === t('clients.copy_failed')
@@ -431,7 +451,7 @@ async function saveMetadata(): Promise<void> {
         title: 'Metadata Diperbarui',
         description: 'Metadata client berhasil disimpan.',
       })
-      setTimeout(() => {
+      scheduleMessageClear(() => {
         if (successMessage.value === 'Metadata client berhasil disimpan.') {
           successMessage.value = null
         }
@@ -471,7 +491,7 @@ async function saveUriPolicy(): Promise<void> {
         title: 'URI Policy Diperbarui',
         description: 'URI policy client berhasil disimpan.',
       })
-      setTimeout(() => {
+      scheduleMessageClear(() => {
         if (successMessage.value === 'URI policy client berhasil disimpan.') {
           successMessage.value = null
         }
@@ -495,7 +515,7 @@ async function saveScopePolicy(): Promise<void> {
         title: 'Scope Policy Diperbarui',
         description: 'Scope policy client berhasil disimpan.',
       })
-      setTimeout(() => {
+      scheduleMessageClear(() => {
         if (successMessage.value === 'Scope policy client berhasil disimpan.') {
           successMessage.value = null
         }
@@ -521,7 +541,7 @@ async function disableClient(): Promise<void> {
         title: 'Client Dinonaktifkan',
         description: 'Client berhasil dinonaktifkan.',
       })
-      setTimeout(() => {
+      scheduleMessageClear(() => {
         if (successMessage.value === 'Client berhasil dinonaktifkan.') {
           successMessage.value = null
         }
@@ -552,7 +572,7 @@ async function decommissionClient(): Promise<void> {
         title: 'Client Didecommission',
         description: 'Client berhasil didecommission.',
       })
-      setTimeout(() => {
+      scheduleMessageClear(() => {
         if (successMessage.value === 'Client berhasil didecommission.') {
           successMessage.value = null
         }
@@ -579,7 +599,7 @@ async function rotateSecret(): Promise<void> {
         title: 'Secret Dirotasi',
         description: 'Client secret berhasil dirotasi.',
       })
-      setTimeout(() => {
+      scheduleMessageClear(() => {
         if (successMessage.value === 'Client secret berhasil dirotasi.') {
           successMessage.value = null
         }

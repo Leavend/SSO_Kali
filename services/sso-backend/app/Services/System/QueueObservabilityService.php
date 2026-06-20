@@ -51,6 +51,6 @@ final class QueueObservabilityService
             return null;
         }
 
-        return max(0, time() - (int) $createdAt);
+        return max(0, now()->getTimestamp() - (int) $createdAt);
     }
 }

@@ -4,16 +4,26 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\DB;
 
+beforeEach(function (): void {
+    $this->travelTo(now());
+});
+
+afterEach(function (): void {
+    $this->travelBack();
+});
+
 it('exposes internal queue metrics only when explicitly enabled and never leaks payloads', function (): void {
     config(['sso.observability.internal_queue_metrics_enabled' => true]);
+
+    $now = now()->getTimestamp();
 
     DB::table('jobs')->insert([
         'queue' => 'default',
         'payload' => json_encode(['secret' => 'must-not-leak'], JSON_THROW_ON_ERROR),
         'attempts' => 0,
         'reserved_at' => null,
-        'available_at' => time(),
-        'created_at' => time() - 10,
+        'available_at' => $now,
+        'created_at' => $now - 10,
     ]);
 
     DB::table('failed_jobs')->insert([
