@@ -18,7 +18,14 @@ app.mount('#app')
 const loader = document.getElementById('app-loader')
 if (loader) {
   loader.classList.add('is-hidden')
-  loader.addEventListener('transitionend', () => loader.remove(), { once: true })
+  let removed = false
+  const removeLoader = () => {
+    if (removed) return
+    removed = true
+    loader.remove()
+  }
+  loader.addEventListener('transitionend', removeLoader, { once: true })
+  setTimeout(removeLoader, 400)
 }
 
 // FR-003: warm Discovery + JWKS caches at idle time so the first OIDC
