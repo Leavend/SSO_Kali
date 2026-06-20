@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { CheckCircle } from 'lucide-vue-next'
+import { CheckCircle, XCircle } from 'lucide-vue-next'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiDialog from '@/components/ui/UiDialog.vue'
 import UiFormField from '@/components/ui/UiFormField.vue'
@@ -229,6 +229,22 @@ function closeStepUpDialog(): void {
 function confirmStepUpReauth(): void {
   triggerStepUpReauth('/clients/new')
 }
+
+function onClientTypeKeydown(event: KeyboardEvent): void {
+  if (
+    event.key === 'ArrowRight' ||
+    event.key === 'ArrowLeft' ||
+    event.key === 'ArrowDown' ||
+    event.key === 'ArrowUp'
+  ) {
+    event.preventDefault()
+    const nextType = form.clientType === 'public' ? 'confidential' : 'public'
+    selectClientType(nextType)
+    nextTick(() => {
+      document.getElementById(`client_type_${nextType}`)?.focus()
+    })
+  }
+}
 </script>
 
 <template>
@@ -255,7 +271,7 @@ function confirmStepUpReauth(): void {
     <!-- Section 1: Identitas -->
     <FormSection
       :title="t('common.identity')"
-      description="Tentukan nama tampilan dan pengenal unik untuk client OIDC Anda."
+      :description="t('clients.create_identity_section_desc')"
     >
       <UiFormField
         id="create_display_name"
@@ -279,7 +295,7 @@ function confirmStepUpReauth(): void {
         :error="errorFor('clientId')"
         required
       >
-        <div class="relative">
+        <div>
           <UiInput
             id="create_client_id"
             v-model="form.clientId"
@@ -289,16 +305,22 @@ function confirmStepUpReauth(): void {
             :invalid="Boolean(errors.clientId)"
             @input="isClientIdEdited = true"
           />
-          <div class="mt-1 flex items-center justify-between text-xs">
+          <div class="mt-1.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 text-xs">
             <span class="text-muted-foreground">
-              Hanya huruf kecil, angka, dan tanda hubung (3-63 karakter).
+              {{ t('clients.client_id_helper') }}
             </span>
-            <span
+            <div
               v-if="form.clientId"
+              aria-live="polite"
+              class="flex items-center gap-1 font-medium"
               :class="isClientIdValid ? 'text-success-700' : 'text-destructive'"
             >
-              {{ isClientIdValid ? 'Format valid' : 'Format tidak valid' }}
-            </span>
+              <CheckCircle v-if="isClientIdValid" class="size-3.5 shrink-0" />
+              <XCircle v-else class="size-3.5 shrink-0" />
+              <span>
+                {{ isClientIdValid ? t('clients.client_id_valid') : t('clients.client_id_invalid') }}
+              </span>
+            </div>
           </div>
         </div>
       </UiFormField>
@@ -324,7 +346,7 @@ function confirmStepUpReauth(): void {
     <!-- Section 2: Konfigurasi -->
     <FormSection
       :title="t('common.configuration')"
-      description="Atur tipe aplikasi, integrasi otorisasi redirect, dan scope akses data."
+      :description="t('clients.create_config_section_desc')"
     >
       <!-- Client Type Card Grid -->
       <UiFormField
@@ -333,51 +355,67 @@ function confirmStepUpReauth(): void {
         :error="errorFor('clientType')"
         required
       >
-        <div class="grid grid-cols-1 gap-4 mt-2 md:grid-cols-2">
+        <div
+          role="radiogroup"
+          :aria-label="t('clients.label_client_type')"
+          class="grid grid-cols-1 gap-4 mt-2 md:grid-cols-2"
+        >
           <button
+            id="client_type_public"
+            role="radio"
+            :aria-checked="form.clientType === 'public'"
+            :tabindex="form.clientType === 'public' || form.clientType === null ? 0 : -1"
             type="button"
-            class="flex flex-col h-full rounded-xl border bg-card/50 p-4 text-left transition-all cursor-pointer"
+            class="flex flex-col h-full rounded-xl border bg-card/50 p-4 text-left transition-colors cursor-pointer"
             :class="
               form.clientType === 'public'
                 ? 'border-primary ring-2 ring-primary/20 bg-primary/5'
                 : 'border-border hover:border-muted-foreground/30'
             "
             @click="selectClientType('public')"
+            @keydown="onClientTypeKeydown"
           >
             <span class="flex items-center gap-2 text-sm font-semibold text-foreground">
-              <CheckCircle
-                v-if="form.clientType === 'public'"
-                :size="16"
-                class="text-primary shrink-0"
-              />
+              <span
+                class="size-4 rounded-full border flex items-center justify-center shrink-0 transition-colors"
+                :class="form.clientType === 'public' ? 'border-primary bg-primary/10' : 'border-border'"
+              >
+                <span v-if="form.clientType === 'public'" class="size-2 rounded-full bg-primary" />
+              </span>
               {{ t('clients.type_public') }}
             </span>
             <span class="mt-2 text-xs leading-relaxed text-muted-foreground">
               {{ t('clients.type_public_hint') }}
             </span>
             <div class="mt-auto pt-3">
-              <span class="text-[11px] font-medium text-warning-700 block">
-                {{ t('clients.type_public_helper') }}
+              <span class="inline-flex items-center rounded-full bg-warning/10 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-warning-700 whitespace-nowrap">
+                {{ t('clients.type_public_badge') }}
               </span>
             </div>
           </button>
 
           <button
+            id="client_type_confidential"
+            role="radio"
+            :aria-checked="form.clientType === 'confidential'"
+            :tabindex="form.clientType === 'confidential' ? 0 : -1"
             type="button"
-            class="flex flex-col h-full rounded-xl border bg-card/50 p-4 text-left transition-all cursor-pointer"
+            class="flex flex-col h-full rounded-xl border bg-card/50 p-4 text-left transition-colors cursor-pointer"
             :class="
               form.clientType === 'confidential'
                 ? 'border-primary ring-2 ring-primary/20 bg-primary/5'
                 : 'border-border hover:border-muted-foreground/30'
             "
             @click="selectClientType('confidential')"
+            @keydown="onClientTypeKeydown"
           >
             <span class="flex items-center gap-2 text-sm font-semibold text-foreground">
-              <CheckCircle
-                v-if="form.clientType === 'confidential'"
-                :size="16"
-                class="text-primary shrink-0"
-              />
+              <span
+                class="size-4 rounded-full border flex items-center justify-center shrink-0 transition-colors"
+                :class="form.clientType === 'confidential' ? 'border-primary bg-primary/10' : 'border-border'"
+              >
+                <span v-if="form.clientType === 'confidential'" class="size-2 rounded-full bg-primary" />
+              </span>
               {{ t('clients.type_confidential') }}
             </span>
             <span class="mt-2 text-xs leading-relaxed text-muted-foreground">
@@ -385,9 +423,9 @@ function confirmStepUpReauth(): void {
             </span>
             <div class="mt-auto pt-3">
               <span
-                class="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-primary whitespace-nowrap"
+                class="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-primary whitespace-nowrap"
               >
-                {{ t('clients.type_confidential_recommended') }}
+                {{ t('clients.type_confidential_badge') }}
               </span>
             </div>
           </button>
@@ -411,8 +449,8 @@ function confirmStepUpReauth(): void {
           placeholder="https://app.company.com/auth/callback"
           :invalid="Boolean(errors.redirectUri)"
         />
-        <p class="text-xs text-muted-foreground mt-1">
-          Alamat callback exact HTTP/HTTPS. Tidak diperbolehkan wildcard (*) atau query parameters.
+        <p class="text-xs text-muted-foreground mt-1.5">
+          {{ t('clients.redirect_uri_helper') }}
         </p>
       </UiFormField>
 
@@ -429,29 +467,40 @@ function confirmStepUpReauth(): void {
           <label
             v-for="scope in store.scopes"
             :key="scope.name"
-            class="flex items-start gap-3 p-2 rounded-lg hover:bg-muted/30 cursor-pointer transition-colors"
-            :class="{ 'opacity-60 cursor-not-allowed': scope.name === 'openid' }"
+            class="flex items-start gap-3 p-2 rounded-lg hover:bg-muted/30 transition-colors"
+            :class="scope.name === 'openid' ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'"
           >
-            <input
-              type="checkbox"
-              :value="scope.name"
-              :checked="selectedScopes.includes(scope.name)"
-              :disabled="scope.name === 'openid'"
-              class="mt-1 accent-primary rounded border-border"
-              @change="toggleScope(scope.name)"
-            />
+            <div class="relative flex items-center justify-center size-4 mt-1">
+              <input
+                type="checkbox"
+                :value="scope.name"
+                :checked="selectedScopes.includes(scope.name)"
+                :disabled="scope.name === 'openid'"
+                class="peer size-4 rounded border border-border bg-background checked:bg-primary checked:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:outline-none transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed appearance-none"
+                @change="toggleScope(scope.name)"
+              />
+              <svg
+                class="absolute size-2.5 text-primary-foreground pointer-events-none hidden peer-checked:block"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="3"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
             <div class="grid gap-0.5">
               <span class="text-xs font-semibold text-foreground flex items-center gap-1.5">
                 {{ scope.name }}
                 <span
                   v-if="scope.name === 'openid'"
-                  class="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-normal"
+                  class="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded font-normal"
                 >
-                  Wajib
+                  {{ t('clients.scope_required') }}
                 </span>
               </span>
-              <span class="text-[11px] text-muted-foreground">{{
-                scope.description || 'Tidak ada deskripsi'
+              <span class="text-xs text-muted-foreground">{{
+                scope.description || t('clients.no_description')
               }}</span>
             </div>
           </label>
@@ -461,8 +510,8 @@ function confirmStepUpReauth(): void {
 
     <!-- Section 3: Advanced Options -->
     <FormSection
-      title="Advanced Settings"
-      description="Konfigurasi opsional untuk integrasi siklus hidup otentikasi tingkat lanjut."
+      :title="t('clients.advanced_settings_title')"
+      :description="t('clients.advanced_settings_desc')"
     >
       <UiFormField
         id="create_backchannel_logout_uri"
@@ -477,8 +526,8 @@ function confirmStepUpReauth(): void {
           placeholder="https://app.company.com/auth/logout"
           :invalid="Boolean(errors.backchannelLogoutUri)"
         />
-        <p class="text-xs text-muted-foreground mt-1">
-          Harus valid dan memakai origin domain yang sama dengan Redirect URI callback.
+        <p class="text-xs text-muted-foreground mt-1.5">
+          {{ t('clients.logout_url_helper') }}
         </p>
       </UiFormField>
     </FormSection>
