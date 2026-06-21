@@ -109,6 +109,7 @@ const menuIcons: Record<string, any> = {
 function menuPath(menu: AdminPermissionMenu): string {
   if (menu.id === 'dashboard') return '/dashboard'
   if (menu.id === 'oidc-foundation') return '/oidc-foundation'
+  if (menu.id === 'audit') return '/audit'
 
   return `/${menu.id}`
 }
