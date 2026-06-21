@@ -57,6 +57,14 @@ describe('Admin menu-route contract (ISS-M1 regression guard)', () => {
     expect(authAuditRoute?.meta.permissions).toContain('admin.authentication-audit.read')
   })
 
+  it('audit route is the observability cockpit and compliance audit keeps its own route', () => {
+    const auditRoute = router.getRoutes().find((r) => r.name === 'admin.audit')
+    const complianceRoute = router.getRoutes().find((r) => r.name === 'admin.audit.compliance')
+
+    expect(auditRoute?.meta.permissions).toContain('admin.observability.read')
+    expect(complianceRoute?.meta.permissions).toContain('admin.audit.read')
+  })
+
   it('profile route has correct permission meta', () => {
     const profileRoute = router.getRoutes().find((r) => r.name === 'admin.profile')
     expect(profileRoute?.meta.permissions).toContain('profile.read')

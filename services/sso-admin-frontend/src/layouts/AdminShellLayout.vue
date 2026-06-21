@@ -262,6 +262,8 @@ function updatePillPosition() {
       height: `${activeLink.offsetHeight}px`,
       opacity: '1',
     }
+  } else {
+    requestAnimationFrame(updatePillPosition)
   }
 }
 
@@ -275,23 +277,29 @@ watch(
   { immediate: true },
 )
 
-watch(currentIndex, () => {
-  updatePillPosition()
-})
+watch(
+  [currentIndex, visibleMenus, isCollapsed],
+  () => {
+    updatePillPosition()
+  },
+  { immediate: true, flush: 'post' },
+)
 
 let resizeHandler: (() => void) | null = null
 
 onMounted(() => {
-  setTimeout(updatePillPosition, 100)
+  updatePillPosition()
   resizeHandler = () => updatePillPosition()
   window.addEventListener('resize', resizeHandler)
 })
+
 
 onUnmounted(() => {
   if (resizeHandler) {
     window.removeEventListener('resize', resizeHandler)
   }
 })
+
 
 async function handleMenuClick(menu: AdminPermissionMenu, index: number) {
   closeNav()

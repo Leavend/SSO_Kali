@@ -61,6 +61,7 @@ it('uses centralized menu definitions for required permissions', function (): vo
     $byId = collect($menus)->keyBy('id');
     expect($byId['users']['required_permission'])->toBe(AdminPermission::USERS_READ)
         ->and($byId['sessions']['required_permission'])->toBe(AdminPermission::SESSIONS_READ)
+        ->and($byId['audit']['required_permission'])->toBe(AdminPermission::OBSERVABILITY_READ)
         ->and($byId['authentication-audit']['required_permission'])->toBe(AdminPermission::AUTHENTICATION_AUDIT_READ);
 });
 

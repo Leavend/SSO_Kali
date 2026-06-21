@@ -8,8 +8,8 @@ use Illuminate\Support\Facades\Route as RouteFacade;
 it('keeps the production route inventory intentional', function (): void {
     $routes = collect(RouteFacade::getRoutes()->getRoutes());
 
-    expect($routes)->toHaveCount(140);
-    expect(applicationRoutes($routes))->toHaveCount(128);
+    expect($routes)->toHaveCount(141);
+    expect(applicationRoutes($routes))->toHaveCount(129);
     expect(vendorRoutes($routes))->toHaveCount(12);
 });
 
@@ -136,6 +136,7 @@ function expectedApplicationRouteSignatures(): array
         'POST admin/api/external-idps/{providerKey}/mapping-preview',
         'DELETE admin/api/external-idps/{providerKey}',
         'GET|HEAD admin/api/me',
+        'GET|HEAD admin/api/observability/summary',
         'GET|HEAD admin/api/permissions',
         'GET|HEAD admin/api/roles',
         'POST admin/api/roles',

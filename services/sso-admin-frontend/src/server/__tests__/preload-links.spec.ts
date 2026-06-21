@@ -29,6 +29,14 @@ const manifest: ViteManifest = {
     file: 'assets/client-create.js',
     imports: ['_shared'],
   },
+  'src/features/observability/pages/AuditObservabilityPage.vue': {
+    file: 'assets/observability.js',
+    imports: ['_shared'],
+  },
+  'src/features/audit/pages/AuditPage.vue': {
+    file: 'assets/audit-compliance.js',
+    imports: ['_shared'],
+  },
   _shared: {
     file: 'assets/shared.js',
   },
@@ -47,6 +55,12 @@ describe('admin shell route preloads', () => {
     )
     expect(resolveInitialRouteManifestKey('/clients/new')).toBe(
       'src/features/clients/pages/ClientCreatePage.vue',
+    )
+    expect(resolveInitialRouteManifestKey('/audit')).toBe(
+      'src/features/observability/pages/AuditObservabilityPage.vue',
+    )
+    expect(resolveInitialRouteManifestKey('/audit/compliance')).toBe(
+      'src/features/audit/pages/AuditPage.vue',
     )
   })
 

@@ -42,7 +42,7 @@
     "oidc-foundation": "Fondasi OIDC",
     "clients": "Klien",
     "users": "Pengguna",
-    "audit": "Log Audit",
+    "audit": "Observability",
     "sessions": "Sesi",
     "policy": "Kebijakan",
     "sso-error-templates": "Templat Error",

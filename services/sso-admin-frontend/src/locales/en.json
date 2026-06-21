@@ -42,7 +42,7 @@
     "oidc-foundation": "OIDC Foundation",
     "clients": "Clients",
     "users": "Users",
-    "audit": "Audit Logs",
+    "audit": "Observability",
     "sessions": "Sessions",
     "policy": "Policies",
     "sso-error-templates": "Error Templates",

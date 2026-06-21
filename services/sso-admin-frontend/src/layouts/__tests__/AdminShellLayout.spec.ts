@@ -537,4 +537,150 @@ describe('AdminShellLayout', () => {
 
     expect(wrapper.find('.admin-nav__link--active').exists()).toBe(false)
   })
+
+  it('positions the active menu pill correctly when menus are loaded asynchronously (TDD for cold refresh)', async () => {
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        {
+          path: '/dashboard',
+          component: { template: '<section>Dashboard</section>' },
+          meta: { requiresAdmin: true },
+        },
+        {
+          path: '/clients',
+          component: { template: '<section>Clients</section>' },
+          meta: { requiresAdmin: true },
+        },
+      ],
+    })
+    await router.push('/clients')
+    await router.isReady()
+
+    const session = useSessionStore()
+    session.clear()
+
+    const offsetTopSpy = vi.spyOn(HTMLElement.prototype, 'offsetTop', 'get').mockReturnValue(120)
+    const offsetHeightSpy = vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(45)
+
+    const rafSpy = vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
+      cb(0)
+      return 0
+    })
+
+    const wrapper = mount(AdminShellLayout, {
+      global: {
+        plugins: [router],
+        stubs: {
+          RouterView: true,
+        },
+      },
+    })
+
+    expect(wrapper.find('.admin-nav__pill').attributes('style')).toContain('opacity: 0')
+
+    session.setPrincipal({
+      ...principal,
+      permissions: {
+        ...principal.permissions,
+        menus: [
+          {
+            id: 'dashboard',
+            label: 'Dashboard',
+            required_permission: 'admin.dashboard.view',
+            visible: true,
+          },
+          {
+            id: 'clients',
+            label: 'Clients',
+            required_permission: 'admin.clients.read',
+            visible: true,
+          },
+        ],
+      },
+    })
+
+    await nextTick()
+    await nextTick()
+
+    const pill = wrapper.find('.admin-nav__pill')
+    expect(pill.attributes('style')).toContain('top: 120px')
+    expect(pill.attributes('style')).toContain('height: 45px')
+    expect(pill.attributes('style')).toContain('opacity: 1')
+
+    offsetTopSpy.mockRestore()
+    offsetHeightSpy.mockRestore()
+    rafSpy.mockRestore()
+  })
+
+  it('positions the active menu pill correctly when menus are already loaded before mount (TDD for loaded state)', async () => {
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        {
+          path: '/dashboard',
+          component: { template: '<section>Dashboard</section>' },
+          meta: { requiresAdmin: true },
+        },
+        {
+          path: '/clients',
+          component: { template: '<section>Clients</section>' },
+          meta: { requiresAdmin: true },
+        },
+      ],
+    })
+    await router.push('/clients')
+    await router.isReady()
+
+    const session = useSessionStore()
+    session.setPrincipal({
+      ...principal,
+      permissions: {
+        ...principal.permissions,
+        menus: [
+          {
+            id: 'dashboard',
+            label: 'Dashboard',
+            required_permission: 'admin.dashboard.view',
+            visible: true,
+          },
+          {
+            id: 'clients',
+            label: 'Clients',
+            required_permission: 'admin.clients.read',
+            visible: true,
+          },
+        ],
+      },
+    })
+
+    const offsetTopSpy = vi.spyOn(HTMLElement.prototype, 'offsetTop', 'get').mockReturnValue(120)
+    const offsetHeightSpy = vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(45)
+
+    const rafSpy = vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
+      cb(0)
+      return 0
+    })
+
+    const wrapper = mount(AdminShellLayout, {
+      global: {
+        plugins: [router],
+        stubs: {
+          RouterView: true,
+        },
+      },
+    })
+
+    await nextTick()
+    await nextTick()
+
+    const pill = wrapper.find('.admin-nav__pill')
+    expect(pill.attributes('style')).toContain('top: 120px')
+    expect(pill.attributes('style')).toContain('height: 45px')
+    expect(pill.attributes('style')).toContain('opacity: 1')
+
+    offsetTopSpy.mockRestore()
+    offsetHeightSpy.mockRestore()
+    rafSpy.mockRestore()
+  })
 })

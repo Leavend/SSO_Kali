@@ -64,8 +64,8 @@ final class AdminMenu
             ],
             [
                 'id' => self::AUDIT,
-                'label' => 'Audit Trail',
-                'required_permission' => AdminPermission::AUDIT_READ,
+                'label' => 'Observability',
+                'required_permission' => AdminPermission::OBSERVABILITY_READ,
             ],
             [
                 'id' => self::AUTHENTICATION_AUDIT,

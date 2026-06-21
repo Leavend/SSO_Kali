@@ -32,6 +32,8 @@ final class AdminPermission
 
     public const AUTHENTICATION_AUDIT_READ = 'admin.authentication-audit.read';
 
+    public const OBSERVABILITY_READ = 'admin.observability.read';
+
     public const SSO_ERROR_TEMPLATES_READ = 'admin.sso-error-templates.read';
 
     public const SSO_ERROR_TEMPLATES_WRITE = 'admin.sso-error-templates.write';
@@ -79,6 +81,7 @@ final class AdminPermission
             self::SESSIONS_TERMINATE,
             self::AUDIT_READ,
             self::AUTHENTICATION_AUDIT_READ,
+            self::OBSERVABILITY_READ,
             self::SSO_ERROR_TEMPLATES_READ,
             self::SSO_ERROR_TEMPLATES_WRITE,
             self::AUDIT_EXPORT,
@@ -115,6 +118,7 @@ final class AdminPermission
             self::AUDIT_READ,
             self::AUDIT_EXPORT,
             self::AUTHENTICATION_AUDIT_READ,
+            self::OBSERVABILITY_READ,
             self::IP_ACCESS_READ,
         ];
     }
@@ -159,6 +163,7 @@ final class AdminPermission
             self::AUDIT_READ,
             self::AUDIT_EXPORT,
             self::AUTHENTICATION_AUDIT_READ,
+            self::OBSERVABILITY_READ,
             self::SESSIONS_READ,
             self::SESSIONS_TERMINATE,
             self::USER_LIFECYCLE_LOCK,

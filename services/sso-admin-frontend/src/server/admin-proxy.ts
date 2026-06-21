@@ -27,6 +27,7 @@ const ALLOWED_ADMIN_ROUTES = new Set([
   'GET /api/admin/audit/integrity',
   'GET /api/admin/audit/retention',
   'GET /api/admin/audit/export',
+  'GET /api/admin/observability/summary',
   'GET /api/admin/compliance/evidence-pack',
   'GET /api/admin/data-subject-requests',
   'GET /api/admin/roles',

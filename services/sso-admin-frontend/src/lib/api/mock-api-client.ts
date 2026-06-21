@@ -117,6 +117,7 @@ const roles = [
       'admin.users.read',
       'admin.users.write',
       'admin.audit.read',
+      'admin.observability.read',
       'admin.sessions.terminate',
       'admin.security-policy.read',
       'admin.security-policy.write',
@@ -138,6 +139,7 @@ const roles = [
       'admin.users.read',
       'admin.users.write',
       'admin.audit.read',
+      'admin.observability.read',
       'profile.read',
     ],
   },
@@ -148,6 +150,7 @@ const roles = [
     permissions: [
       'admin.dashboard.view',
       'admin.audit.read',
+      'admin.observability.read',
       'admin.authentication-audit.read',
       'profile.read',
     ],
@@ -161,6 +164,7 @@ const permissions = [
   { id: 'admin.users.read', label: 'Read Users', category: 'Users' },
   { id: 'admin.users.write', label: 'Write Users', category: 'Users' },
   { id: 'admin.audit.read', label: 'Read System Audits', category: 'Audit' },
+  { id: 'admin.observability.read', label: 'Read Observability', category: 'Audit' },
   { id: 'admin.sessions.terminate', label: 'Terminate Sessions', category: 'Sessions' },
   { id: 'admin.security-policy.read', label: 'Read Security Policies', category: 'Policies' },
   { id: 'admin.security-policy.write', label: 'Write Security Policies', category: 'Policies' },
@@ -358,8 +362,8 @@ export function handleMockRequest(method: string, path: string, body?: any): Moc
               },
               {
                 id: 'audit',
-                label: 'Audit Log',
-                required_permission: 'admin.audit.read',
+                label: 'Observability',
+                required_permission: 'admin.observability.read',
                 visible: true,
               },
               {
@@ -506,6 +510,76 @@ export function handleMockRequest(method: string, path: string, body?: any): Moc
     return {
       status: 200,
       data: { service: 'sso-backend', ready: true, checks: { db: 'ok', cache: 'ok' } },
+    }
+  }
+
+  if (cleanPath === '/api/admin/observability/summary') {
+    return {
+      status: 200,
+      data: {
+        generated_at: new Date().toISOString(),
+        partial: false,
+        degraded: [],
+        services: [
+          {
+            key: 'sso-backend',
+            name: 'SSO-Backend',
+            status: 'healthy',
+            summary: 'Database and Redis readiness checks passed.',
+            latency_p95_ms: null,
+            request_rate_per_min: 2.4,
+            error_rate_percent: 1.2,
+            freshness_seconds: 15,
+            checks: { database: true, redis: true },
+            queue: { pending_jobs: 0, failed_jobs: 0, oldest_pending_age_seconds: null },
+          },
+          {
+            key: 'sso-portal',
+            name: 'SSO-Portal',
+            status: 'unknown',
+            summary: 'Portal telemetry aggregator is not wired yet.',
+            latency_p95_ms: null,
+            request_rate_per_min: 2.4,
+            error_rate_percent: 1.2,
+            freshness_seconds: null,
+            checks: {},
+          },
+          {
+            key: 'admin-sso',
+            name: 'Admin-SSO',
+            status: 'healthy',
+            summary: 'Admin BFF path is reachable.',
+            latency_p95_ms: null,
+            request_rate_per_min: 1.1,
+            error_rate_percent: 0,
+            freshness_seconds: 15,
+            checks: { api: true },
+          },
+        ],
+        metrics: {
+          window_seconds: 900,
+          queue: { pending_jobs: 0, failed_jobs: 0, oldest_pending_age_seconds: null },
+          performance: {},
+          auth_funnel: { total_15m: 12, succeeded_15m: 11, failed_15m: 1, failure_rate_percent: 8.33 },
+          admin_activity: { total_15m: 4, denied_15m: 0, denied_rate_percent: 0 },
+        },
+        logs: [
+          {
+            id: '01MOCKOBSLOG',
+            service: 'admin-sso',
+            severity: 'info',
+            message: 'admin_api',
+            reference: 'REF-OBSLOG01',
+            occurred_at: new Date().toISOString(),
+          },
+        ],
+        traces: {
+          status: 'unavailable',
+          reason: 'Distributed tracing is not instrumented yet for admin BFF, portal BFF, and sso-backend.',
+          next_step: 'Propagate traceparent and export spans to OpenTelemetry Collector/Tempo.',
+          last_seen_trace_id: null,
+        },
+      },
     }
   }
 

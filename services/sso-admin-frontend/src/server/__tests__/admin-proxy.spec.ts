@@ -52,6 +52,21 @@ describe('admin BFF API proxy', () => {
     expect(request.url).toBe('https://backend.internal/ready')
   })
 
+  it('allows observability summary through the admin API boundary', () => {
+    const request = buildAdminApiRequest({
+      internalBaseUrl: 'https://backend.internal/',
+      pathname: '/api/admin/observability/summary',
+      search: '',
+      method: 'GET',
+      headers: { 'x-request-id': 'req-observability' },
+      session,
+    })
+
+    expect(request.url).toBe('https://backend.internal/admin/api/observability/summary')
+    expect(headers(request).get('Authorization')).toBe('Bearer access-token-admin')
+    expect(headers(request).get('X-Request-Id')).toBe('req-observability')
+  })
+
   it('rejects unlisted admin proxy paths before reaching the backend', () => {
     expect(() =>
       buildAdminApiRequest({

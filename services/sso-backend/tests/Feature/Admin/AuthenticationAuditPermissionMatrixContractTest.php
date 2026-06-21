@@ -17,16 +17,21 @@ beforeEach(function (): void {
 it('separates authentication audit read access from admin operational audit read access', function (): void {
     $legacyAudit = issue86AdminWithPermissions([AdminPermission::AUDIT_READ]);
     $authenticationAudit = issue86AdminWithPermissions([AdminPermission::AUTHENTICATION_AUDIT_READ]);
+    $observability = issue86AdminWithPermissions([AdminPermission::OBSERVABILITY_READ]);
     $matrix = app(AdminPermissionMatrix::class);
 
     expect($matrix->canReadAuditTrail($legacyAudit))->toBeTrue()
         ->and($matrix->canReadAuthenticationAudit($legacyAudit))->toBeFalse()
-        ->and($matrix->canViewMenu($legacyAudit, AdminMenu::AUDIT))->toBeTrue()
+        ->and($matrix->canViewMenu($legacyAudit, AdminMenu::AUDIT))->toBeFalse()
         ->and($matrix->canViewMenu($legacyAudit, AdminMenu::AUTHENTICATION_AUDIT))->toBeFalse()
         ->and($matrix->canReadAuditTrail($authenticationAudit))->toBeFalse()
         ->and($matrix->canReadAuthenticationAudit($authenticationAudit))->toBeTrue()
         ->and($matrix->canViewMenu($authenticationAudit, AdminMenu::AUDIT))->toBeFalse()
-        ->and($matrix->canViewMenu($authenticationAudit, AdminMenu::AUTHENTICATION_AUDIT))->toBeTrue();
+        ->and($matrix->canViewMenu($authenticationAudit, AdminMenu::AUTHENTICATION_AUDIT))->toBeTrue()
+        ->and($matrix->canReadAuditTrail($observability))->toBeFalse()
+        ->and($matrix->canReadAuthenticationAudit($observability))->toBeFalse()
+        ->and($matrix->canViewMenu($observability, AdminMenu::AUDIT))->toBeTrue()
+        ->and($matrix->canViewMenu($observability, AdminMenu::AUTHENTICATION_AUDIT))->toBeFalse();
 });
 
 it('publishes authentication audit capability and menu metadata in the permission matrix payload', function (): void {

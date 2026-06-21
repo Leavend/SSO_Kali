@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\DataSubjectRequestAdminController;
 use App\Http\Controllers\Admin\ExternalIdentityProviderController;
 use App\Http\Controllers\Admin\ExternalIdentityProviderMappingPreviewController;
 use App\Http\Controllers\Admin\IpAccessRuleController;
+use App\Http\Controllers\Admin\ObservabilitySummaryController;
 use App\Http\Controllers\Admin\OidcFoundationController;
 use App\Http\Controllers\Admin\PrincipalController;
 use App\Http\Controllers\Admin\RetentionStatusController;
@@ -87,6 +88,14 @@ Route::middleware([AdminGuard::class, EnsureAdminMfaEnrolled::class])->prefix('a
         Route::get('/sso-error-templates', [SsoErrorTemplateController::class, 'index']);
         Route::get('/sso-error-templates/{errorCode}', [SsoErrorTemplateController::class, 'show'])
             ->where('errorCode', '[a-z_]+');
+    });
+
+    Route::middleware([
+        'throttle:admin-read',
+        RequireAdminPermission::class.':'.AdminPermission::OBSERVABILITY_READ,
+        EnsureAdminMfaAssurance::class,
+    ])->group(function (): void {
+        Route::get('/observability/summary', ObservabilitySummaryController::class);
     });
 
     Route::middleware([

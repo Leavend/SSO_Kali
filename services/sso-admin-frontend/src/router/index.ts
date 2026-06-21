@@ -12,7 +12,8 @@ const clientsPage = () => import('@/features/clients/pages/ClientsPage.vue')
 const clientCreatePage = () => import('@/features/clients/pages/ClientCreatePage.vue')
 const usersPage = () => import('@/features/users/pages/UsersPage.vue')
 const userCreatePage = () => import('@/features/users/pages/UserCreatePage.vue')
-const auditPage = () => import('@/features/audit/pages/AuditPage.vue')
+const auditPage = () => import('@/features/observability/pages/AuditObservabilityPage.vue')
+const auditCompliancePage = () => import('@/features/audit/pages/AuditPage.vue')
 const sessionsPage = () => import('@/features/sessions/pages/SessionsPage.vue')
 const policyPage = () => import('@/features/policy/pages/PolicyPage.vue')
 const ssoErrorTemplatesPage = () =>
@@ -76,6 +77,12 @@ const router = createRouter({
           path: 'audit',
           name: 'admin.audit',
           component: auditPage,
+          meta: { requiresAdmin: true, permissions: ['admin.observability.read'] },
+        },
+        {
+          path: 'audit/compliance',
+          name: 'admin.audit.compliance',
+          component: auditCompliancePage,
           meta: { requiresAdmin: true, permissions: ['admin.audit.read'] },
         },
         {
