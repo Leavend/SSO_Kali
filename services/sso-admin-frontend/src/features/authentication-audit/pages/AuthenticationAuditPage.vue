@@ -58,7 +58,7 @@ const searchTo = ref('')
 
 const filtersExpanded = ref(false)
 const contextExpanded = ref(false)
-const copied = ref(false)
+const copiedField = ref<string | null>(null)
 
 function toggleFilters(): void {
   filtersExpanded.value = !filtersExpanded.value
@@ -68,16 +68,36 @@ function toggleContext(): void {
   contextExpanded.value = !contextExpanded.value
 }
 
-async function copyToClipboard(text: string): Promise<void> {
+async function copyFieldToClipboard(field: string, text: string): Promise<void> {
   try {
     await navigator.clipboard.writeText(text)
-    copied.value = true
+    copiedField.value = field
     setTimeout(() => {
-      copied.value = false
+      if (copiedField.value === field) {
+        copiedField.value = null
+      }
     }, 2000)
   } catch {
     // Fail-safe fallback if clipboard API is not available
   }
+}
+
+async function applyFieldFilter(
+  field: 'subject_id' | 'client_id' | 'session_id' | 'request_id',
+  value: string | null | undefined,
+): Promise<void> {
+  if (!value) return
+  if (field === 'subject_id') {
+    searchSubjectId.value = value
+  } else if (field === 'client_id') {
+    searchClientId.value = value
+  } else if (field === 'session_id') {
+    searchSessionId.value = value
+  } else if (field === 'request_id') {
+    searchRequestId.value = value
+  }
+  filtersExpanded.value = true
+  await submitSearch()
 }
 
 function getOutcomeClass(outcome: string | null | undefined): string {
@@ -271,6 +291,7 @@ onMounted(() => {
                     { value: '', label: 'Semua Hasil / All' },
                     { value: 'succeeded', label: 'Success' },
                     { value: 'failed', label: 'Failed' },
+                    { value: 'started', label: 'Started' },
                   ]"
                 />
               </UiFormField>
@@ -450,10 +471,19 @@ onMounted(() => {
             <button
               class="copy-btn"
               type="button"
-              :title="copied ? 'Copied' : 'Copy event reference'"
-              @click="copyToClipboard(formatTechnicalPreview(store.selectedEvent.event_id))"
+              :title="copiedField === 'event_id' ? 'Copied' : 'Copy event reference'"
+              @click="
+                copyFieldToClipboard(
+                  'event_id',
+                  formatTechnicalPreview(store.selectedEvent.event_id),
+                )
+              "
             >
-              <Check v-if="copied" :size="14" class="text-emerald-500 animate-scale-up" />
+              <Check
+                v-if="copiedField === 'event_id'"
+                :size="14"
+                class="text-emerald-500 animate-scale-up"
+              />
               <Copy v-else :size="14" />
             </button>
           </div>
@@ -488,20 +518,101 @@ onMounted(() => {
             </div>
             <div>
               <dt>Kode akun</dt>
-              <dd class="font-mono break-anywhere">
-                {{ formatTechnicalPreview(store.selectedEvent.subject?.subject_id) }}
+              <dd class="font-mono break-anywhere flex items-center gap-2 flex-wrap">
+                <span>{{ formatTechnicalPreview(store.selectedEvent.subject?.subject_id) }}</span>
+                <span class="inline-flex gap-1" v-if="store.selectedEvent.subject?.subject_id">
+                  <button
+                    type="button"
+                    class="p-1 text-muted-foreground hover:text-foreground transition-colors"
+                    :title="
+                      copiedField === 'subject_id'
+                        ? 'Copied'
+                        : 'Salin nilai mentah / Copy raw value'
+                    "
+                    @click="
+                      copyFieldToClipboard('subject_id', store.selectedEvent.subject.subject_id)
+                    "
+                  >
+                    <Check
+                      v-if="copiedField === 'subject_id'"
+                      :size="14"
+                      class="text-emerald-500 animate-scale-up"
+                    />
+                    <Copy v-else :size="14" />
+                  </button>
+                  <button
+                    type="button"
+                    class="p-1 text-muted-foreground hover:text-foreground transition-colors"
+                    title="Filter berdasarkan ini / Filter by this"
+                    @click="applyFieldFilter('subject_id', store.selectedEvent.subject.subject_id)"
+                  >
+                    <Search :size="14" />
+                  </button>
+                </span>
               </dd>
             </div>
             <div>
               <dt>Aplikasi</dt>
-              <dd>
+              <dd class="flex items-center gap-2 flex-wrap">
                 <code>{{ formatFriendlyClientName(store.selectedEvent.client_id) }}</code>
+                <span class="inline-flex gap-1" v-if="store.selectedEvent.client_id">
+                  <button
+                    type="button"
+                    class="p-1 text-muted-foreground hover:text-foreground transition-colors"
+                    :title="
+                      copiedField === 'client_id' ? 'Copied' : 'Salin nilai mentah / Copy raw value'
+                    "
+                    @click="copyFieldToClipboard('client_id', store.selectedEvent.client_id)"
+                  >
+                    <Check
+                      v-if="copiedField === 'client_id'"
+                      :size="14"
+                      class="text-emerald-500 animate-scale-up"
+                    />
+                    <Copy v-else :size="14" />
+                  </button>
+                  <button
+                    type="button"
+                    class="p-1 text-muted-foreground hover:text-foreground transition-colors"
+                    title="Filter berdasarkan ini / Filter by this"
+                    @click="applyFieldFilter('client_id', store.selectedEvent.client_id)"
+                  >
+                    <Search :size="14" />
+                  </button>
+                </span>
               </dd>
             </div>
             <div>
               <dt>Kode sesi</dt>
-              <dd class="font-mono break-anywhere">
-                {{ formatTechnicalPreview(store.selectedEvent.session_id) }}
+              <dd class="font-mono break-anywhere flex items-center gap-2 flex-wrap">
+                <span>{{ formatTechnicalPreview(store.selectedEvent.session_id) }}</span>
+                <span class="inline-flex gap-1" v-if="store.selectedEvent.session_id">
+                  <button
+                    type="button"
+                    class="p-1 text-muted-foreground hover:text-foreground transition-colors"
+                    :title="
+                      copiedField === 'session_id'
+                        ? 'Copied'
+                        : 'Salin nilai mentah / Copy raw value'
+                    "
+                    @click="copyFieldToClipboard('session_id', store.selectedEvent.session_id)"
+                  >
+                    <Check
+                      v-if="copiedField === 'session_id'"
+                      :size="14"
+                      class="text-emerald-500 animate-scale-up"
+                    />
+                    <Copy v-else :size="14" />
+                  </button>
+                  <button
+                    type="button"
+                    class="p-1 text-muted-foreground hover:text-foreground transition-colors"
+                    title="Filter berdasarkan ini / Filter by this"
+                    @click="applyFieldFilter('session_id', store.selectedEvent.session_id)"
+                  >
+                    <Search :size="14" />
+                  </button>
+                </span>
               </dd>
             </div>
             <div>
@@ -523,8 +634,39 @@ onMounted(() => {
           <dl class="detail-metadata-grid">
             <div>
               <dt>Kode request (REF)</dt>
-              <dd class="font-mono break-anywhere">
-                {{ formatSupportReference(store.selectedEvent.request.request_id) ?? '—' }}
+              <dd class="font-mono break-anywhere flex items-center gap-2 flex-wrap">
+                <span>{{
+                  formatSupportReference(store.selectedEvent.request.request_id) ?? '—'
+                }}</span>
+                <span class="inline-flex gap-1" v-if="store.selectedEvent.request.request_id">
+                  <button
+                    type="button"
+                    class="p-1 text-muted-foreground hover:text-foreground transition-colors"
+                    :title="
+                      copiedField === 'request_id'
+                        ? 'Copied'
+                        : 'Salin nilai mentah / Copy raw value'
+                    "
+                    @click="
+                      copyFieldToClipboard('request_id', store.selectedEvent.request.request_id)
+                    "
+                  >
+                    <Check
+                      v-if="copiedField === 'request_id'"
+                      :size="14"
+                      class="text-emerald-500 animate-scale-up"
+                    />
+                    <Copy v-else :size="14" />
+                  </button>
+                  <button
+                    type="button"
+                    class="p-1 text-muted-foreground hover:text-foreground transition-colors"
+                    title="Filter berdasarkan ini / Filter by this"
+                    @click="applyFieldFilter('request_id', store.selectedEvent.request.request_id)"
+                  >
+                    <Search :size="14" />
+                  </button>
+                </span>
               </dd>
             </div>
             <div>

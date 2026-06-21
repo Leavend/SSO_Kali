@@ -11,6 +11,7 @@ use App\Services\Oidc\LocalTokenService;
 use App\Support\Audit\AuthenticationAuditRecord;
 use App\Support\Rbac\AdminPermission;
 use Database\Seeders\RbacSeeder;
+use Illuminate\Support\Carbon;
 
 beforeEach(function (): void {
     config()->set('sso.issuer', 'http://localhost');
@@ -126,6 +127,89 @@ it('shows one central authentication audit event and returns not found for unkno
     $this->getJson('/admin/api/audit/authentication-events/01UNKNOWNUNKNOWNUNKNOWNUNK', authenticationAuditHeaders($admin))
         ->assertStatus(404)
         ->assertJsonPath('error', 'Authentication audit event not found.');
+});
+
+it('correctly filters authentication audit events with the refined query matching behaviors', function (): void {
+    $admin = authenticationAuditAdmin([AdminPermission::AUTHENTICATION_AUDIT_READ]);
+
+    // Create seed records
+    // Record 1: Normal login
+    authenticationAuditRecord('login_succeeded', 'succeeded', [
+        'subject_id' => 'usr_alex_12345678',
+        'client_id' => 'sso-admin-panel',
+        'session_id' => 'sess_active_999999',
+        'request_id' => 'req_login_abcde123',
+        'error_code' => 'ERR_BAD_CREDENTIALS',
+        'occurred_at' => Carbon::create(2026, 6, 21, 12, 0, 0, 'Asia/Makassar')->setTimezone('UTC'),
+    ]);
+
+    // Record 2: Consent decision
+    authenticationAuditRecord('consent_decision', 'succeeded', [
+        'subject_id' => 'usr_bob_87654321',
+        'client_id' => 'app-a',
+        'session_id' => 'sess_active_888888',
+        'request_id' => 'req_consent_xyz',
+        'context' => ['consent_action' => 'allow'],
+        'occurred_at' => Carbon::create(2026, 6, 21, 23, 30, 0, 'Asia/Makassar')->setTimezone('UTC'),
+    ]);
+
+    // Configure display timezone
+    config(['sso.display_timezone' => 'Asia/Makassar']);
+
+    // 1. Suffix/REF matching on subject_id, session_id
+    $this->getJson('/admin/api/audit/authentication-events?'.http_build_query([
+        'subject_id' => 'REF-12345678',
+    ]), authenticationAuditHeaders($admin))
+        ->assertOk()
+        ->assertJsonCount(1, 'events')
+        ->assertJsonPath('events.0.subject.subject_id', 'usr_alex_12345678');
+
+    $this->getJson('/admin/api/audit/authentication-events?'.http_build_query([
+        'session_id' => 'REF-VE999999',
+    ]), authenticationAuditHeaders($admin))
+        ->assertOk()
+        ->assertJsonCount(1, 'events')
+        ->assertJsonPath('events.0.session_id', 'sess_active_999999');
+
+    // 2. Case- & separator-insensitive match on client_id friendly name / slug
+    $this->getJson('/admin/api/audit/authentication-events?'.http_build_query([
+        'client_id' => 'SSO Admin Panel',
+    ]), authenticationAuditHeaders($admin))
+        ->assertOk()
+        ->assertJsonCount(1, 'events')
+        ->assertJsonPath('events.0.client_id', 'sso-admin-panel');
+
+    // 3. Case-insensitive matching on event_type
+    $this->getJson('/admin/api/audit/authentication-events?'.http_build_query([
+        'event_type' => 'LOGIN_SUCCEEDED',
+    ]), authenticationAuditHeaders($admin))
+        ->assertOk()
+        ->assertJsonCount(1, 'events')
+        ->assertJsonPath('events.0.event_type', 'login_succeeded');
+
+    // 4. Case-insensitive partial (LIKE) matching on error_code
+    $this->getJson('/admin/api/audit/authentication-events?'.http_build_query([
+        'error_code' => 'bad_credentials',
+    ]), authenticationAuditHeaders($admin))
+        ->assertOk()
+        ->assertJsonCount(1, 'events')
+        ->assertJsonPath('events.0.error_code', 'ERR_BAD_CREDENTIALS');
+
+    // 5. Consent action matching (context->consent_action)
+    $this->getJson('/admin/api/audit/authentication-events?'.http_build_query([
+        'consent_action' => 'allow',
+    ]), authenticationAuditHeaders($admin))
+        ->assertOk()
+        ->assertJsonCount(1, 'events')
+        ->assertJsonPath('events.0.event_type', 'consent_decision');
+
+    // 6. Timezone-aware date boundaries (inclusive of the whole day 2026-06-21)
+    $this->getJson('/admin/api/audit/authentication-events?'.http_build_query([
+        'from' => '2026-06-21',
+        'to' => '2026-06-21',
+    ]), authenticationAuditHeaders($admin))
+        ->assertOk()
+        ->assertJsonCount(2, 'events');
 });
 
 function authenticationAuditAdmin(array $permissions): User
