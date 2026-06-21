@@ -1,5 +1,14 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch, type Component } from 'vue'
+import {
+  computed,
+  nextTick,
+  onMounted,
+  onUnmounted,
+  reactive,
+  ref,
+  watch,
+  type Component,
+} from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from '@/composables/useI18n'
 import { useDateFormat } from '@/composables/useDateFormat'
@@ -211,7 +220,7 @@ watch(
       updatePillPosition()
     })
     schedulePillUpdate()
-  }
+  },
 )
 
 function selectDetailTab(key: DetailTab): void {

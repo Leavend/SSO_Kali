@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { nextTick } from 'vue'
@@ -226,5 +226,315 @@ describe('AdminShellLayout', () => {
     await new Promise((resolve) => setTimeout(resolve, 0))
 
     expect(document.body.style.overflow).toBe('hidden')
+  })
+
+  it('highlights the parent menu item for sub-routes (prefix-based matching)', async () => {
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        {
+          path: '/dashboard',
+          component: { template: '<section>Dashboard</section>' },
+          meta: { requiresAdmin: true },
+        },
+        {
+          path: '/clients',
+          component: { template: '<section>Clients</section>' },
+          meta: { requiresAdmin: true },
+        },
+        {
+          path: '/clients/new',
+          component: { template: '<section>New Client</section>' },
+          meta: { requiresAdmin: true },
+        },
+      ],
+    })
+    await router.push('/clients/new')
+    await router.isReady()
+
+    const session = useSessionStore()
+    session.setPrincipal({
+      ...principal,
+      permissions: {
+        ...principal.permissions,
+        menus: [
+          {
+            id: 'dashboard',
+            label: 'Dashboard',
+            required_permission: 'admin.dashboard.view',
+            visible: true,
+          },
+          {
+            id: 'clients',
+            label: 'Clients',
+            required_permission: 'admin.clients.read',
+            visible: true,
+          },
+        ],
+      },
+    })
+
+    const wrapper = mount(AdminShellLayout, {
+      global: {
+        plugins: [router],
+        stubs: {
+          RouterView: true,
+        },
+      },
+    })
+
+    await nextTick()
+    await nextTick()
+
+    expect(wrapper.get('.admin-nav__link--active').text()).toContain('Clients')
+    expect(wrapper.get('[aria-label="Breadcrumb"]').text()).toContain('Clients')
+  })
+
+  it('navigates to parent route when active menu is clicked from a sub-route, but returns early if already on parent route', async () => {
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        {
+          path: '/dashboard',
+          component: { template: '<section>Dashboard</section>' },
+          meta: { requiresAdmin: true },
+        },
+        {
+          path: '/clients',
+          component: { template: '<section>Clients</section>' },
+          meta: { requiresAdmin: true },
+        },
+        {
+          path: '/clients/new',
+          component: { template: '<section>New Client</section>' },
+          meta: { requiresAdmin: true },
+        },
+      ],
+    })
+
+    const pushSpy = vi.spyOn(router, 'push')
+    await router.push('/clients/new')
+    await router.isReady()
+
+    const session = useSessionStore()
+    session.setPrincipal({
+      ...principal,
+      permissions: {
+        ...principal.permissions,
+        menus: [
+          {
+            id: 'dashboard',
+            label: 'Dashboard',
+            required_permission: 'admin.dashboard.view',
+            visible: true,
+          },
+          {
+            id: 'clients',
+            label: 'Clients',
+            required_permission: 'admin.clients.read',
+            visible: true,
+          },
+        ],
+      },
+    })
+
+    const wrapper = mount(AdminShellLayout, {
+      global: {
+        plugins: [router],
+        stubs: {
+          RouterLink: {
+            template: '<a class="admin-nav__link"><slot /></a>',
+          },
+          RouterView: true,
+        },
+      },
+    })
+
+    await nextTick()
+    await nextTick()
+
+    const activeLink = wrapper.get('.admin-nav__link--active')
+    pushSpy.mockClear()
+    await activeLink.trigger('click')
+    await new Promise((resolve) => setTimeout(resolve, 10))
+
+    expect(pushSpy).toHaveBeenCalledWith('/clients')
+
+    pushSpy.mockClear()
+    await activeLink.trigger('click')
+    await new Promise((resolve) => setTimeout(resolve, 10))
+    expect(pushSpy).not.toHaveBeenCalled()
+  })
+
+  it('resyncs the active sidebar item when shell-first menus arrive after route render on a sub-route', async () => {
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        {
+          path: '/dashboard',
+          component: { template: '<section>Dashboard</section>' },
+          meta: { requiresAdmin: true },
+        },
+        {
+          path: '/clients',
+          component: { template: '<section>Clients</section>' },
+          meta: { requiresAdmin: true },
+        },
+        {
+          path: '/clients/new',
+          component: { template: '<section>New Client</section>' },
+          meta: { requiresAdmin: true },
+        },
+      ],
+    })
+    await router.push('/clients/new')
+    await router.isReady()
+
+    const session = useSessionStore()
+    session.clear()
+
+    const wrapper = mount(AdminShellLayout, {
+      global: {
+        plugins: [router],
+        stubs: {
+          RouterView: true,
+        },
+      },
+    })
+
+    expect(wrapper.find('.admin-nav__link--active').exists()).toBe(false)
+
+    session.setPrincipal({
+      ...principal,
+      permissions: {
+        ...principal.permissions,
+        menus: [
+          {
+            id: 'dashboard',
+            label: 'Dashboard',
+            required_permission: 'admin.dashboard.view',
+            visible: true,
+          },
+          {
+            id: 'clients',
+            label: 'Clients',
+            required_permission: 'admin.clients.read',
+            visible: true,
+          },
+        ],
+      },
+    })
+    await nextTick()
+    await nextTick()
+
+    expect(wrapper.get('.admin-nav__link--active').text()).toContain('Clients')
+    expect(wrapper.get('[aria-label="Breadcrumb"]').text()).toContain('Clients')
+    expect(document.title).toContain('Clients')
+  })
+
+  it('does not match /authentication-audit to /audit menu', async () => {
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        {
+          path: '/audit',
+          component: { template: '<section>Audit</section>' },
+          meta: { requiresAdmin: true },
+        },
+        {
+          path: '/authentication-audit',
+          component: { template: '<section>Auth Audit</section>' },
+          meta: { requiresAdmin: true },
+        },
+      ],
+    })
+    await router.push('/authentication-audit')
+    await router.isReady()
+
+    const session = useSessionStore()
+    session.setPrincipal({
+      ...principal,
+      permissions: {
+        ...principal.permissions,
+        menus: [
+          {
+            id: 'audit',
+            label: 'Audit',
+            required_permission: 'admin.audit.read',
+            visible: true,
+          },
+          {
+            id: 'authentication-audit',
+            label: 'Authentication Audit',
+            required_permission: 'admin.authentication-audit.read',
+            visible: true,
+          },
+        ],
+      },
+    })
+
+    const wrapper = mount(AdminShellLayout, {
+      global: {
+        plugins: [router],
+        stubs: {
+          RouterView: true,
+        },
+      },
+    })
+
+    await nextTick()
+    await nextTick()
+
+    expect(wrapper.get('.admin-nav__link--active').text()).toContain('Authentication Audit')
+  })
+
+  it('does not highlight Audit when path is /authentication-audit and only Audit menu exists', async () => {
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        {
+          path: '/audit',
+          component: { template: '<section>Audit</section>' },
+          meta: { requiresAdmin: true },
+        },
+        {
+          path: '/authentication-audit',
+          component: { template: '<section>Auth Audit</section>' },
+          meta: { requiresAdmin: true },
+        },
+      ],
+    })
+    await router.push('/authentication-audit')
+    await router.isReady()
+
+    const session = useSessionStore()
+    session.setPrincipal({
+      ...principal,
+      permissions: {
+        ...principal.permissions,
+        menus: [
+          {
+            id: 'audit',
+            label: 'Audit',
+            required_permission: 'admin.audit.read',
+            visible: true,
+          },
+        ],
+      },
+    })
+
+    const wrapper = mount(AdminShellLayout, {
+      global: {
+        plugins: [router],
+        stubs: {
+          RouterView: true,
+        },
+      },
+    })
+
+    await nextTick()
+    await nextTick()
+
+    expect(wrapper.find('.admin-nav__link--active').exists()).toBe(false)
   })
 })

@@ -201,6 +201,8 @@ describe('ClientCreatePage', () => {
       .get('input[name="create_redirect_uri"]')
       .setValue('https://app-d.example.test/auth/callback')
 
+    await wrapper.findComponent(FormPageShell).vm.$emit('submit')
+
     expect(wrapper.text()).toContain('Choose a client type before creating the integration.')
     expect(wrapper.findComponent(FormPageShell).find('button[disabled]').exists()).toBe(true)
     expect(wrapper.text()).toContain('This redirect URI looks like a server callback.')

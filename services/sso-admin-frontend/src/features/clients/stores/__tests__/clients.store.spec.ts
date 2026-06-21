@@ -9,7 +9,9 @@ vi.mock('../../services/clients.api', () => ({
   clientsApi: {
     list: vi.fn<() => Promise<{ clients: readonly AdminClient[] }>>(),
     listWithRequestId:
-      vi.fn<() => Promise<{ data: { clients: readonly AdminClient[] }; requestId: string | null }>>(),
+      vi.fn<
+        () => Promise<{ data: { clients: readonly AdminClient[] }; requestId: string | null }>
+      >(),
     show: vi.fn<(clientId: string) => Promise<{ client: AdminClient }>>(),
     registrations: vi.fn<() => Promise<{ registrations: readonly AdminClient[] }>>(),
     update: vi.fn<(clientId: string, payload: unknown) => Promise<{ client: AdminClient }>>(),

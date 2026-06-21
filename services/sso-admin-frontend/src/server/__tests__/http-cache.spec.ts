@@ -11,8 +11,12 @@ describe('admin BFF HTTP cache helpers', () => {
   it('matches If-None-Match values without treating partial tags as fresh', () => {
     const etag = createEntityTag('shell')
 
-    expect(requestHasMatchingEtag({ headers: { 'if-none-match': `"old", ${etag}` } } as never, etag)).toBe(true)
+    expect(
+      requestHasMatchingEtag({ headers: { 'if-none-match': `"old", ${etag}` } } as never, etag),
+    ).toBe(true)
     expect(requestHasMatchingEtag({ headers: { 'if-none-match': '*' } } as never, etag)).toBe(true)
-    expect(requestHasMatchingEtag({ headers: { 'if-none-match': '"old"' } } as never, etag)).toBe(false)
+    expect(requestHasMatchingEtag({ headers: { 'if-none-match': '"old"' } } as never, etag)).toBe(
+      false,
+    )
   })
 })

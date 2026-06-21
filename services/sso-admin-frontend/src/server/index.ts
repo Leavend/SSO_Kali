@@ -264,7 +264,7 @@ function staticHeaders(asset: {
       ? 'public, max-age=31536000, immutable'
       : asset.path === indexHtmlPath
         ? 'private, no-cache'
-      : 'no-cache',
+        : 'no-cache',
     'content-type': contentType(asset.path),
     'permissions-policy': 'camera=(), microphone=(), geolocation=()',
     'referrer-policy': 'same-origin',

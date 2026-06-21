@@ -143,7 +143,8 @@ async function requestWithRequestId<T>(
   const requestId = response.headers.get('X-Request-Id') ?? getLastRequestId()
 
   return {
-    data: response.status === 204 ? (undefined as T) : ((await jsonPayloadFromSuccess(response)) as T),
+    data:
+      response.status === 204 ? (undefined as T) : ((await jsonPayloadFromSuccess(response)) as T),
     requestId,
   }
 }

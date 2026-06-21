@@ -257,7 +257,7 @@ watch(
       updatePillPosition()
     })
     schedulePillUpdate()
-  }
+  },
 )
 
 function selectDetailTab(key: DetailTab): void {

@@ -30,6 +30,16 @@ const form = reactive(initialClientCreateForm())
 const isSubmitting = ref(false)
 const copyFeedback = ref<string | null>(null)
 const selectedScopes = ref<string[]>(['openid', 'profile', 'email'])
+
+const touched = reactive<Record<string, boolean>>({
+  clientId: false,
+  displayName: false,
+  ownerEmail: false,
+  redirectUri: false,
+  backchannelLogoutUri: false,
+  clientType: false,
+})
+const submitAttempted = ref(false)
 const isClientIdEdited = ref(false)
 const showStepUpDialog = ref(false)
 const stepUpLoginHref = ref(buildStepUpLoginUrl())
@@ -101,6 +111,11 @@ const isBackendCallbackHintVisible = computed(() => {
 })
 
 const isInvalid = computed(() => Object.keys(errors.value).length > 0)
+const hasVisibleErrors = computed(() => {
+  return Object.keys(errors.value).some((field) => {
+    return touched[field] || submitAttempted.value
+  })
+})
 
 function slugify(text: string): string {
   return text
@@ -124,6 +139,7 @@ onMounted(async () => {
 })
 
 async function submit(): Promise<void> {
+  submitAttempted.value = true
   if (isInvalid.value || isSubmitting.value) return
   isSubmitting.value = true
   form.scopes = selectedScopes.value.join(' ')
@@ -204,12 +220,16 @@ async function copy(value: string): Promise<void> {
 }
 
 function errorFor(field: string): string | undefined {
+  if (field in touched && !touched[field] && !submitAttempted.value) {
+    return undefined
+  }
   const key = errors.value[field]
   return key ? t(key) : undefined
 }
 
 function selectClientType(type: ClientType): void {
   form.clientType = type
+  touched.clientType = true
 }
 
 function toggleScope(scopeName: string): void {
@@ -245,6 +265,11 @@ function onClientTypeKeydown(event: KeyboardEvent): void {
     })
   }
 }
+
+function handleClientIdInput(): void {
+  isClientIdEdited.value = true
+  touched.clientId = true
+}
 </script>
 
 <template>
@@ -256,7 +281,7 @@ function onClientTypeKeydown(event: KeyboardEvent): void {
     :submit-label="t('clients.btn_create_client')"
     :cancel-label="t('common.btn_cancel')"
     :is-submitting="isSubmitting"
-    :is-invalid="isInvalid"
+    :is-invalid="hasVisibleErrors"
     @submit="submit"
     @cancel="cancel"
   >
@@ -285,7 +310,8 @@ function onClientTypeKeydown(event: KeyboardEvent): void {
           name="create_display_name"
           autocomplete="off"
           placeholder="Aplikasi Selamat Kerja"
-          :invalid="Boolean(errors.displayName)"
+          :invalid="Boolean(errorFor('displayName'))"
+          @blur="touched.displayName = true"
         />
       </UiFormField>
 
@@ -302,15 +328,18 @@ function onClientTypeKeydown(event: KeyboardEvent): void {
             name="client_id"
             autocomplete="off"
             placeholder="selamat-kerja-app"
-            :invalid="Boolean(errors.clientId)"
-            @input="isClientIdEdited = true"
+            :invalid="Boolean(errorFor('clientId'))"
+            @input="handleClientIdInput"
+            @blur="touched.clientId = true"
           />
-          <div class="mt-1.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 text-xs">
+          <div
+            class="mt-1.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 text-xs"
+          >
             <span class="text-muted-foreground">
               {{ t('clients.client_id_helper') }}
             </span>
             <div
-              v-if="form.clientId"
+              v-if="form.clientId && (touched.clientId || submitAttempted)"
               aria-live="polite"
               class="flex items-center gap-1 font-medium"
               :class="isClientIdValid ? 'text-success-700' : 'text-destructive'"
@@ -318,7 +347,9 @@ function onClientTypeKeydown(event: KeyboardEvent): void {
               <CheckCircle v-if="isClientIdValid" class="size-3.5 shrink-0" />
               <XCircle v-else class="size-3.5 shrink-0" />
               <span>
-                {{ isClientIdValid ? t('clients.client_id_valid') : t('clients.client_id_invalid') }}
+                {{
+                  isClientIdValid ? t('clients.client_id_valid') : t('clients.client_id_invalid')
+                }}
               </span>
             </div>
           </div>
@@ -338,7 +369,8 @@ function onClientTypeKeydown(event: KeyboardEvent): void {
           type="email"
           autocomplete="email"
           placeholder="owner@company.com"
-          :invalid="Boolean(errors.ownerEmail)"
+          :invalid="Boolean(errorFor('ownerEmail'))"
+          @blur="touched.ownerEmail = true"
         />
       </UiFormField>
     </FormSection>
@@ -374,11 +406,14 @@ function onClientTypeKeydown(event: KeyboardEvent): void {
             "
             @click="selectClientType('public')"
             @keydown="onClientTypeKeydown"
+            @blur="touched.clientType = true"
           >
             <span class="flex items-center gap-2 text-sm font-semibold text-foreground">
               <span
                 class="size-4 rounded-full border flex items-center justify-center shrink-0 transition-colors"
-                :class="form.clientType === 'public' ? 'border-primary bg-primary/10' : 'border-border'"
+                :class="
+                  form.clientType === 'public' ? 'border-primary bg-primary/10' : 'border-border'
+                "
               >
                 <span v-if="form.clientType === 'public'" class="size-2 rounded-full bg-primary" />
               </span>
@@ -388,7 +423,9 @@ function onClientTypeKeydown(event: KeyboardEvent): void {
               {{ t('clients.type_public_hint') }}
             </span>
             <div class="mt-auto pt-3">
-              <span class="inline-flex items-center rounded-full bg-warning/10 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-warning-700 whitespace-nowrap">
+              <span
+                class="inline-flex items-center rounded-full bg-warning/10 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-warning-700 whitespace-nowrap"
+              >
                 {{ t('clients.type_public_badge') }}
               </span>
             </div>
@@ -408,13 +445,21 @@ function onClientTypeKeydown(event: KeyboardEvent): void {
             "
             @click="selectClientType('confidential')"
             @keydown="onClientTypeKeydown"
+            @blur="touched.clientType = true"
           >
             <span class="flex items-center gap-2 text-sm font-semibold text-foreground">
               <span
                 class="size-4 rounded-full border flex items-center justify-center shrink-0 transition-colors"
-                :class="form.clientType === 'confidential' ? 'border-primary bg-primary/10' : 'border-border'"
+                :class="
+                  form.clientType === 'confidential'
+                    ? 'border-primary bg-primary/10'
+                    : 'border-border'
+                "
               >
-                <span v-if="form.clientType === 'confidential'" class="size-2 rounded-full bg-primary" />
+                <span
+                  v-if="form.clientType === 'confidential'"
+                  class="size-2 rounded-full bg-primary"
+                />
               </span>
               {{ t('clients.type_confidential') }}
             </span>
@@ -447,7 +492,8 @@ function onClientTypeKeydown(event: KeyboardEvent): void {
           name="create_redirect_uri"
           autocomplete="off"
           placeholder="https://app.company.com/auth/callback"
-          :invalid="Boolean(errors.redirectUri)"
+          :invalid="Boolean(errorFor('redirectUri'))"
+          @blur="touched.redirectUri = true"
         />
         <p class="text-xs text-muted-foreground mt-1.5">
           {{ t('clients.redirect_uri_helper') }}
@@ -524,7 +570,8 @@ function onClientTypeKeydown(event: KeyboardEvent): void {
           name="create_backchannel_logout_uri"
           autocomplete="off"
           placeholder="https://app.company.com/auth/logout"
-          :invalid="Boolean(errors.backchannelLogoutUri)"
+          :invalid="Boolean(errorFor('backchannelLogoutUri'))"
+          @blur="touched.backchannelLogoutUri = true"
         />
         <p class="text-xs text-muted-foreground mt-1.5">
           {{ t('clients.logout_url_helper') }}

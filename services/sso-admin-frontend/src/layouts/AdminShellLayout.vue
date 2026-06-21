@@ -36,7 +36,7 @@ const docsBaseUrl = getAdminEnvironment().docsBaseUrl
 
 const route = useRoute()
 const router = useRouter()
-const currentIndex = ref(0)
+const currentIndex = ref(-1)
 const isAnimating = ref(false)
 const navRef = ref<HTMLElement | null>(null)
 const sidebarRef = ref<HTMLElement | null>(null)
@@ -236,14 +236,26 @@ function handleToggle(): void {
 }
 
 function getMenuIndexByPath(path: string): number {
-  return visibleMenus.value.findIndex((menu) => menuPath(menu) === path)
+  let bestIdx = -1
+  let bestLen = -1
+  visibleMenus.value.forEach((menu, i) => {
+    const mp = menuPath(menu)
+    if ((path === mp || path.startsWith(mp + '/')) && mp.length > bestLen) {
+      bestIdx = i
+      bestLen = mp.length
+    }
+  })
+  return bestIdx
 }
 
 function updatePillPosition() {
   if (!navRef.value) return
-  // Find child link element corresponding to currentIndex.
-  // Note: the pill div is the first child (index 0), so links start at child index 1.
-  const activeLink = navRef.value.children[currentIndex.value + 1] as HTMLElement
+  const idx = currentIndex.value
+  if (idx < 0 || idx >= visibleMenus.value.length) {
+    pillStyle.value = { top: '0px', height: '0px', opacity: '0' }
+    return
+  }
+  const activeLink = navRef.value.children[idx + 1] as HTMLElement
   if (activeLink) {
     pillStyle.value = {
       top: `${activeLink.offsetTop}px`,
@@ -257,10 +269,7 @@ watch(
   [() => route?.path, visibleMenus],
   ([newPath]) => {
     if (newPath && !isAnimating.value) {
-      const idx = getMenuIndexByPath(newPath)
-      if (idx !== -1) {
-        currentIndex.value = idx
-      }
+      currentIndex.value = getMenuIndexByPath(newPath)
     }
   },
   { immediate: true },
@@ -286,7 +295,8 @@ onUnmounted(() => {
 
 async function handleMenuClick(menu: AdminPermissionMenu, index: number) {
   closeNav()
-  if (index === currentIndex.value || isAnimating.value) return
+  const mp = menuPath(menu)
+  if ((index === currentIndex.value && route?.path === mp) || isAnimating.value) return
 
   if (isTest) {
     currentIndex.value = index
