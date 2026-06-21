@@ -23,7 +23,6 @@ const emit = defineEmits<{
 const searchRequestId = ref('')
 const searchAction = ref('')
 const searchOutcome = ref('')
-const searchSupportReference = ref('')
 const searchSessionId = ref('')
 const searchTaxonomy = ref('')
 const searchAdminSubjectId = ref('')
@@ -120,17 +119,11 @@ async function submitSearch(): Promise<void> {
           admin_subject_id: filled(searchAdminSubjectId.value),
         }),
         ...(filled(searchRequestId.value) && { request_id: filled(searchRequestId.value) }),
-        ...(filled(searchSupportReference.value) && {
-          support_reference: filled(searchSupportReference.value),
-        }),
         ...(searchFrom.value && { from: searchFrom.value }),
         ...(searchTo.value && { to: searchTo.value }),
       }),
       store.searchAuthenticationEvents({
         ...(filled(searchRequestId.value) && { request_id: filled(searchRequestId.value) }),
-        ...(filled(searchSupportReference.value) && {
-          support_reference: filled(searchSupportReference.value),
-        }),
         ...(filled(searchSessionId.value) && { session_id: filled(searchSessionId.value) }),
         ...(filled(searchSubjectId.value) && { subject_id: filled(searchSubjectId.value) }),
         ...(filled(searchClientId.value) && { client_id: filled(searchClientId.value) }),
@@ -147,7 +140,6 @@ async function submitSearch(): Promise<void> {
 
 async function resetSearch(): Promise<void> {
   searchRequestId.value = ''
-  searchSupportReference.value = ''
   searchSessionId.value = ''
   searchAction.value = ''
   searchOutcome.value = ''
@@ -180,9 +172,6 @@ function consentEventFilters(
     ...(action === 'allow' || action === 'revoke' ? { outcome: 'succeeded' } : {}),
     ...(action === 'deny' ? { outcome: 'failed' } : {}),
     ...(filled(searchRequestId.value) && { request_id: filled(searchRequestId.value) }),
-    ...(filled(searchSupportReference.value) && {
-      support_reference: filled(searchSupportReference.value),
-    }),
     ...(filled(searchSessionId.value) && { session_id: filled(searchSessionId.value) }),
     ...(filled(searchSubjectId.value) && { subject_id: filled(searchSubjectId.value) }),
     ...(filled(searchClientId.value) && { client_id: filled(searchClientId.value) }),
@@ -249,6 +238,7 @@ onMounted(() => {
             id="audit-search-request-id"
             name="audit-search-request-id"
             v-model="searchRequestId"
+            placeholder="REF-XXXXXXXX atau UUID / or UUID"
             autocomplete="off"
           />
         </UiFormField>
@@ -271,14 +261,6 @@ onMounted(() => {
       </div>
 
       <div v-show="showAdvancedFilters" class="audit-grid audit-grid-3 audit-filter-grid">
-        <UiFormField id="audit-search-support-reference" :label="t('audit.support_reference')">
-          <UiInput
-            id="audit-search-support-reference"
-            name="audit-search-support-reference"
-            v-model="searchSupportReference"
-            autocomplete="off"
-          />
-        </UiFormField>
         <UiFormField id="audit-search-session-id" :label="t('audit.sid')">
           <UiInput
             id="audit-search-session-id"

@@ -22,9 +22,24 @@ final class AdminAuthenticationAuditQuery
     {
         $query = AuthenticationAuditEvent::query()->orderByDesc('id');
 
-        foreach (['event_type', 'outcome', 'subject_id', 'client_id', 'session_id', 'request_id', 'error_code'] as $field) {
+        foreach (['event_type', 'outcome', 'subject_id', 'client_id', 'session_id', 'error_code'] as $field) {
             if (is_string($filters[$field] ?? null) && $filters[$field] !== '') {
                 $query->where($field, $filters[$field]);
+            }
+        }
+
+        if (is_string($filters['request_id'] ?? null) && $filters['request_id'] !== '') {
+            $needle = $filters['request_id'];
+            if (SupportReference::isExplicitRef($needle)) {
+                $suffix = SupportReference::suffixOf($needle);
+                if ($suffix !== '') {
+                    $expr = SupportReference::normalizedColumnExpr('request_id');
+                    $query->whereRaw("{$expr} LIKE ?", ['%'.$suffix]);
+                } else {
+                    $query->where('request_id', $needle);
+                }
+            } else {
+                $query->where('request_id', $needle);
             }
         }
 

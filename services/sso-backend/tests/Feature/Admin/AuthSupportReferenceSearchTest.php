@@ -151,6 +151,53 @@ it('ignores support_reference when empty', function (): void {
     expect($events)->toHaveCount(1);
 });
 
+it('finds auth events by request_id matching exact or derived REF code', function (): void {
+    /** @var TestCase $this */
+    AuthenticationAuditEvent::query()->create([
+        'event_id' => (string) Str::ulid(),
+        'event_type' => 'login_started',
+        'outcome' => 'succeeded',
+        'subject_id' => 'sub-req-match-1',
+        'request_id' => 'req-auth-audit-login-99',
+        'occurred_at' => now(),
+    ]);
+
+    AuthenticationAuditEvent::query()->create([
+        'event_id' => (string) Str::ulid(),
+        'event_type' => 'login_succeeded',
+        'outcome' => 'succeeded',
+        'subject_id' => 'sub-req-match-2',
+        'request_id' => 'req-auth-audit-token-99',
+        'occurred_at' => now(),
+    ]);
+
+    // Test exact match (original contract behavior)
+    $response = $this->withToken($this->adminToken)
+        ->getJson('/admin/api/audit/authentication-events?request_id=req-auth-audit-login-99&limit=50');
+
+    $response->assertOk();
+    $events = $response->json('events');
+    expect($events)->toHaveCount(1);
+    expect($events[0]['subject']['subject_id'])->toBe('sub-req-match-1');
+
+    // Test derived REF code match
+    $responseRef = $this->withToken($this->adminToken)
+        ->getJson('/admin/api/audit/authentication-events?request_id=REF-TLOGIN99&limit=50');
+
+    $responseRef->assertOk();
+    $eventsRef = $responseRef->json('events');
+    expect($eventsRef)->toHaveCount(1);
+    expect($eventsRef[0]['subject']['subject_id'])->toBe('sub-req-match-1');
+
+    // Test bare suffix matches are treated as exact search (hence return nothing here)
+    $responseBare = $this->withToken($this->adminToken)
+        ->getJson('/admin/api/audit/authentication-events?request_id=TLOGIN99&limit=50');
+
+    $responseBare->assertOk();
+    $eventsBare = $responseBare->json('events');
+    expect($eventsBare)->toHaveCount(0);
+});
+
 /**
  * Shared derivation vector — anti-drift contract with frontend.
  *

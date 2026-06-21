@@ -29,7 +29,12 @@ final class AdminAuditTrailQuery
         }
 
         if (is_string($filters['request_id'] ?? null) && $filters['request_id'] !== '') {
-            $query->where('request_id', $filters['request_id']);
+            $needle = $filters['request_id'];
+            if (SupportReference::isExplicitRef($needle)) {
+                $query->where(SupportReference::whereIndexedOrRequestId($needle));
+            } else {
+                $query->where('request_id', $needle);
+            }
         }
 
         if (is_string($filters['subject_id'] ?? null) && $filters['subject_id'] !== '') {

@@ -108,6 +108,18 @@ final class SupportReference
     }
 
     /**
+     * Check if a given search needle is explicitly a support reference (REF) code.
+     */
+    public static function isExplicitRef(?string $needle): bool
+    {
+        if (! is_string($needle) || $needle === '') {
+            return false;
+        }
+
+        return str_starts_with(strtolower($needle), 'ref-');
+    }
+
+    /**
      * Build a driver-aware SQL expression that strips non-alphanumeric
      * characters and uppercases a column/expression for suffix matching.
      *

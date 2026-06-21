@@ -114,7 +114,6 @@ describe('AuthenticationAuditPage', () => {
     expect(wrapper.find('.filters-toggle-btn').attributes('aria-expanded')).toBe('true')
     expect(wrapper.find('.filters-content').attributes('style')).not.toContain('display: none')
     expect(wrapper.find('#auth-audit-error-code').exists()).toBe(true)
-    expect(wrapper.find('#auth-audit-support-reference').exists()).toBe(true)
     expect(wrapper.find('#auth-audit-consent-action').exists()).toBe(true)
   })
 
@@ -129,14 +128,12 @@ describe('AuthenticationAuditPage', () => {
     await wrapper.find('#auth-audit-request-id').setValue('req-abc-123')
     await wrapper.find('.filters-toggle-btn').trigger('click')
     await wrapper.find('#auth-audit-error-code').setValue('invalid_credentials')
-    await wrapper.find('#auth-audit-support-reference').setValue('REF-ABC12345')
     await wrapper.find('#auth-audit-consent-action').setValue('revoke')
     await wrapper.find('.auth-audit-search-button').trigger('click')
 
     expect(searchSpy).toHaveBeenCalledWith({
       request_id: 'req-abc-123',
       error_code: 'invalid_credentials',
-      support_reference: 'REF-ABC12345',
       consent_action: 'revoke',
     })
   })
@@ -152,7 +149,6 @@ describe('AuthenticationAuditPage', () => {
     await wrapper.find('#auth-audit-request-id').setValue('req-abc-123')
     await wrapper.find('.filters-toggle-btn').trigger('click')
     await wrapper.find('#auth-audit-error-code').setValue('invalid_credentials')
-    await wrapper.find('#auth-audit-support-reference').setValue('REF-ABC12345')
     await wrapper.find('#auth-audit-consent-action').setValue('deny')
     await wrapper.find('.auth-audit-reset-button').trigger('click')
 
@@ -161,9 +157,6 @@ describe('AuthenticationAuditPage', () => {
     expect(searchSpy).toHaveBeenCalledWith({})
     expect((wrapper.find('#auth-audit-request-id').element as HTMLInputElement).value).toBe('')
     expect((wrapper.find('#auth-audit-error-code').element as HTMLInputElement).value).toBe('')
-    expect((wrapper.find('#auth-audit-support-reference').element as HTMLInputElement).value).toBe(
-      '',
-    )
     expect((wrapper.find('#auth-audit-consent-action').element as HTMLSelectElement).value).toBe('')
   })
 

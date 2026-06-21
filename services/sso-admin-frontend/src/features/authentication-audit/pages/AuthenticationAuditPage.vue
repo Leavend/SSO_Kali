@@ -19,7 +19,11 @@ import { useAuthAuditStore } from '../stores/auth-audit.store'
 import type { AuthAuditFilters } from '../types'
 import { useI18n } from '@/composables/useI18n'
 import { useDateFormat } from '@/composables/useDateFormat'
-import { formatFriendlyClientName, formatTechnicalPreview } from '@/lib/display-identifiers'
+import {
+  formatFriendlyClientName,
+  formatTechnicalPreview,
+  formatSupportReference,
+} from '@/lib/display-identifiers'
 import {
   Search,
   ChevronLeft,
@@ -48,7 +52,6 @@ const searchRequestId = ref('')
 const searchEventType = ref('')
 const searchOutcome = ref('')
 const searchErrorCode = ref('')
-const searchSupportReference = ref('')
 const searchConsentAction = ref('')
 const searchFrom = ref('')
 const searchTo = ref('')
@@ -114,9 +117,6 @@ async function submitSearch(): Promise<void> {
     ...(filled(searchEventType.value) && { event_type: filled(searchEventType.value) }),
     ...(filled(searchOutcome.value) && { outcome: filled(searchOutcome.value) }),
     ...(filled(searchErrorCode.value) && { error_code: filled(searchErrorCode.value) }),
-    ...(filled(searchSupportReference.value) && {
-      support_reference: filled(searchSupportReference.value),
-    }),
     ...(filled(searchConsentAction.value) && { consent_action: filled(searchConsentAction.value) }),
     ...(searchFrom.value && { from: searchFrom.value }),
     ...(searchTo.value && { to: searchTo.value }),
@@ -132,7 +132,6 @@ async function resetSearch(): Promise<void> {
   searchEventType.value = ''
   searchOutcome.value = ''
   searchErrorCode.value = ''
-  searchSupportReference.value = ''
   searchConsentAction.value = ''
   searchFrom.value = ''
   searchTo.value = ''
@@ -224,6 +223,7 @@ onMounted(() => {
                 id="auth-audit-request-id"
                 v-model="searchRequestId"
                 name="auth-audit-request-id"
+                placeholder="REF-XXXXXXXX atau UUID / or UUID"
                 autocomplete="off"
               />
             </UiFormField>
@@ -282,17 +282,7 @@ onMounted(() => {
                   autocomplete="off"
                 />
               </UiFormField>
-              <UiFormField
-                id="auth-audit-support-reference"
-                :label="t('auth_audit.support_reference')"
-              >
-                <UiInput
-                  id="auth-audit-support-reference"
-                  v-model="searchSupportReference"
-                  name="auth-audit-support-reference"
-                  autocomplete="off"
-                />
-              </UiFormField>
+
               <UiFormField id="auth-audit-consent-action" :label="t('auth_audit.consent_action')">
                 <UiSelect
                   id="auth-audit-consent-action"
@@ -532,9 +522,9 @@ onMounted(() => {
           </h3>
           <dl class="detail-metadata-grid">
             <div>
-              <dt>Kode request</dt>
+              <dt>Kode request (REF)</dt>
               <dd class="font-mono break-anywhere">
-                {{ formatTechnicalPreview(store.selectedEvent.request.request_id) }}
+                {{ formatSupportReference(store.selectedEvent.request.request_id) ?? '—' }}
               </dd>
             </div>
             <div>

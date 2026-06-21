@@ -132,6 +132,13 @@ it('filters and exports admin audit events through indexed correlation columns',
         ->assertJsonCount(1, 'events')
         ->assertJsonPath('events.0.event_id', $event->event_id);
 
+    $this->getJson('/admin/api/audit/events?'.http_build_query([
+        'request_id' => 'REF-DEXED123',
+    ]), auditTrailHeaders($admin))
+        ->assertOk()
+        ->assertJsonCount(1, 'events')
+        ->assertJsonPath('events.0.event_id', $event->event_id);
+
     $response = $this->get('/admin/api/audit/export?'.http_build_query([
         'format' => 'csv',
         'support_reference' => 'REF-DEXED123',
@@ -139,6 +146,14 @@ it('filters and exports admin audit events through indexed correlation columns',
 
     $response->assertOk();
     expect(array_filter(explode("\n", trim($response->streamedContent()))))->toHaveCount(2);
+
+    $responseReqId = $this->get('/admin/api/audit/export?'.http_build_query([
+        'format' => 'csv',
+        'request_id' => 'REF-DEXED123',
+    ]), auditTrailHeaders($admin));
+
+    $responseReqId->assertOk();
+    expect(array_filter(explode("\n", trim($responseReqId->streamedContent()))))->toHaveCount(2);
 });
 
 it('shows one safe audit event and returns not found for unknown event ids', function (): void {
