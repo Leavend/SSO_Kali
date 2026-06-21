@@ -3,7 +3,6 @@ import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import AuthenticationAuditPage from '../AuthenticationAuditPage.vue'
 import { useAuthAuditStore } from '../../stores/auth-audit.store'
-import { useI18n } from '@/composables/useI18n'
 
 vi.mock('../../services/auth-audit.api', () => ({
   authAuditApi: {
