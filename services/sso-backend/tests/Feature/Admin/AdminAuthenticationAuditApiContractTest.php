@@ -153,6 +153,16 @@ it('correctly filters authentication audit events with the refined query matchin
         'occurred_at' => Carbon::create(2026, 6, 21, 23, 30, 0, 'Asia/Makassar')->setTimezone('UTC'),
     ]);
 
+    // Record 3: Failed login with wildcards in error_code
+    authenticationAuditRecord('login_failed', 'failed', [
+        'subject_id' => 'usr_charles_123',
+        'client_id' => 'app-a',
+        'session_id' => 'sess_active_777777',
+        'request_id' => 'req_wildcard_xyz',
+        'error_code' => 'ERR_SPECIAL%CODE_99',
+        'occurred_at' => Carbon::create(2026, 6, 21, 15, 0, 0, 'Asia/Makassar')->setTimezone('UTC'),
+    ]);
+
     // Configure display timezone
     config(['sso.display_timezone' => 'Asia/Makassar']);
 
@@ -187,13 +197,32 @@ it('correctly filters authentication audit events with the refined query matchin
         ->assertJsonCount(1, 'events')
         ->assertJsonPath('events.0.event_type', 'login_succeeded');
 
-    // 4. Case-insensitive partial (LIKE) matching on error_code
+    // 4. Case-insensitive partial (LIKE) matching on error_code with wildcard sanitization
+    // 4a. Match bad_credentials
     $this->getJson('/admin/api/audit/authentication-events?'.http_build_query([
         'error_code' => 'bad_credentials',
     ]), authenticationAuditHeaders($admin))
         ->assertOk()
         ->assertJsonCount(1, 'events')
         ->assertJsonPath('events.0.error_code', 'ERR_BAD_CREDENTIALS');
+
+    // 4b. Match literal percent sign in code
+    $this->getJson('/admin/api/audit/authentication-events?'.http_build_query([
+        'error_code' => 'SPECIAL%CODE',
+    ]), authenticationAuditHeaders($admin))
+        ->assertOk()
+        ->assertJsonCount(1, 'events')
+        ->assertJsonPath('events.0.error_code', 'ERR_SPECIAL%CODE_99');
+
+    // 4c. Verify that unescaped wildcards aren't treated as wildcards
+    // Searching for '%' should only match strings containing literal '%'.
+    // If '%' was not escaped, it would match everything (3 events: bad credentials, consent, special%code).
+    $this->getJson('/admin/api/audit/authentication-events?'.http_build_query([
+        'error_code' => '%',
+    ]), authenticationAuditHeaders($admin))
+        ->assertOk()
+        ->assertJsonCount(1, 'events')
+        ->assertJsonPath('events.0.error_code', 'ERR_SPECIAL%CODE_99');
 
     // 5. Consent action matching (context->consent_action)
     $this->getJson('/admin/api/audit/authentication-events?'.http_build_query([
@@ -209,7 +238,7 @@ it('correctly filters authentication audit events with the refined query matchin
         'to' => '2026-06-21',
     ]), authenticationAuditHeaders($admin))
         ->assertOk()
-        ->assertJsonCount(2, 'events');
+        ->assertJsonCount(3, 'events');
 });
 
 function authenticationAuditAdmin(array $permissions): User

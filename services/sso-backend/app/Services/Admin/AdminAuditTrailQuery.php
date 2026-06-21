@@ -6,6 +6,7 @@ namespace App\Services\Admin;
 
 use App\Models\AdminAuditEvent;
 use Illuminate\Contracts\Pagination\CursorPaginator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 
 final class AdminAuditTrailQuery
@@ -38,16 +39,27 @@ final class AdminAuditTrailQuery
         }
 
         if (is_string($filters['subject_id'] ?? null) && $filters['subject_id'] !== '') {
-            $query->where(function ($query) use ($filters): void {
-                $query
-                    ->where('subject_id', $filters['subject_id'])
-                    ->orWhere('target_subject_id', $filters['subject_id']);
+            $needle = $filters['subject_id'];
+            $query->where(function (Builder $query) use ($needle): void {
+                if (SupportReference::isExplicitRef($needle)) {
+                    $suffix = SupportReference::suffixOf($needle);
+                    if ($suffix !== '') {
+                        $expr1 = SupportReference::normalizedColumnExpr('subject_id');
+                        $expr2 = SupportReference::normalizedColumnExpr('target_subject_id');
+                        $query->whereRaw("{$expr1} LIKE ?", ['%'.$suffix])
+                            ->orWhereRaw("{$expr2} LIKE ?", ['%'.$suffix]);
+
+                        return;
+                    }
+                }
+                $query->where('subject_id', $needle)
+                    ->orWhere('target_subject_id', $needle);
             });
         }
 
         foreach (['client_id', 'session_id'] as $field) {
             if (is_string($filters[$field] ?? null) && $filters[$field] !== '') {
-                $query->where($field, $filters[$field]);
+                $this->applyCorrelationFilter($query, $field, $filters[$field]);
             }
         }
 
@@ -82,5 +94,33 @@ final class AdminAuditTrailQuery
         }
 
         return max(1, min(self::MAX_LIMIT, (int) $limit));
+    }
+
+    private function applyCorrelationFilter(Builder $query, string $col, string $needle): void
+    {
+        if (SupportReference::isExplicitRef($needle)) {
+            $suffix = SupportReference::suffixOf($needle);
+            if ($suffix !== '') {
+                $expr = SupportReference::normalizedColumnExpr($col);
+                $query->whereRaw("{$expr} LIKE ?", ['%'.$suffix]);
+
+                return;
+            }
+        }
+
+        if ($col === 'client_id') {
+            $normalizedNeedle = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $needle) ?? '');
+            if ($normalizedNeedle !== '') {
+                $expr = SupportReference::normalizedColumnExpr($col);
+                $query->where(function (Builder $q) use ($col, $needle, $expr, $normalizedNeedle): void {
+                    $q->where($col, $needle)
+                        ->orWhereRaw("{$expr} = ?", [$normalizedNeedle]);
+                });
+
+                return;
+            }
+        }
+
+        $query->where($col, $needle);
     }
 }

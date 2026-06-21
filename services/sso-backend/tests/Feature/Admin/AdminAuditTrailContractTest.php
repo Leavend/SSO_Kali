@@ -102,6 +102,30 @@ it('filters admin audit events by target account application and session context
         ->assertOk()
         ->assertJsonCount(1, 'events')
         ->assertJsonPath('events.0.context.subject_id', 'usr-target-b');
+
+    // Refined checks:
+    // 1. Suffix matching for subject_id (target_subject_id)
+    $this->getJson('/admin/api/audit/events?'.http_build_query([
+        'subject_id' => 'REF-RTARGETA',
+    ]), auditTrailHeaders($admin))
+        ->assertOk()
+        ->assertJsonCount(2, 'events');
+
+    // 2. Suffix matching for session_id
+    $this->getJson('/admin/api/audit/events?'.http_build_query([
+        'session_id' => 'REF-DTARGETA',
+    ]), auditTrailHeaders($admin))
+        ->assertOk()
+        ->assertJsonCount(1, 'events')
+        ->assertJsonPath('events.0.context.session_id', 'sid-target-a');
+
+    // 3. Friendly client_id slug matching
+    $this->getJson('/admin/api/audit/events?'.http_build_query([
+        'client_id' => 'Prototype App A',
+    ]), auditTrailHeaders($admin))
+        ->assertOk()
+        ->assertJsonCount(1, 'events')
+        ->assertJsonPath('events.0.context.client_id', 'prototype-app-a');
 });
 
 it('filters and exports admin audit events through indexed correlation columns', function (): void {

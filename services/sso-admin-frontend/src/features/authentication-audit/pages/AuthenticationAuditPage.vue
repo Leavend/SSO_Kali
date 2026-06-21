@@ -6,7 +6,7 @@
  * Permission: admin.authentication-audit.read
  */
 
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
 import UiEmptyState from '@/components/ui/UiEmptyState.vue'
 import UiFormField from '@/components/ui/UiFormField.vue'
@@ -45,20 +45,84 @@ const store = useAuthAuditStore()
 const { t } = useI18n()
 const dateFormat = useDateFormat()
 
-const searchSubjectId = ref('')
-const searchClientId = ref('')
-const searchSessionId = ref('')
-const searchRequestId = ref('')
-const searchEventType = ref('')
-const searchOutcome = ref('')
-const searchErrorCode = ref('')
-const searchConsentAction = ref('')
-const searchFrom = ref('')
-const searchTo = ref('')
+type FilterField = Exclude<keyof AuthAuditFilters, 'limit' | 'cursor' | 'support_reference'>
+
+const draftFilters = ref<Record<FilterField, string>>({
+  subject_id: '',
+  client_id: '',
+  session_id: '',
+  request_id: '',
+  event_type: '',
+  outcome: '',
+  error_code: '',
+  consent_action: '',
+  from: '',
+  to: '',
+})
 
 const filtersExpanded = ref(false)
 const contextExpanded = ref(false)
 const copiedField = ref<string | null>(null)
+
+type AppliedFilterChip = {
+  readonly field: FilterField
+  readonly label: string
+  readonly value: string
+  readonly inputId: string
+}
+
+const FILTER_INPUT_IDS: Readonly<Record<FilterField, string>> = {
+  subject_id: 'auth-audit-subject-id',
+  client_id: 'auth-audit-client-id',
+  session_id: 'auth-audit-session-id',
+  request_id: 'auth-audit-request-id',
+  event_type: 'auth-audit-event-type',
+  outcome: 'auth-audit-outcome',
+  error_code: 'auth-audit-error-code',
+  consent_action: 'auth-audit-consent-action',
+  from: 'auth-audit-from',
+  to: 'auth-audit-to',
+}
+
+const appliedFilterFields: readonly FilterField[] = [
+  'request_id',
+  'subject_id',
+  'client_id',
+  'session_id',
+  'event_type',
+  'outcome',
+  'error_code',
+  'consent_action',
+  'from',
+  'to',
+] as const
+
+const outcomeLabels: Readonly<Record<string, string>> = {
+  succeeded: 'Success',
+  failed: 'Failed',
+  started: 'Started',
+}
+
+const consentActionLabels: Readonly<Record<string, string>> = {
+  allow: 'Allow',
+  deny: 'Deny',
+  revoke: 'Revoke',
+}
+
+// Watch store.filters to synchronize draftFilters
+watch(
+  () => store.filters,
+  (newFilters) => {
+    for (const field of appliedFilterFields) {
+      draftFilters.value[field] = (newFilters[field] as string | undefined) ?? ''
+    }
+  },
+  { deep: true, immediate: true }
+)
+
+function getFilterLabel(field: FilterField): string {
+  return t(`auth_audit.${field}`)
+}
 
 function toggleFilters(): void {
   filtersExpanded.value = !filtersExpanded.value
@@ -82,22 +146,67 @@ async function copyFieldToClipboard(field: string, text: string): Promise<void> 
   }
 }
 
+async function copyDisplayFieldToClipboard(
+  field: 'event_id' | 'subject_id' | 'client_id' | 'session_id' | 'request_id',
+  value: string | null | undefined,
+): Promise<void> {
+  const displayValue = displayValueForIdentifier(field, value)
+  if (displayValue === '-') return
+  await copyFieldToClipboard(field, displayValue)
+}
+
 async function applyFieldFilter(
   field: 'subject_id' | 'client_id' | 'session_id' | 'request_id',
   value: string | null | undefined,
 ): Promise<void> {
-  if (!value) return
-  if (field === 'subject_id') {
-    searchSubjectId.value = value
-  } else if (field === 'client_id') {
-    searchClientId.value = value
-  } else if (field === 'session_id') {
-    searchSessionId.value = value
-  } else if (field === 'request_id') {
-    searchRequestId.value = value
-  }
+  const displayValue = displayValueForIdentifier(field, value)
+  if (displayValue === '-') return
+  draftFilters.value[field] = displayValue
   filtersExpanded.value = true
   await submitSearch()
+}
+
+function displayValueForIdentifier(
+  field: 'event_id' | 'subject_id' | 'client_id' | 'session_id' | 'request_id',
+  value: string | null | undefined,
+): string {
+  if (field === 'client_id') return formatFriendlyClientName(value)
+  return formatTechnicalPreview(value)
+}
+
+function displayValueForFilter(field: FilterField, value: string): string {
+  if (field === 'subject_id' || field === 'session_id' || field === 'request_id') {
+    const isExplicitRef = value.toLowerCase().startsWith('ref-')
+    const isUuid = /[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/i.test(value)
+    if (isExplicitRef || isUuid || value.length >= 12) {
+      return formatTechnicalPreview(value)
+    }
+    return value
+  }
+  if (field === 'client_id') return formatFriendlyClientName(value)
+  if (field === 'outcome') return outcomeLabels[value] ?? value
+  if (field === 'consent_action') return consentActionLabels[value] ?? value
+  return value
+}
+
+function filterValue(field: FilterField): string {
+  const value = store.filters[field]
+  return typeof value === 'string' ? value.trim() : ''
+}
+
+function filterTestId(field: FilterField): string {
+  return `remove-filter-${field.replace(/_/gu, '-')}`
+}
+
+function setDraftFilterValue(field: FilterField, value: string): void {
+  draftFilters.value[field] = value
+}
+
+function focusFilterField(field: FilterField): void {
+  filtersExpanded.value = true
+  requestAnimationFrame(() => {
+    document.getElementById(FILTER_INPUT_IDS[field])?.focus()
+  })
 }
 
 function getOutcomeClass(outcome: string | null | undefined): string {
@@ -121,41 +230,54 @@ function getEventIcon(eventType: string, outcome: string | null | undefined) {
   return isSuccess ? ShieldCheck : ShieldAlert
 }
 
-function filled(value: string): string | undefined {
-  const trimmed = value.trim()
-  return trimmed === '' ? undefined : trimmed
-}
-
 const hasEvents = computed<boolean>(() => store.events.length > 0)
 
+const appliedFilterChips = computed<readonly AppliedFilterChip[]>(() =>
+  appliedFilterFields.flatMap((field) => {
+    const value = filterValue(field)
+    if (!value) return []
+    return [
+      {
+        field,
+        label: getFilterLabel(field),
+        value: displayValueForFilter(field, value),
+        inputId: FILTER_INPUT_IDS[field],
+      },
+    ]
+  }),
+)
+
+const activeFilterCount = computed<number>(() => appliedFilterChips.value.length)
+
 async function submitSearch(): Promise<void> {
-  const newFilters: AuthAuditFilters = {
-    ...(filled(searchSubjectId.value) && { subject_id: filled(searchSubjectId.value) }),
-    ...(filled(searchClientId.value) && { client_id: filled(searchClientId.value) }),
-    ...(filled(searchSessionId.value) && { session_id: filled(searchSessionId.value) }),
-    ...(filled(searchRequestId.value) && { request_id: filled(searchRequestId.value) }),
-    ...(filled(searchEventType.value) && { event_type: filled(searchEventType.value) }),
-    ...(filled(searchOutcome.value) && { outcome: filled(searchOutcome.value) }),
-    ...(filled(searchErrorCode.value) && { error_code: filled(searchErrorCode.value) }),
-    ...(filled(searchConsentAction.value) && { consent_action: filled(searchConsentAction.value) }),
-    ...(searchFrom.value && { from: searchFrom.value }),
-    ...(searchTo.value && { to: searchTo.value }),
+  const newFilters: Partial<Record<FilterField, string>> = {}
+  for (const field of appliedFilterFields) {
+    const val = draftFilters.value[field].trim()
+    if (val !== '') {
+      newFilters[field] = val
+    }
   }
   await store.search(newFilters)
 }
 
 async function resetSearch(): Promise<void> {
-  searchSubjectId.value = ''
-  searchClientId.value = ''
-  searchSessionId.value = ''
-  searchRequestId.value = ''
-  searchEventType.value = ''
-  searchOutcome.value = ''
-  searchErrorCode.value = ''
-  searchConsentAction.value = ''
-  searchFrom.value = ''
-  searchTo.value = ''
+  for (const field of appliedFilterFields) {
+    draftFilters.value[field] = ''
+  }
   await store.search({})
+}
+
+async function removeAppliedFilter(field: FilterField): Promise<void> {
+  draftFilters.value[field] = ''
+  const nextFilters: Partial<Record<FilterField, string>> = {}
+  for (const nextField of appliedFilterFields) {
+    if (nextField === field) continue
+    const value = filterValue(nextField)
+    if (value) {
+      Object.assign(nextFilters, { [nextField]: value })
+    }
+  }
+  await store.search(nextFilters)
 }
 
 onMounted(() => {
@@ -231,6 +353,9 @@ onMounted(() => {
               <h2 id="auth-audit-search-title" class="filters-title">
                 {{ t('auth_audit.filter_title') }}
               </h2>
+              <span v-if="activeFilterCount > 0" class="active-filter-count">
+                {{ activeFilterCount }}
+              </span>
             </span>
             <span class="chevron-icon" :class="{ 'chevron-icon--rotated': filtersExpanded }">
               <ChevronDown :size="16" />
@@ -238,10 +363,39 @@ onMounted(() => {
           </button>
 
           <div class="filters-primary mt-4">
-            <UiFormField id="auth-audit-request-id" :label="t('auth_audit.request_id')">
+            <div v-if="!filtersExpanded && activeFilterCount > 0" class="active-filter-summary">
+              <span
+                v-for="chip in appliedFilterChips"
+                :key="chip.field"
+                class="active-filter-chip"
+              >
+                <button
+                  class="active-filter-chip__edit"
+                  type="button"
+                  :aria-label="`Edit filter ${chip.label}`"
+                  @click="focusFilterField(chip.field)"
+                >
+                  {{ chip.label }}: {{ chip.value }}
+                </button>
+                <button
+                  class="active-filter-chip__remove"
+                  type="button"
+                  :aria-label="`Remove filter ${chip.label}`"
+                  :data-testid="filterTestId(chip.field)"
+                  @click="removeAppliedFilter(chip.field)"
+                >
+                  ×
+                </button>
+              </span>
+            </div>
+            <UiFormField
+              v-else
+              id="auth-audit-request-id"
+              :label="t('auth_audit.request_id')"
+            >
               <UiInput
                 id="auth-audit-request-id"
-                v-model="searchRequestId"
+                v-model="draftFilters.request_id"
                 name="auth-audit-request-id"
                 placeholder="REF-XXXXXXXX atau UUID / or UUID"
                 autocomplete="off"
@@ -254,7 +408,7 @@ onMounted(() => {
               <UiFormField id="auth-audit-subject-id" :label="t('auth_audit.subject_id')">
                 <UiInput
                   id="auth-audit-subject-id"
-                  v-model="searchSubjectId"
+                  v-model="draftFilters.subject_id"
                   name="auth-audit-subject-id"
                   autocomplete="off"
                 />
@@ -262,7 +416,7 @@ onMounted(() => {
               <UiFormField id="auth-audit-client-id" :label="t('auth_audit.client_id')">
                 <UiInput
                   id="auth-audit-client-id"
-                  v-model="searchClientId"
+                  v-model="draftFilters.client_id"
                   name="auth-audit-client-id"
                   autocomplete="off"
                 />
@@ -270,7 +424,7 @@ onMounted(() => {
               <UiFormField id="auth-audit-session-id" :label="t('auth_audit.session_id')">
                 <UiInput
                   id="auth-audit-session-id"
-                  v-model="searchSessionId"
+                  v-model="draftFilters.session_id"
                   name="auth-audit-session-id"
                   autocomplete="off"
                 />
@@ -278,7 +432,7 @@ onMounted(() => {
               <UiFormField id="auth-audit-event-type" :label="t('auth_audit.event_type')">
                 <UiInput
                   id="auth-audit-event-type"
-                  v-model="searchEventType"
+                  v-model="draftFilters.event_type"
                   name="auth-audit-event-type"
                   autocomplete="off"
                 />
@@ -286,7 +440,7 @@ onMounted(() => {
               <UiFormField id="auth-audit-outcome" :label="t('auth_audit.outcome')">
                 <UiSelect
                   id="auth-audit-outcome"
-                  v-model="searchOutcome"
+                  v-model="draftFilters.outcome"
                   :options="[
                     { value: '', label: 'Semua Hasil / All' },
                     { value: 'succeeded', label: 'Success' },
@@ -298,7 +452,7 @@ onMounted(() => {
               <UiFormField id="auth-audit-error-code" :label="t('auth_audit.error_code')">
                 <UiInput
                   id="auth-audit-error-code"
-                  v-model="searchErrorCode"
+                  v-model="draftFilters.error_code"
                   name="auth-audit-error-code"
                   autocomplete="off"
                 />
@@ -307,7 +461,7 @@ onMounted(() => {
               <UiFormField id="auth-audit-consent-action" :label="t('auth_audit.consent_action')">
                 <UiSelect
                   id="auth-audit-consent-action"
-                  v-model="searchConsentAction"
+                  v-model="draftFilters.consent_action"
                   :options="[
                     { value: '', label: t('auth_audit.consent_action_all') },
                     { value: 'allow', label: t('auth_audit.consent_action_allow') },
@@ -319,13 +473,13 @@ onMounted(() => {
               <UiFormField id="auth-audit-from" :label="t('auth_audit.from')">
                 <UiInput
                   id="auth-audit-from"
-                  v-model="searchFrom"
+                  v-model="draftFilters.from"
                   name="auth-audit-from"
                   type="date"
                 />
               </UiFormField>
               <UiFormField id="auth-audit-to" :label="t('auth_audit.to')">
-                <UiInput id="auth-audit-to" v-model="searchTo" name="auth-audit-to" type="date" />
+                <UiInput id="auth-audit-to" v-model="draftFilters.to" name="auth-audit-to" type="date" />
               </UiFormField>
             </div>
           </div>
@@ -472,12 +626,7 @@ onMounted(() => {
               class="copy-btn"
               type="button"
               :title="copiedField === 'event_id' ? 'Copied' : 'Copy event reference'"
-              @click="
-                copyFieldToClipboard(
-                  'event_id',
-                  formatTechnicalPreview(store.selectedEvent.event_id),
-                )
-              "
+              @click="copyDisplayFieldToClipboard('event_id', store.selectedEvent.event_id)"
             >
               <Check
                 v-if="copiedField === 'event_id'"
@@ -524,13 +673,10 @@ onMounted(() => {
                   <button
                     type="button"
                     class="p-1 text-muted-foreground hover:text-foreground transition-colors"
-                    :title="
-                      copiedField === 'subject_id'
-                        ? 'Copied'
-                        : 'Salin nilai mentah / Copy raw value'
-                    "
+                    :title="copiedField === 'subject_id' ? 'Copied' : 'Salin referensi / Copy reference'"
+                    data-testid="copy-subject-id"
                     @click="
-                      copyFieldToClipboard('subject_id', store.selectedEvent.subject.subject_id)
+                      copyDisplayFieldToClipboard('subject_id', store.selectedEvent.subject.subject_id)
                     "
                   >
                     <Check
@@ -544,6 +690,7 @@ onMounted(() => {
                     type="button"
                     class="p-1 text-muted-foreground hover:text-foreground transition-colors"
                     title="Filter berdasarkan ini / Filter by this"
+                    data-testid="filter-subject-id"
                     @click="applyFieldFilter('subject_id', store.selectedEvent.subject.subject_id)"
                   >
                     <Search :size="14" />
@@ -559,10 +706,9 @@ onMounted(() => {
                   <button
                     type="button"
                     class="p-1 text-muted-foreground hover:text-foreground transition-colors"
-                    :title="
-                      copiedField === 'client_id' ? 'Copied' : 'Salin nilai mentah / Copy raw value'
-                    "
-                    @click="copyFieldToClipboard('client_id', store.selectedEvent.client_id)"
+                    :title="copiedField === 'client_id' ? 'Copied' : 'Salin nilai / Copy value'"
+                    data-testid="copy-client-id"
+                    @click="copyDisplayFieldToClipboard('client_id', store.selectedEvent.client_id)"
                   >
                     <Check
                       v-if="copiedField === 'client_id'"
@@ -575,6 +721,7 @@ onMounted(() => {
                     type="button"
                     class="p-1 text-muted-foreground hover:text-foreground transition-colors"
                     title="Filter berdasarkan ini / Filter by this"
+                    data-testid="filter-client-id"
                     @click="applyFieldFilter('client_id', store.selectedEvent.client_id)"
                   >
                     <Search :size="14" />
@@ -590,12 +737,9 @@ onMounted(() => {
                   <button
                     type="button"
                     class="p-1 text-muted-foreground hover:text-foreground transition-colors"
-                    :title="
-                      copiedField === 'session_id'
-                        ? 'Copied'
-                        : 'Salin nilai mentah / Copy raw value'
-                    "
-                    @click="copyFieldToClipboard('session_id', store.selectedEvent.session_id)"
+                    :title="copiedField === 'session_id' ? 'Copied' : 'Salin referensi / Copy reference'"
+                    data-testid="copy-session-id"
+                    @click="copyDisplayFieldToClipboard('session_id', store.selectedEvent.session_id)"
                   >
                     <Check
                       v-if="copiedField === 'session_id'"
@@ -608,6 +752,7 @@ onMounted(() => {
                     type="button"
                     class="p-1 text-muted-foreground hover:text-foreground transition-colors"
                     title="Filter berdasarkan ini / Filter by this"
+                    data-testid="filter-session-id"
                     @click="applyFieldFilter('session_id', store.selectedEvent.session_id)"
                   >
                     <Search :size="14" />
@@ -642,13 +787,10 @@ onMounted(() => {
                   <button
                     type="button"
                     class="p-1 text-muted-foreground hover:text-foreground transition-colors"
-                    :title="
-                      copiedField === 'request_id'
-                        ? 'Copied'
-                        : 'Salin nilai mentah / Copy raw value'
-                    "
+                    :title="copiedField === 'request_id' ? 'Copied' : 'Salin referensi / Copy reference'"
+                    data-testid="copy-request-id"
                     @click="
-                      copyFieldToClipboard('request_id', store.selectedEvent.request.request_id)
+                      copyDisplayFieldToClipboard('request_id', store.selectedEvent.request.request_id)
                     "
                   >
                     <Check
@@ -662,6 +804,7 @@ onMounted(() => {
                     type="button"
                     class="p-1 text-muted-foreground hover:text-foreground transition-colors"
                     title="Filter berdasarkan ini / Filter by this"
+                    data-testid="filter-request-id"
                     @click="applyFieldFilter('request_id', store.selectedEvent.request.request_id)"
                   >
                     <Search :size="14" />
@@ -797,6 +940,20 @@ onMounted(() => {
   font-weight: 700;
 }
 
+.active-filter-count {
+  display: inline-flex;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
 /* Chevron animations */
 .chevron-icon {
   display: inline-flex;
@@ -812,6 +969,77 @@ onMounted(() => {
   display: grid;
   grid-template-columns: 1fr;
   gap: 12px;
+}
+
+.active-filter-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.active-filter-chip {
+  display: inline-flex;
+  max-width: 100%;
+  min-width: 0;
+  align-items: stretch;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--muted);
+  color: var(--foreground);
+}
+
+.active-filter-chip__edit,
+.active-filter-chip__remove {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.active-filter-chip__edit {
+  min-width: 0;
+  max-width: 230px;
+  padding: 7px 10px 7px 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
+
+.active-filter-chip__remove {
+  display: inline-flex;
+  width: 36px;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  border-left: 1px solid var(--border);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.active-filter-chip__edit:hover,
+.active-filter-chip__remove:hover {
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+}
+
+.active-filter-chip__edit:focus-visible,
+.active-filter-chip__remove:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+
+@media (max-width: 640px) {
+  .active-filter-chip {
+    width: 100%;
+  }
+
+  .active-filter-chip__edit {
+    flex: 1;
+    max-width: none;
+  }
 }
 
 @media (min-width: 480px) and (max-width: 760px) {

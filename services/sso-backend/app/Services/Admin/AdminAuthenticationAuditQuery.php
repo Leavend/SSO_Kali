@@ -32,7 +32,8 @@ final class AdminAuthenticationAuditQuery
         }
 
         if (is_string($filters['error_code'] ?? null) && $filters['error_code'] !== '') {
-            $query->whereRaw('LOWER(error_code) LIKE ?', ['%'.strtolower($filters['error_code']).'%']);
+            $escapedErrorCode = addcslashes(strtolower($filters['error_code']), '%_\\');
+            $query->whereRaw("LOWER(error_code) LIKE ? ESCAPE '\\'", ['%'.$escapedErrorCode.'%']);
         }
 
         foreach (['request_id', 'subject_id', 'client_id', 'session_id'] as $field) {

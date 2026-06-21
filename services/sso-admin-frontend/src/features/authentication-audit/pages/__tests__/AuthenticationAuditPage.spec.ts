@@ -3,6 +3,7 @@ import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import AuthenticationAuditPage from '../AuthenticationAuditPage.vue'
 import { useAuthAuditStore } from '../../stores/auth-audit.store'
+import { useI18n } from '@/composables/useI18n'
 
 vi.mock('../../services/auth-audit.api', () => ({
   authAuditApi: {
@@ -27,6 +28,21 @@ const mockEvent = {
   occurred_at: '2026-06-01T10:00:00Z',
   context: {
     tenant: 'default',
+  },
+}
+
+const maskedIdentifierEvent = {
+  ...mockEvent,
+  event_id: 'EVT-UUID-001',
+  subject: {
+    subject_id: 'cb36675a-b0f3-4494-9987-6a6901020304',
+    email: null,
+  },
+  client_id: 'sso-admin-panel',
+  session_id: '550e8400-e29b-41d4-a716-446655440000',
+  request: {
+    ...mockEvent.request,
+    request_id: '0194f2b6-8a5e-7c30-b8f1-2d4c6e9a1122',
   },
 }
 
@@ -201,6 +217,115 @@ describe('AuthenticationAuditPage', () => {
     await wrapper.find('.copy-btn').trigger('click')
 
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith('REF-EVT001')
+  })
+
+  it('copies displayed references instead of raw identifiers from event details', async () => {
+    const store = useAuthAuditStore()
+    store.events = [maskedIdentifierEvent]
+    store.selectedEventDetail = maskedIdentifierEvent
+    store.selectedEventId = 'EVT-UUID-001'
+    store.status = 'success'
+
+    const wrapper = mount(AuthenticationAuditPage)
+
+    await wrapper.find('[data-testid="copy-subject-id"]').trigger('click')
+    await wrapper.find('[data-testid="copy-client-id"]').trigger('click')
+    await wrapper.find('[data-testid="copy-session-id"]').trigger('click')
+    await wrapper.find('[data-testid="copy-request-id"]').trigger('click')
+
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith('REF-01020304')
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith('SSO Admin Panel')
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith('REF-55440000')
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith('REF-6E9A1122')
+    expect(navigator.clipboard.writeText).not.toHaveBeenCalledWith(
+      'cb36675a-b0f3-4494-9987-6a6901020304',
+    )
+    expect(navigator.clipboard.writeText).not.toHaveBeenCalledWith(
+      '550e8400-e29b-41d4-a716-446655440000',
+    )
+  })
+
+  it('filters by displayed reference values instead of raw identifiers from event details', async () => {
+    const store = useAuthAuditStore()
+    store.events = [maskedIdentifierEvent]
+    store.selectedEventDetail = maskedIdentifierEvent
+    store.selectedEventId = 'EVT-UUID-001'
+    store.status = 'success'
+    const searchSpy = vi.spyOn(store, 'search').mockResolvedValue(undefined)
+
+    const wrapper = mount(AuthenticationAuditPage)
+
+    await wrapper.find('[data-testid="filter-subject-id"]').trigger('click')
+
+    expect((wrapper.find('#auth-audit-subject-id').element as HTMLInputElement).value).toBe(
+      'REF-01020304',
+    )
+    expect(searchSpy).toHaveBeenLastCalledWith({ subject_id: 'REF-01020304' })
+    expect(searchSpy).not.toHaveBeenCalledWith({
+      subject_id: 'cb36675a-b0f3-4494-9987-6a6901020304',
+    })
+
+    await wrapper.find('[data-testid="filter-client-id"]').trigger('click')
+
+    expect((wrapper.find('#auth-audit-client-id').element as HTMLInputElement).value).toBe(
+      'SSO Admin Panel',
+    )
+    expect(searchSpy).toHaveBeenLastCalledWith({
+      subject_id: 'REF-01020304',
+      client_id: 'SSO Admin Panel',
+    })
+  })
+
+  it('shows applied filter chips when collapsed and removes a chip by resubmitting remaining filters', async () => {
+    const store = useAuthAuditStore()
+    store.events = [mockEvent]
+    store.status = 'success'
+    const searchSpy = vi.spyOn(store, 'search').mockImplementation(async (filters) => {
+      store.filters = { ...filters, limit: 50 }
+    })
+
+    const wrapper = mount(AuthenticationAuditPage)
+
+    await wrapper.find('.filters-toggle-btn').trigger('click')
+    await wrapper.find('#auth-audit-subject-id').setValue('REF-01020304')
+    await wrapper.find('#auth-audit-outcome').setValue('succeeded')
+    await wrapper.find('#auth-audit-request-id').setValue('REF-6E9A1122')
+    await wrapper.find('.auth-audit-search-button').trigger('click')
+    await wrapper.vm.$nextTick()
+
+    await wrapper.find('.filters-toggle-btn').trigger('click')
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.find('.active-filter-count').text()).toBe('3')
+    expect(wrapper.text()).toContain('Account code: REF-01020304')
+    expect(wrapper.text()).toContain('Outcome: Success')
+    expect(wrapper.text()).toContain('Request code: REF-6E9A1122')
+    expect(wrapper.find('.filters-primary #auth-audit-request-id').exists()).toBe(false)
+
+    await wrapper.find('[data-testid="remove-filter-subject-id"]').trigger('click')
+
+    expect((wrapper.find('#auth-audit-subject-id').element as HTMLInputElement).value).toBe('')
+    expect(searchSpy).toHaveBeenLastCalledWith({
+      request_id: 'REF-6E9A1122',
+      outcome: 'succeeded',
+    })
+  })
+
+  it('keeps collapsed chips tied to applied filters rather than unsent draft edits', async () => {
+    const store = useAuthAuditStore()
+    store.events = [mockEvent]
+    store.status = 'success'
+    store.filters = { request_id: 'REF-6E9A1122', limit: 50 }
+
+    const wrapper = mount(AuthenticationAuditPage)
+
+    await wrapper.find('.filters-toggle-btn').trigger('click')
+    await wrapper.find('#auth-audit-subject-id').setValue('REF-DRAFT123')
+    await wrapper.find('.filters-toggle-btn').trigger('click')
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.text()).toContain('Request code: REF-6E9A1122')
+    expect(wrapper.text()).not.toContain('REF-DRAFT123')
   })
 
   it('shows layout selected state indicator classes', () => {
