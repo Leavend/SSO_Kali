@@ -26,7 +26,6 @@ final class ServiceHealthProbeService
 
     private const DEFAULT_LOG_THROTTLE_SECONDS = 60;
 
-
     /**
      * Probes the health endpoint for a given service target key.
      *

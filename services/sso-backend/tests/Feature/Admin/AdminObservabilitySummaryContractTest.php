@@ -15,6 +15,7 @@ use App\Services\System\ServiceHealthProbeTarget;
 use App\Support\Rbac\AdminPermission;
 use Database\Seeders\RbacSeeder;
 use GuzzleHttp\Psr7\Response as Psr7Response;
+use Illuminate\Cache\ArrayStore;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -504,7 +505,7 @@ function observabilityHeaders(User $user): array
 function clearObservabilityProbeCache(): void
 {
     $store = Cache::getStore();
-    if ($store instanceof \Illuminate\Cache\ArrayStore) {
+    if ($store instanceof ArrayStore) {
         $ref = new ReflectionObject($store);
         $prop = $ref->getProperty('storage');
         $prop->setAccessible(true);
