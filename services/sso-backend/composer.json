@@ -19,7 +19,7 @@
         "fakerphp/faker": "^1.23",
         "larastan/larastan": "^3.0",
         "laravel/pail": "^1.2.2",
-        "laravel/pint": "1.29.1",
+        "laravel/pint": "1.29.3",
         "laravel/sail": "^1.41",
         "laravel/telescope": "^5.19",
         "mockery/mockery": "^1.6",
