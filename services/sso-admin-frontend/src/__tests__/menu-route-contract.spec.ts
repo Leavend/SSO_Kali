@@ -8,7 +8,7 @@ const MENU_ID_TO_ROUTE_NAME: Record<string, string> = {
   clients: 'admin.clients',
   'external-idps': 'admin.external-idps',
   sessions: 'admin.sessions',
-  audit: 'admin.audit',
+  audit: 'admin.observability',
   'authentication-audit': 'admin.authentication-audit',
   profile: 'admin.profile',
   'ip-access': 'admin.ip-access',
@@ -57,12 +57,12 @@ describe('Admin menu-route contract (ISS-M1 regression guard)', () => {
     expect(authAuditRoute?.meta.permissions).toContain('admin.authentication-audit.read')
   })
 
-  it('audit route is the observability cockpit and compliance audit keeps its own route', () => {
-    const auditRoute = router.getRoutes().find((r) => r.name === 'admin.audit')
-    const complianceRoute = router.getRoutes().find((r) => r.name === 'admin.audit.compliance')
+  it('observability route is the cockpit and compliance audit keeps its own route', () => {
+    const observabilityRoute = router.getRoutes().find((r) => r.name === 'admin.observability')
+    const complianceRoute = router.getRoutes().find((r) => r.name === 'admin.observability.compliance')
 
-    expect(auditRoute?.meta.permissions).toContain('admin.observability.read')
-    expect(complianceRoute?.meta.permissions).toContain('admin.audit.read')
+    expect(observabilityRoute?.meta.permissions).toContain('admin.observability.read')
+    expect(complianceRoute?.meta.permissions).toContain('admin.observability.read')
   })
 
   it('profile route has correct permission meta', () => {

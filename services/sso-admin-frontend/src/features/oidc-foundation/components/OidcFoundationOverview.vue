@@ -3,11 +3,13 @@ import { useDateFormat } from '@/composables/useDateFormat'
 import { formatTechnicalPreview } from '@/lib/display-identifiers'
 import OidcStatusBadge from './OidcStatusBadge.vue'
 import type { OidcFoundationSnapshot } from '../types'
+import { useI18n } from '@/composables/useI18n'
 
 defineProps<{
   readonly snapshot: OidcFoundationSnapshot
-}>()
+ }>()
 const dateFormat = useDateFormat()
+const { t } = useI18n()
 </script>
 
 <template>
@@ -47,7 +49,7 @@ const dateFormat = useDateFormat()
         <dd>{{ dateFormat.smart(snapshot.checked_at) }}</dd>
       </div>
       <div v-if="snapshot.correlation_id">
-        <dt>Kode referensi</dt>
+        <dt>{{ t('common.evidence.ref_code') }}</dt>
         <dd class="break-anywhere">{{ formatTechnicalPreview(snapshot.correlation_id) }}</dd>
       </div>
     </dl>

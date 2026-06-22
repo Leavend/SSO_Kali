@@ -45,7 +45,7 @@ describe('DashboardPage', () => {
     expect(wrapper.text()).toContain('Admin Dashboard')
     expect(wrapper.text()).toContain('Users')
     expect(wrapper.text()).toContain('10')
-    expect(wrapper.text()).toContain('Kode referensi')
+    expect(wrapper.text()).toContain('Reference code')
     expect(wrapper.text()).toContain('REF-SHBOARD1')
     expect(wrapper.text()).not.toContain('req-dashboard-1')
     expect(wrapper.find('[title="2026-05-27T00:00:00.000Z"]').exists()).toBe(true)

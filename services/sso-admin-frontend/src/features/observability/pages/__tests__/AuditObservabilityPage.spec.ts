@@ -23,35 +23,33 @@ describe('AuditObservabilityPage', () => {
           name: 'SSO-Backend',
           status: 'healthy',
           summary: 'Database and Redis readiness checks passed.',
-          request_rate_per_min: 2,
-          error_rate_percent: 0,
           freshness_seconds: 15,
           queue: { pending_jobs: 0, failed_jobs: 0, oldest_pending_age_seconds: null },
         },
         {
           key: 'sso-portal',
           name: 'SSO-Portal',
-          status: 'unknown',
-          summary: 'Portal telemetry aggregator is not wired yet.',
-          request_rate_per_min: 2,
-          error_rate_percent: 0,
-          freshness_seconds: null,
+          status: 'healthy',
+          summary: 'Portal BFF path is reachable.',
+          freshness_seconds: 0,
         },
         {
           key: 'admin-sso',
           name: 'Admin-SSO',
           status: 'healthy',
           summary: 'Admin BFF path is reachable.',
-          request_rate_per_min: 1,
-          error_rate_percent: 0,
           freshness_seconds: 15,
         },
       ],
       metrics: {
         window_seconds: 900,
+        freshness_seconds: 30,
         queue: { pending_jobs: 0, failed_jobs: 0, oldest_pending_age_seconds: null },
         auth_funnel: { total_15m: 12, succeeded_15m: 11, failed_15m: 1, failure_rate_percent: 8.33 },
         admin_activity: { total_15m: 4, denied_15m: 0, denied_rate_percent: 0 },
+      },
+      freshness: {
+        recent_events_seconds: 5,
       },
       logs: [
         {
@@ -87,9 +85,14 @@ describe('AuditObservabilityPage', () => {
     expect(wrapper.text()).toContain('SSO-Portal')
     expect(wrapper.text()).toContain('Admin-SSO')
     expect(wrapper.text()).toContain('Compliance evidence')
+    expect(wrapper.text()).toContain('refreshed about every 30s')
+    expect(wrapper.text()).toContain('live')
+    expect(wrapper.text()).not.toContain('Request Rate')
+    expect(wrapper.text()).not.toContain('Error Rate')
 
     await wrapper.findAll('button').find((button) => button.text().includes('Logs'))?.trigger('click')
     expect(wrapper.text()).toContain('Recent correlated events')
+    expect(wrapper.text()).toContain('refreshed about every 5s')
     expect(wrapper.text()).toContain('REF-OBSLOG1')
 
     await wrapper.findAll('button').find((button) => button.text().includes('Traces'))?.trigger('click')

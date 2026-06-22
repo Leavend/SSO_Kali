@@ -45,6 +45,12 @@ function principal(permissions: readonly string[]) {
   }
 }
 
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem('dev-sso-admin-locale', 'en')
+  })
+})
+
 test('lists sessions and revokes only after confirmation', async ({ page }) => {
   let revokeCalled = false
 
@@ -62,30 +68,40 @@ test('lists sessions and revokes only after confirmation', async ({ page }) => {
     })
   })
   await page.route('**/api/admin/sessions/admin-session-1', async (route) => {
-    revokeCalled = true
-    await route.fulfill({
-      contentType: 'application/json',
-      headers: { 'x-request-id': 'req-session-revoke' },
-      body: JSON.stringify({ session_id: 'admin-session-1', revoked: true }),
-    })
+    if (route.request().method() === 'DELETE') {
+      revokeCalled = true
+      await route.fulfill({
+        contentType: 'application/json',
+        headers: { 'x-request-id': 'req-session-revoke' },
+        body: JSON.stringify({ session_id: 'admin-session-1', revoked: true }),
+      })
+    } else {
+      await route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify(session),
+      })
+    }
   })
 
   await page.goto('/sessions')
 
-  await expect(page.getByRole('navigation', { name: 'Modul admin' })).toContainText('Sessions')
+  await expect(page.getByRole('navigation', { name: 'Admin modules' })).toContainText('Sessions')
   await expect(page.getByRole('heading', { name: 'Sessions', exact: true })).toBeVisible()
-  await expect(page.getByText('admin-session-1')).toBeVisible()
-  await expect(page.getByText('Operator User')).toBeVisible()
-  await expect(page.getByText('req-sessions-list')).toBeVisible()
+  await expect(page.getByText('REF-IONSLIST').first()).toBeVisible()
 
+  await page.getByRole('button', { name: /Operator User/ }).click()
+  await expect(page.getByText('REF-SESSION1').first()).toBeVisible()
+  await expect(page.getByText('Operator User').first()).toBeVisible()
+
+  await page.getByRole('tab', { name: 'Lifecycle' }).click()
   await page.getByRole('button', { name: 'Revoke' }).click()
   await expect(page.getByRole('dialog', { name: 'Revoke admin session?' })).toContainText(
-    'admin-session-1',
+    'REF-SESSION1',
   )
   expect(revokeCalled).toBe(false)
 
   await page.getByTestId('confirm-dialog-confirm').click()
-  await expect(page.getByText('admin-session-1')).toHaveCount(0)
+  await expect(page.getByText('REF-SESSION1')).toHaveCount(0)
   expect(revokeCalled).toBe(true)
 })
 
@@ -100,9 +116,9 @@ test('blocks sessions route without terminate permission', async ({ page }) => {
   await page.goto('/sessions')
 
   await expect(
-    page.getByRole('heading', { name: 'Akun ini belum memiliki akses admin.' }),
+    page.getByRole('heading', { name: 'This account does not have admin access.' }),
   ).toBeVisible()
-  await expect(page.getByRole('navigation', { name: 'Modul admin' })).toHaveCount(0)
+  await expect(page.getByRole('navigation', { name: 'Admin modules' })).toHaveCount(0)
 })
 
 test('shows safe step-up copy when session revoke needs fresh auth', async ({ page }) => {
@@ -119,19 +135,28 @@ test('shows safe step-up copy when session revoke needs fresh auth', async ({ pa
     })
   })
   await page.route('**/api/admin/sessions/admin-session-1', async (route) => {
-    await route.fulfill({
-      status: 428,
-      contentType: 'application/json',
-      headers: { 'x-request-id': 'req-session-step' },
-      body: JSON.stringify({ error: 'fresh_auth_required', message: 'raw ACR trace' }),
-    })
+    if (route.request().method() === 'DELETE') {
+      await route.fulfill({
+        status: 428,
+        contentType: 'application/json',
+        headers: { 'x-request-id': 'req-session-step' },
+        body: JSON.stringify({ error: 'fresh_auth_required', message: 'raw ACR trace' }),
+      })
+    } else {
+      await route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify(session),
+      })
+    }
   })
 
   await page.goto('/sessions')
+  await page.getByRole('button', { name: /Operator User/ }).click()
+  await page.getByRole('tab', { name: 'Lifecycle' }).click()
   await page.getByRole('button', { name: 'Revoke' }).click()
   await page.getByTestId('confirm-dialog-confirm').click()
 
   await expect(page.getByRole('alert')).toContainText('fresh-auth atau MFA assurance')
-  await expect(page.getByText('req-session-step')).toBeVisible()
+  await expect(page.getByText('REF-SIONSTEP').first()).toBeVisible()
   await expect(page.getByText('raw ACR')).toHaveCount(0)
 })

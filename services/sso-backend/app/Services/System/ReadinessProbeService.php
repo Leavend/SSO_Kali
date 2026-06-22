@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
 use Throwable;
 
-final class ReadinessProbeService
+class ReadinessProbeService
 {
     public function __construct(
         private readonly QueueObservabilityService $queueObservability,

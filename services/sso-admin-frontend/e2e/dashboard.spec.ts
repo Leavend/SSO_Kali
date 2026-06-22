@@ -49,6 +49,12 @@ const dashboardSummary = {
   },
 }
 
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem('dev-sso-admin-locale', 'en')
+  })
+})
+
 test('renders permission-aware admin shell and dashboard summary evidence', async ({ page }) => {
   await page.route('**/api/admin/me', async (route) => {
     await route.fulfill({
@@ -66,12 +72,12 @@ test('renders permission-aware admin shell and dashboard summary evidence', asyn
 
   await page.goto('/dashboard')
 
-  await expect(page.getByRole('navigation', { name: 'Modul admin' })).toContainText('Dashboard')
-  await expect(page.getByRole('navigation', { name: 'Modul admin' })).not.toContainText('Users')
+  await expect(page.getByRole('navigation', { name: 'Admin modules' })).toContainText('Dashboard')
+  await expect(page.getByRole('navigation', { name: 'Admin modules' })).not.toContainText('Users')
   await expect(page.getByRole('heading', { name: 'Admin Dashboard' })).toBeVisible()
   await expect(page.getByText('Dashboard evidence')).toBeVisible()
-  await expect(page.getByText('Kode referensi')).toBeVisible()
-  await expect(page.getByText('req-dashboard-e2e')).toBeVisible()
+  await expect(page.getByText('Reference code')).toBeVisible()
+  await expect(page.getByText('REF-BOARDE2E').first()).toBeVisible()
   await expect(page.getByText('10')).toBeVisible()
   await expect(page.getByText(/Bearer|refreshToken|idToken/u)).toHaveCount(0)
 })
@@ -95,8 +101,8 @@ test('shows safe dashboard error with request evidence', async ({ page }) => {
   await page.goto('/dashboard')
 
   await expect(
-    page.getByRole('heading', { name: 'Dashboard admin belum bisa dimuat' }),
+    page.getByRole('heading', { name: 'Admin dashboard could not be loaded' }),
   ).toBeVisible()
-  await expect(page.getByText('req-dashboard-fail', { exact: true })).toBeVisible()
+  await expect(page.getByText('REF-OARDFAIL', { exact: true }).first()).toBeVisible()
   await expect(page.getByText('SQLSTATE')).toHaveCount(0)
 })

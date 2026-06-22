@@ -118,7 +118,7 @@ describe('UsersPage', () => {
     expect(wrapper.text()).toContain('MFA required')
     expect(wrapper.text()).not.toContain('Risk score')
     expect(wrapper.text()).toContain('REF-SESS1')
-    expect(wrapper.text()).toContain('Kode referensi')
+    expect(wrapper.text()).toContain('Reference code')
     expect(wrapper.text()).toContain('REF-EQUSERS1')
     expect(wrapper.text()).not.toContain('sess_1')
     expect(wrapper.text()).not.toContain('req-users-1')

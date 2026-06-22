@@ -32,11 +32,11 @@ const routeManifestKeys: readonly { readonly path: string; readonly manifestKey:
     manifestKey: 'src/features/users/pages/UsersPage.vue',
   },
   {
-    path: '/audit',
+    path: '/observability',
     manifestKey: 'src/features/observability/pages/AuditObservabilityPage.vue',
   },
   {
-    path: '/audit/compliance',
+    path: '/observability/compliance',
     manifestKey: 'src/features/audit/pages/AuditPage.vue',
   },
   {

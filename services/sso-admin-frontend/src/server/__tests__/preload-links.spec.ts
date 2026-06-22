@@ -56,10 +56,10 @@ describe('admin shell route preloads', () => {
     expect(resolveInitialRouteManifestKey('/clients/new')).toBe(
       'src/features/clients/pages/ClientCreatePage.vue',
     )
-    expect(resolveInitialRouteManifestKey('/audit')).toBe(
+    expect(resolveInitialRouteManifestKey('/observability')).toBe(
       'src/features/observability/pages/AuditObservabilityPage.vue',
     )
-    expect(resolveInitialRouteManifestKey('/audit/compliance')).toBe(
+    expect(resolveInitialRouteManifestKey('/observability/compliance')).toBe(
       'src/features/audit/pages/AuditPage.vue',
     )
   })

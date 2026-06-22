@@ -105,7 +105,7 @@ describe('ClientsPage', () => {
     expect(wrapper.text()).toContain('https://app.example.test')
     expect(wrapper.text()).toContain('Backchannel logout URI')
     expect(wrapper.text()).toContain('https://app.example.test/logout')
-    expect(wrapper.text()).toContain('Kode referensi')
+    expect(wrapper.text()).toContain('Reference code')
     expect(wrapper.text()).toContain('REF-CLIENTS1')
     expect(wrapper.text()).not.toContain('req-clients-1')
     expect(wrapper.text()).not.toMatch(/Bearer|refreshToken|secret_hash/i)

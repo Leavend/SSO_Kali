@@ -75,7 +75,20 @@ function metricValue(value: number | null | undefined, suffix = ''): string {
 
 function freshnessLabel(seconds: number | null | undefined): string {
   if (seconds === null || seconds === undefined) return 'instrumentation pending'
+  if (seconds === 0) return 'live'
   return `${seconds}s freshness`
+}
+
+function metricsFreshnessLabel(seconds: number | null | undefined): string {
+  if (seconds === null || seconds === undefined) return 'cached telemetry snapshot'
+  if (seconds === 0) return 'live'
+  return `refreshed about every ${seconds}s`
+}
+
+function recentEventsFreshnessLabel(seconds: number | null | undefined): string {
+  if (seconds === null || seconds === undefined) return 'snapshot refresh pending'
+  if (seconds === 0) return 'live'
+  return `refreshed about every ${seconds}s`
 }
 
 function logReference(log: ObservabilityLogEvent): string {
@@ -108,7 +121,7 @@ function serviceQueue(service: ObservabilityService): string | null {
           </p>
         </div>
         <div class="observability-hero-card__actions">
-          <RouterLink class="button button--secondary premium-action-btn" :to="{ name: 'admin.audit.compliance' }">
+          <RouterLink class="button button--secondary premium-action-btn" :to="{ name: 'admin.observability.compliance' }">
             <Shield class="size-4 mr-1.5" />
             Compliance evidence
           </RouterLink>
@@ -268,29 +281,6 @@ function serviceQueue(service: ObservabilityService): string | null {
                 <span v-if="service.latency_p95_ms !== null && service.latency_p95_ms !== undefined" class="unit">ms</span>
               </dd>
             </div>
-
-            <div class="observability-metric-item">
-              <dt class="observability-metric-item__title">Request Rate</dt>
-              <dd class="observability-metric-item__value">
-                <span class="val">{{ metricValue(service.request_rate_per_min) }}</span>
-                <span v-if="service.request_rate_per_min !== null && service.request_rate_per_min !== undefined" class="unit">/m</span>
-              </dd>
-            </div>
-
-            <div class="observability-metric-item">
-              <dt class="observability-metric-item__title">Error Rate</dt>
-              <dd class="observability-metric-item__value">
-                <span class="val">{{ metricValue(service.error_rate_percent) }}</span>
-                <span v-if="service.error_rate_percent !== null && service.error_rate_percent !== undefined" class="unit">%</span>
-              </dd>
-              <div v-if="service.error_rate_percent !== null && service.error_rate_percent !== undefined" class="observability-metric-item__bar mt-1">
-                <div
-                  class="observability-metric-item__bar-fill"
-                  :class="service.error_rate_percent > 1 ? 'bg-rose' : 'bg-emerald'"
-                  :style="{ width: `${Math.min(service.error_rate_percent * 10, 100)}%` }"
-                ></div>
-              </div>
-            </div>
           </dl>
 
           <div class="observability-node-card__footer mt-4">
@@ -344,7 +334,9 @@ function serviceQueue(service: ObservabilityService): string | null {
             <Activity class="size-5 text-indigo-light-fg" />
             <h2 id="metrics-title" class="observability-panel-card__title">Runtime metrics</h2>
           </div>
-          <span class="observability-panel-card__subtitle">Rolling 15-minute telemetry windows</span>
+          <span class="observability-panel-card__subtitle">
+            Aggregate 15-minute auth/admin windows, {{ metricsFreshnessLabel(summary.metrics.freshness_seconds) }}
+          </span>
         </div>
 
         <div class="observability-signal-metrics-grid mt-6">
@@ -368,7 +360,9 @@ function serviceQueue(service: ObservabilityService): string | null {
             </div>
             <div class="observability-signal-widget__info">
               <h3>Auth events 15m</h3>
-              <p class="description">Identity & token exchange funnel requests</p>
+              <p class="description">
+                Identity & token exchange events, {{ metricsFreshnessLabel(summary.metrics.freshness_seconds) }}
+              </p>
               <span class="badge" :class="authFailureRate > 5 ? 'badge--warn' : 'badge--pass'">
                 {{ authFailureRate }}% failed
               </span>
@@ -394,7 +388,9 @@ function serviceQueue(service: ObservabilityService): string | null {
             </div>
             <div class="observability-signal-widget__info">
               <h3>Admin events 15m</h3>
-              <p class="description">BFF Control plane API operations audited</p>
+              <p class="description">
+                BFF control plane audit events, {{ metricsFreshnessLabel(summary.metrics.freshness_seconds) }}
+              </p>
               <span class="badge text-emerald" :class="adminDeniedRate > 0 ? 'badge--warn' : 'badge--pass'">
                 {{ adminDeniedRate }}% denied
               </span>
@@ -421,7 +417,8 @@ function serviceQueue(service: ObservabilityService): string | null {
                   <span>failed</span>
                 </div>
               </div>
-              <p class="description mt-2">Background jobs and notifications processor state</p>
+              <p class="description mt-2">Background jobs and notifications processor state (live)</p>
+              <span class="badge badge--pass">live</span>
             </div>
           </div>
         </div>
@@ -434,7 +431,9 @@ function serviceQueue(service: ObservabilityService): string | null {
             <Terminal class="size-5 text-indigo-light-fg" />
             <h2 id="logs-title" class="observability-panel-card__title">Recent correlated events</h2>
           </div>
-          <span class="observability-panel-card__subtitle">Aggregated system events matching correlation indices</span>
+          <span class="observability-panel-card__subtitle">
+            Aggregated system events matching correlation indices, {{ recentEventsFreshnessLabel(summary.freshness?.recent_events_seconds) }}
+          </span>
         </div>
 
         <!-- Terminal Console View -->
@@ -983,22 +982,6 @@ function serviceQueue(service: ObservabilityService): string | null {
   font-size: var(--text-2xs);
   color: var(--muted-foreground);
 }
-
-.observability-metric-item__bar {
-  width: 100%;
-  height: 3px;
-  border-radius: 999px;
-  background: var(--border);
-  overflow: hidden;
-}
-
-.observability-metric-item__bar-fill {
-  height: 100%;
-  border-radius: 999px;
-}
-
-.bg-rose { background: #ef4444; }
-.bg-emerald { background: #10b981; }
 
 .observability-node-card__footer {
   margin-top: auto;

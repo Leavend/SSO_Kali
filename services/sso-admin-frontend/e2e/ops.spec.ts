@@ -47,6 +47,12 @@ const readiness = {
   },
 }
 
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem('dev-sso-admin-locale', 'en')
+  })
+})
+
 test('renders ops readiness and evidence placeholders', async ({ page }) => {
   await page.route('**/api/admin/me', async (route) => {
     await route.fulfill({ contentType: 'application/json', body: JSON.stringify(principal) })
@@ -61,7 +67,7 @@ test('renders ops readiness and evidence placeholders', async ({ page }) => {
 
   await page.goto('/ops')
 
-  await expect(page.getByRole('navigation', { name: 'Modul admin' })).toContainText('Ops')
+  await expect(page.getByRole('navigation', { name: 'Admin modules' })).toContainText('Ops')
   await expect(page.getByRole('heading', { name: 'Ops Evidence', exact: true })).toBeVisible()
   await expect(page.getByText('sso-backend', { exact: true })).toBeVisible()
   await expect(page.getByText('ready')).toBeVisible()
@@ -71,8 +77,8 @@ test('renders ops readiness and evidence placeholders', async ({ page }) => {
     .getByRole('heading', { name: 'Ops evidence', exact: true })
     .locator('..')
   await expect(evidencePanel).toBeVisible()
-  await expect(evidencePanel).toContainText('Kode referensi')
-  await expect(evidencePanel).toContainText('req-ops-e2e')
+  await expect(evidencePanel).toContainText('Reference code')
+  await expect(evidencePanel).toContainText('REF-EQOPSE2E')
   await expect(page.getByText(/Bearer|metrics token|secret|SQLSTATE/u)).toHaveCount(0)
 })
 
@@ -91,7 +97,7 @@ test('shows safe ops error with request ID', async ({ page }) => {
 
   await page.goto('/ops')
 
-  await expect(page.getByRole('heading', { name: 'Ops evidence belum bisa dimuat' })).toBeVisible()
-  await expect(page.getByRole('alert')).toContainText('req-ops-fail')
+  await expect(page.getByRole('heading', { name: 'Ops evidence could not be loaded' })).toBeVisible()
+  await expect(page.getByRole('alert')).toContainText('REF-QOPSFAIL')
   await expect(page.getByText('raw metrics token')).toHaveCount(0)
 })

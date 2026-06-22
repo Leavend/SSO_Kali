@@ -45,6 +45,12 @@ function principal(permissions: readonly string[]) {
   }
 }
 
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem('dev-sso-admin-locale', 'en')
+  })
+})
+
 test('lists edits and resets SSO error templates', async ({ page }) => {
   const updatedTemplate = {
     ...template,
@@ -91,12 +97,12 @@ test('lists edits and resets SSO error templates', async ({ page }) => {
 
   await page.goto('/sso-error-templates')
 
-  await expect(page.getByRole('navigation', { name: 'Modul admin' })).toContainText(
-    'SSO Error Templates',
+  await expect(page.getByRole('navigation', { name: 'Admin modules' })).toContainText(
+    'Error Templates',
   )
   await expect(page.getByRole('heading', { name: 'SSO Error Templates' })).toBeVisible()
   await expect(page.getByText('Permintaan tidak valid')).toBeVisible()
-  await expect(page.getByText('req-templates-list')).toBeVisible()
+  await expect(page.getByText('REF-ATESLIST').first()).toBeVisible()
 
   const invalidRequestCard = page.locator('.ui-card').filter({ hasText: 'invalid_request' }).first()
   await invalidRequestCard.getByRole('button', { name: 'Edit' }).click()
@@ -106,7 +112,7 @@ test('lists edits and resets SSO error templates', async ({ page }) => {
   await page.getByRole('button', { name: 'Save' }).click()
 
   await expect(page.getByText('Permintaan SSO ditolak')).toBeVisible()
-  await expect(page.getByText('req-template-save')).toBeVisible()
+  await expect(page.getByText('REF-LATESAVE').first()).toBeVisible()
 
   await page
     .locator('.ui-card')
@@ -115,7 +121,7 @@ test('lists edits and resets SSO error templates', async ({ page }) => {
     .getByRole('button', { name: 'Reset' })
     .click()
   await expect(page.getByText('Default invalid request')).toBeVisible()
-  await expect(page.getByText('req-template-reset')).toBeVisible()
+  await expect(page.getByText('REF-ATERESET').first()).toBeVisible()
   await expect(page.getByText(/Bearer|refreshToken|SQLSTATE/u)).toHaveCount(0)
 })
 
@@ -153,9 +159,9 @@ test('blocks SSO error templates route without security policy read permission',
   await page.goto('/sso-error-templates')
 
   await expect(
-    page.getByRole('heading', { name: 'Akun ini belum memiliki akses admin.' }),
+    page.getByRole('heading', { name: 'This account does not have admin access.' }),
   ).toBeVisible()
-  await expect(page.getByRole('navigation', { name: 'Modul admin' })).toHaveCount(0)
+  await expect(page.getByRole('navigation', { name: 'Admin modules' })).toHaveCount(0)
 })
 
 test('shows safe step-up copy when saving SSO error template needs fresh auth', async ({
@@ -191,6 +197,6 @@ test('shows safe step-up copy when saving SSO error template needs fresh auth', 
   await page.getByRole('button', { name: 'Save' }).click()
 
   await expect(page.getByRole('alert')).toContainText('fresh-auth atau MFA assurance')
-  await expect(page.getByText('req-template-step')).toBeVisible()
+  await expect(page.getByText('REF-LATESTEP').first()).toBeVisible()
   await expect(page.getByText('raw ACR')).toHaveCount(0)
 })

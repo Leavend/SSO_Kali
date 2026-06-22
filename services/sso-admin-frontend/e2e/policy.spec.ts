@@ -72,6 +72,12 @@ const role = {
   permissions: [{ slug: 'admin.audit.read', name: 'Audit read', category: 'audit' }],
 }
 
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem('dev-sso-admin-locale', 'en')
+  })
+})
+
 test('renders policy and RBAC evidence', async ({ page }) => {
   await page.route('**/api/admin/me', async (route) => {
     await route.fulfill({ contentType: 'application/json', body: JSON.stringify(principal) })
@@ -100,15 +106,15 @@ test('renders policy and RBAC evidence', async ({ page }) => {
 
   await page.goto('/policy')
 
-  await expect(page.getByRole('navigation', { name: 'Modul admin' })).toContainText('Policy')
+  await expect(page.getByRole('navigation', { name: 'Admin modules' })).toContainText('Policies')
   await expect(page.getByRole('heading', { name: 'Policy & RBAC' })).toBeVisible()
   await expect(page.getByText('password version 1')).toBeVisible()
   const roles = page.getByRole('heading', { name: 'Roles' }).locator('..')
   await expect(roles).toContainText('Auditor')
   await expect(roles).toContainText('admin.audit.read')
   await expect(page.getByText('Policy evidence')).toBeVisible()
-  await expect(page.getByText('Kode referensi')).toBeVisible()
-  await expect(page.getByText('req-policy-e2e')).toBeVisible()
+  await expect(page.getByText('Reference code')).toBeVisible()
+  await expect(page.getByText('REF-OLICYE2E').first()).toBeVisible()
   await expect(page.getByText(/Bearer|refreshToken|SQLSTATE/u)).toHaveCount(0)
 })
 
@@ -149,6 +155,6 @@ test('shows safe step-up copy for high-risk policy action', async ({ page }) => 
   await page.getByTestId('confirm-dialog-confirm').click()
 
   await expect(page.getByText('fresh-auth atau MFA assurance')).toBeVisible()
-  await expect(page.getByText('req-policy-step')).toBeVisible()
+  await expect(page.getByText('REF-LICYSTEP').first()).toBeVisible()
   await expect(page.getByText('raw ACR')).toHaveCount(0)
 })

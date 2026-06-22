@@ -43,6 +43,12 @@ const authenticatedDashboardSummary = {
   },
 }
 
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem('dev-sso-admin-locale', 'en')
+  })
+})
+
 test('cold visit diagnoses an HTML admin API response without falling into the generic error view', async ({
   page,
 }) => {
@@ -115,7 +121,7 @@ test('stubbed OIDC admin session reaches dashboard with principal evidence', asy
   await expect(page.getByRole('heading', { name: 'Admin Dashboard' })).toBeVisible()
   await expect(page.getByText('admin-smoke@example.test')).toBeVisible()
   await expect(page.getByText('Dashboard evidence')).toBeVisible()
-  await expect(page.getByText('req-admin-smoke-dashboard')).toBeVisible()
+  await expect(page.getByText('REF-ASHBOARD').first()).toBeVisible()
   await expect(page.getByText(/access_token|refresh_token|id_token|Bearer/u)).toHaveCount(0)
   expect(principalRequests).toBeGreaterThan(0)
 })
@@ -143,5 +149,5 @@ test('legacy /home path is handled by the admin SPA catch-all instead of renderi
 
   await expect(page).toHaveURL(/\/dashboard$/u)
   await expect(page.getByRole('heading', { name: 'Admin Dashboard' })).toBeVisible()
-  await expect(page.getByText('req-home-catch-all')).toBeVisible()
+  await expect(page.getByText('REF-CATCHALL').first()).toBeVisible()
 })

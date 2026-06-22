@@ -81,7 +81,13 @@
     "back_to_list": "Back to list",
     "copy": "Copy",
     "copied": "Copied!",
-    "close": "Close"
+    "close": "Close",
+    "evidence": {
+      "ref_code": "Reference code",
+      "tech_details": "Technical details",
+      "client": "Application",
+      "subject": "Account"
+    }
   },
   "dashboard": {
     "eyebrow": "Admin Governance",

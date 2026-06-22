@@ -66,6 +66,12 @@ const provider = {
   health_status: 'healthy',
 }
 
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem('dev-sso-admin-locale', 'en')
+  })
+})
+
 test('renders external IdP provider and mapping evidence', async ({ page }) => {
   await page.route('**/api/admin/me', async (route) => {
     await route.fulfill({ contentType: 'application/json', body: JSON.stringify(principal) })
@@ -94,17 +100,18 @@ test('renders external IdP provider and mapping evidence', async ({ page }) => {
   })
 
   await page.goto('/external-idps')
+  await page.getByRole('tab', { name: 'Mapping & Rules' }).click()
   await page.getByRole('button', { name: 'Preview mapping' }).click()
 
-  await expect(page.getByRole('navigation', { name: 'Modul admin' })).toContainText('External IdPs')
+  await expect(page.getByRole('navigation', { name: 'Admin modules' })).toContainText('External IDPs')
   await expect(page.getByRole('heading', { name: 'External IdPs' })).toBeVisible()
   const providerList = page.getByLabel('Daftar External IdP')
   await expect(providerList).toContainText('Google Workspace')
   await expect(providerList).toContainText('healthy')
-  await expect(page.getByText('safe to link: true')).toBeVisible()
+  await expect(page.getByText('Safe to link:')).toBeVisible()
   await expect(page.getByText('Federation evidence')).toBeVisible()
-  await expect(page.getByText('Kode referensi')).toBeVisible()
-  await expect(page.getByText('req-idp-e2e')).toBeVisible()
+  await expect(page.getByText('Reference code')).toBeVisible()
+  await expect(page.getByText('REF-EQIDPE2E').first()).toBeVisible()
   await expect(page.getByText(/Bearer|client_secret|access_token|SQLSTATE/u)).toHaveCount(0)
 })
 
@@ -129,10 +136,11 @@ test('shows safe step-up copy for provider disable', async ({ page }) => {
   })
 
   await page.goto('/external-idps')
+  await page.getByRole('tab', { name: 'Configuration' }).click()
   await page.getByLabel('Enabled').uncheck()
   await page.getByRole('button', { name: 'Save changes' }).click()
 
   await expect(page.getByText('fresh-auth atau MFA assurance')).toBeVisible()
-  await expect(page.getByText('req-idp-step')).toBeVisible()
+  await expect(page.getByText('REF-QIDPSTEP').first()).toBeVisible()
   await expect(page.getByText('raw ACR')).toHaveCount(0)
 })

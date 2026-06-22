@@ -843,7 +843,7 @@ async function deleteClient(): Promise<void> {
             <RouterLink
               :class="buttonVariants({ variant: 'secondary' })"
               :to="{
-                name: 'admin.audit.compliance',
+                name: 'admin.observability.compliance',
                 query: { consent: '1', client_id: store.selectedClient.client_id },
               }"
             >

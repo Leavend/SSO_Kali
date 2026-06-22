@@ -6,8 +6,6 @@ export type ObservabilityService = {
   readonly status: ObservabilityServiceStatus
   readonly summary: string
   readonly latency_p95_ms?: number | null
-  readonly request_rate_per_min?: number | null
-  readonly error_rate_percent?: number | null
   readonly freshness_seconds?: number | null
   readonly checks?: Readonly<Record<string, unknown>>
   readonly queue?: ObservabilityQueueMetrics
@@ -42,10 +40,14 @@ export type ObservabilitySummary = {
   readonly services: readonly ObservabilityService[]
   readonly metrics: {
     readonly window_seconds: number
+    readonly freshness_seconds?: number | null
     readonly queue?: ObservabilityQueueMetrics
     readonly performance?: Readonly<Record<string, unknown>>
     readonly auth_funnel?: Readonly<Record<string, number>>
     readonly admin_activity?: Readonly<Record<string, number>>
+  }
+  readonly freshness?: {
+    readonly recent_events_seconds?: number | null
   }
   readonly logs: readonly ObservabilityLogEvent[]
   readonly traces: ObservabilityTraceState

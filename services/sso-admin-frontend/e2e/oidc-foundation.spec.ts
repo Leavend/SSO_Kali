@@ -136,6 +136,9 @@ const oidcFoundationSnapshot = {
 }
 
 test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem('dev-sso-admin-locale', 'en')
+  })
   await page.route('**/api/auth/session', async (route) => {
     await route.fulfill({
       contentType: 'application/json',
@@ -161,7 +164,7 @@ test('renders OIDC Foundation evidence for admins with dashboard permission', as
   await page.goto('/oidc-foundation')
 
   await expect(
-    page.getByRole('heading', { name: 'Protocol Health dan Evidence FR-001–FR-005.' }),
+    page.getByRole('heading', { name: 'Protocol Health and Evidence FR-001–FR-005.' }),
   ).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Discovery Metadata', exact: true })).toBeVisible()
   await expect(
@@ -194,6 +197,6 @@ test('redirects admins without dashboard permission to the forbidden page', asyn
 
   await expect(page).toHaveURL(/\/forbidden$/u)
   await expect(page.getByRole('heading', { level: 1 })).toContainText(
-    'Akun ini belum memiliki akses admin',
+    'This account does not have admin access.',
   )
 })

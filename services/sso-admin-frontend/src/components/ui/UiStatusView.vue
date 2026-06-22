@@ -2,6 +2,7 @@
 import { AlertTriangle, Ban, RefreshCw, ShieldAlert } from 'lucide-vue-next'
 import { computed } from 'vue'
 import { formatSupportReference, redactTechnicalIdentifiers } from '@/lib/display-identifiers'
+import { useI18n } from '@/composables/useI18n'
 
 type StatusTone = 'error' | 'forbidden' | 'step_up' | 'api'
 
@@ -18,6 +19,8 @@ const props = withDefaults(defineProps<Props>(), {
   requestId: undefined,
   standalone: true,
 })
+
+const { t } = useI18n()
 
 const safeDescription = computed(() => redactTechnicalIdentifiers(props.description))
 const supportReference = computed(() => formatSupportReference(props.requestId))
@@ -41,7 +44,7 @@ const supportReference = computed(() => formatSupportReference(props.requestId))
         <p>{{ safeDescription }}</p>
         <dl v-if="supportReference" class="ui-status-view__evidence">
           <div>
-            <dt>Kode referensi</dt>
+            <dt>{{ t('common.evidence.ref_code') }}</dt>
             <dd>{{ supportReference }}</dd>
           </div>
         </dl>

@@ -17,11 +17,12 @@ const principal = {
     permissions: {
       view_admin_panel: true,
       manage_sessions: false,
-      permissions: ['admin.dashboard.view', 'admin.audit.read', 'admin.dsr.read'],
+      permissions: ['admin.dashboard.view', 'admin.observability.read', 'admin.dsr.read', 'admin.dsr.review'],
       capabilities: {
         'admin.dashboard.view': true,
-        'admin.audit.read': true,
+        'admin.observability.read': true,
         'admin.dsr.read': true,
+        'admin.dsr.review': true,
       },
       menus: [
         {
@@ -31,9 +32,9 @@ const principal = {
           visible: true,
         },
         {
-          id: 'audit',
-          label: 'Audit',
-          required_permission: 'admin.audit.read',
+          id: 'observability',
+          label: 'Observability',
+          required_permission: 'admin.observability.read',
           visible: true,
         },
         {
@@ -107,6 +108,12 @@ const retention = {
   ],
 }
 
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem('dev-sso-admin-locale', 'en')
+  })
+})
+
 test('renders audit compliance evidence and DSR queue', async ({ page }) => {
   await page.route('**/api/admin/me', async (route) => {
     await route.fulfill({ contentType: 'application/json', body: JSON.stringify(principal) })
@@ -147,20 +154,28 @@ test('renders audit compliance evidence and DSR queue', async ({ page }) => {
     })
   })
 
-  await page.goto('/audit')
+  await page.goto('/observability/compliance')
 
-  await expect(page.getByRole('navigation', { name: 'Modul admin' })).toContainText('Audit')
-  await expect(page.getByRole('navigation', { name: 'Modul admin' })).not.toContainText('Users')
+  await expect(page.getByRole('navigation', { name: 'Admin modules' })).toContainText('Observability')
+  await expect(page.getByRole('navigation', { name: 'Admin modules' })).not.toContainText('Users')
   await expect(page.getByRole('heading', { name: 'Audit Compliance' })).toBeVisible()
+  // Logs tab (active by default)
   await expect(page.getByText('AUD01')).toBeVisible()
+
+  // Click Retention tab
+  await page.getByRole('button', { name: 'Retention & Integrity' }).click()
   await expect(page.getByText('Integrity verified')).toBeVisible()
   await expect(page.getByText('Retention status')).toBeVisible()
-  await expect(page.getByText('Authentication audit events')).toBeVisible()
-  await expect(page.getByText('01HX7S8Y9ZABCDEF1234567890')).toBeVisible()
+
+  // Click DSR tab
+  await page.getByRole('button', { name: 'DSR Queue' }).click()
+  await expect(page.getByText('REF-34567890')).toBeVisible()
+
+  // Click Security tab
+  await page.getByRole('button', { name: 'Security Notification' }).click()
   await expect(page.getByText('Security notification evidence')).toBeVisible()
-  await expect(
-    page.getByRole('button', { name: /AUTH01 refresh_token_reuse_detected/u }),
-  ).toBeVisible()
+  await expect(page.getByRole('cell', { name: 'REF-AUTH01' })).toBeVisible()
+  await expect(page.getByRole('cell', { name: 'refresh_token_reuse_detected' })).toBeVisible()
   await expect(page.getByText('Suspicious login challenge matrix')).toBeVisible()
   await expect(page.getByText('Unknown ACR values are treated as no requirement')).toBeVisible()
   await expect(page.getByText('Portal/backend observable evidence')).toBeVisible()
@@ -171,8 +186,8 @@ test('renders audit compliance evidence and DSR queue', async ({ page }) => {
   await expect(page.getByText('Safe error regression review')).toBeVisible()
   const evidencePanel = page.getByRole('heading', { name: 'Audit evidence context' }).locator('..')
   await expect(evidencePanel).toBeVisible()
-  await expect(evidencePanel).toContainText('Kode referensi')
-  await expect(evidencePanel).toContainText('req-audit-e2e')
+  await expect(evidencePanel).toContainText('Reference code')
+  await expect(evidencePanel).toContainText('REF-AUDITE2E')
   await expect(evidencePanel).toContainText('Correlation')
   await expect(evidencePanel).toContainText('Session')
   await expect(page.getByText(/Bearer|refreshToken|SQLSTATE/u)).toHaveCount(0)
@@ -219,11 +234,11 @@ test('shows safe audit error with request evidence', async ({ page }) => {
     })
   })
 
-  await page.goto('/audit')
+  await page.goto('/observability/compliance')
 
   await expect(
-    page.getByRole('heading', { name: 'Audit compliance belum bisa dimuat' }),
+    page.getByRole('heading', { name: 'Admin audit events' }),
   ).toBeVisible()
-  await expect(page.getByRole('alert')).toContainText('req-audit-fail')
+  await expect(page.getByRole('alert').first()).toContainText('REF-UDITFAIL')
   await expect(page.getByText('SQLSTATE')).toHaveCount(0)
 })

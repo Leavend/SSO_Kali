@@ -2,8 +2,10 @@
 import { CheckCircle2, Info, ShieldAlert, X, XCircle } from 'lucide-vue-next'
 import { formatSupportReference } from '@/lib/display-identifiers'
 import { useToast } from './useToast'
+import { useI18n } from '@/composables/useI18n'
 
 const { toasts, dismissToast } = useToast()
+const { t } = useI18n()
 </script>
 
 <template>
@@ -23,7 +25,7 @@ const { toasts, dismissToast } = useToast()
         <strong>{{ toast.title }}</strong>
         <p v-if="toast.description">{{ toast.description }}</p>
         <small v-if="toast.requestId"
-          >Kode referensi: {{ formatSupportReference(toast.requestId) }}</small
+          >{{ t('common.evidence.ref_code') }}: {{ formatSupportReference(toast.requestId) }}</small
         >
       </div>
       <button

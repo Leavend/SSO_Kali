@@ -30,6 +30,18 @@ return [
         'readiness_external_idp_snapshot_enabled' => (bool) env('SSO_READINESS_EXTERNAL_IDP_SNAPSHOT_ENABLED', false),
         'internal_metrics_token_header' => env('SSO_INTERNAL_METRICS_TOKEN_HEADER', 'X-SSO-Internal-Metrics-Token'),
         'internal_metrics_token' => env('SSO_INTERNAL_METRICS_TOKEN'),
+        'probe_cache_ttl_healthy_seconds' => max(1, (int) env('SSO_OBSERVABILITY_PROBE_CACHE_TTL_HEALTHY', 30)),
+        'probe_cache_ttl_failure_seconds' => max(1, (int) env('SSO_OBSERVABILITY_PROBE_CACHE_TTL_FAILURE', 3)),
+        'probe_timeout_seconds' => max(1, (int) env('SSO_OBSERVABILITY_PROBE_TIMEOUT_SECONDS', 3)),
+        'probe_degraded_latency_ms' => max(1, (int) env('SSO_OBSERVABILITY_PROBE_DEGRADED_LATENCY_MS', 1000)),
+        'probe_log_throttle_seconds' => max(1, (int) env('SSO_OBSERVABILITY_PROBE_LOG_THROTTLE_SECONDS', 60)),
+        'summary_metrics_cache_ttl_seconds' => max(1, (int) env('SSO_OBSERVABILITY_SUMMARY_METRICS_CACHE_TTL_SECONDS', 30)),
+        'recent_events_cache_ttl_seconds' => max(1, (int) env('SSO_OBSERVABILITY_RECENT_EVENTS_CACHE_TTL_SECONDS', 5)),
+        'targets' => [
+            'portal_url' => env('SSO_OBSERVABILITY_TARGET_PORTAL_URL'),
+            'admin_url' => env('SSO_OBSERVABILITY_TARGET_ADMIN_URL'),
+            'backend_url' => env('SSO_OBSERVABILITY_TARGET_BACKEND_URL'),
+        ],
     ],
     // FR-057 / BE-FR057-001 — external IdP federation runtime tunables.
     //

@@ -232,7 +232,7 @@ describe('AuditPage', () => {
 
     // Shared labels
     expect(wrapper.text()).toContain('Audit evidence context')
-    expect(wrapper.text()).toContain('Kode referensi')
+    expect(wrapper.text()).toContain('Reference code')
     expect(wrapper.text()).toContain('REF-EQAUDIT1')
     expect(wrapper.text()).not.toContain('req-audit-1')
     expect(wrapper.text()).toContain('Correlation')

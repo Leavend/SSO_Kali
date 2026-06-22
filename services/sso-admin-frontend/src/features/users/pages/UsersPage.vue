@@ -681,7 +681,7 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
               <RouterLink
                 :class="buttonVariants({ variant: 'secondary' })"
                 :to="{
-                  name: 'admin.audit.compliance',
+                  name: 'admin.observability.compliance',
                   query: {
                     consent: '1',
                     subject_id: store.selectedUser.subject_id,

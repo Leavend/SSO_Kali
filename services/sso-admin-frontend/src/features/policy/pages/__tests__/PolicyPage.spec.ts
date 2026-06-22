@@ -102,7 +102,7 @@ describe('PolicyPage', () => {
     expect(wrapper.text()).toContain('Auditor')
     expect(wrapper.text()).toContain('admin.audit.read')
     expect(wrapper.text()).toContain('Policy evidence')
-    expect(wrapper.text()).toContain('Kode referensi')
+    expect(wrapper.text()).toContain('Reference code')
     expect(wrapper.text()).toContain('REF-QPOLICY1')
     expect(wrapper.text()).not.toContain('req-policy-1')
     expect(wrapper.text()).not.toMatch(/Bearer|refreshToken|SQLSTATE/i)

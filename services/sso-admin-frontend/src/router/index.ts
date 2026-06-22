@@ -74,16 +74,24 @@ const router = createRouter({
           meta: { requiresAdmin: true, permissions: ['admin.users.write'] },
         },
         {
-          path: 'audit',
-          name: 'admin.audit',
+          path: 'observability',
+          name: 'admin.observability',
           component: auditPage,
           meta: { requiresAdmin: true, permissions: ['admin.observability.read'] },
         },
         {
-          path: 'audit/compliance',
-          name: 'admin.audit.compliance',
+          path: 'observability/compliance',
+          name: 'admin.observability.compliance',
           component: auditCompliancePage,
-          meta: { requiresAdmin: true, permissions: ['admin.audit.read'] },
+          meta: { requiresAdmin: true, permissions: ['admin.observability.read'] },
+        },
+        {
+          path: 'audit',
+          redirect: { name: 'admin.observability' },
+        },
+        {
+          path: 'audit/compliance',
+          redirect: { name: 'admin.observability.compliance' },
         },
         {
           path: 'sessions',

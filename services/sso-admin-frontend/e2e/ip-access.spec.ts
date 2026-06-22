@@ -44,6 +44,12 @@ function principal(permissions: readonly string[]) {
   }
 }
 
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem('dev-sso-admin-locale', 'en')
+  })
+})
+
 test('lists creates and deletes IP access rules with confirmation', async ({ page }) => {
   let deleteCalled = false
   const createdRule = {
@@ -83,21 +89,21 @@ test('lists creates and deletes IP access rules with confirmation', async ({ pag
 
   await page.goto('/ip-access')
 
-  await expect(page.getByRole('navigation', { name: 'Modul admin' })).toContainText('IP Access')
+  await expect(page.getByRole('navigation', { name: 'Admin modules' })).toContainText('IP Access')
   await expect(page.getByRole('heading', { name: 'IP Access Rules' })).toBeVisible()
   await expect(page.getByText('203.0.113.0/24')).toBeVisible()
-  await expect(page.getByText('req-ip-list')).toBeVisible()
+  await expect(page.getByText('REF-EQIPLIST').first()).toBeVisible()
 
   await page.getByLabel('CIDR').fill('198.51.100.0/24')
   await page.getByLabel('Mode').selectOption('allow')
   await page.getByLabel('Reason').fill('Allow partner office')
-  await page.getByRole('button', { name: 'Tambah aturan IP' }).click()
+  await page.getByRole('button', { name: 'Add IP Rule' }).click()
   await expect(page.getByText('198.51.100.0/24')).toBeVisible()
-  await expect(page.getByText('req-ip-create')).toBeVisible()
+  await expect(page.getByText('REF-IPCREATE').first()).toBeVisible()
 
   await page
     .getByRole('row', { name: /203\.0\.113\.0\/24/u })
-    .getByRole('button', { name: 'Hapus' })
+    .getByRole('button', { name: 'Delete' })
     .click()
   await expect(page.getByRole('dialog', { name: 'Delete IP access rule?' })).toContainText(
     '203.0.113.0/24',
@@ -126,8 +132,8 @@ test('hides write controls when admin has read-only IP access permission', async
   await page.goto('/ip-access')
 
   await expect(page.getByText('203.0.113.0/24')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Tambah aturan IP' })).toHaveCount(0)
-  await expect(page.getByRole('button', { name: 'Hapus' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Add IP Rule' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Delete' })).toHaveCount(0)
 })
 
 test('blocks IP access route without read permission', async ({ page }) => {
@@ -141,9 +147,9 @@ test('blocks IP access route without read permission', async ({ page }) => {
   await page.goto('/ip-access')
 
   await expect(
-    page.getByRole('heading', { name: 'Akun ini belum memiliki akses admin.' }),
+    page.getByRole('heading', { name: 'This account does not have admin access.' }),
   ).toBeVisible()
-  await expect(page.getByRole('navigation', { name: 'Modul admin' })).toHaveCount(0)
+  await expect(page.getByRole('navigation', { name: 'Admin modules' })).toHaveCount(0)
 })
 
 test('shows safe step-up copy when creating IP access rule needs fresh auth', async ({ page }) => {
@@ -173,9 +179,9 @@ test('shows safe step-up copy when creating IP access rule needs fresh auth', as
   await page.goto('/ip-access')
   await page.getByLabel('CIDR').fill('198.51.100.0/24')
   await page.getByLabel('Reason').fill('Allow partner office')
-  await page.getByRole('button', { name: 'Tambah aturan IP' }).click()
+  await page.getByRole('button', { name: 'Add IP Rule' }).click()
 
   await expect(page.getByRole('alert')).toContainText('fresh-auth atau MFA assurance')
-  await expect(page.getByText('req-ip-step')).toBeVisible()
+  await expect(page.getByText('REF-EQIPSTEP').first()).toBeVisible()
   await expect(page.getByText('raw ACR')).toHaveCount(0)
 })

@@ -72,6 +72,8 @@ export default defineConfig({
 
     /* Only on CI systems run the tests headless */
     headless: !!process.env.CI,
+    /* Run with consistent English locale */
+    locale: 'en-US',
   },
 
   /* Configure projects for major browsers */
@@ -87,7 +89,9 @@ export default defineConfig({
      * Use the preview server on CI for more realistic testing.
      * Playwright will re-use the local server if there is already a dev-server running.
      */
-    command: process.env.CI ? 'npm run preview' : 'npm run dev',
+    command: process.env.CI
+      ? 'VITE_SSO_ENABLE_STEPUP_E2E_MOCK=true npm run build:web -- --mode e2e && npm run preview'
+      : 'VITE_SSO_ENABLE_STEPUP_E2E_MOCK=true npm run dev -- --mode e2e',
     port: process.env.CI ? 4173 : 5173,
     reuseExistingServer: !process.env.CI,
   },

@@ -81,7 +81,13 @@
     "back_to_list": "Kembali ke daftar",
     "copy": "Salin",
     "copied": "Disalin!",
-    "close": "Tutup"
+    "close": "Tutup",
+    "evidence": {
+      "ref_code": "Kode referensi",
+      "tech_details": "Detail teknis audit",
+      "client": "Aplikasi",
+      "subject": "Akun"
+    }
   },
   "dashboard": {
     "eyebrow": "Admin Governance",

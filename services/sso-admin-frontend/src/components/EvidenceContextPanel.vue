@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from '@/composables/useI18n'
 import {
   formatFriendlyClientName,
   formatSupportReference,
   formatTechnicalPreview,
 } from '@/lib/display-identifiers'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   readonly title?: string
@@ -42,8 +45,8 @@ const technicalRows = computed(() =>
     { label: 'Request', value: props.requestId },
     { label: 'Correlation', value: props.correlationId },
     { label: 'Session', value: props.sessionId },
-    { label: 'Aplikasi', value: props.clientId, client: true },
-    { label: 'Akun', value: props.subjectId },
+    { label: t('common.evidence.client'), value: props.clientId, client: true },
+    { label: t('common.evidence.subject'), value: props.subjectId },
     { label: 'Audit event', value: props.auditEventId },
   ]
     .filter((row) => !!row.value)
@@ -59,12 +62,12 @@ const technicalRows = computed(() =>
     <h3>{{ title ?? 'Evidence context' }}</h3>
     <dl class="inline-evidence">
       <div v-if="supportReference">
-        <dt>Kode referensi</dt>
+        <dt>{{ t('common.evidence.ref_code') }}</dt>
         <dd class="break-anywhere">{{ supportReference }}</dd>
       </div>
     </dl>
     <details v-if="technicalRows.length" class="technical-evidence">
-      <summary>Detail teknis audit</summary>
+      <summary>{{ t('common.evidence.tech_details') }}</summary>
       <dl class="inline-evidence">
         <div v-for="row in technicalRows" :key="row.label">
           <dt>{{ row.label }}</dt>
