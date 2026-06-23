@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Services\Oidc\WidgetOriginPolicy;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 
@@ -26,6 +27,7 @@ use Illuminate\Support\Carbon;
  * @property string $provisioning
  * @property array<string, mixed>|null $contract
  * @property string $status
+ * @property string $category
  * @property Carbon|null $activated_at
  * @property Carbon|null $disabled_at
  * @property string|null $disabled_reason
@@ -55,6 +57,7 @@ final class OidcClientRegistration extends Model
         'provisioning',
         'contract',
         'status',
+        'category',
         'staged_by_subject_id',
         'staged_by_email',
         'activated_by_subject_id',
@@ -64,6 +67,16 @@ final class OidcClientRegistration extends Model
         'disabled_reason',
         'decommissioned_at',
     ];
+
+    protected static function booted(): void
+    {
+        self::saved(static function (): void {
+            app(WidgetOriginPolicy::class)->flush();
+        });
+        self::deleted(static function (): void {
+            app(WidgetOriginPolicy::class)->flush();
+        });
+    }
 
     /**
      * @return array<string, string>

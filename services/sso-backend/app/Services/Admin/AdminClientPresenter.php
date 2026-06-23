@@ -20,6 +20,7 @@ final class AdminClientPresenter
             'redirect_uris' => $client->redirectUris,
             'backchannel_logout_uri' => $this->displayBackchannelUri($client->backchannelLogoutUri),
             'backchannel_logout_internal' => $this->isInternalUri($client->backchannelLogoutUri),
+            'category' => $client->category,
         ];
     }
 
@@ -47,6 +48,7 @@ final class AdminClientPresenter
                 // FR-009 lifecycle timestamps
                 'secret_rotated_at',
                 'secret_expires_at',
+                'category',
             ]),
             'has_secret_hash' => is_string($registration->secret_hash) && $registration->secret_hash !== '',
         ];

@@ -8,8 +8,8 @@ use Illuminate\Support\Facades\Route as RouteFacade;
 it('keeps the production route inventory intentional', function (): void {
     $routes = collect(RouteFacade::getRoutes()->getRoutes());
 
-    expect($routes)->toHaveCount(141);
-    expect(applicationRoutes($routes))->toHaveCount(129);
+    expect($routes)->toHaveCount(147);
+    expect(applicationRoutes($routes))->toHaveCount(135);
     expect(vendorRoutes($routes))->toHaveCount(12);
 });
 
@@ -82,6 +82,10 @@ function routeCategory(Route $route): string
 
     if ($uri === 'oauth/revoke') {
         return 'oauth';
+    }
+
+    if (str_starts_with($uri, 'widget/')) {
+        return 'widget';
     }
 
     return 'uncategorized';
@@ -224,5 +228,11 @@ function expectedApplicationRouteSignatures(): array
         'POST token',
         'GET|HEAD up',
         'GET|POST|HEAD userinfo',
+        'GET|HEAD widget/account.js',
+        'GET|HEAD widget/session',
+        'GET|HEAD widget/accounts',
+        'GET|HEAD widget/apps',
+        'POST widget/logout',
+        'OPTIONS widget/{any}',
     ])->sort()->values()->all();
 }

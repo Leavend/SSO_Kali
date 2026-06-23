@@ -19,6 +19,10 @@ final class SyncManagedUserProfileAction
             'display_name',
             'given_name',
             'family_name',
+            'nik',
+            'nip',
+            'nisn',
+            'birth_date',
         ]));
 
         $hasNameInput = array_key_exists('given_name', $changes) || array_key_exists('family_name', $changes);

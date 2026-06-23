@@ -18,6 +18,8 @@ final class OidcScope
 
     public const PERMISSIONS = 'permissions';
 
+    public const STAFF_IDENTITY = 'staff_identity';
+
     /**
      * @return array<string, array{description: string, claims: list<string>, default_allowed: bool}>
      */
@@ -52,6 +54,11 @@ final class OidcScope
             self::PERMISSIONS => [
                 'description' => 'Resolved least-privilege permission slugs for the subject.',
                 'claims' => ['permissions'],
+                'default_allowed' => false,
+            ],
+            self::STAFF_IDENTITY => [
+                'description' => 'Staff identity details including NIP, NISN, and masked NIK/DOB.',
+                'claims' => ['nik', 'nip', 'nisn', 'birth_date'],
                 'default_allowed' => false,
             ],
         ];

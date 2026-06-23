@@ -12,6 +12,7 @@ Scope dikirim sebagai string dipisah spasi pada `/authorize`. `openid` wajib. Cl
 | `offline_access` | Tidak | `refresh_token` pada token response | Hanya terbit bila client diizinkan scope ini. |
 | `roles` | Tidak | `roles[]` | Role slug RBAC user. |
 | `permissions` | Tidak | `permissions[]` | Permission slug hasil resolver RBAC. |
+| `staff_identity` | Tidak | `nik`, `nip`, `nisn`, `birth_date` | Identitas staf dalam bentuk masked/display-safe; tidak mengembalikan nomor mentah. |
 
 ## `/userinfo` Schema
 
@@ -27,6 +28,10 @@ Scope dikirim sebagai string dipisah spasi pada `/authorize`. `openid` wajib. Cl
 | `email_verified` | boolean | Scope `email` dan value tersedia. |
 | `roles` | string[] | Scope `roles`. |
 | `permissions` | string[] | Scope `permissions`. |
+| `nik` | string | Scope `staff_identity` dan value tersedia; masked/display-safe. |
+| `nip` | string | Scope `staff_identity` dan value tersedia; masked/display-safe. |
+| `nisn` | string | Scope `staff_identity` dan value tersedia; masked/display-safe. |
+| `birth_date` | string | Scope `staff_identity` dan value tersedia; masked/display-safe. |
 
 Minimal:
 
@@ -69,7 +74,7 @@ ID token ditujukan untuk client/RP. Validasi minimal: signature ES256 via JWKS, 
 | `acr` | string | Assurance context bila ada. |
 | `iat`, `nbf`, `exp` | int | Waktu token. TTL ID token 15 menit. |
 
-Scope `profile`, `email`, `roles`, dan `permissions` menambahkan claim sesuai tabel scope.
+Scope `profile`, `email`, `roles`, `permissions`, dan `staff_identity` menambahkan claim sesuai tabel scope.
 
 ## Access Token Claims
 

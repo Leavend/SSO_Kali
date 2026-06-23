@@ -15,6 +15,7 @@ use App\Services\Oidc\AuthorizationCodeStore;
 use App\Services\Oidc\AuthRequestStore;
 use App\Services\Oidc\ConsentService;
 use App\Services\Oidc\DownstreamClientRegistry;
+use App\Services\Oidc\EntitlementGuard;
 use App\Services\Oidc\ScopePolicy;
 use App\Services\Security\LoginContextRecorder;
 use App\Support\Audit\AuthenticationAuditRecord;
@@ -136,6 +137,19 @@ final class AuthenticateLocalCredentials
         }
 
         $user = $verification->user;
+
+        if (! app(EntitlementGuard::class)->allows($user, $client)) {
+            $this->recordFailed($request, $email, $client, 'access_denied');
+
+            return response()->json([
+                'error' => 'access_denied',
+                'error_description' => 'User is not entitled to access this application.',
+                'message' => 'Anda tidak memiliki hak akses untuk membuka aplikasi ini.',
+            ], 403, [
+                'Cache-Control' => 'no-store',
+                'Pragma' => 'no-cache',
+            ]);
+        }
 
         // Record login context and evaluate risk
         $this->recorder->record(

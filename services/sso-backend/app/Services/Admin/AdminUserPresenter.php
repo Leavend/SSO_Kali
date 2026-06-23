@@ -7,6 +7,7 @@ namespace App\Services\Admin;
 use App\Models\MfaCredential;
 use App\Models\Role;
 use App\Models\User;
+use App\Support\Identity\GovernmentIdentifier;
 use Illuminate\Support\Facades\DB;
 
 final class AdminUserPresenter
@@ -37,6 +38,10 @@ final class AdminUserPresenter
             'email_verified_at',
             'last_login_at',
             'created_at',
+            'nik',
+            'nip',
+            'nisn',
+            'birth_date',
         ];
     }
 
@@ -59,8 +64,11 @@ final class AdminUserPresenter
         $user->loadMissing('roles');
         $methods = array_values(array_unique($methods));
 
+        $data = $user->only($this->publicColumns());
+
         return [
-            ...$user->only($this->columns()),
+            ...$data,
+            ...$this->staffIdentity($user),
             'effective_status' => $user->effective_status,
             'mfa_enrolled' => $methods !== [],
             'mfa_methods' => $methods,
@@ -120,6 +128,45 @@ final class AdminUserPresenter
             ->sortBy('slug')
             ->values()
             ->all();
+    }
+
+    /**
+     * @return array<string>
+     */
+    private function publicColumns(): array
+    {
+        return array_values(array_diff($this->columns(), ['nik', 'nip', 'nisn', 'birth_date']));
+    }
+
+    /**
+     * @return array<string, string|null>
+     */
+    private function staffIdentity(User $user): array
+    {
+        return [
+            'nik' => $this->maskedIdentifier($user, 'nik'),
+            'nip' => $this->maskedIdentifier($user, 'nip'),
+            'nisn' => $this->maskedIdentifier($user, 'nisn'),
+            'birth_date' => $this->maskedBirthDate($user),
+        ];
+    }
+
+    private function maskedIdentifier(User $user, string $attribute): ?string
+    {
+        if ($user->getRawOriginal($attribute) === null) {
+            return null;
+        }
+
+        return GovernmentIdentifier::maskFrom(fn (): mixed => $user->getAttribute($attribute));
+    }
+
+    private function maskedBirthDate(User $user): ?string
+    {
+        if ($user->getRawOriginal('birth_date') === null) {
+            return null;
+        }
+
+        return GovernmentIdentifier::maskBirthDateFrom(fn (): mixed => $user->birth_date);
     }
 
     public function passwordReset(array $result): array

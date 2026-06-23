@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Admin;
 
+use App\Support\Oidc\ClientCategory;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 final class BuildClientIntegrationDraftRequest extends FormRequest
 {
@@ -26,8 +28,8 @@ final class BuildClientIntegrationDraftRequest extends FormRequest
             'environment' => ['sometimes', 'string', 'in:live,development'],
             'clientType' => ['sometimes', 'string', 'in:public,confidential'],
             'client_type' => ['sometimes', 'string', 'in:public,confidential'],
-            'appBaseUrl' => ['sometimes', 'string', 'max:255'],
-            'app_base_url' => ['sometimes', 'string', 'max:255'],
+            'appBaseUrl' => ['sometimes', 'url', $this->webUrlScheme(), 'max:255'],
+            'app_base_url' => ['sometimes', 'url', $this->webUrlScheme(), 'max:255'],
             'callbackPath' => ['sometimes', 'string', 'max:255'],
             'callback_path' => ['sometimes', 'string', 'max:255'],
             'logoutPath' => ['sometimes', 'string', 'max:255'],
@@ -39,6 +41,7 @@ final class BuildClientIntegrationDraftRequest extends FormRequest
             'allowedScopes.*' => ['string', 'max:80'],
             'allowed_scopes' => ['sometimes', 'array', 'min:1'],
             'allowed_scopes.*' => ['string', 'max:80'],
+            'category' => ['sometimes', 'string', Rule::in(ClientCategory::values())],
         ];
     }
 
@@ -66,6 +69,18 @@ final class BuildClientIntegrationDraftRequest extends FormRequest
             'provisioning',
             'allowedScopes',
             'allowed_scopes',
+            'category',
         ]);
+    }
+
+    private function webUrlScheme(): \Closure
+    {
+        return static function (string $attribute, mixed $value, \Closure $fail): void {
+            $scheme = is_string($value) ? parse_url($value, PHP_URL_SCHEME) : null;
+
+            if (! is_string($scheme) || ! in_array(strtolower($scheme), ['http', 'https'], true)) {
+                $fail('The '.$attribute.' field must be an HTTP or HTTPS URL.');
+            }
+        };
     }
 }

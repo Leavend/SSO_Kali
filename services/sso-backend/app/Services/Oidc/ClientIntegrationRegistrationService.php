@@ -25,6 +25,7 @@ final class ClientIntegrationRegistrationService
         private readonly AdminAuditLogger $audit,
         private readonly ClientIntegrationRollbackRevoker $revoker,
         private readonly DownstreamClientRegistry $clients,
+        private readonly WidgetOriginPolicy $widgetOrigins,
     ) {}
 
     /**
@@ -43,6 +44,7 @@ final class ClientIntegrationRegistrationService
         $this->assertValid($draft);
         $registration = OidcClientRegistration::query()->create($this->stagePayload($admin, $draft));
         $this->clients->flush();
+        $this->widgetOrigins->flush();
         $this->auditSuccess('stage_client_integration', $request, $admin, $registration);
 
         return $registration;
@@ -57,6 +59,7 @@ final class ClientIntegrationRegistrationService
         $secret = $draft->clientType === 'confidential' ? $this->secrets->issue() : null;
         $registration = OidcClientRegistration::query()->create($this->creationPayload($admin, $draft, $secret));
         $this->clients->flush();
+        $this->widgetOrigins->flush();
         $this->auditSuccess('create_client_integration', $request, $admin, $registration);
 
         return $secret instanceof IssuedClientSecret
@@ -75,6 +78,7 @@ final class ClientIntegrationRegistrationService
         $this->assertActivationSecret($registration, $secretHash);
         $registration->update($this->activationPayload($admin, $secretHash));
         $this->clients->flush();
+        $this->widgetOrigins->flush();
         $this->auditSuccess('activate_client_integration', $request, $admin, $registration->refresh());
 
         return $registration;
@@ -91,6 +95,7 @@ final class ClientIntegrationRegistrationService
             'disabled_reason' => $reason,
         ]);
         $this->clients->flush();
+        $this->widgetOrigins->flush();
         $this->auditSuccess('disable_client_integration', $request, $admin, $registration->refresh(), $outcome);
 
         return $registration;
@@ -131,6 +136,7 @@ final class ClientIntegrationRegistrationService
             'secret_hash' => null,
         ]);
         $this->clients->flush();
+        $this->widgetOrigins->flush();
         $this->auditSuccess('decommission_client_integration', $request, $admin, $registration->refresh(), $outcome);
 
         return $registration;
@@ -150,6 +156,7 @@ final class ClientIntegrationRegistrationService
         $this->revoker->revoke($registration);
         $registration->delete();
         $this->clients->flush();
+        $this->widgetOrigins->flush();
 
         $this->audit->succeeded(
             'delete_client_integration',
@@ -283,6 +290,7 @@ final class ClientIntegrationRegistrationService
             'allowed_scopes' => $draft->allowedScopes,
             'owner_email' => $draft->ownerEmail,
             'provisioning' => $draft->provisioning,
+            'category' => $draft->category,
         ];
     }
 

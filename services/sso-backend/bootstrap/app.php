@@ -108,6 +108,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'api/profile/phone-change',
             'api/profile/phone-change/confirm',
             'api/profile/connected-apps/*',
+            'widget/*',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

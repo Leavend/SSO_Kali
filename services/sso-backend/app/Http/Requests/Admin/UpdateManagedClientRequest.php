@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Admin;
 
+use App\Support\Oidc\ClientCategory;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 final class UpdateManagedClientRequest extends FormRequest
 {
@@ -14,7 +16,7 @@ final class UpdateManagedClientRequest extends FormRequest
     }
 
     /**
-     * @return array<string, list<string>>
+     * @return array<string, list<mixed>>
      */
     public function rules(): array
     {
@@ -26,6 +28,7 @@ final class UpdateManagedClientRequest extends FormRequest
             'post_logout_redirect_uris' => ['sometimes', 'array'],
             'post_logout_redirect_uris.*' => ['url', 'starts_with:https://', 'max:2048'],
             'backchannel_logout_uri' => ['sometimes', 'nullable', 'url', 'starts_with:https://', 'max:2048'],
+            'category' => ['sometimes', 'string', Rule::in(ClientCategory::values())],
         ];
     }
 }

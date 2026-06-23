@@ -119,6 +119,21 @@ it('syncs selected profile fields and timestamps the sync', function (): void {
         ->and($synced->profile_synced_at)->not->toBeNull();
 });
 
+it('returns not found before identity uniqueness validation when sync target is missing', function (): void {
+    User::factory()->create([
+        'email' => 'identity-owner@example.com',
+        'nik' => '1234567890123456',
+    ]);
+
+    $this->withoutMiddleware()
+        ->postJson('/admin/api/users/missing-sync-target/sync-profile', [
+            'nik' => '1234567890123456',
+        ])
+        ->assertStatus(404)
+        ->assertJsonPath('error', 'not_found')
+        ->assertJsonPath('message', 'User not found.');
+});
+
 it('composes display name and stores only first name words during profile sync', function (): void {
     $target = User::factory()->create([
         'email' => 'profile-sync@example.com',

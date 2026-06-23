@@ -12,6 +12,7 @@ Scopes are space-separated on `/authorize`. `openid` is mandatory, and a client 
 | `offline_access` | No | Refresh token | Issued only when allowed. |
 | `roles` | No | `roles[]` | RBAC role slugs. |
 | `permissions` | No | `permissions[]` | Resolved permission slugs. |
+| `staff_identity` | No | `nik`, `nip`, `nisn`, `birth_date` | Staff identity references are masked/display-safe; raw numbers are not returned. |
 
 ## UserInfo
 
@@ -26,7 +27,11 @@ Scopes are space-separated on `/authorize`. `openid` is mandatory, and a client 
   "email": "tio@example.com",
   "email_verified": true,
   "roles": ["admin"],
-  "permissions": ["clients.read", "clients.write"]
+  "permissions": ["clients.read", "clients.write"],
+  "nik": "12****56",
+  "nip": "19****01",
+  "nisn": "00****78",
+  "birth_date": "YEAR-1990"
 }
 ```
 
@@ -40,7 +45,7 @@ Important claims are `iss`, `aud`, `azp`, `sub`, `token_use=id`, `jti`, `sid`, `
 
 Access tokens are for resource APIs, not UI login. Validate ES256 signature, `iss`, `aud = sso-resource-api`, `token_use=access`, `exp`, `nbf`, `iat`, `jti`, `sub`, `sid`, and `client_id`.
 
-The current access token TTL is 15 minutes. `scope` is a space-separated string. Role and permission arrays appear only when their scopes were granted.
+The current access token TTL is 15 minutes. `scope` is a space-separated string. Role, permission, and staff identity claims appear only when their scopes were granted. Staff identity values are masked/display-safe.
 
 ## Consent
 

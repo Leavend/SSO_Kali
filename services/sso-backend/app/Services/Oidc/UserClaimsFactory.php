@@ -7,6 +7,7 @@ namespace App\Services\Oidc;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\Admin\AdminRbacResolver;
+use App\Support\Identity\GovernmentIdentifier;
 use App\Support\Oidc\OidcScope;
 use App\Support\Oidc\ScopeSet;
 use Carbon\CarbonImmutable;
@@ -64,10 +65,6 @@ final class UserClaimsFactory
         ], static fn (mixed $value): bool => $value !== null);
     }
 
-    /**
-     * @param  list<string>  $scopes
-     * @return array<string, mixed>
-     */
     private function sharedClaims(User $user, array $scopes): array
     {
         return [
@@ -75,6 +72,7 @@ final class UserClaimsFactory
             ...$this->emailClaims($user, $scopes),
             ...$this->roleClaims($user, $scopes),
             ...$this->permissionClaims($user, $scopes),
+            ...$this->staffIdentityClaims($user, $scopes),
         ];
     }
 
@@ -146,6 +144,24 @@ final class UserClaimsFactory
         }
 
         return ['permissions' => ($this->rbac ??= app(AdminRbacResolver::class))->permissionsFor($user)];
+    }
+
+    /**
+     * @param  list<string>  $scopes
+     * @return array<string, mixed>
+     */
+    private function staffIdentityClaims(User $user, array $scopes): array
+    {
+        if (! ScopeSet::contains($scopes, OidcScope::STAFF_IDENTITY)) {
+            return [];
+        }
+
+        return [
+            'nik' => GovernmentIdentifier::maskFrom(fn (): mixed => $user->nik),
+            'birth_date' => GovernmentIdentifier::maskBirthDateFrom(fn (): mixed => $user->birth_date),
+            'nip' => GovernmentIdentifier::maskFrom(fn (): mixed => $user->nip),
+            'nisn' => GovernmentIdentifier::maskFrom(fn (): mixed => $user->nisn),
+        ];
     }
 
     /**

@@ -40,6 +40,10 @@ final class CreateManagedUserAction
                 'status' => 'active',
                 'local_account_enabled' => (bool) ($data['local_account_enabled'] ?? false),
                 'email_verified_at' => now(),
+                'nik' => $data['nik'] ?? null,
+                'nip' => $data['nip'] ?? null,
+                'nisn' => $data['nisn'] ?? null,
+                'birth_date' => $data['birth_date'] ?? null,
             ]);
 
             $this->attachRole($user, (string) $data['role']);

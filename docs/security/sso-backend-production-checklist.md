@@ -70,6 +70,8 @@ Header ownership is documented in `docs/security/security-header-layers.md`.
 - [ ] `SSO_BASE_URL=https://api-sso.timeh.my.id`.
 - [ ] `SSO_ISSUER=https://api-sso.timeh.my.id`.
 - [ ] `OCTANE_HTTPS=true`.
+- [ ] `SSO_NIK_HASH_KEY` is set to a dedicated high-entropy secret before enabling government identifier storage or login lookup.
+- [ ] `APP_PREVIOUS_KEYS` is populated during any `APP_KEY` rotation window so encrypted NIK/NIP/NISN columns remain readable until re-encryption/backfill is complete.
 - [ ] `SSO_INTERNAL_QUEUE_METRICS_ENABLED=false` by default.
 - [ ] Request timing logs do not include request bodies or token values.
 
@@ -77,6 +79,7 @@ Evidence commands:
 
 ```bash
 docker exec -it sso-backend-prod-sso-backend-1 php artisan about --only=environment
+docker exec -it sso-backend-prod-sso-backend-1 php artisan sso:check-identity-hash-key
 curl -fsS https://api-sso.timeh.my.id/.well-known/openid-configuration | jq '.issuer'
 curl -fsS https://api-sso.timeh.my.id/ready | jq
 curl -isS https://api-sso.timeh.my.id/_internal/queue-metrics | head

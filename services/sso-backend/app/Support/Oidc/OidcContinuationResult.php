@@ -40,6 +40,11 @@ final readonly class OidcContinuationResult
         return new self(OidcContinuationOutcome::InvalidScope, errorDescription: $description);
     }
 
+    public static function accessDenied(string $description): self
+    {
+        return new self(OidcContinuationOutcome::AccessDenied, errorDescription: $description);
+    }
+
     public static function temporarilyUnavailable(): self
     {
         return new self(OidcContinuationOutcome::TemporarilyUnavailable);

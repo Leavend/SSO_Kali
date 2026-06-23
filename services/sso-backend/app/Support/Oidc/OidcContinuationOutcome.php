@@ -18,5 +18,6 @@ enum OidcContinuationOutcome: string
     case InvalidContext = 'invalid_context';
     case InvalidClient = 'invalid_client';
     case InvalidScope = 'invalid_scope';
+    case AccessDenied = 'access_denied';
     case TemporarilyUnavailable = 'temporarily_unavailable';
 }

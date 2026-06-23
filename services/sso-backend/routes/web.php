@@ -9,10 +9,12 @@ use App\Http\Controllers\Oidc\AuthorizeController;
 use App\Http\Controllers\Oidc\ConsentController;
 use App\Http\Controllers\Oidc\LocalLoginController;
 use App\Http\Controllers\Oidc\SsoCompleteController;
+use App\Http\Controllers\Oidc\WidgetController;
 use App\Http\Controllers\Resource\AuditController;
 use App\Http\Controllers\Resource\ChangePasswordController;
 use App\Http\Controllers\Resource\ProfileChangeController;
 use App\Http\Controllers\Resource\ProfileController;
+use App\Http\Middleware\WidgetCorsMiddleware;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -76,3 +78,15 @@ Route::get('/external-idp/start/{providerKey}', StartExternalIdpAuthenticationCo
     ->middleware('throttle:oidc-authorize');
 Route::get('/external-idp/callback', ExternalIdpCallbackController::class)
     ->middleware('throttle:oidc-authorize');
+
+// --- SSO Account Widget (FR-068 / UC-89) ---
+Route::middleware([WidgetCorsMiddleware::class])->group(function (): void {
+    Route::get('/widget/account.js', [WidgetController::class, 'script']);
+    Route::get('/widget/session', [WidgetController::class, 'session']);
+    Route::get('/widget/accounts', [WidgetController::class, 'accounts']);
+    Route::get('/widget/apps', [WidgetController::class, 'apps']);
+    Route::post('/widget/logout', [WidgetController::class, 'logout']);
+    Route::options('/widget/{any}', function () {
+        return response('', 204);
+    })->where('any', '.*');
+});

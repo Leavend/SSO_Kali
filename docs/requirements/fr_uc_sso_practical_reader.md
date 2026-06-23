@@ -44,6 +44,9 @@
 | A-10 | DevOps / Operator | Operator deployment, monitoring, backup, DR, dan incident. |
 | A-11 | Security Officer / DPO | Role audit, compliance, privacy, dan review security. |
 | A-12 | Resource Server | Service yang memvalidasi access token atau introspection. |
+| A-13 | Sistem Kepegawaian | Sistem eksternal penyedia data kepegawaian (sumber provisioning). |
+| A-03b | App Client Kepegawaian | Aplikasi client dengan kategori kepegawaian. |
+| A-03c | App Client Publik | Aplikasi client dengan kategori publik. |
 
 ---
 
@@ -63,6 +66,8 @@
 | H. Admin & Governance | FR-050 – FR-056 | 7 |
 | I. External IdP Integration | FR-057 – FR-059 | 3 |
 | J. Error Handling & UX | FR-060 – FR-063 | 4 |
+| K. Admin Experience & Client Onboarding | FR-064 – FR-066 | 3 |
+| L. SSO Identity & Entitlement Expansion | FR-067 – FR-072 | 6 |
 
 ### 3.2 Use Case
 
@@ -73,9 +78,10 @@
 | C. Token Lifecycle | UC-22 – UC-33 | 12 |
 | D. Profile & User Self-Service | UC-34 – UC-42 | 9 |
 | E. Session & Logout | UC-43 – UC-50 | 8 |
-| F. Admin Management | UC-51 – UC-65 | 15 |
+| F. Admin Management | UC-51 – UC-65 (dan UC-84 – UC-87) | 19 |
 | G. Security & Risk | UC-66 – UC-76 | 11 |
 | H. Integration & Operations | UC-77 – UC-83 | 7 |
+| I. SSO Identity & Entitlement Expansion | UC-88 – UC-94 | 7 |
 
 ---
 
@@ -204,7 +210,18 @@ Kolom **UC Terkait** memakai ID use case baru agar requirement mudah ditelusuri 
 | FR-065 | Panduan Onboarding Client Web App | Tinggi / MVP | ◻ Planned | UC-03, UC-60, UC-86 |
 | FR-066 | Handoff Kredensial Client yang Aman | Sedang / MVP | ◻ Planned | UC-05, UC-61, UC-87 |
 
-> Catatan: FR-064–066 ditambahkan 2026-06-03 dari audit `admin-experience-and-client-onboarding-coverage-plan-2026-06-03.md`. FR-064 menutup gap UC-56 (backend `RoleController` + `SyncUserRolesAction` sudah ada, UI admin belum). FR-065 menjadikan panduan onboarding client sebagai deliverable resmi (sebelumnya hanya runbook dev/devops). FR-066 menambah penyerahan kredensial (one-time secret reveal + blok konfigurasi) di panel.
+### L. SSO Identity & Entitlement Expansion
+
+| ID | Nama Functional Requirement | Prioritas/Fase | Status | UC Terkait |
+| --- | --- | --- | --- | --- |
+| FR-067 | Multi-credential identity store (NIK/NIP/NISN/DOB, encrypted, masked) | Tinggi / MVP | ✓ Implemented | UC-88, UC-89, UC-90 |
+| FR-068 | Multi-identifier login (Email\|NIP/NISN\|NIK + Password) | Tinggi / MVP | ✓ Implemented | UC-88, UC-89 |
+| FR-069 | Identity provisioning (JIT/Import/SCIM-lite), no cross-DB read | Tinggi / MVP | ✓ Implemented | UC-90 |
+| FR-070 | App classification `category` (kepegawaian/publik) | Tinggi / MVP | ✓ Implemented | UC-91, UC-92 |
+| FR-071 | Per-user app entitlement gate di authorize | Tinggi / MVP | ✓ Implemented | UC-92 |
+| FR-072 | Embeddable SSO Account widget & endpoint (`/widget/*`) | Tinggi / MVP | ✓ Implemented | UC-93, UC-94 |
+
+> Catatan: FR-067–072 ditambahkan 2026-06-23 untuk mendukung SSO Identity & Entitlement Expansion, termasuk widget Launcher aplikasi terintegrasi.
 
 ---
 
@@ -336,8 +353,19 @@ Format dibuat ringkas sesuai kebutuhan pembaca user: **ID, Nama Use Case, Aktor 
 | UC-79 | Export Log ke SIEM | A-10 / A-11 | Tinggi / MVP |
 | UC-80 | Drill Rotasi JWKS Key | A-10 | Tinggi / MVP |
 | UC-81 | Pilot Federation External IdP | A-10 / A-11 | Rendah / Phase-3 |
-| UC-82 | Jalankan Incident Runbook SEV | A-10 / A-11 | Tinggi / MVP |
 | UC-83 | DR Failover | A-10 | Sedang / Phase-2 |
+
+### I. SSO Identity & Entitlement Expansion
+
+| ID | Nama Use Case | Aktor Utama | Prioritas/Fase |
+| --- | --- | --- | --- |
+| UC-88 | Login via NIP | A-01 | Tinggi / MVP |
+| UC-89 | Login via NIK | A-01 | Tinggi / MVP |
+| UC-90 | Admin import identitas kepegawaian | A-02 | Tinggi / MVP |
+| UC-91 | Admin set kategori aplikasi | A-02 | Tinggi / MVP |
+| UC-92 | User non-staff ditolak app kepegawaian | A-01 | Tinggi / MVP |
+| UC-93 | App menanam widget akun & app-launcher | A-03b / A-03c | Tinggi / MVP |
+| UC-94 | Switch account via widget | A-01 | Tinggi / MVP |
 
 ---
 
@@ -463,8 +491,18 @@ Bagian ini membantu QA, BA, dan engineer melihat use case mana yang merealisasik
 | FR ID | Nama Requirement | Use Case Terkait |
 | --- | --- | --- |
 | FR-064 | Console Manajemen Role & Assign Role | UC-56, UC-84, UC-85 |
-| FR-065 | Panduan Onboarding Client Web App | UC-03, UC-60, UC-86 |
 | FR-066 | Handoff Kredensial Client yang Aman | UC-05, UC-61, UC-87 |
+
+### L. SSO Identity & Entitlement Expansion
+
+| FR ID | Nama Requirement | Use Case Terkait |
+| --- | --- | --- |
+| FR-067 | Multi-credential identity store (NIK/NIP/NISN/DOB, encrypted, masked) | UC-88, UC-89, UC-90 |
+| FR-068 | Multi-identifier login (Email\|NIP/NISN\|NIK + Password) | UC-88, UC-89 |
+| FR-069 | Identity provisioning (JIT/Import/SCIM-lite), no cross-DB read | UC-90 |
+| FR-070 | App classification `category` (kepegawaian/publik) | UC-91, UC-92 |
+| FR-071 | Per-user app entitlement gate di authorize | UC-92 |
+| FR-072 | Embeddable SSO Account widget & endpoint (`/widget/*`) | UC-93, UC-94 |
 
 ---
 
@@ -554,6 +592,15 @@ Mapping ini disediakan agar dokumen praktis tetap bisa dihubungkan ke dokumen te
 | FR-061 | FR-E-02 | UX Error untuk User & Lokalisasi | User-Facing Error UX dan Localization | J. Error Handling & UX |
 | FR-062 | FR-E-03 | Pesan Error Aman | Security-Safe Error Messages | J. Error Handling & UX |
 | FR-063 | FR-E-04 | Diagnostik Developer & Correlation ID | Developer Diagnostics dan Correlation | J. Error Handling & UX |
+| FR-064 | FR-K-01 | Console Manajemen Role & Assign Role | Console Manajemen Role & Assign Role | K. Admin Experience & Client Onboarding |
+| FR-065 | FR-K-02 | Panduan Onboarding Client Web App | Panduan Onboarding Client Web App | K. Admin Experience & Client Onboarding |
+| FR-066 | FR-K-03 | Handoff Kredensial Client yang Aman | Handoff Kredensial Client yang Aman | K. Admin Experience & Client Onboarding |
+| FR-067 | FR-L-01 | Multi-credential identity store | Multi-credential identity store | L. SSO Identity & Entitlement Expansion |
+| FR-068 | FR-L-02 | Multi-identifier login | Multi-identifier login | L. SSO Identity & Entitlement Expansion |
+| FR-069 | FR-L-03 | Identity provisioning | Identity provisioning | L. SSO Identity & Entitlement Expansion |
+| FR-070 | FR-L-04 | App classification category | App classification category | L. SSO Identity & Entitlement Expansion |
+| FR-071 | FR-L-05 | Per-user app entitlement gate | Per-user app entitlement gate | L. SSO Identity & Entitlement Expansion |
+| FR-072 | FR-L-06 | Embeddable SSO Account widget | Embeddable SSO Account widget | L. SSO Identity & Entitlement Expansion |
 
 ### 8.2 Mapping Use Case
 
@@ -743,6 +790,10 @@ Bagian ini opsional untuk pembaca yang ingin tahu FR terkait tanpa membuka dokum
 | UC-63 | Investigasi Incident dengan Correlation ID/SID | A-11 | Tinggi / MVP | FR-052, FR-063 |
 | UC-64 | Operator Kelola Key Rotation | A-10 | Tinggi / MVP | FR-002, NFR-SEC-03 |
 | UC-65 | Generate Compliance Evidence Pack | A-11 | Sedang / MVP | FR-049, FR-052, FR-056 |
+| UC-84 | Admin Assign/Revoke Role ke User via Panel | A-02 | Tinggi / MVP | FR-053, FR-064 |
+| UC-85 | Admin Buat/Ubah Role & Edit Permission | A-02 | Tinggi / MVP | FR-053, FR-064 |
+| UC-86 | App Owner Mengikuti Panduan Onboarding Client | A-03 / A-04 | Tinggi / MVP | FR-006, FR-065 |
+| UC-87 | Admin Menyerahkan Kredensial Client (one-time secret reveal) | A-02 | Sedang / MVP | FR-009, FR-066 |
 
 ### G. Security & Risk
 
@@ -771,6 +822,18 @@ Bagian ini opsional untuk pembaca yang ingin tahu FR terkait tanpa membuka dokum
 | UC-81 | Pilot Federation External IdP | A-10 / A-11 | Rendah / Phase-3 | FR-057, FR-058, FR-059 |
 | UC-82 | Jalankan Incident Runbook SEV | A-10 / A-11 | Tinggi / MVP | FR-056, FR-063 |
 | UC-83 | DR Failover | A-10 | Sedang / Phase-2 | FR-056, NFR-AVA-02 |
+
+### I. SSO Identity & Entitlement Expansion
+
+| UC ID | Nama Use Case | Aktor Utama | Prioritas/Fase | FR/NFR Terkait |
+| --- | --- | --- | --- | --- |
+| UC-88 | Login via NIP | A-01 | Tinggi / MVP | FR-067, FR-068 |
+| UC-89 | Login via NIK | A-01 | Tinggi / MVP | FR-067, FR-068 |
+| UC-90 | Admin import identitas kepegawaian | A-02 | Tinggi / MVP | FR-067, FR-069 |
+| UC-91 | Admin set kategori aplikasi | A-02 | Tinggi / MVP | FR-070 |
+| UC-92 | User non-staff ditolak app kepegawaian | A-01 | Tinggi / MVP | FR-071 |
+| UC-93 | App menanam widget akun & app-launcher | A-03b / A-03c | Tinggi / MVP | FR-072 |
+| UC-94 | Switch account via widget | A-01 | Tinggi / MVP | FR-072 |
 
 ---
 

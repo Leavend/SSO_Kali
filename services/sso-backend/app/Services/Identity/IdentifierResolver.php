@@ -29,6 +29,7 @@ final class IdentifierResolver
 
         return $this->email($normalized)
             ?? $this->nisn($normalized)
+            ?? $this->nik($normalized)
             ?? $this->nip($normalized)
             ?? $this->username($normalized)
             ?? throw IdentifierResolutionException::invalidCredentials();
@@ -58,6 +59,15 @@ final class IdentifierResolver
 
         return $digits !== null && strlen($digits) === 18
             ? new ResolvedIdentifier(IdentifierType::Nip, $digits)
+            : null;
+    }
+
+    private function nik(string $value): ?ResolvedIdentifier
+    {
+        $digits = $this->numericAlias($value);
+
+        return $digits !== null && strlen($digits) === 16
+            ? new ResolvedIdentifier(IdentifierType::Nik, $digits)
             : null;
     }
 

@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\Admin\AdminAuditLogger;
 use App\Services\Admin\AdminAuditTaxonomy;
 use App\Services\Oidc\DownstreamClientRegistry;
+use App\Services\Oidc\WidgetOriginPolicy;
 use Illuminate\Http\Request;
 use RuntimeException;
 
@@ -17,6 +18,7 @@ final class UpdateManagedClientAction
     public function __construct(
         private readonly DownstreamClientRegistry $clients,
         private readonly AdminAuditLogger $audit,
+        private readonly WidgetOriginPolicy $widgetOrigins,
     ) {}
 
     /**
@@ -31,9 +33,11 @@ final class UpdateManagedClientAction
             'redirect_uris',
             'post_logout_redirect_uris',
             'backchannel_logout_uri',
+            'category',
         ])))->save();
 
         $this->clients->flush();
+        $this->widgetOrigins->flush();
 
         $registration = $registration->refresh();
         $this->audit->succeeded(

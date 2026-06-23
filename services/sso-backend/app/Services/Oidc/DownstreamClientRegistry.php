@@ -196,6 +196,7 @@ final class DownstreamClientRegistry
                 ? $config['frontchannel_logout_uri']
                 : null,
             frontchannelLogoutSessionRequired: (bool) ($config['frontchannel_logout_session_required'] ?? true),
+            category: is_string($config['category'] ?? null) ? $config['category'] : 'publik',
         );
     }
 
@@ -228,6 +229,7 @@ final class DownstreamClientRegistry
                 ? $registration->frontchannel_logout_uri
                 : null,
             frontchannelLogoutSessionRequired: (bool) ($registration->frontchannel_logout_session_required ?? true),
+            category: (string) ($registration->category ?? 'publik'),
         );
     }
 

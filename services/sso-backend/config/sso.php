@@ -85,6 +85,9 @@ return [
         'password_max_age_days' => (int) env('SSO_AUTH_PASSWORD_MAX_AGE_DAYS', 90),
         'password_reset_ttl_minutes' => (int) env('SSO_AUTH_PASSWORD_RESET_TTL_MINUTES', 30),
     ],
+    'identity' => [
+        'nik_hash_key' => env('SSO_NIK_HASH_KEY'),
+    ],
     'password' => [
         'breach_check' => (bool) env('SSO_PASSWORD_BREACH_CHECK', true),
         'breach_check_timeout_seconds' => (int) env('SSO_PASSWORD_BREACH_CHECK_TIMEOUT_SECONDS', 5),

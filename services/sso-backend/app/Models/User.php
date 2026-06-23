@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Support\Identity\GovernmentIdentifier;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -45,6 +46,13 @@ use Laravel\Passport\HasApiTokens;
  * @property Carbon|null $password_reset_token_expires_at
  * @property Carbon|null $email_verified_at
  * @property Carbon|null $last_login_at
+ * @property string|null $nik
+ * @property string|null $nik_hash
+ * @property string|null $nip
+ * @property string|null $nip_hash
+ * @property string|null $nisn
+ * @property string|null $nisn_hash
+ * @property Carbon|null $birth_date
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -89,12 +97,56 @@ class User extends Authenticatable implements OAuthenticatable
         'password_reset_token_expires_at',
         'email_verified_at',
         'last_login_at',
+        'nik',
+        'nip',
+        'nisn',
+        'birth_date',
     ];
 
     /**
      * @var list<string>
      */
-    protected $hidden = ['password', 'remember_token', 'subject_uuid'];
+    protected $hidden = [
+        'password',
+        'remember_token',
+        'subject_uuid',
+        'nik',
+        'nik_hash',
+        'nip',
+        'nip_hash',
+        'nisn',
+        'nisn_hash',
+        'birth_date',
+    ];
+
+    protected static function booted(): void
+    {
+        static::saving(static function (User $user): void {
+            if ($user->isDirty('nip')) {
+                $user->nip = GovernmentIdentifier::nip($user->nip);
+                $user->nip_hash = $user->nip === null || $user->nip === ''
+                    ? null
+                    : GovernmentIdentifier::hashNip($user->nip);
+            }
+
+            if ($user->isDirty('nisn')) {
+                $user->nisn = GovernmentIdentifier::nisn($user->nisn);
+                $user->nisn_hash = $user->nisn === null || $user->nisn === ''
+                    ? null
+                    : GovernmentIdentifier::hashNisn($user->nisn);
+            }
+
+            if ($user->isDirty('nik')) {
+                $user->nik = GovernmentIdentifier::nik($user->nik);
+
+                if ($user->nik === null || $user->nik === '') {
+                    $user->nik_hash = null;
+                } else {
+                    $user->nik_hash = GovernmentIdentifier::hashNik($user->nik);
+                }
+            }
+        });
+    }
 
     /**
      * @return BelongsToMany<Role, $this>
@@ -135,6 +187,10 @@ class User extends Authenticatable implements OAuthenticatable
             'mfa_reset_at' => 'datetime',
             'password_reset_token_expires_at' => 'datetime',
             'password' => 'hashed',
+            'nik' => 'encrypted',
+            'nip' => 'encrypted',
+            'nisn' => 'encrypted',
+            'birth_date' => 'date',
         ];
     }
 

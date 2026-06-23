@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions\Oidc;
 
 use App\Enums\SsoErrorCode;
+use App\Models\User;
 use App\Services\Oidc\AuthorizationCodeStore;
 use App\Services\Oidc\AuthorizationRequestAuditRecorder;
 use App\Services\Oidc\AuthorizationRequestContextFactory;
@@ -14,6 +15,7 @@ use App\Services\Oidc\AuthRequestStore;
 use App\Services\Oidc\BrowserAuthorizationSessionResolver;
 use App\Services\Oidc\ConsentService;
 use App\Services\Oidc\DownstreamClientRegistry;
+use App\Services\Oidc\EntitlementGuard;
 use App\Services\Oidc\OidcProfileMetrics;
 use App\Support\Oidc\AuthorizationClientSession;
 use App\Support\Oidc\DownstreamClient;
@@ -72,6 +74,18 @@ final class CreateAuthorizationRedirect
     {
         $session = $this->browserSessions->reusable($request, $client, $context);
         if ($session instanceof AuthorizationClientSession) {
+            $user = User::query()->where('subject_id', (string) ($session->browserContext['subject_id'] ?? ''))->first();
+            if ($user instanceof User && ! app(EntitlementGuard::class)->allows($user, $client)) {
+                $this->audits->rejected($request, $client, 'access_denied', $context);
+
+                return OidcErrorResponse::redirect(
+                    (string) $context['redirect_uri'],
+                    'access_denied',
+                    'User is not entitled to access this application.',
+                    $this->optionalString($context['original_state'] ?? null)
+                );
+            }
+
             return $this->browserSessionRedirect($request, $session);
         }
         if ($this->prompt($request) === 'none') {

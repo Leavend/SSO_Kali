@@ -40,6 +40,16 @@ it('finds a static client by id', function (): void {
         ->and($client->redirectUris)->toBe(['https://portal.example/auth/callback']);
 });
 
+it('defaults non-string config client category without crashing registry resolution', function (): void {
+    config()->set('oidc_clients.clients.static-spa.category', ['publik']);
+
+    $registry = app(DownstreamClientRegistry::class);
+    $client = $registry->find('static-spa');
+
+    expect($client)->not->toBeNull()
+        ->and($client->category)->toBe('publik');
+});
+
 it('returns null for unknown client id', function (): void {
     $registry = app(DownstreamClientRegistry::class);
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Oidc;
 
+use App\Support\Oidc\ClientCategory;
 use App\Support\Oidc\ClientIntegrationDraft;
 use App\Support\Oidc\ClientUrlOrigin;
 
@@ -32,6 +33,7 @@ final class ClientIntegrationContractBuilder
             ownerEmail: $this->field($input, 'ownerEmail', 'owner_email'),
             provisioning: $this->option($input, 'provisioning', 'jit'),
             allowedScopes: $this->allowedScopes($input),
+            category: $this->option($input, 'category', 'publik'),
         );
     }
 
@@ -149,6 +151,7 @@ final class ClientIntegrationContractBuilder
             in_array($draft->environment, ['live', 'development'], true) ? null : 'Status aplikasi tidak valid.',
             in_array($draft->clientType, ['public', 'confidential'], true) ? null : 'Jenis client tidak valid.',
             in_array($draft->provisioning, ['jit', 'scim'], true) ? null : 'Provisioning tidak valid.',
+            in_array($draft->category, ClientCategory::values(), true) ? null : 'Kategori client tidak valid.',
         ]));
     }
 

@@ -17,5 +17,6 @@ final readonly class ClientIntegrationDraft
         public string $ownerEmail,
         public string $provisioning,
         public array $allowedScopes = [],
+        public string $category = 'publik',
     ) {}
 }

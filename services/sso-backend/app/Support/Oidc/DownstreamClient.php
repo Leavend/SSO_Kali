@@ -26,6 +26,7 @@ final readonly class DownstreamClient
         public bool $skipConsent = true,
         public ?string $frontchannelLogoutUri = null,
         public bool $frontchannelLogoutSessionRequired = true,
+        public string $category = 'publik',
     ) {}
 
     /**

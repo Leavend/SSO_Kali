@@ -29,6 +29,13 @@ it('classifies nip identifiers while preserving leading zeroes', function (): vo
         ->and($resolved->normalized)->toBe('198902022024011001');
 });
 
+it('classifies nik identifiers while preserving leading zeroes', function (): void {
+    $resolved = app(IdentifierResolver::class)->parse('  0123 4567 8901 2345 ');
+
+    expect($resolved->type)->toBe(IdentifierType::Nik)
+        ->and($resolved->normalized)->toBe('0123456789012345');
+});
+
 it('classifies username identifiers in lowercase', function (): void {
     $resolved = app(IdentifierResolver::class)->parse(' Admin.User-01 ');
 
@@ -39,6 +46,13 @@ it('classifies username identifiers in lowercase', function (): void {
 it('rejects numeric only usernames to avoid collision with nisn and nip', function (): void {
     expect(fn () => app(IdentifierResolver::class)->parse('123456789'))
         ->toThrow(IdentifierResolutionException::class, 'could not be verified');
+});
+
+it('rejects malformed numeric identifiers with unsupported lengths', function (): void {
+    foreach (['123456789', '12345678901', '12345678901234567', '1234567890123456789'] as $identifier) {
+        expect(fn () => app(IdentifierResolver::class)->parse($identifier))
+            ->toThrow(IdentifierResolutionException::class, 'could not be verified');
+    }
 });
 
 it('returns a single login hint when the match set is unambiguous', function (): void {

@@ -7,6 +7,7 @@ namespace App\Services\Identity;
 enum IdentifierType: string
 {
     case Email = 'email';
+    case Nik = 'nik';
     case Nip = 'nip';
     case Nisn = 'nisn';
     case Username = 'username';

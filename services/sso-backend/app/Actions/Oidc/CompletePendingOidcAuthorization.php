@@ -11,6 +11,7 @@ use App\Services\Oidc\AuthorizationCodeStore;
 use App\Services\Oidc\AuthRequestStore;
 use App\Services\Oidc\ConsentService;
 use App\Services\Oidc\DownstreamClientRegistry;
+use App\Services\Oidc\EntitlementGuard;
 use App\Services\Oidc\ScopePolicy;
 use App\Services\Security\LoginContextRecorder;
 use App\Support\Audit\AuthenticationAuditRecord;
@@ -68,6 +69,10 @@ final class CompletePendingOidcAuthorization
 
         if (! $client instanceof DownstreamClient) {
             return OidcContinuationResult::invalidClient();
+        }
+
+        if (! app(EntitlementGuard::class)->allows($user, $client)) {
+            return OidcContinuationResult::accessDenied('User is not entitled to access this application.');
         }
 
         // BE-FR023-001: NEVER silently downgrade scope. If the policy has

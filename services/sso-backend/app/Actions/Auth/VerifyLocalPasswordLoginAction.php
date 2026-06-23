@@ -6,8 +6,13 @@ namespace App\Actions\Auth;
 
 use App\Models\User;
 use App\Services\Auth\LoginAttemptThrottle;
+use App\Services\Identity\IdentifierResolutionException;
+use App\Services\Identity\IdentifierResolver;
+use App\Services\Identity\IdentifierType;
+use App\Services\Identity\ResolvedIdentifier;
 use App\Support\Auth\LocalPasswordLoginOutcome;
 use App\Support\Auth\LocalPasswordLoginResult;
+use App\Support\Identity\GovernmentIdentifier;
 use Illuminate\Support\Facades\Hash;
 
 /**
@@ -24,8 +29,9 @@ final readonly class VerifyLocalPasswordLoginAction
 
     public function execute(string $identifier, string $password): LocalPasswordLoginResult
     {
-        $normalized = $this->normalize($identifier);
-        $user = $this->findUser($normalized);
+        $resolved = $this->resolveIdentifier($identifier);
+        $normalized = $resolved?->loginHint() ?? $this->normalize($identifier);
+        $user = $resolved instanceof ResolvedIdentifier ? $this->findUser($resolved) : null;
 
         if ($normalized === '' || $this->throttle->isThrottled($normalized)) {
             return new LocalPasswordLoginResult(
@@ -95,14 +101,30 @@ final readonly class VerifyLocalPasswordLoginAction
         );
     }
 
-    private function findUser(string $normalized): ?User
+    private function findUser(ResolvedIdentifier $identifier): ?User
     {
-        $user = User::query()
-            ->where('email', $normalized)
-            ->orWhere('subject_id', $normalized)
-            ->first();
+        $query = User::query();
+        $hash = null;
 
-        return $user instanceof User ? $user : null;
+        match ($identifier->type) {
+            IdentifierType::Email => $query->where('email', $identifier->normalized),
+            IdentifierType::Username => $query->where('subject_id', $identifier->normalized),
+            IdentifierType::Nip => $hash = GovernmentIdentifier::optionalNipHash($identifier->normalized),
+            IdentifierType::Nisn => $hash = GovernmentIdentifier::optionalNisnHash($identifier->normalized),
+            IdentifierType::Nik => $hash = GovernmentIdentifier::optionalNikHash($identifier->normalized),
+        };
+
+        if (in_array($identifier->type, [IdentifierType::Nik, IdentifierType::Nip, IdentifierType::Nisn], true)) {
+            if ($hash === null) {
+                return null;
+            }
+
+            $query->where($identifier->type->value.'_hash', $hash);
+        }
+
+        $users = $query->limit(2)->get();
+
+        return $users->count() === 1 ? $users->first() : null;
     }
 
     private function passwordExpired(User $user): bool
@@ -123,5 +145,14 @@ final readonly class VerifyLocalPasswordLoginAction
     private function normalize(string $identifier): string
     {
         return mb_strtolower(trim($identifier));
+    }
+
+    private function resolveIdentifier(string $identifier): ?ResolvedIdentifier
+    {
+        try {
+            return app(IdentifierResolver::class)->parse($identifier);
+        } catch (IdentifierResolutionException) {
+            return null;
+        }
     }
 }

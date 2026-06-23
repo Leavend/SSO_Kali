@@ -147,6 +147,13 @@ final class MfaChallengeController
                         ?? 'The requested scope is no longer allowed for this client.',
                 ], 400),
 
+                OidcContinuationOutcome::AccessDenied => response()->json([
+                    'authenticated' => false,
+                    'error' => 'access_denied',
+                    'error_description' => $continuation->errorDescription
+                        ?? 'User is not entitled to access this application.',
+                ], 403),
+
                 OidcContinuationOutcome::InvalidClient,
                 OidcContinuationOutcome::InvalidContext,
                 OidcContinuationOutcome::TemporarilyUnavailable => response()->json([
