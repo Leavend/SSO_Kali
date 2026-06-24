@@ -18,6 +18,8 @@ use Illuminate\Support\Facades\Hash;
 beforeEach(function (): void {
     config()->set('sso.base_url', 'https://sso.example.test');
     config()->set('sso.frontend_url', 'https://portal.example.test');
+    config()->set('sso.admin_frontend_url', 'https://admin.example.test');
+    config()->set('sso.widget.first_party_origins', ['https://admin-extra.example.test']);
     config()->set('oidc_clients.clients', [
         'publik-app' => [
             'type' => 'public',
@@ -517,6 +519,33 @@ describe('SSO Account Widget Endpoints', function (): void {
 });
 
 describe('SSO Widget CORS Origin Validation', function (): void {
+    it('allows CORS from configured first-party widget origins', function (): void {
+        $adminResponse = $this->withHeaders(['Origin' => 'https://admin.example.test'])
+            ->getJson('/widget/apps');
+        $portalResponse = $this->withHeaders(['Origin' => 'https://portal.example.test'])
+            ->getJson('/widget/accounts');
+        $baseResponse = $this->withHeaders(['Origin' => 'https://sso.example.test'])
+            ->getJson('/widget/session');
+        $extraResponse = $this->withHeaders(['Origin' => 'https://admin-extra.example.test'])
+            ->getJson('/widget/session');
+        $preflightResponse = $this->withHeaders([
+            'Origin' => 'https://admin.example.test',
+            'Access-Control-Request-Method' => 'GET',
+        ])->options('/widget/accounts');
+
+        $adminResponse->assertHeader('Access-Control-Allow-Origin', 'https://admin.example.test');
+        $portalResponse->assertHeader('Access-Control-Allow-Origin', 'https://portal.example.test');
+        $baseResponse->assertHeader('Access-Control-Allow-Origin', 'https://sso.example.test');
+        $extraResponse->assertHeader('Access-Control-Allow-Origin', 'https://admin-extra.example.test');
+        $preflightResponse->assertNoContent();
+        $preflightResponse->assertHeader('Access-Control-Allow-Origin', 'https://admin.example.test');
+
+        foreach ([$adminResponse, $portalResponse, $baseResponse, $extraResponse, $preflightResponse] as $response) {
+            $response->assertHeader('Access-Control-Allow-Credentials', 'true');
+            $response->assertHeader('Vary', 'Origin');
+        }
+    });
+
     it('allows CORS from a registered client origin', function (): void {
         $response = $this->withHeaders(['Origin' => 'https://publik.test'])
             ->getJson('/widget/session');
@@ -532,6 +561,10 @@ describe('SSO Widget CORS Origin Validation', function (): void {
             ->assertHeaderMissing('Access-Control-Allow-Origin');
 
         $this->withHeaders(['Origin' => 'https://publik.test:3000'])
+            ->getJson('/widget/session')
+            ->assertHeaderMissing('Access-Control-Allow-Origin');
+
+        $this->withHeaders(['Origin' => 'http://admin.example.test'])
             ->getJson('/widget/session')
             ->assertHeaderMissing('Access-Control-Allow-Origin');
     });
@@ -588,6 +621,27 @@ describe('SSO Widget CORS Origin Validation', function (): void {
         $this->withHeaders(['Origin' => 'https://dynamic-widget-new.test'])
             ->getJson('/widget/session')
             ->assertHeader('Access-Control-Allow-Origin', 'https://dynamic-widget-new.test');
+    });
+
+    it('documents and deploys first-party widget origins with cross-site cookie settings', function (): void {
+        $root = dirname(base_path(), 2).DIRECTORY_SEPARATOR;
+        $envExample = file_get_contents(base_path('.env.example'));
+        $deployWorkflow = file_get_contents($root.'.github/workflows/deploy-main.yml');
+        $deployScript = file_get_contents($root.'scripts/vps-deploy-main.sh');
+
+        expect($envExample)->toContain('SSO_ADMIN_FRONTEND_URL=http://localhost:8080')
+            ->and($envExample)->toContain('SSO_WIDGET_FIRST_PARTY_ORIGINS=http://localhost:3000,http://localhost:8080')
+            ->and($envExample)->toContain('SSO_SESSION_COOKIE_SAME_SITE=none')
+            ->and($envExample)->toContain('SSO_WIDGET_DEVICE_COOKIE_SAME_SITE=none');
+
+        expect($deployWorkflow)->toContain('SSO_WIDGET_FIRST_PARTY_ORIGINS')
+            ->and($deployWorkflow)->toContain('SSO_SESSION_COOKIE_SAME_SITE=none')
+            ->and($deployWorkflow)->toContain('SSO_WIDGET_DEVICE_COOKIE_SAME_SITE=none');
+
+        expect($deployScript)->toContain('php artisan cache:forget widget_cors_allowed_origins:v1')
+            ->and($deployScript)->toContain('/widget/apps')
+            ->and($deployScript)->toContain('/widget/accounts')
+            ->and($deployScript)->toContain('Widget CORS OK');
     });
 });
 

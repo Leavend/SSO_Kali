@@ -61,6 +61,57 @@ describe('PortalUserMenu', () => {
     expect(wrapper.get('[data-testid="portal-account-menu"]').text()).toContain('Kelola Akun')
   })
 
+  it('keeps widget app failures stable without hiding the portal identity', async () => {
+    vi.mocked(ssoAccountWidgetApi.apps).mockRejectedValue(new Error('cors'))
+    const wrapper = mount(PortalUserMenu, {
+      global: { stubs: { RouterLink: true, ConfirmDialog: true } },
+    })
+
+    await wrapper.get('[data-testid="portal-account-apps-trigger"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.get('[data-testid="portal-account-menu-trigger"]').text()).toContain(
+      'Portal User',
+    )
+    expect(wrapper.get('[data-testid="portal-account-apps-menu"]').text()).toContain(
+      'Gagal memuat aplikasi.',
+    )
+
+    await wrapper.get('[data-testid="portal-account-apps-trigger"]').trigger('click')
+    await wrapper.get('[data-testid="portal-account-apps-trigger"]').trigger('click')
+    await flushPromises()
+
+    expect(ssoAccountWidgetApi.apps).toHaveBeenCalledTimes(1)
+    expect(wrapper.get('[data-testid="portal-account-apps-menu"]').text()).toContain(
+      'Gagal memuat aplikasi.',
+    )
+  })
+
+  it('keeps widget account failures stable without hiding the portal account menu', async () => {
+    vi.mocked(ssoAccountWidgetApi.accounts).mockRejectedValue(new Error('cors'))
+    const wrapper = mount(PortalUserMenu, {
+      global: {
+        stubs: {
+          RouterLink: { template: '<a href="/profile"><slot /></a>' },
+          ConfirmDialog: true,
+        },
+      },
+    })
+
+    await wrapper.get('[data-testid="portal-account-menu-trigger"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.get('[data-testid="portal-account-menu"]').text()).toContain('Portal User')
+    expect(wrapper.get('[data-testid="portal-account-menu"]').text()).toContain('Gagal memuat akun.')
+
+    await wrapper.get('[data-testid="portal-account-menu-trigger"]').trigger('click')
+    await wrapper.get('[data-testid="portal-account-menu-trigger"]').trigger('click')
+    await flushPromises()
+
+    expect(ssoAccountWidgetApi.accounts).toHaveBeenCalledTimes(1)
+    expect(wrapper.get('[data-testid="portal-account-menu"]').text()).toContain('Gagal memuat akun.')
+  })
+
   it('renders only safe app launcher links', async () => {
     vi.mocked(ssoAccountWidgetApi.apps).mockResolvedValueOnce([
       {

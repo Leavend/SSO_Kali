@@ -19,6 +19,7 @@ return [
     // "per-API" gate is wrong.
     'resource_audience' => env('SSO_RESOURCE_AUDIENCE', 'sso-resource-api'),
     'frontend_url' => env('SSO_FRONTEND_URL', env('APP_URL', 'http://localhost:3000')),
+    'admin_frontend_url' => env('SSO_ADMIN_FRONTEND_URL'),
     'display_timezone' => env('SSO_DISPLAY_TIMEZONE', 'Asia/Makassar'),
     'login_url' => env('SSO_LOGIN_URL', env('SSO_FRONTEND_URL', 'http://localhost:3000').'/login'),
     'observability' => [
@@ -93,6 +94,7 @@ return [
         'device_cookie_minutes' => (int) env('SSO_WIDGET_DEVICE_COOKIE_MINUTES', 576000),
         'device_cookie_same_site' => env('SSO_WIDGET_DEVICE_COOKIE_SAME_SITE', 'none'),
         'device_hash_key' => env('SSO_WIDGET_DEVICE_HASH_KEY'),
+        'first_party_origins' => $csv((string) env('SSO_WIDGET_FIRST_PARTY_ORIGINS', '')),
         'max_accounts_per_device' => max(1, (int) env('SSO_WIDGET_MAX_ACCOUNTS_PER_DEVICE', 8)),
     ],
     'browser_mutation' => [

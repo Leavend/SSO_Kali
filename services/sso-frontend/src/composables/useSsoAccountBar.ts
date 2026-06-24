@@ -28,7 +28,7 @@ export function useSsoAccountBar() {
   )
 
   async function loadApps(): Promise<void> {
-    if (appsState.value === 'ready' || appsState.value === 'loading') return
+    if (appsState.value !== 'idle') return
     appsState.value = 'loading'
     try {
       apps.value = await ssoAccountWidgetApi.apps()
@@ -39,7 +39,7 @@ export function useSsoAccountBar() {
   }
 
   async function loadAccounts(): Promise<void> {
-    if (accountsState.value === 'ready' || accountsState.value === 'loading') return
+    if (accountsState.value !== 'idle') return
     accountsState.value = 'loading'
     try {
       accounts.value = await ssoAccountWidgetApi.accounts()

@@ -67,6 +67,8 @@ Gunakan checklist ini sebelum go-live integrasi client SSO. Halaman ini merangku
 - [ ] Gunakan `data-features="apps,account"` bila ingin mengatur trigger yang tampil.
 - [ ] Untuk mount manual, panggil `window.SSOAccount.mount('#sso-account', { clientId: 'app-kamu-web', features: 'apps,account' })`.
 - [ ] Pastikan `app_base_url` client adalah URL web `https://` atau localhost development; link `javascript:` dan `data:` tidak akan ditampilkan.
+- [ ] Pastikan origin yang meng-embed widget terdaftar sebagai `app_base_url` client atau origin first-party SSO. Credentialed CORS widget tidak memakai redirect URI sebagai allow-list.
+- [ ] Untuk embedding lintas-origin first-party, cookie sesi dan device SSO harus `Secure` serta `SameSite=None`.
 - [ ] Jika memakai CSP ketat, izinkan `script-src` dan `connect-src` ke origin SSO, serta `style-src` untuk stylesheet `/widget/account.css`.
 - [ ] Jangan mencoba membaca cookie widget dari JavaScript. Multi-account chooser memakai cookie device httpOnly dan registry server-side.
 - [ ] Jangan panggil endpoint native `/api/auth/*`, `/api/profile/*`, atau `/api/mfa/*` dari app eksternal. Endpoint mutasi itu khusus browser first-party dan wajib membawa `Origin`/`Referer` tepercaya serta `X-Requested-With: XMLHttpRequest`; app eksternal memakai OIDC dan `/widget/*`.

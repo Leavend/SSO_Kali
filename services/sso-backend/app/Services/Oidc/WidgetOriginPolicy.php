@@ -60,7 +60,7 @@ final class WidgetOriginPolicy
     private function buildAllowedOrigins(): array
     {
         $origins = [];
-        $this->addOrigin($origins, config('sso.frontend_url'));
+        $this->addFirstPartyOrigins($origins);
 
         OidcClientRegistration::query()
             ->where('status', 'active')
@@ -80,6 +80,25 @@ final class WidgetOriginPolicy
         sort($origins);
 
         return array_values(array_unique($origins));
+    }
+
+    /**
+     * @param  list<string>  $origins
+     */
+    private function addFirstPartyOrigins(array &$origins): void
+    {
+        $this->addOrigin($origins, config('sso.base_url'));
+        $this->addOrigin($origins, config('sso.frontend_url'));
+        $this->addOrigin($origins, config('sso.admin_frontend_url'));
+
+        $configuredOrigins = config('sso.widget.first_party_origins', []);
+        if (! is_array($configuredOrigins)) {
+            return;
+        }
+
+        foreach ($configuredOrigins as $origin) {
+            $this->addOrigin($origins, $origin);
+        }
     }
 
     /**

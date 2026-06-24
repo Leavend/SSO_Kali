@@ -69,6 +69,8 @@ Then add the hosted widget:
 
 The widget uses `/widget/session`, `/widget/apps`, `/widget/accounts`, `/widget/switch`, and `/widget/logout`. The browser never receives OAuth tokens. The multi-account chooser is limited to accounts that have signed in on this browser through an httpOnly device cookie and a server-side registry, not IP address or User-Agent.
 
+The widget embedding origin must be registered as the client `app_base_url` or as a first-party SSO origin. Credentialed widget CORS does not use redirect URIs as its allow-list. For first-party cross-origin embedding, the SSO session and device cookies must be `Secure` and `SameSite=None`.
+
 Optional feature selection:
 
 ```html
@@ -87,7 +89,7 @@ For applications that need manual control:
 </script>
 ```
 
-If the application uses strict Content Security Policy, allow the SSO origin in `script-src` and `connect-src`, and allow `https://api-sso.timeh.my.id/widget/account.css` in `style-src`. Ensure the client `app_base_url` uses a safe web URL; non-web links such as `javascript:` and `data:` are not rendered by the widget.
+If the application uses strict Content Security Policy, allow the SSO origin in `script-src` and `connect-src`, and allow `https://api-sso.timeh.my.id/widget/account.css` in `style-src`. Ensure the client `app_base_url` uses a safe web URL; non-web links such as `javascript:` and `data:` are not rendered by the widget. Do not call native `/api/auth/*`, `/api/profile/*`, or `/api/mfa/*` endpoints from external apps; use OIDC and `/widget/*`.
 
 ## 6. Integration Test Checklist
 

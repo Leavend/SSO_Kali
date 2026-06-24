@@ -67,6 +67,8 @@ Use this checklist before taking an SSO client integration live. It consolidates
 - [ ] Use `data-features="apps,account"` when the application needs to choose which triggers are visible.
 - [ ] For manual mounting, call `window.SSOAccount.mount('#sso-account', { clientId: 'your-web-app', features: 'apps,account' })`.
 - [ ] Ensure the client `app_base_url` is a web URL (`https://` or localhost development); `javascript:` and `data:` links are not rendered.
+- [ ] Ensure the widget embedding origin is registered as the client `app_base_url` or as a first-party SSO origin. Credentialed widget CORS does not use redirect URIs as its allow-list.
+- [ ] For first-party cross-origin embedding, the SSO session and device cookies must be `Secure` and `SameSite=None`.
 - [ ] If the application uses strict CSP, allow the SSO origin in `script-src` and `connect-src`, and allow the `/widget/account.css` stylesheet in `style-src`.
 - [ ] Do not read widget cookies from JavaScript. The multi-account chooser uses an httpOnly device cookie and a server-side registry.
 - [ ] Do not call native `/api/auth/*`, `/api/profile/*`, or `/api/mfa/*` endpoints from external apps. Those mutation endpoints are first-party browser APIs and require a trusted `Origin`/`Referer` plus `X-Requested-With: XMLHttpRequest`; external apps use OIDC and `/widget/*`.

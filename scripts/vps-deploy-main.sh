@@ -144,7 +144,7 @@ run_migrations() {
     compose run --rm --no-deps sso-backend php artisan migrate --force
     log 'Optimizing Laravel caches'
     compose run --rm --no-deps sso-backend sh -lc \
-      'php artisan config:cache && php artisan route:cache && if [ -d resources/views ]; then php artisan view:cache; else echo "resources/views not found; skipping view cache"; fi'
+      'php artisan config:cache && php artisan route:cache && php artisan cache:forget widget_cors_allowed_origins:v1 && if [ -d resources/views ]; then php artisan view:cache; else echo "resources/views not found; skipping view cache"; fi'
   fi
 }
 
@@ -176,6 +176,44 @@ smoke_cors_preflight() {
   [[ "$allow_credentials" == "true" ]] || die "CORS preflight returned invalid Access-Control-Allow-Credentials '$allow_credentials'"
 
   log "CORS preflight OK (${status}): ${base_url%/}/api/auth/login allows $origin"
+}
+
+smoke_widget_cors() {
+  local base_url="$1" origin="$2" headers status allow_origin allow_credentials vary
+  [[ -n "$base_url" && -n "$origin" ]] || { warn 'Skipping widget CORS smoke because base URL or origin is empty'; return 0; }
+
+  headers="$(mktemp)"
+  status="$(curl -ksS -o /dev/null -D "$headers" -w '%{http_code}' --max-time 20 \
+    "${base_url%/}/widget/apps" \
+    -H "Origin: $origin" || true)"
+
+  allow_origin="$(awk 'BEGIN{IGNORECASE=1} /^access-control-allow-origin:/ {sub(/^[^:]+:[[:space:]]*/, ""); sub(/\r$/, ""); print; exit}' "$headers")"
+  allow_credentials="$(awk 'BEGIN{IGNORECASE=1} /^access-control-allow-credentials:/ {sub(/^[^:]+:[[:space:]]*/, ""); sub(/\r$/, ""); print; exit}' "$headers")"
+  vary="$(awk 'BEGIN{IGNORECASE=1} /^vary:/ {sub(/^[^:]+:[[:space:]]*/, ""); sub(/\r$/, ""); print; exit}' "$headers")"
+  rm -f "$headers"
+
+  [[ "$status" =~ ^(200|401)$ ]] || die "Widget CORS GET failed: ${base_url%/}/widget/apps returned ${status:-000}"
+  [[ "$allow_origin" == "$origin" ]] || die "Widget CORS GET returned invalid Access-Control-Allow-Origin '$allow_origin' (expected '$origin')"
+  [[ "$allow_credentials" == "true" ]] || die "Widget CORS GET returned invalid Access-Control-Allow-Credentials '$allow_credentials'"
+  [[ "$vary" == *Origin* ]] || die "Widget CORS GET missing Vary: Origin"
+
+  headers="$(mktemp)"
+  status="$(curl -ksS -o /dev/null -D "$headers" -w '%{http_code}' --max-time 20 \
+    -X OPTIONS "${base_url%/}/widget/accounts" \
+    -H "Origin: $origin" \
+    -H 'Access-Control-Request-Method: GET' || true)"
+
+  allow_origin="$(awk 'BEGIN{IGNORECASE=1} /^access-control-allow-origin:/ {sub(/^[^:]+:[[:space:]]*/, ""); sub(/\r$/, ""); print; exit}' "$headers")"
+  allow_credentials="$(awk 'BEGIN{IGNORECASE=1} /^access-control-allow-credentials:/ {sub(/^[^:]+:[[:space:]]*/, ""); sub(/\r$/, ""); print; exit}' "$headers")"
+  vary="$(awk 'BEGIN{IGNORECASE=1} /^vary:/ {sub(/^[^:]+:[[:space:]]*/, ""); sub(/\r$/, ""); print; exit}' "$headers")"
+  rm -f "$headers"
+
+  [[ "$status" =~ ^(200|204)$ ]] || die "Widget CORS preflight failed: ${base_url%/}/widget/accounts returned ${status:-000}"
+  [[ "$allow_origin" == "$origin" ]] || die "Widget CORS preflight returned invalid Access-Control-Allow-Origin '$allow_origin' (expected '$origin')"
+  [[ "$allow_credentials" == "true" ]] || die "Widget CORS preflight returned invalid Access-Control-Allow-Credentials '$allow_credentials'"
+  [[ "$vary" == *Origin* ]] || die "Widget CORS preflight missing Vary: Origin"
+
+  log "Widget CORS OK (${origin}): ${base_url%/}/widget/apps and /widget/accounts"
 }
 
 host_from_url() {
@@ -237,10 +275,11 @@ run_smoke_tests() {
   source "$ENV_FILE" || true
 
   local base_url="${SSO_INTERNAL_BASE_URL:-${SSO_BASE_URL:-${APP_URL:-}}}"
-  local frontend_asset admin_asset frontend_host admin_host docs_host
+  local frontend_asset admin_asset frontend_host admin_host admin_origin docs_host
   base_url="${base_url%/}"
   frontend_host="${SSO_DOMAIN:-$(host_from_url "${SSO_FRONTEND_URL:-https://sso.timeh.my.id}")}"
   admin_host="${SSO_ADMIN_DOMAIN:-admin-sso.timeh.my.id}"
+  admin_origin="${SSO_ADMIN_FRONTEND_URL:-https://${admin_host}}"
   docs_host="${SSO_DOCS_DOMAIN:-docs.sso.timeh.my.id}"
 
   smoke_url 'SSO /up' "$base_url/up" '^(200)$'
@@ -248,6 +287,7 @@ run_smoke_tests() {
   smoke_url 'SSO discovery' "$base_url/.well-known/openid-configuration" '^(200)$'
   smoke_url 'SSO JWKS' "$base_url/.well-known/jwks.json" '^(200)$'
   smoke_cors_preflight "$base_url" "${SSO_FRONTEND_URL:-https://sso.timeh.my.id}"
+  smoke_widget_cors "$base_url" "$admin_origin"
   smoke_url 'Admin frontend internal health' "${SSO_ADMIN_FRONTEND_INTERNAL_URL:-http://127.0.0.1:3091}/healthz" '^(200)$'
   smoke_url 'Docs site internal health' "${SSO_DOCS_UPSTREAM:-http://127.0.0.1:8190}/" '^(200)$'
 

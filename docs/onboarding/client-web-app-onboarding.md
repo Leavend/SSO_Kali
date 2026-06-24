@@ -145,6 +145,8 @@ Lalu tambahkan script widget:
 
 Widget memakai endpoint `/widget/session`, `/widget/apps`, `/widget/accounts`, `/widget/switch`, dan `/widget/logout`. Browser tidak menerima token. Multi-account chooser dibatasi ke akun yang pernah login di browser ini melalui cookie device httpOnly dan registry server-side, bukan IP atau User-Agent.
 
+Origin yang meng-embed widget harus terdaftar sebagai `app_base_url` client atau sebagai origin first-party SSO. Credentialed CORS widget tidak memakai redirect URI sebagai allow-list. Untuk embedding lintas-origin first-party, cookie sesi dan device SSO harus `Secure` serta `SameSite=None`.
+
 Konfigurasi opsional:
 
 ```html
@@ -163,7 +165,7 @@ Untuk app yang butuh kontrol manual:
 </script>
 ```
 
-Jika app memakai Content Security Policy ketat, izinkan origin SSO pada `script-src` dan `connect-src`, serta stylesheet `https://api-sso.timeh.my.id/widget/account.css` pada `style-src`. Pastikan `app_base_url` client memakai URL web aman; link non-web seperti `javascript:` dan `data:` tidak akan ditampilkan oleh widget.
+Jika app memakai Content Security Policy ketat, izinkan origin SSO pada `script-src` dan `connect-src`, serta stylesheet `https://api-sso.timeh.my.id/widget/account.css` pada `style-src`. Pastikan `app_base_url` client memakai URL web aman; link non-web seperti `javascript:` dan `data:` tidak akan ditampilkan oleh widget. Jangan panggil endpoint native `/api/auth/*`, `/api/profile/*`, atau `/api/mfa/*` dari app eksternal; gunakan OIDC dan `/widget/*`.
 
 ### Endpoint (dari Discovery)
 

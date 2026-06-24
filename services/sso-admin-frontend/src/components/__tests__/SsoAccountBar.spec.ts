@@ -70,6 +70,50 @@ describe('SsoAccountBar', () => {
     expect(wrapper.get('[data-testid="sso-account-menu"]').text()).toContain('Kelola Akun')
   })
 
+  it('keeps widget app failures stable without hiding the principal avatar', async () => {
+    vi.mocked(ssoAccountWidgetApi.apps).mockRejectedValue(new Error('cors'))
+    const wrapper = mount(SsoAccountBar, {
+      global: { stubs: { RouterLink: true } },
+    })
+
+    await wrapper.get('[data-testid="sso-account-apps-trigger"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.get('[data-testid="sso-account-menu-trigger"]').text()).toBe('A')
+    expect(wrapper.get('[data-testid="sso-account-apps-menu"]').text()).toContain(
+      'Gagal memuat aplikasi.',
+    )
+
+    await wrapper.get('[data-testid="sso-account-apps-trigger"]').trigger('click')
+    await wrapper.get('[data-testid="sso-account-apps-trigger"]').trigger('click')
+    await flushPromises()
+
+    expect(ssoAccountWidgetApi.apps).toHaveBeenCalledTimes(1)
+    expect(wrapper.get('[data-testid="sso-account-apps-menu"]').text()).toContain(
+      'Gagal memuat aplikasi.',
+    )
+  })
+
+  it('keeps widget account failures stable without hiding the principal identity', async () => {
+    vi.mocked(ssoAccountWidgetApi.accounts).mockRejectedValue(new Error('cors'))
+    const wrapper = mount(SsoAccountBar, {
+      global: { stubs: { RouterLink: { template: '<a href="/profile"><slot /></a>' } } },
+    })
+
+    await wrapper.get('[data-testid="sso-account-menu-trigger"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.get('[data-testid="sso-account-menu"]').text()).toContain('Admin Example')
+    expect(wrapper.get('[data-testid="sso-account-menu"]').text()).toContain('Gagal memuat akun.')
+
+    await wrapper.get('[data-testid="sso-account-menu-trigger"]').trigger('click')
+    await wrapper.get('[data-testid="sso-account-menu-trigger"]').trigger('click')
+    await flushPromises()
+
+    expect(ssoAccountWidgetApi.accounts).toHaveBeenCalledTimes(1)
+    expect(wrapper.get('[data-testid="sso-account-menu"]').text()).toContain('Gagal memuat akun.')
+  })
+
   it('renders only web-scheme app launcher links', async () => {
     vi.mocked(ssoAccountWidgetApi.apps).mockResolvedValueOnce([
       {

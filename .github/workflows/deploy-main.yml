@@ -334,6 +334,49 @@ jobs:
             "install -m 0600 /tmp/sso-backend-deploy/.env.prod '${{ env.VPS_PROJECT_DIR }}/.env.prod'"
           rm -f /tmp/sso-backend.env.prod
 
+      - name: Install public runtime origins on VPS
+        shell: bash
+        env:
+          SSO_FRONTEND_URL: ${{ vars.SSO_FRONTEND_BASE_URL || 'https://sso.timeh.my.id' }}
+          SSO_ADMIN_FRONTEND_URL: ${{ vars.SSO_ADMIN_FRONTEND_URL || 'https://admin-sso.timeh.my.id' }}
+          SSO_WIDGET_FIRST_PARTY_ORIGINS: ${{ vars.SSO_WIDGET_FIRST_PARTY_ORIGINS || '' }}
+        run: |
+          set -euo pipefail
+          first_party_origins="${SSO_WIDGET_FIRST_PARTY_ORIGINS}"
+          if [ -z "${first_party_origins}" ]; then
+            first_party_origins="${SSO_FRONTEND_URL},${SSO_ADMIN_FRONTEND_URL}"
+          fi
+
+          origins_file="$(mktemp)"
+          chmod 600 "${origins_file}"
+          {
+            printf 'SSO_FRONTEND_URL=%s\n' "${SSO_FRONTEND_URL}"
+            printf 'SSO_ADMIN_FRONTEND_URL=%s\n' "${SSO_ADMIN_FRONTEND_URL}"
+            printf 'SSO_WIDGET_FIRST_PARTY_ORIGINS=%s\n' "${first_party_origins}"
+            printf 'SSO_SESSION_COOKIE_SAME_SITE=none\n'
+            printf 'SSO_WIDGET_DEVICE_COOKIE_SAME_SITE=none\n'
+          } > "${origins_file}"
+
+          source /tmp/sso-backend-ssh-helpers.sh
+          rsync_with_retry \
+            "${origins_file}" \
+            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/tmp/sso-backend-deploy/public-runtime-origins.env"
+          rm -f "${origins_file}"
+
+          ssh_with_retry "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+            "set -euo pipefail
+             env_file='${{ env.VPS_PROJECT_DIR }}/.env.prod'
+             touch \"\${env_file}\"
+             chmod 0600 \"\${env_file}\"
+             while IFS='=' read -r key value; do
+               tmp=\"\$(mktemp)\"
+               grep -v \"^\${key}=\" \"\${env_file}\" > \"\${tmp}\" || true
+               printf '%s=%s\n' \"\${key}\" \"\${value}\" >> \"\${tmp}\"
+               install -m 0600 \"\${tmp}\" \"\${env_file}\"
+               rm -f \"\${tmp}\"
+             done < /tmp/sso-backend-deploy/public-runtime-origins.env
+             rm -f /tmp/sso-backend-deploy/public-runtime-origins.env"
+
       - name: Install confidential BFF secrets on VPS
         shell: bash
         env:
