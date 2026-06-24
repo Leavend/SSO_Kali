@@ -287,7 +287,7 @@ run_smoke_tests() {
   smoke_url 'SSO discovery' "$base_url/.well-known/openid-configuration" '^(200)$'
   smoke_url 'SSO JWKS' "$base_url/.well-known/jwks.json" '^(200)$'
   smoke_cors_preflight "$base_url" "${SSO_FRONTEND_URL:-https://sso.timeh.my.id}"
-  smoke_widget_cors "$base_url" "$admin_origin"
+  smoke_widget_cors "${SSO_FRONTEND_URL:-https://sso.timeh.my.id}" "$admin_origin"
   smoke_url 'Admin frontend internal health' "${SSO_ADMIN_FRONTEND_INTERNAL_URL:-http://127.0.0.1:3091}/healthz" '^(200)$'
   smoke_url 'Docs site internal health' "${SSO_DOCS_UPSTREAM:-http://127.0.0.1:8190}/" '^(200)$'
 

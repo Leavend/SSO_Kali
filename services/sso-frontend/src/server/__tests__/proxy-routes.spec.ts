@@ -17,6 +17,13 @@ describe('portal BFF proxy route inventory', () => {
     expect(shouldProxyPortalPath('/connect/sso-complete')).toBe(true)
   })
 
+  it('proxies hosted account widget routes through the browser-facing SSO origin', () => {
+    expect(shouldProxyPortalPath('/widget/apps')).toBe(true)
+    expect(shouldProxyPortalPath('/widget/accounts')).toBe(true)
+    expect(shouldProxyPortalPath('/widget/switch')).toBe(true)
+    expect(shouldProxyPortalPath('/widget/logout')).toBe(true)
+  })
+
   it('keeps bearer-only admin APIs out of the raw browser proxy route list', () => {
     expect(shouldProxyPortalPath('/admin/api/me')).toBe(false)
     expect(shouldProxyPortalPath('/admin/api/oidc-foundation')).toBe(false)

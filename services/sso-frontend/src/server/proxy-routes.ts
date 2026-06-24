@@ -12,6 +12,7 @@ export function shouldProxyPortalPath(pathname: string): boolean {
     pathname.startsWith('/oauth/') ||
     pathname.startsWith('/oauth2/') ||
     pathname.startsWith('/.well-known/') ||
+    pathname.startsWith('/widget/') ||
     pathname === '/authorize' ||
     pathname === '/token' ||
     pathname === '/revocation' ||
