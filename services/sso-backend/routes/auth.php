@@ -14,6 +14,7 @@ use App\Http\Controllers\Mfa\RecoveryCodeController;
 use App\Http\Controllers\Mfa\TotpEnrollmentController;
 use App\Http\Controllers\Mfa\TotpRemovalController;
 use App\Http\Middleware\EnsureMfaReenrollmentCompleted;
+use App\Http\Middleware\EnsureTrustedBrowserMutation;
 use App\Http\Middleware\ResolveSsoSessionUser;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -41,14 +42,14 @@ Route::get('/login', function (Request $request): RedirectResponse {
 
 Route::prefix('api/auth')->group(function (): void {
     Route::get('/session', SessionController::class)->middleware('throttle:oidc-resource');
-    Route::post('/login', LoginController::class)->middleware('throttle:oidc-callback');
-    Route::post('/logout', LogoutController::class)->middleware('throttle:oidc-callback');
-    Route::post('/password-reset', PasswordResetRequestController::class)->middleware('throttle:password-reset');
-    Route::post('/password-reset/confirm', PasswordResetConfirmController::class)->middleware('throttle:password-reset-confirm');
-    Route::post('/register', RegisterController::class)->middleware('throttle:oidc-callback');
+    Route::post('/login', LoginController::class)->middleware(['throttle:oidc-callback', EnsureTrustedBrowserMutation::class]);
+    Route::post('/logout', LogoutController::class)->middleware(['throttle:oidc-callback', EnsureTrustedBrowserMutation::class]);
+    Route::post('/password-reset', PasswordResetRequestController::class)->middleware(['throttle:password-reset', EnsureTrustedBrowserMutation::class]);
+    Route::post('/password-reset/confirm', PasswordResetConfirmController::class)->middleware(['throttle:password-reset-confirm', EnsureTrustedBrowserMutation::class]);
+    Route::post('/register', RegisterController::class)->middleware(['throttle:oidc-callback', EnsureTrustedBrowserMutation::class]);
 });
 
-Route::prefix('api/mfa')->middleware(['throttle:profile-api', ResolveSsoSessionUser::class, EnsureMfaReenrollmentCompleted::class])->group(function (): void {
+Route::prefix('api/mfa')->middleware(['throttle:profile-api', EnsureTrustedBrowserMutation::class, ResolveSsoSessionUser::class, EnsureMfaReenrollmentCompleted::class])->group(function (): void {
     Route::get('/status', MfaStatusController::class);
     Route::post('/totp/enroll', [TotpEnrollmentController::class, 'store']);
     Route::post('/totp/verify', [TotpEnrollmentController::class, 'verify']);
@@ -57,4 +58,4 @@ Route::prefix('api/mfa')->middleware(['throttle:profile-api', ResolveSsoSessionU
 });
 
 // Challenge verification does not require an active session (user is mid-login)
-Route::post('/api/mfa/challenge/verify', MfaChallengeController::class)->middleware('throttle:profile-api');
+Route::post('/api/mfa/challenge/verify', MfaChallengeController::class)->middleware(['throttle:profile-api', EnsureTrustedBrowserMutation::class]);

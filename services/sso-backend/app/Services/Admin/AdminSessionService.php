@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace App\Services\Admin;
 
+use App\Models\SsoSession;
 use App\Services\Oidc\AccessTokenRevocationStore;
 use App\Services\Oidc\BackChannelLogoutDispatcher;
 use App\Services\Oidc\BackChannelSessionRegistry;
+use App\Services\Oidc\DeviceSessionRegistry;
+use App\Services\Session\SsoSessionService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -16,6 +19,8 @@ final class AdminSessionService
         private readonly BackChannelSessionRegistry $sessionRegistry,
         private readonly AccessTokenRevocationStore $tokenStore,
         private readonly BackChannelLogoutDispatcher $dispatcher,
+        private readonly SsoSessionService $ssoSessions,
+        private readonly DeviceSessionRegistry $deviceSessions,
     ) {}
 
     /**
@@ -60,6 +65,7 @@ final class AdminSessionService
     {
         $revokedTokens = $this->revokeRefreshTokens($sessionId);
         $this->tokenStore->revokeSession($sessionId);
+        $this->revokeBrowserSession($sessionId);
         $fanout = $this->fanoutBackChannelLogout($sessionId);
 
         return ['revoked_tokens' => $revokedTokens, 'backchannel_fanout' => $fanout];
@@ -89,6 +95,21 @@ final class AdminSessionService
             ->where('session_id', $sessionId)
             ->whereNull('revoked_at')
             ->update(['revoked_at' => now()]);
+    }
+
+    private function revokeBrowserSession(string $sessionId): void
+    {
+        $session = SsoSession::query()
+            ->where('session_id', $sessionId)
+            ->first();
+
+        if ($session instanceof SsoSession) {
+            $this->ssoSessions->revoke($session);
+
+            return;
+        }
+
+        $this->deviceSessions->forgetSession($sessionId);
     }
 
     private function fanoutBackChannelLogout(string $sessionId): int

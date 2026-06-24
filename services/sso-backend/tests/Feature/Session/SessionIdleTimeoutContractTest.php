@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\SsoSession;
 use App\Models\User;
 use App\Services\Session\SsoSessionService;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
@@ -55,6 +56,31 @@ it('revokes session when absolute TTL exceeded even if recently active', functio
     $result = $service->current($session->session_id);
 
     expect($result)->toBeNull();
+});
+
+it('keeps device session cleanup out of lazy idle expiry reads', function (): void {
+    config(['sso.session.idle_minutes' => 30]);
+
+    $user = createIdleTestUser('idle-device-cleanup');
+    $session = createTestSession($user, lastSeenMinutesAgo: 31);
+
+    DB::table('device_sessions')->insert([
+        'device_hash' => hash('sha256', 'lazy-expiry-device'),
+        'session_id' => $session->session_id,
+        'user_id' => $user->getKey(),
+        'account_id' => 'lazy-expiry-account',
+        'added_at' => now(),
+        'last_seen_at' => now(),
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    $service = app(SsoSessionService::class);
+    $result = $service->current($session->session_id);
+
+    expect($result)->toBeNull()
+        ->and(SsoSession::query()->where('session_id', $session->session_id)->whereNotNull('revoked_at')->exists())->toBeTrue()
+        ->and(DB::table('device_sessions')->where('session_id', $session->session_id)->exists())->toBeTrue();
 });
 
 it('disables idle timeout when configured to zero', function (): void {

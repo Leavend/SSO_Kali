@@ -55,14 +55,30 @@ Gunakan checklist ini sebelum go-live integrasi client SSO. Halaman ini merangku
 - [ ] RP-initiated logout memakai `end_session_endpoint` / `/connect/logout` dengan `id_token_hint` dan `post_logout_redirect_uri` yang terdaftar.
 - [ ] Jika memakai back-channel logout, pastikan endpoint app benar-benar menghapus session lokal.
 
-## 8. Dev vs Production
+## 8. Header Account Bar Opsional
+
+- [ ] Untuk app web eksternal, sediakan mount point header seperti `<div id="sso-account"></div>`.
+- [ ] Tambahkan 1 baris widget:
+
+```html
+<script src="https://api-sso.timeh.my.id/widget/account.js" data-sso-widget data-client-id="app-kamu-web" data-mount="#sso-account"></script>
+```
+
+- [ ] Gunakan `data-features="apps,account"` bila ingin mengatur trigger yang tampil.
+- [ ] Untuk mount manual, panggil `window.SSOAccount.mount('#sso-account', { clientId: 'app-kamu-web', features: 'apps,account' })`.
+- [ ] Pastikan `app_base_url` client adalah URL web `https://` atau localhost development; link `javascript:` dan `data:` tidak akan ditampilkan.
+- [ ] Jika memakai CSP ketat, izinkan `script-src` dan `connect-src` ke origin SSO, serta `style-src` untuk stylesheet `/widget/account.css`.
+- [ ] Jangan mencoba membaca cookie widget dari JavaScript. Multi-account chooser memakai cookie device httpOnly dan registry server-side.
+- [ ] Jangan panggil endpoint native `/api/auth/*`, `/api/profile/*`, atau `/api/mfa/*` dari app eksternal. Endpoint mutasi itu khusus browser first-party dan wajib membawa `Origin`/`Referer` tepercaya serta `X-Requested-With: XMLHttpRequest`; app eksternal memakai OIDC dan `/widget/*`.
+
+## 9. Dev vs Production
 
 - [ ] `http://localhost` hanya untuk development.
 - [ ] HTTPS wajib untuk environment live.
 - [ ] Redirect URI, post-logout URI, dan logout hooks production didaftarkan terpisah dari development.
 - [ ] Logging/troubleshooting tidak pernah mencetak token atau secret.
 
-## 9. Smoke Test Sebelum Go-Live
+## 10. Smoke Test Sebelum Go-Live
 
 - [ ] Login berhasil → redirect ke callback exact match.
 - [ ] State/nonce mismatch ditolak.
@@ -70,6 +86,7 @@ Gunakan checklist ini sebelum go-live integrasi client SSO. Halaman ini merangku
 - [ ] `id_token` tervalidasi penuh sebelum session lokal dibuat.
 - [ ] Refresh berhasil dan token lama tidak bisa direuse.
 - [ ] Logout menghapus session lokal dan sesi SSO.
+- [ ] Widget account bar, bila dipakai, hanya menampilkan aplikasi yang user berhak akses dan akun yang terikat browser ini.
 - [ ] Tidak ada token/secret di URL, bundle frontend, browser storage yang dilarang, atau support ticket.
 
 ## Framework Guides

@@ -6,6 +6,7 @@ namespace App\Http\Controllers\ExternalIdp;
 
 use App\Actions\ExternalIdp\CompleteExternalIdpCallbackAction;
 use App\Http\Requests\ExternalIdp\ExternalIdpCallbackRequest;
+use App\Services\Oidc\DeviceSessionRegistry;
 use App\Services\Session\SsoSessionCookieFactory;
 use Illuminate\Http\RedirectResponse;
 
@@ -15,6 +16,7 @@ final class ExternalIdpCallbackController
         ExternalIdpCallbackRequest $request,
         CompleteExternalIdpCallbackAction $callback,
         SsoSessionCookieFactory $cookies,
+        DeviceSessionRegistry $devices,
     ): RedirectResponse {
         $result = $callback->execute($request);
 
@@ -27,7 +29,13 @@ final class ExternalIdpCallbackController
             'Pragma' => 'no-cache',
         ]);
 
-        return $redirect->withCookie($cookies->make((string) $result['session_id']));
+        $redirect->withCookie($cookies->make((string) $result['session_id']));
+        $deviceCookie = $devices->bindSessionId($request, (string) $result['session_id']);
+        if ($deviceCookie !== null) {
+            $redirect->withCookie($deviceCookie);
+        }
+
+        return $redirect;
     }
 
     private function frontendUrl(string $path): string

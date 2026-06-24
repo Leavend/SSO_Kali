@@ -99,6 +99,40 @@ it('excludes stale or mismatched back-channel participants', function (): void {
         ->and($clients)->toContain('prototype-app-a');
 });
 
+it('revokes browser sessions and device links during admin session revocation', function (): void {
+    DB::table('sso_sessions')->insert([
+        'session_id' => 'session-1',
+        'user_id' => DB::table('users')->where('subject_id', 'user-1')->value('id'),
+        'subject_id' => 'user-1',
+        'ip_address' => '127.0.0.1',
+        'user_agent' => 'UnitBrowser',
+        'authenticated_at' => now(),
+        'last_seen_at' => now(),
+        'expires_at' => now()->addHour(),
+        'revoked_at' => null,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+    DB::table('device_sessions')->insert([
+        'device_hash' => hash('sha256', 'unit-device'),
+        'session_id' => 'session-1',
+        'user_id' => DB::table('users')->where('subject_id', 'user-1')->value('id'),
+        'account_id' => 'unit-account-1',
+        'added_at' => now(),
+        'last_seen_at' => now(),
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+    seedRefreshToken(['session_id' => 'session-1']);
+
+    app(AdminSessionService::class)->revokeSession('session-1');
+
+    expect(DB::table('sso_sessions')->where('session_id', 'session-1')->whereNotNull('revoked_at')->exists())
+        ->toBeTrue()
+        ->and(DB::table('device_sessions')->where('session_id', 'session-1')->exists())
+        ->toBeFalse();
+});
+
 function seedRefreshToken(array $overrides): void
 {
     DB::table('refresh_token_rotations')->insert(array_merge([

@@ -22,6 +22,7 @@ import {
 import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import LocaleSwitcher from '@/components/LocaleSwitcher.vue'
+import SsoAccountBar from '@/components/SsoAccountBar.vue'
 import UiThemeToggle from '@/components/ui/UiThemeToggle.vue'
 import { useI18n } from '@/composables/useI18n'
 import { resolveBootstrapFailure, resolveLoadedAdminAccess } from '@/router/guards'
@@ -465,6 +466,9 @@ async function handleMenuClick(menu: AdminPermissionMenu, index: number) {
           >
             <Menu :size="18" aria-hidden="true" />
           </button>
+        </div>
+        <div class="admin-topbar__actions">
+          <SsoAccountBar v-if="session.principal" />
         </div>
       </header>
 

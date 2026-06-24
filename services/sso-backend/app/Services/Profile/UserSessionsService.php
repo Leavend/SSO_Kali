@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace App\Services\Profile;
 
+use App\Services\Oidc\DeviceSessionRegistry;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 final class UserSessionsService
 {
+    public function __construct(private readonly DeviceSessionRegistry $deviceSessions) {}
+
     /**
      * @return list<array<string, mixed>>
      */
@@ -74,10 +77,16 @@ final class UserSessionsService
      */
     public function revokePortalSession(string $sessionId): int
     {
-        return DB::table('sso_sessions')
+        $count = DB::table('sso_sessions')
             ->where('session_id', $sessionId)
             ->whereNull('revoked_at')
             ->update(['revoked_at' => now()]);
+
+        if ($count > 0) {
+            $this->deviceSessions->forgetSession($sessionId);
+        }
+
+        return $count;
     }
 
     /**

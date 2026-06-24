@@ -10,6 +10,7 @@ use App\Actions\Oidc\CompletePendingOidcAuthorization;
 use App\Models\SsoSession;
 use App\Models\User;
 use App\Services\Mfa\MfaChallengeStore;
+use App\Services\Oidc\DeviceSessionRegistry;
 use App\Services\Oidc\SsoBrowserSession;
 use App\Services\Session\SsoSessionCookieFactory;
 use App\Support\Oidc\OidcContinuationOutcome;
@@ -17,6 +18,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use RuntimeException;
+use Symfony\Component\HttpFoundation\Cookie;
 
 /**
  * FR-018 / UC-67 / BE-FR019-001: MFA challenge verification during login.
@@ -39,6 +41,7 @@ final class MfaChallengeController
         CompletePendingOidcAuthorization $completePending,
         SsoSessionCookieFactory $cookies,
         SsoBrowserSession $browserSession,
+        DeviceSessionRegistry $devices,
     ): JsonResponse {
         $request->validate([
             'challenge_id' => ['required', 'string'],
@@ -125,7 +128,7 @@ final class MfaChallengeController
 
             return match ($continuation->outcome) {
                 OidcContinuationOutcome::AuthorizationCode,
-                OidcContinuationOutcome::Consent => response()->json([
+                OidcContinuationOutcome::Consent => $this->withSessionCookies(response()->json([
                     ...$payload,
                     'continuation' => [
                         'type' => $continuation->outcome === OidcContinuationOutcome::Consent
@@ -135,7 +138,7 @@ final class MfaChallengeController
                     ],
                     // Backwards-compatible top-level field for legacy callers.
                     'redirect_uri' => (string) $continuation->redirectUri,
-                ])->withCookie($cookies->make($session->session_id)),
+                ]), $cookies->make($session->session_id), $devices->bind($request, $session)),
 
                 // BE-FR023-001: scope policy tightened mid-flow.
                 // Surface a deterministic invalid_scope so the SPA can
@@ -163,7 +166,21 @@ final class MfaChallengeController
             };
         }
 
-        return response()->json($payload)->withCookie($cookies->make($session->session_id));
+        return $this->withSessionCookies(
+            response()->json($payload),
+            $cookies->make($session->session_id),
+            $devices->bind($request, $session),
+        );
+    }
+
+    private function withSessionCookies(JsonResponse $response, Cookie $sessionCookie, ?Cookie $deviceCookie): JsonResponse
+    {
+        $response->withCookie($sessionCookie);
+        if ($deviceCookie !== null) {
+            $response->withCookie($deviceCookie);
+        }
+
+        return $response;
     }
 
     private function createSession(User $user, Request $request): SsoSession

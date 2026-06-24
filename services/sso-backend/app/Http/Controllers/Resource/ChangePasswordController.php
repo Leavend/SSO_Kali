@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Rules\StrongPassword;
 use App\Services\Admin\AdminAuditEventStore;
 use App\Services\Oidc\AccessTokenRevocationStore;
+use App\Services\Oidc\DeviceSessionRegistry;
 use App\Services\Oidc\RefreshTokenStore;
 use App\Services\Session\SsoSessionCookieResolver;
 use App\Services\Session\SsoSessionService;
@@ -25,6 +26,7 @@ final class ChangePasswordController
         private readonly RefreshTokenStore $refreshTokens,
         private readonly AccessTokenRevocationStore $accessTokens,
         private readonly AdminAuditEventStore $audits,
+        private readonly DeviceSessionRegistry $deviceSessions,
     ) {}
 
     /**
@@ -84,11 +86,23 @@ final class ChangePasswordController
         foreach ($this->sessionIds($user->subject_id, $session->session_id) as $sessionId) {
             $this->accessTokens->revokeSession($sessionId);
         }
-        DB::table('sso_sessions')
+        $revokedSessionIds = DB::table('sso_sessions')
             ->where('subject_id', $user->subject_id)
             ->where('session_id', '!=', $session->session_id)
             ->whereNull('revoked_at')
+            ->pluck('session_id')
+            ->filter(fn (mixed $value): bool => is_string($value) && $value !== '')
+            ->map(fn (mixed $value): string => (string) $value)
+            ->values()
+            ->all();
+
+        DB::table('sso_sessions')
+            ->whereIn('session_id', $revokedSessionIds)
             ->update(['revoked_at' => $changedAt]);
+
+        foreach ($revokedSessionIds as $revokedSessionId) {
+            $this->deviceSessions->forgetSession($revokedSessionId);
+        }
 
         $this->audits->append([
             'taxonomy' => 'profile.password_changed',

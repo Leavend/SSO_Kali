@@ -92,8 +92,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'connect/backchannel/admin-panel/logout',
             // Admin API: uses Bearer token auth, not session cookie.
             'admin/api/*',
-            // Portal self-service APIs: protected by XSRF-TOKEN cookie
-            // handshake via apiClient, not the default form CSRF field.
+            // Portal self-service APIs: protected by trusted Origin/Referer
+            // plus X-Requested-With via EnsureTrustedBrowserMutation.
             'api/auth/login',
             'api/auth/logout',
             'api/auth/password-reset',

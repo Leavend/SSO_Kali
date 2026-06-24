@@ -10,6 +10,7 @@ use App\Http\Requests\Auth\LoginRequest;
 use App\Models\MfaCredential;
 use App\Models\User;
 use App\Services\Mfa\MfaChallengeStore;
+use App\Services\Oidc\DeviceSessionRegistry;
 use App\Services\Oidc\SsoBrowserSession;
 use App\Services\Session\SsoSessionCookieFactory;
 use Illuminate\Http\JsonResponse;
@@ -23,6 +24,7 @@ final class LoginController
         SsoSessionCookieFactory $cookies,
         MfaChallengeStore $challenges,
         SsoBrowserSession $browserSession,
+        DeviceSessionRegistry $devices,
     ): JsonResponse {
         $result = $login->execute(
             (string) $request->validated('identifier'),
@@ -107,7 +109,7 @@ final class LoginController
                 ], $completion->status);
             }
 
-            return response()->json([
+            $response = response()->json([
                 'authenticated' => true,
                 'user' => $result->user->toArray(),
                 'session' => ['expires_at' => $result->session->expires_at->toIso8601String()],
@@ -116,9 +118,16 @@ final class LoginController
                     'redirect_uri' => $completion->redirectUri,
                 ],
             ])->withCookie($cookies->make($result->session->session_id));
+
+            $deviceCookie = $devices->bind($request, $result->session);
+            if ($deviceCookie !== null) {
+                $response->withCookie($deviceCookie);
+            }
+
+            return $response;
         }
 
-        return response()->json([
+        $response = response()->json([
             'authenticated' => true,
             'user' => $result->user->toArray(),
             'session' => ['expires_at' => $result->session->expires_at->toIso8601String()],
@@ -127,6 +136,13 @@ final class LoginController
                 'auth_request_id' => null,
             ],
         ])->withCookie($cookies->make($result->session->session_id));
+
+        $deviceCookie = $devices->bind($request, $result->session);
+        if ($deviceCookie !== null) {
+            $response->withCookie($deviceCookie);
+        }
+
+        return $response;
     }
 
     private function errorMessage(?string $error): string

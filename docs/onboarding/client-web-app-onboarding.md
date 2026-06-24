@@ -129,6 +129,42 @@ framework agar kontrak keamanan tetap konsisten:
 - [Vue.js public SPA](/integrations/vuejs)
 - [Express confidential client](/integrations/express)
 
+### Header Account Bar 1 Baris
+
+Jika app kamu ingin menampilkan account bar seperti launcher aplikasi + menu akun di header, sediakan mount point:
+
+```html
+<div id="sso-account"></div>
+```
+
+Lalu tambahkan script widget:
+
+```html
+<script src="https://api-sso.timeh.my.id/widget/account.js" data-sso-widget data-client-id="app-kamu-web" data-mount="#sso-account"></script>
+```
+
+Widget memakai endpoint `/widget/session`, `/widget/apps`, `/widget/accounts`, `/widget/switch`, dan `/widget/logout`. Browser tidak menerima token. Multi-account chooser dibatasi ke akun yang pernah login di browser ini melalui cookie device httpOnly dan registry server-side, bukan IP atau User-Agent.
+
+Konfigurasi opsional:
+
+```html
+<script src="https://api-sso.timeh.my.id/widget/account.js" data-sso-widget data-client-id="app-kamu-web" data-mount="#sso-account" data-features="apps,account"></script>
+```
+
+Untuk app yang butuh kontrol manual:
+
+```html
+<script src="https://api-sso.timeh.my.id/widget/account.js" data-sso-widget data-client-id="app-kamu-web"></script>
+<script>
+  window.SSOAccount.mount('#sso-account', {
+    clientId: 'app-kamu-web',
+    features: 'apps,account',
+  })
+</script>
+```
+
+Jika app memakai Content Security Policy ketat, izinkan origin SSO pada `script-src` dan `connect-src`, serta stylesheet `https://api-sso.timeh.my.id/widget/account.css` pada `style-src`. Pastikan `app_base_url` client memakai URL web aman; link non-web seperti `javascript:` dan `data:` tidak akan ditampilkan oleh widget.
+
 ### Endpoint (dari Discovery)
 
 | Endpoint | URL | Metode |

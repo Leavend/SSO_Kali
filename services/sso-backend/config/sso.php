@@ -88,6 +88,16 @@ return [
     'identity' => [
         'nik_hash_key' => env('SSO_NIK_HASH_KEY'),
     ],
+    'widget' => [
+        'device_cookie' => env('SSO_WIDGET_DEVICE_COOKIE', '__Host-sso_device'),
+        'device_cookie_minutes' => (int) env('SSO_WIDGET_DEVICE_COOKIE_MINUTES', 576000),
+        'device_cookie_same_site' => env('SSO_WIDGET_DEVICE_COOKIE_SAME_SITE', 'none'),
+        'device_hash_key' => env('SSO_WIDGET_DEVICE_HASH_KEY'),
+        'max_accounts_per_device' => max(1, (int) env('SSO_WIDGET_MAX_ACCOUNTS_PER_DEVICE', 8)),
+    ],
+    'browser_mutation' => [
+        'trusted_origins' => $csv((string) env('SSO_BROWSER_MUTATION_TRUSTED_ORIGINS', '')),
+    ],
     'password' => [
         'breach_check' => (bool) env('SSO_PASSWORD_BREACH_CHECK', true),
         'breach_check_timeout_seconds' => (int) env('SSO_PASSWORD_BREACH_CHECK_TIMEOUT_SECONDS', 5),
@@ -111,7 +121,7 @@ return [
     ],
     'session' => [
         'cookie' => env('SSO_SESSION_COOKIE', '__Host-sso_session'),
-        'cookie_same_site' => env('SSO_SESSION_COOKIE_SAME_SITE', 'lax'),
+        'cookie_same_site' => env('SSO_SESSION_COOKIE_SAME_SITE', 'none'),
         'ttl_minutes' => (int) env('SSO_SESSION_TTL_MINUTES', 480),
         'idle_minutes' => (int) env('SSO_SESSION_IDLE_MINUTES', 30),
     ],

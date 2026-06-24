@@ -151,6 +151,7 @@ describe('AdminShellLayout', () => {
     })
 
     expect(wrapper.find('[data-testid="admin-topbar"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="sso-account-bar"]').exists()).toBe(true)
     expect(wrapper.get('[aria-label="Breadcrumb"]').text()).toContain('Control Plane')
     expect(
       wrapper.get('[data-testid="admin-mobile-menu-toggle"]').attributes('aria-expanded'),

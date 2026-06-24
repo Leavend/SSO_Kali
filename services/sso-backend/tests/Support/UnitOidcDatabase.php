@@ -13,6 +13,9 @@ function resetOidcUnitTables(): void
     ensureOidcUnitTables();
 
     DB::table('login_contexts')->delete();
+    if (Schema::hasTable('device_sessions')) {
+        DB::table('device_sessions')->delete();
+    }
     DB::table('refresh_token_rotations')->delete();
     DB::table('oidc_rp_sessions')->delete();
     DB::table('sso_sessions')->delete();
@@ -44,6 +47,7 @@ function ensureOidcUnitTables(): void
     ensureAuthorizationCodesTable();
     ensureRpSessionsTable();
     ensureSsoSessionsTable();
+    ensureDeviceSessionsTable();
 }
 
 function ensureRpSessionsTable(): void
@@ -167,13 +171,36 @@ function ensureSsoSessionsTable(): void
     Schema::create('sso_sessions', function (Blueprint $table): void {
         $table->id();
         $table->string('session_id')->unique();
+        $table->unsignedBigInteger('user_id')->nullable();
         $table->string('subject_id')->index();
         $table->string('ip_address', 45)->nullable();
         $table->text('user_agent')->nullable();
+        $table->unsignedBigInteger('trusted_device_id')->nullable();
         $table->timestamp('authenticated_at');
         $table->timestamp('last_seen_at')->nullable();
         $table->timestamp('expires_at')->index();
         $table->timestamp('revoked_at')->nullable()->index();
         $table->timestamps();
+    });
+}
+
+function ensureDeviceSessionsTable(): void
+{
+    if (Schema::hasTable('device_sessions')) {
+        return;
+    }
+
+    Schema::create('device_sessions', function (Blueprint $table): void {
+        $table->id();
+        $table->string('device_hash', 64)->index();
+        $table->string('session_id')->index();
+        $table->unsignedBigInteger('user_id');
+        $table->string('account_id', 64)->unique();
+        $table->timestamp('added_at');
+        $table->timestamp('last_seen_at')->nullable();
+        $table->timestamps();
+
+        $table->unique(['device_hash', 'session_id']);
+        $table->index(['device_hash', 'last_seen_at']);
     });
 }

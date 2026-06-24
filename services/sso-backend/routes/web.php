@@ -14,6 +14,7 @@ use App\Http\Controllers\Resource\AuditController;
 use App\Http\Controllers\Resource\ChangePasswordController;
 use App\Http\Controllers\Resource\ProfileChangeController;
 use App\Http\Controllers\Resource\ProfileController;
+use App\Http\Middleware\EnsureTrustedBrowserMutation;
 use App\Http\Middleware\WidgetCorsMiddleware;
 use Illuminate\Support\Facades\Route;
 
@@ -49,25 +50,25 @@ Route::post('/connect/sso-complete', SsoCompleteController::class)->middleware('
 
 // --- Profile APIs (require authenticated session) ---
 Route::get('/api/profile', [ProfileController::class, 'show'])->middleware('throttle:profile-api');
-Route::patch('/api/profile', [ProfileController::class, 'update'])->middleware('throttle:profile-api');
-Route::post('/api/profile/change-password', ChangePasswordController::class)->middleware('throttle:profile-api');
-Route::post('/api/profile/email-change', [ProfileChangeController::class, 'requestEmail'])->middleware('throttle:profile-change-request');
-Route::post('/api/profile/email-change/confirm', [ProfileChangeController::class, 'confirmEmail'])->middleware('throttle:profile-change-request');
-Route::post('/api/profile/phone-change', [ProfileChangeController::class, 'requestPhone'])->middleware('throttle:profile-change-request');
-Route::post('/api/profile/phone-change/confirm', [ProfileChangeController::class, 'confirmPhone'])->middleware('throttle:profile-change-request');
+Route::patch('/api/profile', [ProfileController::class, 'update'])->middleware(['throttle:profile-api', EnsureTrustedBrowserMutation::class]);
+Route::post('/api/profile/change-password', ChangePasswordController::class)->middleware(['throttle:profile-api', EnsureTrustedBrowserMutation::class]);
+Route::post('/api/profile/email-change', [ProfileChangeController::class, 'requestEmail'])->middleware(['throttle:profile-change-request', EnsureTrustedBrowserMutation::class]);
+Route::post('/api/profile/email-change/confirm', [ProfileChangeController::class, 'confirmEmail'])->middleware(['throttle:profile-change-request', EnsureTrustedBrowserMutation::class]);
+Route::post('/api/profile/phone-change', [ProfileChangeController::class, 'requestPhone'])->middleware(['throttle:profile-change-request', EnsureTrustedBrowserMutation::class]);
+Route::post('/api/profile/phone-change/confirm', [ProfileChangeController::class, 'confirmPhone'])->middleware(['throttle:profile-change-request', EnsureTrustedBrowserMutation::class]);
 Route::get('/api/profile/audit', AuditController::class)->middleware('throttle:profile-api');
 Route::get('/api/profile/connected-apps', [ProfileController::class, 'connectedApps'])->middleware('throttle:profile-api');
-Route::delete('/api/profile/connected-apps/{clientId}', [ProfileController::class, 'revokeConnectedApp'])->middleware('throttle:profile-api');
+Route::delete('/api/profile/connected-apps/{clientId}', [ProfileController::class, 'revokeConnectedApp'])->middleware(['throttle:profile-api', EnsureTrustedBrowserMutation::class]);
 Route::get('/api/profile/sessions', [ProfileController::class, 'sessions'])->middleware('throttle:profile-api');
-Route::delete('/api/profile/sessions', [ProfileController::class, 'revokeAllSessions'])->middleware('throttle:profile-api');
-Route::delete('/api/profile/sessions/{sessionId}', [ProfileController::class, 'revokeSession'])->middleware('throttle:profile-api');
+Route::delete('/api/profile/sessions', [ProfileController::class, 'revokeAllSessions'])->middleware(['throttle:profile-api', EnsureTrustedBrowserMutation::class]);
+Route::delete('/api/profile/sessions/{sessionId}', [ProfileController::class, 'revokeSession'])->middleware(['throttle:profile-api', EnsureTrustedBrowserMutation::class]);
 Route::get('/api/profile/devices', [ProfileController::class, 'trustedDevices'])->middleware('throttle:profile-api');
-Route::patch('/api/profile/devices/{deviceId}', [ProfileController::class, 'renameTrustedDevice'])->whereNumber('deviceId')->middleware('throttle:profile-api');
-Route::delete('/api/profile/devices/{deviceId}', [ProfileController::class, 'revokeTrustedDevice'])->whereNumber('deviceId')->middleware('throttle:profile-api');
+Route::patch('/api/profile/devices/{deviceId}', [ProfileController::class, 'renameTrustedDevice'])->whereNumber('deviceId')->middleware(['throttle:profile-api', EnsureTrustedBrowserMutation::class]);
+Route::delete('/api/profile/devices/{deviceId}', [ProfileController::class, 'revokeTrustedDevice'])->whereNumber('deviceId')->middleware(['throttle:profile-api', EnsureTrustedBrowserMutation::class]);
 
 // --- Data Subject Rights (FR-049) ---
 Route::get('/api/profile/data-subject-requests', [DataSubjectRequestController::class, 'index'])->middleware('throttle:profile-api');
-Route::post('/api/profile/data-subject-requests', [DataSubjectRequestController::class, 'store'])->middleware('throttle:profile-api');
+Route::post('/api/profile/data-subject-requests', [DataSubjectRequestController::class, 'store'])->middleware(['throttle:profile-api', EnsureTrustedBrowserMutation::class]);
 
 // FR-057 / BE-FR057-001 — public federation start route. Disabled by default;
 // flip via `SSO_EXTERNAL_IDP_PUBLIC_START_ENABLED=true` once an external IdP
@@ -79,12 +80,14 @@ Route::get('/external-idp/start/{providerKey}', StartExternalIdpAuthenticationCo
 Route::get('/external-idp/callback', ExternalIdpCallbackController::class)
     ->middleware('throttle:oidc-authorize');
 
-// --- SSO Account Widget (FR-068 / UC-89) ---
+// --- SSO Account Widget ---
 Route::middleware([WidgetCorsMiddleware::class])->group(function (): void {
     Route::get('/widget/account.js', [WidgetController::class, 'script']);
+    Route::get('/widget/account.css', [WidgetController::class, 'css']);
     Route::get('/widget/session', [WidgetController::class, 'session']);
     Route::get('/widget/accounts', [WidgetController::class, 'accounts']);
     Route::get('/widget/apps', [WidgetController::class, 'apps']);
+    Route::post('/widget/switch', [WidgetController::class, 'switch']);
     Route::post('/widget/logout', [WidgetController::class, 'logout']);
     Route::options('/widget/{any}', function () {
         return response('', 204);

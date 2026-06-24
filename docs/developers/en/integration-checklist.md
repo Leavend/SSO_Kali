@@ -55,14 +55,30 @@ Use this checklist before taking an SSO client integration live. It consolidates
 - [ ] Use RP-initiated logout via `end_session_endpoint` / `/connect/logout` with a registered `id_token_hint` and `post_logout_redirect_uri`.
 - [ ] If back-channel logout is enabled, verify that the application actually clears its local session.
 
-## 8. Development vs Production
+## 8. Optional Header Account Bar
+
+- [ ] For external web apps, provide a header mount point such as `<div id="sso-account"></div>`.
+- [ ] Add the one-line widget:
+
+```html
+<script src="https://api-sso.timeh.my.id/widget/account.js" data-sso-widget data-client-id="your-web-app" data-mount="#sso-account"></script>
+```
+
+- [ ] Use `data-features="apps,account"` when the application needs to choose which triggers are visible.
+- [ ] For manual mounting, call `window.SSOAccount.mount('#sso-account', { clientId: 'your-web-app', features: 'apps,account' })`.
+- [ ] Ensure the client `app_base_url` is a web URL (`https://` or localhost development); `javascript:` and `data:` links are not rendered.
+- [ ] If the application uses strict CSP, allow the SSO origin in `script-src` and `connect-src`, and allow the `/widget/account.css` stylesheet in `style-src`.
+- [ ] Do not read widget cookies from JavaScript. The multi-account chooser uses an httpOnly device cookie and a server-side registry.
+- [ ] Do not call native `/api/auth/*`, `/api/profile/*`, or `/api/mfa/*` endpoints from external apps. Those mutation endpoints are first-party browser APIs and require a trusted `Origin`/`Referer` plus `X-Requested-With: XMLHttpRequest`; external apps use OIDC and `/widget/*`.
+
+## 9. Development vs Production
 
 - [ ] `http://localhost` is for development only.
 - [ ] HTTPS is required for live environments.
 - [ ] Register production redirect URIs, post-logout URIs, and logout hooks separately from development.
 - [ ] Logs and troubleshooting output never print tokens or secrets.
 
-## 9. Pre-Go-Live Smoke Test
+## 10. Pre-Go-Live Smoke Test
 
 - [ ] Login succeeds and returns to the exact callback.
 - [ ] State/nonce mismatches are rejected.
@@ -70,6 +86,7 @@ Use this checklist before taking an SSO client integration live. It consolidates
 - [ ] The `id_token` is fully validated before the local session is created.
 - [ ] Refresh succeeds and the old token cannot be replayed.
 - [ ] Logout clears both the local session and the SSO session.
+- [ ] The account bar widget, if used, shows only applications the user can access and accounts bound to this browser.
 - [ ] No token or secret appears in URLs, frontend bundles, prohibited browser storage, or support tickets.
 
 ## Framework Guides

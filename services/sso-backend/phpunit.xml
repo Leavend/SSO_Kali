@@ -37,5 +37,6 @@
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
         <env name="SSO_PASSWORD_BREACH_CHECK" value="false"/>
+        <env name="SSO_WIDGET_DEVICE_HASH_KEY" value="testing-widget-device-hash-key"/>
     </php>
 </phpunit>

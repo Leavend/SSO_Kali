@@ -42,9 +42,7 @@ final class SessionsController
         foreach ($allSessions as $session) {
             $key = $session->user_agent ?? 'unknown';
             if (isset($seen[$key])) {
-                // Revoke older duplicate silently
-                $session->revoked_at = now();
-                $session->save();
+                $this->sessionService->revoke($session);
             } else {
                 $seen[$key] = true;
                 $activeSessions[] = $session;
@@ -106,15 +104,19 @@ final class SessionsController
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
-        $count = SsoSession::where('user_id', $currentSession->user_id)
+        $sessions = SsoSession::where('user_id', $currentSession->user_id)
             ->whereNull('revoked_at')
             ->where('expires_at', '>', now())
             ->where('session_id', '!=', $currentSession->session_id)
-            ->update(['revoked_at' => now()]);
+            ->get();
+
+        $sessions->each(function (SsoSession $session): void {
+            $this->sessionService->revoke($session);
+        });
 
         return response()->json([
             'revoked' => true,
-            'revoked_sessions' => $count,
+            'revoked_sessions' => $sessions->count(),
             'revoked_refresh_tokens' => 0,
         ]);
     }

@@ -26,7 +26,7 @@ final class SsoSessionCookieFactory
             secure: true, // Required by __Host- prefix
             httpOnly: true,
             raw: false,
-            sameSite: (string) config('sso.session.cookie_same_site', 'lax'),
+            sameSite: (string) config('sso.session.cookie_same_site', 'none'),
         );
     }
 

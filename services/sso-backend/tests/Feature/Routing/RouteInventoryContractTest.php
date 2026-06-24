@@ -2,14 +2,15 @@
 
 declare(strict_types=1);
 
+use App\Http\Middleware\EnsureTrustedBrowserMutation;
 use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Route as RouteFacade;
 
 it('keeps the production route inventory intentional', function (): void {
     $routes = collect(RouteFacade::getRoutes()->getRoutes());
 
-    expect($routes)->toHaveCount(147);
-    expect(applicationRoutes($routes))->toHaveCount(135);
+    expect($routes)->toHaveCount(149);
+    expect(applicationRoutes($routes))->toHaveCount(137);
     expect(vendorRoutes($routes))->toHaveCount(12);
 });
 
@@ -32,6 +33,34 @@ it('keeps all registered routes categorized for production testing', function ()
     $categorized = $routes->filter(fn (Route $route): bool => routeCategory($route) !== 'uncategorized');
 
     expect($categorized)->toHaveCount($routes->count());
+});
+
+it('runs auth throttles before browser mutation origin checks', function (): void {
+    $routes = collect(RouteFacade::getRoutes()->getRoutes());
+
+    foreach ([
+        'api/auth/login' => 'throttle:oidc-callback',
+        'api/auth/logout' => 'throttle:oidc-callback',
+        'api/auth/password-reset' => 'throttle:password-reset',
+        'api/auth/password-reset/confirm' => 'throttle:password-reset-confirm',
+        'api/auth/register' => 'throttle:oidc-callback',
+    ] as $uri => $throttle) {
+        $route = $routes->first(fn (Route $route): bool => $route->uri() === $uri && in_array('POST', $route->methods(), true));
+
+        expect($route)->not->toBeNull();
+
+        $middleware = array_values($route->gatherMiddleware());
+        $throttleIndex = array_search($throttle, $middleware, true);
+        $guardIndex = array_search(EnsureTrustedBrowserMutation::class, $middleware, true);
+
+        expect($throttleIndex)->not->toBeFalse()
+            ->and($guardIndex)->not->toBeFalse()
+            ->and($throttleIndex)->toBeLessThan($guardIndex);
+    }
+
+    $session = $routes->first(fn (Route $route): bool => $route->uri() === 'api/auth/session' && in_array('GET', $route->methods(), true));
+    expect($session)->not->toBeNull()
+        ->and($session->gatherMiddleware())->not->toContain(EnsureTrustedBrowserMutation::class);
 });
 
 function applicationRoutes($routes)
@@ -228,10 +257,12 @@ function expectedApplicationRouteSignatures(): array
         'POST token',
         'GET|HEAD up',
         'GET|POST|HEAD userinfo',
+        'GET|HEAD widget/account.css',
         'GET|HEAD widget/account.js',
         'GET|HEAD widget/session',
         'GET|HEAD widget/accounts',
         'GET|HEAD widget/apps',
+        'POST widget/switch',
         'POST widget/logout',
         'OPTIONS widget/{any}',
     ])->sort()->values()->all();

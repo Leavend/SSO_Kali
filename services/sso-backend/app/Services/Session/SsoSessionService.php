@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Repositories\SsoSessionRepository;
 use App\Repositories\UserRepository;
 use App\Services\Directory\DirectoryUser;
+use App\Services\Oidc\DeviceSessionRegistry;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
@@ -17,6 +18,7 @@ final class SsoSessionService
     public function __construct(
         private readonly SsoSessionRepository $sessions,
         private readonly UserRepository $users,
+        private readonly DeviceSessionRegistry $deviceSessions,
     ) {}
 
     public function create(DirectoryUser $user, ?string $ipAddress, ?string $userAgent): SsoSession
@@ -52,6 +54,7 @@ final class SsoSessionService
     public function revoke(SsoSession $session): void
     {
         $this->sessions->revoke($session);
+        $this->deviceSessions->forgetSession($session->session_id);
     }
 
     public function revokeCurrent(?string $sessionId): void

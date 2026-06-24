@@ -53,7 +53,43 @@ Use the framework guide matching the application architecture:
 
 Use the [API Reference](/en/api-reference) rather than duplicating or hardcoding endpoint metadata.
 
-## 5. Integration Test Checklist
+## 5. One-Line Header Account Bar
+
+For applications that want an app launcher plus account menu in their header, add a mount point:
+
+```html
+<div id="sso-account"></div>
+```
+
+Then add the hosted widget:
+
+```html
+<script src="https://api-sso.timeh.my.id/widget/account.js" data-sso-widget data-client-id="your-web-app" data-mount="#sso-account"></script>
+```
+
+The widget uses `/widget/session`, `/widget/apps`, `/widget/accounts`, `/widget/switch`, and `/widget/logout`. The browser never receives OAuth tokens. The multi-account chooser is limited to accounts that have signed in on this browser through an httpOnly device cookie and a server-side registry, not IP address or User-Agent.
+
+Optional feature selection:
+
+```html
+<script src="https://api-sso.timeh.my.id/widget/account.js" data-sso-widget data-client-id="your-web-app" data-mount="#sso-account" data-features="apps,account"></script>
+```
+
+For applications that need manual control:
+
+```html
+<script src="https://api-sso.timeh.my.id/widget/account.js" data-sso-widget data-client-id="your-web-app"></script>
+<script>
+  window.SSOAccount.mount('#sso-account', {
+    clientId: 'your-web-app',
+    features: 'apps,account',
+  })
+</script>
+```
+
+If the application uses strict Content Security Policy, allow the SSO origin in `script-src` and `connect-src`, and allow `https://api-sso.timeh.my.id/widget/account.css` in `style-src`. Ensure the client `app_base_url` uses a safe web URL; non-web links such as `javascript:` and `data:` are not rendered by the widget.
+
+## 6. Integration Test Checklist
 
 - Login redirects to SSO and returns to the exact callback.
 - State and nonce are validated.
@@ -64,9 +100,10 @@ Use the [API Reference](/en/api-reference) rather than duplicating or hardcoding
 - Refresh rotates the refresh token.
 - Logout removes the local session and ends the SSO session.
 - Back-channel logout removes the local session when configured.
+- The account bar, if used, shows only allowed apps and accounts bound to this browser.
 - No secret or token is present in a browser bundle, URL, or log.
 
-## 6. Go Live and Rollback
+## 7. Go Live and Rollback
 
 1. Validate with a development client.
 2. Register or activate the production client with HTTPS URIs.
@@ -76,7 +113,7 @@ Use the [API Reference](/en/api-reference) rather than duplicating or hardcoding
 
 To roll back access, disable the client from its lifecycle controls. Disabling revokes active tokens. Decommission only after dependent applications have been removed.
 
-## 7. Troubleshooting
+## 8. Troubleshooting
 
 | Error | Check |
 |---|---|

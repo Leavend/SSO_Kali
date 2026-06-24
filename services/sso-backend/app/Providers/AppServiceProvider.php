@@ -8,6 +8,7 @@ use App\Models\Passport\Client;
 use App\Models\User;
 use App\Services\Directory\DatabaseDirectoryUserProvider;
 use App\Services\Directory\DirectoryUserProvider;
+use App\Services\Oidc\DeviceSessionRegistry;
 use App\Services\Oidc\DownstreamClientRegistry;
 use App\Support\Oidc\SsoEngineConfig;
 use App\Support\Security\AuthThrottleResponder;
@@ -22,6 +23,7 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        $this->app->singleton(DeviceSessionRegistry::class);
         $this->app->singleton(DownstreamClientRegistry::class);
         $this->app->bind(DirectoryUserProvider::class, DatabaseDirectoryUserProvider::class);
     }

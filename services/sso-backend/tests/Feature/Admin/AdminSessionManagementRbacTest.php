@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Jobs\DispatchBackChannelLogoutJob;
+use App\Models\SsoSession;
 use App\Models\User;
 use App\Services\Oidc\BackChannelSessionRegistry;
 use App\Services\Oidc\LocalTokenService;
@@ -88,6 +89,16 @@ it('records audit events when an authorized admin revokes a session', function (
     ]);
 
     seedAdminSession('session-1', '4001');
+    DB::table('device_sessions')->insert([
+        'device_hash' => hash('sha256', 'device-a'),
+        'session_id' => 'session-1',
+        'user_id' => User::query()->where('subject_id', '4001')->value('id'),
+        'account_id' => 'account-session-1',
+        'added_at' => now(),
+        'last_seen_at' => now(),
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
     app(BackChannelSessionRegistry::class)->register('session-1', 'prototype-app-a', 'https://app-a.example/api/backchannel/logout');
 
     $response = $this->withToken(adminAccessToken($admin))
@@ -100,6 +111,10 @@ it('records audit events when an authorized admin revokes a session', function (
 
     expect(DB::table('refresh_token_rotations')->where('session_id', 'session-1')->whereNull('revoked_at')->count())
         ->toBe(0);
+    expect(SsoSession::query()->where('session_id', 'session-1')->whereNotNull('revoked_at')->exists())
+        ->toBeTrue();
+    expect(DB::table('device_sessions')->where('session_id', 'session-1')->exists())
+        ->toBeFalse();
 
     $event = latestAuditEvent();
 
@@ -165,6 +180,21 @@ function adminAccessToken(User $user): string
 
 function seedAdminSession(string $sessionId, string $subjectId): void
 {
+    $userId = User::query()->where('subject_id', $subjectId)->value('id');
+
+    if ($userId !== null) {
+        SsoSession::query()->create([
+            'session_id' => $sessionId,
+            'user_id' => $userId,
+            'subject_id' => $subjectId,
+            'ip_address' => '127.0.0.1',
+            'user_agent' => 'AdminSessionTest',
+            'authenticated_at' => now(),
+            'last_seen_at' => now(),
+            'expires_at' => now()->addDay(),
+        ]);
+    }
+
     DB::table('refresh_token_rotations')->insert([
         'subject_id' => $subjectId,
         'subject_uuid' => $subjectId,
