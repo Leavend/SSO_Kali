@@ -61,13 +61,13 @@ Gunakan checklist ini sebelum go-live integrasi client SSO. Halaman ini merangku
 - [ ] Tambahkan 1 baris widget:
 
 ```html
-<script src="https://api-sso.timeh.my.id/widget/account.js" data-sso-widget data-client-id="app-kamu-web" data-mount="#sso-account"></script>
+<script src="https://sso.timeh.my.id/widget/account.js" data-sso-widget data-client-id="app-kamu-web" data-mount="#sso-account"></script>
 ```
 
 - [ ] Gunakan `data-features="apps,account"` bila ingin mengatur trigger yang tampil.
 - [ ] Untuk mount manual, panggil `window.SSOAccount.mount('#sso-account', { clientId: 'app-kamu-web', features: 'apps,account' })`.
 - [ ] Pastikan `app_base_url` client adalah URL web `https://` atau localhost development; link `javascript:` dan `data:` tidak akan ditampilkan.
-- [ ] Pastikan origin yang meng-embed widget terdaftar sebagai `app_base_url` client atau origin first-party SSO. Credentialed CORS widget tidak memakai redirect URI sebagai allow-list.
+- [ ] Pastikan origin yang meng-embed widget disetujui eksplisit untuk widget CORS: origin first-party SSO atau client yang ditandai trusted untuk widget CORS. `app_base_url` saja tidak otomatis cukup, dan credentialed CORS widget tidak memakai redirect URI sebagai allow-list.
 - [ ] Untuk embedding lintas-origin first-party, cookie sesi dan device SSO harus `Secure` serta `SameSite=None`.
 - [ ] Jika memakai CSP ketat, izinkan `script-src` dan `connect-src` ke origin SSO, serta `style-src` untuk stylesheet `/widget/account.css`.
 - [ ] Jangan mencoba membaca cookie widget dari JavaScript. Multi-account chooser memakai cookie device httpOnly dan registry server-side.

@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Services\Mfa;
 
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
+use Throwable;
 
 /**
  * FR-018: Cache-based MFA challenge state.
@@ -41,6 +43,7 @@ final class MfaChallengeStore
             'user_id' => $userId,
             'attempts' => 0,
             'created_at' => now()->toIso8601String(),
+            'expires_at' => $expiresAt->toIso8601String(),
             'oidc_context' => $oidcContext,
         ], self::TTL_SECONDS);
 
@@ -53,7 +56,7 @@ final class MfaChallengeStore
     /**
      * Retrieve challenge data. Returns null if expired or not found.
      *
-     * @return array{user_id: int, attempts: int, created_at: string, oidc_context?: array<string, mixed>|null}|null
+     * @return array{user_id: int, attempts: int, created_at: string, expires_at?: string, oidc_context?: array<string, mixed>|null}|null
      */
     public function find(string $challengeId): ?array
     {
@@ -81,30 +84,56 @@ final class MfaChallengeStore
     }
 
     /**
-     * Increment attempt count. Returns false if max attempts exceeded.
+     * Record a verification attempt, returning a distinct outcome so the caller
+     * can surface the correct error (expiry vs lockout vs not-found) instead of
+     * collapsing every failure into a single "maximum attempts exceeded".
      */
-    public function incrementAttempt(string $challengeId): bool
+    public function incrementAttempt(string $challengeId): MfaAttemptOutcome
     {
         $data = $this->find($challengeId);
 
         if ($data === null) {
-            return false;
+            return MfaAttemptOutcome::NotFound;
         }
 
         if ($data['attempts'] >= self::MAX_ATTEMPTS) {
             $this->consume($challengeId);
 
-            return false;
+            return MfaAttemptOutcome::MaxAttemptsReached;
         }
 
         $data['attempts']++;
-        $ttl = Cache::getStore()->get(self::PREFIX.$challengeId) !== null
-            ? self::TTL_SECONDS
-            : 0;
+        $ttl = $this->remainingTtl($data);
+        if ($ttl <= 0) {
+            $this->consume($challengeId);
+
+            return MfaAttemptOutcome::Expired;
+        }
 
         Cache::put(self::PREFIX.$challengeId, $data, $ttl);
 
-        return true;
+        return MfaAttemptOutcome::Recorded;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function remainingTtl(array $data): int
+    {
+        $expiresAt = is_string($data['expires_at'] ?? null) ? $data['expires_at'] : null;
+        if ($expiresAt === null) {
+            // Fail closed. Every challenge created by this store carries an
+            // absolute expires_at, so a missing one means a legacy/pre-deploy
+            // entry. Treating it as the full TTL would silently re-arm the
+            // brute-force window on every failed verify; treat it as expired.
+            return 0;
+        }
+
+        try {
+            return max(0, Carbon::parse($expiresAt)->getTimestamp() - now()->getTimestamp());
+        } catch (Throwable) {
+            return 0;
+        }
     }
 
     /**

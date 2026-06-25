@@ -27,11 +27,20 @@ describe('proxyToSsoBackend', () => {
     expect(response.status).toBe(302)
     expect(response.headers?.location).toBe('https://sso.test/login?auth_request_id=abc')
   })
+
+  it('does not forward a request stream body for CORS preflight requests', async () => {
+    fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }))
+
+    await proxyToSsoBackend(proxyRequest('OPTIONS'), new URL('https://sso.test/widget/accounts'))
+    const [, init] = fetchMock.mock.calls[0] ?? []
+
+    expect(init).toMatchObject({ method: 'OPTIONS', body: undefined })
+  })
 })
 
-function proxyRequest(): IncomingMessage {
+function proxyRequest(method = 'GET'): IncomingMessage {
   return {
-    method: 'GET',
+    method,
     headers: {
       cookie: '__Host-sso_session=session-1',
       'x-request-id': 'req-proxy-redirect',

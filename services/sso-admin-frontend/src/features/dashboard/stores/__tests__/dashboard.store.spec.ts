@@ -69,7 +69,7 @@ describe('useDashboardStore', () => {
     expect(store.summary).toEqual(updatedSummary)
   })
 
-  it('keeps existing dashboard summary on transient silent refresh errors', async () => {
+  it('keeps existing dashboard summary as stale on transient silent refresh errors', async () => {
     vi.mocked(dashboardApi.getSummary).mockRejectedValue(
       new ApiError(500, 'SQLSTATE leaked admin trace', 'server_error', null, 'req-refresh-fail'),
     )
@@ -80,31 +80,82 @@ describe('useDashboardStore', () => {
 
     await store.refresh()
 
-    expect(store.status).toBe('success')
+    expect(store.status).toBe('stale')
+    expect(store.isStale).toBe(true)
     expect(store.summary).toEqual(summary)
-    expect(store.errorMessage).toBeNull()
+    expect(store.errorMessage).not.toContain('SQLSTATE')
+    expect(store.errorMessage).toBeTruthy()
   })
 
-  it('maps 401 to safe unauthenticated copy', async () => {
+  it('keeps the last summary stale when a background refresh returns 403', async () => {
+    vi.mocked(dashboardApi.getSummary)
+      .mockResolvedValueOnce(summary)
+      .mockRejectedValueOnce(new ApiError(403, 'SQLSTATE forbidden leak', 'forbidden', null, 'req-403'))
+    const store = useDashboardStore()
+
+    await store.load()
+    await store.refresh()
+
+    expect(store.status).toBe('stale')
+    expect(store.isStale).toBe(true)
+    expect(store.summary).toEqual(summary)
+    expect(store.errorMessage).not.toContain('SQLSTATE')
+    expect(store.errorMessage).not.toContain('izin')
+    expect(store.errorMessage).toBeTruthy()
+  })
+
+  it('keeps the last summary stale when a background refresh returns 401', async () => {
+    vi.mocked(dashboardApi.getSummary)
+      .mockResolvedValueOnce(summary)
+      .mockRejectedValueOnce(new ApiError(401, 'raw session trace', 'unauthenticated', null, 'req-401'))
+    const store = useDashboardStore()
+
+    await store.load()
+    await store.refresh()
+
+    expect(store.status).toBe('stale')
+    expect(store.isStale).toBe(true)
+    expect(store.summary).toEqual(summary)
+    expect(store.errorMessage).not.toContain('raw session trace')
+    expect(store.errorMessage).not.toContain('berakhir')
+    expect(store.errorMessage).toBeTruthy()
+  })
+
+  it('maps 401 to safe unauthenticated copy on initial load', async () => {
     vi.mocked(dashboardApi.getSummary).mockRejectedValue(new ApiError(401, 'raw session trace'))
     const store = useDashboardStore()
 
     await store.load()
 
     expect(store.status).toBe('unauthenticated')
+    expect(store.summary).toBeNull()
     expect(store.errorMessage).toBe('Sesi admin berakhir. Login ulang untuk melanjutkan.')
     expect(store.errorMessage).not.toContain('raw session trace')
   })
 
-  it('maps 403 to safe forbidden copy', async () => {
+  it('maps 403 to safe forbidden copy on initial load', async () => {
     vi.mocked(dashboardApi.getSummary).mockRejectedValue(new ApiError(403, 'raw forbidden trace'))
     const store = useDashboardStore()
 
     await store.load()
 
     expect(store.status).toBe('forbidden')
+    expect(store.summary).toBeNull()
     expect(store.errorMessage).toBe('Kamu tidak memiliki izin untuk melihat dashboard admin.')
     expect(store.errorMessage).not.toContain('raw forbidden trace')
+  })
+
+  it('surfaces unauthenticated when a silent refresh 401 races ahead of any summary', async () => {
+    vi.mocked(dashboardApi.getSummary).mockRejectedValueOnce(new ApiError(401, 'raw session trace'))
+    const store = useDashboardStore()
+
+    // A background refresh that races ahead of the first successful load.
+    await store.refresh()
+
+    expect(store.status).toBe('unauthenticated')
+    expect(store.summary).toBeNull()
+    expect(store.errorMessage).not.toContain('raw session trace')
+    expect(store.errorMessage).toBeTruthy()
   })
 
   it('maps 5xx to generic copy with request evidence', async () => {

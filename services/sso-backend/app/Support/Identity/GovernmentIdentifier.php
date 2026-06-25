@@ -25,6 +25,28 @@ final class GovernmentIdentifier
         return self::digits($value, 10);
     }
 
+    /**
+     * Canonicalize a raw government-identifier input for storage. Trims, returns
+     * null for an empty value, and normalizes a well-formed value to its digits —
+     * falling back to the trimmed raw so an invalid shape surfaces in validation
+     * instead of being silently dropped. Shared by the admin create and
+     * profile-sync write paths so the two cannot drift.
+     */
+    public static function canonical(string $type, ?string $raw): ?string
+    {
+        $value = trim((string) $raw);
+        if ($value === '') {
+            return null;
+        }
+
+        return match ($type) {
+            'nik' => self::nik($value) ?? $value,
+            'nip' => self::nip($value) ?? $value,
+            'nisn' => self::nisn($value) ?? $value,
+            default => $value,
+        };
+    }
+
     public static function hashNik(string $nik): string
     {
         return self::requiredHash('nik', $nik);
@@ -166,12 +188,6 @@ final class GovernmentIdentifier
             return $key;
         }
 
-        if (app()->environment('production')) {
-            return null;
-        }
-
-        $fallback = (string) config('app.key', '');
-
-        return $fallback !== '' ? $fallback : 'local-development-nik-hash-key';
+        return null;
     }
 }

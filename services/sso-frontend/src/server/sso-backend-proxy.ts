@@ -11,7 +11,7 @@ export async function proxyToSsoBackend(
   const response = await fetch(target, {
     method: request.method,
     headers: buildProxyRequestHeaders(request.headers),
-    body: request.method === 'GET' || request.method === 'HEAD' ? undefined : request,
+    body: hasRequestBody(request.method) ? request : undefined,
     duplex: 'half',
     redirect: 'manual',
   } as RequestInit & { duplex: 'half' })
@@ -25,4 +25,8 @@ export async function proxyToSsoBackend(
 
 function trimTrailingSlash(value: string): string {
   return value.endsWith('/') ? value.slice(0, -1) : value
+}
+
+function hasRequestBody(method: string | undefined): boolean {
+  return !['GET', 'HEAD', 'OPTIONS', 'TRACE'].includes((method ?? 'GET').toUpperCase())
 }

@@ -27,14 +27,22 @@ final class UpdateManagedClientAction
     public function execute(Request $request, User $admin, string $clientId, array $data): OidcClientRegistration
     {
         $registration = $this->findRegistration($clientId);
-        $registration->forceFill(array_intersect_key($data, array_flip([
+
+        $attributes = array_intersect_key($data, array_flip([
             'display_name',
             'owner_email',
             'redirect_uris',
             'post_logout_redirect_uris',
             'backchannel_logout_uri',
             'category',
-        ])))->save();
+        ]));
+
+        $contract = $this->mergeContract($registration, $data);
+        if ($contract !== null) {
+            $attributes['contract'] = $contract;
+        }
+
+        $registration->forceFill($attributes)->save();
 
         $this->clients->flush();
         $this->widgetOrigins->flush();
@@ -49,6 +57,40 @@ final class UpdateManagedClientAction
         );
 
         return $registration;
+    }
+
+    /**
+     * Merge the contract-backed admin fields (widget CORS trust, extra trusted
+     * redirect origins) into the registration's existing contract JSON, leaving
+     * the rest of the contract untouched. Returns null when neither field was
+     * submitted so the column is not rewritten needlessly.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>|null
+     */
+    private function mergeContract(OidcClientRegistration $registration, array $data): ?array
+    {
+        $touchesWidget = array_key_exists('widget_cors_trusted', $data);
+        $touchesOrigins = array_key_exists('trusted_redirect_origins', $data);
+
+        if (! $touchesWidget && ! $touchesOrigins) {
+            return null;
+        }
+
+        $contract = is_array($registration->contract) ? $registration->contract : [];
+
+        if ($touchesWidget) {
+            $contract['widget_cors_trusted'] = (bool) $data['widget_cors_trusted'];
+        }
+
+        if ($touchesOrigins) {
+            $origins = $data['trusted_redirect_origins'];
+            $contract['trusted_redirect_origins'] = is_array($origins)
+                ? array_values(array_unique(array_filter($origins, 'is_string')))
+                : [];
+        }
+
+        return $contract;
     }
 
     private function findRegistration(string $clientId): OidcClientRegistration

@@ -22,14 +22,16 @@ const displayName = computed<string>(() => session.principal?.display_name ?? 'A
 const email = computed<string>(() => session.principal?.email ?? '')
 
 function toggleApps(): void {
-  openPanel.value = openPanel.value === 'apps' ? null : 'apps'
-  void accountBar.loadApps()
+  const nextPanel = openPanel.value === 'apps' ? null : 'apps'
+  openPanel.value = nextPanel
+  if (nextPanel === 'apps') void accountBar.loadApps()
   void focusOpenPanel()
 }
 
 function toggleAccount(): void {
-  openPanel.value = openPanel.value === 'account' ? null : 'account'
-  void accountBar.loadAccounts()
+  const nextPanel = openPanel.value === 'account' ? null : 'account'
+  openPanel.value = nextPanel
+  if (nextPanel === 'account') void accountBar.loadAccounts()
   void focusOpenPanel()
 }
 

@@ -176,7 +176,10 @@ final class DataSubjectFulfillmentService
     /** @return array<string, mixed> */
     private function anonymizedProfile(DataSubjectRequest $request): array
     {
-        $anonymous = 'anon-'.$request->request_id;
+        // Emails are normalized to lowercase at the model boundary (User::saving).
+        // Build the anonymized address already-lowercased so the value the service
+        // persists matches the stored value (ULIDs are case-insensitive).
+        $anonymous = 'anon-'.mb_strtolower($request->request_id);
 
         return [
             'email' => $anonymous.'@anonymous.invalid',

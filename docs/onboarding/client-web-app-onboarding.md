@@ -140,23 +140,23 @@ Jika app kamu ingin menampilkan account bar seperti launcher aplikasi + menu aku
 Lalu tambahkan script widget:
 
 ```html
-<script src="https://api-sso.timeh.my.id/widget/account.js" data-sso-widget data-client-id="app-kamu-web" data-mount="#sso-account"></script>
+<script src="https://sso.timeh.my.id/widget/account.js" data-sso-widget data-client-id="app-kamu-web" data-mount="#sso-account"></script>
 ```
 
 Widget memakai endpoint `/widget/session`, `/widget/apps`, `/widget/accounts`, `/widget/switch`, dan `/widget/logout`. Browser tidak menerima token. Multi-account chooser dibatasi ke akun yang pernah login di browser ini melalui cookie device httpOnly dan registry server-side, bukan IP atau User-Agent.
 
-Origin yang meng-embed widget harus terdaftar sebagai `app_base_url` client atau sebagai origin first-party SSO. Credentialed CORS widget tidak memakai redirect URI sebagai allow-list. Untuk embedding lintas-origin first-party, cookie sesi dan device SSO harus `Secure` serta `SameSite=None`.
+Origin yang meng-embed widget harus disetujui eksplisit untuk widget CORS: origin first-party SSO atau client yang ditandai trusted untuk widget CORS. `app_base_url` saja tidak otomatis cukup, dan credentialed CORS widget tidak memakai redirect URI sebagai allow-list. Untuk embedding lintas-origin first-party, cookie sesi dan device SSO harus `Secure` serta `SameSite=None`.
 
 Konfigurasi opsional:
 
 ```html
-<script src="https://api-sso.timeh.my.id/widget/account.js" data-sso-widget data-client-id="app-kamu-web" data-mount="#sso-account" data-features="apps,account"></script>
+<script src="https://sso.timeh.my.id/widget/account.js" data-sso-widget data-client-id="app-kamu-web" data-mount="#sso-account" data-features="apps,account"></script>
 ```
 
 Untuk app yang butuh kontrol manual:
 
 ```html
-<script src="https://api-sso.timeh.my.id/widget/account.js" data-sso-widget data-client-id="app-kamu-web"></script>
+<script src="https://sso.timeh.my.id/widget/account.js" data-sso-widget data-client-id="app-kamu-web"></script>
 <script>
   window.SSOAccount.mount('#sso-account', {
     clientId: 'app-kamu-web',
@@ -165,7 +165,7 @@ Untuk app yang butuh kontrol manual:
 </script>
 ```
 
-Jika app memakai Content Security Policy ketat, izinkan origin SSO pada `script-src` dan `connect-src`, serta stylesheet `https://api-sso.timeh.my.id/widget/account.css` pada `style-src`. Pastikan `app_base_url` client memakai URL web aman; link non-web seperti `javascript:` dan `data:` tidak akan ditampilkan oleh widget. Jangan panggil endpoint native `/api/auth/*`, `/api/profile/*`, atau `/api/mfa/*` dari app eksternal; gunakan OIDC dan `/widget/*`.
+Jika app memakai Content Security Policy ketat, izinkan origin SSO pada `script-src` dan `connect-src`, serta stylesheet `https://sso.timeh.my.id/widget/account.css` pada `style-src`. Pastikan `app_base_url` client memakai URL web aman; link non-web seperti `javascript:` dan `data:` tidak akan ditampilkan oleh widget. Jangan panggil endpoint native `/api/auth/*`, `/api/profile/*`, atau `/api/mfa/*` dari app eksternal; gunakan OIDC dan `/widget/*`.
 
 ### Endpoint (dari Discovery)
 

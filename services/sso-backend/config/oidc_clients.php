@@ -39,6 +39,7 @@ $clients = [
         'backchannel_logout_uri' => env('APP_A_BACKCHANNEL_LOGOUT_URI'),
         'frontchannel_logout_uri' => env('APP_A_FRONTCHANNEL_LOGOUT_URI'),
         'allowed_scopes' => ['openid', 'profile', 'email', 'offline_access'],
+        'category' => 'publik',
     ],
 
     env('APP_B_CLIENT_ID', 'app-b') => [
@@ -54,6 +55,7 @@ $clients = [
         'backchannel_logout_uri' => env('APP_B_BACKCHANNEL_LOGOUT_URI'),
         'frontchannel_logout_uri' => env('APP_B_FRONTCHANNEL_LOGOUT_URI'),
         'allowed_scopes' => ['openid', 'profile', 'email', 'offline_access'],
+        'category' => 'publik',
     ],
 
     // First-party admin BFF: confidential client authentication plus PKCE S256.
@@ -67,9 +69,11 @@ $clients = [
             env('ADMIN_PANEL_POST_LOGOUT_REDIRECT_URI', $frontendUrl),
         ],
         'app_base_url' => $adminFrontendUrl,
+        'widget_cors_trusted' => true,
         'backchannel_logout_uri' => $adminBackchannelLogoutUri,
         'frontchannel_logout_uri' => env('ADMIN_PANEL_FRONTCHANNEL_LOGOUT_URI'),
         'allowed_scopes' => ['openid', 'profile', 'email', 'offline_access', 'roles', 'permissions'],
+        'category' => 'publik',
     ],
 
     env('SSO_PORTAL_CLIENT_ID', 'sso-frontend-portal') => [
@@ -82,9 +86,11 @@ $clients = [
             env('SSO_PORTAL_POST_LOGOUT_REDIRECT_URI', $frontendUrl),
         ],
         'app_base_url' => $frontendUrl,
+        'widget_cors_trusted' => true,
         'backchannel_logout_uri' => env('SSO_PORTAL_BACKCHANNEL_LOGOUT_URI'),
         'frontchannel_logout_uri' => env('SSO_PORTAL_FRONTCHANNEL_LOGOUT_URI'),
         'allowed_scopes' => ['openid', 'profile', 'email', 'offline_access', 'roles', 'permissions'],
+        'category' => 'publik',
     ],
 ];
 
@@ -102,6 +108,7 @@ if ($loadTestEnabled) {
         ],
         'backchannel_logout_uri' => env('SSO_LOAD_TEST_BACKCHANNEL_LOGOUT_URI'),
         'allowed_scopes' => ['openid', 'profile', 'email', 'offline_access'],
+        'category' => 'publik',
     ];
 }
 
@@ -126,6 +133,7 @@ return [
         'redirect_uri' => env('SSO_LOAD_TEST_REDIRECT_URI', 'https://load-test.timeh.my.id/oauth/callback'),
         'post_logout_redirect_uri' => env('SSO_LOAD_TEST_POST_LOGOUT_REDIRECT_URI', 'https://load-test.timeh.my.id/signed-out'),
         'backchannel_logout_uri' => env('SSO_LOAD_TEST_BACKCHANNEL_LOGOUT_URI'),
+        'category' => 'publik',
     ],
     'locked_production_client_ids' => $lockedProductionClientIds,
     'clients' => $clients,

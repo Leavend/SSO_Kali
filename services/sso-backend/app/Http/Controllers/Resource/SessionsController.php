@@ -17,12 +17,6 @@ final class SessionsController
         private readonly SsoSessionService $sessionService,
     ) {}
 
-    /**
-     * GET /api/profile/sessions — list active sessions for authenticated user.
-     *
-     * Automatically deduplicates: keeps only the newest session per user-agent
-     * to prevent stale sessions from accumulating (security hardening).
-     */
     public function index(Request $request): JsonResponse
     {
         $currentSession = $this->resolveCurrentSession($request);
@@ -30,26 +24,11 @@ final class SessionsController
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
-        $allSessions = SsoSession::where('user_id', $currentSession->user_id)
+        $sessions = SsoSession::where('user_id', $currentSession->user_id)
             ->whereNull('revoked_at')
             ->where('expires_at', '>', now())
             ->orderByDesc('authenticated_at')
-            ->get();
-
-        // Deduplicate: keep only newest session per user-agent (same device)
-        $seen = [];
-        $activeSessions = [];
-        foreach ($allSessions as $session) {
-            $key = $session->user_agent ?? 'unknown';
-            if (isset($seen[$key])) {
-                $this->sessionService->revoke($session);
-            } else {
-                $seen[$key] = true;
-                $activeSessions[] = $session;
-            }
-        }
-
-        $sessions = collect($activeSessions)
+            ->get()
             ->map(fn (SsoSession $s) => [
                 'session_id' => $s->session_id,
                 'opened_at' => $s->authenticated_at->toIso8601String(),

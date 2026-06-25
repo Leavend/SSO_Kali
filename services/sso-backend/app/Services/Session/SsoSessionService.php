@@ -10,7 +10,7 @@ use App\Repositories\SsoSessionRepository;
 use App\Repositories\UserRepository;
 use App\Services\Directory\DirectoryUser;
 use App\Services\Oidc\DeviceSessionRegistry;
-use Carbon\CarbonImmutable;
+use App\Support\Session\SessionIdlePolicy;
 use Illuminate\Support\Facades\DB;
 
 final class SsoSessionService
@@ -19,6 +19,7 @@ final class SsoSessionService
         private readonly SsoSessionRepository $sessions,
         private readonly UserRepository $users,
         private readonly DeviceSessionRegistry $deviceSessions,
+        private readonly SessionIdlePolicy $idlePolicy,
     ) {}
 
     public function create(DirectoryUser $user, ?string $ipAddress, ?string $userAgent): SsoSession
@@ -51,6 +52,43 @@ final class SsoSessionService
         return $this->users->findById((int) $session->user_id);
     }
 
+    /**
+     * Resolve the session for a PASSIVE widget read without the idle-revoke path.
+     *
+     * Viewing the account bar (session / accounts / apps polling, or reading the
+     * current session before an account switch) must not permanently revoke an
+     * idle-but-absolutely-valid session. Idle expiry is enforced where the
+     * session is actively USED — the /authorize + consent flow and explicit
+     * logout go through current()/resolveActive() and still revoke on idle. A
+     * passive read returns the session when it is present, not revoked, and
+     * within its absolute TTL; it never mutates the row.
+     */
+    public function peekActive(?string $sessionId): ?SsoSession
+    {
+        if (! is_string($sessionId) || $sessionId === '') {
+            return null;
+        }
+
+        $session = $this->sessions->findActiveBySessionId($sessionId);
+
+        if (! $session instanceof SsoSession || $session->expires_at->isPast()) {
+            return null;
+        }
+
+        return $session;
+    }
+
+    public function peekActiveUser(?string $sessionId): ?User
+    {
+        $session = $this->peekActive($sessionId);
+
+        if (! $session instanceof SsoSession) {
+            return null;
+        }
+
+        return $this->users->findById((int) $session->user_id);
+    }
+
     public function revoke(SsoSession $session): void
     {
         $this->sessions->revoke($session);
@@ -67,7 +105,25 @@ final class SsoSessionService
     }
 
     /**
-     * BE-FR039-001 — race-safe lifecycle gate.
+     * Record deliberate SSO usage (a browser-session /authorize, consent code
+     * issuance, or a trusted browser mutation) as activity so an actively-SSO-ing
+     * user does not idle-expire between explicit auth/mfa/profile actions.
+     *
+     * Refreshes the absolutely-valid session (not revoked, not past its absolute
+     * TTL) in place without the idle-revoke path, so a session that is merely
+     * past its idle window is renewed rather than killed.
+     */
+    public function recordSsoActivity(?string $sessionId): void
+    {
+        if (! is_string($sessionId) || $sessionId === '') {
+            return;
+        }
+
+        $this->sessions->recordActivityBySessionId($sessionId);
+    }
+
+    /**
+     * Race-safe session lifecycle gate.
      *
      * Reads, validates, and updates the SSO session row inside a single
      * transaction with `lockForUpdate()` so a concurrent revoke / heartbeat
@@ -89,9 +145,7 @@ final class SsoSessionService
                 return null;
             }
 
-            $idleMinutes = (int) config('sso.session.idle_minutes', 30);
-
-            if ($idleMinutes > 0 && $this->isIdle($session, $idleMinutes)) {
+            if ($this->idlePolicy->isIdle($session)) {
                 $this->sessions->revoke($session);
 
                 return null;
@@ -101,18 +155,5 @@ final class SsoSessionService
 
             return $session;
         });
-    }
-
-    private function isIdle(SsoSession $session, int $idleMinutes): bool
-    {
-        $lastSeen = $session->last_seen_at instanceof \DateTimeInterface
-            ? CarbonImmutable::instance($session->last_seen_at)
-            : null;
-
-        if ($lastSeen === null) {
-            return false;
-        }
-
-        return $lastSeen->addMinutes($idleMinutes)->isPast();
     }
 }

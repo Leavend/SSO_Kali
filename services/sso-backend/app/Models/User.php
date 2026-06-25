@@ -122,6 +122,10 @@ class User extends Authenticatable implements OAuthenticatable
     protected static function booted(): void
     {
         static::saving(static function (User $user): void {
+            if ($user->isDirty('email')) {
+                $user->email = mb_strtolower(trim((string) $user->email));
+            }
+
             if ($user->isDirty('nip')) {
                 $user->nip = GovernmentIdentifier::nip($user->nip);
                 $user->nip_hash = $user->nip === null || $user->nip === ''

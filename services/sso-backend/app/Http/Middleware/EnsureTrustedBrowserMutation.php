@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Services\Session\SsoSessionCookieResolver;
+use App\Services\Session\SsoSessionService;
 use App\Support\Oidc\ClientUrlOrigin;
 use Closure;
 use Illuminate\Http\JsonResponse;
@@ -29,6 +31,15 @@ final class EnsureTrustedBrowserMutation
         ) {
             return $this->forbidden();
         }
+
+        // A trusted browser mutation is deliberate user activity. Record it via
+        // the non-revoking activity path so a still-valid session that is merely
+        // past its idle window is refreshed rather than killed — mirroring the
+        // /authorize and consent flows. Genuine session validity (revoked /
+        // past absolute TTL) is still enforced downstream by ResolveSsoSessionUser.
+        app(SsoSessionService::class)->recordSsoActivity(
+            app(SsoSessionCookieResolver::class)->resolve($request),
+        );
 
         return $next($request);
     }

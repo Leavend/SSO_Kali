@@ -77,6 +77,25 @@ describe('DashboardPage', () => {
     expect(wrapper.text()).not.toMatch(/Bearer|refreshToken|SQLSTATE/i)
   })
 
+  it('keeps counters visible with a stale banner when a refresh degrades', () => {
+    const store = useDashboardStore()
+    store.status = 'stale'
+    store.summary = summary
+    store.requestId = 'req-dashboard-1'
+    store.errorMessage = 'Latest refresh failed. Showing the last successful snapshot.'
+
+    const wrapper = mount(DashboardPage)
+
+    // Last good snapshot stays on screen.
+    expect(wrapper.text()).toContain('Users')
+    expect(wrapper.text()).toContain('10')
+    // Degraded indicator is surfaced, not an auth/forbidden takeover.
+    expect(wrapper.find('.dashboard-stale-banner').exists()).toBe(true)
+    expect(wrapper.text()).toContain('Latest refresh failed.')
+    expect(wrapper.text()).not.toContain('Dashboard access denied')
+    expect(wrapper.text()).not.toMatch(/SQLSTATE|Bearer/i)
+  })
+
   it('renders empty state when dashboard summary has no counters', () => {
     const store = useDashboardStore()
     store.status = 'success'

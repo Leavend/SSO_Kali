@@ -7,6 +7,7 @@ namespace App\Services\Oidc;
 use App\Models\DeviceSession;
 use App\Models\SsoSession;
 use App\Models\User;
+use App\Support\Session\SessionIdlePolicy;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -22,6 +23,10 @@ final class DeviceSessionRegistry
     private const int ACCOUNT_ID_LENGTH = 40;
 
     private bool $missingHashKeyWarningLogged = false;
+
+    public function __construct(
+        private readonly SessionIdlePolicy $idlePolicy,
+    ) {}
 
     public function bind(Request $request, SsoSession $session): ?Cookie
     {
@@ -101,7 +106,11 @@ final class DeviceSessionRegistry
             ->join('users as u', 'u.id', '=', 'd.user_id')
             ->where('d.device_hash', $deviceHash)
             ->orderByRaw('CASE WHEN s.session_id = ? THEN 0 ELSE 1 END', [$currentSession->session_id])
-            ->orderByDesc('d.last_seen_at')
+            // Rank by the SSO activity clock (the same signal SessionIdlePolicy
+            // and switch() use), not the device row's last_seen — silent SSO bumps
+            // sso_sessions.activity_seen_at but not device_sessions.last_seen, so
+            // ordering on the device clock would mis-rank a freshly-active account.
+            ->orderByRaw('COALESCE(s.activity_seen_at, s.last_seen_at, s.authenticated_at) desc')
             ->select([
                 'd.account_id',
                 'd.session_id',
@@ -162,7 +171,20 @@ final class DeviceSessionRegistry
             return null;
         }
 
-        $row->forceFill(['last_seen_at' => now()])->save();
+        // Decline a switch into an idle account rather than permanently revoking
+        // it. Eager revocation collapsed the OneGoogle-style "quick switch back"
+        // into a forced re-login; declining lets the bound session expire/prune on
+        // its own clock and keeps the chooser usable.
+        if ($this->idlePolicy->isIdle($session)) {
+            return null;
+        }
+
+        $now = now();
+        $row->forceFill(['last_seen_at' => $now])->save();
+        $session->forceFill([
+            'last_seen_at' => $now,
+            'activity_seen_at' => $now,
+        ])->save();
 
         return $session;
     }

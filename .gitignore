@@ -68,3 +68,12 @@ docs/*
 !docs/design/
 !docs/design/**/*.md
 node_modules
+
+# design-sync (claude.ai/design)
+.ds-sync/
+ds-bundle/
+.design-sync/.cache/
+.design-sync/learnings/
+.design-sync/node_modules
+.design-sync/admin-mirror/node_modules/
+.design-sync/admin-mirror/dist/

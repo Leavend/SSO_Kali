@@ -42,9 +42,10 @@ final class CreateManagedUserRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $this->merge([
-            'nik' => GovernmentIdentifier::nik($this->string('nik')->toString()),
-            'nip' => GovernmentIdentifier::nip($this->string('nip')->toString()),
-            'nisn' => GovernmentIdentifier::nisn($this->string('nisn')->toString()),
+            'email' => mb_strtolower(trim($this->string('email')->toString())),
+            'nik' => GovernmentIdentifier::canonical('nik', $this->string('nik')->toString()),
+            'nip' => GovernmentIdentifier::canonical('nip', $this->string('nip')->toString()),
+            'nisn' => GovernmentIdentifier::canonical('nisn', $this->string('nisn')->toString()),
         ]);
     }
 

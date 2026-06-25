@@ -40,14 +40,34 @@ it('finds a static client by id', function (): void {
         ->and($client->redirectUris)->toBe(['https://portal.example/auth/callback']);
 });
 
-it('defaults non-string config client category without crashing registry resolution', function (): void {
+it('defaults a missing config client category to publik', function (): void {
+    // static-spa declares no category in the config fixture above. A client
+    // without an explicit category is treated as a public app (backward-compatible
+    // default) so legacy/standard OIDC clients keep working. The fail-open for
+    // staff apps is closed at the admin registration boundary, not here.
+    $registry = app(DownstreamClientRegistry::class);
+
+    expect($registry->find('static-spa')->category)->toBe('publik');
+});
+
+it('defaults a non-string config client category to publik', function (): void {
+    // A malformed (non-string) category is "unspecified", not a deliberate
+    // restriction, so it falls back to the public default rather than crashing.
     config()->set('oidc_clients.clients.static-spa.category', ['publik']);
 
     $registry = app(DownstreamClientRegistry::class);
-    $client = $registry->find('static-spa');
 
-    expect($client)->not->toBeNull()
-        ->and($client->category)->toBe('publik');
+    expect($registry->find('static-spa')->category)->toBe('publik');
+});
+
+it('preserves an unknown non-empty category string so the guard can deny it', function (): void {
+    // A non-empty but unrecognized category (e.g. a typo) is passed through
+    // verbatim; EntitlementGuard denies it because ClientCategory::tryFrom fails.
+    config()->set('oidc_clients.clients.static-spa.category', 'kepegawaiann');
+
+    $registry = app(DownstreamClientRegistry::class);
+
+    expect($registry->find('static-spa')->category)->toBe('kepegawaiann');
 });
 
 it('returns null for unknown client id', function (): void {

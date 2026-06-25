@@ -16,6 +16,7 @@ export type AdminClient = {
   readonly secret_rotated_at?: string | null
   readonly secret_expires_at?: string | null
   readonly has_secret_hash?: boolean
+  readonly category?: 'publik' | 'kepegawaian'
 }
 
 export type ClientListResponse = {
@@ -52,6 +53,7 @@ export type ClientCreatePayload = {
   readonly owner_email: string
   readonly provisioning: 'jit' | 'scim'
   readonly allowed_scopes: readonly string[]
+  readonly category: 'publik' | 'kepegawaian'
 }
 
 export type ClientCreateResponse = {

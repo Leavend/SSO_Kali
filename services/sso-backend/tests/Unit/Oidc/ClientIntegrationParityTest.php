@@ -167,6 +167,7 @@ it('allows HTTP localhost for development environment (parity: both allow)', fun
         'logoutPath' => '/auth/backchannel/logout',
         'ownerEmail' => 'dev@local.example',
         'provisioning' => 'jit',
+        'category' => 'publik',
     ]);
 
     $violations = $builder->validate($draft);

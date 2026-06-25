@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\AuthenticationAuditEvent;
 use App\Models\OidcClientRegistration;
+use App\Models\User;
 use App\Models\UserConsent;
 use App\Services\Oidc\AuthRequestStore;
 use App\Services\Oidc\DownstreamClientRegistry;
@@ -144,6 +145,11 @@ it('rejects consent allow with invalid_client when redirect URI rotated mid-flow
 });
 
 it('issues a code on consent allow when client binding is still valid', function (): void {
+    // Code issuance re-checks entitlement, so the consenting subject must
+    // resolve to a real user. fr024-app defaults to the public category, so
+    // any user is entitled.
+    User::factory()->create(['subject_id' => 'fr024-user']);
+
     $state = fr024SeedConsentState();
 
     $response = $this->postJson('/connect/consent', [

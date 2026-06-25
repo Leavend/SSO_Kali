@@ -19,7 +19,7 @@ return [
     // "per-API" gate is wrong.
     'resource_audience' => env('SSO_RESOURCE_AUDIENCE', 'sso-resource-api'),
     'frontend_url' => env('SSO_FRONTEND_URL', env('APP_URL', 'http://localhost:3000')),
-    'admin_frontend_url' => env('SSO_ADMIN_FRONTEND_URL'),
+    'admin_frontend_url' => env('SSO_ADMIN_FRONTEND_URL', 'http://localhost:8080'),
     'display_timezone' => env('SSO_DISPLAY_TIMEZONE', 'Asia/Makassar'),
     'login_url' => env('SSO_LOGIN_URL', env('SSO_FRONTEND_URL', 'http://localhost:3000').'/login'),
     'observability' => [
@@ -90,6 +90,7 @@ return [
         'nik_hash_key' => env('SSO_NIK_HASH_KEY'),
     ],
     'widget' => [
+        'public_base_url' => env('SSO_WIDGET_PUBLIC_BASE_URL', env('SSO_FRONTEND_URL', env('APP_URL', 'http://localhost:3000'))),
         'device_cookie' => env('SSO_WIDGET_DEVICE_COOKIE', '__Host-sso_device'),
         'device_cookie_minutes' => (int) env('SSO_WIDGET_DEVICE_COOKIE_MINUTES', 576000),
         'device_cookie_same_site' => env('SSO_WIDGET_DEVICE_COOKIE_SAME_SITE', 'none'),
@@ -125,6 +126,11 @@ return [
         'cookie' => env('SSO_SESSION_COOKIE', '__Host-sso_session'),
         'cookie_same_site' => env('SSO_SESSION_COOKIE_SAME_SITE', 'none'),
         'ttl_minutes' => (int) env('SSO_SESSION_TTL_MINUTES', 480),
+        // Canonical idle window (single source of truth; SessionIdlePolicy reads
+        // this key). Defaults to 30 minutes so a walked-away session expires
+        // promptly. Active SSO (/authorize, consent) and trusted browser
+        // mutations count as activity and refresh the window, so genuinely active
+        // users are not forced to re-login. Set 0 to disable the idle window.
         'idle_minutes' => (int) env('SSO_SESSION_IDLE_MINUTES', 30),
     ],
     'ttl' => [

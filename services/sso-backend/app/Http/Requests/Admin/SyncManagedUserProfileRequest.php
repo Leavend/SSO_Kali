@@ -64,16 +64,20 @@ final class SyncManagedUserProfileRequest extends FormRequest
     {
         $canonical = [];
 
+        if ($this->has('email')) {
+            $canonical['email'] = mb_strtolower(trim($this->string('email')->toString()));
+        }
+
         if ($this->has('nik')) {
-            $canonical['nik'] = GovernmentIdentifier::nik($this->string('nik')->toString());
+            $canonical['nik'] = GovernmentIdentifier::canonical('nik', $this->string('nik')->toString());
         }
 
         if ($this->has('nip')) {
-            $canonical['nip'] = GovernmentIdentifier::nip($this->string('nip')->toString());
+            $canonical['nip'] = GovernmentIdentifier::canonical('nip', $this->string('nip')->toString());
         }
 
         if ($this->has('nisn')) {
-            $canonical['nisn'] = GovernmentIdentifier::nisn($this->string('nisn')->toString());
+            $canonical['nisn'] = GovernmentIdentifier::canonical('nisn', $this->string('nisn')->toString());
         }
 
         if ($canonical !== []) {

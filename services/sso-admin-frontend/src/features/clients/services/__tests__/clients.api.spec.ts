@@ -33,6 +33,7 @@ describe('clientsApi', () => {
       owner_email: 'owner@example.test',
       provisioning: 'jit',
       allowed_scopes: ['openid', 'profile', 'email'],
+      category: 'publik',
     })
     await clientsApi.update('prototype-app-a', { display_name: 'Prototype App A' })
     await clientsApi.syncScopes('prototype-app-a', { scopes: ['openid', 'profile', 'email'] })
@@ -55,6 +56,7 @@ describe('clientsApi', () => {
       owner_email: 'owner@example.test',
       provisioning: 'jit',
       allowed_scopes: ['openid', 'profile', 'email'],
+      category: 'publik',
     })
     expect(apiClient.patch).toHaveBeenCalledWith('/api/admin/clients/prototype-app-a', {
       display_name: 'Prototype App A',

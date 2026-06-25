@@ -98,6 +98,7 @@
     "empty_description": "Belum ada ringkasan dashboard untuk ditampilkan. Refresh data atau cek permission backend bila kondisi ini tidak sesuai.",
     "forbidden_title": "Akses dashboard ditolak",
     "error_title": "Dashboard admin belum bisa dimuat",
+    "stale_banner": "Refresh terakhir gagal. Menampilkan snapshot terakhir yang berhasil.",
     "generated_at": "Dibuat pada",
     "counters": {
       "users": {
@@ -360,6 +361,12 @@
     "type_public_hint": "Gunakan untuk SPA atau aplikasi mobile tanpa backend yang dapat menyimpan secret.",
     "type_confidential_hint": "Gunakan untuk aplikasi dengan backend yang dapat menyimpan secret di vault atau environment server.",
     "client_type_backend_hint": "Redirect URI ini terlihat seperti callback server. Pilih Confidential jika aplikasi punya backend dan membutuhkan secret.",
+    "label_category": "Kategori aplikasi",
+    "category_placeholder": "Pilih kategori aplikasi",
+    "category_public": "Publik (publik)",
+    "category_staff": "Kepegawaian (staff)",
+    "category_helper": "Pilih Kepegawaian untuk aplikasi yang dibatasi untuk pegawai dengan entitlement; aplikasi Publik dapat diakses semua pengguna yang masuk.",
+    "validation_category": "Pilih kategori aplikasi agar aplikasi kepegawaian tidak pernah dipublikasikan sebagai publik.",
     "label_display_name": "Nama tampilan",
     "label_owner_email": "Email pemilik",
     "label_redirect_uri": "Redirect URI",

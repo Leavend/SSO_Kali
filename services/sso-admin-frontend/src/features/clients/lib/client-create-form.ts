@@ -2,6 +2,8 @@ import type { ClientCreatePayload } from '../types'
 
 export type ClientType = 'public' | 'confidential'
 
+export type ClientCategory = 'publik' | 'kepegawaian'
+
 export type ClientCreateForm = {
   clientId: string
   displayName: string
@@ -9,6 +11,7 @@ export type ClientCreateForm = {
   redirectUri: string
   backchannelLogoutUri: string
   clientType: ClientType | null
+  category: ClientCategory | null
   scopes: string
 }
 
@@ -22,6 +25,7 @@ export function initialClientCreateForm(): ClientCreateForm {
     redirectUri: '',
     backchannelLogoutUri: '',
     clientType: null,
+    category: null,
     scopes: 'openid\nprofile\nemail',
   }
 }
@@ -33,6 +37,11 @@ export function validateClientCreateForm(form: ClientCreateForm): ClientCreateEr
   }
   if (form.clientType === null) {
     errors.clientType = 'clients.validation_client_type'
+  }
+  // Backend (ClientIntegrationContractBuilder) requires an explicit category so a
+  // staff app can never be silently published as public — mirror that here.
+  if (form.category === null) {
+    errors.category = 'clients.validation_category'
   }
   if (form.displayName.trim() === '') errors.displayName = 'clients.validation_display_name'
   if (!isEmail(form.ownerEmail)) errors.ownerEmail = 'clients.validation_owner_email'
@@ -51,6 +60,9 @@ export function toClientCreatePayload(form: ClientCreateForm): ClientCreatePaylo
   if (form.clientType === null) {
     throw new Error('Client type must be selected before submitting.')
   }
+  if (form.category === null) {
+    throw new Error('Client category must be selected before submitting.')
+  }
 
   const redirect = new URL(form.redirectUri.trim())
   const logoutPath = form.backchannelLogoutUri.trim()
@@ -68,6 +80,7 @@ export function toClientCreatePayload(form: ClientCreateForm): ClientCreatePaylo
     owner_email: form.ownerEmail.trim(),
     provisioning: 'jit',
     allowed_scopes: parseScopes(form.scopes),
+    category: form.category,
   }
 }
 

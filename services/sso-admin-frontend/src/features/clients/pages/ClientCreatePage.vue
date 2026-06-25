@@ -6,6 +6,7 @@ import UiButton from '@/components/ui/UiButton.vue'
 import UiDialog from '@/components/ui/UiDialog.vue'
 import UiFormField from '@/components/ui/UiFormField.vue'
 import UiInput from '@/components/ui/UiInput.vue'
+import UiSelect from '@/components/ui/UiSelect.vue'
 import FormPageShell from '@/components/form/FormPageShell.vue'
 import FormSection from '@/components/form/FormSection.vue'
 import { useI18n } from '@/composables/useI18n'
@@ -38,6 +39,7 @@ const touched = reactive<Record<string, boolean>>({
   redirectUri: false,
   backchannelLogoutUri: false,
   clientType: false,
+  category: false,
 })
 const submitAttempted = ref(false)
 const isClientIdEdited = ref(false)
@@ -98,11 +100,20 @@ const errors = computed(() => {
   if (form.clientType === null) {
     errs.clientType = 'clients.validation_client_type'
   }
+  if (form.category === null) {
+    errs.category = 'clients.validation_category'
+  }
   if (!selectedScopes.value.includes('openid')) {
     errs.scopes = 'clients.validation_scopes'
   }
   return errs
 })
+
+const categoryOptions = computed(() => [
+  { value: '', label: t('clients.category_placeholder') },
+  { value: 'publik', label: t('clients.category_public') },
+  { value: 'kepegawaian', label: t('clients.category_staff') },
+])
 
 const isBackendCallbackHintVisible = computed(() => {
   const redirect = form.redirectUri.trim().toLowerCase()
@@ -230,6 +241,11 @@ function errorFor(field: string): string | undefined {
 function selectClientType(type: ClientType): void {
   form.clientType = type
   touched.clientType = true
+}
+
+function selectCategory(value: string): void {
+  form.category = value === 'publik' || value === 'kepegawaian' ? value : null
+  touched.category = true
 }
 
 function toggleScope(scopeName: string): void {
@@ -477,6 +493,24 @@ function handleClientIdInput(): void {
         </div>
         <p v-if="isBackendCallbackHintVisible" class="mt-2 text-xs text-primary">
           {{ t('clients.client_type_backend_hint') }}
+        </p>
+      </UiFormField>
+
+      <UiFormField
+        id="create_category"
+        :label="t('clients.label_category')"
+        :error="errorFor('category')"
+        required
+      >
+        <UiSelect
+          :model-value="form.category ?? ''"
+          :options="categoryOptions"
+          :invalid="Boolean(errorFor('category'))"
+          @update:model-value="selectCategory"
+          @blur="touched.category = true"
+        />
+        <p class="text-xs text-muted-foreground mt-1.5">
+          {{ t('clients.category_helper') }}
         </p>
       </UiFormField>
 

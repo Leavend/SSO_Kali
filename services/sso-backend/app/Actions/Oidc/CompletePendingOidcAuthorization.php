@@ -14,6 +14,7 @@ use App\Services\Oidc\DownstreamClientRegistry;
 use App\Services\Oidc\EntitlementGuard;
 use App\Services\Oidc\ScopePolicy;
 use App\Services\Security\LoginContextRecorder;
+use App\Services\Session\SsoSessionService;
 use App\Support\Audit\AuthenticationAuditRecord;
 use App\Support\Oidc\DownstreamClient;
 use App\Support\Oidc\OidcContinuationResult;
@@ -42,6 +43,7 @@ final class CompletePendingOidcAuthorization
         private readonly ConsentService $consents,
         private readonly RecordAuthenticationAuditEventAction $audits,
         private readonly LoginContextRecorder $recorder,
+        private readonly SsoSessionService $sessions,
     ) {}
 
     /**
@@ -113,6 +115,11 @@ final class CompletePendingOidcAuthorization
         }
 
         $code = $this->codes->issue($payload);
+
+        // Completing the pending authorization after MFA is deliberate SSO usage;
+        // record it as activity so the continuation path keeps parity with the
+        // password-only /authorize and consent flows and does not idle-expire.
+        $this->sessions->recordSsoActivity($sessionId);
 
         $this->recorder->record(
             $user,
