@@ -339,6 +339,7 @@ jobs:
         env:
           SSO_FRONTEND_URL: ${{ vars.SSO_FRONTEND_BASE_URL || 'https://sso.timeh.my.id' }}
           SSO_ADMIN_FRONTEND_URL: ${{ vars.SSO_ADMIN_FRONTEND_URL || 'https://admin-sso.timeh.my.id' }}
+          SSO_WIDGET_PUBLIC_BASE_URL: ${{ vars.SSO_WIDGET_PUBLIC_BASE_URL || vars.SSO_FRONTEND_BASE_URL || 'https://sso.timeh.my.id' }}
           SSO_WIDGET_FIRST_PARTY_ORIGINS: ${{ vars.SSO_WIDGET_FIRST_PARTY_ORIGINS || '' }}
         run: |
           set -euo pipefail
@@ -352,6 +353,7 @@ jobs:
           {
             printf 'SSO_FRONTEND_URL=%s\n' "${SSO_FRONTEND_URL}"
             printf 'SSO_ADMIN_FRONTEND_URL=%s\n' "${SSO_ADMIN_FRONTEND_URL}"
+            printf 'SSO_WIDGET_PUBLIC_BASE_URL=%s\n' "${SSO_WIDGET_PUBLIC_BASE_URL}"
             printf 'SSO_WIDGET_FIRST_PARTY_ORIGINS=%s\n' "${first_party_origins}"
             printf 'SSO_SESSION_COOKIE_SAME_SITE=none\n'
             printf 'SSO_WIDGET_DEVICE_COOKIE_SAME_SITE=none\n'

@@ -30,7 +30,7 @@ x-sso-backend-env: &sso-backend-env
   SESSION_DRIVER: redis
   SESSION_EXPIRE_ON_CLOSE: ${SESSION_EXPIRE_ON_CLOSE:-false}
   SSO_SESSION_TTL_MINUTES: ${SSO_SESSION_TTL_MINUTES:-43200}
-  SSO_SESSION_IDLE_MINUTES: ${SSO_SESSION_IDLE_MINUTES:-10080}
+  SSO_SESSION_IDLE_MINUTES: ${SSO_SESSION_IDLE_MINUTES:-30}
   QUEUE_CONNECTION: ${QUEUE_CONNECTION:-redis}
   REDIS_CLIENT: phpredis
   REDIS_HOST: redis
@@ -40,6 +40,11 @@ x-sso-backend-env: &sso-backend-env
   REDIS_CACHE_DB: 3
   SSO_BASE_URL: ${SSO_BASE_URL}
   SSO_FRONTEND_URL: ${SSO_FRONTEND_URL:-https://sso.timeh.my.id}
+  # Plumbed into the container so config('sso.admin_frontend_url') resolves to the
+  # real admin origin. Without it the backend falls back to the localhost dev
+  # default, which (pre-loopback-filter) leaked into the credentialed widget CORS
+  # allow-list and never allow-listed the actual admin console.
+  SSO_ADMIN_FRONTEND_URL: ${SSO_ADMIN_FRONTEND_URL:-https://admin-sso.timeh.my.id}
   SSO_CORS_ALLOWED_ORIGINS: ${SSO_CORS_ALLOWED_ORIGINS:-${SSO_FRONTEND_URL:-https://sso.timeh.my.id}}
   SSO_ISSUER: ${SSO_ISSUER:-${SSO_BASE_URL}}
   SSO_RESOURCE_AUDIENCE: ${SSO_RESOURCE_AUDIENCE:-sso-resource-api}
