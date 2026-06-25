@@ -64,23 +64,23 @@ For applications that want an app launcher plus account menu in their header, ad
 Then add the hosted widget:
 
 ```html
-<script src="https://api-sso.timeh.my.id/widget/account.js" data-sso-widget data-client-id="your-web-app" data-mount="#sso-account"></script>
+<script src="https://sso.timeh.my.id/widget/account.js" data-sso-widget data-client-id="your-web-app" data-mount="#sso-account"></script>
 ```
 
 The widget uses `/widget/session`, `/widget/apps`, `/widget/accounts`, `/widget/switch`, and `/widget/logout`. The browser never receives OAuth tokens. The multi-account chooser is limited to accounts that have signed in on this browser through an httpOnly device cookie and a server-side registry, not IP address or User-Agent.
 
-The widget embedding origin must be registered as the client `app_base_url` or as a first-party SSO origin. Credentialed widget CORS does not use redirect URIs as its allow-list. For first-party cross-origin embedding, the SSO session and device cookies must be `Secure` and `SameSite=None`.
+The widget embedding origin must be explicitly approved for widget CORS: either a first-party SSO origin or a client marked as trusted for widget CORS. `app_base_url` alone is not sufficient, and credentialed widget CORS does not use redirect URIs as its allow-list. For first-party cross-origin embedding, the SSO session and device cookies must be `Secure` and `SameSite=None`.
 
 Optional feature selection:
 
 ```html
-<script src="https://api-sso.timeh.my.id/widget/account.js" data-sso-widget data-client-id="your-web-app" data-mount="#sso-account" data-features="apps,account"></script>
+<script src="https://sso.timeh.my.id/widget/account.js" data-sso-widget data-client-id="your-web-app" data-mount="#sso-account" data-features="apps,account"></script>
 ```
 
 For applications that need manual control:
 
 ```html
-<script src="https://api-sso.timeh.my.id/widget/account.js" data-sso-widget data-client-id="your-web-app"></script>
+<script src="https://sso.timeh.my.id/widget/account.js" data-sso-widget data-client-id="your-web-app"></script>
 <script>
   window.SSOAccount.mount('#sso-account', {
     clientId: 'your-web-app',
@@ -89,7 +89,7 @@ For applications that need manual control:
 </script>
 ```
 
-If the application uses strict Content Security Policy, allow the SSO origin in `script-src` and `connect-src`, and allow `https://api-sso.timeh.my.id/widget/account.css` in `style-src`. Ensure the client `app_base_url` uses a safe web URL; non-web links such as `javascript:` and `data:` are not rendered by the widget. Do not call native `/api/auth/*`, `/api/profile/*`, or `/api/mfa/*` endpoints from external apps; use OIDC and `/widget/*`.
+If the application uses strict Content Security Policy, allow the SSO origin in `script-src` and `connect-src`, and allow `https://sso.timeh.my.id/widget/account.css` in `style-src`. Ensure the client `app_base_url` uses a safe web URL; non-web links such as `javascript:` and `data:` are not rendered by the widget. Do not call native `/api/auth/*`, `/api/profile/*`, or `/api/mfa/*` endpoints from external apps; use OIDC and `/widget/*`.
 
 ## 6. Integration Test Checklist
 

@@ -61,13 +61,13 @@ Use this checklist before taking an SSO client integration live. It consolidates
 - [ ] Add the one-line widget:
 
 ```html
-<script src="https://api-sso.timeh.my.id/widget/account.js" data-sso-widget data-client-id="your-web-app" data-mount="#sso-account"></script>
+<script src="https://sso.timeh.my.id/widget/account.js" data-sso-widget data-client-id="your-web-app" data-mount="#sso-account"></script>
 ```
 
 - [ ] Use `data-features="apps,account"` when the application needs to choose which triggers are visible.
 - [ ] For manual mounting, call `window.SSOAccount.mount('#sso-account', { clientId: 'your-web-app', features: 'apps,account' })`.
 - [ ] Ensure the client `app_base_url` is a web URL (`https://` or localhost development); `javascript:` and `data:` links are not rendered.
-- [ ] Ensure the widget embedding origin is registered as the client `app_base_url` or as a first-party SSO origin. Credentialed widget CORS does not use redirect URIs as its allow-list.
+- [ ] Ensure the widget embedding origin is explicitly approved for widget CORS: either a first-party SSO origin or a client marked as trusted for widget CORS. `app_base_url` alone is not sufficient, and credentialed widget CORS does not use redirect URIs as its allow-list.
 - [ ] For first-party cross-origin embedding, the SSO session and device cookies must be `Secure` and `SameSite=None`.
 - [ ] If the application uses strict CSP, allow the SSO origin in `script-src` and `connect-src`, and allow the `/widget/account.css` stylesheet in `style-src`.
 - [ ] Do not read widget cookies from JavaScript. The multi-account chooser uses an httpOnly device cookie and a server-side registry.
