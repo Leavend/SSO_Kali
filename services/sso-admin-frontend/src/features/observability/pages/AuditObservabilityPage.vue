@@ -169,6 +169,10 @@ function serviceQueue(service: ObservabilityService): string | null {
     />
 
     <div v-else-if="summary" class="observability-workspace mt-8">
+      <div v-if="store.isStale" class="observability-degraded-banner mb-4" role="status">
+        <AlertTriangle class="size-4" />
+        <span>{{ store.errorMessage ?? 'Latest refresh failed. Showing the last successful telemetry snapshot.' }}</span>
+      </div>
 
       <!-- System Health Top Stats -->
       <section class="observability-stats-grid" aria-label="Service health summary">

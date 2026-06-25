@@ -57,7 +57,9 @@ describe('useObservabilityStore', () => {
   })
 
   it('maps forbidden errors without leaking raw backend text', async () => {
-    vi.mocked(observabilityApi.getSummary).mockRejectedValue(new ApiError(403, 'SQLSTATE forbidden leak'))
+    vi.mocked(observabilityApi.getSummary).mockRejectedValue(
+      new ApiError(403, 'SQLSTATE forbidden leak'),
+    )
     const store = useObservabilityStore()
 
     await store.load()
@@ -65,5 +67,87 @@ describe('useObservabilityStore', () => {
     expect(store.status).toBe('forbidden')
     expect(store.errorMessage).toContain('Observability cockpit')
     expect(store.errorMessage).not.toContain('SQLSTATE')
+  })
+
+  it('maps unauthenticated errors on initial load', async () => {
+    vi.mocked(observabilityApi.getSummary).mockRejectedValue(new ApiError(401, 'session expired'))
+    const store = useObservabilityStore()
+
+    await store.load()
+
+    expect(store.status).toBe('unauthenticated')
+    expect(store.summary).toBeNull()
+    expect(store.errorMessage).not.toContain('session expired')
+    expect(store.errorMessage).toBeTruthy()
+  })
+
+  it('keeps the last summary stale when a background refresh returns 403', async () => {
+    vi.mocked(observabilityApi.getSummary)
+      .mockResolvedValueOnce(summary)
+      .mockRejectedValueOnce(new ApiError(403, 'SQLSTATE forbidden leak'))
+    const store = useObservabilityStore()
+
+    await store.load()
+    await store.refresh()
+
+    expect(store.status).toBe('stale')
+    expect(store.isStale).toBe(true)
+    expect(store.summary).toEqual(summary)
+    expect(store.errorMessage).toContain('Observability cockpit')
+    expect(store.errorMessage).not.toContain('SQLSTATE')
+  })
+
+  it('keeps the last summary stale when a background refresh returns 401', async () => {
+    vi.mocked(observabilityApi.getSummary)
+      .mockResolvedValueOnce(summary)
+      .mockRejectedValueOnce(new ApiError(401, 'unauthenticated'))
+    const store = useObservabilityStore()
+
+    await store.load()
+    await store.refresh()
+
+    expect(store.status).toBe('stale')
+    expect(store.isStale).toBe(true)
+    expect(store.summary).toEqual(summary)
+    expect(store.errorMessage).toContain('Observability cockpit')
+  })
+
+  it('marks silent refresh failures as stale while keeping the last summary', async () => {
+    vi.mocked(observabilityApi.getSummary)
+      .mockResolvedValueOnce(summary)
+      .mockRejectedValueOnce(new ApiError(502, 'Bad gateway'))
+    const store = useObservabilityStore()
+
+    await store.load()
+    await store.refresh()
+
+    expect(store.status).toBe('stale')
+    expect(store.isStale).toBe(true)
+    expect(store.summary).toEqual(summary)
+    expect(store.errorMessage).toContain('Observability cockpit')
+  })
+
+  it('surfaces an error when the first refresh fails silently before any summary loads', async () => {
+    vi.mocked(observabilityApi.getSummary).mockRejectedValueOnce(new ApiError(500, 'boom'))
+    const store = useObservabilityStore()
+
+    // A background refresh that races ahead of the first successful load.
+    await store.refresh()
+
+    expect(store.status).toBe('error')
+    expect(store.isLoading).toBe(false)
+    expect(store.summary).toBeNull()
+    expect(store.errorMessage).toContain('Observability cockpit')
+  })
+
+  it('surfaces an error when a silent network failure occurs before any summary loads', async () => {
+    vi.mocked(observabilityApi.getSummary).mockRejectedValueOnce(new Error('network down'))
+    const store = useObservabilityStore()
+
+    await store.refresh()
+
+    expect(store.status).toBe('error')
+    expect(store.isLoading).toBe(false)
+    expect(store.errorMessage).toContain('Observability cockpit')
   })
 })

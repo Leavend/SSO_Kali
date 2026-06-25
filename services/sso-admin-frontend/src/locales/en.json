@@ -98,6 +98,7 @@
     "empty_description": "No dashboard summary to display. Refresh data or check backend permissions if this condition is unexpected.",
     "forbidden_title": "Dashboard access denied",
     "error_title": "Admin dashboard could not be loaded",
+    "stale_banner": "Latest refresh failed. Showing the last successful snapshot.",
     "generated_at": "Generated at",
     "counters": {
       "users": {
@@ -360,6 +361,12 @@
     "type_public_hint": "Use for SPAs or mobile apps without a backend that can protect a secret.",
     "type_confidential_hint": "Use for apps with a backend that stores secrets in a vault or server environment.",
     "client_type_backend_hint": "This redirect URI looks like a server callback. Choose Confidential if the application has a backend and needs a secret.",
+    "label_category": "Application category",
+    "category_placeholder": "Select an application category",
+    "category_public": "Public (publik)",
+    "category_staff": "Staff (kepegawaian)",
+    "category_helper": "Choose Staff for apps restricted to employees with an entitlement; Public apps are reachable by every signed-in user.",
+    "validation_category": "Choose an application category so a staff app is never published as public.",
     "label_display_name": "Display name",
     "label_owner_email": "Owner email",
     "label_redirect_uri": "Redirect URI",

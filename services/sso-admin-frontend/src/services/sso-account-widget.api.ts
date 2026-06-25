@@ -95,7 +95,10 @@ async function widgetFetch<T>(
 
   const payload = (await response.json().catch(() => ({}))) as T
   if (!response.ok && acceptErrorPayload) return payload
-  if (!response.ok) throw new Error('sso_widget_request_failed')
+  if (!response.ok) {
+    const requestId = response.headers.get('x-request-id')
+    throw new Error(requestId ? `sso_widget_request_failed:${requestId}` : 'sso_widget_request_failed')
+  }
   return payload
 }
 

@@ -242,6 +242,7 @@ describe('useClientsStore', () => {
       owner_email: 'owner@example.test',
       provisioning: 'jit',
       allowed_scopes: ['openid', 'profile', 'email'],
+      category: 'publik',
     })
 
     expect(store.selectedClientId).toBe('prototype-app-b')
@@ -258,6 +259,7 @@ describe('useClientsStore', () => {
       owner_email: 'owner@example.test',
       provisioning: 'jit',
       allowed_scopes: ['openid', 'profile', 'email'],
+      category: 'publik',
     })
     expect(result).toEqual({ registration: createdClient })
   })
@@ -314,6 +316,7 @@ describe('useClientsStore', () => {
       owner_email: 'owner@example.test',
       provisioning: 'jit',
       allowed_scopes: ['openid', 'profile', 'email'],
+      category: 'publik',
     })
 
     expect(result).toEqual(responseWithSecret)
@@ -344,6 +347,7 @@ describe('useClientsStore', () => {
       owner_email: 'owner@example.test',
       provisioning: 'jit',
       allowed_scopes: ['openid'],
+      category: 'publik',
     })
 
     expect(result).toEqual({ registration: createdClient })
@@ -459,6 +463,7 @@ describe('useClientsStore', () => {
       owner_email: 'owner@example.test',
       provisioning: 'jit',
       allowed_scopes: ['openid', 'profile', 'email'],
+      category: 'publik',
     })
 
     expect(result).toBeNull()

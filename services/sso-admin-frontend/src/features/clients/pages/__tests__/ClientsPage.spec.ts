@@ -1,9 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { enableAutoUnmount, mount } from '@vue/test-utils'
+import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import type { LocationQuery, RouteLocationNormalizedLoaded } from 'vue-router'
 import { useSessionStore } from '@/stores/session.store'
 import ClientsPage from '../ClientsPage.vue'
+import { clientsApi } from '../../services/clients.api'
 import { useClientsStore } from '../../stores/clients.store'
 import { useI18n } from '@/composables/useI18n'
 import type { AdminClient } from '../../types'
@@ -28,6 +29,7 @@ vi.mock('../../services/clients.api', () => ({
     update: vi.fn<() => Promise<unknown>>(),
     create: vi.fn<() => Promise<unknown>>(),
     rotateSecret: vi.fn<() => Promise<unknown>>(),
+    contract: vi.fn<() => Promise<unknown>>(),
   },
 }))
 
@@ -365,6 +367,32 @@ describe('ClientsPage', () => {
 
     expect(store.rotationSecret).toBeNull()
     expect(wrapper.text()).not.toContain('once-secret')
+  })
+
+  it('previews the integration contract with the selected client real category', async () => {
+    const store = useClientsStore()
+    const staffClient: AdminClient = {
+      ...client,
+      client_id: 'staff-portal',
+      category: 'kepegawaian',
+    }
+    store.status = 'success'
+    store.detailStatus = 'success'
+    store.clients = [staffClient]
+    store.selectedClientId = 'staff-portal'
+
+    vi.spyOn(store, 'rotateSelectedSecret').mockResolvedValue(undefined)
+    const contractSpy = vi
+      .mocked(clientsApi.contract)
+      .mockResolvedValue({ contract: { env: ['SSO_ISSUER=x'], issuer: 'x' } })
+
+    const wrapper = mount(ClientsPage)
+    await wrapper.get('[data-test="rotate-secret"]').trigger('click')
+    await flushPromises()
+
+    expect(contractSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ category: 'kepegawaian' }),
+    )
   })
 
   it('reveals created client modal from query intent and clears query on close', async () => {

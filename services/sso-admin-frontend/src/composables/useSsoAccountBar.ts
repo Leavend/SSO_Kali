@@ -28,23 +28,25 @@ export function useSsoAccountBar() {
   )
 
   async function loadApps(): Promise<void> {
-    if (appsState.value !== 'idle') return
+    if (appsState.value === 'loading' || appsState.value === 'ready') return
     appsState.value = 'loading'
     try {
       apps.value = await ssoAccountWidgetApi.apps()
       appsState.value = 'ready'
-    } catch {
+    } catch (error) {
+      reportWidgetFailure('apps', error)
       appsState.value = 'error'
     }
   }
 
   async function loadAccounts(): Promise<void> {
-    if (accountsState.value !== 'idle') return
+    if (accountsState.value === 'loading' || accountsState.value === 'ready') return
     accountsState.value = 'loading'
     try {
       accounts.value = await ssoAccountWidgetApi.accounts()
       accountsState.value = 'ready'
-    } catch {
+    } catch (error) {
+      reportWidgetFailure('accounts', error)
       accountsState.value = 'error'
     }
   }
@@ -59,13 +61,12 @@ export function useSsoAccountBar() {
       const response = await ssoAccountWidgetApi.switchAccount(accountId)
       switchState.value = response.success ? 'ready' : 'error'
       switchLoginUrl.value = response.login_url ?? null
-      accounts.value = []
-      accountsState.value = 'idle'
+      resetAccounts()
       return { success: response.success, login_url: safeWidgetAppUrl(response.login_url ?? '') ?? undefined }
-    } catch {
+    } catch (error) {
+      reportWidgetFailure('switch', error)
       switchState.value = 'error'
-      accounts.value = []
-      accountsState.value = 'idle'
+      resetAccounts()
       return { success: false }
     }
   }
@@ -73,10 +74,26 @@ export function useSsoAccountBar() {
   async function logout(): Promise<boolean> {
     try {
       const response = await ssoAccountWidgetApi.logout()
+      reset()
       return response.success
-    } catch {
+    } catch (error) {
+      reportWidgetFailure('logout', error)
+      reset()
       return false
     }
+  }
+
+  function reset(): void {
+    apps.value = []
+    appsState.value = 'idle'
+    resetAccounts()
+    switchState.value = 'idle'
+    switchLoginUrl.value = null
+  }
+
+  function resetAccounts(): void {
+    accounts.value = []
+    accountsState.value = 'idle'
   }
 
   return {
@@ -91,5 +108,10 @@ export function useSsoAccountBar() {
     loadAccounts,
     switchAccount,
     logout,
+    reset,
   }
+}
+
+function reportWidgetFailure(scope: string, error: unknown): void {
+  console.warn(`[sso-account-bar] widget ${scope} request failed`, error)
 }

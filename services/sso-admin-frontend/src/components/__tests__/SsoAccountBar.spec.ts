@@ -70,8 +70,17 @@ describe('SsoAccountBar', () => {
     expect(wrapper.get('[data-testid="sso-account-menu"]').text()).toContain('Kelola Akun')
   })
 
-  it('keeps widget app failures stable without hiding the principal avatar', async () => {
-    vi.mocked(ssoAccountWidgetApi.apps).mockRejectedValue(new Error('cors'))
+  it('retries widget app failures on the next open without hiding the principal avatar', async () => {
+    vi.mocked(ssoAccountWidgetApi.apps)
+      .mockRejectedValueOnce(new Error('cors'))
+      .mockResolvedValueOnce([
+        {
+          client_id: 'portal',
+          display_name: 'Portal',
+          app_base_url: 'https://portal.example.test',
+          category: 'publik',
+        },
+      ])
     const wrapper = mount(SsoAccountBar, {
       global: { stubs: { RouterLink: true } },
     })
@@ -88,14 +97,23 @@ describe('SsoAccountBar', () => {
     await wrapper.get('[data-testid="sso-account-apps-trigger"]').trigger('click')
     await flushPromises()
 
-    expect(ssoAccountWidgetApi.apps).toHaveBeenCalledTimes(1)
-    expect(wrapper.get('[data-testid="sso-account-apps-menu"]').text()).toContain(
-      'Gagal memuat aplikasi.',
-    )
+    expect(ssoAccountWidgetApi.apps).toHaveBeenCalledTimes(2)
+    expect(wrapper.get('[data-testid="sso-account-apps-menu"]').text()).toContain('Portal')
   })
 
-  it('keeps widget account failures stable without hiding the principal identity', async () => {
-    vi.mocked(ssoAccountWidgetApi.accounts).mockRejectedValue(new Error('cors'))
+  it('retries widget account failures on the next open without hiding the principal identity', async () => {
+    vi.mocked(ssoAccountWidgetApi.accounts)
+      .mockRejectedValueOnce(new Error('cors'))
+      .mockResolvedValueOnce([
+        {
+          account_id: 'acct-other',
+          subject_id: 'sub-other',
+          display_name: 'Other Account',
+          email: 'o***r@example.com',
+          status: 'active',
+          is_current: false,
+        },
+      ])
     const wrapper = mount(SsoAccountBar, {
       global: { stubs: { RouterLink: { template: '<a href="/profile"><slot /></a>' } } },
     })
@@ -110,8 +128,29 @@ describe('SsoAccountBar', () => {
     await wrapper.get('[data-testid="sso-account-menu-trigger"]').trigger('click')
     await flushPromises()
 
-    expect(ssoAccountWidgetApi.accounts).toHaveBeenCalledTimes(1)
-    expect(wrapper.get('[data-testid="sso-account-menu"]').text()).toContain('Gagal memuat akun.')
+    expect(ssoAccountWidgetApi.accounts).toHaveBeenCalledTimes(2)
+    expect(wrapper.get('[data-testid="sso-account-menu"]').text()).toContain('Other Account')
+  })
+
+  it('deduplicates in-flight widget app loads', async () => {
+    let resolveApps: (value: Awaited<ReturnType<typeof ssoAccountWidgetApi.apps>>) => void = () => undefined
+    vi.mocked(ssoAccountWidgetApi.apps).mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveApps = resolve
+      }),
+    )
+    const wrapper = mount(SsoAccountBar, {
+      global: { stubs: { RouterLink: true } },
+    })
+
+    await wrapper.get('[data-testid="sso-account-apps-trigger"]').trigger('click')
+    await wrapper.get('[data-testid="sso-account-apps-trigger"]').trigger('click')
+    await wrapper.get('[data-testid="sso-account-apps-trigger"]').trigger('click')
+
+    expect(ssoAccountWidgetApi.apps).toHaveBeenCalledTimes(1)
+
+    resolveApps([])
+    await flushPromises()
   })
 
   it('renders only web-scheme app launcher links', async () => {

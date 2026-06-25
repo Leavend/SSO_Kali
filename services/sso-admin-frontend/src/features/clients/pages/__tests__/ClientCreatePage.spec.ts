@@ -112,6 +112,7 @@ describe('ClientCreatePage', () => {
     if (publicButton) {
       await publicButton.trigger('click')
     }
+    await wrapper.find('select').setValue('publik')
 
     await wrapper.findComponent(FormPageShell).vm.$emit('submit')
 
@@ -126,6 +127,7 @@ describe('ClientCreatePage', () => {
       owner_email: 'owner@example.test',
       provisioning: 'jit',
       allowed_scopes: ['openid', 'profile', 'email'],
+      category: 'publik',
     })
 
     const intent = store.createdClientIntent as unknown as ClientCreationIntent | null
@@ -170,6 +172,7 @@ describe('ClientCreatePage', () => {
     if (confidentialButton) {
       await confidentialButton.trigger('click')
     }
+    await wrapper.find('select').setValue('kepegawaian')
 
     await wrapper.findComponent(FormPageShell).vm.$emit('submit')
 
@@ -184,6 +187,7 @@ describe('ClientCreatePage', () => {
       owner_email: 'owner@example.test',
       provisioning: 'jit',
       allowed_scopes: ['openid', 'profile', 'email'],
+      category: 'kepegawaian',
     })
 
     const intent = store.createdClientIntent as unknown as ClientCreationIntent | null

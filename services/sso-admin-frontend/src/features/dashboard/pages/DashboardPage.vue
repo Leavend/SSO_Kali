@@ -10,7 +10,15 @@ import UiSkeleton from '@/components/ui/UiSkeleton.vue'
 import UiStatusView from '@/components/ui/UiStatusView.vue'
 import { useDashboardStore } from '../stores/dashboard.store'
 import type { DashboardCounterGroup } from '../types'
-import { Users, Activity, AppWindow, FileSearch, ShieldAlert, Inbox } from 'lucide-vue-next'
+import {
+  Users,
+  Activity,
+  AppWindow,
+  FileSearch,
+  ShieldAlert,
+  Inbox,
+  AlertTriangle,
+} from 'lucide-vue-next'
 
 const dashboard = useDashboardStore()
 const { t } = useI18n()
@@ -178,8 +186,18 @@ function counterTone(key: string, value: number): 'neutral' | 'success' | 'warni
       </template>
     </UiEmptyState>
 
-    <section v-else class="dashboard-grid" aria-label="Ringkasan dashboard admin">
-      <article
+    <template v-else>
+      <div
+        v-if="dashboard.isStale"
+        class="dashboard-stale-banner"
+        role="status"
+      >
+        <AlertTriangle class="size-4" aria-hidden="true" />
+        <span>{{ dashboard.errorMessage ?? t('dashboard.stale_banner') }}</span>
+      </div>
+
+      <section class="dashboard-grid" aria-label="Ringkasan dashboard admin">
+        <article
         v-for="card in cards"
         :key="card.title"
         class="dashboard-card"
@@ -208,7 +226,8 @@ function counterTone(key: string, value: number): 'neutral' | 'success' | 'warni
           </div>
         </dl>
       </article>
-    </section>
+      </section>
+    </template>
 
     <EvidenceContextPanel title="Dashboard evidence" :request-id="dashboard.requestId" />
   </section>

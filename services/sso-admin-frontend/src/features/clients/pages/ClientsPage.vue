@@ -427,6 +427,10 @@ async function fetchContract(hasSecret: boolean): Promise<void> {
       owner_email: store.selectedClient?.owner_email ?? '',
       provisioning: 'jit',
       allowed_scopes: store.selectedClient?.allowed_scopes ?? ['openid', 'profile', 'email'],
+      // Read-only contract preview: use the selected client's real category so a
+      // kepegawaian client previews accurately. Fall back to public only when the
+      // detail payload predates the category field.
+      category: store.selectedClient?.category ?? 'publik',
     })
     contractEnvLines.value = response.contract.env ?? []
     contractIssuer.value = response.contract.issuer ?? null
@@ -1148,7 +1152,13 @@ async function deleteClient(): Promise<void> {
             <h3 id="secret-title">{{ t('clients.secret_title') }}</h3>
             <p class="detail-section__lead">{{ t('clients.secret_hint') }}</p>
             <div class="user-detail-card__actions">
-              <UiButton variant="danger" type="button" :disabled="isSaving" @click="rotateSecret">
+              <UiButton
+                variant="danger"
+                type="button"
+                data-test="rotate-secret"
+                :disabled="isSaving"
+                @click="rotateSecret"
+              >
                 {{ isSaving ? t('clients.btn_processing') : t('clients.btn_rotate_secret') }}
               </UiButton>
             </div>
