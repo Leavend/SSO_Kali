@@ -26,11 +26,13 @@ import {
   replaceSession,
   sessionCookie,
   sessionCookieForId,
+  sessionCookieMaxAge,
   sessionFromBootstrap,
   transactionCookie,
   unixTime,
 } from './session.js'
 import type { PortalSession } from './session.js'
+import { clearWidgetSessionCookie, widgetSessionCookie } from './widget-cookie.js'
 import { refreshPortalSession, sessionNeedsRefresh } from './session-refresh.js'
 import type { AppResponse } from './response.js'
 import { json, redirect } from './response.js'
@@ -91,8 +93,13 @@ export async function handleCallback(
   const result = await completeCallbackSession(request, params.code, params.state)
   if (!result.ok) return redirectWithClearedTx(config, callbackErrorRoute(result.error))
 
+  const widgetCookie = widgetSessionCookie({
+    sid: result.session.sid,
+    maxAgeSeconds: sessionCookieMaxAge(result.session),
+  })
   return redirect(new URL(result.returnTo, config.appBaseUrl).toString(), [
     await sessionCookie(result.session),
+    ...(widgetCookie ? [widgetCookie] : []),
     clearTransactionCookie(),
   ])
 }
@@ -123,13 +130,23 @@ export async function handleCallbackSession(request: IncomingMessage): Promise<A
     )
   }
 
+  const widgetCookie = widgetSessionCookie({
+    sid: result.session.sid,
+    maxAgeSeconds: sessionCookieMaxAge(result.session),
+  })
   return json(
     200,
     {
       authenticated: true,
       post_login_redirect: result.returnTo,
     },
-    { 'set-cookie': [await sessionCookie(result.session), clearTransactionCookie()] },
+    {
+      'set-cookie': [
+        await sessionCookie(result.session),
+        ...(widgetCookie ? [widgetCookie] : []),
+        clearTransactionCookie(),
+      ],
+    },
   )
 }
 
@@ -147,6 +164,7 @@ export async function handleLogout(request: IncomingMessage): Promise<AppRespons
 
   return redirect(new URL('/', config.appBaseUrl).toString(), [
     ...(await clearSessionCookie(request)),
+    clearWidgetSessionCookie(),
     clearTransactionCookie(),
   ])
 }
@@ -193,13 +211,24 @@ function sessionIdFromRequest(request: IncomingMessage): string | null {
 }
 
 function refreshResponse(sessionId: string, session: PortalSession): AppResponse {
+  // Re-set the widget cookie only when the refreshed session still carries a sid; if it
+  // is unavailable, leave the existing __Host-sso_session cookie untouched (never clear).
+  const widgetCookie = widgetSessionCookie({
+    sid: session.sid,
+    maxAgeSeconds: sessionCookieMaxAge(session),
+  })
   return json(
     200,
     {
       status: 'refreshed',
       expiresAt: session.expiresAt,
     },
-    { 'set-cookie': [sessionCookieForId(sessionId, session)] },
+    {
+      'set-cookie': [
+        sessionCookieForId(sessionId, session),
+        ...(widgetCookie ? [widgetCookie] : []),
+      ],
+    },
   )
 }
 
