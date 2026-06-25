@@ -61,8 +61,17 @@ describe('PortalUserMenu', () => {
     expect(wrapper.get('[data-testid="portal-account-menu"]').text()).toContain('Kelola Akun')
   })
 
-  it('keeps widget app failures stable without hiding the portal identity', async () => {
-    vi.mocked(ssoAccountWidgetApi.apps).mockRejectedValue(new Error('cors'))
+  it('retries widget app failures on the next open without hiding the portal identity', async () => {
+    vi.mocked(ssoAccountWidgetApi.apps)
+      .mockRejectedValueOnce(new Error('cors'))
+      .mockResolvedValueOnce([
+        {
+          client_id: 'admin',
+          display_name: 'Admin',
+          app_base_url: 'https://admin.example.test',
+          category: 'publik',
+        },
+      ])
     const wrapper = mount(PortalUserMenu, {
       global: { stubs: { RouterLink: true, ConfirmDialog: true } },
     })
@@ -81,14 +90,23 @@ describe('PortalUserMenu', () => {
     await wrapper.get('[data-testid="portal-account-apps-trigger"]').trigger('click')
     await flushPromises()
 
-    expect(ssoAccountWidgetApi.apps).toHaveBeenCalledTimes(1)
-    expect(wrapper.get('[data-testid="portal-account-apps-menu"]').text()).toContain(
-      'Gagal memuat aplikasi.',
-    )
+    expect(ssoAccountWidgetApi.apps).toHaveBeenCalledTimes(2)
+    expect(wrapper.get('[data-testid="portal-account-apps-menu"]').text()).toContain('Admin')
   })
 
-  it('keeps widget account failures stable without hiding the portal account menu', async () => {
-    vi.mocked(ssoAccountWidgetApi.accounts).mockRejectedValue(new Error('cors'))
+  it('retries widget account failures on the next open without hiding the portal account menu', async () => {
+    vi.mocked(ssoAccountWidgetApi.accounts)
+      .mockRejectedValueOnce(new Error('cors'))
+      .mockResolvedValueOnce([
+        {
+          account_id: 'acct-other',
+          subject_id: 'sub-other',
+          display_name: 'Other User',
+          email: 'o***r@example.com',
+          status: 'active',
+          is_current: false,
+        },
+      ])
     const wrapper = mount(PortalUserMenu, {
       global: {
         stubs: {
@@ -108,8 +126,34 @@ describe('PortalUserMenu', () => {
     await wrapper.get('[data-testid="portal-account-menu-trigger"]').trigger('click')
     await flushPromises()
 
+    expect(ssoAccountWidgetApi.accounts).toHaveBeenCalledTimes(2)
+    expect(wrapper.get('[data-testid="portal-account-menu"]').text()).toContain('Other User')
+  })
+
+  it('deduplicates in-flight widget account loads', async () => {
+    let resolveAccounts: (value: Awaited<ReturnType<typeof ssoAccountWidgetApi.accounts>>) => void = () => undefined
+    vi.mocked(ssoAccountWidgetApi.accounts).mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveAccounts = resolve
+      }),
+    )
+    const wrapper = mount(PortalUserMenu, {
+      global: {
+        stubs: {
+          RouterLink: { template: '<a href="/profile"><slot /></a>' },
+          ConfirmDialog: true,
+        },
+      },
+    })
+
+    await wrapper.get('[data-testid="portal-account-menu-trigger"]').trigger('click')
+    await wrapper.get('[data-testid="portal-account-menu-trigger"]').trigger('click')
+    await wrapper.get('[data-testid="portal-account-menu-trigger"]').trigger('click')
+
     expect(ssoAccountWidgetApi.accounts).toHaveBeenCalledTimes(1)
-    expect(wrapper.get('[data-testid="portal-account-menu"]').text()).toContain('Gagal memuat akun.')
+
+    resolveAccounts([])
+    await flushPromises()
   })
 
   it('renders only safe app launcher links', async () => {
