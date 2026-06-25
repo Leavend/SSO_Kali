@@ -17,6 +17,7 @@ use Illuminate\Support\Carbon;
  * @property int|null $trusted_device_id
  * @property Carbon $authenticated_at
  * @property Carbon|null $last_seen_at
+ * @property Carbon|null $activity_seen_at
  * @property Carbon $expires_at
  * @property Carbon|null $revoked_at
  */
@@ -31,6 +32,7 @@ final class SsoSession extends Model
         'trusted_device_id',
         'authenticated_at',
         'last_seen_at',
+        'activity_seen_at',
         'expires_at',
         'revoked_at',
     ];
@@ -40,6 +42,7 @@ final class SsoSession extends Model
         return [
             'authenticated_at' => 'datetime',
             'last_seen_at' => 'datetime',
+            'activity_seen_at' => 'datetime',
             'expires_at' => 'datetime',
             'revoked_at' => 'datetime',
         ];

@@ -8,6 +8,7 @@ use App\Models\MfaCredential;
 use App\Models\User;
 use App\Notifications\LowRecoveryCodesNotification;
 use App\Notifications\RecoveryCodeUsedNotification;
+use App\Services\Mfa\MfaAttemptOutcome;
 use App\Services\Mfa\MfaChallengeStore;
 use App\Services\Mfa\RecoveryCodeService;
 use App\Services\Mfa\TotpService;
@@ -40,8 +41,14 @@ final class VerifyMfaChallenge
             throw new RuntimeException('Challenge expired or not found.');
         }
 
-        if (! $this->challenges->incrementAttempt($challengeId)) {
+        $outcome = $this->challenges->incrementAttempt($challengeId);
+
+        if ($outcome === MfaAttemptOutcome::MaxAttemptsReached) {
             throw new RuntimeException('Maximum verification attempts exceeded.');
+        }
+
+        if ($outcome !== MfaAttemptOutcome::Recorded) {
+            throw new RuntimeException('Challenge expired or not found.');
         }
 
         $userId = (int) $challenge['user_id'];

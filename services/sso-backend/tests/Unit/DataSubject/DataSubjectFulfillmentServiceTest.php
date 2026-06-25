@@ -50,7 +50,7 @@ it('clears password reset token and revokes sessions when anonymizing a subject'
     $subject->refresh();
     expect($artifact['table_counts']['password_reset_tokens'])->toBe(1)
         ->and($subject->password_reset_token_hash)->toBeNull()
-        ->and($subject->email)->toBe('anon-'.$request->request_id.'@anonymous.invalid')
+        ->and($subject->email)->toBe('anon-'.mb_strtolower($request->request_id).'@anonymous.invalid')
         ->and(DB::table('sso_sessions')->where('subject_id', $subject->subject_id)->whereNotNull('revoked_at')->count())->toBe(1);
 });
 

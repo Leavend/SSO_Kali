@@ -33,7 +33,10 @@ final class ClientIntegrationContractBuilder
             ownerEmail: $this->field($input, 'ownerEmail', 'owner_email'),
             provisioning: $this->option($input, 'provisioning', 'jit'),
             allowedScopes: $this->allowedScopes($input),
-            category: $this->option($input, 'category', 'publik'),
+            // No silent default: an omitted category becomes '' and is rejected
+            // by optionViolations(), forcing the admin to make an explicit
+            // public-vs-staff choice so a staff app can never be silently public.
+            category: $this->option($input, 'category', ''),
         );
     }
 
@@ -151,8 +154,17 @@ final class ClientIntegrationContractBuilder
             in_array($draft->environment, ['live', 'development'], true) ? null : 'Status aplikasi tidak valid.',
             in_array($draft->clientType, ['public', 'confidential'], true) ? null : 'Jenis client tidak valid.',
             in_array($draft->provisioning, ['jit', 'scim'], true) ? null : 'Provisioning tidak valid.',
-            in_array($draft->category, ClientCategory::values(), true) ? null : 'Kategori client tidak valid.',
+            $this->categoryViolation($draft),
         ]));
+    }
+
+    private function categoryViolation(ClientIntegrationDraft $draft): ?string
+    {
+        if ($draft->category === '') {
+            return 'Kategori client wajib dipilih.';
+        }
+
+        return in_array($draft->category, ClientCategory::values(), true) ? null : 'Kategori client tidak valid.';
     }
 
     /**

@@ -6,11 +6,14 @@ namespace App\Actions\Oidc;
 
 use App\Actions\Audit\RecordAuthenticationAuditEventAction;
 use App\Exceptions\OidcScopeException;
+use App\Models\User;
 use App\Services\Oidc\AuthorizationCodeStore;
 use App\Services\Oidc\AuthRequestStore;
 use App\Services\Oidc\ConsentService;
 use App\Services\Oidc\DownstreamClientRegistry;
+use App\Services\Oidc\EntitlementGuard;
 use App\Services\Oidc\ScopePolicy;
+use App\Services\Session\SsoSessionService;
 use App\Support\Audit\AuthenticationAuditRecord;
 use App\Support\Oidc\DownstreamClient;
 use App\Support\Oidc\ScopeSet;
@@ -34,6 +37,8 @@ final class ProcessConsentDecision
         private readonly RecordAuthenticationAuditEventAction $audits,
         private readonly DownstreamClientRegistry $clients,
         private readonly ScopePolicy $scopes,
+        private readonly EntitlementGuard $entitlements,
+        private readonly SsoSessionService $sessions,
     ) {}
 
     public function handle(Request $request): JsonResponse
@@ -88,6 +93,15 @@ final class ProcessConsentDecision
             ]);
         }
 
+        $user = User::query()->where('subject_id', $subjectId)->first();
+        if (! $user instanceof User || ! $this->entitlements->allows($user, $client)) {
+            $this->recordDecision($request, $payload, 'failed', 'access_denied');
+
+            return response()->json([
+                'redirect_uri' => $this->errorRedirect($redirectUri, $payload, 'access_denied', 'User is not entitled to access this application.'),
+            ]);
+        }
+
         // Persist consent (using the validated scope set).
         $this->consents->grant($subjectId, $clientId, ScopeSet::fromString($scope));
         $this->recordDecision($request, $payload, 'succeeded');
@@ -95,6 +109,9 @@ final class ProcessConsentDecision
         // Issue authorization code with the validated scope.
         $payload['scope'] = $scope;
         $code = $this->codes->issue($payload);
+
+        // Granting consent and completing SSO is deliberate activity.
+        $this->sessions->recordSsoActivity(is_string($payload['session_id'] ?? null) ? $payload['session_id'] : null);
 
         $query = http_build_query(array_filter([
             'code' => $code,

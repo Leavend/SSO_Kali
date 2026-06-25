@@ -53,6 +53,7 @@ it('returns a session validated client integration contract for admins', functio
             'logoutPath' => '/auth/backchannel/logout',
             'ownerEmail' => 'owner@company.com',
             'provisioning' => 'jit',
+            'category' => 'publik',
         ])
         ->assertOk()
         ->assertJsonPath('contract.clientId', 'customer-portal')
@@ -81,6 +82,7 @@ it('returns validation violations without mutating session clients', function ()
             'logoutPath' => '/auth/backchannel/logout',
             'ownerEmail' => 'owner@company.com',
             'provisioning' => 'jit',
+            'category' => 'publik',
         ])
         ->assertStatus(422)
         ->assertJsonPath('error', 'client_integration_invalid')
@@ -326,6 +328,7 @@ function validClientDraft(): array
         'logoutPath' => '/auth/backchannel/logout',
         'ownerEmail' => 'owner@company.com',
         'provisioning' => 'jit',
+        'category' => 'publik',
     ];
 }
 

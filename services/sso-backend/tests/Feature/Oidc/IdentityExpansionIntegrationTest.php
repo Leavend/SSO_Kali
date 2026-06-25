@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\OidcClientEntitlement;
 use App\Models\OidcClientRegistration;
 use App\Models\User;
 use App\Services\Admin\AdminClientPresenter;
@@ -33,7 +34,7 @@ beforeEach(function (): void {
     app(DownstreamClientRegistry::class)->flush();
 
     // Create Pegawai user
-    User::factory()->create([
+    $pegawai = User::factory()->create([
         'subject_id' => 'pegawai-user-1',
         'subject_uuid' => 'pegawai-user-1',
         'email' => 'pegawai@example.com',
@@ -45,6 +46,7 @@ beforeEach(function (): void {
         'nisn' => '0012345678',
         'birth_date' => '1990-01-01',
     ]);
+    OidcClientEntitlement::grant('kepegawaian-app', $pegawai, 'test');
 
     // Create Normal user
     User::factory()->create([
@@ -192,7 +194,7 @@ describe('Multi-identifier Resolution & Login Timing-safety', function (): void 
 
 describe('Entitlement Enforcement Gating', function (): void {
     it('allows admin users to access kepegawaian app', function (): void {
-        User::factory()->create([
+        $admin = User::factory()->create([
             'subject_id' => 'admin-user-1',
             'subject_uuid' => 'admin-user-1',
             'email' => 'admin@example.com',
@@ -200,6 +202,7 @@ describe('Entitlement Enforcement Gating', function (): void {
             'password_changed_at' => now(),
             'role' => 'admin',
         ]);
+        OidcClientEntitlement::grant('kepegawaian-app', $admin, 'test');
 
         $response = $this->postJson('/connect/local-login', [
             'email' => 'admin@example.com',
@@ -440,7 +443,7 @@ describe('Presenters masking and data inclusion', function (): void {
 
         try {
             $this->artisan('sso:check-identity-hash-key')
-                ->expectsOutputToContain('SSO_NIK_HASH_KEY must be configured in production')
+                ->expectsOutputToContain('SSO_NIK_HASH_KEY must be configured')
                 ->assertExitCode(1);
         } finally {
             $this->app->detectEnvironment(static fn (): string => 'testing');

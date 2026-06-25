@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\OidcClientEntitlement;
 use App\Models\OidcClientRegistration;
 use App\Models\SsoSession;
 use App\Models\User;
@@ -19,6 +20,7 @@ beforeEach(function (): void {
     config()->set('sso.base_url', 'https://sso.example.test');
     config()->set('sso.frontend_url', 'https://portal.example.test');
     config()->set('sso.admin_frontend_url', 'https://admin.example.test');
+    config()->set('sso.widget.public_base_url', 'https://portal.example.test');
     config()->set('sso.widget.first_party_origins', ['https://admin-extra.example.test']);
     config()->set('oidc_clients.clients', [
         'publik-app' => [
@@ -28,6 +30,7 @@ beforeEach(function (): void {
             'skip_consent' => true,
             'category' => 'publik',
             'app_base_url' => 'https://publik.test',
+            'widget_cors_trusted' => true,
             'display_name' => 'Publik App',
         ],
         'unsafe-app' => [
@@ -62,6 +65,7 @@ beforeEach(function (): void {
         'role' => 'pegawai',
         'display_name' => 'Pegawai Satu',
     ]);
+    OidcClientEntitlement::grant('kepegawaian-app', $this->pegawai, 'test');
 
     // Create Normal user (no entitlement to kepegawaian)
     $this->normal = User::factory()->create([
@@ -85,7 +89,7 @@ describe('SSO Account Widget Endpoints', function (): void {
             ->toContain('window.SSOAccount.mount = mount')
             ->toContain('data-mount')
             ->toContain('host.__ssoAccountWidget')
-            ->toContain('const SSO_BACKEND_URL = "https://sso.example.test"')
+            ->toContain('const SSO_BACKEND_URL = "https://portal.example.test"')
             ->toContain("SSO_BACKEND_URL + '/widget/session'")
             ->toContain("SSO_BACKEND_URL + '/widget/switch'")
             ->toContain('/widget/account.css')
@@ -111,7 +115,7 @@ describe('SSO Account Widget Endpoints', function (): void {
 
         $response->assertStatus(200);
         expect($response->getContent())
-            ->toContain('const SSO_BACKEND_URL = "https://sso.example.test"')
+            ->toContain('const SSO_BACKEND_URL = "https://portal.example.test"')
             ->toContain("SSO_BACKEND_URL + '/authorize")
             ->not->toContain('attacker.example.test');
     });
@@ -376,6 +380,38 @@ describe('SSO Account Widget Endpoints', function (): void {
         $response->assertCookie(app(SsoSessionCookieFactory::class)->name());
     });
 
+    it('declines a switch into an idle account without permanently revoking it', function (): void {
+        config()->set('sso.session.idle_minutes', 30);
+        $registry = app(DeviceSessionRegistry::class);
+        $sessionA = app(SsoSessionService::class)->createForUser($this->pegawai, '127.0.0.1', 'Mozilla/5.0');
+        $sessionB = app(SsoSessionService::class)->createForUser($this->normal, '127.0.0.1', 'Mozilla/5.0');
+        $deviceRequest = Request::create('/');
+        $deviceRequest->cookies->set($registry->cookieName(), str_repeat('E', 48));
+        $registry->bind($deviceRequest, $sessionA);
+        $registry->bind($deviceRequest, $sessionB);
+        $accountId = DB::table('device_sessions')->where('session_id', $sessionB->session_id)->value('account_id');
+
+        // Age account B past the idle window while keeping it absolutely valid.
+        SsoSession::query()->where('session_id', $sessionB->session_id)->update([
+            'activity_seen_at' => now()->subMinutes(40),
+            'last_seen_at' => now()->subMinutes(40),
+        ]);
+
+        $response = withWidgetCookies($this, $sessionA->session_id, str_repeat('E', 48))
+            ->withHeaders([
+                'Origin' => 'https://publik.test',
+                'X-SSO-Widget-Action' => 'switch',
+            ])
+            ->postJson('/widget/switch', ['account_id' => $accountId]);
+
+        $response->assertStatus(409)->assertJson(['success' => false]);
+
+        // The idle account is declined, not eagerly revoked, so the user can
+        // re-authenticate to it instead of being force-logged-out of it.
+        $dbSessionB = SsoSession::query()->where('session_id', $sessionB->session_id)->first();
+        expect($dbSessionB->revoked_at)->toBeNull();
+    });
+
     it('rejects switching from a stolen device cookie without a current device-bound session', function (): void {
         $registry = app(DeviceSessionRegistry::class);
         $sessionA = app(SsoSessionService::class)->createForUser($this->pegawai, '127.0.0.1', 'Mozilla/5.0');
@@ -524,8 +560,6 @@ describe('SSO Widget CORS Origin Validation', function (): void {
             ->getJson('/widget/apps');
         $portalResponse = $this->withHeaders(['Origin' => 'https://portal.example.test'])
             ->getJson('/widget/accounts');
-        $baseResponse = $this->withHeaders(['Origin' => 'https://sso.example.test'])
-            ->getJson('/widget/session');
         $extraResponse = $this->withHeaders(['Origin' => 'https://admin-extra.example.test'])
             ->getJson('/widget/session');
         $preflightResponse = $this->withHeaders([
@@ -535,15 +569,21 @@ describe('SSO Widget CORS Origin Validation', function (): void {
 
         $adminResponse->assertHeader('Access-Control-Allow-Origin', 'https://admin.example.test');
         $portalResponse->assertHeader('Access-Control-Allow-Origin', 'https://portal.example.test');
-        $baseResponse->assertHeader('Access-Control-Allow-Origin', 'https://sso.example.test');
         $extraResponse->assertHeader('Access-Control-Allow-Origin', 'https://admin-extra.example.test');
         $preflightResponse->assertNoContent();
         $preflightResponse->assertHeader('Access-Control-Allow-Origin', 'https://admin.example.test');
 
-        foreach ([$adminResponse, $portalResponse, $baseResponse, $extraResponse, $preflightResponse] as $response) {
+        foreach ([$adminResponse, $portalResponse, $extraResponse, $preflightResponse] as $response) {
             $response->assertHeader('Access-Control-Allow-Credentials', 'true');
             $response->assertHeader('Vary', 'Origin');
         }
+    });
+
+    it('does not grant widget cors to the backend host by default', function (): void {
+        $this->withHeaders(['Origin' => 'https://sso.example.test'])
+            ->getJson('/widget/session')
+            ->assertHeaderMissing('Access-Control-Allow-Origin')
+            ->assertHeader('Vary', 'Origin');
     });
 
     it('allows CORS from a registered client origin', function (): void {
@@ -601,7 +641,7 @@ describe('SSO Widget CORS Origin Validation', function (): void {
             'provisioning' => 'jit',
             'status' => 'active',
             'category' => 'publik',
-            'contract' => [],
+            'contract' => ['widget_cors_trusted' => true],
         ]);
 
         $this->withHeaders(['Origin' => 'https://dynamic-widget.test'])
@@ -623,6 +663,29 @@ describe('SSO Widget CORS Origin Validation', function (): void {
             ->assertHeader('Access-Control-Allow-Origin', 'https://dynamic-widget-new.test');
     });
 
+    it('does not trust dynamic client app origins without explicit widget cors approval', function (): void {
+        OidcClientRegistration::query()->create([
+            'client_id' => 'dynamic-untrusted-widget-client',
+            'display_name' => 'Dynamic Untrusted Widget Client',
+            'type' => 'public',
+            'environment' => 'development',
+            'app_base_url' => 'https://dynamic-untrusted-widget.test',
+            'redirect_uris' => ['https://dynamic-untrusted-widget.test/callback'],
+            'post_logout_redirect_uris' => ['https://dynamic-untrusted-widget.test/logout'],
+            'allowed_scopes' => ['openid'],
+            'owner_email' => 'owner@example.com',
+            'provisioning' => 'jit',
+            'status' => 'active',
+            'category' => 'publik',
+            'contract' => [],
+        ]);
+
+        $this->withHeaders(['Origin' => 'https://dynamic-untrusted-widget.test'])
+            ->getJson('/widget/session')
+            ->assertHeaderMissing('Access-Control-Allow-Origin')
+            ->assertHeader('Vary', 'Origin');
+    });
+
     it('documents and deploys first-party widget origins with cross-site cookie settings', function (): void {
         $root = dirname(base_path(), 2).DIRECTORY_SEPARATOR;
         $envExample = file_get_contents(base_path('.env.example'));
@@ -630,15 +693,17 @@ describe('SSO Widget CORS Origin Validation', function (): void {
         $deployScript = file_get_contents($root.'scripts/vps-deploy-main.sh');
 
         expect($envExample)->toContain('SSO_ADMIN_FRONTEND_URL=http://localhost:8080')
+            ->and($envExample)->toContain('SSO_WIDGET_PUBLIC_BASE_URL=http://localhost:3000')
             ->and($envExample)->toContain('SSO_WIDGET_FIRST_PARTY_ORIGINS=http://localhost:3000,http://localhost:8080')
             ->and($envExample)->toContain('SSO_SESSION_COOKIE_SAME_SITE=none')
             ->and($envExample)->toContain('SSO_WIDGET_DEVICE_COOKIE_SAME_SITE=none');
 
         expect($deployWorkflow)->toContain('SSO_WIDGET_FIRST_PARTY_ORIGINS')
+            ->and($deployWorkflow)->toContain('SSO_WIDGET_PUBLIC_BASE_URL')
             ->and($deployWorkflow)->toContain('SSO_SESSION_COOKIE_SAME_SITE=none')
             ->and($deployWorkflow)->toContain('SSO_WIDGET_DEVICE_COOKIE_SAME_SITE=none');
 
-        expect($deployScript)->toContain('php artisan cache:forget widget_cors_allowed_origins:v1')
+        expect($deployScript)->toContain('php artisan sso:flush-widget-origin-cache')
             ->and($deployScript)->toContain('/widget/apps')
             ->and($deployScript)->toContain('/widget/accounts')
             ->and($deployScript)->toContain('Widget CORS OK');

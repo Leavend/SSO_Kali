@@ -33,7 +33,7 @@ final class WidgetController
 
     public function script(Request $request): Response
     {
-        $backendUrl = rtrim((string) config('sso.base_url'), '/');
+        $backendUrl = rtrim((string) config('sso.widget.public_base_url', config('sso.frontend_url', config('sso.base_url'))), '/');
         $portalUrl = rtrim((string) config('sso.frontend_url', $backendUrl), '/');
         $jsonFlags = JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT;
         $backendUrlJs = json_encode($backendUrl, $jsonFlags);
@@ -310,8 +310,9 @@ final class WidgetController
                     window.location.reload();
                     return;
                 }
-                if (payload && payload.login_url) {
-                    window.location.href = payload.login_url;
+                const loginUrl = payload && safeAbsoluteUrl(payload.login_url);
+                if (loginUrl) {
+                    window.location.href = loginUrl;
                     return;
                 }
                 throw new Error('sso_widget_switch_failed');
@@ -372,8 +373,13 @@ final class WidgetController
     }
 
     function safeAppUrl(value) {
+        return safeAbsoluteUrl(value);
+    }
+
+    function safeAbsoluteUrl(value) {
+        if (!value || typeof value !== 'string') return null;
         try {
-            const url = new URL(value || '#', window.location.href);
+            const url = new URL(value);
             return url.protocol === 'http:' || url.protocol === 'https:' ? url.href : null;
         } catch (_) {
             return null;
@@ -401,6 +407,8 @@ JS;
 
         return response($js)
             ->header('Content-Type', 'application/javascript')
+            // Request-independent, byte-identical for every visitor: safe for shared
+            // (CDN/proxy) caching. Credentialed session/data endpoints stay no-store.
             ->header('Cache-Control', 'public, max-age=3600');
     }
 
@@ -576,13 +584,14 @@ CSS;
 
         return response($css)
             ->header('Content-Type', 'text/css; charset=UTF-8')
+            // Request-independent static asset: safe for shared (CDN/proxy) caching.
             ->header('Cache-Control', 'public, max-age=3600');
     }
 
     public function session(Request $request): JsonResponse
     {
         $sessionId = $this->cookies->resolve($request);
-        $user = $this->sessions->currentUser($sessionId);
+        $user = $this->sessions->peekActiveUser($sessionId);
 
         if (! $user instanceof User) {
             return $this->noStore(['authenticated' => false]);
@@ -601,7 +610,7 @@ CSS;
     public function accounts(Request $request): JsonResponse
     {
         $currentSessionId = $this->cookies->resolve($request);
-        $currentSession = $currentSessionId !== null ? $this->sessions->current($currentSessionId) : null;
+        $currentSession = $currentSessionId !== null ? $this->sessions->peekActive($currentSessionId) : null;
 
         if ($currentSession === null) {
             return $this->noStore(['accounts' => []], 401);
@@ -619,7 +628,7 @@ CSS;
     public function apps(Request $request): JsonResponse
     {
         $sessionId = $this->cookies->resolve($request);
-        $user = $this->sessions->currentUser($sessionId);
+        $user = $this->sessions->peekActiveUser($sessionId);
 
         if (! $user instanceof User) {
             return $this->noStore(['apps' => []]);
@@ -674,7 +683,7 @@ CSS;
         }
 
         $currentSessionId = $this->cookies->resolve($request);
-        $currentSession = $currentSessionId !== null ? $this->sessions->current($currentSessionId) : null;
+        $currentSession = $currentSessionId !== null ? $this->sessions->peekActive($currentSessionId) : null;
 
         if (! $currentSession instanceof SsoSession) {
             return $this->noStore(['success' => false, 'error' => 'unauthenticated'], 401);
@@ -708,7 +717,7 @@ CSS;
         }
 
         $sessionId = $this->cookies->resolve($request);
-        if (! $sessionId || $this->sessions->current($sessionId) === null) {
+        if (! $sessionId || $this->sessions->peekActive($sessionId) === null) {
             return $this->noStore(['success' => false, 'error' => 'unauthenticated'], 401);
         }
 

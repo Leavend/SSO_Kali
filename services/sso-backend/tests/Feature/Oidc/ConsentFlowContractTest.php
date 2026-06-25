@@ -111,6 +111,11 @@ describe('GET /connect/consent', function (): void {
 
 describe('POST /connect/consent', function (): void {
     it('persists consent and returns redirect URI on allow', function (): void {
+        // ProcessConsentDecision re-evaluates entitlement at code issuance, so the
+        // consenting subject must resolve to a real user. third-party-app has no
+        // explicit category (defaults to public), so any user is entitled.
+        User::factory()->create(['subject_id' => 'consent-user-1']);
+
         $store = app(AuthRequestStore::class);
         $state = $store->put([
             'client_id' => 'third-party-app',

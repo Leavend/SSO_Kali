@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Oidc;
 
 use App\Models\OidcClientRegistration;
+use App\Support\Oidc\ClientCategory;
 use App\Support\Oidc\DownstreamClient;
 use App\Support\Security\ClientSecretHashPolicy;
 use Illuminate\Support\Carbon;
@@ -196,7 +197,7 @@ final class DownstreamClientRegistry
                 ? $config['frontchannel_logout_uri']
                 : null,
             frontchannelLogoutSessionRequired: (bool) ($config['frontchannel_logout_session_required'] ?? true),
-            category: is_string($config['category'] ?? null) ? $config['category'] : 'publik',
+            category: $this->configuredCategory($config['category'] ?? null),
         );
     }
 
@@ -229,8 +230,34 @@ final class DownstreamClientRegistry
                 ? $registration->frontchannel_logout_uri
                 : null,
             frontchannelLogoutSessionRequired: (bool) ($registration->frontchannel_logout_session_required ?? true),
-            category: (string) ($registration->category ?? 'publik'),
+            category: $this->registeredCategory($registration->category ?? null),
         );
+    }
+
+    /**
+     * Resolve a config-defined client's category. Config entries are operator-
+     * controlled bootstrap, so a missing/empty value defaults to the public
+     * category to keep standard OIDC clients accessible. A non-empty string is
+     * preserved verbatim so EntitlementGuard can deny unrecognized values.
+     */
+    private function configuredCategory(mixed $value): string
+    {
+        return is_string($value) && $value !== '' ? $value : ClientCategory::Public->value;
+    }
+
+    /**
+     * Resolve a dynamically-registered client's category fail-closed. The admin
+     * registration boundary always persists a concrete category (DB default
+     * 'publik', enforced by ClientIntegrationContractBuilder::validate), so a
+     * NULL/empty value here means the row was never validly registered or was
+     * mutated out of band. It must NOT silently become a public, entitlement-free
+     * client: an empty string makes EntitlementGuard deny, because
+     * ClientCategory::tryFrom('') === null. A non-empty string is preserved so a
+     * recognized category ('publik'/'kepegawaian') is honored and a typo denies.
+     */
+    private function registeredCategory(mixed $value): string
+    {
+        return is_string($value) && $value !== '' ? $value : '';
     }
 
     private function stringList(mixed $value): array

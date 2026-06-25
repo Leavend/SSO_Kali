@@ -72,7 +72,7 @@ it('anonymizes account while removing linked sessions consents MFA and external 
     runDsrJob($request);
 
     $subject->refresh();
-    expect($subject->email)->toBe('anon-'.$request->request_id.'@anonymous.invalid')
+    expect($subject->email)->toBe('anon-'.mb_strtolower($request->request_id).'@anonymous.invalid')
         ->and($subject->display_name)->toBe('Anonymous User')
         ->and($subject->password)->toBeNull()
         ->and($subject->status)->toBe('disabled')

@@ -18,19 +18,13 @@ final class CheckIdentityHashKeyCommand extends Command
         $environment = app()->environment();
         $this->line('Environment: '.$environment);
 
-        if (! app()->environment('production')) {
-            $this->warn('warn: SSO_NIK_HASH_KEY is only enforced by this guard in production.');
-
-            return self::SUCCESS;
-        }
-
         if (GovernmentIdentifier::hashKeyConfigured()) {
             $this->info('Government identifier hash key is configured.');
 
             return self::SUCCESS;
         }
 
-        $this->error('error: SSO_NIK_HASH_KEY must be configured in production before storing or looking up government identifiers.');
+        $this->error('error: SSO_NIK_HASH_KEY must be configured before storing or looking up government identifiers.');
 
         return self::FAILURE;
     }

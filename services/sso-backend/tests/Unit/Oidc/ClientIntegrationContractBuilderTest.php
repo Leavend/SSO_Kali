@@ -28,6 +28,7 @@ it('builds a SSO-authoritative client integration contract', function (): void {
         'logoutPath' => '/auth/backchannel/logout',
         'ownerEmail' => 'owner@company.com',
         'provisioning' => 'scim',
+        'category' => 'publik',
     ]);
 
     $contract = $builder->build($draft);
@@ -43,6 +44,35 @@ it('builds a SSO-authoritative client integration contract', function (): void {
         ->and($contract['findings'])->toContain('RFC 7642 lifecycle covered by SCIM provisioning.');
 });
 
+it('requires an explicit category so a staff app can never be silently public', function (): void {
+    $builder = app(ClientIntegrationContractBuilder::class);
+
+    $base = [
+        'appName' => 'Customer Portal',
+        'clientId' => 'customer-portal',
+        'environment' => 'development',
+        'clientType' => 'confidential',
+        'appBaseUrl' => 'https://customer-dev.timeh.my.id',
+        'callbackPath' => '/auth/callback',
+        'logoutPath' => '/auth/backchannel/logout',
+        'ownerEmail' => 'owner@company.com',
+        'provisioning' => 'scim',
+    ];
+
+    // Omitted category is a required-field violation, not a silent public default.
+    expect($builder->validate($builder->draftFrom($base)))
+        ->toContain('Kategori client wajib dipilih.');
+
+    // A typo'd / unrecognized category is rejected as invalid.
+    expect($builder->validate($builder->draftFrom([...$base, 'category' => 'kepegawaiann'])))
+        ->toContain('Kategori client tidak valid.');
+
+    // An explicit, recognized category passes the category guard.
+    expect($builder->validate($builder->draftFrom([...$base, 'category' => 'kepegawaian'])))
+        ->not->toContain('Kategori client wajib dipilih.')
+        ->not->toContain('Kategori client tidak valid.');
+});
+
 it('rejects unsafe live clients and existing SSO registrations', function (): void {
     $builder = app(ClientIntegrationContractBuilder::class);
     $draft = $builder->draftFrom([
@@ -55,6 +85,7 @@ it('rejects unsafe live clients and existing SSO registrations', function (): vo
         'logoutPath' => '/auth/backchannel/logout',
         'ownerEmail' => 'not-an-email',
         'provisioning' => 'jit',
+        'category' => 'publik',
     ]);
 
     expect($builder->validate($draft))
@@ -76,6 +107,7 @@ it('rejects non-canonical origins and ambiguous callback paths', function (): vo
         'logoutPath' => '/../logout?token=leak',
         'ownerEmail' => 'owner@company.com',
         'provisioning' => 'jit',
+        'category' => 'publik',
     ]);
 
     expect($builder->validate($draft))->toBe([
@@ -99,6 +131,7 @@ it('canonicalizes origins before emitting exact redirect uri artifacts', functio
         'logoutPath' => '/auth/backchannel/logout',
         'ownerEmail' => 'owner@company.com',
         'provisioning' => 'jit',
+        'category' => 'publik',
     ]);
 
     $contract = $builder->build($draft);

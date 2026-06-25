@@ -47,7 +47,11 @@ final class ClientUrlOrigin
      */
     public static function isLocalhost(array $url): bool
     {
-        return in_array(strtolower((string) ($url['host'] ?? '')), ['localhost', '127.0.0.1', '::1'], true);
+        // parse_url() returns IPv6 hosts bracket-wrapped ('[::1]'), the only
+        // RFC-valid URL form, so strip the brackets before comparing.
+        $host = trim(strtolower((string) ($url['host'] ?? '')), '[]');
+
+        return in_array($host, ['localhost', '127.0.0.1', '::1'], true);
     }
 
     private static function hostLiteral(string $host): string

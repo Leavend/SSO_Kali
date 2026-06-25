@@ -17,6 +17,7 @@ use App\Services\Oidc\ConsentService;
 use App\Services\Oidc\DownstreamClientRegistry;
 use App\Services\Oidc\EntitlementGuard;
 use App\Services\Oidc\OidcProfileMetrics;
+use App\Services\Session\SsoSessionService;
 use App\Support\Oidc\AuthorizationClientSession;
 use App\Support\Oidc\DownstreamClient;
 use App\Support\Oidc\ScopeSet;
@@ -43,6 +44,7 @@ final class CreateAuthorizationRedirect
         private readonly AuthorizationRequestAuditRecorder $audits,
         private readonly AuthorizationSsoErrorReporter $ssoErrors,
         private readonly BrowserAuthorizationSessionResolver $browserSessions,
+        private readonly SsoSessionService $sessions,
     ) {}
 
     public function handle(Request $request): JsonResponse|RedirectResponse
@@ -75,7 +77,7 @@ final class CreateAuthorizationRedirect
         $session = $this->browserSessions->reusable($request, $client, $context);
         if ($session instanceof AuthorizationClientSession) {
             $user = User::query()->where('subject_id', (string) ($session->browserContext['subject_id'] ?? ''))->first();
-            if ($user instanceof User && ! app(EntitlementGuard::class)->allows($user, $client)) {
+            if (! $user instanceof User || ! app(EntitlementGuard::class)->allows($user, $client)) {
                 $this->audits->rejected($request, $client, 'access_denied', $context);
 
                 return OidcErrorResponse::redirect(
@@ -154,6 +156,9 @@ final class CreateAuthorizationRedirect
     {
         $payload = [...$context, ...$browserContext];
         $code = $this->codes->issue($payload);
+
+        // Reusing the browser session for silent SSO is deliberate activity.
+        $this->sessions->recordSsoActivity($this->optionalString($browserContext['session_id'] ?? null));
 
         return redirect()->away($this->callbackUri((string) $payload['redirect_uri'], $code, $payload));
     }
