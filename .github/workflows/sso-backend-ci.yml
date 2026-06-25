@@ -255,7 +255,7 @@ jobs:
           EOF
 
       - name: Upload deployment metadata
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sso-backend-release-metadata
           path: /tmp/sso-backend-ci/release.env
