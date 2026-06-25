@@ -135,9 +135,6 @@ function splitSetCookie(value: string): readonly string[] {
 
 export function deriveSupportReference(reqId: string | null | undefined): string | null {
   if (!reqId) return null
-  const normalized = reqId
-    .trim()
-    .replace(/[^a-zA-Z0-9]/giu, '')
-    .toUpperCase()
+  const normalized = reqId.trim().replace(/[^a-zA-Z0-9]/giu, '').toUpperCase()
   return normalized ? `REF-${normalized.slice(-8)}` : null
 }

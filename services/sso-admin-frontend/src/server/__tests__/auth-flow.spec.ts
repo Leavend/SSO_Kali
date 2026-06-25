@@ -218,4 +218,221 @@ describe('admin BFF auth flow', () => {
     expect(body.get('client_secret')).toBe('admin-bff-secret')
     expect(body.get('token')).toBe('admin-refresh-token')
   })
+
+  it('mints __Host-sso_session from the validated id_token sid for the same-origin widget', async () => {
+    const fetchMock = vi.fn<(input: string | URL, init?: RequestInit) => Promise<Response>>(
+      async (input) => {
+        const url = input.toString()
+
+        if (url === 'https://api-sso.example.test/connect/register-session') {
+          return Response.json({ registered: true, client_id: 'sso-admin-panel' })
+        }
+
+        if (url.endsWith('/.well-known/openid-configuration')) {
+          return Response.json({
+            issuer: 'https://api-sso.example.test',
+            authorization_endpoint: 'https://api-sso.example.test/authorize',
+            token_endpoint: 'https://api-sso.example.test/token',
+            jwks_uri: 'https://api-sso.example.test/jwks',
+            response_types_supported: ['code'],
+            subject_types_supported: ['public'],
+            id_token_signing_alg_values_supported: ['RS256'],
+          })
+        }
+
+        if (url === 'https://api-sso.example.test/token') {
+          return Response.json({
+            access_token: 'server-side-access-token',
+            id_token: 'verified-id-token',
+            refresh_token: 'server-side-refresh-token',
+            expires_in: 3600,
+          })
+        }
+
+        if (url === 'https://api-sso.example.test/userinfo') {
+          return Response.json({
+            sub: 'admin-subject',
+            email: 'admin@example.test',
+            name: 'Admin User',
+            role: 'admin',
+            auth_time: 1_780_000_000,
+            amr: ['pwd', 'mfa'],
+            acr: 'urn:timeh:aal2',
+            last_login_at: '2026-06-01T08:00:00Z',
+          })
+        }
+
+        return new Response('not found', { status: 404 })
+      },
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { handleCallback, handleLogin } = await import('../auth-handlers.js')
+
+    const login = await handleLogin(
+      new URL('https://admin-sso.example.test/auth/login?return_to=/dashboard'),
+    )
+    const location = new URL(String(login.headers?.location))
+    const cookies = login.headers?.['set-cookie']
+    const txCookie = Array.isArray(cookies) ? cookies[0] : String(cookies)
+    const cookieHeader = txCookie.split(';')[0]
+
+    vi.mocked(jwtVerify).mockResolvedValueOnce({
+      payload: {
+        sub: 'admin-subject',
+        exp: 4_102_444_800,
+        nonce: location.searchParams.get('nonce'),
+        sid: 'sso-session-id-from-id-token',
+      },
+      protectedHeader: { alg: 'RS256' },
+    } as unknown as Awaited<ReturnType<typeof jwtVerify>>)
+
+    const callback = await handleCallback(
+      requestWithCookie(cookieHeader),
+      new URL(
+        `https://admin-sso.example.test/auth/callback?code=admin-code&state=${location.searchParams.get('state')}`,
+      ),
+    )
+
+    const setCookies = callback.headers?.['set-cookie']
+    const widgetCookie = (Array.isArray(setCookies) ? setCookies : [String(setCookies)]).find(
+      (cookie) => cookie.startsWith('__Host-sso_session='),
+    )
+
+    expect(widgetCookie).toBeDefined()
+    expect(widgetCookie).toContain('__Host-sso_session=sso-session-id-from-id-token')
+    expect(widgetCookie).toContain('Secure')
+    expect(widgetCookie).toContain('Path=/')
+    expect(widgetCookie).toContain('HttpOnly')
+    expect(widgetCookie).toContain('SameSite=Lax')
+    expect(widgetCookie).not.toContain('Domain=')
+  })
+
+  it('clears __Host-sso_session at admin logout', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(null, { status: 200 })),
+    )
+
+    const [{ handleLogout }, { sessionCookie }] = await Promise.all([
+      import('../auth-handlers.js'),
+      import('../session.js'),
+    ])
+    const cookie = (
+      await sessionCookie({
+        accessToken: 'access-token',
+        idToken: 'id-token',
+        refreshToken: 'admin-refresh-token',
+        sub: 'admin-subject',
+        subject: 'admin-subject',
+        email: 'admin@example.test',
+        displayName: 'Admin',
+        role: 'admin',
+        expiresAt: 4_102_444_800,
+        authTime: null,
+        amr: ['pwd', 'mfa'],
+        acr: null,
+        lastLoginAt: null,
+        issuedAt: 1_780_000_000,
+        absoluteExpiresAt: 4_102_444_800,
+        lastRefreshedAt: 1_780_000_000,
+      })
+    ).split(';')[0]!
+
+    const logout = await handleLogout(requestWithCookie(cookie))
+    const setCookies = logout.headers?.['set-cookie']
+    const clearedWidget = (Array.isArray(setCookies) ? setCookies : [String(setCookies)]).find(
+      (entry) => entry.startsWith('__Host-sso_session='),
+    )
+
+    expect(clearedWidget).toBeDefined()
+    expect(clearedWidget).toContain('__Host-sso_session=;')
+    expect(clearedWidget).toContain('Expires=Thu, 01 Jan 1970')
+  })
+
+  it('re-mints __Host-sso_session on admin token refresh so the widget cookie never expires mid-session', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(null, { status: 200 })),
+    )
+
+    const [{ handleRefresh }, { sessionCookie }] = await Promise.all([
+      import('../auth-handlers.js'),
+      import('../session.js'),
+    ])
+    const cookie = (
+      await sessionCookie({
+        accessToken: 'access-token',
+        idToken: 'id-token',
+        refreshToken: 'admin-refresh-token',
+        sub: 'admin-subject',
+        subject: 'admin-subject',
+        email: 'admin@example.test',
+        displayName: 'Admin',
+        role: 'admin',
+        sid: 'sso-session-id-from-id-token',
+        expiresAt: 4_102_444_800,
+        authTime: null,
+        amr: ['pwd', 'mfa'],
+        acr: null,
+        lastLoginAt: null,
+        issuedAt: 1_780_000_000,
+        absoluteExpiresAt: 4_102_444_800,
+        lastRefreshedAt: 1_780_000_000,
+      })
+    ).split(';')[0]!
+
+    const refresh = await handleRefresh(requestWithCookie(cookie))
+    const setCookies = refresh.headers?.['set-cookie']
+    const widgetCookie = (Array.isArray(setCookies) ? setCookies : [String(setCookies)]).find(
+      (entry) => entry.startsWith('__Host-sso_session='),
+    )
+
+    expect(refresh.status).toBe(200)
+    expect(widgetCookie).toBeDefined()
+    expect(widgetCookie).toContain('__Host-sso_session=sso-session-id-from-id-token')
+    expect(widgetCookie).toContain('Max-Age=')
+    expect(widgetCookie).toContain('SameSite=Lax')
+  })
+
+  it('does not set or clear __Host-sso_session on admin refresh when the session has no sid', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(null, { status: 200 })),
+    )
+
+    const [{ handleRefresh }, { sessionCookie }] = await Promise.all([
+      import('../auth-handlers.js'),
+      import('../session.js'),
+    ])
+    const cookie = (
+      await sessionCookie({
+        accessToken: 'access-token',
+        idToken: 'id-token',
+        refreshToken: 'admin-refresh-token',
+        sub: 'admin-subject',
+        subject: 'admin-subject',
+        email: 'admin@example.test',
+        displayName: 'Admin',
+        role: 'admin',
+        expiresAt: 4_102_444_800,
+        authTime: null,
+        amr: ['pwd', 'mfa'],
+        acr: null,
+        lastLoginAt: null,
+        issuedAt: 1_780_000_000,
+        absoluteExpiresAt: 4_102_444_800,
+        lastRefreshedAt: 1_780_000_000,
+      })
+    ).split(';')[0]!
+
+    const refresh = await handleRefresh(requestWithCookie(cookie))
+    const setCookies = refresh.headers?.['set-cookie']
+    const widgetCookie = (Array.isArray(setCookies) ? setCookies : [String(setCookies)]).find(
+      (entry) => entry.startsWith('__Host-sso_session='),
+    )
+
+    expect(refresh.status).toBe(200)
+    expect(widgetCookie).toBeUndefined()
+  })
 })
