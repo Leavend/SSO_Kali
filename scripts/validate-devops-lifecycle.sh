@@ -163,9 +163,13 @@ require_text ".github/workflows/cd.yml" 'Preflight SSH reachability' "CD fails f
 require_text ".github/workflows/rollback.yml" 'FORCE_JAVASCRIPT_ACTIONS_TO_NODE24' "Rollback opts JavaScript actions into Node 24 runtime"
 require_text ".github/workflows/rollback.yml" 'VPS_SSH_PORT' "Rollback supports configurable VPS SSH port"
 require_text ".github/workflows/rollback.yml" 'Preflight SSH reachability' "Rollback fails fast when VPS SSH is unreachable"
-require_text ".github/workflows/ci.yml" 'actions/checkout@v5' "CI uses Node 24-compatible checkout action"
-require_text ".github/workflows/ci.yml" 'actions/setup-node@v6' "CI uses Node 24-compatible setup-node action"
-require_text ".github/workflows/ci.yml" 'actions/cache@v5' "CI uses Node 24-compatible cache action"
+# Assert the Node-24-compatible MINIMUM major, not an exact pin, so a dependabot
+# bump to a newer (still-compatible) major (e.g. checkout v5 -> v7) does not
+# false-fail this gate. Matches vN where N >= the first Node-24 major (single
+# digit 5-9/6-9 or any 2+ digit major); rejects the Node-20-era v4 and below.
+require_text ".github/workflows/ci.yml" 'actions/checkout@v([5-9]|[1-9][0-9])' "CI uses Node 24-compatible checkout action"
+require_text ".github/workflows/ci.yml" 'actions/setup-node@v([6-9]|[1-9][0-9])' "CI uses Node 24-compatible setup-node action"
+require_text ".github/workflows/ci.yml" 'actions/cache@v([5-9]|[1-9][0-9])' "CI uses Node 24-compatible cache action"
 require_text ".github/workflows/ci.yml" 'docker/build-push-action@v7' "CI uses Docker Buildx build-push action"
 require_text ".dockerignore" '\*\*/node_modules' "Docker root context excludes Node dependencies"
 require_text ".dockerignore" '\*\*/node_modules\*' "Docker root context excludes copied Node dependency snapshots"
