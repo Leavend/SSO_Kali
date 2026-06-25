@@ -32,7 +32,7 @@ jobs:
 
       - name: Upload cookie compliance evidence
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: cookie-prefix-compliance-evidence
           path: |
