@@ -48,7 +48,7 @@ jobs:
         working-directory: ${{ matrix.component.path }}
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Setup PHP 8.4
         uses: shivammathur/setup-php@v2
@@ -125,7 +125,7 @@ jobs:
         working-directory: ${{ matrix.component.path }}
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Setup Node 22
         uses: actions/setup-node@v6
@@ -174,7 +174,7 @@ jobs:
     timeout-minutes: 5
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Setup Node 22
         uses: actions/setup-node@v6
@@ -215,7 +215,7 @@ jobs:
               VITE_ZITADEL_ISSUER_URL=https://id.dev-sso.timeh.my.id
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Login to GHCR
         uses: docker/login-action@v4
