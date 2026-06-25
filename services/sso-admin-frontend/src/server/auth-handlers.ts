@@ -26,11 +26,13 @@ import {
   replaceSession,
   sessionCookie,
   sessionCookieForId,
+  sessionCookieMaxAge,
   sessionFromBootstrap,
   transactionCookie,
   unixTime,
 } from './session.js'
 import type { PortalSession } from './session.js'
+import { clearWidgetSessionCookie, widgetSessionCookie } from './widget-cookie.js'
 import { refreshPortalSession, sessionNeedsRefresh } from './session-refresh.js'
 import type { AppResponse } from './response.js'
 import { json, redirect } from './response.js'
@@ -104,10 +106,29 @@ export async function handleCallback(
   const result = await completeCallbackSession(request, params.code, params.state)
   if (!result.ok) return redirectWithClearedTx(config, callbackErrorRoute(result.error))
 
-  return redirect(new URL(result.returnTo, config.appBaseUrl).toString(), [
-    await sessionCookie(result.session),
+  return redirect(
+    new URL(result.returnTo, config.appBaseUrl).toString(),
+    await postLoginCookies(result.session),
+  )
+}
+
+/**
+ * Cookies set after a successful OIDC callback: the opaque admin BFF session
+ * cookie, the same-origin widget session cookie minted from the validated
+ * id_token `sid` (omitted if the token carried none), and the transaction
+ * cookie clear.
+ */
+async function postLoginCookies(session: PortalSession): Promise<readonly string[]> {
+  const widgetCookie = widgetSessionCookie({
+    sid: session.sid,
+    maxAgeSeconds: sessionCookieMaxAge(session),
+  })
+
+  return [
+    await sessionCookie(session),
+    ...(widgetCookie ? [widgetCookie] : []),
     clearTransactionCookie(),
-  ])
+  ]
 }
 
 export async function handleCallbackSession(request: IncomingMessage): Promise<AppResponse> {
@@ -142,7 +163,7 @@ export async function handleCallbackSession(request: IncomingMessage): Promise<A
       authenticated: true,
       post_login_redirect: result.returnTo,
     },
-    { 'set-cookie': [await sessionCookie(result.session), clearTransactionCookie()] },
+    { 'set-cookie': await postLoginCookies(result.session) },
   )
 }
 
@@ -161,6 +182,7 @@ export async function handleLogout(request: IncomingMessage): Promise<AppRespons
 
   return redirect(new URL('/', config.appBaseUrl).toString(), [
     ...(await clearSessionCookie(request)),
+    clearWidgetSessionCookie(),
     clearTransactionCookie(),
   ])
 }
@@ -207,13 +229,26 @@ function sessionIdFromRequest(request: IncomingMessage): string | null {
 }
 
 function refreshResponse(sessionId: string, session: PortalSession): AppResponse {
+  // Re-set the widget cookie only when the refreshed session still carries a sid; if it
+  // is unavailable, leave the existing __Host-sso_session cookie untouched (never clear).
+  // Mirrors the portal BFF — the widget cookie's max-age is the sliding idle window, so it
+  // must be renewed on every refresh or the admin widget 401s mid-session.
+  const widgetCookie = widgetSessionCookie({
+    sid: session.sid,
+    maxAgeSeconds: sessionCookieMaxAge(session),
+  })
   return json(
     200,
     {
       status: 'refreshed',
       expiresAt: session.expiresAt,
     },
-    { 'set-cookie': [sessionCookieForId(sessionId, session)] },
+    {
+      'set-cookie': [
+        sessionCookieForId(sessionId, session),
+        ...(widgetCookie ? [widgetCookie] : []),
+      ],
+    },
   )
 }
 
@@ -323,6 +358,7 @@ async function completeCallbackSession(
         idToken: tokens.id_token,
         refreshToken: tokens.refresh_token,
         expiresAt: Math.floor(Date.now() / 1000) + tokens.expires_in,
+        sid: claims.sid,
       },
       principal,
     )
@@ -400,7 +436,7 @@ async function verifyIdToken(
   token: string,
   expectedNonce: string,
   discovery: DiscoveryMetadata,
-): Promise<{ readonly sub: string; readonly exp: number }> {
+): Promise<{ readonly sub: string; readonly exp: number; readonly sid?: string }> {
   const config = getConfig()
   const jwksUrl = discovery.jwks_uri
   let jwks = jwksByUrl.get(jwksUrl)
@@ -417,13 +453,15 @@ async function verifyIdToken(
   const sub = payload.sub
   const exp = payload.exp
   const nonce = Reflect.get(payload, 'nonce')
+  const sidClaim = Reflect.get(payload, 'sid')
+  const sid = typeof sidClaim === 'string' && sidClaim !== '' ? sidClaim : undefined
 
   if (typeof sub !== 'string' || sub === '')
     throw new Error("ID token is missing a valid 'sub' claim.")
   if (typeof exp !== 'number') throw new Error("ID token is missing a valid 'exp' claim.")
   if (nonce !== expectedNonce) throw new Error('ID token nonce validation failed.')
 
-  return { sub, exp }
+  return { sub, exp, sid }
 }
 
 async function revokeSession(

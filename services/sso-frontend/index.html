@@ -40,13 +40,14 @@
     -->
     <!-- sso:i18n:shell -->
 
-    <script>
-      (function () {
-        const theme = localStorage.getItem('dev-sso-theme') || 'auto';
-        const isDark = theme === 'dark' || (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-        document.documentElement.classList.toggle('dark', isDark);
-      })();
-    </script>
+    <!--
+      WACC3: anti-FOUC theme bootstrap. Externalized to a classic, same-origin
+      script so it is permitted under a `script-src 'self'` CSP without a
+      hash/nonce. A classic <script src> in <head> is render-blocking and runs
+      before first paint (same timing as inline), so there is no theme flash.
+      Do not add defer/type=module — that would reintroduce the flash.
+    -->
+    <script src="/theme-boot.js"></script>
     <title>Dev-SSO Portal</title>
     <style>
       /* Inline critical loading screen — visible before Vue mounts */

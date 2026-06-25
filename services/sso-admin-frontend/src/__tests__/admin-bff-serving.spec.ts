@@ -86,9 +86,9 @@ describe('admin BFF serving contract', () => {
     expect(deployWorkflow).toContain('expected /home to be served by admin SPA fallback')
     expect(deployWorkflow).toContain('expected /home body to be the admin SPA index shell')
     expect(deployWorkflow).toContain('expected /home not to redirect to upstream edge auth')
-    expect(deployWorkflow).toContain('sso\\.timeh\\.my\\.id/authorize')
+    expect(deployWorkflow).toContain('://sso\\.timeh\\.my\\.id/authorize')
     expect(deployWorkflow).toContain(
-      'expected /auth/login Location to use portal-proxied SSO /authorize endpoint',
+      'expected /auth/login Location to use the front-door SSO /authorize host',
     )
     expect(productionSmokeE2e).toContain(
       'stubbed OIDC admin session reaches dashboard with principal evidence',

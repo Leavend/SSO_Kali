@@ -4,12 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex,nofollow" />
-    <script>
-      ;(function () {
-        const theme = localStorage.getItem('dev-sso-admin-theme') || 'dark'
-        document.documentElement.classList.toggle('dark', theme === 'dark')
-      })()
-    </script>
+    <!-- Anti-FOUC theme bootstrap: classic same-origin script (render-blocking,
+         runs before first paint, same timing as inline) so script-src 'self'
+         permits it with no CSP edit, hash, nonce, defer, or module loading. -->
+    <script src="/theme-boot.js"></script>
     <title>Dev-SSO Admin Frontend</title>
     <style>
       :root {

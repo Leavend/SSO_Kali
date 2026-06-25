@@ -106,6 +106,11 @@ x-sso-admin-frontend-env: &sso-admin-frontend-env
   VITE_PUBLIC_BASE_PATH: /
   VITE_SSO_BASE_URL: ${SSO_BASE_URL:-https://api-sso.timeh.my.id}
   VITE_DOCS_BASE_URL: ${SSO_DOCS_BASE_URL:-https://docs.sso.timeh.my.id}
+  # WGAP4: set the BFF issuer/discovery base EXPLICITLY so the Node runtime does not
+  # fall back to the Vite build var VITE_SSO_BASE_URL (which means a different thing at
+  # build time). issuer/discovery = api-sso; only the browser-facing authorize is the
+  # front-door (ADMIN_OIDC_PUBLIC_ISSUER below).
+  ADMIN_OIDC_ISSUER: ${SSO_BASE_URL:-https://api-sso.timeh.my.id}
   ADMIN_OIDC_PUBLIC_ISSUER: ${SSO_FRONTEND_URL:-https://sso.timeh.my.id}
   ADMIN_OIDC_CLIENT_ID: ${ADMIN_PANEL_CLIENT_ID:-sso-admin-panel}
   ADMIN_OIDC_CLIENT_SECRET: ${ADMIN_PANEL_CLIENT_SECRET:?ADMIN_PANEL_CLIENT_SECRET is required}

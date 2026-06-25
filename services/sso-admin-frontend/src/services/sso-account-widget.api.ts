@@ -84,7 +84,7 @@ async function widgetFetch<T>(
   init: RequestInit = {},
   acceptErrorPayload = false,
 ): Promise<T> {
-  const response = await fetch(`${baseUrl()}${path}`, {
+  const response = await fetch(`${resolveWidgetBaseUrl()}${path}`, {
     ...init,
     credentials: 'include',
     headers: {
@@ -97,11 +97,27 @@ async function widgetFetch<T>(
   if (!response.ok && acceptErrorPayload) return payload
   if (!response.ok) {
     const requestId = response.headers.get('x-request-id')
-    throw new Error(requestId ? `sso_widget_request_failed:${requestId}` : 'sso_widget_request_failed')
+    throw new Error(
+      requestId ? `sso_widget_request_failed:${requestId}` : 'sso_widget_request_failed',
+    )
   }
   return payload
 }
 
-function baseUrl(): string {
-  return getAdminEnvironment().ssoBaseUrl.replace(/\/$/u, '')
+/**
+ * Resolve the base the credentialed account-widget endpoints live on.
+ *
+ * Default is SAME-ORIGIN: an empty base resolves `/widget/*` relative to the
+ * admin origin. The admin BFF proxies those paths to the backend and holds the
+ * host-only `__Host-sso_session` cookie (minted first-party at the OIDC
+ * callback from the validated id_token `sid`), so the credentialed fetch is
+ * first-party and the cookie is always sent — no cross-host `__Host-` cookie
+ * problem, no CORS, no third-party-cookie dependency.
+ *
+ * `VITE_SSO_WIDGET_BASE_URL` remains a documented override for pointing the bar
+ * at a cross-origin front-door host (the superseded WACC1 wiring); leave it
+ * unset for the same-origin default.
+ */
+export function resolveWidgetBaseUrl(): string {
+  return getAdminEnvironment().widgetBaseUrl.replace(/\/$/u, '')
 }

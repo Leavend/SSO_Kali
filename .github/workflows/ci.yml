@@ -162,7 +162,29 @@ jobs:
       - name: Production smoke test
         run: npm run --if-present smoke
 
-  # ─── Job 3: Build & Push Docker Images ─────────────────────────────────────
+  # ─── Job 3: BFF Proxy Parity Gate ──────────────────────────────────────────
+  # The portal and admin BFFs carry byte-identical copies of the shared widget/
+  # OIDC proxy plumbing (no shared workspace package exists). The hop-by-hop
+  # strip-lists in proxy-headers.ts are security load-bearing (CORS/cookie
+  # transparency), so a missed copy on a future edit is a real hazard. This gate
+  # fails on any drift between the two src/server/ copies.
+  bff-proxy-parity:
+    name: "BFF Proxy Parity"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+
+      - name: Assert shared BFF proxy files are byte-identical
+        run: node tools/bff-proxy-parity.mjs
+
+  # ─── Job 4: Build & Push Docker Images ─────────────────────────────────────
   build-images:
     name: "Build & Push Images"
     runs-on: ubuntu-latest

@@ -171,7 +171,7 @@ function isOpaqueSessionId(value: string | null): value is string {
   return Boolean(value && /^[A-Za-z0-9_-]{43,}$/u.test(value))
 }
 
-function sessionCookieMaxAge(session: PortalSession): number {
+export function sessionCookieMaxAge(session: PortalSession): number {
   const absoluteRemaining = Math.max(0, session.absoluteExpiresAt - unixTime())
   return Math.min(getConfig().sessionIdleTtlSeconds, absoluteRemaining)
 }

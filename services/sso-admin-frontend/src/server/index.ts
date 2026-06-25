@@ -19,6 +19,8 @@ import { createEntityTag, requestHasMatchingEtag } from './http-cache.js'
 import { createInitialRoutePreloadLinks, type ViteManifest } from './preload-links.js'
 import type { AppResponse } from './response.js'
 import { html, methodNotAllowed, send, text } from './response.js'
+import { proxyToSsoBackend } from './sso-backend-proxy.js'
+import { shouldProxyAdminWidgetPath } from './widget-routes.js'
 
 const clientDir = fileURLToPath(new URL('../../client/', import.meta.url))
 const indexHtmlPath = join(clientDir, 'index.html')
@@ -85,6 +87,7 @@ async function route(request: IncomingMessage, requestUrl: URL): Promise<AppResp
     return method === 'POST' ? handleRefresh(request) : methodNotAllowed()
 
   if (pathname.startsWith('/api/admin/')) return handleAdminApiProxy({ request, requestUrl })
+  if (shouldProxyAdminWidgetPath(pathname)) return proxyToSsoBackend(request, requestUrl)
 
   return null
 }

@@ -73,6 +73,10 @@ jobs:
               VITE_ADMIN_BASE_URL=${{ vars.SSO_ADMIN_FRONTEND_URL || 'https://admin-sso.timeh.my.id' }}
               VITE_PUBLIC_BASE_PATH=${{ vars.SSO_ADMIN_FRONTEND_BASE_PATH || '/' }}
               VITE_SSO_BASE_URL=${{ vars.SSO_FRONTEND_BASE_URL || 'https://sso.timeh.my.id' }}
+              # WACC2 Opt-2: the admin account widget is SAME-ORIGIN (BFF proxies /widget/*
+              # and mints __Host-sso_session at callback). Leave VITE_SSO_WIDGET_BASE_URL
+              # UNSET so it defaults to same-origin; setting it forces a cross-origin call
+              # that loses the host-only cookie (the WACC1 cross-origin wiring, now superseded).
               VITE_DOCS_BASE_URL=${{ vars.SSO_DOCS_BASE_URL || 'https://docs.sso.timeh.my.id' }}
           - service: sso-docs
             context: ./
@@ -692,8 +696,8 @@ jobs:
             cat "$login_headers_file" >&2
             exit 1
           fi
-          if ! grep -qi '^location: .*sso\.timeh\.my\.id/authorize' "$login_headers_file"; then
-            echo 'expected /auth/login Location to use portal-proxied SSO /authorize endpoint.' >&2
+          if ! grep -qi '^location: .*://sso\.timeh\.my\.id/authorize' "$login_headers_file"; then
+            echo 'expected /auth/login Location to use the front-door SSO /authorize host (sso.timeh.my.id; the :// boundary rejects api-sso/edge/typo hosts).' >&2
             cat "$login_headers_file" >&2
             exit 1
           fi

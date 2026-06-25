@@ -22,6 +22,7 @@ export type PortalSession = PortalSessionView & {
   readonly idToken: string
   readonly refreshToken: string
   readonly sub: string
+  readonly sid?: string
   readonly displayName: string
   readonly issuedAt: number
   readonly absoluteExpiresAt: number
@@ -109,6 +110,7 @@ export function sessionFromBootstrap(
     readonly idToken: string
     readonly refreshToken: string
     readonly expiresAt: number
+    readonly sid?: string
   },
   principal: SsoPrincipal,
 ): PortalSession {
@@ -119,6 +121,7 @@ export function sessionFromBootstrap(
     idToken: tokens.idToken,
     refreshToken: tokens.refreshToken,
     sub: principal.subjectId,
+    sid: tokens.sid,
     subject: principal.subjectId,
     email: principal.email,
     displayName: principal.displayName,
@@ -169,7 +172,7 @@ function isOpaqueSessionId(value: string | null): value is string {
   return Boolean(value && /^[A-Za-z0-9_-]{43,}$/u.test(value))
 }
 
-function sessionCookieMaxAge(session: PortalSession): number {
+export function sessionCookieMaxAge(session: PortalSession): number {
   const absoluteRemaining = Math.max(0, session.absoluteExpiresAt - unixTime())
   return Math.min(getConfig().sessionIdleTtlSeconds, absoluteRemaining)
 }

@@ -21,6 +21,9 @@ export type PortalConfig = {
 }
 
 export function getConfig(): PortalConfig {
+  // Prefer ADMIN_OIDC_ISSUER (a real BFF runtime var). The VITE_SSO_BASE_URL fallback is
+  // a Vite BUILD var and must not be relied on at Node runtime — it can carry a different
+  // value at build vs runtime (WGAP4). Set ADMIN_OIDC_ISSUER explicitly in the BFF env.
   const base = env('ADMIN_OIDC_ISSUER') ?? env('VITE_SSO_BASE_URL') ?? 'http://localhost:8200'
   const publicBase = env('ADMIN_OIDC_PUBLIC_ISSUER') ?? base
   const appBase = env('VITE_ADMIN_BASE_URL') ?? env('ADMIN_APP_BASE_URL') ?? 'http://localhost:8080'
