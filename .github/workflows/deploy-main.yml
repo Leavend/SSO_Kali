@@ -12,6 +12,9 @@ on:
       - '**/__tests__/**'
       - '**/*.md'
       - 'docs/**'
+      # Workflow / CI-action changes (incl. dependabot github_actions bumps) never
+      # ship in the runtime images, so they must not trigger a VPS redeploy.
+      - '.github/**'
   workflow_dispatch:
     inputs:
       deploy_tag:
