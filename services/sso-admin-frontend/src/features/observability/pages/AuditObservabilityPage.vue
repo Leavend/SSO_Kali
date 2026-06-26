@@ -513,7 +513,7 @@ function serviceQueue(service: ObservabilityService): string | null {
                 <g transform="translate(50, 40)">
                   <rect width="140" height="120" rx="16" fill="var(--muted)" stroke="var(--border)" stroke-width="1.5" />
                   <rect width="140" height="120" rx="16" fill="var(--card)" opacity="0.8" />
-                  <circle cx="70" cy="40" r="18" fill="rgba(99, 102, 241, 0.1)" />
+                  <circle cx="70" cy="40" r="18" fill="color-mix(in oklch, var(--primary) 10%, transparent)" />
                   <path d="M 64,40 H 76 M 70,34 V 46" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" />
                   <text x="70" y="80" text-anchor="middle" fill="var(--foreground)" font-size="13" font-weight="700">SSO Portal</text>
                   <text x="70" y="98" text-anchor="middle" fill="var(--muted-foreground)" font-size="11">Initiator Request</text>
@@ -523,7 +523,7 @@ function serviceQueue(service: ObservabilityService): string | null {
                 <g transform="translate(330, 40)">
                   <rect width="140" height="120" rx="16" fill="var(--muted)" stroke="var(--border)" stroke-width="1.5" />
                   <rect width="140" height="120" rx="16" fill="var(--card)" opacity="0.8" />
-                  <circle cx="70" cy="40" r="18" fill="rgba(99, 102, 241, 0.1)" />
+                  <circle cx="70" cy="40" r="18" fill="color-mix(in oklch, var(--primary) 10%, transparent)" />
                   <path d="M 62,35 H 78 V 45 H 62 Z" stroke="var(--primary)" stroke-width="2" stroke-linejoin="round" />
                   <text x="70" y="80" text-anchor="middle" fill="var(--foreground)" font-size="13" font-weight="700">Admin BFF</text>
                   <text x="70" y="98" text-anchor="middle" fill="var(--muted-foreground)" font-size="11">Propagator Node</text>
@@ -533,7 +533,7 @@ function serviceQueue(service: ObservabilityService): string | null {
                 <g transform="translate(610, 40)">
                   <rect width="140" height="120" rx="16" fill="var(--muted)" stroke="var(--border)" stroke-width="1.5" />
                   <rect width="140" height="120" rx="16" fill="var(--card)" opacity="0.8" />
-                  <circle cx="70" cy="40" r="18" fill="rgba(99, 102, 241, 0.1)" />
+                  <circle cx="70" cy="40" r="18" fill="color-mix(in oklch, var(--primary) 10%, transparent)" />
                   <path d="M 64,36 H 76 V 44 H 64 Z M 64,44 H 76 V 46 H 64 Z" stroke="var(--primary)" stroke-width="2" />
                   <text x="70" y="80" text-anchor="middle" fill="var(--foreground)" font-size="13" font-weight="700">SSO Core</text>
                   <text x="70" y="98" text-anchor="middle" fill="var(--muted-foreground)" font-size="11">Backend Target</text>
@@ -590,7 +590,7 @@ function serviceQueue(service: ObservabilityService): string | null {
   width: 350px;
   height: 350px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 70%);
+  background: radial-gradient(circle, color-mix(in oklch, var(--primary) 15%, transparent) 0%, transparent 70%);
   pointer-events: none;
   filter: blur(40px);
 }
@@ -694,18 +694,18 @@ function serviceQueue(service: ObservabilityService): string | null {
   flex-shrink: 0;
 }
 
-.bg-emerald-light { background: rgba(16, 185, 129, 0.08); }
-.text-emerald { color: #10b981; }
-.bg-emerald-bar { background: #10b981; }
+.bg-emerald-light { background: color-mix(in oklch, var(--success) 8%, transparent); }
+.text-emerald { color: var(--success); }
+.bg-emerald-bar { background: var(--success); }
 
-.bg-blue-light { background: rgba(59, 130, 246, 0.08); }
-.text-blue { color: #3b82f6; }
+.bg-blue-light { background: color-mix(in oklch, var(--info) 8%, transparent); }
+.text-blue { color: var(--info); }
 
 .bg-indigo-light { background: color-mix(in srgb, var(--primary) 8%, transparent); }
 .text-indigo { color: var(--primary); }
 
-.bg-amber-light { background: rgba(245, 158, 11, 0.08); }
-.text-amber { color: #f59e0b; }
+.bg-amber-light { background: color-mix(in oklch, var(--warning) 8%, transparent); }
+.text-amber { color: var(--warning); }
 
 .observability-stat-card__content {
   flex-grow: 1;
@@ -762,9 +762,9 @@ function serviceQueue(service: ObservabilityService): string | null {
   gap: 0.75rem;
   padding: 1rem 1.25rem;
   border-radius: 12px;
-  border: 1px solid rgba(245, 158, 11, 0.2);
-  background: rgba(245, 158, 11, 0.05);
-  color: #92400e;
+  border: 1px solid color-mix(in oklch, var(--warning) 20%, transparent);
+  background: var(--warning-soft);
+  color: var(--warning-soft-fg);
   overflow: hidden;
 }
 
@@ -774,11 +774,11 @@ function serviceQueue(service: ObservabilityService): string | null {
   top: 0;
   bottom: 0;
   width: 4px;
-  background: #f59e0b;
+  background: var(--warning);
 }
 
 .text-amber-banner {
-  color: #f59e0b;
+  color: var(--warning);
 }
 
 .observability-degraded-banner__text {
@@ -808,9 +808,9 @@ function serviceQueue(service: ObservabilityService): string | null {
   transform: translateY(-2px);
 }
 
-.observability-node-card--healthy:hover { border-color: rgba(16, 185, 129, 0.4); }
-.observability-node-card--degraded:hover { border-color: rgba(245, 158, 11, 0.4); }
-.observability-node-card--down:hover { border-color: rgba(239, 68, 68, 0.4); }
+.observability-node-card--healthy:hover { border-color: color-mix(in oklch, var(--success) 40%, transparent); }
+.observability-node-card--degraded:hover { border-color: color-mix(in oklch, var(--warning) 40%, transparent); }
+.observability-node-card--down:hover { border-color: color-mix(in oklch, var(--danger) 40%, transparent); }
 .observability-node-card--unknown:hover { border-color: color-mix(in srgb, var(--primary) 30%, transparent); }
 
 .observability-node-card__header {
@@ -871,14 +871,14 @@ function serviceQueue(service: ObservabilityService): string | null {
   opacity: 0;
 }
 
-.pulse-dot--healthy { background: #10b981; }
-.pulse-dot--healthy::after { border: 2px solid #10b981; }
+.pulse-dot--healthy { background: var(--success); }
+.pulse-dot--healthy::after { border: 2px solid var(--success); }
 
-.pulse-dot--degraded { background: #f59e0b; }
-.pulse-dot--degraded::after { border: 2px solid #f59e0b; }
+.pulse-dot--degraded { background: var(--warning); }
+.pulse-dot--degraded::after { border: 2px solid var(--warning); }
 
-.pulse-dot--down { background: #ef4444; }
-.pulse-dot--down::after { border: 2px solid #ef4444; }
+.pulse-dot--down { background: var(--danger); }
+.pulse-dot--down::after { border: 2px solid var(--danger); }
 
 .pulse-dot--unknown { background: var(--muted-foreground); }
 
@@ -894,9 +894,9 @@ function serviceQueue(service: ObservabilityService): string | null {
   letter-spacing: 0.05em;
 }
 
-.text-status--healthy { color: #10b981; }
-.text-status--degraded { color: #f59e0b; }
-.text-status--down { color: #ef4444; }
+.text-status--healthy { color: var(--success); }
+.text-status--degraded { color: var(--warning); }
+.text-status--down { color: var(--danger); }
 .text-status--unknown { color: var(--muted-foreground); }
 
 .observability-node-card__summary {
@@ -927,15 +927,15 @@ function serviceQueue(service: ObservabilityService): string | null {
 }
 
 .observability-node-card__check-badge--pass {
-  color: #065f46;
-  background: rgba(16, 185, 129, 0.06);
-  border-color: rgba(16, 185, 129, 0.15);
+  color: var(--success-soft-fg);
+  background: color-mix(in oklch, var(--success) 6%, transparent);
+  border-color: color-mix(in oklch, var(--success) 15%, transparent);
 }
 
 .observability-node-card__check-badge--fail {
-  color: #991b1b;
-  background: rgba(239, 68, 68, 0.06);
-  border-color: rgba(239, 68, 68, 0.15);
+  color: var(--danger-soft-fg);
+  background: color-mix(in oklch, var(--danger) 6%, transparent);
+  border-color: color-mix(in oklch, var(--danger) 15%, transparent);
 }
 
 .observability-node-card__divider {
@@ -1030,7 +1030,7 @@ function serviceQueue(service: ObservabilityService): string | null {
 
 .premium-tab-btn:hover {
   color: var(--foreground);
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--muted);
 }
 
 .premium-tab-btn--active {
@@ -1119,7 +1119,7 @@ function serviceQueue(service: ObservabilityService): string | null {
 }
 
 .text-indigo-light-fg { stroke: var(--primary); }
-.text-emerald-light-fg { stroke: #10b981; }
+.text-emerald-light-fg { stroke: var(--success); }
 
 .observability-signal-widget__gauge-text {
   position: absolute;
@@ -1155,11 +1155,11 @@ function serviceQueue(service: ObservabilityService): string | null {
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  background: rgba(139, 92, 246, 0.08);
-  border: 1.5px solid rgba(139, 92, 246, 0.2);
+  background: color-mix(in oklch, var(--primary) 8%, transparent);
+  border: 1.5px solid color-mix(in oklch, var(--primary) 20%, transparent);
 }
 
-.text-violet { color: #8b5cf6; }
+.text-violet { color: var(--primary); }
 
 .observability-signal-widget__info {
   flex-grow: 1;
@@ -1189,13 +1189,13 @@ function serviceQueue(service: ObservabilityService): string | null {
 }
 
 .badge--pass {
-  color: #065f46;
-  background: rgba(16, 185, 129, 0.15);
+  color: var(--success-soft-fg);
+  background: var(--success-soft);
 }
 
 .badge--warn {
-  color: #92400e;
-  background: rgba(245, 158, 11, 0.15);
+  color: var(--warning-soft-fg);
+  background: var(--warning-soft);
 }
 
 .queue-values {
@@ -1228,12 +1228,18 @@ function serviceQueue(service: ObservabilityService): string | null {
   background: var(--border);
 }
 
-/* Monospace Terminal Logs Console */
+/* Monospace Terminal Logs Console.
+   This is a deliberate skeuomorphic "terminal" surface: it stays dark in BOTH
+   themes (like an embedded code/log viewer), so its structural surfaces and
+   console-specific neutral text are intentional fixed-dark literals, not
+   themeable tokens. Only the status-semantic accents (dots / log levels / live
+   badge) are mapped to DS tokens — those saturated tones read correctly on the
+   fixed-dark background. */
 .logs-console {
   border-radius: 14px;
-  background: #0d0e12;
-  border: 1px solid #1f222d;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  background: oklch(0.18 0.012 274);
+  border: 1px solid oklch(0.28 0.014 274);
+  box-shadow: var(--shadow-lg);
   overflow: hidden;
 }
 
@@ -1242,8 +1248,8 @@ function serviceQueue(service: ObservabilityService): string | null {
   align-items: center;
   justify-content: space-between;
   padding: 10px 16px;
-  background: #14161f;
-  border-bottom: 1px solid #1f222d;
+  background: oklch(0.22 0.014 274);
+  border-bottom: 1px solid oklch(0.28 0.014 274);
 }
 
 .logs-console__buttons {
@@ -1257,14 +1263,15 @@ function serviceQueue(service: ObservabilityService): string | null {
   border-radius: 50%;
 }
 
-.dot--red { background: #ef4444; }
-.dot--yellow { background: #f59e0b; }
-.dot--green { background: #10b981; }
+.dot--red { background: var(--danger); }
+.dot--yellow { background: var(--warning); }
+.dot--green { background: var(--success); }
 
 .logs-console__title {
   font-family: var(--font-mono);
   font-size: var(--text-2xs);
-  color: #6c7289;
+  /* Console-neutral label on the fixed-dark terminal — intentionally not theme-flipped. */
+  color: oklch(0.6 0.02 274);
   font-weight: 700;
   letter-spacing: 0.05em;
 }
@@ -1273,9 +1280,9 @@ function serviceQueue(service: ObservabilityService): string | null {
   font-family: var(--font-mono);
   font-size: 0.65rem;
   font-weight: 700;
-  color: #10b981;
-  background: rgba(16, 185, 129, 0.1);
-  border: 1px solid rgba(16, 185, 129, 0.2);
+  color: var(--success);
+  background: color-mix(in oklch, var(--success) 12%, transparent);
+  border: 1px solid color-mix(in oklch, var(--success) 24%, transparent);
   padding: 2px 6px;
   border-radius: 4px;
 }
@@ -1285,7 +1292,8 @@ function serviceQueue(service: ObservabilityService): string | null {
   font-family: var(--font-mono);
   font-size: 0.78rem;
   line-height: 1.6;
-  color: #a6accd;
+  /* Console body text on the fixed-dark terminal — intentional fixed light-grey. */
+  color: oklch(0.78 0.02 274);
   max-height: 25rem;
   overflow-y: auto;
 }
@@ -1304,15 +1312,17 @@ function serviceQueue(service: ObservabilityService): string | null {
 }
 
 .logs-console__line:hover {
-  background: rgba(255, 255, 255, 0.03);
+  /* Light-on-dark row hover for the fixed-dark console — intentional. */
+  background: oklch(1 0 0 / 0.03);
 }
 
 .logs-console__time {
-  color: #50556f;
+  color: oklch(0.5 0.02 274);
 }
 
 .logs-console__service {
-  color: #82aaff;
+  /* Console accent (service name) on the fixed-dark terminal — intentional. */
+  color: oklch(0.74 0.1 256);
   font-weight: 600;
 }
 
@@ -1320,17 +1330,18 @@ function serviceQueue(service: ObservabilityService): string | null {
   font-weight: 700;
 }
 
-.level--info { color: #10b981; }
-.level--warning { color: #f59e0b; }
-.level--error { color: #ef4444; }
+.level--info { color: var(--success); }
+.level--warning { color: var(--warning); }
+.level--error { color: var(--danger); }
 
 .logs-console__msg {
-  color: #a6accd;
+  color: oklch(0.78 0.02 274);
   overflow-wrap: anywhere;
 }
 
 .logs-console__ref {
-  color: #ff9cac;
+  /* Console accent (correlation ref) on the fixed-dark terminal — intentional. */
+  color: oklch(0.78 0.1 14);
   opacity: 0.9;
   font-size: var(--text-2xs);
   overflow-wrap: anywhere;
@@ -1339,7 +1350,7 @@ function serviceQueue(service: ObservabilityService): string | null {
 .logs-console__empty {
   padding: 2rem;
   text-align: center;
-  color: #50556f;
+  color: oklch(0.5 0.02 274);
   font-style: italic;
 }
 
@@ -1372,9 +1383,9 @@ function serviceQueue(service: ObservabilityService): string | null {
 }
 
 .trace-status-badge--unavailable {
-  color: #991b1b;
-  background: rgba(239, 68, 68, 0.08);
-  border: 1px solid rgba(239, 68, 68, 0.15);
+  color: var(--danger-soft-fg);
+  background: color-mix(in oklch, var(--danger) 8%, transparent);
+  border: 1px solid color-mix(in oklch, var(--danger) 15%, transparent);
 }
 
 .trace-graph-wrapper {
@@ -1410,8 +1421,8 @@ function serviceQueue(service: ObservabilityService): string | null {
   gap: 0.875rem;
   padding: 1.25rem;
   border-radius: 12px;
-  border: 1px solid rgba(245, 158, 11, 0.2);
-  background: rgba(245, 158, 11, 0.04);
+  border: 1px solid color-mix(in oklch, var(--warning) 20%, transparent);
+  background: color-mix(in oklch, var(--warning) 4%, transparent);
 }
 
 .trace-info-box__content {

@@ -433,6 +433,7 @@ onUnmounted(() => {
   border-radius: 14px;
   display: grid;
   place-items: center;
+  /* Glyph rides each app's colored gradient tile (background: app.grad) — fixed light contrast. */
   color: #fff;
   box-shadow: var(--shadow-sm);
   transition: transform 0.16s cubic-bezier(0.34, 1.56, 0.64, 1);

@@ -84,6 +84,23 @@
   --shadow-glass: 0 8px 32px -8px oklch(0.3 0.06 276 / 0.18);
   --shadow-glow:  0 8px 28px -8px var(--primary-ring);
 
+  /* ---- Palet avatar (inisial user/client/sesi) ----
+     6 warna deterministik (di-hash dari nama) untuk variasi visual avatar.
+     Tiap slot punya warna dasar (--avatar-N) + ujung gradien (--avatar-N-2)
+     supaya tampilan gradien tetap sama. Bukan indikator status — murni dekoratif. */
+  --avatar-1:   oklch(0.585 0.205 274);  /* indigo */
+  --avatar-1-2: oklch(0.52 0.215 274);
+  --avatar-2:   oklch(0.64 0.21 354);    /* pink */
+  --avatar-2-2: oklch(0.58 0.215 357);
+  --avatar-3:   oklch(0.7 0.155 162);    /* emerald */
+  --avatar-3-2: oklch(0.61 0.13 160);
+  --avatar-4:   oklch(0.76 0.16 70);     /* amber */
+  --avatar-4-2: oklch(0.69 0.16 58);
+  --avatar-5:   oklch(0.63 0.2 256);     /* blue */
+  --avatar-5-2: oklch(0.55 0.215 258);
+  --avatar-6:   oklch(0.62 0.2 300);     /* violet */
+  --avatar-6-2: oklch(0.54 0.22 298);
+
   /* ---- Ukuran layout ---- */
   --topbar-h:        64px;
   --sidebar-w:       264px;  /* sidebar admin terbuka */
@@ -126,6 +143,20 @@
   --danger-soft-fg: oklch(0.82 0.13 20);
   --info-soft:      oklch(0.33 0.07 232);
   --info-soft-fg:   oklch(0.82 0.11 232);
+
+  /* Palet avatar mode gelap — sedikit lebih terang biar inisial putih tetap kontras. */
+  --avatar-1:   oklch(0.64 0.19 274);
+  --avatar-1-2: oklch(0.57 0.2 274);
+  --avatar-2:   oklch(0.68 0.2 354);
+  --avatar-2-2: oklch(0.62 0.205 357);
+  --avatar-3:   oklch(0.72 0.15 162);
+  --avatar-3-2: oklch(0.64 0.13 160);
+  --avatar-4:   oklch(0.78 0.155 70);
+  --avatar-4-2: oklch(0.71 0.155 58);
+  --avatar-5:   oklch(0.67 0.19 256);
+  --avatar-5-2: oklch(0.59 0.2 258);
+  --avatar-6:   oklch(0.66 0.19 300);
+  --avatar-6-2: oklch(0.58 0.21 298);
 
   --glass-bg:       oklch(0.24 0.02 274 / 0.6);
   --glass-bg-2:     oklch(0.26 0.022 274 / 0.74);

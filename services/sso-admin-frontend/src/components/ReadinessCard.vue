@@ -17,14 +17,14 @@ defineProps<{
 
 <style scoped>
 .readiness-card--ready {
-  border-color: rgb(20 184 166 / 24%);
+  border-color: color-mix(in oklch, var(--success) 24%, transparent);
 }
 
 .readiness-card--guarded {
-  border-color: rgb(245 158 11 / 24%);
+  border-color: color-mix(in oklch, var(--warning) 24%, transparent);
 }
 
 .readiness-card--pending {
-  border-color: rgb(99 102 241 / 24%);
+  border-color: color-mix(in oklch, var(--primary) 24%, transparent);
 }
 </style>

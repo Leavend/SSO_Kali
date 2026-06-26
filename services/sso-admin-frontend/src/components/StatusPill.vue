@@ -26,17 +26,17 @@ const stateConfig = computed(() => {
 
 <style scoped>
 .ui-badge--ready {
-  color: #ccfbf1;
-  background: rgb(20 184 166 / 14%);
+  color: var(--success-soft-fg);
+  background: var(--success-soft);
 }
 
 .ui-badge--guarded {
-  color: #fef3c7;
-  background: rgb(245 158 11 / 14%);
+  color: var(--warning-soft-fg);
+  background: var(--warning-soft);
 }
 
 .ui-badge--pending {
-  color: #e0e7ff;
-  background: rgb(99 102 241 / 14%);
+  color: var(--primary-soft-fg);
+  background: var(--primary-soft);
 }
 </style>
