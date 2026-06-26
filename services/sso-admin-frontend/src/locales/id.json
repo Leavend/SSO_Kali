@@ -183,7 +183,12 @@
     "label_description": "Deskripsi",
     "btn_save": "Simpan",
     "btn_edit": "Edit",
-    "btn_delete": "Hapus"
+    "btn_delete": "Hapus",
+    "col_version": "Versi",
+    "col_effective": "Berlaku",
+    "col_status": "Status",
+    "detail_desc": "Payload versi policy dan aksi aktivasi",
+    "close_detail": "Tutup versi policy"
   },
   "roles": {
     "eyebrow": "RBAC",
@@ -219,7 +224,13 @@
     "btn_edit": "Ubah",
     "btn_delete": "Hapus",
     "btn_manage_permissions": "Atur Permission",
-    "system_role": "Peran Sistem"
+    "system_role": "Peran Sistem",
+    "custom_role": "Kustom",
+    "col_role": "Peran",
+    "col_users": "Pengguna",
+    "col_status": "Status",
+    "detail_desc": "Detail peran dan aksi pengelolaan",
+    "close_detail": "Tutup detail peran"
   },
   "users": {
     "eyebrow": "User Lifecycle",

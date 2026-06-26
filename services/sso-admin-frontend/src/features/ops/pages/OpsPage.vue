@@ -5,6 +5,7 @@ import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
 import UiEmptyState from '@/components/ui/UiEmptyState.vue'
 import UiSkeleton from '@/components/ui/UiSkeleton.vue'
 import UiStatusView from '@/components/ui/UiStatusView.vue'
+import UiStatusBadge from '@/components/ui/UiStatusBadge.vue'
 import { useOpsStore } from '../stores/ops.store'
 import { OPS_DRILLS, runbookHref } from '../drills'
 
@@ -68,15 +69,53 @@ onMounted(() => {
     <div v-else class="ops-layout">
       <section class="detail-section" aria-labelledby="readiness-title">
         <h2 id="readiness-title">{{ t('ops.readiness_title') }}</h2>
-        <div v-if="store.readiness" class="ui-card">
-          <strong>{{ store.readiness.service }}</strong>
-          <p>{{ store.readiness.ready ? 'ready' : 'degraded' }}</p>
-          <p>database: {{ store.readiness.checks.database }}</p>
-          <p>redis: {{ store.readiness.checks.redis }}</p>
-          <p v-if="queueCheck">
-            queue: {{ queueCheck.pending_jobs }} pending · {{ queueCheck.failed_jobs }} failed
-          </p>
-          <p v-if="store.readiness.timestamp">timestamp: {{ store.readiness.timestamp }}</p>
+        <div v-if="store.readiness" class="ui-card ops-readiness">
+          <div class="ops-readiness__head">
+            <strong>{{ store.readiness.service }}</strong>
+            <UiStatusBadge
+              :tone="store.readiness.ready ? 'success' : 'danger'"
+              :label="store.readiness.ready ? 'ready' : 'degraded'"
+            />
+          </div>
+          <dl class="ops-checks">
+            <div class="ops-checks__row">
+              <dt>database</dt>
+              <dd>
+                <UiStatusBadge
+                  :tone="store.readiness.checks.database ? 'success' : 'danger'"
+                  :label="store.readiness.checks.database ? 'ok' : 'down'"
+                />
+              </dd>
+            </div>
+            <div class="ops-checks__row">
+              <dt>redis</dt>
+              <dd>
+                <UiStatusBadge
+                  :tone="store.readiness.checks.redis ? 'success' : 'danger'"
+                  :label="store.readiness.checks.redis ? 'ok' : 'down'"
+                />
+              </dd>
+            </div>
+            <div v-if="queueCheck" class="ops-checks__row">
+              <dt>queue</dt>
+              <dd>
+                <UiStatusBadge
+                  :tone="
+                    queueCheck.failed_jobs > 0
+                      ? 'danger'
+                      : queueCheck.pending_jobs > 0
+                        ? 'warning'
+                        : 'success'
+                  "
+                  :label="`${queueCheck.pending_jobs} pending · ${queueCheck.failed_jobs} failed`"
+                />
+              </dd>
+            </div>
+            <div v-if="store.readiness.timestamp" class="ops-checks__row">
+              <dt>timestamp</dt>
+              <dd>{{ store.readiness.timestamp }}</dd>
+            </div>
+          </dl>
         </div>
       </section>
 
@@ -118,3 +157,39 @@ onMounted(() => {
     <EvidenceContextPanel title="Ops evidence" :request-id="store.requestId" />
   </section>
 </template>
+
+<style scoped>
+.ops-readiness {
+  display: grid;
+  gap: 14px;
+}
+
+.ops-readiness__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.ops-checks {
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.ops-checks__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ops-checks__row dt {
+  font-size: 0.8125rem;
+  color: var(--fg-2);
+}
+
+.ops-checks__row dd {
+  margin: 0;
+}
+</style>
