@@ -1,4 +1,12 @@
 {
+  "app_launcher": {
+    "aria_label": "Aplikasi SSO",
+    "title": "Aplikasi SSO",
+    "subtitle": "Pemkot Bontang",
+    "favorites": "Sering dipakai",
+    "others": "Aplikasi lain",
+    "manage": "Kelola aplikasi terhubung"
+  },
   "admin": {
     "skip_link": "Lewati ke konten utama",
     "sidebar_label": "Navigasi admin",

@@ -22,6 +22,7 @@ import {
 } from 'lucide-vue-next'
 import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import AppLauncher from '@/components/AppLauncher.vue'
 import LocaleSwitcher from '@/components/LocaleSwitcher.vue'
 import SsoAccountBar from '@/components/SsoAccountBar.vue'
 import UiThemeToggle from '@/components/ui/UiThemeToggle.vue'
@@ -556,6 +557,7 @@ async function handleMenuClick(menu: AdminPermissionMenu, index: number) {
           </button>
         </div>
         <div class="admin-topbar__actions">
+          <AppLauncher align="right" />
           <SsoAccountBar v-if="session.principal" />
         </div>
       </header>
