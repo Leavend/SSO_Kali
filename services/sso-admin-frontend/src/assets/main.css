@@ -27,10 +27,10 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  --font-display: Outfit, Inter, system-ui, sans-serif;
-  --font-sans:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  /* Bontang DS fonts (mirror of tokens.css --font-*); see src/assets/tokens.css */
+  --font-display: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', monospace;
   --color-brand-50: #eff6ff;
   --color-brand-100: #dbeafe;
   --color-brand-500: #3b82f6;
@@ -72,72 +72,42 @@
   --container-page: 80rem;
 }
 
+/*
+ * Bontang DS integration: map Tailwind v4 semantic names onto the handoff design
+ * tokens defined in src/assets/tokens.css (imported first in main.ts). Names that
+ * are identical in both (--card, --primary, --muted, --border, --ring) are
+ * intentionally NOT redeclared here, so the tokens.css value flows through (a
+ * self-referential `--card: var(--card)` would be an invalid cycle).
+ * Dark mode is driven entirely by tokens.css (:root.dark / [data-theme=dark]
+ * redefine --bg/--fg/etc.), so the mappings below adapt automatically — no
+ * separate :root.dark override block is needed here.
+ */
 :root {
-  --background: #fafafa;
-  --foreground: #09090b;
-  --card: #ffffff;
-  --card-foreground: #09090b;
-  --popover: #ffffff;
-  --popover-foreground: #09090b;
-  --primary: #4f46e5;
-  --primary-foreground: #ffffff;
-  --secondary: #f4f4f5;
-  --secondary-foreground: #18181b;
-  --muted: #f4f4f5;
-  --muted-foreground: #71717a;
-  --accent: #e0f2fe;
-  --accent-foreground: #0369a1;
-  --destructive: #dc2626;
-  --destructive-foreground: #ffffff;
-  --border: #e4e4e7;
-  --input: #e4e4e7;
-  --ring: #4f46e5;
-  --radius: 0.75rem;
-  --sidebar-bg: #ffffff;
-  --sidebar-active-color: #09090b;
+  --background: var(--bg);
+  --foreground: var(--fg);
+  --card-foreground: var(--fg);
+  --popover: var(--elevated);
+  --popover-foreground: var(--fg);
+  --primary-foreground: var(--primary-fg);
+  --secondary: var(--bg-2);
+  --secondary-foreground: var(--fg);
+  --muted-foreground: var(--fg-2);
+  --accent: var(--primary-soft);
+  --accent-foreground: var(--primary-soft-fg);
+  --destructive: var(--danger);
+  --destructive-foreground: var(--primary-fg);
+  --input: var(--border);
+  --radius: var(--r-md);
+  --sidebar-bg: var(--bg-2);
+  --sidebar-active-color: var(--fg);
   --admin-shell-bg:
-    radial-gradient(circle at 12% 12%, rgba(99, 102, 241, 0.05), transparent 480px),
-    radial-gradient(circle at 88% 88%, rgba(168, 85, 247, 0.04), transparent 500px), #fafafa;
-  font-family:
-    Inter,
-    Outfit,
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    sans-serif;
+    radial-gradient(circle at 12% 12%, oklch(0.6 0.2 280 / 0.05), transparent 480px),
+    radial-gradient(circle at 88% 88%, oklch(0.62 0.2 300 / 0.04), transparent 500px), var(--bg);
+  font-family: var(--font-sans);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-:root.dark {
-  --background: #030303;
-  --foreground: #f4f4f5;
-  --card: #09090b;
-  --card-foreground: #f4f4f5;
-  --popover: #09090b;
-  --popover-foreground: #f4f4f5;
-  --primary: #6366f1;
-  --primary-foreground: #ffffff;
-  --secondary: #18181b;
-  --secondary-foreground: #e4e4e7;
-  --muted: #18181b;
-  --muted-foreground: #a1a1aa;
-  --accent: #1e1b4b;
-  --accent-foreground: #c7d2fe;
-  --destructive: #ef4444;
-  --destructive-foreground: #ffffff;
-  --border: #27272a;
-  --input: #27272a;
-  --ring: #6366f1;
-  --sidebar-bg: #090a0f;
-  --sidebar-active-color: #ffffff;
-  --admin-shell-bg:
-    radial-gradient(circle at 12% 12%, rgba(99, 102, 241, 0.08), transparent 480px),
-    radial-gradient(circle at 88% 88%, rgba(168, 85, 247, 0.06), transparent 500px), #030303;
 }
 
 * {
