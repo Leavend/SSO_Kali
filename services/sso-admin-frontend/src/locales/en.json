@@ -93,6 +93,7 @@
     "copy": "Copy",
     "copied": "Copied!",
     "close": "Close",
+    "status": "Status",
     "evidence": {
       "ref_code": "Reference code",
       "tech_details": "Technical details",
@@ -419,6 +420,10 @@
     "ov_owner": "Owner",
     "ov_secret_rotated": "Secret rotated",
     "ov_secret_hash": "Secret hash",
+    "lc_activated": "Activated",
+    "lc_disabled": "Disabled",
+    "lc_secret_expires": "Secret expires",
+    "lc_provisioning": "Provisioning",
     "no_redirect_uris": "No redirect URIs configured.",
     "no_logout_uris": "No post-logout redirect URIs configured.",
     "allowed_scopes_title": "Allowed Scopes",

@@ -491,7 +491,7 @@ describe('ClientsPage', () => {
     expect(wrapper.text()).not.toContain('Decommission client')
   })
 
-  it('renders selectable client cards in the sidebar list', () => {
+  it('renders selectable client rows in the master list (.tbl)', () => {
     const store = useClientsStore()
     store.status = 'success'
     store.clients = [client]
@@ -499,9 +499,123 @@ describe('ClientsPage', () => {
 
     const wrapper = mount(ClientsPage)
 
-    const cards = wrapper.findAll('button.client-card-item')
-    expect(cards).toHaveLength(1)
-    expect(cards[0]!.text()).toContain('Prototype App A')
-    expect(cards[0]!.attributes('aria-current')).toBe('true')
+    // The master list is a token-styled .tbl; each client is a selectable row.
+    expect(wrapper.find('.clients-master table.tbl').exists()).toBe(true)
+    const rows = wrapper.findAll('tr.client-card-item')
+    expect(rows).toHaveLength(1)
+    expect(rows[0]!.text()).toContain('Prototype App A')
+    expect(rows[0]!.attributes('aria-current')).toBe('true')
+    expect(rows[0]!.attributes('aria-selected')).toBe('true')
+    expect(rows[0]!.attributes('tabindex')).toBe('0')
+  })
+
+  it('selecting a master row loads that client into the detail panel', async () => {
+    const second: AdminClient = {
+      ...client,
+      client_id: 'prototype-app-b',
+      display_name: 'Prototype App B',
+    }
+    const store = useClientsStore()
+    store.status = 'success'
+    store.detailStatus = 'success'
+    store.clients = [client, second]
+    store.selectedClientId = 'prototype-app-a'
+    // selectClient delegates to the API show() path; stub it so no refetch noise.
+    const selectSpy = vi.spyOn(store, 'selectClient').mockImplementation(async (id: string) => {
+      store.selectedClientId = id
+    })
+
+    const wrapper = mount(ClientsPage)
+    expect(wrapper.find('.client-profile-hero__header-row h2').text()).toContain('Prototype App A')
+
+    const rows = wrapper.findAll('tr.client-card-item')
+    const rowB = rows.find((row) => row.text().includes('Prototype App B'))!
+    await rowB.trigger('click')
+    await wrapper.vm.$nextTick()
+
+    expect(selectSpy).toHaveBeenCalledWith('prototype-app-b')
+    expect(wrapper.find('.client-profile-hero__header-row h2').text()).toContain('Prototype App B')
+  })
+
+  it('exposes the client status and category as non-colour-only badges in the detail hero', () => {
+    const store = useClientsStore()
+    store.status = 'success'
+    store.detailStatus = 'success'
+    store.clients = [{ ...client, category: 'kepegawaian' }]
+    store.selectedClientId = 'prototype-app-a'
+
+    const wrapper = mount(ClientsPage)
+
+    // Status + category render via the shared UiStatusBadge (.status dot + label).
+    const statusBadge = wrapper.find('.client-profile-hero__status-badge')
+    expect(statusBadge.classes()).toContain('status')
+    expect(statusBadge.text()).toBe('active')
+    const categoryBadge = wrapper.find('.client-profile-hero__category-badge')
+    expect(categoryBadge.classes()).toContain('status')
+    expect(categoryBadge.text()).toContain('Staff')
+  })
+
+  it('moves between detail tabs with arrow keys (tablist semantics)', async () => {
+    const store = useClientsStore()
+    store.status = 'success'
+    store.detailStatus = 'success'
+    store.clients = [client]
+    store.selectedClientId = 'prototype-app-a'
+
+    const wrapper = mount(ClientsPage)
+    const tabs = wrapper.findAll('[role="tab"]')
+    const overviewTab = tabs.find((tab) => tab.text().includes('Overview'))!
+    const urisTab = tabs.find((tab) => tab.text().includes('URIs'))!
+
+    expect(overviewTab.attributes('aria-selected')).toBe('true')
+    expect(overviewTab.attributes('tabindex')).toBe('0')
+    expect(urisTab.attributes('tabindex')).toBe('-1')
+
+    await overviewTab.trigger('keydown', { key: 'ArrowRight' })
+
+    expect(urisTab.attributes('aria-selected')).toBe('true')
+    expect(overviewTab.attributes('aria-selected')).toBe('false')
+    expect(wrapper.find('#client-panel-uris').isVisible()).toBe(true)
+  })
+
+  it('hosts the detail panel in a focus-trapping drawer at ≤920px', async () => {
+    const originalMatchMedia = window.matchMedia
+    // Force the compact breakpoint: the inline pane collapses to a drawer.
+    window.matchMedia = vi
+      .fn<(query: string) => MediaQueryList>()
+      .mockImplementation(
+        (query: string) =>
+          ({
+            matches: query.includes('max-width: 920px'),
+            media: query,
+            onchange: null,
+            addEventListener: vi.fn<() => void>(),
+            removeEventListener: vi.fn<() => void>(),
+            addListener: vi.fn<() => void>(),
+            removeListener: vi.fn<() => void>(),
+            dispatchEvent: vi.fn<() => boolean>(),
+          }) as unknown as MediaQueryList,
+      ) as unknown as typeof window.matchMedia
+
+    try {
+      const store = useClientsStore()
+      store.status = 'success'
+      store.detailStatus = 'success'
+      store.clients = [client]
+      store.selectedClientId = 'prototype-app-a'
+
+      const wrapper = mount(ClientsPage, { attachTo: document.body })
+      await wrapper.vm.$nextTick()
+
+      const drawer = document.querySelector('[role="dialog"][aria-modal="true"]')
+      expect(drawer).not.toBeNull()
+      // Detail content (and its tabs) renders inside the drawer, not inline.
+      expect(drawer!.querySelector('[role="tablist"]')).not.toBeNull()
+      expect(drawer!.textContent).toContain('Prototype App A')
+
+      wrapper.unmount()
+    } finally {
+      window.matchMedia = originalMatchMedia
+    }
   })
 })

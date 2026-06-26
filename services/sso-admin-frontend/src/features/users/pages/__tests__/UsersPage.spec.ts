@@ -125,16 +125,17 @@ describe('UsersPage', () => {
     expect(wrapper.text()).not.toMatch(/Bearer|refreshToken|password|SQLSTATE/i)
   })
 
-  it('keeps last-login evidence out of the user list card', () => {
+  it('keeps last-login evidence out of the user list table', () => {
     const store = useUsersStore()
     store.status = 'success'
     store.users = [user]
-    store.selectedSubjectId = 'sub_admin'
+    store.selectedSubjectId = null
 
     const wrapper = mount(UsersPage)
 
-    expect(wrapper.find('.user-card-item__last-login').exists()).toBe(false)
-    expect(wrapper.find('.user-card-item').text()).not.toContain('Last login')
+    const table = wrapper.find('table.tbl')
+    expect(table.exists()).toBe(true)
+    expect(table.text()).not.toContain('Last login')
   })
 
   it('renders last-login evidence in the selected user stat card from detail context fallback', () => {
@@ -218,10 +219,8 @@ describe('UsersPage', () => {
 
     expect(wrapper.find('.users-layout').exists()).toBe(true)
     expect(wrapper.find('.users-list').exists()).toBe(true)
-    expect(wrapper.find('.user-detail-container').exists()).toBe(true)
     expect(wrapper.find('.ui-skeleton').exists()).toBe(false)
     expect(wrapper.findAll('.user-card-item--skeleton')).toHaveLength(6)
-    expect(wrapper.find('.user-detail-loading-shell').exists()).toBe(true)
   })
 
   it('collapses the empty cross-tab status region so overview content follows the tabs', () => {

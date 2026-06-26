@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch, type Component } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from '@/composables/useI18n'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
@@ -9,11 +9,13 @@ import UiFormField from '@/components/ui/UiFormField.vue'
 import UiInput from '@/components/ui/UiInput.vue'
 import UiSkeleton from '@/components/ui/UiSkeleton.vue'
 import UiStatusView from '@/components/ui/UiStatusView.vue'
+import UiStatusBadge from '@/components/ui/UiStatusBadge.vue'
+import UiDetailDrawer from '@/components/ui/UiDetailDrawer.vue'
 import { useToast } from '@/components/ui/useToast'
 import { useSessionStore } from '@/stores/session.store'
 import { useSessionsStore } from '../stores/sessions.store'
 import { formatFriendlyClientName, formatTechnicalPreview } from '@/lib/display-identifiers'
-import { ChevronLeft, LayoutDashboard, Search, ShieldAlert, X } from 'lucide-vue-next'
+import { Search, X } from 'lucide-vue-next'
 
 const store = useSessionsStore()
 const session = useSessionStore()
@@ -22,47 +24,6 @@ const { t } = useI18n()
 
 const canTerminateSessions = computed(() => session.hasPermission('admin.sessions.terminate'))
 const pendingRevokeSessionId = ref<string | null>(null)
-
-// ─── Tabs Navigation ──────────────────────────────────────────────────────────
-type DetailTab = 'overview' | 'lifecycle'
-const activeDetailTab = ref<DetailTab>('overview')
-
-const detailTabs = computed<Array<{ key: DetailTab; label: string; icon: Component }>>(() => {
-  const tabs: Array<{ key: DetailTab; label: string; icon: Component }> = [
-    { key: 'overview', label: t('sessions.tab_overview'), icon: LayoutDashboard },
-  ]
-  if (canTerminateSessions.value) {
-    tabs.push({ key: 'lifecycle', label: t('sessions.tab_lifecycle'), icon: ShieldAlert })
-  }
-  return tabs
-})
-
-function selectDetailTab(key: DetailTab): void {
-  activeDetailTab.value = key
-}
-
-function onTabKeydown(event: KeyboardEvent, index: number): void {
-  const tabs = detailTabs.value
-  let nextIndex = index
-  if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
-    nextIndex = (index + 1) % tabs.length
-  } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
-    nextIndex = (index - 1 + tabs.length) % tabs.length
-  } else if (event.key === 'Home') {
-    nextIndex = 0
-  } else if (event.key === 'End') {
-    nextIndex = tabs.length - 1
-  } else {
-    return
-  }
-  event.preventDefault()
-  const next = tabs[nextIndex]
-  if (!next) return
-  activeDetailTab.value = next.key
-  void nextTick(() => {
-    document.getElementById(`session-tab-${next.key}`)?.focus()
-  })
-}
 
 // ─── Search Sidebar ───────────────────────────────────────────────────────────
 const searchQuery = ref('')
@@ -86,7 +47,10 @@ const selectedSession = computed(() =>
 async function selectSession(sessionId: string): Promise<void> {
   store.errorMessage = null
   await store.selectSession(sessionId)
-  activeDetailTab.value = 'overview'
+}
+
+function closeDrawer(): void {
+  store.selectedSessionId = null
 }
 
 // ─── Revocation ───────────────────────────────────────────────────────────────
@@ -221,12 +185,8 @@ watch(
       :standalone="false"
     />
 
-    <div
-      v-else
-      class="sessions-layout"
-      :class="{ 'sessions-layout--has-selection': store.selectedSessionId !== null }"
-    >
-      <!-- Action status: spans full grid width, above sidebar and detail panel -->
+    <div v-else class="sessions-table-region">
+      <!-- Action status: above the table -->
       <div
         v-if="store.actionStatus === 'step_up_required' || store.actionStatus === 'error'"
         class="sessions-status-bar"
@@ -237,220 +197,102 @@ watch(
         </p>
       </div>
 
-      <!-- ─── Sidebar: searchable session list ──────────────────────────── -->
-      <aside class="sessions-list" :aria-label="t('sessions.list_aria')">
-        <UiEmptyState
-          v-if="store.sessions.length === 0"
-          :title="t('sessions.empty')"
-          :description="t('sessions.empty_desc')"
-        />
+      <UiEmptyState
+        v-if="store.sessions.length === 0"
+        :title="t('sessions.empty')"
+        :description="t('sessions.empty_desc')"
+      />
 
-        <template v-else>
-          <UiFormField
-            id="search-sessions"
-            :label="t('sessions.search_label')"
-            class="sessions-search"
-          >
-            <div class="sessions-search__control">
-              <Search :size="16" class="sessions-search__icon" aria-hidden="true" />
-              <UiInput
-                id="search-sessions"
-                v-model="searchQuery"
-                :placeholder="t('sessions.search_placeholder')"
-                autocomplete="off"
-                class="sessions-search__input"
-              />
-              <button
-                v-if="searchQuery"
-                class="sessions-search__clear"
-                type="button"
-                :aria-label="t('common.btn_reset')"
-                @click="searchQuery = ''"
-              >
-                <X :size="14" />
-              </button>
-            </div>
-          </UiFormField>
-
-          <!-- Session card list: <li> wraps a select button + sibling revoke button
-               so that interactive elements are never nested (HTML spec §4.3.18). -->
-          <ul class="sessions-list-cards" role="list">
-            <li
-              v-for="adminSession in filteredSessions"
-              :key="adminSession.session_id"
-              class="session-card-item"
-              :class="{
-                'session-card-item--active': adminSession.session_id === store.selectedSessionId,
-              }"
+      <template v-else>
+        <UiFormField
+          id="search-sessions"
+          :label="t('sessions.search_label')"
+          class="sessions-search"
+        >
+          <div class="sessions-search__control">
+            <Search :size="16" class="sessions-search__icon" aria-hidden="true" />
+            <UiInput
+              id="search-sessions"
+              v-model="searchQuery"
+              :placeholder="t('sessions.search_placeholder')"
+              autocomplete="off"
+              class="sessions-search__input"
+            />
+            <button
+              v-if="searchQuery"
+              class="sessions-search__clear"
+              type="button"
+              :aria-label="t('common.btn_reset')"
+              @click="searchQuery = ''"
             >
-              <button
-                class="session-card-item__select"
-                type="button"
-                :aria-current="
-                  adminSession.session_id === store.selectedSessionId ? 'true' : undefined
-                "
-                @click="selectSession(adminSession.session_id)"
-              >
-                <span
-                  class="session-card-item__avatar"
-                  :style="avatarStyle(adminSession.user_display_name ?? adminSession.session_id)"
-                  aria-hidden="true"
-                >
-                  {{ avatarInitial(adminSession.user_display_name ?? adminSession.session_id) }}
-                </span>
-                <span class="session-card-item__body">
-                  <span class="session-card-item__name">{{ adminSession.user_display_name }}</span>
-                  <span class="session-card-item__id">{{
-                    formatTechnicalPreview(adminSession.session_id)
-                  }}</span>
-                  <span class="session-card-item__meta">
-                    <span class="session-card-item__client">{{
-                      formatFriendlyClientName(adminSession.client_id)
-                    }}</span>
-                    <span class="session-card-item__ip">{{ adminSession.ip_address }}</span>
-                  </span>
-                </span>
-              </button>
-            </li>
-          </ul>
-        </template>
-      </aside>
-
-      <!-- ─── Session Detail Panel ──────────────────────────────────────── -->
-      <article v-if="selectedSession" class="session-detail">
-        <!-- Mobile back button -->
-        <div class="session-detail-back-bar">
-          <UiButton variant="secondary" size="sm" @click="store.selectedSessionId = null">
-            <ChevronLeft :size="16" />
-            {{ t('common.back_to_list') }}
-          </UiButton>
-        </div>
-
-        <!-- Hero -->
-        <header class="client-profile-hero">
-          <div
-            class="client-profile-hero__avatar"
-            :style="avatarStyle(selectedSession.user_display_name ?? selectedSession.session_id)"
-            aria-hidden="true"
-          >
-            {{ avatarInitial(selectedSession.user_display_name ?? selectedSession.session_id) }}
+              <X :size="14" />
+            </button>
           </div>
-          <div class="client-profile-hero__content">
-            <div class="client-profile-hero__header-row">
-              <h2>{{ selectedSession.user_display_name }}</h2>
-              <span class="ui-badge badge--active">{{ t('sessions.status_active') }}</span>
-            </div>
-            <p class="client-profile-hero__env">
-              {{ formatFriendlyClientName(selectedSession.client_id) }}
-            </p>
-            <p class="client-profile-hero__client-id">
-              {{ formatTechnicalPreview(selectedSession.session_id) }}
-            </p>
-          </div>
-        </header>
+        </UiFormField>
 
-        <!-- Tabs Navigation -->
-        <nav
-          class="client-detail-tabs"
-          role="tablist"
-          :aria-label="t('sessions.detail_tabs_label')"
-        >
-          <button
-            v-for="(tab, index) in detailTabs"
-            :id="`session-tab-${tab.key}`"
-            :key="tab.key"
-            class="client-detail-tab"
-            :class="{ 'client-detail-tab--active': activeDetailTab === tab.key }"
-            role="tab"
-            :aria-selected="activeDetailTab === tab.key"
-            :aria-controls="`session-panel-${tab.key}`"
-            :tabindex="activeDetailTab === tab.key ? 0 : -1"
-            type="button"
-            @click="selectDetailTab(tab.key)"
-            @keydown="onTabKeydown($event, index)"
-          >
-            <component :is="tab.icon" :size="16" aria-hidden="true" />
-            {{ tab.label }}
-          </button>
-        </nav>
-
-        <!-- Panel: Overview -->
-        <div
-          v-show="activeDetailTab === 'overview'"
-          id="session-panel-overview"
-          role="tabpanel"
-          aria-labelledby="session-tab-overview"
-          class="tab-panel"
-        >
-          <dl class="detail-grid">
-            <div>
-              <dt>Kode sesi</dt>
-              <dd>
-                <code>{{ formatTechnicalPreview(selectedSession.session_id) }}</code>
-              </dd>
-            </div>
-            <div>
-              <dt>Aplikasi</dt>
-              <dd>
-                <code>{{ formatFriendlyClientName(selectedSession.client_id) }}</code>
-              </dd>
-            </div>
-            <div>
-              <dt>{{ t('sessions.ov_user_name') }}</dt>
-              <dd>{{ selectedSession.user_display_name }}</dd>
-            </div>
-            <div>
-              <dt>{{ t('sessions.ov_ip_address') }}</dt>
-              <dd>
-                <code>{{ selectedSession.ip_address }}</code>
-              </dd>
-            </div>
-          </dl>
-        </div>
-
-        <!-- Panel: Lifecycle (danger zone) -->
-        <div
-          v-show="activeDetailTab === 'lifecycle'"
-          id="session-panel-lifecycle"
-          role="tabpanel"
-          aria-labelledby="session-tab-lifecycle"
-          class="tab-panel"
-        >
-          <section
-            v-if="canTerminateSessions"
-            class="detail-section detail-section--danger"
-            aria-labelledby="terminate-session-title"
-          >
-            <h3 id="terminate-session-title">{{ t('sessions.terminate_title') }}</h3>
-            <p class="detail-section__lead">{{ t('sessions.terminate_hint') }}</p>
-
-            <div class="user-detail__sub-actions">
-              <h4 class="user-detail__sub-actions-title">{{ t('sessions.sub_revoke_title') }}</h4>
-              <p class="user-detail-card__hint">{{ t('sessions.revoke_hint') }}</p>
-              <div class="user-detail-card__actions">
-                <UiButton
-                  variant="danger"
-                  class="revoke-button"
-                  type="button"
-                  @click="requestRevokeSession(selectedSession.session_id)"
+        <div class="tbl-shell">
+          <div class="tbl-scroll">
+            <table class="tbl tbl--clickable">
+              <caption class="sr-only">
+                {{
+                  t('sessions.list_aria')
+                }}
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">{{ t('sessions.col_user') }}</th>
+                  <th scope="col">{{ t('sessions.col_session_id') }}</th>
+                  <th scope="col">{{ t('sessions.col_client') }}</th>
+                  <th scope="col">{{ t('sessions.col_ip') }}</th>
+                  <th scope="col">{{ t('common.status') }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="adminSession in filteredSessions"
+                  :key="adminSession.session_id"
+                  :aria-selected="adminSession.session_id === store.selectedSessionId"
+                  tabindex="0"
+                  @click="selectSession(adminSession.session_id)"
+                  @keydown.enter.prevent="selectSession(adminSession.session_id)"
+                  @keydown.space.prevent="selectSession(adminSession.session_id)"
                 >
-                  {{ t('sessions.btn_revoke') }}
-                </UiButton>
-              </div>
-            </div>
-          </section>
+                  <td :data-label="t('sessions.col_user')">
+                    <span class="tbl__rowname">
+                      <span
+                        class="tbl__avatar"
+                        :style="
+                          avatarStyle(adminSession.user_display_name ?? adminSession.session_id)
+                        "
+                        aria-hidden="true"
+                      >
+                        {{
+                          avatarInitial(adminSession.user_display_name ?? adminSession.session_id)
+                        }}
+                      </span>
+                      <span class="tbl__rowmeta">
+                        <span class="tbl__primary">{{ adminSession.user_display_name }}</span>
+                      </span>
+                    </span>
+                  </td>
+                  <td class="tbl__cell--mono" :data-label="t('sessions.col_session_id')">
+                    {{ formatTechnicalPreview(adminSession.session_id) }}
+                  </td>
+                  <td :data-label="t('sessions.col_client')">
+                    {{ formatFriendlyClientName(adminSession.client_id) }}
+                  </td>
+                  <td class="tbl__cell--mono" :data-label="t('sessions.col_ip')">
+                    {{ adminSession.ip_address }}
+                  </td>
+                  <td :data-label="t('common.status')">
+                    <UiStatusBadge tone="success" :label="t('sessions.status_active')" />
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
-
-        <EvidenceContextPanel title="Sessions evidence" :request-id="store.requestId" />
-      </article>
-
-      <!-- ─── Empty state when no session selected ──────────────────────── -->
-      <section v-else class="session-detail-empty" role="status">
-        <UiEmptyState
-          :title="t('sessions.no_session_title')"
-          :description="t('sessions.no_session_desc')"
-        />
-      </section>
+      </template>
     </div>
 
     <EvidenceContextPanel
@@ -458,6 +300,81 @@ watch(
       title="Sessions evidence"
       :request-id="store.requestId"
     />
+
+    <!-- ─── Session Detail Drawer ─────────────────────────────────────────── -->
+    <UiDetailDrawer
+      v-if="selectedSession"
+      :open="store.selectedSessionId !== null"
+      title-id="session-detail-drawer"
+      :title="selectedSession.user_display_name ?? t('sessions.title')"
+      :description="t('sessions.detail_tabs_label')"
+      :close-label="t('common.close')"
+      @close="closeDrawer"
+    >
+      <header class="drawer-hero">
+        <div
+          class="drawer-hero__avatar"
+          :style="avatarStyle(selectedSession.user_display_name ?? selectedSession.session_id)"
+          aria-hidden="true"
+        >
+          {{ avatarInitial(selectedSession.user_display_name ?? selectedSession.session_id) }}
+        </div>
+        <div class="drawer-hero__meta">
+          <UiStatusBadge tone="success" :label="t('sessions.status_active')" />
+          <p class="drawer-hero__sub">{{ formatFriendlyClientName(selectedSession.client_id) }}</p>
+        </div>
+      </header>
+
+      <dl class="detail-grid">
+        <div>
+          <dt>Kode sesi</dt>
+          <dd>
+            <code>{{ formatTechnicalPreview(selectedSession.session_id) }}</code>
+          </dd>
+        </div>
+        <div>
+          <dt>Aplikasi</dt>
+          <dd>
+            <code>{{ formatFriendlyClientName(selectedSession.client_id) }}</code>
+          </dd>
+        </div>
+        <div>
+          <dt>{{ t('sessions.ov_user_name') }}</dt>
+          <dd>{{ selectedSession.user_display_name }}</dd>
+        </div>
+        <div>
+          <dt>{{ t('sessions.ov_ip_address') }}</dt>
+          <dd>
+            <code>{{ selectedSession.ip_address }}</code>
+          </dd>
+        </div>
+      </dl>
+
+      <section
+        v-if="canTerminateSessions"
+        class="detail-section detail-section--danger"
+        aria-labelledby="terminate-session-title"
+      >
+        <h3 id="terminate-session-title">{{ t('sessions.terminate_title') }}</h3>
+        <p class="detail-section__lead">{{ t('sessions.terminate_hint') }}</p>
+        <div class="user-detail__sub-actions">
+          <h4 class="user-detail__sub-actions-title">{{ t('sessions.sub_revoke_title') }}</h4>
+          <p class="user-detail-card__hint">{{ t('sessions.revoke_hint') }}</p>
+          <div class="user-detail-card__actions">
+            <UiButton
+              variant="danger"
+              class="revoke-button"
+              type="button"
+              @click="requestRevokeSession(selectedSession.session_id)"
+            >
+              {{ t('sessions.btn_revoke') }}
+            </UiButton>
+          </div>
+        </div>
+      </section>
+
+      <EvidenceContextPanel title="Sessions evidence" :request-id="store.requestId" />
+    </UiDetailDrawer>
 
     <ConfirmDialog
       :open="pendingRevokeSessionId !== null"

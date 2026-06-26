@@ -51,6 +51,30 @@ describe('DashboardPage', () => {
     expect(wrapper.find('[title="2026-05-27T00:00:00.000Z"]').exists()).toBe(true)
   })
 
+  it('renders the glass hero eyebrow chip and tinted metric icons', () => {
+    const store = useDashboardStore()
+    store.summary = summary
+    store.status = 'success'
+
+    const wrapper = mount(DashboardPage)
+
+    // Hero eyebrow rendered as the soft-primary pill chip.
+    const eyebrow = wrapper.find('.dashboard-hero__eyebrow')
+    expect(eyebrow.exists()).toBe(true)
+    expect(eyebrow.text()).toBe('Admin Governance')
+
+    // Each metric card carries a per-metric tinted icon wrapper.
+    expect(wrapper.find('.dashboard-card__icon-wrapper--primary').exists()).toBe(true)
+    expect(wrapper.find('.dashboard-card__icon-wrapper--info').exists()).toBe(true)
+    expect(wrapper.find('.dashboard-card__icon-wrapper--success').exists()).toBe(true)
+    expect(wrapper.find('.dashboard-card__icon-wrapper--danger').exists()).toBe(true)
+
+    // Metric values render through the count-up badge with the real number.
+    const values = wrapper.findAll('.dashboard-counter-value')
+    expect(values.length).toBeGreaterThan(0)
+    expect(wrapper.text()).toContain('10')
+  })
+
   it('renders safe forbidden state without raw backend details', () => {
     const store = useDashboardStore()
     store.status = 'forbidden'

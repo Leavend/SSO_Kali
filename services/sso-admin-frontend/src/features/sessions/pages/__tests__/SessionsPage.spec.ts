@@ -141,7 +141,6 @@ describe('SessionsPage', () => {
     const revokeSpy = vi.spyOn(store, 'revokeSession')
 
     const wrapper = mount(SessionsPage)
-    await wrapper.find('#session-tab-lifecycle').trigger('click')
     await wrapper.find('button.revoke-button').trigger('click')
 
     expect(revokeSpy).not.toHaveBeenCalled()
@@ -160,7 +159,6 @@ describe('SessionsPage', () => {
     const revokeSpy = vi.spyOn(store, 'revokeSession')
 
     const wrapper = mount(SessionsPage)
-    await wrapper.find('#session-tab-lifecycle').trigger('click')
     await wrapper.find('button.revoke-button').trigger('click')
     await wrapper.find('[data-testid="confirm-dialog-cancel"]').trigger('click')
 
@@ -212,28 +210,29 @@ describe('SessionsPage', () => {
     expect(wrapper.findAll('button.revoke-button')).toHaveLength(0)
   })
 
-  it('uses sessions-layout as the main layout container class', () => {
+  it('uses the sessions table region as the main layout container', () => {
     const store = useSessionsStore()
     store.sessions = [session1]
     store.status = 'success'
 
     const wrapper = mount(SessionsPage)
 
-    expect(wrapper.find('.sessions-layout').exists()).toBe(true)
+    expect(wrapper.find('.sessions-table-region').exists()).toBe(true)
+    expect(wrapper.find('table.tbl').exists()).toBe(true)
     expect(wrapper.find('.clients-layout').exists()).toBe(false)
   })
 
-  it('renders session cards as accessible li elements with only select button and no action button', () => {
+  it('renders sessions as accessible table rows without nested action buttons', () => {
     const store = useSessionsStore()
     store.sessions = [session1, session2]
     store.status = 'success'
 
     const wrapper = mount(SessionsPage)
 
-    const cards = wrapper.findAll('li.session-card-item')
-    expect(cards).toHaveLength(2)
-    const selectBtn = cards[0]!.find('button.session-card-item__select')
-    expect(selectBtn.exists()).toBe(true)
-    expect(cards[0]!.findAll('button')).toHaveLength(1)
+    const rows = wrapper.findAll('table.tbl tbody tr')
+    expect(rows).toHaveLength(2)
+    // Rows are the interactive element (click/keyboard) — no nested buttons inside.
+    expect(rows[0]!.findAll('button')).toHaveLength(0)
+    expect(rows[0]!.attributes('tabindex')).toBe('0')
   })
 })
