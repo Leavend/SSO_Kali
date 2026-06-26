@@ -11,6 +11,9 @@
     "nav_docs": "Documentation",
     "brand_eyebrow": "SSO Admin",
     "brand_title": "Control Plane",
+    "search_menus": "Search menus",
+    "search_menus_placeholder": "Search menus…",
+    "search_no_menus": "No matching menu",
     "forbidden": {
       "eyebrow": "Access Denied",
       "title": "This account does not have admin access.",

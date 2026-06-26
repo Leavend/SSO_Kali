@@ -17,8 +17,8 @@ describe('admin sidebar layout contract', () => {
     const collapsedControlPlane = cssBlock('.admin-control-plane--collapsed')
     const sidebar = cssBlock('.admin-sidebar')
 
-    expect(controlPlane).toContain('--sidebar-w: 248px;')
-    expect(controlPlane).toContain('--sidebar-w-collapsed: 60px;')
+    expect(controlPlane).toContain('--sidebar-w: 264px;')
+    expect(controlPlane).toContain('--sidebar-w-collapsed: 76px;')
     expect(controlPlane).toContain('grid-template-columns: var(--sidebar-w) minmax(0, 1fr);')
     expect(sidebar).toContain('width: var(--sidebar-w);')
     expect(collapsedControlPlane).toContain('--sidebar-w: var(--sidebar-w-collapsed);')

@@ -1,10 +1,11 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { nextTick } from 'vue'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import AdminShellLayout from '../AdminShellLayout.vue'
 import { useSessionStore } from '@/stores/session.store'
+import { useI18n } from '@/composables/useI18n'
 import type { AdminPrincipal } from '@/types/auth.types'
 
 const principal: AdminPrincipal = {
@@ -43,6 +44,10 @@ const principal: AdminPrincipal = {
 }
 
 describe('AdminShellLayout', () => {
+  // Unmount each test's wrapper so layout instances (and their duplicate
+  // `#admin-menu-search` ids / document listeners) do not bleed into later tests.
+  enableAutoUnmount(afterEach)
+
   beforeEach(() => {
     setActivePinia(createPinia())
     useSessionStore().setPrincipal(principal)
@@ -612,6 +617,100 @@ describe('AdminShellLayout', () => {
     offsetTopSpy.mockRestore()
     offsetHeightSpy.mockRestore()
     rafSpy.mockRestore()
+  })
+
+  it('filters sidebar menus by translated label, hides the pill while filtering, and clears back to all', async () => {
+    // Pin the locale so the rendered (translated) labels are deterministic — the
+    // i18n active locale is module-global and can leak from other suites. `id` is
+    // statically bundled, so its menu labels ("Dasbor"/"Klien") are always present.
+    await useI18n().setLocale('id')
+    await flushPromises()
+
+    // Use a real router (like the pill tests) so RouterLink renders genuine <a>
+    // elements that honour `v-show` — a previously installed router plugin makes
+    // an object RouterLink stub unreliable across this suite.
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/dashboard', component: { template: '<section />' }, meta: { requiresAdmin: true } },
+        { path: '/clients', component: { template: '<section />' }, meta: { requiresAdmin: true } },
+      ],
+    })
+    await router.push('/dashboard')
+    await router.isReady()
+
+    const session = useSessionStore()
+    session.setPrincipal({
+      ...principal,
+      permissions: {
+        ...principal.permissions,
+        menus: [
+          {
+            id: 'dashboard',
+            label: 'Dashboard',
+            required_permission: 'admin.dashboard.view',
+            visible: true,
+          },
+          {
+            id: 'clients',
+            label: 'Clients',
+            required_permission: 'admin.clients.read',
+            visible: true,
+          },
+        ],
+      },
+    })
+
+    const wrapper = mount(AdminShellLayout, {
+      global: {
+        plugins: [router],
+        stubs: {
+          RouterView: true,
+        },
+      },
+    })
+
+    await flushPromises()
+
+    const search = wrapper.get('#admin-menu-search')
+    // Accessible name via real <label for>, and a native keyboard-focusable search input.
+    expect(wrapper.get('label[for="admin-menu-search"]').text()).toBeTruthy()
+    expect(search.attributes('type')).toBe('search')
+
+    // A link is shown when `v-show` has NOT set inline `display: none` (jsdom's
+    // computed style does not always reflect inline display, so assert on the
+    // style attribute that v-show writes rather than on isVisible()).
+    const isHidden = (style: string | undefined) => (style ?? '').includes('display: none')
+    const shownLabels = () =>
+      wrapper
+        .findAll('.admin-nav .admin-nav__link')
+        .filter((link) => !isHidden(link.attributes('style')))
+        .map((link) => link.text())
+    const pillHidden = () => isHidden(wrapper.find('.admin-nav__pill').attributes('style'))
+
+    // Empty filter shows all visible menus ("Dasbor", "Klien" under `id`).
+    expect(shownLabels()).toHaveLength(2)
+    expect(pillHidden()).toBe(false)
+
+    // Filter narrows the list (case-insensitive) to just the matching menu.
+    await search.setValue('KLI')
+    await flushPromises()
+    expect(shownLabels()).toEqual(['Klien'])
+    // Pill must not point at a hidden item while a filter is active.
+    expect(pillHidden()).toBe(true)
+
+    // No-match shows the muted hint.
+    await search.setValue('zzz-no-such-menu')
+    await flushPromises()
+    expect(shownLabels()).toHaveLength(0)
+    expect(wrapper.find('.admin-nav__empty').exists()).toBe(true)
+
+    // Clearing restores the full list and the pill.
+    await search.setValue('')
+    await flushPromises()
+    expect(shownLabels()).toHaveLength(2)
+    expect(wrapper.find('.admin-nav__empty').exists()).toBe(false)
+    expect(pillHidden()).toBe(false)
   })
 
   it('positions the active menu pill correctly when menus are already loaded before mount (TDD for loaded state)', async () => {

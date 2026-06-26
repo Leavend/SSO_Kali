@@ -11,6 +11,9 @@
     "nav_docs": "Docs",
     "brand_eyebrow": "SSO Admin",
     "brand_title": "Control Plane",
+    "search_menus": "Cari menu",
+    "search_menus_placeholder": "Cari menu…",
+    "search_no_menus": "Menu tidak ditemukan",
     "forbidden": {
       "eyebrow": "Akses Ditolak",
       "title": "Akun ini belum memiliki akses admin.",
