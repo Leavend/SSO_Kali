@@ -87,7 +87,7 @@ const technicalRows = computed(() =>
   cursor: pointer;
   font-size: 0.8rem;
   font-weight: 700;
-  color: hsl(var(--muted-foreground));
+  color: var(--muted-foreground);
 }
 
 .technical-evidence[open] > summary {

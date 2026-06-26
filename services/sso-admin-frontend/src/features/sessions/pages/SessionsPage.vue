@@ -123,13 +123,14 @@ function avatarInitial(name: string): string {
 }
 
 function avatarStyle(name: string): Record<string, string> {
+  // Dark-aware avatar palette lives in src/assets/tokens.css (--avatar-1..6 + -2 end).
   const palette = [
-    { start: '#6366F1', end: '#4F46E5' },
-    { start: '#EC4899', end: '#DB2777' },
-    { start: '#10B981', end: '#059669' },
-    { start: '#F59E0B', end: '#D97706' },
-    { start: '#3B82F6', end: '#2563EB' },
-    { start: '#8B5CF6', end: '#7C3AED' },
+    { start: 'var(--avatar-1)', end: 'var(--avatar-1-2)' },
+    { start: 'var(--avatar-2)', end: 'var(--avatar-2-2)' },
+    { start: 'var(--avatar-3)', end: 'var(--avatar-3-2)' },
+    { start: 'var(--avatar-4)', end: 'var(--avatar-4-2)' },
+    { start: 'var(--avatar-5)', end: 'var(--avatar-5-2)' },
+    { start: 'var(--avatar-6)', end: 'var(--avatar-6-2)' },
   ]
   let hash = 0
   for (let i = 0; i < name.length; i += 1) {

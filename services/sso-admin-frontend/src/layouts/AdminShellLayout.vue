@@ -18,9 +18,11 @@ import {
   Menu,
   BookOpen,
   ExternalLink,
+  Search,
 } from 'lucide-vue-next'
 import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import AppLauncher from '@/components/AppLauncher.vue'
 import LocaleSwitcher from '@/components/LocaleSwitcher.vue'
 import SsoAccountBar from '@/components/SsoAccountBar.vue'
 import UiThemeToggle from '@/components/ui/UiThemeToggle.vue'
@@ -34,6 +36,17 @@ const session = useSessionStore()
 const { t, locale } = useI18n()
 const isNavOpen = ref(false)
 const docsBaseUrl = getAdminEnvironment().docsBaseUrl
+
+// Sidebar menu search (inline with the nav, per Bontang handoff). The pill index
+// logic below maps to `visibleMenus[currentIndex]` and reads `navRef.children[idx + 1]`
+// (children[0] is the pill div). To keep that mapping intact we DO NOT filter the
+// rendered nav list; instead we toggle a `.admin-nav__link--hidden` class on the
+// non-matching links via `isMenuFiltered`, and hide the pill entirely while a
+// filter is active so it can never point at a hidden item. Empty filter shows all.
+const searchQuery = ref('')
+const searchInputRef = ref<HTMLInputElement | null>(null)
+const normalizedSearch = computed<string>(() => searchQuery.value.trim().toLowerCase())
+const isFiltering = computed<boolean>(() => normalizedSearch.value.length > 0)
 
 const route = useRoute()
 const router = useRouter()
@@ -75,6 +88,34 @@ function translateMenuLabel(menu: AdminPermissionMenu): string {
   const translationKey = `menu.${menu.id}`
   const translated = t(translationKey)
   return translated === translationKey ? menu.label : translated
+}
+
+// Precompute the set of menu ids that match the current filter as a `computed`
+// so the template's `v-show` binding tracks `searchQuery` + `locale` reactively
+// (a plain method with an early `return true` can skip dependency tracking on the
+// first, unfiltered render). The pill source stays `visibleMenus`, so this only
+// drives which links are *shown*, never the pill index.
+const matchingMenuIds = computed<ReadonlySet<string>>(() => {
+  const ids = new Set<string>()
+  const query = normalizedSearch.value
+  for (const menu of visibleMenus.value) {
+    if (!query || translateMenuLabel(menu).toLowerCase().includes(query)) {
+      ids.add(menu.id)
+    }
+  }
+  return ids
+})
+
+function menuMatchesSearch(menu: AdminPermissionMenu): boolean {
+  return matchingMenuIds.value.has(menu.id)
+}
+
+const hasSearchMatches = computed<boolean>(() =>
+  !isFiltering.value || matchingMenuIds.value.size > 0,
+)
+
+function focusSearchInput(): void {
+  requestAnimationFrame(() => searchInputRef.value?.focus())
 }
 
 const activeMenuLabel = computed<string>(() => {
@@ -232,9 +273,23 @@ function handleToggle(): void {
     isNavOpen.value = !isNavOpen.value
   } else {
     isCollapsed.value = !isCollapsed.value
+    // Collapsing to the rail hides the full search field, so clear any active
+    // filter — otherwise the rail would show only a subset of nav icons.
+    if (isCollapsed.value) searchQuery.value = ''
     localStorage.setItem('sso-sidebar-collapsed', String(isCollapsed.value))
     setTimeout(updatePillPosition, 260)
   }
+}
+
+// In the collapsed (rail) state the search shrinks to its icon button. Clicking it
+// expands the sidebar so the full search field is usable, then moves focus into it.
+function expandAndFocusSearch(): void {
+  if (isCollapsed.value && !isMobile.value) {
+    isCollapsed.value = false
+    localStorage.setItem('sso-sidebar-collapsed', 'false')
+    setTimeout(updatePillPosition, 260)
+  }
+  focusSearchInput()
 }
 
 function getMenuIndexByPath(path: string): number {
@@ -378,13 +433,44 @@ async function handleMenuClick(menu: AdminPermissionMenu, index: number) {
         </button>
       </div>
 
+      <div class="admin-search" :class="{ 'admin-search--rail': isCollapsed && !isMobile }">
+        <button
+          v-if="isCollapsed && !isMobile"
+          class="admin-search__rail-button"
+          type="button"
+          :aria-label="t('admin.search_menus')"
+          :data-tooltip="t('admin.search_menus')"
+          @click="expandAndFocusSearch"
+        >
+          <Search :size="16" aria-hidden="true" />
+        </button>
+        <template v-else>
+          <label class="admin-search__label" for="admin-menu-search">{{
+            t('admin.search_menus')
+          }}</label>
+          <span class="admin-search__field">
+            <Search class="admin-search__icon" :size="16" aria-hidden="true" />
+            <input
+              id="admin-menu-search"
+              ref="searchInputRef"
+              v-model="searchQuery"
+              class="admin-search__input"
+              type="search"
+              autocomplete="off"
+              :placeholder="t('admin.search_menus_placeholder')"
+            />
+          </span>
+        </template>
+      </div>
+
       <nav ref="navRef" class="admin-nav" :aria-label="t('admin.module_label')">
-        <div class="admin-nav__pill" :style="pillStyle"></div>
+        <div v-show="!isFiltering" class="admin-nav__pill" :style="pillStyle"></div>
         <RouterLink
           v-for="(menu, index) in visibleMenus"
+          v-show="menuMatchesSearch(menu)"
           :key="menu.id"
           class="admin-nav__link"
-          :class="{ 'admin-nav__link--active': currentIndex === index }"
+          :class="{ 'admin-nav__link--active': currentIndex === index && !isFiltering }"
           :to="menuPath(menu)"
           :data-tooltip="translateMenuLabel(menu)"
           :title="translateMenuLabel(menu)"
@@ -400,6 +486,9 @@ async function handleMenuClick(menu: AdminPermissionMenu, index: number) {
             <span class="admin-nav__text">{{ translateMenuLabel(menu) }}</span>
           </span>
         </RouterLink>
+        <p v-if="!hasSearchMatches" class="admin-nav__empty" role="status">
+          {{ t('admin.search_no_menus') }}
+        </p>
       </nav>
 
       <a
@@ -468,6 +557,7 @@ async function handleMenuClick(menu: AdminPermissionMenu, index: number) {
           </button>
         </div>
         <div class="admin-topbar__actions">
+          <AppLauncher align="right" />
           <SsoAccountBar v-if="session.principal" />
         </div>
       </header>

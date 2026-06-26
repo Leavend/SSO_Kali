@@ -1,4 +1,12 @@
 {
+  "app_launcher": {
+    "aria_label": "SSO applications",
+    "title": "SSO applications",
+    "subtitle": "Bontang City Government",
+    "favorites": "Frequently used",
+    "others": "Other apps",
+    "manage": "Manage connected apps"
+  },
   "admin": {
     "skip_link": "Skip to main content",
     "sidebar_label": "Admin navigation",
@@ -11,6 +19,9 @@
     "nav_docs": "Documentation",
     "brand_eyebrow": "SSO Admin",
     "brand_title": "Control Plane",
+    "search_menus": "Search menus",
+    "search_menus_placeholder": "Search menus…",
+    "search_no_menus": "No matching menu",
     "forbidden": {
       "eyebrow": "Access Denied",
       "title": "This account does not have admin access.",

@@ -267,13 +267,13 @@ function templateFor(code: string): SsoErrorTemplate | undefined {
 }
 
 .status-badge--enabled {
-  color: #ccfbf1;
-  background: rgb(20 184 166 / 14%);
+  color: var(--success-soft-fg);
+  background: var(--success-soft);
 }
 
 .status-badge--default {
-  color: #e0e7ff;
-  background: rgb(99 102 241 / 14%);
+  color: var(--primary-soft-fg);
+  background: var(--primary-soft);
 }
 
 .checkbox-row {

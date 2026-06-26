@@ -263,7 +263,7 @@ const confirmDescription = computed<string>(() => {
   border: 1px solid var(--border);
   border-radius: 20px;
   background: var(--card);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-md);
 }
 
 .section-title {
@@ -310,15 +310,15 @@ const confirmDescription = computed<string>(() => {
 }
 
 .badge--success {
-  background: color-mix(in srgb, var(--success, #10b981) 12%, transparent);
-  color: var(--success, #10b981);
-  border: 1px solid color-mix(in srgb, var(--success, #10b981) 20%, transparent);
+  background: var(--success-soft);
+  color: var(--success-soft-fg);
+  border: 1px solid color-mix(in oklch, var(--success) 20%, transparent);
 }
 
 .badge--danger {
-  background: color-mix(in srgb, var(--danger, #ef4444) 12%, transparent);
-  color: var(--danger, #ef4444);
-  border: 1px solid color-mix(in srgb, var(--danger, #ef4444) 20%, transparent);
+  background: var(--danger-soft);
+  color: var(--danger-soft-fg);
+  border: 1px solid color-mix(in oklch, var(--danger) 20%, transparent);
 }
 
 /* ── Responsive ─────────────────────────────────────────────────────────── */

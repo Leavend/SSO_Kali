@@ -1,4 +1,12 @@
 {
+  "app_launcher": {
+    "aria_label": "Aplikasi SSO",
+    "title": "Aplikasi SSO",
+    "subtitle": "Pemkot Bontang",
+    "favorites": "Sering dipakai",
+    "others": "Aplikasi lain",
+    "manage": "Kelola aplikasi terhubung"
+  },
   "admin": {
     "skip_link": "Lewati ke konten utama",
     "sidebar_label": "Navigasi admin",
@@ -11,6 +19,9 @@
     "nav_docs": "Docs",
     "brand_eyebrow": "SSO Admin",
     "brand_title": "Control Plane",
+    "search_menus": "Cari menu",
+    "search_menus_placeholder": "Cari menu…",
+    "search_no_menus": "Menu tidak ditemukan",
     "forbidden": {
       "eyebrow": "Akses Ditolak",
       "title": "Akun ini belum memiliki akses admin.",

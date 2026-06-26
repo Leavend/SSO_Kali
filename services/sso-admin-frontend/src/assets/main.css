@@ -27,27 +27,30 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  --font-display: Outfit, Inter, system-ui, sans-serif;
-  --font-sans:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  --color-brand-50: #eff6ff;
-  --color-brand-100: #dbeafe;
-  --color-brand-500: #3b82f6;
-  --color-brand-600: #2563eb;
-  --color-brand-700: #1d4ed8;
-  --color-error-50: #fef2f2;
-  --color-error-700: #b91c1c;
-  --color-error-800: #991b1b;
-  --color-success-50: #f0fdf4;
-  --color-success-700: #15803d;
-  --color-warning-50: #fffbeb;
-  --color-warning-700: #a16207;
-  --color-info-50: #f0f9ff;
-  --color-info-700: #0369a1;
-  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.07), 0 1px 2px -1px rgb(0 0 0 / 0.07);
-  --shadow-elevated: 0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.05);
-  --shadow-modal: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.05);
+  /* Bontang DS fonts (mirror of tokens.css --font-*); see src/assets/tokens.css */
+  --font-display: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', monospace;
+  /* Tailwind palette/shadow anchors mapped onto the Bontang DS tokens so the
+     utility layer (bg-brand-*, text-success-700, shadow-card, …) matches the
+     design system and flips correctly in dark mode (the referenced tokens do). */
+  --color-brand-50: color-mix(in oklch, var(--primary-soft) 60%, var(--card));
+  --color-brand-100: var(--primary-soft);
+  --color-brand-500: var(--primary);
+  --color-brand-600: var(--primary-600);
+  --color-brand-700: var(--primary-700);
+  --color-error-50: var(--danger-soft);
+  --color-error-700: var(--danger);
+  --color-error-800: color-mix(in oklch, var(--danger) 85%, black);
+  --color-success-50: var(--success-soft);
+  --color-success-700: var(--success);
+  --color-warning-50: var(--warning-soft);
+  --color-warning-700: var(--warning);
+  --color-info-50: var(--info-soft);
+  --color-info-700: var(--info);
+  --shadow-card: var(--shadow-sm);
+  --shadow-elevated: var(--shadow-md);
+  --shadow-modal: var(--shadow-lg);
 
   /* Typography Ramp with paired line-heights */
   --text-2xs: 0.6875rem;
@@ -72,72 +75,42 @@
   --container-page: 80rem;
 }
 
+/*
+ * Bontang DS integration: map Tailwind v4 semantic names onto the handoff design
+ * tokens defined in src/assets/tokens.css (imported first in main.ts). Names that
+ * are identical in both (--card, --primary, --muted, --border, --ring) are
+ * intentionally NOT redeclared here, so the tokens.css value flows through (a
+ * self-referential `--card: var(--card)` would be an invalid cycle).
+ * Dark mode is driven entirely by tokens.css (:root.dark / [data-theme=dark]
+ * redefine --bg/--fg/etc.), so the mappings below adapt automatically — no
+ * separate :root.dark override block is needed here.
+ */
 :root {
-  --background: #fafafa;
-  --foreground: #09090b;
-  --card: #ffffff;
-  --card-foreground: #09090b;
-  --popover: #ffffff;
-  --popover-foreground: #09090b;
-  --primary: #4f46e5;
-  --primary-foreground: #ffffff;
-  --secondary: #f4f4f5;
-  --secondary-foreground: #18181b;
-  --muted: #f4f4f5;
-  --muted-foreground: #71717a;
-  --accent: #e0f2fe;
-  --accent-foreground: #0369a1;
-  --destructive: #dc2626;
-  --destructive-foreground: #ffffff;
-  --border: #e4e4e7;
-  --input: #e4e4e7;
-  --ring: #4f46e5;
-  --radius: 0.75rem;
-  --sidebar-bg: #ffffff;
-  --sidebar-active-color: #09090b;
+  --background: var(--bg);
+  --foreground: var(--fg);
+  --card-foreground: var(--fg);
+  --popover: var(--elevated);
+  --popover-foreground: var(--fg);
+  --primary-foreground: var(--primary-fg);
+  --secondary: var(--bg-2);
+  --secondary-foreground: var(--fg);
+  --muted-foreground: var(--fg-2);
+  --accent: var(--primary-soft);
+  --accent-foreground: var(--primary-soft-fg);
+  --destructive: var(--danger);
+  --destructive-foreground: var(--primary-fg);
+  --input: var(--border);
+  --radius: var(--r-md);
+  --sidebar-bg: var(--bg-2);
+  --sidebar-active-color: var(--fg);
   --admin-shell-bg:
-    radial-gradient(circle at 12% 12%, rgba(99, 102, 241, 0.05), transparent 480px),
-    radial-gradient(circle at 88% 88%, rgba(168, 85, 247, 0.04), transparent 500px), #fafafa;
-  font-family:
-    Inter,
-    Outfit,
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    sans-serif;
+    radial-gradient(circle at 12% 12%, oklch(0.6 0.2 280 / 0.05), transparent 480px),
+    radial-gradient(circle at 88% 88%, oklch(0.62 0.2 300 / 0.04), transparent 500px), var(--bg);
+  font-family: var(--font-sans);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-:root.dark {
-  --background: #030303;
-  --foreground: #f4f4f5;
-  --card: #09090b;
-  --card-foreground: #f4f4f5;
-  --popover: #09090b;
-  --popover-foreground: #f4f4f5;
-  --primary: #6366f1;
-  --primary-foreground: #ffffff;
-  --secondary: #18181b;
-  --secondary-foreground: #e4e4e7;
-  --muted: #18181b;
-  --muted-foreground: #a1a1aa;
-  --accent: #1e1b4b;
-  --accent-foreground: #c7d2fe;
-  --destructive: #ef4444;
-  --destructive-foreground: #ffffff;
-  --border: #27272a;
-  --input: #27272a;
-  --ring: #6366f1;
-  --sidebar-bg: #090a0f;
-  --sidebar-active-color: #ffffff;
-  --admin-shell-bg:
-    radial-gradient(circle at 12% 12%, rgba(99, 102, 241, 0.08), transparent 480px),
-    radial-gradient(circle at 88% 88%, rgba(168, 85, 247, 0.06), transparent 500px), #030303;
 }
 
 * {
@@ -207,8 +180,11 @@ select {
 }
 
 .admin-control-plane {
-  --sidebar-w: 248px;
-  --sidebar-w-collapsed: 60px;
+  /* Bontang shell widths: open rail 264 / collapsed rail 76 (mirrors the
+     --sidebar-w / --sidebar-w-rail design tokens). Kept as a local alias so the
+     existing grid + collapsed override below stay single-source. */
+  --sidebar-w: 264px;
+  --sidebar-w-collapsed: 76px;
 
   display: grid;
   grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
@@ -230,14 +206,18 @@ select {
   left: 12px;
   z-index: 10;
   padding: 10px 14px;
-  color: #0f172a;
+  color: var(--primary-fg);
   font-weight: 800;
-  background: #99f6e4;
-  border-radius: 10px;
+  background: var(--primary);
+  border-radius: var(--r-sm);
+  box-shadow: var(--shadow-md);
   transform: translateY(-160%);
 }
 
-.skip-link:focus {
+.skip-link:focus,
+.skip-link:focus-visible {
+  outline: 2px solid var(--primary-ring);
+  outline-offset: 2px;
   transform: translateY(0);
 }
 
@@ -274,15 +254,15 @@ select {
   font-size: var(--text-2xs);
   font-weight: 700;
   text-transform: uppercase;
-  color: #6366f1;
-  background: rgba(99, 102, 241, 0.12);
+  color: var(--primary-soft-fg);
+  background: var(--primary-soft);
   padding: 4px 8px;
-  border-radius: 6px;
+  border-radius: var(--r-xs);
   letter-spacing: 0.05em;
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  border: 1px solid rgba(99, 102, 241, 0.2);
+  border: 1px solid color-mix(in oklch, var(--primary) 20%, transparent);
   width: fit-content;
 }
 
@@ -324,6 +304,96 @@ select {
   opacity: 0.4;
 }
 
+/* Inline sidebar menu search (Bontang shell) */
+.admin-search {
+  display: grid;
+  flex: 0 0 auto;
+}
+
+.admin-search__label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  white-space: nowrap;
+  border: 0;
+  clip: rect(0, 0, 0, 0);
+}
+
+.admin-search__field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.admin-search__icon {
+  position: absolute;
+  left: 12px;
+  color: var(--fg-3);
+  pointer-events: none;
+}
+
+.admin-search__input {
+  width: 100%;
+  height: var(--ctl-h);
+  padding: 0 12px 0 36px;
+  color: var(--fg);
+  font-size: var(--text-sm);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  transition:
+    border-color 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+.admin-search__input::placeholder {
+  color: var(--fg-3);
+}
+
+.admin-search__input:focus-visible {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-ring);
+}
+
+.admin-search__rail-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin: 0 auto;
+  color: var(--fg-2);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition:
+    border-color 0.16s ease,
+    color 0.16s ease;
+}
+
+.admin-search__rail-button:hover,
+.admin-search__rail-button:focus-visible {
+  color: var(--primary-soft-fg);
+  border-color: var(--primary);
+}
+
+.admin-search__rail-button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--primary-ring);
+}
+
+.admin-nav__empty {
+  margin: 8px 4px 0;
+  color: var(--fg-3);
+  font-size: var(--text-xs);
+  text-align: center;
+}
+
 .admin-nav {
   position: relative;
   display: grid;
@@ -337,9 +407,9 @@ select {
   position: absolute;
   left: 0;
   width: 100%;
-  border-radius: 8px;
-  background: rgba(99, 102, 241, 0.08);
-  border-left: 3px solid #6366f1;
+  border-radius: var(--r-sm);
+  background: var(--primary-soft);
+  border-left: 3px solid var(--primary);
   transition: all 0.22s cubic-bezier(0.25, 1, 0.5, 1);
   pointer-events: none;
   z-index: 0;
@@ -360,15 +430,20 @@ select {
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.admin-nav__link:hover,
-.admin-nav__link:focus-visible {
+.admin-nav__link:hover {
   color: var(--foreground);
-  background: rgba(255, 255, 255, 0.04);
-  outline: none;
+  background: var(--muted);
 }
 
-.admin-nav__link--active {
-  color: var(--sidebar-active-color);
+.admin-nav__link:focus-visible {
+  color: var(--foreground);
+  outline: 2px solid var(--primary-ring);
+  outline-offset: -2px;
+}
+
+.admin-nav__link--active,
+.admin-nav__link--active:hover {
+  color: var(--primary-soft-fg);
   font-weight: 600;
 }
 
@@ -395,10 +470,14 @@ select {
   transition: all 0.2s ease;
 }
 
-.admin-nav__link:hover .admin-nav__icon,
+.admin-nav__link:hover .admin-nav__icon {
+  opacity: 1;
+  color: var(--primary);
+}
+
 .admin-nav__link--active .admin-nav__icon {
   opacity: 1;
-  color: #6366f1;
+  color: var(--primary-soft-fg);
 }
 
 .admin-principal {
@@ -560,7 +639,7 @@ select {
   border: 1px solid var(--border);
   border-radius: 24px;
   background: var(--card);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-lg);
   backdrop-filter: blur(20px);
 }
 
@@ -616,7 +695,7 @@ select {
 .progress-bar__fill {
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, var(--primary), #a855f7);
+  background: var(--brand-grad);
   transition: width 0.6s ease;
 }
 
@@ -656,7 +735,7 @@ select {
 }
 
 .button--primary:hover {
-  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.35);
+  box-shadow: 0 8px 24px color-mix(in oklch, var(--primary) 35%, transparent);
 }
 
 .button--secondary {
@@ -684,15 +763,15 @@ select {
   margin-top: 24px;
   padding: 1rem 1.25rem;
   border-radius: 12px;
-  border: 1px solid rgba(245, 158, 11, 0.2);
-  background: rgba(245, 158, 11, 0.08);
-  color: #92400e;
+  border: 1px solid color-mix(in oklch, var(--warning) 20%, transparent);
+  background: var(--warning-soft);
+  color: var(--warning-soft-fg);
   font-size: var(--text-sm);
 }
 
 .dashboard-stale-banner svg {
   flex: none;
-  color: #f59e0b;
+  color: var(--warning);
 }
 
 .dashboard-grid {
@@ -730,8 +809,8 @@ select {
 .readiness-card:hover,
 .dashboard-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(99, 102, 241, 0.4);
-  box-shadow: 0 12px 30px rgba(99, 102, 241, 0.08);
+  border-color: color-mix(in oklch, var(--primary) 40%, transparent);
+  box-shadow: 0 12px 30px color-mix(in oklch, var(--primary) 8%, transparent);
 }
 
 .readiness-card h2,
@@ -804,7 +883,7 @@ select {
   border: 1px solid var(--border);
   border-radius: 20px;
   background: var(--card);
-  box-shadow: 0 20px 56px rgb(0 0 0 / 24%);
+  box-shadow: var(--shadow-lg);
 }
 
 .oidc-panel h2 {
@@ -887,9 +966,9 @@ select {
 .oidc-status-badge[data-status='active'],
 .oidc-status-badge[data-status='published'],
 .oidc-status-badge[data-status='available'] {
-  color: #22c55e;
-  border-color: rgba(34, 197, 94, 0.3);
-  background: rgba(34, 197, 94, 0.1);
+  color: var(--success-soft-fg);
+  border-color: color-mix(in oklch, var(--success) 30%, transparent);
+  background: var(--success-soft);
 }
 
 .oidc-status-badge[data-status='warning'],
@@ -897,17 +976,17 @@ select {
 .oidc-status-badge[data-status='missing'],
 .oidc-status-badge[data-status='missing_label'],
 .oidc-status-badge[data-status='unknown'] {
-  color: #eab308;
-  border-color: rgba(234, 179, 8, 0.3);
-  background: rgba(234, 179, 8, 0.1);
+  color: var(--warning-soft-fg);
+  border-color: color-mix(in oklch, var(--warning) 30%, transparent);
+  background: var(--warning-soft);
 }
 
 .oidc-status-badge[data-status='mismatch'],
 .oidc-status-badge[data-status='failed'],
 .oidc-status-badge[data-status='unavailable'] {
-  color: #ef4444;
-  border-color: rgba(239, 68, 68, 0.3);
-  background: rgba(239, 68, 68, 0.1);
+  color: var(--danger-soft-fg);
+  border-color: color-mix(in oklch, var(--danger) 30%, transparent);
+  background: var(--danger-soft);
 }
 
 .oidc-table-wrap {
@@ -993,6 +1072,7 @@ select {
 
 .scroll-edge-indicator {
   position: relative;
+  /* #000 here is a mask stop (alpha geometry only, never a visible color) — not themeable. */
   mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
 }
 
@@ -1024,7 +1104,7 @@ select {
   border: 1px solid var(--border);
   border-radius: 20px;
   background: var(--card);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-md);
 }
 
 .clients-list,
@@ -1284,9 +1364,9 @@ select {
   gap: 10px;
   margin-top: 14px;
   padding: 14px;
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  border: 1px solid color-mix(in oklch, var(--danger) 30%, transparent);
   border-radius: 14px;
-  background: rgba(239, 68, 68, 0.05);
+  background: color-mix(in oklch, var(--danger) 6%, transparent);
 }
 
 .secret-reveal code,
@@ -1303,7 +1383,7 @@ select {
 }
 
 .ui-card--danger {
-  border-color: rgba(239, 68, 68, 0.3);
+  border-color: color-mix(in oklch, var(--danger) 30%, transparent);
 }
 
 .ui-skeleton {
@@ -1367,7 +1447,7 @@ select {
   border: 1px solid var(--border);
   border-radius: 18px;
   background: var(--card);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-md);
 }
 
 .ui-status-view {
@@ -1380,7 +1460,7 @@ select {
   border: 1px solid var(--border);
   border-radius: 20px;
   background: var(--card);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shadow-lg);
   position: relative;
   overflow: hidden;
 }
@@ -1434,7 +1514,7 @@ select {
   height: 48px;
   border-radius: 12px;
   margin-bottom: 0;
-  box-shadow: 0 8px 16px rgba(99, 102, 241, 0.08);
+  box-shadow: 0 8px 16px color-mix(in oklch, var(--primary) 8%, transparent);
 }
 
 .ui-empty-state h2,
@@ -1568,7 +1648,7 @@ select.ui-control {
 .admin-mobile-toggle:focus-visible,
 .admin-logout:focus-visible {
   box-shadow:
-    0 0 0 3px rgba(99, 102, 241, 0.2),
+    0 0 0 3px var(--primary-ring),
     0 0 0 1px var(--primary);
 }
 
@@ -1627,7 +1707,7 @@ select.ui-control {
   height: 14px;
   border-radius: 999px;
   background: var(--muted-foreground);
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.24);
+  box-shadow: var(--shadow-xs);
   transition: transform 180ms ease;
 }
 
@@ -1637,6 +1717,8 @@ select.ui-control {
 }
 
 .ui-switch--checked .ui-switch__thumb {
+  /* Always-light thumb riding the colored (primary) track in both themes —
+     intentional fixed contrast, like a physical toggle indicator. */
   background: white;
   transform: translateX(16px);
 }
@@ -1903,20 +1985,20 @@ select.ui-control {
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--card);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-lg);
   backdrop-filter: blur(18px);
 }
 
 .ui-toast--success {
-  border-color: rgba(34, 197, 94, 0.3);
+  border-color: color-mix(in oklch, var(--success) 30%, transparent);
 }
 
 .ui-toast--error {
-  border-color: rgba(239, 68, 68, 0.3);
+  border-color: color-mix(in oklch, var(--danger) 30%, transparent);
 }
 
 .ui-toast--step_up {
-  border-color: rgba(234, 179, 8, 0.3);
+  border-color: color-mix(in oklch, var(--warning) 30%, transparent);
 }
 
 .ui-toast__body {
@@ -1951,7 +2033,8 @@ select.ui-control {
   display: grid;
   place-items: center;
   padding: 20px;
-  background: rgba(3, 3, 3, 0.75);
+  /* Always-dark modal scrim (dims page in both themes — intentionally not theme-flipped). */
+  background: oklch(0 0 0 / 0.6);
 }
 
 .confirm-dialog {
@@ -1961,7 +2044,7 @@ select.ui-control {
   border: 1px solid var(--border);
   border-radius: 18px;
   background: var(--card);
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.25);
+  box-shadow: var(--shadow-lg);
 }
 
 .confirm-dialog:focus {
@@ -2011,7 +2094,8 @@ select.ui-control {
     height: 100% !important;
     padding: 0 !important;
     border: 0 !important;
-    background: rgba(15, 23, 42, 0.4) !important;
+    /* Always-dark sidebar scrim (mobile drawer overlay) — intentionally not theme-flipped. */
+    background: oklch(0 0 0 / 0.4) !important;
     backdrop-filter: blur(3px) !important;
     cursor: pointer !important;
   }
@@ -2057,7 +2141,7 @@ select.ui-control {
     border: 1px solid var(--border) !important;
     background: var(--card) !important;
     color: var(--foreground) !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+    box-shadow: var(--shadow-sm) !important;
   }
 
   .admin-topbar__title {
@@ -2418,6 +2502,12 @@ select.ui-control {
     width: 100%;
   }
 
+  .admin-control-plane--collapsed .admin-search {
+    /* Collapsed search shrinks to its icon button; allow the tooltip to escape. */
+    overflow: visible;
+    justify-items: center;
+  }
+
   .admin-control-plane--collapsed .admin-locale-switcher {
     width: 40px;
     height: 40px;
@@ -2465,24 +2555,30 @@ select.ui-control {
   }
 
   .admin-control-plane--collapsed .admin-nav__link:hover::after,
-  .admin-control-plane--collapsed .admin-nav__link:focus-visible::after {
+  .admin-control-plane--collapsed .admin-nav__link:focus-visible::after,
+  .admin-control-plane--collapsed .admin-search__rail-button:hover::after,
+  .admin-control-plane--collapsed .admin-search__rail-button:focus-visible::after {
     content: attr(data-tooltip);
     position: absolute;
     left: calc(100% + 12px);
     top: 50%;
     transform: translateY(-50%);
-    background: var(--popover, #1e1e2e);
-    color: var(--foreground, #cdd6f4);
+    background: var(--elevated);
+    color: var(--fg);
     font-size: 0.8rem;
     font-weight: 600;
     padding: 6px 14px;
-    border-radius: 6px;
+    border-radius: var(--r-sm);
     white-space: nowrap;
     z-index: 1000;
     pointer-events: none;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
-    border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--border);
     animation: tooltipFadeIn 0.15s ease-out;
+  }
+
+  .admin-control-plane--collapsed .admin-search__rail-button {
+    position: relative;
   }
 
   @keyframes tooltipFadeIn {
@@ -2555,7 +2651,7 @@ select.ui-control {
 
 .dashboard-card:hover .dashboard-card__icon-wrapper {
   background: var(--primary);
-  color: #ffffff;
+  color: var(--primary-fg);
   border-color: var(--primary);
 }
 
@@ -2584,7 +2680,7 @@ select.ui-control {
 
 .dashboard-card dl div:hover {
   background: var(--card);
-  border-color: rgba(99, 102, 241, 0.2);
+  border-color: color-mix(in oklch, var(--primary) 20%, transparent);
 }
 
 .dashboard-card dt {
@@ -2615,46 +2711,30 @@ select.ui-control {
   border: 1px solid var(--border) !important;
 }
 
+/* Status badges use the dark-aware *-soft / *-soft-fg token families, so a
+   separate .dark override block is no longer needed (tokens.css flips them). */
 .dashboard-counter-value--success {
-  background-color: var(--color-success-50) !important;
-  color: var(--color-success-700) !important;
-  border: 1px solid rgba(21, 128, 61, 0.15) !important;
+  background-color: var(--success-soft) !important;
+  color: var(--success-soft-fg) !important;
+  border: 1px solid color-mix(in oklch, var(--success-soft-fg) 22%, transparent) !important;
 }
 
 .dashboard-counter-value--warning {
-  background-color: var(--color-warning-50) !important;
-  color: var(--color-warning-700) !important;
-  border: 1px solid rgba(161, 98, 7, 0.15) !important;
+  background-color: var(--warning-soft) !important;
+  color: var(--warning-soft-fg) !important;
+  border: 1px solid color-mix(in oklch, var(--warning-soft-fg) 22%, transparent) !important;
 }
 
 .dashboard-counter-value--danger {
-  background-color: var(--color-error-50) !important;
-  color: var(--color-error-700) !important;
-  border: 1px solid rgba(185, 28, 28, 0.15) !important;
-}
-
-.dark .dashboard-counter-value--success {
-  background-color: rgba(34, 197, 94, 0.15) !important;
-  color: #4ade80 !important;
-  border-color: rgba(34, 197, 94, 0.25) !important;
-}
-
-.dark .dashboard-counter-value--warning {
-  background-color: rgba(234, 179, 8, 0.15) !important;
-  color: #facc15 !important;
-  border-color: rgba(234, 179, 8, 0.25) !important;
-}
-
-.dark .dashboard-counter-value--danger {
-  background-color: rgba(239, 68, 68, 0.15) !important;
-  color: #f87171 !important;
-  border-color: rgba(239, 68, 68, 0.25) !important;
+  background-color: var(--danger-soft) !important;
+  color: var(--danger-soft-fg) !important;
+  border: 1px solid color-mix(in oklch, var(--danger-soft-fg) 22%, transparent) !important;
 }
 
 /* Incidents warning layout if active */
 .dashboard-card--incidents:hover {
-  border-color: rgba(239, 68, 68, 0.4) !important;
-  box-shadow: 0 12px 30px rgba(239, 68, 68, 0.08) !important;
+  border-color: color-mix(in oklch, var(--danger) 40%, transparent) !important;
+  box-shadow: 0 12px 30px color-mix(in oklch, var(--danger) 8%, transparent) !important;
 }
 
 .dashboard-card--incidents .dashboard-card__icon-wrapper {
@@ -2663,7 +2743,7 @@ select.ui-control {
 
 .dashboard-card--incidents:hover .dashboard-card__icon-wrapper {
   background: var(--destructive);
-  color: #ffffff;
+  color: var(--destructive-foreground);
   border-color: var(--destructive);
 }
 
@@ -2672,7 +2752,8 @@ select.ui-control {
   position: relative;
   padding: 36px 40px !important;
   background:
-    radial-gradient(circle at 90% 10%, rgba(99, 102, 241, 0.08), transparent 50%), var(--card) !important;
+    radial-gradient(circle at 90% 10%, color-mix(in oklch, var(--primary) 8%, transparent), transparent 50%),
+    var(--card) !important;
   border-radius: 20px !important;
   border: 1px solid var(--border) !important;
   overflow: hidden;
@@ -2721,22 +2802,26 @@ select.ui-control {
   gap: 8px;
   min-height: 34px;
   border-radius: 999px;
-  border: 1px solid rgba(34, 197, 94, 0.22);
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.13), rgba(14, 165, 233, 0.09));
+  border: 1px solid color-mix(in oklch, var(--success) 22%, transparent);
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklch, var(--success) 13%, transparent),
+    color-mix(in oklch, var(--info) 9%, transparent)
+  );
   color: var(--foreground);
   font-size: 0.78rem;
   font-weight: 850;
   letter-spacing: 0.02em;
   padding: 0 12px;
-  box-shadow: 0 10px 24px rgba(34, 197, 94, 0.08);
+  box-shadow: 0 10px 24px color-mix(in oklch, var(--success) 8%, transparent);
 }
 
 .live-refresh-dot {
   width: 8px;
   height: 8px;
   border-radius: 999px;
-  background: #22c55e;
-  box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+  background: var(--success);
+  box-shadow: 0 0 0 0 color-mix(in oklch, var(--success) 70%, transparent);
   animation: livePulse 1.8s infinite;
 }
 
@@ -2756,16 +2841,16 @@ select.ui-control {
 
 .live-refresh-button:hover {
   transform: translateY(-1px);
-  border-color: rgba(14, 165, 233, 0.35);
-  box-shadow: 0 14px 28px rgba(14, 165, 233, 0.12);
+  border-color: color-mix(in oklch, var(--info) 35%, transparent);
+  box-shadow: 0 14px 28px color-mix(in oklch, var(--info) 12%, transparent);
 }
 
 @keyframes livePulse {
   70% {
-    box-shadow: 0 0 0 8px rgba(34, 197, 94, 0);
+    box-shadow: 0 0 0 8px color-mix(in oklch, var(--success) 0%, transparent);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+    box-shadow: 0 0 0 0 color-mix(in oklch, var(--success) 0%, transparent);
   }
 }
 
@@ -2958,19 +3043,19 @@ select.ui-control {
   letter-spacing: 0.05em;
 }
 .audit-badge--success {
-  background-color: var(--color-success-50);
-  color: var(--color-success-700);
-  border: 1px solid rgba(21, 128, 61, 0.2);
+  background-color: var(--success-soft);
+  color: var(--success-soft-fg);
+  border: 1px solid color-mix(in oklch, var(--success-soft-fg) 28%, transparent);
 }
 .audit-badge--danger {
-  background-color: var(--color-error-50);
-  color: var(--color-error-700);
-  border: 1px solid rgba(185, 28, 28, 0.2);
+  background-color: var(--danger-soft);
+  color: var(--danger-soft-fg);
+  border: 1px solid color-mix(in oklch, var(--danger-soft-fg) 28%, transparent);
 }
 .audit-badge--warning {
-  background-color: var(--color-warning-50);
-  color: var(--color-warning-700);
-  border: 1px solid rgba(161, 98, 7, 0.2);
+  background-color: var(--warning-soft);
+  color: var(--warning-soft-fg);
+  border: 1px solid color-mix(in oklch, var(--warning-soft-fg) 28%, transparent);
 }
 
 .audit-detail-dialog {
@@ -2980,7 +3065,8 @@ select.ui-control {
 }
 
 .audit-detail-overlay {
-  background: rgba(15, 23, 42, 0.38);
+  /* Always-dark modal scrim — intentionally not theme-flipped. */
+  background: oklch(0 0 0 / 0.38);
 }
 
 @media (max-width: 760px) {
@@ -3103,9 +3189,9 @@ select.ui-control {
   }
 }
 .audit-badge--info {
-  background-color: var(--color-info-50);
-  color: var(--color-info-700);
-  border: 1px solid rgba(3, 105, 161, 0.2);
+  background-color: var(--info-soft);
+  color: var(--info-soft-fg);
+  border: 1px solid color-mix(in oklch, var(--info-soft-fg) 28%, transparent);
 }
 
 .audit-card-premium {
@@ -3116,7 +3202,7 @@ select.ui-control {
 }
 .audit-card-premium:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-md);
   border-color: var(--primary);
 }
 
@@ -3253,22 +3339,22 @@ select.ui-control {
   border: 1px solid var(--border);
   border-radius: 18px;
   background: var(--card);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.02);
+  box-shadow: var(--shadow-sm);
   transition:
     border-color 0.2s ease,
     box-shadow 0.2s ease;
 }
 
 .user-detail-card:hover {
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-md);
 }
 
 .user-detail-card--danger {
-  border-color: rgba(239, 68, 68, 0.2);
+  border-color: color-mix(in oklch, var(--danger) 20%, transparent);
 }
 
 .user-detail-card--danger:hover {
-  border-color: rgba(239, 68, 68, 0.4);
+  border-color: color-mix(in oklch, var(--danger) 40%, transparent);
 }
 
 .user-profile-hero {
@@ -3303,7 +3389,7 @@ select.ui-control {
   font-weight: 800;
   font-size: 2rem;
   flex-shrink: 0;
-  box-shadow: 0 8px 16px rgba(99, 102, 241, 0.16);
+  box-shadow: 0 8px 16px color-mix(in oklch, var(--primary) 16%, transparent);
 }
 
 .user-profile-hero__content {
@@ -3375,13 +3461,13 @@ select.ui-control {
     border-color 0.18s ease,
     box-shadow 0.18s ease,
     transform 0.18s ease;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+  box-shadow: var(--shadow-xs);
 }
 
 .user-stat-card:hover {
   transform: translateY(-1px);
   border-color: color-mix(in srgb, var(--foreground) 10%, var(--border));
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+  box-shadow: var(--shadow-md);
 }
 
 .user-stat-card__icon-wrapper {
@@ -3590,13 +3676,13 @@ select.ui-control {
 .user-card-item:hover {
   transform: translateY(-1px);
   border-color: var(--primary);
-  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.04);
+  box-shadow: 0 8px 24px color-mix(in oklch, var(--primary) 4%, transparent);
 }
 
 .user-card-item--active {
   border-color: var(--primary);
   background: color-mix(in srgb, var(--primary) 8%, var(--card));
-  box-shadow: 0 10px 30px rgba(99, 102, 241, 0.08);
+  box-shadow: 0 10px 30px color-mix(in oklch, var(--primary) 8%, transparent);
 }
 
 .dark .user-card-item--active {
@@ -3620,11 +3706,12 @@ select.ui-control {
   width: 40px;
   height: 40px;
   border-radius: 12px;
+  /* White initial over the colored avatar gradient — fixed contrast in both themes. */
   color: #fff;
   font-weight: 800;
   font-size: 1.1rem;
   flex-shrink: 0;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
 }
 
 .user-card-item__content {
@@ -3687,25 +3774,25 @@ select.ui-control {
 }
 
 .badge--active {
-  background: rgba(16, 185, 129, 0.1) !important;
-  color: rgb(16, 185, 129) !important;
+  background: var(--success-soft) !important;
+  color: var(--success-soft-fg) !important;
 }
 
 .badge--locked {
-  background: rgba(239, 68, 68, 0.1) !important;
-  color: rgb(239, 68, 68) !important;
+  background: var(--danger-soft) !important;
+  color: var(--danger-soft-fg) !important;
 }
 
 .badge--inactive,
 .badge--disabled,
 .badge--deactivated {
-  background: rgba(113, 113, 122, 0.1) !important;
-  color: rgb(113, 113, 122) !important;
+  background: var(--muted) !important;
+  color: var(--fg-2) !important;
 }
 
 .badge--pending {
-  background: rgba(245, 158, 11, 0.1) !important;
-  color: rgb(245, 158, 11) !important;
+  background: var(--warning-soft) !important;
+  color: var(--warning-soft-fg) !important;
 }
 
 .users-list {
@@ -3776,7 +3863,8 @@ select.ui-control {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(15, 23, 42, 0.5);
+  /* Always-dark modal scrim — intentionally not theme-flipped. */
+  background: oklch(0 0 0 / 0.5);
   backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
@@ -3797,7 +3885,7 @@ select.ui-control {
   border: 1px solid var(--border);
   border-radius: 20px;
   padding: 24px;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-lg);
   animation: userScaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   text-align: left;
   overflow: hidden;
@@ -4257,7 +4345,7 @@ button.user-card-item {
   border: 1px solid var(--border);
   border-radius: 20px;
   background: var(--card);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.03);
+  box-shadow: var(--shadow-sm);
   transition:
     transform 0.2s ease,
     box-shadow 0.2s ease,
@@ -4266,7 +4354,7 @@ button.user-card-item {
 
 .roles-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-md);
   border-color: var(--primary);
 }
 
@@ -4358,7 +4446,7 @@ button.user-card-item {
   border-radius: 20px;
   padding: 24px;
   margin-bottom: 20px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.03);
+  box-shadow: var(--shadow-sm);
   transition:
     border-color 0.2s ease,
     box-shadow 0.2s ease;
@@ -4366,7 +4454,7 @@ button.user-card-item {
 
 .roles-perm-group:hover {
   border-color: color-mix(in srgb, var(--border) 60%, var(--primary));
-  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-md);
 }
 
 .roles-perm-group__label {
@@ -4492,7 +4580,7 @@ button.user-card-item {
 .clients-list .ui-data-list tr:has(button[aria-current='true']) {
   background: color-mix(in srgb, var(--primary) 8%, transparent) !important;
   border-color: var(--primary) !important;
-  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.05) !important;
+  box-shadow: 0 4px 15px color-mix(in oklch, var(--primary) 5%, transparent) !important;
 }
 .clients-list .ui-data-list td {
   padding: 0 !important;
@@ -4544,7 +4632,8 @@ button.user-card-item {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(15, 23, 42, 0.5);
+  /* Always-dark modal scrim — intentionally not theme-flipped. */
+  background: oklch(0 0 0 / 0.5);
   backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
@@ -4573,7 +4662,7 @@ button.user-card-item {
   border: 1px solid var(--border);
   border-radius: 20px;
   padding: 24px;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-lg);
   animation: userScaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   text-align: left;
   overflow: hidden;
@@ -4692,12 +4781,12 @@ button.user-card-item {
   width: 64px;
   height: 64px;
   border-radius: 16px;
-  background: linear-gradient(135deg, var(--primary), #818cf8);
+  background: var(--brand-grad);
   color: var(--primary-foreground);
   font-weight: 800;
   font-size: 1.75rem;
   flex-shrink: 0;
-  box-shadow: 0 8px 16px rgba(99, 102, 241, 0.16);
+  box-shadow: 0 8px 16px color-mix(in oklch, var(--primary) 16%, transparent);
 }
 .client-profile-hero__content {
   flex: 1;
@@ -5029,7 +5118,7 @@ button.user-card-item {
   font-size: 0.82rem;
   font-weight: 600;
   border-radius: 10px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-lg);
   z-index: 9999;
   animation: toast-in 0.25s ease-out;
 }
@@ -5061,28 +5150,22 @@ button.user-card-item {
   font-weight: 500;
 }
 .ui-action-message--success {
-  color: #059669;
-  background: color-mix(in srgb, #10b981 8%, transparent);
-  border: 1px solid color-mix(in srgb, #10b981 18%, transparent);
+  color: var(--success-soft-fg);
+  background: var(--success-soft);
+  border: 1px solid color-mix(in oklch, var(--success) 18%, transparent);
   padding: 10px 14px;
   border-radius: 10px;
   font-size: 0.85rem;
   font-weight: 500;
-}
-.dark .ui-action-message--success {
-  color: #34d399;
 }
 .ui-action-message--warning {
-  color: #b45309;
-  background: color-mix(in srgb, #f59e0b 10%, transparent);
-  border: 1px solid color-mix(in srgb, #f59e0b 22%, transparent);
+  color: var(--warning-soft-fg);
+  background: var(--warning-soft);
+  border: 1px solid color-mix(in oklch, var(--warning) 22%, transparent);
   padding: 10px 14px;
   border-radius: 10px;
   font-size: 0.85rem;
   font-weight: 500;
-}
-.dark .ui-action-message--warning {
-  color: #fbbf24;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -5139,13 +5222,13 @@ button.user-card-item {
 
 .session-card-item:hover {
   border-color: var(--primary);
-  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.06);
+  box-shadow: 0 4px 16px color-mix(in oklch, var(--primary) 6%, transparent);
 }
 
 .session-card-item--active {
   border-color: var(--primary);
   background: color-mix(in srgb, var(--primary) 8%, var(--card));
-  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.08);
+  box-shadow: 0 6px 20px color-mix(in oklch, var(--primary) 8%, transparent);
 }
 
 .dark .session-card-item--active {
@@ -5198,11 +5281,12 @@ button.user-card-item {
   width: 40px;
   height: 40px;
   border-radius: 12px;
+  /* White initial over the colored avatar gradient — fixed contrast in both themes. */
   color: #fff;
   font-weight: 800;
   font-size: 1.1rem;
   flex-shrink: 0;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-sm);
 }
 
 /* Content body (name + id + meta) */
@@ -5541,7 +5625,7 @@ button.user-card-item {
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 18px;
-  background: rgba(255, 255, 255, 0.01);
+  background: color-mix(in oklch, var(--muted) 30%, transparent);
   margin-bottom: 20px;
 }
 
@@ -5668,19 +5752,19 @@ button.user-card-item {
   padding: 12px 16px;
   border: 1px solid var(--border);
   border-radius: 10px;
-  background: var(--card, #fff);
+  background: var(--card);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .scope-checkbox-label:hover {
-  background: color-mix(in srgb, var(--primary) 4%, var(--card, #fff));
+  background: color-mix(in srgb, var(--primary) 4%, var(--card));
   border-color: color-mix(in srgb, var(--primary) 25%, var(--border));
 }
 
 .scope-checkbox-label--selected {
   border-color: var(--primary);
-  background: color-mix(in srgb, var(--primary) 6%, var(--card, #fff));
+  background: color-mix(in srgb, var(--primary) 6%, var(--card));
 }
 
 .scope-checkbox-input {
