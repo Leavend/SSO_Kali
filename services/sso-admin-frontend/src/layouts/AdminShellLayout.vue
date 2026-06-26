@@ -31,6 +31,7 @@ import { resolveBootstrapFailure, resolveLoadedAdminAccess } from '@/router/guar
 import { useSessionStore } from '@/stores/session.store'
 import type { AdminPermissionMenu } from '@/types/auth.types'
 import { getAdminEnvironment } from '@/config/adminEnvironment'
+import { pillStepSequence } from './admin-nav-pill'
 
 const session = useSessionStore()
 const { t, locale } = useI18n()
@@ -100,6 +101,13 @@ const groupedMenus = computed<
   }
   return groups
 })
+
+// Rendered (grouped) order expressed as visibleMenus indices — render position →
+// index. The pill animation steps along THIS order (not raw index order) so it
+// glides through visually adjacent links instead of teleporting across sections.
+const displayOrder = computed<number[]>(() =>
+  groupedMenus.value.flatMap((group) => group.items.map((item) => item.index)),
+)
 
 function translateGroupLabel(group: string): string {
   const translationKey = `menu_group.${group}`
@@ -423,14 +431,18 @@ async function handleMenuClick(menu: AdminPermissionMenu, index: number) {
   const targetIndex = index
   const stepDelay = 80 // milliseconds per intermediate item transition
 
-  // Animate step-by-step through intermediate items
-  while (currentIndex.value !== targetIndex) {
-    if (currentIndex.value < targetIndex) {
-      currentIndex.value++
-    } else {
-      currentIndex.value--
+  // Walk the pill through visually adjacent links in render (grouped) order —
+  // NOT raw visibleMenus index order, which would teleport it across sections.
+  // displayOrder is snapshotted once; the isAnimating guard prevents overlapping
+  // walks (a permissions refresh mid-walk is the low-risk PILL3 case).
+  const steps = pillStepSequence(displayOrder.value, currentIndex.value, targetIndex)
+  if (steps.length === 0) {
+    currentIndex.value = targetIndex
+  } else {
+    for (const stepIndex of steps) {
+      currentIndex.value = stepIndex
+      await new Promise((resolve) => setTimeout(resolve, stepDelay))
     }
-    await new Promise((resolve) => setTimeout(resolve, stepDelay))
   }
 
   // Settle at target route & load content
