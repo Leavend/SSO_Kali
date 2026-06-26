@@ -51,4 +51,23 @@ describe('admin sidebar layout contract', () => {
 
     expect(collapsedNav).toContain('overflow: visible;')
   })
+
+  it('renders the brand as a gradient logomark with a non-uppercase title', () => {
+    const brandMark = cssBlock('.admin-brand__mark')
+    const brandStrong = cssBlock('.admin-brand strong')
+
+    expect(brandMark).toContain('background: var(--brand-grad);')
+    expect(brandStrong).toContain('text-transform: none;')
+  })
+
+  it('keeps the logomark visible but its text and the nav section labels hidden on the collapsed rail', () => {
+    const collapsedBrand = cssBlock('.admin-control-plane--collapsed .admin-brand')
+    const collapsedBrandText = cssBlock('.admin-control-plane--collapsed .admin-brand__text')
+    const collapsedGroup = cssBlock('.admin-control-plane--collapsed .admin-nav__group')
+
+    expect(collapsedBrand).toContain('justify-content: center;')
+    expect(collapsedBrand).not.toContain('display: none;')
+    expect(collapsedBrandText).toContain('display: none;')
+    expect(collapsedGroup).toContain('display: none;')
+  })
 })

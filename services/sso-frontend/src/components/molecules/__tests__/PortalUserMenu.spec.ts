@@ -3,6 +3,8 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import PortalUserMenu from '../PortalUserMenu.vue'
+import ThemeModeControl from '@/components/atoms/ThemeModeControl.vue'
+import LocaleSwitcher from '@/components/atoms/LocaleSwitcher.vue'
 import { useSessionStore } from '@/stores/session.store'
 import { ssoAccountWidgetApi } from '@/services/sso-account-widget.api'
 
@@ -59,6 +61,25 @@ describe('PortalUserMenu', () => {
     expect(wrapper.get('[data-testid="portal-account-menu"]').text()).toContain('Portal User')
     expect(wrapper.get('[data-testid="portal-account-menu"]').text()).toContain('user@example.com')
     expect(wrapper.get('[data-testid="portal-account-menu"]').text()).toContain('Kelola Akun')
+  })
+
+  it('exposes theme (light/dark/system) and language controls in the account menu', async () => {
+    vi.mocked(ssoAccountWidgetApi.accounts).mockResolvedValueOnce([])
+    const wrapper = mount(PortalUserMenu, {
+      global: {
+        stubs: {
+          RouterLink: { template: '<a href="/profile"><slot /></a>' },
+          ConfirmDialog: true,
+        },
+      },
+    })
+
+    await wrapper.get('[data-testid="portal-account-menu-trigger"]').trigger('click')
+    await flushPromises()
+
+    const menu = wrapper.get('[data-testid="portal-account-menu"]')
+    expect(menu.findComponent(ThemeModeControl).exists()).toBe(true)
+    expect(menu.findComponent(LocaleSwitcher).exists()).toBe(true)
   })
 
   it('retries widget app failures on the next open without hiding the portal identity', async () => {
@@ -120,7 +141,9 @@ describe('PortalUserMenu', () => {
     await flushPromises()
 
     expect(wrapper.get('[data-testid="portal-account-menu"]').text()).toContain('Portal User')
-    expect(wrapper.get('[data-testid="portal-account-menu"]').text()).toContain('Gagal memuat akun.')
+    expect(wrapper.get('[data-testid="portal-account-menu"]').text()).toContain(
+      'Gagal memuat akun.',
+    )
 
     await wrapper.get('[data-testid="portal-account-menu-trigger"]').trigger('click')
     await wrapper.get('[data-testid="portal-account-menu-trigger"]').trigger('click')
@@ -131,7 +154,9 @@ describe('PortalUserMenu', () => {
   })
 
   it('deduplicates in-flight widget account loads', async () => {
-    let resolveAccounts: (value: Awaited<ReturnType<typeof ssoAccountWidgetApi.accounts>>) => void = () => undefined
+    let resolveAccounts: (
+      value: Awaited<ReturnType<typeof ssoAccountWidgetApi.accounts>>,
+    ) => void = () => undefined
     vi.mocked(ssoAccountWidgetApi.accounts).mockReturnValueOnce(
       new Promise((resolve) => {
         resolveAccounts = resolve
@@ -279,7 +304,9 @@ describe('PortalUserMenu', () => {
         plugins: [router],
         stubs: {
           RouterLink: true,
-          ConfirmDialog: { template: `<button data-testid="confirm-logout" @click="$emit('confirm')" />` },
+          ConfirmDialog: {
+            template: `<button data-testid="confirm-logout" @click="$emit('confirm')" />`,
+          },
         },
       },
     })

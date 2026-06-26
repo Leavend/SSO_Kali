@@ -25,4 +25,14 @@ describe('useThemeStore', () => {
     const theme = useThemeStore()
     expect(() => theme.initialize()).not.toThrow()
   })
+
+  it('setMode() selects a specific mode, including system (auto)', () => {
+    const theme = useThemeStore()
+    theme.setMode('dark')
+    expect(theme.mode).toBe('dark')
+    theme.setMode('light')
+    expect(theme.mode).toBe('light')
+    theme.setMode('auto')
+    expect(theme.mode).toBe('auto')
+  })
 })
