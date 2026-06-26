@@ -62,57 +62,61 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 
-  /* Design.md §3.1 — Font families */
-  --font-display: 'Bricolage Grotesque', 'Inter', system-ui, sans-serif;
+  /* Bontang DS fonts (mirror of tokens.css --font-*); see src/assets/styles/tokens.css.
+     Plus Jakarta Sans = UI · Instrument Serif = portal hero · JetBrains Mono = id/teknis. */
+  --font-display: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-sans:
-    'Geist', 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue',
-    sans-serif;
+    'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
   --font-mono:
-    'Geist Mono', ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono',
+    'JetBrains Mono', ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono',
     monospace;
-  /* Liquid Glass headlines — large refined serif (à la EaseMize reference). */
-  --font-serif: 'Instrument Serif', 'Bricolage Grotesque', Georgia, 'Times New Roman', serif;
+  /* Liquid Glass headlines — large refined serif (Bontang portal hero). */
+  --font-serif: 'Instrument Serif', 'Spectral', Georgia, 'Times New Roman', serif;
 
-  /* Design.md §3.2 — Brand blue (WCAG AA-compliant at 600) */
-  --color-brand-50: #eff6ff;
-  --color-brand-100: #dbeafe;
-  --color-brand-400: #60a5fa;
-  --color-brand-500: #3b82f6;
-  --color-brand-600: #2563eb;
-  --color-brand-700: #1d4ed8;
-  --color-brand-800: #1e40af;
-  --color-brand-900: #1e3a8a;
-  --color-brand-950: #172554;
+  /* Brand anchors mapped onto the Bontang DS indigo `--primary*` (tokens.css).
+     These flip automatically in dark mode because the referenced tokens do.
+     The 400/800/900/950 rungs derive from `--primary` so the glass glints,
+     `--glass-border-brand`, and brand washes harmonize with indigo-primary. */
+  --color-brand-50: color-mix(in oklch, var(--primary-soft) 55%, var(--card));
+  --color-brand-100: var(--primary-soft);
+  --color-brand-400: color-mix(in oklch, var(--primary) 70%, var(--card));
+  --color-brand-500: var(--primary);
+  --color-brand-600: var(--primary-600);
+  --color-brand-700: var(--primary-700);
+  --color-brand-800: color-mix(in oklch, var(--primary-700) 85%, black);
+  --color-brand-900: color-mix(in oklch, var(--primary-700) 70%, black);
+  --color-brand-950: color-mix(in oklch, var(--primary-700) 55%, black);
 
-  /* Design.md §3.2 — Semantic colors (text tokens ≥ AA contrast vs white) */
-  --color-error-50: #fef2f2;
-  --color-error-200: #fecaca;
-  --color-error-300: #fca5a5;
-  --color-error-400: #f87171;
-  --color-error-700: #b91c1c;
-  --color-error-800: #991b1b;
-  --color-error-950: #450a0a;
-  --color-success-50: #f0fdf4;
-  --color-success-200: #bbf7d0;
-  --color-success-300: #86efac;
-  --color-success-400: #4ade80;
-  --color-success-700: #15803d;
-  --color-success-950: #052e16;
-  --color-warning-50: #fffbeb;
-  --color-warning-200: #fde68a;
-  --color-warning-300: #fcd34d;
-  --color-warning-700: #a16207;
-  --color-warning-800: #92400e;
-  --color-warning-950: #451a03;
-  --color-info-50: #f0f9ff;
-  --color-info-200: #bae6fd;
-  --color-info-700: #0369a1;
-  --color-info-950: #082f49;
+  /* Semantic colors mapped onto the Bontang DS status tokens (tokens.css),
+     so error/success/warning/info match the design system and flip in dark. */
+  --color-error-50: var(--danger-soft);
+  --color-error-200: color-mix(in oklch, var(--danger) 30%, var(--card));
+  --color-error-300: color-mix(in oklch, var(--danger) 45%, var(--card));
+  --color-error-400: color-mix(in oklch, var(--danger) 65%, var(--card));
+  --color-error-700: var(--danger);
+  --color-error-800: color-mix(in oklch, var(--danger) 85%, black);
+  --color-error-950: color-mix(in oklch, var(--danger) 60%, black);
+  --color-success-50: var(--success-soft);
+  --color-success-200: color-mix(in oklch, var(--success) 30%, var(--card));
+  --color-success-300: color-mix(in oklch, var(--success) 45%, var(--card));
+  --color-success-400: color-mix(in oklch, var(--success) 65%, var(--card));
+  --color-success-700: var(--success);
+  --color-success-950: color-mix(in oklch, var(--success) 60%, black);
+  --color-warning-50: var(--warning-soft);
+  --color-warning-200: color-mix(in oklch, var(--warning) 30%, var(--card));
+  --color-warning-300: color-mix(in oklch, var(--warning) 45%, var(--card));
+  --color-warning-700: var(--warning);
+  --color-warning-800: color-mix(in oklch, var(--warning) 85%, black);
+  --color-warning-950: color-mix(in oklch, var(--warning) 60%, black);
+  --color-info-50: var(--info-soft);
+  --color-info-200: color-mix(in oklch, var(--info) 30%, var(--card));
+  --color-info-700: var(--info);
+  --color-info-950: color-mix(in oklch, var(--info) 60%, black);
 
-  /* Design.md §3.5 — Shadow tokens */
-  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.07), 0 1px 2px -1px rgb(0 0 0 / 0.07);
-  --shadow-elevated: 0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.05);
-  --shadow-modal: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.05);
+  /* Shadow tokens mapped onto the Bontang DS shadow ramp (tokens.css). */
+  --shadow-card: var(--shadow-sm);
+  --shadow-elevated: var(--shadow-md);
+  --shadow-modal: var(--shadow-lg);
 
   /* Design.md §3.1 — Typography scale (rem-based, WCAG 1.4.4)
      Tailwind v4 picks these up as utilities: text-display,
@@ -133,22 +137,23 @@
   --duration-slow: 300ms;
 
   /* =====================================================
-     Design.md §3.2 — Neutral palette (Slate)
-     Required by typography/text-hierarchy spec; codebase
-     uses these only as token aliases — shadcn oklch tokens
-     remain untouched for components/ui/* parity.
+     Neutral palette — re-tinted onto the Bontang DS cool
+     indigo undertone (hue ~274–276) so the Liquid Glass
+     surfaces, washes, and `--text-*` aliases harmonize with
+     the indigo `--primary`. Used as token aliases only; the
+     rung progression mirrors the Bontang neutral ramp.
      ===================================================== */
-  --color-neutral-50: #f8fafc;
-  --color-neutral-100: #f1f5f9;
-  --color-neutral-200: #e2e8f0;
-  --color-neutral-300: #cbd5e1;
-  --color-neutral-400: #94a3b8;
-  --color-neutral-500: #64748b;
-  --color-neutral-600: #475569;
-  --color-neutral-700: #334155;
-  --color-neutral-800: #1e293b;
-  --color-neutral-900: #0f172a;
-  --color-neutral-950: #020617;
+  --color-neutral-50: oklch(0.984 0.004 274);
+  --color-neutral-100: oklch(0.966 0.006 274);
+  --color-neutral-200: oklch(0.928 0.009 274);
+  --color-neutral-300: oklch(0.86 0.012 274);
+  --color-neutral-400: oklch(0.7 0.018 276);
+  --color-neutral-500: oklch(0.555 0.022 276);
+  --color-neutral-600: oklch(0.445 0.024 276);
+  --color-neutral-700: oklch(0.35 0.024 276);
+  --color-neutral-800: oklch(0.26 0.022 276);
+  --color-neutral-900: oklch(0.2 0.02 276);
+  --color-neutral-950: oklch(0.14 0.016 276);
 
   /* =====================================================
      LIQUID GLASS — Austere Precision Edition
@@ -156,9 +161,11 @@
      and purposeful (design.md §2.1 — Trust/Clarity/Focus).
      ===================================================== */
 
-  /* === Glass surface (translucency tier) === */
-  --glass-bg-primary: color-mix(in oklch, var(--color-neutral-50) 70%, transparent);
-  --glass-bg-elevated: color-mix(in oklch, white 80%, transparent);
+  /* === Glass surface (translucency tier) — re-tinted onto the Bontang DS
+     `--glass-bg`/`--glass-bg-2` translucent surfaces (tokens.css), so the
+     header glass + Portal Akun cards share the design system's glass body. === */
+  --glass-bg-primary: var(--glass-bg);
+  --glass-bg-elevated: var(--glass-bg-2);
   --glass-bg-overlay: color-mix(in oklch, var(--color-neutral-900) 55%, transparent);
   /* Vibrant glass body — used for inputs/buttons that sit on visible blobs.
      OKLCH-derived translucency so colour bleeds through nicely. */
@@ -169,32 +176,35 @@
     color-mix(in oklch, white 5%, transparent)
   );
 
-  /* === Glass borders (hierarchy + state) === */
-  --glass-border-subtle: color-mix(in oklch, var(--color-neutral-300) 60%, transparent);
-  --glass-border-strong: color-mix(in oklch, var(--color-neutral-400) 80%, transparent);
-  --glass-border-brand: color-mix(in oklch, var(--color-brand-500) 70%, transparent);
-  --glass-border-error: color-mix(in oklch, var(--color-error-700) 60%, transparent);
+  /* === Glass borders (hierarchy + state) — subtle border onto the Bontang
+     `--glass-border`; brand glint onto the indigo `--primary`. === */
+  --glass-border-subtle: var(--glass-border);
+  --glass-border-strong: color-mix(in oklch, var(--border-strong) 80%, transparent);
+  --glass-border-brand: color-mix(in oklch, var(--primary) 70%, transparent);
+  --glass-border-error: color-mix(in oklch, var(--danger) 60%, transparent);
 
   /* === Glass blur intensities === */
   --glass-blur-sm: blur(8px);
   --glass-blur-md: blur(16px);
   --glass-blur-lg: blur(24px);
 
-  /* === Glass shadow (layered + inset highlight = glass edge) === */
+  /* === Glass shadow (layered + inset highlight = glass edge) — re-tinted onto
+     the Bontang indigo-cool shadow undertone (hue 276) so glass cards cast a
+     shadow that harmonizes with the indigo palette instead of slate. === */
   --shadow-glass-sm:
-    0 2px 8px -1px rgb(15 23 42 / 0.06), 0 1px 3px -1px rgb(15 23 42 / 0.04),
+    0 2px 8px -1px oklch(0.3 0.04 276 / 0.06), 0 1px 3px -1px oklch(0.3 0.04 276 / 0.04),
     inset 0 1px 0 rgb(255 255 255 / 0.8);
   --shadow-glass-md:
-    0 8px 24px -4px rgb(15 23 42 / 0.08), 0 2px 8px -2px rgb(15 23 42 / 0.05),
+    0 8px 24px -4px oklch(0.3 0.05 276 / 0.08), 0 2px 8px -2px oklch(0.3 0.05 276 / 0.05),
     inset 0 1px 0 rgb(255 255 255 / 0.9);
   --shadow-glass-lg:
-    0 24px 48px -8px rgb(15 23 42 / 0.12), 0 8px 16px -4px rgb(15 23 42 / 0.06),
+    0 24px 48px -8px oklch(0.28 0.06 276 / 0.12), 0 8px 16px -4px oklch(0.28 0.06 276 / 0.06),
     inset 0 1px 0 rgb(255 255 255 / 0.95);
 
-  /* === Focus ring for glass (WCAG 2.4.11 ≥3:1 contrast) === */
+  /* === Focus ring for glass (WCAG 2.4.11 ≥3:1 contrast) — indigo `--primary`. === */
   --ring-glass-focus:
-    0 0 0 3px color-mix(in oklch, var(--color-brand-500) 25%, transparent),
-    0 0 0 1px var(--color-brand-500), inset 0 1px 0 rgb(255 255 255 / 0.9);
+    0 0 0 3px color-mix(in oklch, var(--primary) 25%, transparent),
+    0 0 0 1px var(--primary), inset 0 1px 0 rgb(255 255 255 / 0.9);
 
   /* === Ambient background (≤4% opacity, ≥30s = non-distracting) === */
   --glass-ambient-opacity: 0.04;
@@ -206,11 +216,15 @@
   --glass-blob-opacity: 0.55;
   --glass-blob-blur: 80px;
   --glass-blob-duration: 28s;
-  --color-blob-azure: oklch(0.78 0.16 245);
-  --color-blob-violet: oklch(0.74 0.18 295);
-  --color-blob-rose: oklch(0.78 0.18 18);
+  /* Aurora blobs shifted toward the Bontang indigo/violet accent family so the
+     ambient field harmonizes with the indigo `--primary`. Azure pulled to
+     indigo (274) and rose pulled toward magenta-violet (340); amber + mint kept
+     as warm/cool counterpoints so the aurora retains tasteful chromatic range. */
+  --color-blob-azure: oklch(0.74 0.17 274);
+  --color-blob-violet: oklch(0.72 0.19 298);
+  --color-blob-rose: oklch(0.76 0.18 340);
   --color-blob-amber: oklch(0.86 0.14 80);
-  --color-blob-mint: oklch(0.84 0.13 165);
+  --color-blob-mint: oklch(0.82 0.13 200);
 
   /* === Radius (glass-only, additive — does not override shadcn calc) === */
   --radius-glass-lg: 0.75rem; /* 12px — input, button-sm */
@@ -1279,92 +1293,111 @@ html.theme-switching::before {
   }
 }
 
+/*
+ * Bontang DS integration (light) — re-point the CORE semantic vars onto the
+ * handoff design tokens in src/assets/styles/tokens.css (imported first in
+ * main.ts). Mapped by ROLE: --background→--bg, --foreground→--fg, etc.
+ *
+ * The seven WCAG-gated tokens (background, foreground, card, card-foreground,
+ * primary, primary-foreground, muted-foreground) are kept as LITERAL oklch
+ * copies of their Bontang token values rather than var() references. This is
+ * deliberate: scripts/check-wcag-theme.mjs only reads main.css (tokens.css is
+ * imported via JS, not @import'd into this stylesheet) and its regex captures
+ * literal oklch(...) only. The literals here equal the tokens.css values, so
+ * there is no drift; everything else flows through tokens.css via var().
+ */
 :root {
   /* Semantic text aliases — used by Liquid Glass primitives.
-     Mapped to design.md §3.2 neutral scale; theme switch to dark mode
-     will redefine these without touching component templates. */
-  --text-primary: var(--color-neutral-900);
-  --text-secondary: var(--color-neutral-600);
-  --text-muted: var(--color-neutral-500);
-  --text-inverse: #ffffff;
+     Mapped to the Bontang foreground ramp; --text-muted uses --fg-2 (mid),
+     not --fg-3 (placeholder tone), to stay above the WCAG muted threshold. */
+  --text-primary: var(--fg);
+  --text-secondary: var(--fg-2);
+  --text-muted: var(--fg-2);
+  --text-inverse: var(--primary-fg);
 
-  --radius: 0.65rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.129 0.042 264.695);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.129 0.042 264.695);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.208 0.042 265.755);
-  --primary-foreground: oklch(0.984 0.003 247.858);
-  --secondary: oklch(0.968 0.007 247.896);
-  --secondary-foreground: oklch(0.208 0.042 265.755);
-  --muted: oklch(0.968 0.007 247.896);
-  --muted-foreground: oklch(0.554 0.046 257.417);
-  --accent: oklch(0.968 0.007 247.896);
-  --accent-foreground: oklch(0.208 0.042 265.755);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(0.929 0.013 255.508);
-  --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.704 0.04 256.788);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.984 0.003 247.858);
-  --sidebar-foreground: oklch(0.129 0.042 264.695);
-  --sidebar-primary: oklch(0.208 0.042 265.755);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.968 0.007 247.896);
-  --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
-  --sidebar-border: oklch(0.929 0.013 255.508);
-  --sidebar-ring: oklch(0.704 0.04 256.788);
+  --radius: var(--r-md);
+  --background: oklch(0.984 0.004 274); /* = --bg */
+  --foreground: oklch(0.245 0.022 276); /* = --fg */
+  --card: oklch(1 0 0); /* = --card */
+  --card-foreground: oklch(0.245 0.022 276); /* = --fg */
+  --popover: var(--elevated);
+  --popover-foreground: var(--fg);
+  --primary: oklch(0.524 0.205 274); /* = --primary */
+  --primary-foreground: oklch(0.99 0.01 274); /* = --primary-fg */
+  --secondary: var(--bg-2);
+  --secondary-foreground: var(--fg);
+  /* --muted is a shared name with tokens.css — NOT redeclared here so the
+     tokens.css value flows through (a self-referential var() would be a cycle). */
+  --muted-foreground: oklch(0.505 0.022 276); /* = --fg-2 */
+  --accent: var(--primary-soft);
+  --accent-foreground: var(--primary-soft-fg);
+  --destructive: var(--danger);
+  --destructive-foreground: var(--primary-fg);
+  /* --border and --ring are shared names with tokens.css — NOT redeclared
+     here (would self-reference); tokens.css supplies them. */
+  --input: var(--border);
+  --chart-1: var(--primary);
+  --chart-2: var(--info);
+  --chart-3: var(--success);
+  --chart-4: var(--warning);
+  --chart-5: var(--danger);
+  --sidebar: var(--bg-2);
+  --sidebar-foreground: var(--fg);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-fg);
+  --sidebar-accent: var(--primary-soft);
+  --sidebar-accent-foreground: var(--primary-soft-fg);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
 }
 
+/*
+ * Bontang DS integration (dark). Same approach as :root above — the gated
+ * tokens are literal oklch copies of the Bontang :root.dark values (so the
+ * WCAG gate, which reads this block, agrees with the runtime). Shared names
+ * (--muted, --border, --ring) are NOT redeclared: tokens.css :root.dark
+ * (higher specificity) supplies them. Other roles map to the Bontang dark
+ * tokens via var(), which tokens.css :root.dark redefines for dark mode.
+ */
 .dark {
-  --background: oklch(0.129 0.042 264.695);
-  --foreground: oklch(0.984 0.003 247.858);
-  --card: oklch(0.208 0.042 265.755);
-  --card-foreground: oklch(0.984 0.003 247.858);
-  --popover: oklch(0.208 0.042 265.755);
-  --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.929 0.013 255.508);
-  --primary-foreground: oklch(0.208 0.042 265.755);
-  --secondary: oklch(0.279 0.041 260.031);
-  --secondary-foreground: oklch(0.984 0.003 247.858);
-  --muted: oklch(0.279 0.041 260.031);
-  --muted-foreground: oklch(0.704 0.04 256.788);
-  --accent: oklch(0.279 0.041 260.031);
-  --accent-foreground: oklch(0.984 0.003 247.858);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.551 0.027 264.364);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.208 0.042 265.755);
-  --sidebar-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.279 0.041 260.031);
-  --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.551 0.027 264.364);
+  --background: oklch(0.17 0.014 274); /* = --bg (dark) */
+  --foreground: oklch(0.965 0.005 274); /* = --fg (dark) */
+  --card: oklch(0.214 0.018 274); /* = --card (dark) */
+  --card-foreground: oklch(0.965 0.005 274); /* = --fg (dark) */
+  --popover: var(--elevated);
+  --popover-foreground: var(--fg);
+  --primary: oklch(0.7 0.16 274); /* = --primary (dark) */
+  --primary-foreground: oklch(0.16 0.03 274); /* = --primary-fg (dark) */
+  --secondary: var(--bg-2);
+  --secondary-foreground: var(--fg);
+  --muted-foreground: oklch(0.72 0.022 274); /* = --fg-2 (dark) */
+  --accent: var(--primary-soft);
+  --accent-foreground: var(--primary-soft-fg);
+  --destructive: var(--danger);
+  --destructive-foreground: var(--fg);
+  --input: var(--border);
+  --chart-1: var(--primary);
+  --chart-2: var(--info);
+  --chart-3: var(--success);
+  --chart-4: var(--warning);
+  --chart-5: var(--danger);
+  --sidebar: var(--bg-2);
+  --sidebar-foreground: var(--fg);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-fg);
+  --sidebar-accent: var(--primary-soft);
+  --sidebar-accent-foreground: var(--primary-soft-fg);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
 
-  --text-primary: oklch(0.96 0.005 270);
-  --text-secondary: oklch(0.78 0.012 270);
-  --text-muted: oklch(0.64 0.018 270);
-  --glass-bg-primary: color-mix(in oklch, var(--color-neutral-900) 68%, transparent);
-  --glass-bg-elevated: color-mix(in oklch, var(--color-neutral-800) 76%, transparent);
-  --glass-border-subtle: oklch(1 0 0 / 14%);
-  --glass-border-strong: oklch(1 0 0 / 24%);
-  --glass-border-brand: color-mix(in oklch, var(--color-brand-400) 62%, transparent);
+  --text-primary: var(--fg);
+  --text-secondary: var(--fg-2);
+  --text-muted: var(--fg-2);
+  --glass-bg-primary: var(--glass-bg);
+  --glass-bg-elevated: var(--glass-bg-2);
+  --glass-border-subtle: var(--glass-border);
+  --glass-border-strong: color-mix(in oklch, var(--border-strong) 80%, transparent);
+  --glass-border-brand: color-mix(in oklch, var(--primary) 62%, transparent);
   --shadow-glass-sm:
     0 2px 8px -1px rgb(0 0 0 / 0.36), 0 1px 3px -1px rgb(0 0 0 / 0.32),
     inset 0 1px 0 rgb(255 255 255 / 0.12);
