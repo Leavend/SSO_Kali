@@ -947,4 +947,73 @@ describe('AdminShellLayout', () => {
       expect(wrapper.get(`#${labelledBy}`).classes()).toContain('admin-nav__group')
     }
   })
+
+  it('renders nav links in grouped display order — the permutation the pill animation steps along', async () => {
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        {
+          path: '/dashboard',
+          component: { template: '<section />' },
+          meta: { requiresAdmin: true },
+        },
+        { path: '/roles', component: { template: '<section />' }, meta: { requiresAdmin: true } },
+        { path: '/clients', component: { template: '<section />' }, meta: { requiresAdmin: true } },
+        {
+          path: '/observability',
+          component: { template: '<section />' },
+          meta: { requiresAdmin: true },
+        },
+      ],
+    })
+    await router.push('/dashboard')
+    await router.isReady()
+
+    const session = useSessionStore()
+    session.setPrincipal({
+      ...principal,
+      permissions: {
+        ...principal.permissions,
+        menus: [
+          {
+            id: 'dashboard',
+            label: 'Dashboard',
+            required_permission: 'admin.dashboard.view',
+            visible: true,
+          },
+          { id: 'roles', label: 'Roles', required_permission: 'admin.roles.read', visible: true },
+          {
+            id: 'clients',
+            label: 'Clients',
+            required_permission: 'admin.clients.read',
+            visible: true,
+          },
+          {
+            id: 'audit',
+            label: 'Observability',
+            required_permission: 'admin.audit.read',
+            visible: true,
+          },
+        ],
+      },
+    })
+
+    const wrapper = mount(AdminShellLayout, {
+      global: { plugins: [router], stubs: { RouterView: true } },
+    })
+    await nextTick()
+    await nextTick()
+
+    // Backend order dashboard(0), roles(1), clients(2), audit(3) renders grouped:
+    // Utama[dashboard 0, clients 2] → Keamanan[roles 1] → Observabilitas[audit 3].
+    // The pill steps along THIS sequence, so it must be the grouped permutation,
+    // not the raw 0,1,2,3 index order (PILL1 regression guard).
+    const renderOrder = wrapper
+      .findAll('.admin-nav__link[data-menu-index]')
+      .map((link) => Number(link.attributes('data-menu-index')))
+
+    expect(renderOrder).toEqual([0, 2, 1, 3])
+    // A permutation of every visible index — each menu rendered exactly once.
+    expect([...renderOrder].sort((a, b) => a - b)).toEqual([0, 1, 2, 3])
+  })
 })
