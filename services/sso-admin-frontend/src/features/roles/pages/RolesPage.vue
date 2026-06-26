@@ -16,10 +16,12 @@ import UiButton from '@/components/ui/UiButton.vue'
 import UiInput from '@/components/ui/UiInput.vue'
 import UiFormField from '@/components/ui/UiFormField.vue'
 import UiTextarea from '@/components/ui/UiTextarea.vue'
+import UiStatusBadge from '@/components/ui/UiStatusBadge.vue'
+import UiDetailDrawer from '@/components/ui/UiDetailDrawer.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import { useRolesStore } from '../stores/roles.store'
 import type { AdminRole } from '../types'
-import { Shield, Key, Users, Plus, Edit, Trash2, X, Settings } from 'lucide-vue-next'
+import { Shield, Key, Plus, Edit, Trash2, X, Settings } from 'lucide-vue-next'
 
 const store = useRolesStore()
 const session = useSessionStore()
@@ -50,6 +52,19 @@ const showConfirmDelete = ref(false)
 const showConfirmPermissions = ref(false)
 
 const activeRole = ref<AdminRole | null>(null)
+
+// Master-detail drawer state. `selectedRole` drives the detail drawer; the
+// create/edit/permissions forms keep their own `activeRole` modal context.
+const selectedRole = ref<AdminRole | null>(null)
+const isDrawerOpen = computed<boolean>(() => selectedRole.value !== null)
+
+function selectRole(role: AdminRole): void {
+  selectedRole.value = role
+}
+
+function closeDrawer(): void {
+  selectedRole.value = null
+}
 
 // Form fields
 const createForm = ref({
@@ -191,6 +206,7 @@ async function submitDeleteRole(): Promise<void> {
   if (store.actionStatus === 'success') {
     toast.pushToast({ tone: 'success', title: t('roles.roles_delete_success') })
     activeRole.value = null
+    selectedRole.value = null
   }
 }
 
@@ -258,68 +274,53 @@ onMounted(() => {
           <span>{{ t('roles.list_title') }}</span>
         </h2>
         <p class="page-summary">{{ t('roles.matrix_desc') }}</p>
-        <div class="roles-grid">
-          <article
-            v-for="role in store.roles"
-            :key="role.slug"
-            class="ui-card roles-card"
-            :aria-label="`Role: ${role.label}`"
-          >
-            <header class="roles-card__header">
-              <strong class="roles-card__label">{{ role.label }}</strong>
-              <code class="roles-card__slug">{{ role.slug }}</code>
-              <span v-if="role.user_count != null" class="ui-badge roles-badge">
-                <Users :size="12" />
-                <span>{{ role.user_count }} {{ role.user_count === 1 ? 'user' : 'users' }}</span>
-              </span>
-              <span v-if="role.is_system" class="system-badge ml-2">
-                {{ t('roles.system_role') }}
-              </span>
-            </header>
-
-            <p v-if="role.description" class="roles-card__description">
-              {{ role.description }}
-            </p>
-
-            <section :aria-labelledby="`perm-heading-${role.slug}`">
-              <h3 :id="`perm-heading-${role.slug}`" class="sr-only">
-                Permissions untuk role {{ role.label }}
-              </h3>
-              <ul class="roles-perm-list" aria-label="Permissions">
-                <li v-for="perm in role.permissions" :key="perm" class="roles-perm-item">
-                  <code>{{ perm }}</code>
-                </li>
-              </ul>
-              <p v-if="role.permissions.length === 0" class="muted">
-                {{ t('roles.no_permissions') }}
-              </p>
-            </section>
-
-            <div v-if="canWriteRoles" class="roles-card__actions">
-              <UiButton
-                v-if="!role.is_system"
-                variant="secondary"
-                size="sm"
-                @click="openEditForm(role)"
-              >
-                <Edit :size="14" />
-                <span>{{ t('roles.btn_edit') }}</span>
-              </UiButton>
-              <UiButton variant="secondary" size="sm" @click="openPermissionsForm(role)">
-                <Settings :size="14" />
-                <span>{{ t('roles.btn_manage_permissions') }}</span>
-              </UiButton>
-              <UiButton
-                v-if="!role.is_system"
-                variant="danger"
-                size="sm"
-                @click="promptDeleteRole(role)"
-              >
-                <Trash2 :size="14" />
-                <span>{{ t('roles.btn_delete') }}</span>
-              </UiButton>
-            </div>
-          </article>
+        <div class="tbl-shell">
+          <div class="tbl-scroll">
+            <table class="tbl tbl--clickable roles-table">
+              <thead>
+                <tr>
+                  <th scope="col">{{ t('roles.col_role') }}</th>
+                  <th scope="col">{{ t('roles.col_users') }}</th>
+                  <th scope="col" class="tbl__cell--right">{{ t('roles.col_status') }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="role in store.roles"
+                  :key="role.slug"
+                  class="roles-row"
+                  :class="{ 'roles-row--active': selectedRole?.slug === role.slug }"
+                  role="button"
+                  tabindex="0"
+                  :aria-label="`Role: ${role.label}`"
+                  @click="selectRole(role)"
+                  @keydown.enter="selectRole(role)"
+                  @keydown.space.prevent="selectRole(role)"
+                >
+                  <td :data-label="t('roles.col_role')">
+                    <span class="tbl__rowname">
+                      <span class="tbl__rowmeta">
+                        <span class="tbl__primary">{{ role.label }}</span>
+                        <code class="tbl__secondary">{{ role.slug }}</code>
+                      </span>
+                    </span>
+                  </td>
+                  <td :data-label="t('roles.col_users')">
+                    <span v-if="role.user_count != null"
+                      >{{ role.user_count }} {{ role.user_count === 1 ? 'user' : 'users' }}</span
+                    >
+                    <span v-else>—</span>
+                  </td>
+                  <td :data-label="t('roles.col_status')" class="tbl__cell--right">
+                    <UiStatusBadge
+                      :tone="role.is_system ? 'info' : 'neutral'"
+                      :label="role.is_system ? t('roles.system_role') : t('roles.custom_role')"
+                    />
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
 
@@ -562,6 +563,75 @@ onMounted(() => {
       </div>
     </div>
 
+    <!-- Role detail drawer -->
+    <UiDetailDrawer
+      v-if="selectedRole"
+      :open="isDrawerOpen"
+      title-id="role-detail-drawer"
+      :title="selectedRole.label"
+      :description="t('roles.detail_desc')"
+      :close-label="t('roles.close_detail')"
+      wide
+      @close="closeDrawer"
+    >
+      <div class="role-detail">
+        <div class="role-detail__head">
+          <code class="role-detail__slug">{{ selectedRole.slug }}</code>
+          <UiStatusBadge
+            :tone="selectedRole.is_system ? 'info' : 'neutral'"
+            :label="selectedRole.is_system ? t('roles.system_role') : t('roles.custom_role')"
+          />
+          <span v-if="selectedRole.user_count != null" class="role-detail__count"
+            >{{ selectedRole.user_count }}
+            {{ selectedRole.user_count === 1 ? 'user' : 'users' }}</span
+          >
+        </div>
+
+        <p v-if="selectedRole.description" class="role-detail__desc">
+          {{ selectedRole.description }}
+        </p>
+
+        <section class="role-detail__perms" aria-labelledby="role-detail-perms-title">
+          <h3 id="role-detail-perms-title">{{ t('roles.permissions_label') }}</h3>
+          <ul
+            v-if="selectedRole.permissions.length"
+            class="roles-perm-list"
+            aria-label="Permissions"
+          >
+            <li v-for="perm in selectedRole.permissions" :key="perm" class="roles-perm-item">
+              <code>{{ perm }}</code>
+            </li>
+          </ul>
+          <p v-else class="muted">{{ t('roles.no_permissions') }}</p>
+        </section>
+
+        <div v-if="canWriteRoles" class="role-detail__actions">
+          <UiButton
+            v-if="!selectedRole.is_system"
+            variant="secondary"
+            size="sm"
+            @click="openEditForm(selectedRole)"
+          >
+            <Edit :size="14" />
+            <span>{{ t('roles.btn_edit') }}</span>
+          </UiButton>
+          <UiButton variant="secondary" size="sm" @click="openPermissionsForm(selectedRole)">
+            <Settings :size="14" />
+            <span>{{ t('roles.btn_manage_permissions') }}</span>
+          </UiButton>
+          <UiButton
+            v-if="!selectedRole.is_system"
+            variant="danger"
+            size="sm"
+            @click="promptDeleteRole(selectedRole)"
+          >
+            <Trash2 :size="14" />
+            <span>{{ t('roles.btn_delete') }}</span>
+          </UiButton>
+        </div>
+      </div>
+    </UiDetailDrawer>
+
     <!-- Confirm Delete dialog -->
     <ConfirmDialog
       :open="showConfirmDelete"
@@ -589,23 +659,69 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.roles-card__description {
-  margin: 8px 0;
-  font-size: 0.875rem;
-  color: var(--muted-foreground);
-  line-height: 1.4;
+.roles-table {
+  width: 100%;
 }
 
-.roles-card__actions {
+.roles-row {
+  cursor: pointer;
+}
+
+.roles-row:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--primary-ring);
+}
+
+.roles-row--active {
+  background: var(--primary-soft);
+}
+
+.role-detail {
+  display: grid;
+  gap: 16px;
+}
+
+.role-detail__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.role-detail__slug {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--fg-2);
+}
+
+.role-detail__count {
+  font-size: 0.8125rem;
+  color: var(--fg-2);
+}
+
+.role-detail__desc {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--fg-2);
+  line-height: 1.5;
+}
+
+.role-detail__perms h3 {
+  margin: 0 0 8px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--fg-2);
+}
+
+.role-detail__actions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 16px;
   padding-top: 12px;
   border-top: 1px solid var(--border);
 }
 
-.roles-card__actions .ui-button {
+.role-detail__actions .ui-button {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -616,13 +732,5 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   white-space: nowrap;
-}
-
-.system-badge {
-  background-color: var(--accent);
-  color: var(--accent-foreground);
-  font-size: 0.75rem;
-  padding: 2px 6px;
-  border-radius: 4px;
 }
 </style>

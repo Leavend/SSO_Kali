@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { useSessionStore } from '@/stores/session.store'
 import RolesPage from '../RolesPage.vue'
@@ -65,96 +65,115 @@ function seedPrincipal(capabilities: Record<string, boolean>): void {
   })
 }
 
+function mountSuccess(
+  roles: readonly AdminRole[] = [mockRole, mockSystemRole],
+  permissions: readonly AdminPermission[] = [mockPermission],
+) {
+  const store = useRolesStore()
+  store.status = 'success'
+  store.roles = roles
+  store.permissions = permissions
+  return { store, wrapper: mount(RolesPage) }
+}
+
+function rowFor(wrapper: VueWrapper, text: string) {
+  const row = wrapper.findAll('table.tbl tbody tr').find((r) => r.text().includes(text))
+  if (!row) throw new Error(`No .tbl row found containing "${text}"`)
+  return row
+}
+
+async function openDetailFor(wrapper: VueWrapper, text: string) {
+  await rowFor(wrapper, text).trigger('click')
+  return wrapper.find('.drawer-content')
+}
+
 describe('RolesPage', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
-    seedPrincipal({
-      'admin.roles.write': true,
-    })
+    seedPrincipal({ 'admin.roles.write': true })
   })
 
-  it('renders roles list, system tags, user counts, and permissions matrix', () => {
-    const store = useRolesStore()
-    store.status = 'success'
-    store.roles = [mockRole, mockSystemRole]
-    store.permissions = [mockPermission]
+  it('renders the roles as a .tbl table with name, slug, user count, and a status badge', () => {
+    const { wrapper } = mountSuccess()
 
-    const wrapper = mount(RolesPage)
-
-    expect(wrapper.text()).toContain('Roles & Permissions')
-    expect(wrapper.text()).toContain('Custom Role Label')
-    expect(wrapper.text()).toContain('custom-role')
-    expect(wrapper.text()).toContain('5 users')
-    expect(wrapper.text()).toContain('System Role')
-    expect(wrapper.text()).toContain('admin.users.read')
+    const table = wrapper.find('table.tbl')
+    expect(table.exists()).toBe(true)
+    expect(table.text()).toContain('Custom Role Label')
+    expect(table.text()).toContain('custom-role')
+    expect(table.text()).toContain('Administrator')
+    expect(table.text()).toContain('5 users')
+    // System roles carry an explicit, non-colour-only status badge.
+    expect(wrapper.find('.status[data-tone="info"]').exists()).toBe(true)
+    expect(table.text()).toContain('System Role')
   })
 
-  it('uses a responsive action heading instead of inline desktop flex styles', () => {
-    const store = useRolesStore()
-    store.status = 'success'
-    store.roles = [mockRole]
+  it('drops the legacy card grid in favour of the shared table', () => {
+    const { wrapper } = mountSuccess()
 
-    const wrapper = mount(RolesPage)
+    expect(wrapper.find('.roles-grid').exists()).toBe(false)
+    expect(wrapper.find('.roles-card').exists()).toBe(false)
+    expect(wrapper.find('.user-modal-overlay.roles-card').exists()).toBe(false)
+  })
+
+  it('opens a detail drawer with the role description and permissions when a row is clicked', async () => {
+    const { wrapper } = mountSuccess()
+
+    expect(wrapper.find('.drawer-content').exists()).toBe(false)
+
+    const drawer = await openDetailFor(wrapper, 'Custom Role Label')
+
+    expect(drawer.exists()).toBe(true)
+    expect(drawer.attributes('role')).toBe('dialog')
+    expect(drawer.text()).toContain('Custom description here')
+    expect(drawer.text()).toContain('admin.users.read')
+  })
+
+  it('shows edit and delete in the drawer for custom roles but not system roles', async () => {
+    const { wrapper } = mountSuccess()
+
+    const customDrawer = await openDetailFor(wrapper, 'Custom Role Label')
+    expect(customDrawer.text()).toContain('Edit')
+    expect(customDrawer.text()).toContain('Delete')
+    expect(customDrawer.text()).toContain('Manage Permissions')
+
+    const systemDrawer = await openDetailFor(wrapper, 'Administrator')
+    expect(systemDrawer.text()).not.toContain('Edit')
+    expect(systemDrawer.text()).not.toContain('Delete')
+    expect(systemDrawer.text()).toContain('Manage Permissions')
+  })
+
+  it('hides all write affordances for read-only principals but still allows viewing detail', async () => {
+    seedPrincipal({})
+    const { wrapper } = mountSuccess([mockRole])
+
+    expect(wrapper.find('.create-role-btn').exists()).toBe(false)
+
+    const drawer = await openDetailFor(wrapper, 'Custom Role Label')
+    expect(drawer.exists()).toBe(true)
+    expect(drawer.text()).not.toContain('Edit')
+    expect(drawer.text()).not.toContain('Delete')
+    expect(drawer.text()).not.toContain('Manage Permissions')
+  })
+
+  it('keeps the responsive action heading instead of inline desktop flex styles', () => {
+    const { wrapper } = mountSuccess([mockRole])
+
     const heading = wrapper.get('.page-heading')
-
     expect(heading.classes()).toContain('page-heading--with-action')
     expect(heading.attributes('style')).toBeUndefined()
     expect(wrapper.get('.create-role-btn').classes()).toContain('create-role-btn')
   })
 
-  it('hides edit and delete controls for system roles', () => {
-    const store = useRolesStore()
-    store.status = 'success'
-    store.roles = [mockRole, mockSystemRole]
-
-    const wrapper = mount(RolesPage)
-
-    // Custom role card should have Edit and Delete buttons
-    const customCard = wrapper.find('[aria-label="Role: Custom Role Label"]')
-    expect(customCard.text()).toContain('Edit')
-    expect(customCard.text()).toContain('Delete')
-
-    // System role card should NOT have Edit and Delete buttons
-    const systemCard = wrapper.find('[aria-label="Role: Administrator"]')
-    expect(systemCard.text()).not.toContain('Edit')
-    expect(systemCard.text()).not.toContain('Delete')
-    // But it should have Manage Permissions button
-    expect(systemCard.text()).toContain('Manage Permissions')
-  })
-
-  it('hides write actions completely for read-only principals', () => {
-    seedPrincipal({}) // No write permissions
-    const store = useRolesStore()
-    store.status = 'success'
-    store.roles = [mockRole]
-
-    const wrapper = mount(RolesPage)
-
-    expect(wrapper.find('.create-role-btn').exists()).toBe(false)
-    expect(wrapper.text()).not.toContain('Edit')
-    expect(wrapper.text()).not.toContain('Delete')
-    expect(wrapper.text()).not.toContain('Manage Permissions')
-  })
-
-  it('submits create role payload and opens create dialog modal', async () => {
-    const store = useRolesStore()
-    store.status = 'success'
-    store.roles = []
+  it('submits the create role payload from the create dialog', async () => {
+    const { store, wrapper } = mountSuccess([])
     const createSpy = vi.spyOn(store, 'createRole').mockResolvedValue()
 
-    const wrapper = mount(RolesPage)
-
     await wrapper.find('.create-role-btn').trigger('click')
-
-    // Modal is open
     expect(wrapper.find('h3#create-role-title').exists()).toBe(true)
 
-    // Fill the inputs
     await wrapper.find('input#create-slug').setValue('test-role')
     await wrapper.find('input#create-name').setValue('Test Role')
     await wrapper.find('textarea#create-description').setValue('Descr')
-
-    // Submit form
     await wrapper.find('form').trigger('submit')
 
     expect(createSpy).toHaveBeenCalledWith({
@@ -164,55 +183,58 @@ describe('RolesPage', () => {
     })
   })
 
-  it('requires destructive confirmations when deleting a role', async () => {
-    const store = useRolesStore()
-    store.status = 'success'
-    store.roles = [mockRole]
+  it('requires destructive confirmation before deleting a role', async () => {
+    const { store, wrapper } = mountSuccess([mockRole])
     const deleteSpy = vi.spyOn(store, 'deleteRole').mockResolvedValue()
 
-    const wrapper = mount(RolesPage)
-
-    // Click Delete button by searching for button text
-    const deleteBtn = wrapper.findAll('button').find((b) => b.text().includes('Delete'))!
+    const drawer = await openDetailFor(wrapper, 'Custom Role Label')
+    const deleteBtn = drawer.findAll('button').find((b) => b.text().includes('Delete'))!
     await deleteBtn.trigger('click')
 
-    // Assert ConfirmDialog for delete is rendered
     expect(wrapper.find('[data-testid="confirm-dialog-confirm"]').exists()).toBe(true)
     expect(deleteSpy).not.toHaveBeenCalled()
 
-    // Confirm the action
     await wrapper.find('[data-testid="confirm-dialog-confirm"]').trigger('click')
     expect(deleteSpy).toHaveBeenCalledWith('custom-role')
   })
 
-  it('requires destructive confirmations when syncing permissions', async () => {
-    const store = useRolesStore()
-    store.status = 'success'
-    store.roles = [mockRole]
-    store.permissions = [mockPermission]
+  it('requires destructive confirmation before syncing permissions', async () => {
+    const { store, wrapper } = mountSuccess([mockRole], [mockPermission])
     const syncSpy = vi.spyOn(store, 'syncRolePermissions').mockResolvedValue()
 
-    const wrapper = mount(RolesPage)
+    const drawer = await openDetailFor(wrapper, 'Custom Role Label')
+    const manageBtn = drawer.findAll('button').find((b) => b.text().includes('Manage Permissions'))!
+    await manageBtn.trigger('click')
 
-    // Click Manage Permissions button
-    const managePermsBtn = wrapper
-      .findAll('button')
-      .find((b) => b.text().includes('Manage Permissions'))!
-    await managePermsBtn.trigger('click')
-
-    // Toggle a checkbox in the modal
-    const checkbox = wrapper.find('input.role-checkbox-input')
-    await checkbox.setValue(true)
-
-    // Submit the form
+    await wrapper.find('input.role-checkbox-input').setValue(true)
     await wrapper.find('form').trigger('submit')
 
-    // Confirm dialog should be shown, api should not be called yet
     expect(wrapper.find('[data-testid="confirm-dialog-confirm"]').exists()).toBe(true)
     expect(syncSpy).not.toHaveBeenCalled()
 
-    // Click confirm in the ConfirmDialog
     await wrapper.find('[data-testid="confirm-dialog-confirm"]').trigger('click')
     expect(syncSpy).toHaveBeenCalledWith('custom-role', ['admin.users.read'])
+  })
+
+  it('renders a safe forbidden state without leaking backend internals', () => {
+    const store = useRolesStore()
+    store.status = 'forbidden'
+    store.errorMessage = 'Kamu tidak memiliki izin untuk melihat roles & permissions.'
+
+    const wrapper = mount(RolesPage)
+
+    expect(wrapper.find('.ui-status-view').exists()).toBe(true)
+    expect(wrapper.text()).not.toContain('SQLSTATE')
+  })
+
+  it('renders an empty state when there is no data', () => {
+    const store = useRolesStore()
+    store.status = 'success'
+    store.roles = []
+    store.permissions = []
+
+    const wrapper = mount(RolesPage)
+
+    expect(wrapper.find('.ui-empty-state').exists()).toBe(true)
   })
 })

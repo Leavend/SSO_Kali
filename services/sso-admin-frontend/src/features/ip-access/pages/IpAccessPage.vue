@@ -10,6 +10,7 @@ import UiInput from '@/components/ui/UiInput.vue'
 import UiSelect from '@/components/ui/UiSelect.vue'
 import UiSkeleton from '@/components/ui/UiSkeleton.vue'
 import UiStatusView from '@/components/ui/UiStatusView.vue'
+import UiStatusBadge from '@/components/ui/UiStatusBadge.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import { useSessionStore } from '@/stores/session.store'
 import { useIpAccessStore } from '../stores/ip-access.store'
@@ -199,11 +200,12 @@ const confirmDescription = computed<string>(() => {
         </h2>
 
         <UiDataList caption="IP access rules" :columns="ruleColumns" :rows="ruleRows">
-          <!-- Custom render for Mode column using slot -->
+          <!-- Mode rendered as the shared tokenised status badge. -->
           <template #cell(mode)="{ row }">
-            <span :class="['ui-badge', row.mode === 'allow' ? 'badge--success' : 'badge--danger']">
-              {{ row.mode }}
-            </span>
+            <UiStatusBadge
+              :tone="row.mode === 'allow' ? 'success' : 'danger'"
+              :label="String(row.mode)"
+            />
           </template>
 
           <template #actions="{ row }">
@@ -268,10 +270,10 @@ const confirmDescription = computed<string>(() => {
 
 .section-title {
   margin: 0 0 12px 0;
-  font-family: var(--font-display);
+  font-family: var(--font-sans);
   font-size: 1.15rem;
   font-weight: 800;
-  color: var(--foreground);
+  color: var(--fg);
   letter-spacing: -0.01em;
   display: flex;
   align-items: center;
@@ -281,7 +283,7 @@ const confirmDescription = computed<string>(() => {
 .section-desc {
   margin: 0 0 20px 0;
   font-size: 0.88rem;
-  color: var(--muted-foreground);
+  color: var(--fg-2);
   line-height: 1.4;
 }
 
@@ -294,31 +296,6 @@ const confirmDescription = computed<string>(() => {
 .submit-btn {
   width: 100%;
   margin-top: 20px;
-}
-
-/* Badge specific adjustments inside data list */
-.ui-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  padding: 2px 8px;
-  border-radius: 999px;
-  letter-spacing: 0.03em;
-}
-
-.badge--success {
-  background: var(--success-soft);
-  color: var(--success-soft-fg);
-  border: 1px solid color-mix(in oklch, var(--success) 20%, transparent);
-}
-
-.badge--danger {
-  background: var(--danger-soft);
-  color: var(--danger-soft-fg);
-  border: 1px solid color-mix(in oklch, var(--danger) 20%, transparent);
 }
 
 /* ── Responsive ─────────────────────────────────────────────────────────── */

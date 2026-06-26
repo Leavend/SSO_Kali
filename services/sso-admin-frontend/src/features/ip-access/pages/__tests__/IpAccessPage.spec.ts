@@ -178,4 +178,20 @@ describe('IpAccessPage', () => {
 
     expect(deleteSpy).toHaveBeenCalledWith(1)
   })
+
+  it('renders the rule mode as a tokenised status badge, not the legacy colour class', () => {
+    const store = useIpAccessStore()
+    store.status = 'success'
+    store.rules = [rule, { ...rule, id: 2, cidr: '192.168.0.0/16', mode: 'block' as const }]
+
+    const wrapper = mount(IpAccessPage)
+
+    // Legacy colour-only badge classes are gone.
+    expect(wrapper.find('.badge--success').exists()).toBe(false)
+    expect(wrapper.find('.badge--danger').exists()).toBe(false)
+
+    // Allow → success tone, block → danger tone, via the shared UiStatusBadge.
+    expect(wrapper.find('.status[data-tone="success"]').exists()).toBe(true)
+    expect(wrapper.find('.status[data-tone="danger"]').exists()).toBe(true)
+  })
 })

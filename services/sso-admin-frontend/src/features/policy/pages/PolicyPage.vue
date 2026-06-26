@@ -12,8 +12,11 @@ import UiSelect from '@/components/ui/UiSelect.vue'
 import UiSkeleton from '@/components/ui/UiSkeleton.vue'
 import UiStatusView from '@/components/ui/UiStatusView.vue'
 import UiTextarea from '@/components/ui/UiTextarea.vue'
+import UiStatusBadge from '@/components/ui/UiStatusBadge.vue'
+import UiDetailDrawer from '@/components/ui/UiDetailDrawer.vue'
 import { useSessionStore } from '@/stores/session.store'
 import { usePolicyStore } from '../stores/policy.store'
+import type { SecurityPolicy } from '../types'
 import { formatTechnicalPreview } from '@/lib/display-identifiers'
 
 const store = usePolicyStore()
@@ -32,6 +35,17 @@ const category = ref(store.selectedCategory)
 const reason = ref('Security governance update')
 const draftPayload = ref('{"min_length":14}')
 const showCreateRoleForm = ref(false)
+
+// Policy-version detail drawer (master-detail). Row click selects a version;
+// payload + activate/rollback live inside the drawer.
+const selectedPolicy = ref<SecurityPolicy | null>(null)
+const isPolicyDrawerOpen = computed<boolean>(() => selectedPolicy.value !== null)
+function selectPolicy(policy: SecurityPolicy): void {
+  selectedPolicy.value = policy
+}
+function closePolicyDrawer(): void {
+  selectedPolicy.value = null
+}
 
 const createRoleName = ref('')
 const createRoleSlug = ref('')
@@ -251,29 +265,53 @@ const confirmDescription = computed<string>(() => {
           Create draft
         </button>
 
-        <div v-for="policy in store.policies" :key="policy.id" class="ui-card">
-          <strong>{{ policy.category }} version {{ policy.version }}</strong>
-          <p>{{ policy.status }} · effective {{ dateFormat.smart(policy.effective_at) }}</p>
-          <p>Kode admin: {{ formatTechnicalPreview(policy.actor_subject_id) }}</p>
-          <pre class="policy-json">{{ JSON.stringify(policy.payload, null, 2) }}</pre>
-          <div v-if="canActivateSecurityPolicy" class="action-row compact-actions">
-            <button
-              class="policy-activate-button ui-action ui-action--primary"
-              type="button"
-              @click="requestActivatePolicy(policy.version)"
-            >
-              Activate
-            </button>
-            <button
-              class="policy-rollback-button ui-action ui-action--danger"
-              type="button"
-              @click="requestRollbackPolicy(policy.version)"
-            >
-              Rollback
-            </button>
+        <div class="tbl-shell">
+          <div class="tbl-scroll">
+            <table class="tbl tbl--clickable policy-versions-table">
+              <thead>
+                <tr>
+                  <th scope="col">{{ t('policy.col_version') }}</th>
+                  <th scope="col">{{ t('policy.col_effective') }}</th>
+                  <th scope="col" class="tbl__cell--right">{{ t('policy.col_status') }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="policy in store.policies"
+                  :key="policy.id"
+                  class="policy-row"
+                  :class="{ 'policy-row--active': selectedPolicy?.id === policy.id }"
+                  role="button"
+                  tabindex="0"
+                  :aria-label="`${policy.category} version ${policy.version}`"
+                  @click="selectPolicy(policy)"
+                  @keydown.enter="selectPolicy(policy)"
+                  @keydown.space.prevent="selectPolicy(policy)"
+                >
+                  <td :data-label="t('policy.col_version')">
+                    <span class="tbl__rowname">
+                      <span class="tbl__rowmeta">
+                        <span class="tbl__primary"
+                          >{{ policy.category }} version {{ policy.version }}</span
+                        >
+                        <span class="tbl__secondary"
+                          >Kode admin: {{ formatTechnicalPreview(policy.actor_subject_id) }}</span
+                        >
+                      </span>
+                    </span>
+                  </td>
+                  <td :data-label="t('policy.col_effective')">
+                    {{ dateFormat.smart(policy.effective_at) }}
+                  </td>
+                  <td :data-label="t('policy.col_status')" class="tbl__cell--right">
+                    <UiStatusBadge :status="policy.status" />
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
-        <p v-if="store.policies.length === 0" class="muted">Belum ada policy version.</p>
+        <p v-if="store.policies.length === 0" class="muted">{{ t('policy.no_policy') }}</p>
       </section>
 
       <section class="detail-section" aria-labelledby="roles-title">
@@ -403,6 +441,46 @@ const confirmDescription = computed<string>(() => {
 
     <EvidenceContextPanel title="Policy evidence" :request-id="store.requestId" />
 
+    <UiDetailDrawer
+      v-if="selectedPolicy"
+      :open="isPolicyDrawerOpen"
+      title-id="policy-detail-drawer"
+      :title="`${selectedPolicy.category} version ${selectedPolicy.version}`"
+      :description="t('policy.detail_desc')"
+      :close-label="t('policy.close_detail')"
+      wide
+      @close="closePolicyDrawer"
+    >
+      <div class="policy-detail">
+        <div class="policy-detail__head">
+          <UiStatusBadge :status="selectedPolicy.status" />
+          <span class="policy-detail__effective"
+            >effective {{ dateFormat.smart(selectedPolicy.effective_at) }}</span
+          >
+        </div>
+        <p class="policy-detail__admin">
+          Kode admin: {{ formatTechnicalPreview(selectedPolicy.actor_subject_id) }}
+        </p>
+        <pre class="policy-json">{{ JSON.stringify(selectedPolicy.payload, null, 2) }}</pre>
+        <div v-if="canActivateSecurityPolicy" class="policy-detail__actions">
+          <button
+            class="policy-activate-button ui-action ui-action--primary"
+            type="button"
+            @click="requestActivatePolicy(selectedPolicy.version)"
+          >
+            {{ t('policy.btn_activate') }}
+          </button>
+          <button
+            class="policy-rollback-button ui-action ui-action--danger"
+            type="button"
+            @click="requestRollbackPolicy(selectedPolicy.version)"
+          >
+            {{ t('policy.btn_rollback') }}
+          </button>
+        </div>
+      </div>
+    </UiDetailDrawer>
+
     <ConfirmDialog
       :open="pendingAction !== null"
       :title="confirmTitle"
@@ -414,3 +492,49 @@ const confirmDescription = computed<string>(() => {
     />
   </section>
 </template>
+
+<style scoped>
+.policy-versions-table {
+  width: 100%;
+}
+
+.policy-row {
+  cursor: pointer;
+}
+
+.policy-row:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--primary-ring);
+}
+
+.policy-row--active {
+  background: var(--primary-soft);
+}
+
+.policy-detail {
+  display: grid;
+  gap: 16px;
+}
+
+.policy-detail__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.policy-detail__effective,
+.policy-detail__admin {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--fg-2);
+}
+
+.policy-detail__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+</style>

@@ -183,7 +183,12 @@
     "label_description": "Description",
     "btn_save": "Save",
     "btn_edit": "Edit",
-    "btn_delete": "Delete"
+    "btn_delete": "Delete",
+    "col_version": "Version",
+    "col_effective": "Effective",
+    "col_status": "Status",
+    "detail_desc": "Policy version payload and activation actions",
+    "close_detail": "Close policy version"
   },
   "roles": {
     "eyebrow": "RBAC",
@@ -219,7 +224,13 @@
     "btn_edit": "Edit",
     "btn_delete": "Delete",
     "btn_manage_permissions": "Manage Permissions",
-    "system_role": "System Role"
+    "system_role": "System Role",
+    "custom_role": "Custom",
+    "col_role": "Role",
+    "col_users": "Users",
+    "col_status": "Status",
+    "detail_desc": "Role detail and management actions",
+    "close_detail": "Close role detail"
   },
   "users": {
     "eyebrow": "User Lifecycle",

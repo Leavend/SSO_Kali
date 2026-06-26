@@ -126,4 +126,17 @@ describe('OpsPage', () => {
     expect(wrapper.text()).toContain('backup-restore-drill.yml')
     expect(wrapper.text()).not.toContain('belum tersedia di backend admin contract')
   })
+
+  it('renders the readiness state and dependency checks as tokenised status badges', () => {
+    const store = useOpsStore()
+    store.status = 'success'
+    store.readiness = readyReadiness
+
+    const wrapper = mount(OpsPage)
+
+    // Healthy readiness + database + redis all resolve to the success tone.
+    expect(wrapper.findAll('.status[data-tone="success"]').length).toBeGreaterThanOrEqual(3)
+    // Status word stays human-readable (never colour-only).
+    expect(wrapper.text()).toContain('ready')
+  })
 })

@@ -9,6 +9,7 @@ import UiFormField from '@/components/ui/UiFormField.vue'
 import UiInput from '@/components/ui/UiInput.vue'
 import UiSkeleton from '@/components/ui/UiSkeleton.vue'
 import UiStatusView from '@/components/ui/UiStatusView.vue'
+import UiStatusBadge from '@/components/ui/UiStatusBadge.vue'
 import UiSwitch from '@/components/ui/UiSwitch.vue'
 import UiTextarea from '@/components/ui/UiTextarea.vue'
 import { useSessionStore } from '@/stores/session.store'
@@ -475,12 +476,10 @@ onMounted(() => {
                     <span class="user-card-item__name">
                       {{ provider.display_name ?? provider.provider_key }}
                     </span>
-                    <span
-                      class="user-card-item__badge"
-                      :class="provider.enabled ? 'badge--active' : 'badge--inactive'"
-                    >
-                      {{ provider.enabled ? 'active' : 'inactive' }}
-                    </span>
+                    <UiStatusBadge
+                      :tone="provider.enabled ? 'success' : 'neutral'"
+                      :label="provider.enabled ? 'active' : 'inactive'"
+                    />
                   </span>
                   <span class="user-card-item__email">{{ provider.provider_key }}</span>
                   <span class="user-card-item__meta">
@@ -677,12 +676,10 @@ onMounted(() => {
           <div class="client-profile-hero__content">
             <div class="client-profile-hero__header-row">
               <h2>{{ store.selectedProvider.display_name }}</h2>
-              <span
-                class="ui-badge"
-                :class="store.selectedProvider.enabled ? 'badge--active' : 'badge--inactive'"
-              >
-                {{ store.selectedProvider.enabled ? 'enabled' : 'disabled' }}
-              </span>
+              <UiStatusBadge
+                :tone="store.selectedProvider.enabled ? 'success' : 'neutral'"
+                :label="store.selectedProvider.enabled ? 'enabled' : 'disabled'"
+              />
             </div>
             <p class="client-profile-hero__env">{{ store.selectedProvider.issuer }}</p>
             <p class="client-profile-hero__client-id">{{ store.selectedProvider.provider_key }}</p>
@@ -959,11 +956,10 @@ onMounted(() => {
               <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px">
                 <p style="margin: 0">
                   Safe to link:
-                  <span
-                    class="ui-badge"
-                    :class="store.mappingPreview.safe_to_link ? 'badge--active' : 'badge--inactive'"
-                    >{{ store.mappingPreview.safe_to_link ? 'Yes' : 'No' }}</span
-                  >
+                  <UiStatusBadge
+                    :tone="store.mappingPreview.safe_to_link ? 'success' : 'danger'"
+                    :label="store.mappingPreview.safe_to_link ? 'Yes' : 'No'"
+                  />
                 </p>
                 <p style="margin: 0">
                   Missing email strategy:

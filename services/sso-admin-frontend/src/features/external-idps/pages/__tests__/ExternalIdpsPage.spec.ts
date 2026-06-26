@@ -101,6 +101,28 @@ describe('ExternalIdpsPage', () => {
     expect(wrapper.text()).not.toMatch(/Bearer|client_secret|access_token|SQLSTATE/u)
   })
 
+  it('renders provider and mapping status as tokenised badges, not legacy colour classes', () => {
+    const store = useExternalIdpsStore()
+    store.status = 'success'
+    store.providers = [provider]
+    store.selectedProviderKey = 'google'
+    store.mappingPreview = {
+      mapped: { subject_id: 'sub_123', email: 'admin@example.test' },
+      errors: [],
+      warnings: [],
+      missing_email_strategy: 'reject',
+      safe_to_link: true,
+    }
+
+    const wrapper = mount(ExternalIdpsPage)
+
+    // Legacy colour-only badge classes are gone.
+    expect(wrapper.find('.badge--active').exists()).toBe(false)
+    expect(wrapper.find('.badge--inactive').exists()).toBe(false)
+    // Enabled provider (list row + detail hero) + safe-to-link map to success-tone badges.
+    expect(wrapper.findAll('.status[data-tone="success"]').length).toBeGreaterThanOrEqual(2)
+  })
+
   it('renders safe forbidden state', () => {
     const store = useExternalIdpsStore()
     store.status = 'forbidden'

@@ -217,6 +217,41 @@ describe('PolicyPage', () => {
     expect(wrapper.text()).not.toContain('Delete')
   })
 
+  it('renders policy versions as a .tbl table with a status badge', () => {
+    const store = usePolicyStore()
+    store.status = 'success'
+    store.policies = [policy]
+    store.roles = [role]
+    store.permissions = role.permissions
+
+    const wrapper = mount(PolicyPage)
+
+    const table = wrapper.find('table.tbl')
+    expect(table.exists()).toBe(true)
+    expect(table.text()).toContain('password version 1')
+    // 'active' status → success tone via the shared badge.
+    expect(wrapper.find('.status[data-tone="success"]').exists()).toBe(true)
+  })
+
+  it('opens a policy version drawer with payload and activate/rollback actions', async () => {
+    const store = usePolicyStore()
+    store.status = 'success'
+    store.policies = [policy]
+    store.roles = [role]
+    store.permissions = role.permissions
+
+    const wrapper = mount(PolicyPage)
+
+    expect(wrapper.find('.drawer-content').exists()).toBe(false)
+    await wrapper.find('tr.policy-row').trigger('click')
+
+    const drawer = wrapper.find('.drawer-content')
+    expect(drawer.exists()).toBe(true)
+    expect(drawer.text()).toContain('min_length')
+    expect(drawer.find('button.policy-activate-button').exists()).toBe(true)
+    expect(drawer.find('button.policy-rollback-button').exists()).toBe(true)
+  })
+
   it('does not activate policy before confirmation and cancel is no-op', async () => {
     const store = usePolicyStore()
     store.status = 'success'
@@ -227,6 +262,7 @@ describe('PolicyPage', () => {
 
     const wrapper = mount(PolicyPage)
 
+    await wrapper.find('tr.policy-row').trigger('click')
     await wrapper.find('button.policy-activate-button').trigger('click')
     expect(activateSpy).not.toHaveBeenCalled()
 
@@ -244,6 +280,7 @@ describe('PolicyPage', () => {
 
     const wrapper = mount(PolicyPage)
 
+    await wrapper.find('tr.policy-row').trigger('click')
     await wrapper.find('button.policy-rollback-button').trigger('click')
     await wrapper.find('[data-testid="confirm-dialog-confirm"]').trigger('click')
 
