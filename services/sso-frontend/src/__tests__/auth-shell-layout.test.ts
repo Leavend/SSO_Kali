@@ -15,6 +15,17 @@ describe('auth shell layout', () => {
     expect(layout).not.toContain('admin')
   })
 
+  it('offers a standalone 3-way appearance control on the pre-auth shell (no account menu there)', () => {
+    const layout = readFileSync(resolve(root, 'components/layouts/AuthLayout.vue'), 'utf8')
+
+    // The login/register shell has no PortalUserMenu, so the manual theme control
+    // lives here directly. It is the same 3-way Light/Dark/System control as the
+    // account menu (standalone variant) so appearance UX is uniform across both
+    // surfaces; device default still applies until the user picks an override.
+    expect(layout).toContain('ThemeModeControl')
+    expect(layout).toContain('standalone')
+  })
+
   it('pins active root surfaces to the themed portal canvas', () => {
     const css = readFileSync(resolve(root, 'assets/styles/main.css'), 'utf8')
 

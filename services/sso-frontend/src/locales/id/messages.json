@@ -428,6 +428,12 @@
     "id": "ID",
     "en": "EN"
   },
+  "appearance": {
+    "label": "Tampilan",
+    "light": "Terang",
+    "dark": "Gelap",
+    "system": "Sistem"
+  },
   "errors": {
     "not_found_title": "404 — Halaman tidak ditemukan",
     "not_found_description": "URL tidak terdaftar di portal. Kembali ke beranda atau login.",

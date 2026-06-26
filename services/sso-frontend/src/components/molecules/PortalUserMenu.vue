@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import AppAvatar from '@/components/molecules/AppAvatar.vue'
 import ConfirmDialog from '@/components/molecules/ConfirmDialog.vue'
+import ThemeModeControl from '@/components/atoms/ThemeModeControl.vue'
+import LocaleSwitcher from '@/components/atoms/LocaleSwitcher.vue'
 import { useSessionStore } from '@/stores/session.store'
 import { useAuthRedirect } from '@/composables/useAuthRedirect'
 import { useSsoAccountBar } from '@/composables/useSsoAccountBar'
@@ -41,7 +43,9 @@ const accountMenu = ref<HTMLElement | null>(null)
 const openPanel = ref<OpenPanel>(null)
 const showLogoutDialog = ref<boolean>(false)
 const isLoggingOut = ref<boolean>(false)
-const displayName = computed<string>(() => session.user?.display_name ?? t('portal.home.user_fallback'))
+const displayName = computed<string>(
+  () => session.user?.display_name ?? t('portal.home.user_fallback'),
+)
 const email = computed<string>(() => session.user?.email ?? '')
 
 function askLogout(): void {
@@ -113,7 +117,8 @@ function handleMenuKeydown(event: KeyboardEvent, panel: Exclude<OpenPanel, null>
   if (event.key === 'Tab') {
     event.preventDefault()
     const direction = event.shiftKey ? -1 : 1
-    const nextIndex = activeIndex === -1 ? 0 : (activeIndex + direction + items.length) % items.length
+    const nextIndex =
+      activeIndex === -1 ? 0 : (activeIndex + direction + items.length) % items.length
     items[nextIndex]?.focus()
     return
   }
@@ -156,7 +161,9 @@ function focusableItems(panel: Exclude<OpenPanel, null>): HTMLElement[] {
   const menu = panel === 'apps' ? appsMenu.value : accountMenu.value
   if (!menu) return []
   return Array.from(
-    menu.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'),
+    menu.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    ),
   ).filter((item) => !item.hasAttribute('disabled') && item.tabIndex !== -1)
 }
 
@@ -199,7 +206,12 @@ onUnmounted(() => {
       data-testid="portal-account-menu-trigger"
       @click.stop="toggleAccount"
     >
-      <AppAvatar :name="displayName" :email="email" size="sm" class="ring-2 ring-white/50 dark:ring-white/15" />
+      <AppAvatar
+        :name="displayName"
+        :email="email"
+        size="sm"
+        class="ring-2 ring-white/50 dark:ring-white/15"
+      />
       <div class="portal-account-identity hidden min-w-0 text-xs leading-tight sm:flex sm:flex-col">
         <strong class="truncate font-semibold text-[var(--text-primary)]">{{ displayName }}</strong>
         <span class="truncate text-[var(--text-secondary)]">{{ email }}</span>
@@ -238,10 +250,16 @@ onUnmounted(() => {
       data-testid="portal-account-apps-menu"
       @keydown="handleMenuKeydown($event, 'apps')"
     >
-      <p v-if="accountBar.appsState.value === 'loading'" class="p-3 text-xs text-[var(--text-secondary)]">
+      <p
+        v-if="accountBar.appsState.value === 'loading'"
+        class="p-3 text-xs text-[var(--text-secondary)]"
+      >
         Memuat aplikasi...
       </p>
-      <p v-else-if="accountBar.appsState.value === 'error'" class="p-3 text-xs text-[var(--text-secondary)]">
+      <p
+        v-else-if="accountBar.appsState.value === 'error'"
+        class="p-3 text-xs text-[var(--text-secondary)]"
+      >
         Gagal memuat aplikasi.
       </p>
       <p
@@ -265,7 +283,9 @@ onUnmounted(() => {
           >
             {{ safeInitial(app.display_name) }}
           </span>
-          <span class="max-w-full overflow-hidden text-ellipsis whitespace-nowrap">{{ app.display_name }}</span>
+          <span class="max-w-full overflow-hidden text-ellipsis whitespace-nowrap">{{
+            app.display_name
+          }}</span>
         </a>
       </div>
     </section>
@@ -291,6 +311,21 @@ onUnmounted(() => {
       >
         Kelola Akun
       </RouterLink>
+
+      <div class="grid gap-2 border-t border-[var(--glass-border-subtle)] px-3 pb-1 pt-2">
+        <div class="flex items-center justify-between gap-3">
+          <span class="text-xs font-medium text-[var(--text-secondary)]">{{
+            t('appearance.label')
+          }}</span>
+          <ThemeModeControl />
+        </div>
+        <div class="flex items-center justify-between gap-3">
+          <span class="text-xs font-medium text-[var(--text-secondary)]">{{
+            t('language.label')
+          }}</span>
+          <LocaleSwitcher />
+        </div>
+      </div>
 
       <div role="group" aria-label="Akun lain">
         <p
@@ -319,9 +354,16 @@ onUnmounted(() => {
             {{ account.email }} · {{ account.status }}
           </span>
         </button>
-        <p v-if="accountBar.switchState.value === 'error'" class="px-3 py-2 text-xs text-[var(--text-secondary)]">
+        <p
+          v-if="accountBar.switchState.value === 'error'"
+          class="px-3 py-2 text-xs text-[var(--text-secondary)]"
+        >
           Sesi akun perlu dimuat ulang.
-          <a v-if="accountBar.safeSwitchLoginUrl.value" :href="accountBar.safeSwitchLoginUrl.value" class="underline">
+          <a
+            v-if="accountBar.safeSwitchLoginUrl.value"
+            :href="accountBar.safeSwitchLoginUrl.value"
+            class="underline"
+          >
             Masuk ulang
           </a>
         </p>

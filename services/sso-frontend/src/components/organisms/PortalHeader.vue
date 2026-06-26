@@ -19,8 +19,6 @@ import {
 } from 'lucide-vue-next'
 import { RouterLink } from 'vue-router'
 import AppBrandMark from '@/components/atoms/AppBrandMark.vue'
-import LocaleSwitcher from '@/components/atoms/LocaleSwitcher.vue'
-import ThemeToggleButton from '@/components/atoms/ThemeToggleButton.vue'
 import PortalNavLink from '@/components/molecules/PortalNavLink.vue'
 import PortalUserMenu from '@/components/molecules/PortalUserMenu.vue'
 import { useI18n } from '@/composables/useI18n'
@@ -92,14 +90,14 @@ function closeMenu(): void {
       </nav>
 
       <div data-testid="portal-header-actions" class="ml-auto flex shrink-0 items-center gap-1.5">
-        <LocaleSwitcher />
-        <ThemeToggleButton />
         <PortalUserMenu compact />
         <!-- Mobile hamburger -->
         <button
           type="button"
           class="inline-flex size-11 items-center justify-center rounded-full border border-[var(--glass-border-subtle)] bg-white/20 text-[var(--text-secondary)] shadow-[var(--shadow-glass-sm)] transition-colors hover:bg-white/35 hover:text-[var(--text-primary)] md:hidden dark:bg-white/10 dark:hover:bg-white/15"
-          :aria-label="mobileMenuOpen ? t('portal.header.close_menu') : t('portal.header.open_menu')"
+          :aria-label="
+            mobileMenuOpen ? t('portal.header.close_menu') : t('portal.header.open_menu')
+          "
           :aria-expanded="mobileMenuOpen"
           @click="toggleMenu"
         >

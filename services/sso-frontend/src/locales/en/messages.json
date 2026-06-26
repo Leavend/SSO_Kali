@@ -428,6 +428,12 @@
     "id": "ID",
     "en": "EN"
   },
+  "appearance": {
+    "label": "Appearance",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
   "errors": {
     "not_found_title": "404 - Page not found",
     "not_found_description": "This URL is not registered in the portal. Return home or sign in.",

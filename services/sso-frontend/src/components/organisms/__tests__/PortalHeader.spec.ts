@@ -11,7 +11,6 @@ describe('PortalHeader', () => {
           PortalNavLink: true,
           PortalUserMenu: true,
           RouterLink: true,
-          ThemeToggleButton: true,
         },
       },
     })
@@ -32,7 +31,6 @@ describe('PortalHeader', () => {
           PortalNavLink: true,
           PortalUserMenu: true,
           RouterLink: true,
-          ThemeToggleButton: true,
         },
       },
     })
@@ -50,7 +48,6 @@ describe('PortalHeader', () => {
           PortalNavLink: true,
           PortalUserMenu: true,
           RouterLink: true,
-          ThemeToggleButton: true,
         },
       },
     })
@@ -73,7 +70,6 @@ describe('PortalHeader', () => {
           PortalNavLink: true,
           PortalUserMenu: true,
           RouterLink: true,
-          ThemeToggleButton: true,
         },
       },
     })

@@ -24,7 +24,7 @@ import { RouterView, useRoute } from 'vue-router'
 import SsoAuroraSvg from '@/components/atoms/SsoAuroraSvg.vue'
 import SsoAuthLockup from '@/components/atoms/SsoAuthLockup.vue'
 import SsoPhotoBackground from '@/components/atoms/SsoPhotoBackground.vue'
-import ThemeToggleButton from '@/components/atoms/ThemeToggleButton.vue'
+import ThemeModeControl from '@/components/atoms/ThemeModeControl.vue'
 import type { AuroraPreset, AuthBackgroundVariant } from '@/router'
 
 const route = useRoute()
@@ -67,7 +67,7 @@ const mainWidthClass = computed<string>(() => {
       class="fixed left-1/2 top-4 z-20 -translate-x-1/2 text-foreground md:left-6 md:translate-x-0"
     />
 
-    <ThemeToggleButton class="fixed right-4 top-4 z-20 text-foreground" />
+    <ThemeModeControl standalone class="fixed right-4 top-4 z-20" />
 
     <div
       class="relative isolate flex min-h-screen w-full flex-1 items-center justify-center overflow-hidden"
