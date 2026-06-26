@@ -798,19 +798,22 @@ select {
   min-height: 172px;
   padding: 22px;
   border: 1px solid var(--border);
-  border-radius: 18px;
+  border-radius: var(--r-lg);
   background: var(--card);
+  box-shadow: var(--shadow-sm);
   transition:
     transform 0.16s ease,
     border-color 0.16s ease,
     box-shadow 0.16s ease;
 }
 
+/* Hover lift (DS `.metric` pattern). Reduced-motion users keep the box-shadow
+   cue but skip the translate (see prefers-reduced-motion block below). */
 .readiness-card:hover,
 .dashboard-card:hover {
   transform: translateY(-2px);
   border-color: color-mix(in oklch, var(--primary) 40%, transparent);
-  box-shadow: 0 12px 30px color-mix(in oklch, var(--primary) 8%, transparent);
+  box-shadow: var(--shadow-md);
 }
 
 .readiness-card h2,
@@ -2634,25 +2637,49 @@ select.ui-control {
   margin-bottom: 8px;
 }
 
+/* Tinted icon (DS `.metric` pattern): rounded square filled with a soft token
+   tint, the matching `-fg` token carries the glyph. The tint is the metric's
+   identity, so it persists on hover rather than inverting. */
 .dashboard-card__icon-wrapper {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 38px;
   height: 38px;
-  border-radius: 10px;
-  background: var(--muted);
-  color: var(--primary);
-  border: 1px solid var(--border);
-  transition:
-    background-color 0.16s ease,
-    color 0.16s ease;
+  border-radius: var(--r-sm);
+  background: var(--primary-soft);
+  color: var(--primary-soft-fg);
+  border: 1px solid color-mix(in oklch, var(--primary-soft-fg) 14%, transparent);
 }
 
-.dashboard-card:hover .dashboard-card__icon-wrapper {
-  background: var(--primary);
-  color: var(--primary-fg);
-  border-color: var(--primary);
+.dashboard-card__icon-wrapper--primary {
+  background: var(--primary-soft);
+  color: var(--primary-soft-fg);
+  border-color: color-mix(in oklch, var(--primary-soft-fg) 14%, transparent);
+}
+
+.dashboard-card__icon-wrapper--info {
+  background: var(--info-soft);
+  color: var(--info-soft-fg);
+  border-color: color-mix(in oklch, var(--info-soft-fg) 14%, transparent);
+}
+
+.dashboard-card__icon-wrapper--success {
+  background: var(--success-soft);
+  color: var(--success-soft-fg);
+  border-color: color-mix(in oklch, var(--success-soft-fg) 14%, transparent);
+}
+
+.dashboard-card__icon-wrapper--warning {
+  background: var(--warning-soft);
+  color: var(--warning-soft-fg);
+  border-color: color-mix(in oklch, var(--warning-soft-fg) 14%, transparent);
+}
+
+.dashboard-card__icon-wrapper--danger {
+  background: var(--danger-soft);
+  color: var(--danger-soft-fg);
+  border-color: color-mix(in oklch, var(--danger-soft-fg) 14%, transparent);
 }
 
 .dashboard-card h2 {
@@ -2731,32 +2758,38 @@ select.ui-control {
   border: 1px solid color-mix(in oklch, var(--danger-soft-fg) 22%, transparent) !important;
 }
 
-/* Incidents warning layout if active */
+/* Incidents reads as the alert surface: danger-tinted icon (set on the wrapper
+   variant) plus a danger-toned hover lift. */
 .dashboard-card--incidents:hover {
   border-color: color-mix(in oklch, var(--danger) 40%, transparent) !important;
-  box-shadow: 0 12px 30px color-mix(in oklch, var(--danger) 8%, transparent) !important;
+  box-shadow: var(--shadow-md) !important;
 }
 
-.dashboard-card--incidents .dashboard-card__icon-wrapper {
-  color: var(--destructive);
-}
-
-.dashboard-card--incidents:hover .dashboard-card__icon-wrapper {
-  background: var(--destructive);
-  color: var(--destructive-foreground);
-  border-color: var(--destructive);
-}
-
-/* Dashboard Hero Premium overrides */
+/* Dashboard Hero — glass surface (DS portal-card idiom). */
 .dashboard-hero {
   position: relative;
   padding: 36px 40px !important;
-  background:
-    radial-gradient(circle at 90% 10%, color-mix(in oklch, var(--primary) 8%, transparent), transparent 50%),
-    var(--card) !important;
-  border-radius: 20px !important;
-  border: 1px solid var(--border) !important;
+  background: var(--glass-bg-2) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.3);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.3);
+  border-radius: var(--r-xl) !important;
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: var(--shadow-glass) !important;
   overflow: hidden;
+}
+
+/* Eyebrow → soft primary pill chip. */
+.dashboard-hero__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  border-radius: var(--r-pill);
+  background: var(--primary-soft);
+  color: var(--primary-soft-fg);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .dashboard-hero::before {
@@ -5813,6 +5846,18 @@ button.user-card-item {
   .user-detail-tabs__pill,
   .client-detail-tabs__pill {
     transition: none;
+  }
+
+  /* Keep the box-shadow/border hover cue but drop the translate so motion-
+     sensitive users get a static lift. */
+  .readiness-card,
+  .dashboard-card {
+    transition: box-shadow 0.16s ease, border-color 0.16s ease;
+  }
+
+  .readiness-card:hover,
+  .dashboard-card:hover {
+    transform: none;
   }
 }
 

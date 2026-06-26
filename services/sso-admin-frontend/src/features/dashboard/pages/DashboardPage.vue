@@ -8,6 +8,7 @@ import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
 import UiEmptyState from '@/components/ui/UiEmptyState.vue'
 import UiSkeleton from '@/components/ui/UiSkeleton.vue'
 import UiStatusView from '@/components/ui/UiStatusView.vue'
+import DashboardMetricValue from './DashboardMetricValue.vue'
 import { useDashboardStore } from '../stores/dashboard.store'
 import type { DashboardCounterGroup } from '../types'
 import {
@@ -56,6 +57,21 @@ const cardIcons: Record<string, any> = {
   Audit: FileSearch,
   Incidents: ShieldAlert,
   DSR: Inbox,
+}
+
+// Soft token tint per metric icon (background `--{tint}-soft`, glyph `--{tint}-soft-fg`).
+// `danger` is reserved for Incidents so it reads as the alert surface.
+const cardTints: Record<string, 'primary' | 'info' | 'success' | 'warning' | 'danger'> = {
+  Users: 'primary',
+  Sessions: 'info',
+  Clients: 'success',
+  Audit: 'warning',
+  Incidents: 'danger',
+  DSR: 'primary',
+}
+
+function cardTint(title: string): string {
+  return cardTints[title] ?? 'primary'
 }
 
 const hasCounterValues = computed(() =>
@@ -127,7 +143,7 @@ function counterTone(key: string, value: number): 'neutral' | 'success' | 'warni
 <template>
   <section class="dashboard-page max-w-page mx-auto px-4 md:px-6 py-8 space-y-8">
     <header class="hero-card dashboard-hero">
-      <span class="eyebrow">{{ t('dashboard.eyebrow') }}</span>
+      <span class="dashboard-hero__eyebrow">{{ t('dashboard.eyebrow') }}</span>
       <h1>{{ t('dashboard.title') }}</h1>
       <p>{{ t('dashboard.summary') }}</p>
 
@@ -204,7 +220,10 @@ function counterTone(key: string, value: number): 'neutral' | 'success' | 'warni
         :class="`dashboard-card--${card.title.toLowerCase()}`"
       >
         <div class="dashboard-card__header">
-          <div class="dashboard-card__icon-wrapper">
+          <div
+            class="dashboard-card__icon-wrapper"
+            :class="`dashboard-card__icon-wrapper--${cardTint(card.title)}`"
+          >
             <component
               :is="cardIcons[card.title]"
               class="dashboard-card__icon"
@@ -217,12 +236,7 @@ function counterTone(key: string, value: number): 'neutral' | 'success' | 'warni
         <dl>
           <div v-for="[key, value] in entries(card.counters)" :key="key">
             <dt>{{ counterLabel(card.title, key) }}</dt>
-            <dd
-              class="dashboard-counter-value"
-              :class="`dashboard-counter-value--${counterTone(key, value)}`"
-            >
-              {{ value }}
-            </dd>
+            <DashboardMetricValue :value="value" :tone="counterTone(key, value)" />
           </div>
         </dl>
       </article>
