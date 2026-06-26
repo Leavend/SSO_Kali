@@ -1,48 +1,24 @@
 <script setup lang="ts">
-import {
-  computed,
-  nextTick,
-  onMounted,
-  onUnmounted,
-  reactive,
-  ref,
-  watch,
-  type Component,
-} from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from '@/composables/useI18n'
-import { useDateFormat } from '@/composables/useDateFormat'
-import { useTabPill } from '@/composables/useTabPill'
+import { useMediaQuery } from '@/composables/useMediaQuery'
 import EvidenceContextPanel from '@/components/EvidenceContextPanel.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiDialog from '@/components/ui/UiDialog.vue'
-import { buttonVariants } from '@/components/ui/button'
+import UiDetailDrawer from '@/components/ui/UiDetailDrawer.vue'
 import UiEmptyState from '@/components/ui/UiEmptyState.vue'
 import UiFormField from '@/components/ui/UiFormField.vue'
 import UiInput from '@/components/ui/UiInput.vue'
 import UiSkeleton from '@/components/ui/UiSkeleton.vue'
+import UiStatusBadge from '@/components/ui/UiStatusBadge.vue'
 import UiStatusView from '@/components/ui/UiStatusView.vue'
-import UiTextarea from '@/components/ui/UiTextarea.vue'
+import ClientDetailPanel from '../components/ClientDetailPanel.vue'
 import { useSessionStore } from '@/stores/session.store'
 import { useClientsStore } from '../stores/clients.store'
 import { clientsApi } from '../services/clients.api'
 import { formatFriendlyClientName } from '@/lib/display-identifiers'
-import {
-  Search,
-  X,
-  Plus,
-  ChevronLeft,
-  LayoutDashboard,
-  Settings,
-  Key,
-  ShieldAlert,
-  Globe,
-  AlertTriangle,
-  HelpCircle,
-  ShieldCheck,
-  Copy,
-  Trash2,
-} from 'lucide-vue-next'
+import { Search, X, Plus, HelpCircle, ShieldCheck, AlertTriangle } from 'lucide-vue-next'
 
 import { getAdminEnvironment } from '@/config/adminEnvironment'
 import { useToast } from '@/components/ui/useToast'
@@ -53,9 +29,16 @@ const router = useRouter()
 const store = useClientsStore()
 const session = useSessionStore()
 const { t } = useI18n()
-const dateFormat = useDateFormat()
 const toast = useToast()
 const docsBaseUrl = getAdminEnvironment().docsBaseUrl
+
+/**
+ * ≤920px collapses the inline master–detail grid: the right pane is presented
+ * inside a focus-trapping `UiDetailDrawer` instead. The selected client and its
+ * loaded payload are untouched, so switching layout never refetches.
+ */
+const isCompact = useMediaQuery('(max-width: 920px)')
+const isDrawerOpen = computed(() => isCompact.value && store.selectedClient !== null)
 const canWriteClients = computed(() => session.hasPermission('admin.clients.write'))
 const canManageClientLifecycle = computed(
   () => canWriteClients.value && session.hasPermission('admin.sessions.terminate'),
@@ -133,13 +116,6 @@ function avatarStyle(name: string): Record<string, string> {
   return { background: `linear-gradient(135deg, ${color.start}, ${color.end})` }
 }
 
-function displayClientType(type: string | null | undefined): string {
-  const normalized = type?.trim().toLowerCase()
-  if (normalized === 'public') return 'public'
-  if (normalized === 'confidential') return 'confidential'
-  return t('clients.val_unknown')
-}
-
 const successMessage = ref<string | null>(null)
 const isSaving = ref(false)
 const copyFeedback = ref<string | null>(null)
@@ -181,74 +157,6 @@ function closeCreatedClientDialog(): void {
   const nextQuery = { ...route.query }
   delete nextQuery.created
   router.replace({ name: 'admin.clients', query: nextQuery })
-}
-
-// Tabs support
-type DetailTab = 'overview' | 'uris' | 'scopes' | 'security' | 'lifecycle'
-const activeDetailTab = ref<DetailTab>('overview')
-
-const detailTabs = computed<Array<{ key: DetailTab; label: string; icon: Component }>>(() => {
-  const tabs: Array<{ key: DetailTab; label: string; icon: Component }> = [
-    { key: 'overview', label: t('clients.tab_overview'), icon: LayoutDashboard },
-    { key: 'uris', label: t('clients.tab_uris'), icon: Globe },
-    { key: 'scopes', label: t('clients.tab_scopes'), icon: Key },
-  ]
-  if (canWriteClients.value) {
-    tabs.push({ key: 'security', label: t('clients.tab_security'), icon: ShieldAlert })
-  }
-  if (canManageClientLifecycle.value) {
-    tabs.push({ key: 'lifecycle', label: t('clients.tab_lifecycle'), icon: Settings })
-  }
-  return tabs
-})
-
-const tabsContainerRef = ref<HTMLElement | null>(null)
-const { pillStyle, updatePillPosition, schedulePillUpdate } = useTabPill({
-  containerRef: tabsContainerRef,
-  activeSelector: '.client-detail-tab--active',
-})
-
-watch(activeDetailTab, () => {
-  nextTick(() => {
-    updatePillPosition()
-  })
-})
-
-watch(
-  () => store.selectedClientId,
-  () => {
-    nextTick(() => {
-      updatePillPosition()
-    })
-    schedulePillUpdate()
-  },
-)
-
-function selectDetailTab(key: DetailTab): void {
-  activeDetailTab.value = key
-}
-
-function onTabKeydown(event: KeyboardEvent, index: number): void {
-  const tabs = detailTabs.value
-  let nextIndex = index
-  if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
-    nextIndex = (index + 1) % tabs.length
-  } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
-    nextIndex = (index - 1 + tabs.length) % tabs.length
-  } else if (event.key === 'Home') {
-    nextIndex = 0
-  } else if (event.key === 'End') {
-    nextIndex = tabs.length - 1
-  } else {
-    return
-  }
-  event.preventDefault()
-  const next = tabs[nextIndex]
-  if (!next) return
-  selectDetailTab(next.key)
-  void nextTick(() => {
-    document.getElementById(`client-tab-${next.key}`)?.focus()
-  })
 }
 
 onMounted(() => {
@@ -446,7 +354,11 @@ async function selectClient(clientId: string): Promise<void> {
   store.errorMessage = null
   await store.selectClient(clientId)
   syncFormFromSelected()
-  activeDetailTab.value = 'overview'
+  // The detail panel resets its own active tab to Ikhtisar when the client swaps.
+}
+
+function closeDetailDrawer(): void {
+  store.selectedClientId = null
 }
 
 async function saveMetadata(): Promise<void> {
@@ -708,7 +620,7 @@ async function deleteClient(): Promise<void> {
       class="clients-layout"
       :class="{ 'clients-layout--has-selection': store.selectedClientId !== null }"
     >
-      <!-- ─── Sidebar: searchable client list ───────────────────────────── -->
+      <!-- ─── Master: searchable client list (.tbl) ─────────────────────── -->
       <aside class="clients-list" :aria-label="t('clients.list_aria')">
         <UiEmptyState
           v-if="store.clients.length === 0"
@@ -743,47 +655,64 @@ async function deleteClient(): Promise<void> {
             </div>
           </UiFormField>
 
-          <ul class="user-cards-list" role="list">
-            <li v-for="client in filteredClients" :key="client.client_id">
-              <button
-                class="user-card-item client-card-item"
-                type="button"
-                :class="{
-                  'user-card-item--active': client.client_id === store.selectedClientId,
-                  'ring-2 ring-success-700/30': client.client_id === highlightedClientId,
-                }"
-                :aria-current="client.client_id === store.selectedClientId ? 'true' : undefined"
-                @click="selectClient(client.client_id)"
-              >
-                <span
-                  class="user-card-item__avatar"
-                  :style="avatarStyle(client.display_name ?? client.client_id)"
-                  aria-hidden="true"
-                >
-                  {{ avatarInitial(client.display_name ?? client.client_id) }}
-                </span>
-                <span class="user-card-item__content">
-                  <span class="user-card-item__name-row">
-                    <span class="user-card-item__name">
-                      {{ client.display_name ?? client.client_id }}
-                    </span>
-                    <span
-                      class="user-card-item__badge"
-                      :class="`badge--${client.status ?? 'active'}`"
-                    >
-                      {{ client.status ?? 'unknown' }}
-                    </span>
-                  </span>
-                  <span class="user-card-item__email stat-value stat-value--truncate">{{
-                    client.owner_email ?? formatFriendlyClientName(client.client_id)
-                  }}</span>
-                  <span class="user-card-item__meta">
-                    <span class="user-card-item__role">{{ displayClientType(client.type) }}</span>
-                  </span>
-                </span>
-              </button>
-            </li>
-          </ul>
+          <div class="tbl-shell clients-master">
+            <div class="tbl-scroll">
+              <table class="tbl tbl--clickable">
+                <caption class="sr-only">
+                  {{
+                    t('clients.list_aria')
+                  }}
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope="col">{{ t('clients.label_display_name') }}</th>
+                    <th scope="col">{{ t('common.status') }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="client in filteredClients"
+                    :key="client.client_id"
+                    class="client-card-item"
+                    :aria-selected="client.client_id === store.selectedClientId"
+                    :aria-current="
+                      client.client_id === store.selectedClientId ? 'true' : undefined
+                    "
+                    :class="{
+                      'client-master-row--highlight': client.client_id === highlightedClientId,
+                    }"
+                    tabindex="0"
+                    @click="selectClient(client.client_id)"
+                    @keydown.enter.prevent="selectClient(client.client_id)"
+                    @keydown.space.prevent="selectClient(client.client_id)"
+                  >
+                    <td :data-label="t('clients.label_display_name')">
+                      <span class="tbl__rowname">
+                        <span
+                          class="tbl__avatar"
+                          :style="avatarStyle(client.display_name ?? client.client_id)"
+                          aria-hidden="true"
+                        >
+                          {{ avatarInitial(client.display_name ?? client.client_id) }}
+                        </span>
+                        <span class="tbl__rowmeta">
+                          <span class="tbl__primary">{{
+                            client.display_name ?? client.client_id
+                          }}</span>
+                          <span class="tbl__secondary break-anywhere">{{
+                            formatFriendlyClientName(client.client_id)
+                          }}</span>
+                        </span>
+                      </span>
+                    </td>
+                    <td :data-label="t('common.status')" class="tbl__cell--right">
+                      <UiStatusBadge :status="client.status ?? 'active'" />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </template>
 
         <UiButton
@@ -796,554 +725,89 @@ async function deleteClient(): Promise<void> {
         </UiButton>
       </aside>
 
-      <!-- ─── Detail ────────────────────────────────────────────────────── -->
-      <article v-if="store.selectedClient" class="client-detail">
-        <!-- Mobile back button to list view -->
-        <div class="client-detail-back-bar">
-          <UiButton variant="secondary" size="sm" @click="store.selectedClientId = null">
-            <ChevronLeft :size="16" />
-            {{ t('common.back_to_list') }}
-          </UiButton>
-        </div>
+      <!-- ─── Detail (inline on wide; drawer ≤920px) ────────────────────── -->
+      <ClientDetailPanel
+        v-if="store.selectedClient && !isCompact"
+        v-model:selected-scopes="selectedScopes"
+        :client="store.selectedClient"
+        :can-write-clients="canWriteClients"
+        :can-manage-client-lifecycle="canManageClientLifecycle"
+        :form="form"
+        :lifecycle-form="lifecycleForm"
+        :all-available-scopes="allAvailableScopes"
+        :scope-parity-warnings="scopeParityWarnings"
+        :uri-validation-message="uriValidationMessage"
+        :lifecycle-message="lifecycleMessage"
+        :delete-message="deleteMessage"
+        :success-message="successMessage"
+        :is-saving="isSaving"
+        :show-contract="showContract"
+        :contract-env-lines="contractEnvLines"
+        :docs-base-url="docsBaseUrl"
+        @save-metadata="saveMetadata"
+        @save-uri-policy="saveUriPolicy"
+        @save-scope-policy="saveScopePolicy"
+        @rotate-secret="rotateSecret"
+        @clear-rotation-secret="store.clearRotationSecret"
+        @copy-all-config="copyAllConfig"
+        @disable-client="disableClient"
+        @decommission-client="decommissionClient"
+        @delete-client="deleteClient"
+        @copy="copyToClipboard"
+      />
 
-        <!-- Hero -->
-        <header class="client-profile-hero">
-          <div
-            class="client-profile-hero__avatar"
-            :style="
-              avatarStyle(store.selectedClient.display_name ?? store.selectedClient.client_id)
-            "
-            aria-hidden="true"
-          >
-            {{ avatarInitial(store.selectedClient.display_name ?? store.selectedClient.client_id) }}
-          </div>
-          <div class="client-profile-hero__content">
-            <div class="client-profile-hero__header-row">
-              <h2 class="break-anywhere">
-                {{ store.selectedClient.display_name ?? store.selectedClient.client_id }}
-              </h2>
-              <span class="ui-badge client-profile-hero__status-badge">{{
-                store.selectedClient.status ?? 'unknown'
-              }}</span>
-            </div>
-            <p class="client-profile-hero__env">
-              {{ store.selectedClient.environment ?? t('clients.val_unknown') }}
-            </p>
-            <p class="client-profile-hero__client-id stat-value--with-copy">
-              <span class="stat-value stat-value--mono break-anywhere" title="Kode aplikasi">
-                {{ formatFriendlyClientName(store.selectedClient.client_id) }}
-              </span>
-              <button
-                class="pill__copy"
-                type="button"
-                :aria-label="(t('common.copy') || 'Copy') + ' kode aplikasi'"
-                :title="t('common.copy') || 'Copy'"
-                @click="copyToClipboard(formatFriendlyClientName(store.selectedClient.client_id))"
-              >
-                <Copy :size="14" />
-              </button>
-            </p>
-          </div>
-          <div class="client-profile-hero__actions">
-            <RouterLink
-              :class="buttonVariants({ variant: 'secondary' })"
-              :to="{
-                name: 'admin.observability.compliance',
-                query: { consent: '1', client_id: store.selectedClient.client_id },
-              }"
-            >
-              {{ t('clients.btn_consent_trail') }}
-            </RouterLink>
-          </div>
-        </header>
-
-        <!-- Tabs Navigation -->
-        <nav
-          ref="tabsContainerRef"
-          class="client-detail-tabs scroll-edge-indicator"
-          role="tablist"
-          :aria-label="t('clients.detail_tabs_label')"
-        >
-          <div class="client-detail-tabs__pill" :style="pillStyle"></div>
-          <button
-            v-for="(tab, index) in detailTabs"
-            :key="tab.key"
-            :id="`client-tab-${tab.key}`"
-            class="client-detail-tab"
-            :class="{ 'client-detail-tab--active': activeDetailTab === tab.key }"
-            role="tab"
-            :aria-selected="activeDetailTab === tab.key"
-            :aria-controls="`client-panel-${tab.key}`"
-            :tabindex="activeDetailTab === tab.key ? 0 : -1"
-            type="button"
-            @click="selectDetailTab(tab.key)"
-            @keydown="onTabKeydown($event, index)"
-          >
-            <component :is="tab.icon" :size="16" aria-hidden="true" />
-            {{ tab.label }}
-          </button>
-        </nav>
-
-        <!-- Cross-tab status (errors + success message stay visible) -->
-        <div
-          v-if="store.errorMessage || successMessage"
-          class="client-detail-status"
-          aria-live="polite"
-        >
-          <p
-            v-if="store.errorMessage"
-            class="ui-action-message ui-action-message--error"
-            role="alert"
-          >
-            {{ store.errorMessage }}
-          </p>
-          <p
-            v-if="successMessage"
-            class="ui-action-message ui-action-message--success"
-            role="status"
-          >
-            {{ successMessage }}
-          </p>
-        </div>
-
-        <!-- Tab Panels -->
-        <!-- Tab 1: Overview -->
-        <div
-          v-show="activeDetailTab === 'overview'"
-          id="client-panel-overview"
-          role="tabpanel"
-          aria-labelledby="client-tab-overview"
-          class="tab-panel"
-        >
-          <dl class="detail-grid">
-            <div>
-              <dt>{{ t('clients.ov_type') }}</dt>
-              <dd data-test="client-overview-type">
-                {{ displayClientType(store.selectedClient.type) }}
-              </dd>
-            </div>
-            <div>
-              <dt>{{ t('clients.ov_owner') }}</dt>
-              <dd>{{ store.selectedClient.owner_email ?? t('clients.val_not_set') }}</dd>
-            </div>
-            <div>
-              <dt>{{ t('clients.ov_secret_rotated') }}</dt>
-              <dd>{{ dateFormat.smart(store.selectedClient.secret_rotated_at) }}</dd>
-            </div>
-            <div>
-              <dt>{{ t('clients.ov_secret_hash') }}</dt>
-              <dd>
-                {{
-                  store.selectedClient.has_secret_hash
-                    ? t('clients.val_stored')
-                    : t('clients.val_not_available')
-                }}
-              </dd>
-            </div>
-          </dl>
-
-          <section v-if="canWriteClients" class="detail-section" aria-labelledby="metadata-title">
-            <h3 id="metadata-title">{{ t('clients.metadata_title') }}</h3>
-            <form class="client-form" @submit.prevent="saveMetadata">
-              <div class="user-form-grid user-form-grid-2">
-                <UiFormField id="edit_display_name" :label="t('clients.label_display_name')">
-                  <UiInput
-                    id="edit_display_name"
-                    v-model="form.display_name"
-                    name="display_name"
-                    autocomplete="off"
-                  />
-                </UiFormField>
-                <UiFormField id="edit_owner_email" :label="t('clients.label_owner_email')">
-                  <UiInput
-                    id="edit_owner_email"
-                    v-model="form.owner_email"
-                    name="owner_email"
-                    autocomplete="email"
-                  />
-                </UiFormField>
-              </div>
-              <div class="user-detail-card__actions">
-                <UiButton variant="primary" type="submit" :disabled="isSaving">
-                  {{ isSaving ? t('clients.btn_saving') : t('clients.btn_save_metadata') }}
-                </UiButton>
-              </div>
-            </form>
-          </section>
-        </div>
-
-        <!-- Tab 2: URIs & Redirects -->
-        <div
-          v-show="activeDetailTab === 'uris'"
-          id="client-panel-uris"
-          role="tabpanel"
-          aria-labelledby="client-tab-uris"
-          class="tab-panel"
-        >
-          <section class="detail-section" aria-labelledby="redirect-uris-title">
-            <h3 id="redirect-uris-title">{{ t('clients.redirect_uris_title') }}</h3>
-            <ul v-if="store.selectedClient.redirect_uris.length > 0">
-              <li v-for="uri in store.selectedClient.redirect_uris" :key="uri">
-                <code class="client-uri-value break-anywhere">{{ uri }}</code>
-              </li>
-            </ul>
-            <p v-else class="text-muted">{{ t('clients.no_redirect_uris') }}</p>
-          </section>
-
-          <section class="detail-section" aria-labelledby="logout-uris-title">
-            <h3 id="logout-uris-title">{{ t('clients.logout_uris_title') }}</h3>
-            <ul v-if="(store.selectedClient.post_logout_redirect_uris ?? []).length > 0">
-              <li v-for="uri in store.selectedClient.post_logout_redirect_uris ?? []" :key="uri">
-                <code class="client-uri-value break-anywhere">{{ uri }}</code>
-              </li>
-            </ul>
-            <p v-else class="text-muted">{{ t('clients.no_logout_uris') }}</p>
-          </section>
-
-          <section class="detail-section" aria-labelledby="backchannel-logout-uri-title">
-            <h3 id="backchannel-logout-uri-title">{{ t('clients.backchannel_uri_title') }}</h3>
-            <p>
-              <code class="client-uri-value break-anywhere">{{
-                store.selectedClient.backchannel_logout_uri ?? t('clients.val_no_evidence')
-              }}</code>
-            </p>
-          </section>
-
-          <section v-if="canWriteClients" class="detail-section" aria-labelledby="uri-policy-title">
-            <h3 id="uri-policy-title">{{ t('clients.uri_policy_title') }}</h3>
-            <form class="client-form" data-test="uri-policy-form" @submit.prevent="saveUriPolicy">
-              <p
-                v-if="uriValidationMessage"
-                class="ui-action-message ui-action-message--error"
-                role="alert"
-              >
-                {{ uriValidationMessage }}
-              </p>
-              <div class="user-form-grid">
-                <UiFormField id="redirect_uris" :label="t('clients.label_redirect_uris')">
-                  <UiTextarea
-                    id="redirect_uris"
-                    v-model="form.redirect_uris"
-                    name="redirect_uris"
-                    :rows="4"
-                  />
-                </UiFormField>
-                <UiFormField
-                  id="post_logout_redirect_uris"
-                  :label="t('clients.label_post_logout_uris')"
-                >
-                  <UiTextarea
-                    id="post_logout_redirect_uris"
-                    v-model="form.post_logout_redirect_uris"
-                    name="post_logout_redirect_uris"
-                    :rows="4"
-                  />
-                </UiFormField>
-                <UiFormField
-                  id="backchannel_logout_uri"
-                  :label="t('clients.label_backchannel_uri')"
-                >
-                  <UiInput
-                    id="backchannel_logout_uri"
-                    v-model="form.backchannel_logout_uri"
-                    name="backchannel_logout_uri"
-                    autocomplete="url"
-                  />
-                </UiFormField>
-              </div>
-              <div class="user-detail-card__actions">
-                <UiButton variant="primary" type="submit" :disabled="isSaving">
-                  {{ isSaving ? t('clients.btn_saving') : t('clients.btn_save_uri_policy') }}
-                </UiButton>
-              </div>
-            </form>
-          </section>
-        </div>
-
-        <!-- Tab 3: Scopes & Access -->
-        <div
-          v-show="activeDetailTab === 'scopes'"
-          id="client-panel-scopes"
-          role="tabpanel"
-          aria-labelledby="client-tab-scopes"
-          class="tab-panel"
-        >
-          <section class="detail-section">
-            <h3>{{ t('clients.allowed_scopes_title') }}</h3>
-            <div v-if="(store.selectedClient.allowed_scopes ?? []).length > 0" class="scope-badges">
-              <span
-                v-for="scope in store.selectedClient.allowed_scopes"
-                :key="scope"
-                class="scope-badge"
-              >
-                <Key :size="12" aria-hidden="true" />
-                {{ scope }}
-              </span>
-            </div>
-            <p v-else class="text-muted">{{ t('clients.no_scopes') }}</p>
-          </section>
-
-          <section
-            v-if="canWriteClients"
-            class="detail-section"
-            aria-labelledby="scope-policy-title"
-          >
-            <h3 id="scope-policy-title">{{ t('clients.scope_policy_title') }}</h3>
-            <p
-              v-if="scopeParityWarnings.length > 0"
-              class="ui-action-message ui-action-message--warning"
-              role="status"
-            >
-              {{ t('clients.scope_parity_warning') }} {{ scopeParityWarnings.join(', ') }}
-            </p>
-            <form
-              class="client-form"
-              data-test="scope-policy-form"
-              @submit.prevent="saveScopePolicy"
-            >
-              <div class="scope-checkboxes-grid">
-                <label
-                  v-for="scope in allAvailableScopes"
-                  :key="scope.name"
-                  :class="[
-                    'scope-checkbox-label',
-                    selectedScopes.includes(scope.name) ? 'scope-checkbox-label--selected' : '',
-                  ]"
-                >
-                  <input
-                    type="checkbox"
-                    :value="scope.name"
-                    v-model="selectedScopes"
-                    :disabled="scope.name === 'openid'"
-                    class="scope-checkbox-input"
-                  />
-                  <div class="scope-checkbox-content">
-                    <span class="scope-checkbox-name">
-                      {{ scope.name }}
-                      <span v-if="scope.name === 'openid'" class="scope-required-tag"
-                        >required</span
-                      >
-                    </span>
-                    <p class="scope-checkbox-desc">{{ scope.description }}</p>
-                  </div>
-                </label>
-              </div>
-              <div class="user-detail-card__actions" style="margin-top: 20px">
-                <UiButton variant="primary" type="submit" :disabled="isSaving">
-                  {{ isSaving ? t('clients.btn_saving') : t('clients.btn_save_scope_policy') }}
-                </UiButton>
-              </div>
-            </form>
-          </section>
-        </div>
-
-        <!-- Tab 4: Security & Secrets -->
-        <div
-          v-show="activeDetailTab === 'security'"
-          id="client-panel-security"
-          role="tabpanel"
-          aria-labelledby="client-tab-security"
-          class="tab-panel"
-        >
-          <section
-            v-if="canWriteClients"
-            class="detail-section detail-section--danger"
-            aria-labelledby="secret-title"
-          >
-            <h3 id="secret-title">{{ t('clients.secret_title') }}</h3>
-            <p class="detail-section__lead">{{ t('clients.secret_hint') }}</p>
-            <div class="user-detail-card__actions">
-              <UiButton
-                variant="danger"
-                type="button"
-                data-test="rotate-secret"
-                :disabled="isSaving"
-                @click="rotateSecret"
-              >
-                {{ isSaving ? t('clients.btn_processing') : t('clients.btn_rotate_secret') }}
-              </UiButton>
-            </div>
-
-            <div v-if="store.rotationSecret" class="secret-reveal" role="status">
-              <div class="secret-reveal__header">
-                <AlertTriangle :size="16" aria-hidden="true" />
-                <strong>{{ t('clients.secret_reveal_title') }} {{ store.rotationClientId }}</strong>
-              </div>
-              <p class="secret-reveal__warning">{{ t('clients.secret_reveal_warning') }}</p>
-              <div class="secret-reveal__code-wrapper">
-                <code id="revealed-secret" class="secret-code-value break-anywhere">{{
-                  store.rotationSecret
-                }}</code>
-                <button
-                  class="secret-reveal__copy-btn"
-                  type="button"
-                  :aria-label="t('clients.btn_copy_secret')"
-                  @click="copyToClipboard(store.rotationSecret!)"
-                >
-                  <ShieldCheck :size="14" />
-                  {{ t('clients.btn_copy_secret') }}
-                </button>
-              </div>
-
-              <!-- Config contract block -->
-              <div v-if="showContract && contractEnvLines.length > 0" class="contract-block">
-                <h4 class="contract-block__title">{{ t('clients.config_block_title') }}</h4>
-                <pre
-                  class="contract-block__pre"
-                ><code class="break-anywhere">{{ contractEnvLines.join('\n') }}</code></pre>
-                <div class="user-detail-card__actions contract-block__actions">
-                  <UiButton variant="secondary" size="sm" type="button" @click="copyAllConfig">
-                    <ShieldCheck :size="14" />
-                    {{ t('clients.btn_copy_all_config') }}
-                  </UiButton>
-                </div>
-              </div>
-
-              <div class="user-detail-card__actions secret-reveal__actions">
-                <UiButton
-                  variant="secondary"
-                  size="sm"
-                  data-test="clear-rotation-secret"
-                  type="button"
-                  @click="store.clearRotationSecret"
-                >
-                  {{ t('clients.btn_clear_secret') }}
-                </UiButton>
-              </div>
-            </div>
-          </section>
-        </div>
-
-        <!-- Tab 5: Lifecycle -->
-        <div
-          v-show="activeDetailTab === 'lifecycle'"
-          id="client-panel-lifecycle"
-          role="tabpanel"
-          aria-labelledby="client-tab-lifecycle"
-          class="tab-panel"
-        >
-          <section
-            v-if="canManageClientLifecycle"
-            class="detail-section detail-section--danger"
-            aria-labelledby="lifecycle-title"
-          >
-            <h3 id="lifecycle-title">{{ t('clients.lifecycle_title') }}</h3>
-            <p class="detail-section__lead">{{ t('clients.lifecycle_impact') }}</p>
-            <p
-              v-if="lifecycleMessage"
-              class="ui-action-message ui-action-message--error"
-              role="alert"
-            >
-              {{ lifecycleMessage }}
-            </p>
-
-            <!-- Sub-action 1: Disable client -->
-            <div class="user-detail__sub-actions">
-              <h4 class="user-detail__sub-actions-title">{{ t('clients.sub_disable_title') }}</h4>
-              <p class="user-detail-card__hint">{{ t('clients.disable_hint') }}</p>
-              <UiFormField id="client_disable_reason" :label="t('clients.label_disable_reason')">
-                <UiTextarea
-                  id="client_disable_reason"
-                  v-model="lifecycleForm.disable_reason"
-                  name="client_disable_reason"
-                  :rows="2"
-                  :placeholder="t('clients.disable_placeholder')"
-                />
-              </UiFormField>
-              <div class="user-detail-card__actions">
-                <UiButton
-                  variant="danger"
-                  data-test="disable-client"
-                  type="button"
-                  :disabled="isSaving"
-                  @click="disableClient"
-                >
-                  {{ isSaving ? t('clients.btn_processing') : t('clients.btn_disable_client') }}
-                </UiButton>
-              </div>
-            </div>
-
-            <!-- Sub-action 2: Decommission client -->
-            <div class="user-detail__sub-actions">
-              <h4 class="user-detail__sub-actions-title">
-                {{ t('clients.sub_decommission_title') }}
-              </h4>
-              <p class="user-detail-card__hint">{{ t('clients.decommission_hint') }}</p>
-              <UiFormField
-                id="decommission_confirmation"
-                :label="`${t('clients.label_decommission')} (${store.selectedClientId})`"
-              >
-                <UiInput
-                  id="decommission_confirmation"
-                  v-model="lifecycleForm.decommission_confirmation"
-                  name="decommission_confirmation"
-                  autocomplete="off"
-                  :placeholder="t('clients.decommission_placeholder')"
-                />
-              </UiFormField>
-              <div class="user-detail-card__actions">
-                <UiButton
-                  variant="danger"
-                  data-test="decommission-client"
-                  type="button"
-                  :disabled="isSaving"
-                  @click="decommissionClient"
-                >
-                  {{
-                    isSaving ? t('clients.btn_processing') : t('clients.btn_decommission_client')
-                  }}
-                </UiButton>
-              </div>
-            </div>
-
-            <!-- Sub-action 3: Hard delete client -->
-            <div class="user-detail__sub-actions">
-              <h4 class="user-detail__sub-actions-title client-delete-title">
-                {{ t('clients.sub_delete_title') }}
-              </h4>
-              <p class="user-detail-card__hint">{{ t('clients.delete_hint') }}</p>
-              <p
-                v-if="deleteMessage"
-                class="ui-action-message ui-action-message--error"
-                role="alert"
-              >
-                {{ deleteMessage }}
-              </p>
-              <UiFormField
-                id="delete_confirmation"
-                :label="`${t('clients.label_delete_confirmation')} (${store.selectedClientId})`"
-              >
-                <UiInput
-                  id="delete_confirmation"
-                  v-model="lifecycleForm.delete_confirmation"
-                  name="delete_confirmation"
-                  autocomplete="off"
-                  :placeholder="t('clients.delete_placeholder')"
-                />
-              </UiFormField>
-              <div class="user-detail-card__actions">
-                <UiButton
-                  variant="danger"
-                  data-test="delete-client"
-                  type="button"
-                  :disabled="isSaving"
-                  @click="deleteClient"
-                >
-                  {{ isSaving ? t('clients.btn_processing') : t('clients.btn_delete_client') }}
-                </UiButton>
-              </div>
-            </div>
-          </section>
-        </div>
-      </article>
-
-      <section v-else class="client-detail-empty" role="status">
+      <section
+        v-else-if="!store.selectedClient && !isCompact"
+        class="client-detail-empty"
+        role="status"
+      >
         <UiEmptyState
           :title="t('clients.no_client_selected_title')"
           :description="t('clients.no_client_selected_desc')"
         />
       </section>
     </div>
+
+    <!-- ≤920px: the detail pane is presented as a focus-trapping drawer. -->
+    <UiDetailDrawer
+      v-if="isCompact && store.selectedClient"
+      :open="isDrawerOpen"
+      title-id="client-detail-drawer"
+      :title="store.selectedClient.display_name ?? store.selectedClient.client_id"
+      :description="t('clients.detail_tabs_label')"
+      :close-label="t('common.close')"
+      wide
+      @close="closeDetailDrawer"
+    >
+      <ClientDetailPanel
+        v-model:selected-scopes="selectedScopes"
+        :client="store.selectedClient"
+        :can-write-clients="canWriteClients"
+        :can-manage-client-lifecycle="canManageClientLifecycle"
+        :form="form"
+        :lifecycle-form="lifecycleForm"
+        :all-available-scopes="allAvailableScopes"
+        :scope-parity-warnings="scopeParityWarnings"
+        :uri-validation-message="uriValidationMessage"
+        :lifecycle-message="lifecycleMessage"
+        :delete-message="deleteMessage"
+        :success-message="successMessage"
+        :is-saving="isSaving"
+        :show-contract="showContract"
+        :contract-env-lines="contractEnvLines"
+        :docs-base-url="docsBaseUrl"
+        @save-metadata="saveMetadata"
+        @save-uri-policy="saveUriPolicy"
+        @save-scope-policy="saveScopePolicy"
+        @rotate-secret="rotateSecret"
+        @clear-rotation-secret="store.clearRotationSecret"
+        @copy-all-config="copyAllConfig"
+        @disable-client="disableClient"
+        @decommission-client="decommissionClient"
+        @delete-client="deleteClient"
+        @copy="copyToClipboard"
+      />
+    </UiDetailDrawer>
 
     <!-- Copy feedback toast -->
     <div v-if="copyFeedback" class="copy-toast" role="status" aria-live="polite">

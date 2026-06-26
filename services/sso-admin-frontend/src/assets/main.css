@@ -4840,12 +4840,10 @@ button.user-card-item {
   color: var(--foreground);
   overflow-wrap: anywhere;
 }
+/* Hero status badge: now a DS .status pill — keep only layout, let the badge
+   own its colour/typography tokens (no legacy !important overrides). */
 .client-profile-hero__status-badge {
-  text-transform: uppercase;
-  font-size: 0.68rem !important;
-  font-weight: 800 !important;
-  letter-spacing: 0.05em;
-  padding: 3px 8px !important;
+  flex: 0 0 auto;
 }
 .client-profile-hero__env {
   font-size: 0.82rem;
@@ -5119,6 +5117,94 @@ button.user-card-item {
 }
 .contract-block__actions {
   margin-top: 8px;
+}
+
+/* ═════════════════════════════════════════════════════════════════════════
+   Clients · Bontang DS master–detail (Phase 5c)
+   List LEFT (.clients-master = .tbl) + detail panel RIGHT, on token surfaces.
+   Token-only; no hardcoded colours.
+   ═════════════════════════════════════════════════════════════════════════ */
+
+/* DS surfaces: lighter radius + shadow than the shared list/detail defaults. */
+.clients-list,
+.client-detail,
+.client-detail-empty {
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.client-detail,
+.client-detail-empty {
+  border: 1px solid var(--border);
+  background: var(--card);
+}
+
+/* Master list (.tbl in the rail): present as a compact card list — the column
+   header is redundant in a 2-field rail, so hide it on desktop too (it remains
+   accessible via the sr-only caption + per-cell data-label on collapse). */
+.clients-master {
+  margin: 0;
+}
+.clients-master .tbl thead {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+.clients-master .tbl tbody td {
+  padding: 12px 14px;
+}
+/* Keep the name cell roomy and the status cell tight against the right edge. */
+.clients-master .tbl__cell--right {
+  width: 1%;
+  padding-left: 8px;
+}
+.clients-master .tbl__secondary {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+}
+/* Reveal-on-create highlight ring (token-backed, not colour-as-sole-signal:
+   the row also gains aria-current/aria-selected). */
+.clients-master .client-master-row--highlight {
+  box-shadow: inset 0 0 0 2px var(--primary-soft-fg);
+}
+
+/* Category badge sits beside the status badge in the detail hero. */
+.client-profile-hero__category-badge {
+  flex: 0 0 auto;
+}
+
+/* Inside the drawer the panel is already on an elevated surface — flatten the
+   inner card chrome so it doesn't nest a second bordered box. */
+.drawer-body .client-detail {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+/* ≤920px: the inline detail/empty pane is replaced by UiDetailDrawer
+   (the page only renders one of the two — these rules keep the list full-width
+   and drop the now-unused stacked-detail affordances). */
+@media (max-width: 920px) {
+  .clients-layout {
+    grid-template-columns: 1fr;
+  }
+  .clients-list {
+    max-width: none;
+    grid-column: auto;
+  }
+  /* The drawer hosts its own back/close control, so the in-panel back bar
+     and inline empty placeholder are not used at this breakpoint. */
+  .client-detail-back-bar {
+    display: none;
+  }
 }
 
 /* Onboarding guide link in page heading */
@@ -5494,25 +5580,13 @@ button.user-card-item {
   }
 }
 
-/* Media queries for Mobile responsiveness */
+/* Media queries for Mobile responsiveness.
+   Detail compaction below applies inside the ≤920px UiDetailDrawer too — the
+   hero/tabs/detail markup is identical whether hosted inline or in the drawer. */
 @media (max-width: 760px) {
   .clients-layout {
     grid-template-columns: 1fr !important;
     min-width: 0;
-  }
-
-  .client-detail-back-bar {
-    display: block;
-    margin-bottom: 16px;
-  }
-
-  .clients-layout--has-selection .clients-list {
-    display: none !important;
-  }
-
-  .clients-layout:not(.clients-layout--has-selection) .client-detail,
-  .clients-layout:not(.clients-layout--has-selection) .client-detail-empty {
-    display: none !important;
   }
 
   .client-profile-hero {
