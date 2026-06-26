@@ -1,0 +1,216 @@
+/* ============================================================================
+   Dev-SSO · Design Tokens (hasil redesign)
+   Pemerintah Kota Bontang — Diskominfo
+   ----------------------------------------------------------------------------
+   Cara pakai di repo Vue (services/sso-admin-frontend & services/sso-frontend):
+   1. Salin file ini ke  src/assets/tokens.css
+   2. Import paling awal di  src/main.ts  ->  import './assets/tokens.css'
+      (atau @import di stylesheet global paling atas, sebelum style lain)
+   3. Pastikan font ter-load (lihat blok @import di bawah, atau pasang <link>
+      ke Google Fonts di index.html).
+   4. Mode gelap: tambahkan class .dark ATAU atribut data-theme="dark" pada <html>.
+      Token di bawah sudah mendukung dua-duanya.
+
+   Catatan warna: memakai oklch() (didukung semua browser modern sejak 2023).
+   Semua komponen tinggal pakai var(--nama-token) — JANGAN hardcode hex lagi.
+   ============================================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  /* ---- Tipografi ---- */
+  --font-sans:  'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-serif: 'Instrument Serif', 'Spectral', Georgia, serif;  /* judulhero portal */
+  --font-mono:  'JetBrains Mono', ui-monospace, 'SF Mono', monospace; /* id/teknis */
+
+  /* ---- Radius ---- */
+  --r-xs: 8px;
+  --r-sm: 10px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 22px;
+  --r-pill: 999px;
+
+  /* ---- Warna brand / aksen (indigo) ---- */
+  --primary:        oklch(0.524 0.205 274);
+  --primary-600:    oklch(0.466 0.205 274);   /* hover */
+  --primary-700:    oklch(0.41 0.19 274);     /* active */
+  --primary-fg:     oklch(0.99 0.01 274);     /* teks di atas primary */
+  --primary-soft:   oklch(0.95 0.035 274);    /* latar lembut (chip/badge) */
+  --primary-soft-fg:oklch(0.44 0.19 274);     /* teks di atas soft */
+  --primary-ring:   oklch(0.62 0.19 274 / 0.45); /* focus ring */
+  --brand-grad:     linear-gradient(135deg, oklch(0.6 0.2 280), oklch(0.5 0.21 268));
+
+  /* ---- Warna semantik ---- */
+  --success:        oklch(0.62 0.14 158);
+  --success-soft:   oklch(0.95 0.045 160);
+  --success-soft-fg:oklch(0.46 0.12 158);
+  --warning:        oklch(0.72 0.14 72);
+  --warning-soft:   oklch(0.95 0.06 78);
+  --warning-soft-fg:oklch(0.52 0.12 64);
+  --danger:         oklch(0.585 0.205 18);
+  --danger-soft:    oklch(0.95 0.04 20);
+  --danger-soft-fg: oklch(0.5 0.19 20);
+  --info:           oklch(0.66 0.13 226);
+  --info-soft:      oklch(0.95 0.04 226);
+  --info-soft-fg:   oklch(0.46 0.12 240);
+
+  /* ---- Netral (mode terang, undertone indigo dingin) ---- */
+  --bg:            oklch(0.984 0.004 274);  /* latar halaman */
+  --bg-2:          oklch(0.966 0.006 274);  /* latar sekunder/sidebar */
+  --card:          oklch(1 0 0);            /* kartu/permukaan */
+  --elevated:      oklch(0.995 0.003 274);  /* popover/toast */
+  --muted:         oklch(0.957 0.006 274);  /* hover halus */
+  --muted-2:       oklch(0.928 0.009 274);
+  --border:        oklch(0.912 0.008 274);
+  --border-strong: oklch(0.86 0.012 274);
+  --fg:            oklch(0.245 0.022 276);  /* teks utama */
+  --fg-2:          oklch(0.505 0.022 276);  /* teks sekunder */
+  --fg-3:          oklch(0.63 0.018 276);   /* teks tersier/placeholder */
+  --ring:          var(--primary-ring);
+
+  /* ---- Glass (header & kartu Portal Akun) ---- */
+  --glass-bg:       oklch(1 0 0 / 0.66);
+  --glass-bg-2:     oklch(1 0 0 / 0.78);
+  --glass-border:   oklch(1 0 0 / 0.7);
+  --glass-hairline: oklch(0.5 0.02 274 / 0.1);
+  --glass-blur:     18px;
+
+  /* ---- Shadow ---- */
+  --shadow-xs:    0 1px 2px oklch(0.3 0.04 276 / 0.05);
+  --shadow-sm:    0 1px 3px oklch(0.3 0.04 276 / 0.07), 0 1px 2px oklch(0.3 0.04 276 / 0.04);
+  --shadow-md:    0 6px 16px -6px oklch(0.3 0.05 276 / 0.14), 0 2px 6px -2px oklch(0.3 0.05 276 / 0.07);
+  --shadow-lg:    0 20px 48px -12px oklch(0.28 0.06 276 / 0.2), 0 6px 16px -8px oklch(0.28 0.06 276 / 0.1);
+  --shadow-glass: 0 8px 32px -8px oklch(0.3 0.06 276 / 0.18);
+  --shadow-glow:  0 8px 28px -8px var(--primary-ring);
+
+  /* ---- Palet avatar (inisial user/client/sesi) ----
+     6 warna deterministik (di-hash dari nama) untuk variasi visual avatar.
+     Tiap slot punya warna dasar (--avatar-N) + ujung gradien (--avatar-N-2)
+     supaya tampilan gradien tetap sama. Bukan indikator status — murni dekoratif. */
+  --avatar-1:   oklch(0.585 0.205 274);  /* indigo */
+  --avatar-1-2: oklch(0.52 0.215 274);
+  --avatar-2:   oklch(0.64 0.21 354);    /* pink */
+  --avatar-2-2: oklch(0.58 0.215 357);
+  --avatar-3:   oklch(0.7 0.155 162);    /* emerald */
+  --avatar-3-2: oklch(0.61 0.13 160);
+  --avatar-4:   oklch(0.76 0.16 70);     /* amber */
+  --avatar-4-2: oklch(0.69 0.16 58);
+  --avatar-5:   oklch(0.63 0.2 256);     /* blue */
+  --avatar-5-2: oklch(0.55 0.215 258);
+  --avatar-6:   oklch(0.62 0.2 300);     /* violet */
+  --avatar-6-2: oklch(0.54 0.22 298);
+
+  /* ---- Ukuran layout ---- */
+  --topbar-h:        64px;
+  --sidebar-w:       264px;  /* sidebar admin terbuka */
+  --sidebar-w-rail:  76px;   /* sidebar admin ciut (rail) */
+  --content-pad:     32px;
+  --gap:             20px;
+  --ctl-h:           40px;   /* tinggi tombol/input */
+}
+
+/* ============================================================================
+   MODE GELAP — aktif via  <html class="dark">  atau  <html data-theme="dark">
+   ============================================================================ */
+:root.dark,
+:root[data-theme='dark'] {
+  --bg:            oklch(0.17 0.014 274);
+  --bg-2:          oklch(0.198 0.016 274);
+  --card:          oklch(0.214 0.018 274);
+  --elevated:      oklch(0.246 0.02 274);
+  --muted:         oklch(0.252 0.018 274);
+  --muted-2:       oklch(0.3 0.02 274);
+  --border:        oklch(0.31 0.02 274);
+  --border-strong: oklch(0.4 0.024 274);
+  --fg:            oklch(0.965 0.005 274);
+  --fg-2:          oklch(0.72 0.022 274);
+  --fg-3:          oklch(0.6 0.022 274);
+
+  --primary:        oklch(0.7 0.16 274);
+  --primary-600:    oklch(0.75 0.15 274);
+  --primary-700:    oklch(0.8 0.13 274);
+  --primary-fg:     oklch(0.16 0.03 274);
+  --primary-soft:   oklch(0.32 0.07 274);
+  --primary-soft-fg:oklch(0.84 0.12 274);
+  --brand-grad:     linear-gradient(135deg, oklch(0.66 0.18 282), oklch(0.56 0.19 268));
+
+  --success-soft:   oklch(0.34 0.07 160);
+  --success-soft-fg:oklch(0.82 0.13 160);
+  --warning-soft:   oklch(0.36 0.08 74);
+  --warning-soft-fg:oklch(0.85 0.13 80);
+  --danger-soft:    oklch(0.34 0.09 20);
+  --danger-soft-fg: oklch(0.82 0.13 20);
+  --info-soft:      oklch(0.33 0.07 232);
+  --info-soft-fg:   oklch(0.82 0.11 232);
+
+  /* Palet avatar mode gelap — sedikit lebih terang biar inisial putih tetap kontras. */
+  --avatar-1:   oklch(0.64 0.19 274);
+  --avatar-1-2: oklch(0.57 0.2 274);
+  --avatar-2:   oklch(0.68 0.2 354);
+  --avatar-2-2: oklch(0.62 0.205 357);
+  --avatar-3:   oklch(0.72 0.15 162);
+  --avatar-3-2: oklch(0.64 0.13 160);
+  --avatar-4:   oklch(0.78 0.155 70);
+  --avatar-4-2: oklch(0.71 0.155 58);
+  --avatar-5:   oklch(0.67 0.19 256);
+  --avatar-5-2: oklch(0.59 0.2 258);
+  --avatar-6:   oklch(0.66 0.19 300);
+  --avatar-6-2: oklch(0.58 0.21 298);
+
+  --glass-bg:       oklch(0.24 0.02 274 / 0.6);
+  --glass-bg-2:     oklch(0.26 0.022 274 / 0.74);
+  --glass-border:   oklch(0.5 0.04 274 / 0.28);
+  --glass-hairline: oklch(0.7 0.03 274 / 0.14);
+
+  --shadow-xs:    0 1px 2px oklch(0 0 0 / 0.4);
+  --shadow-sm:    0 1px 3px oklch(0 0 0 / 0.5), 0 1px 2px oklch(0 0 0 / 0.4);
+  --shadow-md:    0 8px 20px -8px oklch(0 0 0 / 0.6), 0 2px 8px -2px oklch(0 0 0 / 0.4);
+  --shadow-lg:    0 24px 56px -16px oklch(0 0 0 / 0.7), 0 8px 18px -10px oklch(0 0 0 / 0.5);
+  --shadow-glass: 0 12px 40px -10px oklch(0 0 0 / 0.55);
+}
+
+/* ============================================================================
+   VARIAN AKSEN (opsional) — set  <html data-accent="violet|teal|emerald">
+   Default tanpa atribut = indigo. Hapus blok ini kalau tak dipakai.
+   ============================================================================ */
+:root[data-accent='violet'] {
+  --primary: oklch(0.54 0.22 304); --primary-600: oklch(0.48 0.22 304); --primary-700: oklch(0.42 0.2 304);
+  --primary-soft: oklch(0.95 0.04 304); --primary-soft-fg: oklch(0.46 0.2 304);
+  --primary-ring: oklch(0.62 0.2 304 / 0.45);
+  --brand-grad: linear-gradient(135deg, oklch(0.62 0.22 312), oklch(0.5 0.22 296));
+}
+:root[data-accent='violet'].dark, :root[data-accent='violet'][data-theme='dark'] {
+  --primary: oklch(0.72 0.17 304); --primary-600: oklch(0.77 0.16 304);
+  --primary-soft: oklch(0.33 0.08 304); --primary-soft-fg: oklch(0.85 0.13 304);
+}
+:root[data-accent='teal'] {
+  --primary: oklch(0.6 0.12 212); --primary-600: oklch(0.53 0.12 214); --primary-700: oklch(0.46 0.11 216);
+  --primary-soft: oklch(0.95 0.035 210); --primary-soft-fg: oklch(0.45 0.11 220);
+  --primary-ring: oklch(0.68 0.12 212 / 0.45);
+  --brand-grad: linear-gradient(135deg, oklch(0.68 0.13 200), oklch(0.56 0.13 224));
+}
+:root[data-accent='teal'].dark, :root[data-accent='teal'][data-theme='dark'] {
+  --primary: oklch(0.76 0.12 206); --primary-600: oklch(0.81 0.11 206);
+  --primary-soft: oklch(0.33 0.06 214); --primary-soft-fg: oklch(0.85 0.11 206);
+}
+:root[data-accent='emerald'] {
+  --primary: oklch(0.6 0.14 162); --primary-600: oklch(0.53 0.14 163); --primary-700: oklch(0.46 0.13 164);
+  --primary-soft: oklch(0.95 0.04 164); --primary-soft-fg: oklch(0.44 0.13 165);
+  --primary-ring: oklch(0.68 0.14 162 / 0.45);
+  --brand-grad: linear-gradient(135deg, oklch(0.68 0.15 156), oklch(0.55 0.14 172));
+}
+:root[data-accent='emerald'].dark, :root[data-accent='emerald'][data-theme='dark'] {
+  --primary: oklch(0.76 0.15 162); --primary-600: oklch(0.81 0.14 162);
+  --primary-soft: oklch(0.33 0.07 164); --primary-soft-fg: oklch(0.85 0.14 162);
+}
+
+/* ============================================================================
+   KEPADATAN (opsional) — set  <html data-density="compact">  untuk UI lebih rapat
+   ============================================================================ */
+:root[data-density='compact'] {
+  --content-pad: 22px;
+  --gap: 14px;
+  --ctl-h: 36px;
+  --topbar-h: 56px;
+}

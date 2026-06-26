@@ -8,12 +8,12 @@ describe('portal liquid-glass dark mode tokens', () => {
   it('overrides glass surface and text tokens in dark mode', () => {
     const darkBlock = css.match(/\.dark \{[\s\S]*?\n\}/)?.[0] ?? ''
 
-    expect(darkBlock).toContain('--text-primary: oklch(0.96 0.005 270);')
-    expect(darkBlock).toContain('--text-secondary: oklch(0.78 0.012 270);')
-    expect(darkBlock).toContain(
-      '--glass-bg-primary: color-mix(in oklch, var(--color-neutral-900) 68%, transparent);',
-    )
-    expect(darkBlock).toContain('--glass-border-subtle: oklch(1 0 0 / 14%);')
+    // Bontang DS: dark-mode text + glass tokens are re-pointed onto the
+    // foreground ramp / glass surfaces from tokens.css (which flips in dark).
+    expect(darkBlock).toContain('--text-primary: var(--fg);')
+    expect(darkBlock).toContain('--text-secondary: var(--fg-2);')
+    expect(darkBlock).toContain('--glass-bg-primary: var(--glass-bg);')
+    expect(darkBlock).toContain('--glass-border-subtle: var(--glass-border);')
   })
 
   it('provides portal canvas wash variants for light and dark themes', () => {
