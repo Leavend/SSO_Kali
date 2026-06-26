@@ -64,6 +64,12 @@
     "authentication-audit": "Authentication Audit",
     "profile": "My Profile"
   },
+  "menu_group": {
+    "utama": "Main",
+    "keamanan": "Security",
+    "observabilitas": "Observability",
+    "lainnya": "Other"
+  },
   "common": {
     "identity": "Identity",
     "access": "Access",

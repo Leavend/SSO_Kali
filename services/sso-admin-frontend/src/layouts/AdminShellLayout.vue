@@ -37,12 +37,13 @@ const { t, locale } = useI18n()
 const isNavOpen = ref(false)
 const docsBaseUrl = getAdminEnvironment().docsBaseUrl
 
-// Sidebar menu search (inline with the nav, per Bontang handoff). The pill index
-// logic below maps to `visibleMenus[currentIndex]` and reads `navRef.children[idx + 1]`
-// (children[0] is the pill div). To keep that mapping intact we DO NOT filter the
-// rendered nav list; instead we toggle a `.admin-nav__link--hidden` class on the
-// non-matching links via `isMenuFiltered`, and hide the pill entirely while a
-// filter is active so it can never point at a hidden item. Empty filter shows all.
+// Sidebar menu search (inline with the nav, per Bontang handoff). Links are
+// rendered grouped into sections but each keeps its original `visibleMenus`
+// index; the active pill resolves its link by that `data-menu-index` (see
+// `updatePillPosition`) so section ordering can never shift the pill onto the
+// wrong item. Non-matching links are hidden with `v-show` (never removed) and
+// the pill is hidden entirely while a filter is active so it can never point at
+// a hidden item. An empty filter shows everything.
 const searchQuery = ref('')
 const searchInputRef = ref<HTMLInputElement | null>(null)
 const normalizedSearch = computed<string>(() => searchQuery.value.trim().toLowerCase())
@@ -61,6 +62,50 @@ const isTest = import.meta.env.MODE === 'test'
 const visibleMenus = computed<readonly AdminPermissionMenu[]>(() =>
   (session.principal?.permissions.menus ?? []).filter((menu) => menu.visible),
 )
+
+// Presentational nav grouping (Bontang shell). Maps each known menu id to a
+// section; ids without a mapping fall back to 'lainnya'. Sections render in
+// `MENU_GROUP_ORDER`; permission filtering still happens via `visibleMenus`.
+const MENU_GROUPS: Record<string, string> = {
+  dashboard: 'utama',
+  clients: 'utama',
+  users: 'utama',
+  sessions: 'utama',
+  policy: 'keamanan',
+  roles: 'keamanan',
+  'oidc-foundation': 'keamanan',
+  'external-idps': 'keamanan',
+  'ip-access': 'keamanan',
+  'sso-error-templates': 'keamanan',
+  audit: 'observabilitas',
+  'authentication-audit': 'observabilitas',
+  ops: 'observabilitas',
+  profile: 'observabilitas',
+}
+
+const MENU_GROUP_ORDER = ['utama', 'keamanan', 'observabilitas', 'lainnya'] as const
+
+// Each grouped item carries its original `visibleMenus` index so the active-pill
+// lookup and `handleMenuClick(menu, index)` stay stable even though sections
+// reorder the rendered link order. Empty sections are dropped.
+const groupedMenus = computed<
+  readonly { group: string; items: readonly { menu: AdminPermissionMenu; index: number }[] }[]
+>(() => {
+  const groups: { group: string; items: { menu: AdminPermissionMenu; index: number }[] }[] = []
+  for (const group of MENU_GROUP_ORDER) {
+    const items = visibleMenus.value
+      .map((menu, index) => ({ menu, index }))
+      .filter(({ menu }) => (MENU_GROUPS[menu.id] ?? 'lainnya') === group)
+    if (items.length > 0) groups.push({ group, items })
+  }
+  return groups
+})
+
+function translateGroupLabel(group: string): string {
+  const translationKey = `menu_group.${group}`
+  const translated = t(translationKey)
+  return translated === translationKey ? group : translated
+}
 
 function applyAdminBootstrapOutcome(): void {
   if (!route?.meta?.requiresAdmin || !router) return
@@ -110,8 +155,8 @@ function menuMatchesSearch(menu: AdminPermissionMenu): boolean {
   return matchingMenuIds.value.has(menu.id)
 }
 
-const hasSearchMatches = computed<boolean>(() =>
-  !isFiltering.value || matchingMenuIds.value.size > 0,
+const hasSearchMatches = computed<boolean>(
+  () => !isFiltering.value || matchingMenuIds.value.size > 0,
 )
 
 function focusSearchInput(): void {
@@ -312,7 +357,12 @@ function updatePillPosition() {
     pillStyle.value = { top: '0px', height: '0px', opacity: '0' }
     return
   }
-  const activeLink = navRef.value.children[idx + 1] as HTMLElement
+  // Resolve the active link by its stable menu index rather than DOM position —
+  // section grouping reorders the rendered links, so a positional child lookup
+  // would point the pill at the wrong item.
+  const activeLink = navRef.value.querySelector<HTMLElement>(
+    `.admin-nav__link[data-menu-index="${idx}"]`,
+  )
   if (activeLink) {
     pillStyle.value = {
       top: `${activeLink.offsetTop}px`,
@@ -350,13 +400,11 @@ onMounted(() => {
   window.addEventListener('resize', resizeHandler)
 })
 
-
 onUnmounted(() => {
   if (resizeHandler) {
     window.removeEventListener('resize', resizeHandler)
   }
 })
-
 
 async function handleMenuClick(menu: AdminPermissionMenu, index: number) {
   closeNav()
@@ -414,10 +462,13 @@ async function handleMenuClick(menu: AdminPermissionMenu, index: number) {
     <aside ref="sidebarRef" class="admin-sidebar" :aria-label="t('admin.sidebar_label')">
       <div class="admin-sidebar__header">
         <div class="admin-brand">
-          <span class="eyebrow"
-            ><ShieldCheck :size="16" aria-hidden="true" />{{ t('admin.brand_eyebrow') }}</span
-          >
-          <strong>{{ t('admin.brand_title') }}</strong>
+          <span class="admin-brand__mark" aria-hidden="true">
+            <ShieldCheck :size="21" />
+          </span>
+          <span class="admin-brand__text">
+            <span class="eyebrow">{{ t('admin.brand_eyebrow') }}</span>
+            <strong>{{ t('admin.brand_title') }}</strong>
+          </span>
         </div>
         <button
           class="admin-sidebar__close"
@@ -465,27 +516,39 @@ async function handleMenuClick(menu: AdminPermissionMenu, index: number) {
 
       <nav ref="navRef" class="admin-nav" :aria-label="t('admin.module_label')">
         <div v-show="!isFiltering" class="admin-nav__pill" :style="pillStyle"></div>
-        <RouterLink
-          v-for="(menu, index) in visibleMenus"
-          v-show="menuMatchesSearch(menu)"
-          :key="menu.id"
-          class="admin-nav__link"
-          :class="{ 'admin-nav__link--active': currentIndex === index && !isFiltering }"
-          :to="menuPath(menu)"
-          :data-tooltip="translateMenuLabel(menu)"
-          :title="translateMenuLabel(menu)"
-          @click.prevent="handleMenuClick(menu, index)"
+        <div
+          v-for="grp in groupedMenus"
+          :key="grp.group"
+          class="admin-nav__section"
+          role="group"
+          :aria-labelledby="`admin-nav-group-${grp.group}`"
         >
-          <span class="admin-nav__label">
-            <component
-              :is="menuIcons[menu.id] || CircleDot"
-              class="admin-nav__icon"
-              :size="16"
-              aria-hidden="true"
-            />
-            <span class="admin-nav__text">{{ translateMenuLabel(menu) }}</span>
-          </span>
-        </RouterLink>
+          <p v-show="!isFiltering" :id="`admin-nav-group-${grp.group}`" class="admin-nav__group">
+            {{ translateGroupLabel(grp.group) }}
+          </p>
+          <RouterLink
+            v-for="{ menu, index } in grp.items"
+            v-show="menuMatchesSearch(menu)"
+            :key="menu.id"
+            class="admin-nav__link"
+            :class="{ 'admin-nav__link--active': currentIndex === index && !isFiltering }"
+            :data-menu-index="index"
+            :to="menuPath(menu)"
+            :data-tooltip="translateMenuLabel(menu)"
+            :title="translateMenuLabel(menu)"
+            @click.prevent="handleMenuClick(menu, index)"
+          >
+            <span class="admin-nav__label">
+              <component
+                :is="menuIcons[menu.id] || CircleDot"
+                class="admin-nav__icon"
+                :size="16"
+                aria-hidden="true"
+              />
+              <span class="admin-nav__text">{{ translateMenuLabel(menu) }}</span>
+            </span>
+          </RouterLink>
+        </div>
         <p v-if="!hasSearchMatches" class="admin-nav__empty" role="status">
           {{ t('admin.search_no_menus') }}
         </p>

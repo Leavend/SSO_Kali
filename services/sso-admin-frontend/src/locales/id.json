@@ -64,6 +64,12 @@
     "authentication-audit": "Audit Autentikasi",
     "profile": "Profil Saya"
   },
+  "menu_group": {
+    "utama": "Utama",
+    "keamanan": "Keamanan",
+    "observabilitas": "Observabilitas",
+    "lainnya": "Lainnya"
+  },
   "common": {
     "identity": "Identitas",
     "access": "Akses",

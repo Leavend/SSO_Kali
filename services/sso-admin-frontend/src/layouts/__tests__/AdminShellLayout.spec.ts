@@ -567,7 +567,9 @@ describe('AdminShellLayout', () => {
     session.clear()
 
     const offsetTopSpy = vi.spyOn(HTMLElement.prototype, 'offsetTop', 'get').mockReturnValue(120)
-    const offsetHeightSpy = vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(45)
+    const offsetHeightSpy = vi
+      .spyOn(HTMLElement.prototype, 'offsetHeight', 'get')
+      .mockReturnValue(45)
 
     const rafSpy = vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
       cb(0)
@@ -632,7 +634,11 @@ describe('AdminShellLayout', () => {
     const router = createRouter({
       history: createMemoryHistory(),
       routes: [
-        { path: '/dashboard', component: { template: '<section />' }, meta: { requiresAdmin: true } },
+        {
+          path: '/dashboard',
+          component: { template: '<section />' },
+          meta: { requiresAdmin: true },
+        },
         { path: '/clients', component: { template: '<section />' }, meta: { requiresAdmin: true } },
       ],
     })
@@ -755,7 +761,9 @@ describe('AdminShellLayout', () => {
     })
 
     const offsetTopSpy = vi.spyOn(HTMLElement.prototype, 'offsetTop', 'get').mockReturnValue(120)
-    const offsetHeightSpy = vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(45)
+    const offsetHeightSpy = vi
+      .spyOn(HTMLElement.prototype, 'offsetHeight', 'get')
+      .mockReturnValue(45)
 
     const rafSpy = vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
       cb(0)
@@ -782,5 +790,161 @@ describe('AdminShellLayout', () => {
     offsetTopSpy.mockRestore()
     offsetHeightSpy.mockRestore()
     rafSpy.mockRestore()
+  })
+
+  it('renders a brand logomark alongside the brand text block', () => {
+    const wrapper = mount(AdminShellLayout, {
+      global: {
+        stubs: {
+          RouterLink: { template: '<a :href="to"><slot /></a>', props: ['to'] },
+          RouterView: true,
+        },
+      },
+    })
+
+    const text = wrapper.find('.admin-brand__text')
+    expect(wrapper.find('.admin-brand__mark').exists()).toBe(true)
+    expect(text.exists()).toBe(true)
+    // Eyebrow label and the brand title both live inside the text block, next to
+    // the logomark — not as a standalone chip above a heading.
+    expect(text.find('.eyebrow').exists()).toBe(true)
+    expect(text.find('strong').text()).toContain('Control Plane')
+  })
+
+  it('groups menus under section labels and pins the pill to the active link even when the section order reorders the backend menu list', async () => {
+    // Backend order interleaves groups (dashboard=utama, roles=keamanan,
+    // clients=utama). Section grouping renders utama before keamanan, so the
+    // DOM link order (dashboard, clients, roles) no longer matches the
+    // visibleMenus index order. A positional `links[currentIndex]` lookup would
+    // point the pill at roles; the active link must be resolved by its stable
+    // menu index instead.
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        {
+          path: '/dashboard',
+          component: { template: '<section />' },
+          meta: { requiresAdmin: true },
+        },
+        { path: '/clients', component: { template: '<section />' }, meta: { requiresAdmin: true } },
+        { path: '/roles', component: { template: '<section />' }, meta: { requiresAdmin: true } },
+      ],
+    })
+    await router.push('/clients')
+    await router.isReady()
+
+    const session = useSessionStore()
+    session.setPrincipal({
+      ...principal,
+      permissions: {
+        ...principal.permissions,
+        menus: [
+          {
+            id: 'dashboard',
+            label: 'Dashboard',
+            required_permission: 'admin.dashboard.view',
+            visible: true,
+          },
+          { id: 'roles', label: 'Roles', required_permission: 'admin.roles.read', visible: true },
+          {
+            id: 'clients',
+            label: 'Clients',
+            required_permission: 'admin.clients.read',
+            visible: true,
+          },
+        ],
+      },
+    })
+
+    // offsetTop encodes the stable menu index so the pill position proves which
+    // link was measured: dashboard(0)=100, roles(1)=200, clients(2)=300.
+    const offsetTopSpy = vi
+      .spyOn(HTMLElement.prototype, 'offsetTop', 'get')
+      .mockImplementation(function (this: HTMLElement) {
+        const menuIndex = this.getAttribute?.('data-menu-index')
+        return menuIndex != null ? (Number(menuIndex) + 1) * 100 : 0
+      })
+    const offsetHeightSpy = vi
+      .spyOn(HTMLElement.prototype, 'offsetHeight', 'get')
+      .mockReturnValue(44)
+    const rafSpy = vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
+      cb(0)
+      return 0
+    })
+
+    const wrapper = mount(AdminShellLayout, {
+      global: { plugins: [router], stubs: { RouterView: true } },
+    })
+
+    await nextTick()
+    await nextTick()
+
+    // Grouping renders at least the 'utama' and 'keamanan' section labels.
+    expect(wrapper.findAll('.admin-nav__group').length).toBeGreaterThanOrEqual(2)
+
+    // The active link is clients — index 2 in the backend menu list.
+    const active = wrapper.get('.admin-nav__link--active')
+    expect(active.attributes('data-menu-index')).toBe('2')
+
+    // The pill tracks the clients link (offsetTop 300), NOT the positional
+    // links[2] which would be roles (offsetTop 200).
+    expect(wrapper.find('.admin-nav__pill').attributes('style')).toContain('top: 300px')
+
+    offsetTopSpy.mockRestore()
+    offsetHeightSpy.mockRestore()
+    rafSpy.mockRestore()
+  })
+
+  it('exposes each nav section as an accessible group labelled by its section header', async () => {
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        {
+          path: '/dashboard',
+          component: { template: '<section />' },
+          meta: { requiresAdmin: true },
+        },
+        { path: '/roles', component: { template: '<section />' }, meta: { requiresAdmin: true } },
+      ],
+    })
+    await router.push('/dashboard')
+    await router.isReady()
+
+    const session = useSessionStore()
+    session.setPrincipal({
+      ...principal,
+      permissions: {
+        ...principal.permissions,
+        menus: [
+          {
+            id: 'dashboard',
+            label: 'Dashboard',
+            required_permission: 'admin.dashboard.view',
+            visible: true,
+          },
+          { id: 'roles', label: 'Roles', required_permission: 'admin.roles.read', visible: true },
+        ],
+      },
+    })
+
+    const wrapper = mount(AdminShellLayout, {
+      global: { plugins: [router], stubs: { RouterView: true } },
+    })
+
+    await nextTick()
+    await nextTick()
+
+    // dashboard → utama, roles → keamanan: two semantic groups.
+    const sections = wrapper.findAll('.admin-nav [role="group"]')
+    expect(sections.length).toBeGreaterThanOrEqual(2)
+
+    // Each group is named by its visible header element (screen readers announce
+    // the section, not stray paragraph text).
+    for (const section of sections) {
+      const labelledBy = section.attributes('aria-labelledby')
+      expect(labelledBy).toBeTruthy()
+      expect(wrapper.find(`#${labelledBy}`).exists()).toBe(true)
+      expect(wrapper.get(`#${labelledBy}`).classes()).toContain('admin-nav__group')
+    }
   })
 })
