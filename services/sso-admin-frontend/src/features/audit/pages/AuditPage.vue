@@ -15,6 +15,7 @@ import {
 } from 'lucide-vue-next'
 import UiStatusView from '@/components/ui/UiStatusView.vue'
 import UiButton from '@/components/ui/UiButton.vue'
+import UiStatusBadge from '@/components/ui/UiStatusBadge.vue'
 import { useSessionStore } from '@/stores/session.store'
 import { useAuditStore } from '@/features/audit/stores/audit.store'
 import type { SectionKey } from '@/features/audit/stores/audit.store'
@@ -336,16 +337,7 @@ function selectTab(tab: 'logs' | 'security' | 'reports' | 'retention' | 'dsr'): 
     >
       <article v-if="store.selectedEvent" class="audit-detail-dialog space-y-4">
         <div class="border-b border-border pb-2">
-          <span
-            class="audit-badge"
-            :class="
-              store.selectedEvent.outcome === 'succeeded'
-                ? 'audit-badge--success'
-                : 'audit-badge--danger'
-            "
-          >
-            {{ store.selectedEvent.outcome }}
-          </span>
+          <UiStatusBadge :status="store.selectedEvent.outcome" />
         </div>
         <dl class="space-y-3">
           <div class="flex flex-col gap-1">
@@ -417,16 +409,7 @@ function selectTab(tab: 'logs' | 'security' | 'reports' | 'retention' | 'dsr'): 
     >
       <article v-if="store.selectedAuthenticationEvent" class="audit-detail-dialog space-y-4">
         <div class="border-b border-border pb-2">
-          <span
-            class="audit-badge"
-            :class="
-              store.selectedAuthenticationEvent.outcome === 'succeeded'
-                ? 'audit-badge--success'
-                : 'audit-badge--danger'
-            "
-          >
-            {{ store.selectedAuthenticationEvent.outcome }}
-          </span>
+          <UiStatusBadge :status="store.selectedAuthenticationEvent.outcome" />
         </div>
         <dl class="space-y-3">
           <div class="flex flex-col gap-1">

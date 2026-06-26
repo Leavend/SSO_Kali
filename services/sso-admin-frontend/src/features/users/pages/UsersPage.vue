@@ -13,6 +13,8 @@ import UiFormField from '@/components/ui/UiFormField.vue'
 import UiInput from '@/components/ui/UiInput.vue'
 import UiSelect from '@/components/ui/UiSelect.vue'
 import UiStatusView from '@/components/ui/UiStatusView.vue'
+import UiStatusBadge from '@/components/ui/UiStatusBadge.vue'
+import UiDetailDrawer from '@/components/ui/UiDetailDrawer.vue'
 import { buttonVariants } from '@/components/ui/button'
 import { useSessionStore } from '@/stores/session.store'
 import { useUsersStore } from '../stores/users.store'
@@ -39,7 +41,6 @@ import {
   Key,
   Search,
   X,
-  ChevronLeft,
   LayoutDashboard,
   MonitorSmartphone,
   Settings,
@@ -217,6 +218,10 @@ onMounted(async () => {
 
 async function selectUser(subjectId: string): Promise<void> {
   await store.selectUser(subjectId)
+}
+
+function closeUserDrawer(): void {
+  store.selectedSubjectId = null
 }
 
 const detailTabs = computed<Array<{ key: DetailTab; label: string; icon: Component }>>(() => {
@@ -540,42 +545,58 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
             </div>
           </UiFormField>
 
-          <ul class="user-cards-list" role="list">
-            <li v-for="user in filteredUsers" :key="user.subject_id">
-              <button
-                class="user-card-item"
-                type="button"
-                :class="{
-                  'user-card-item--active': user.subject_id === store.selectedSubjectId,
-                }"
-                :aria-current="user.subject_id === store.selectedSubjectId ? 'true' : undefined"
-                @click="selectUser(user.subject_id)"
-              >
-                <span
-                  class="user-card-item__avatar"
-                  :style="avatarStyle(user.display_name ?? user.email)"
-                  aria-hidden="true"
-                >
-                  {{ avatarInitial(user.display_name ?? user.email) }}
-                </span>
-                <span class="user-card-item__content">
-                  <span class="user-card-item__name-row">
-                    <span class="user-card-item__name">{{ user.display_name ?? user.email }}</span>
-                    <span
-                      class="user-card-item__badge"
-                      :class="`badge--${user.effective_status ?? user.status ?? 'active'}`"
-                    >
-                      {{ user.effective_status ?? user.status ?? 'active' }}
-                    </span>
-                  </span>
-                  <span class="user-card-item__email">{{ user.email }}</span>
-                  <span class="user-card-item__meta">
-                    <span class="user-card-item__role">{{ user.role ?? 'user' }}</span>
-                  </span>
-                </span>
-              </button>
-            </li>
-          </ul>
+          <div class="tbl-shell">
+            <div class="tbl-scroll">
+              <table class="tbl tbl--clickable">
+                <caption class="sr-only">
+                  {{
+                    t('users.title')
+                  }}
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope="col">{{ t('users.label_name') || 'Pengguna' }}</th>
+                    <th scope="col">{{ t('users.label_email') }}</th>
+                    <th scope="col">{{ t('users.label_role') || 'Peran' }}</th>
+                    <th scope="col">{{ t('common.status') }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="user in filteredUsers"
+                    :key="user.subject_id"
+                    :aria-selected="user.subject_id === store.selectedSubjectId"
+                    tabindex="0"
+                    @click="selectUser(user.subject_id)"
+                    @keydown.enter.prevent="selectUser(user.subject_id)"
+                    @keydown.space.prevent="selectUser(user.subject_id)"
+                  >
+                    <td :data-label="t('users.label_name') || 'Pengguna'">
+                      <span class="tbl__rowname">
+                        <span
+                          class="tbl__avatar"
+                          :style="avatarStyle(user.display_name ?? user.email)"
+                          aria-hidden="true"
+                        >
+                          {{ avatarInitial(user.display_name ?? user.email) }}
+                        </span>
+                        <span class="tbl__rowmeta">
+                          <span class="tbl__primary">{{ user.display_name ?? user.email }}</span>
+                        </span>
+                      </span>
+                    </td>
+                    <td :data-label="t('users.label_email')">{{ user.email }}</td>
+                    <td :data-label="t('users.label_role') || 'Peran'">
+                      {{ user.role ?? 'user' }}
+                    </td>
+                    <td :data-label="t('common.status')">
+                      <UiStatusBadge :status="user.effective_status ?? user.status ?? 'active'" />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </template>
 
         <UiButton
@@ -587,54 +608,20 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
           {{ t('users.btn_create_user') }}
         </UiButton>
       </aside>
+    </div>
 
-      <!-- ─── Detail ────────────────────────────────────────────────────── -->
-      <div
-        v-if="store.status === 'loading'"
-        class="user-detail-container user-detail-loading-shell"
-        aria-hidden="true"
-      >
-        <div class="user-detail-card user-profile-hero user-profile-hero--skeleton">
-          <span class="user-profile-hero__avatar skeleton-circle"></span>
-          <div class="user-profile-hero__content">
-            <span class="skeleton-line skeleton-line--hero-title"></span>
-            <span class="skeleton-line skeleton-line--hero-meta"></span>
-            <span class="skeleton-line skeleton-line--hero-code"></span>
-          </div>
-        </div>
-
-        <div class="user-detail-tabs user-detail-tabs--skeleton">
-          <span v-for="row in 4" :key="row" class="skeleton-block user-detail-tab--skeleton"></span>
-        </div>
-
-        <div class="user-detail-status user-detail-status--empty"></div>
-
-        <div class="user-detail-panel">
-          <div class="user-stats-grid">
-            <div v-for="row in 4" :key="row" class="user-stat-card user-stat-card--skeleton">
-              <span class="user-stat-card__icon-wrapper skeleton-circle"></span>
-              <span class="user-stat-card__info">
-                <span class="skeleton-line skeleton-line--short"></span>
-                <span class="skeleton-line skeleton-line--value"></span>
-              </span>
-            </div>
-          </div>
-          <div class="user-detail-card user-detail-card--skeleton">
-            <span class="skeleton-line skeleton-line--section-title"></span>
-            <span class="skeleton-block skeleton-block--form"></span>
-          </div>
-        </div>
-      </div>
-
-      <div v-else-if="store.selectedUser" class="user-detail-container">
-        <!-- Mobile back button to list view -->
-        <div class="user-detail-back-bar">
-          <UiButton variant="secondary" size="sm" @click="store.selectedSubjectId = null">
-            <ChevronLeft :size="16" />
-            {{ t('common.back_to_list') }}
-          </UiButton>
-        </div>
-
+    <!-- ─── User Detail Drawer (row → drawer) ───────────────────────────── -->
+    <UiDetailDrawer
+      v-if="store.selectedUser"
+      :open="store.selectedSubjectId !== null"
+      title-id="user-detail-drawer"
+      :title="store.selectedUser.display_name ?? store.selectedUser.email"
+      :description="t('users.detail_tabs_label')"
+      :close-label="t('common.close')"
+      wide
+      @close="closeUserDrawer"
+    >
+      <div class="user-detail-container">
         <!-- Hero -->
         <div class="user-detail-card user-profile-hero">
           <span
@@ -1157,14 +1144,7 @@ const selectedClientId = computed(() => store.sessions[0]?.client_id ?? null)
           :subject-id="store.selectedUser.subject_id"
         />
       </div>
-
-      <div v-else class="user-detail-empty">
-        <UiEmptyState
-          :title="t('users.select_user_title')"
-          :description="t('users.select_user_desc')"
-        />
-      </div>
-    </div>
+    </UiDetailDrawer>
 
     <EvidenceContextPanel
       v-if="store.status !== 'loading' && !store.selectedUser"

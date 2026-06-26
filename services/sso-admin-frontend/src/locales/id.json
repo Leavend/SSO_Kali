@@ -93,6 +93,7 @@
     "copy": "Salin",
     "copied": "Disalin!",
     "close": "Tutup",
+    "status": "Status",
     "evidence": {
       "ref_code": "Kode referensi",
       "tech_details": "Detail teknis audit",

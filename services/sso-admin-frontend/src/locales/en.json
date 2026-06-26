@@ -93,6 +93,7 @@
     "copy": "Copy",
     "copied": "Copied!",
     "close": "Close",
+    "status": "Status",
     "evidence": {
       "ref_code": "Reference code",
       "tech_details": "Technical details",

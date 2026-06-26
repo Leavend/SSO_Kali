@@ -7,6 +7,7 @@ import UiFormField from '@/components/ui/UiFormField.vue'
 import UiInput from '@/components/ui/UiInput.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiDataList, { type UiDataListRow } from '@/components/ui/UiDataList.vue'
+import UiStatusBadge from '@/components/ui/UiStatusBadge.vue'
 import { useAuditStore } from '@/features/audit/stores/audit.store'
 import { formatTechnicalPreview } from '@/lib/display-identifiers'
 import type { AuthenticationAuditEventFilters } from '../types'
@@ -428,6 +429,9 @@ onMounted(() => {
             :columns="authenticationEventColumns"
             :rows="consentEventRows"
           >
+            <template #cell(outcome)="{ row }">
+              <UiStatusBadge :status="String(row.outcome ?? '')" />
+            </template>
             <template #actions="{ row }">
               <UiButton
                 variant="secondary"
@@ -498,6 +502,9 @@ onMounted(() => {
               :columns="auditEventColumns"
               :rows="auditEventRows"
             >
+              <template #cell(outcome)="{ row }">
+                <UiStatusBadge :status="String(row.outcome ?? '')" />
+              </template>
               <template #actions="{ row }">
                 <UiButton
                   variant="secondary"
