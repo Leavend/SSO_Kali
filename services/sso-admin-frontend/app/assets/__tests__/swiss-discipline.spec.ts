@@ -14,9 +14,10 @@
  * Path resolution uses __dirname (consistent with tokens-contract.spec.ts).
  * import.meta.url is avoided because it behaves differently under jsdom.
  *
- * SsoAccountBar.vue is EXCLUDED from Phase-2b scanning: it must remain
- * byte-identical with the portal widget (Phase-2a wraps it in <ClientOnly>)
- * and intentionally carries --shadow-modal from the shared widget token set.
+ * Note: SsoAccountBar.vue is admin-owned and IS scanned. Only the composable
+ * (useSsoAccountBar.ts) is byte-identical across admin/portal — the .vue file
+ * is not shared and must comply with the Swiss design system like every other
+ * component in this service.
  */
 import { readFileSync, readdirSync } from 'node:fs'
 import path from 'node:path'
@@ -29,10 +30,11 @@ const COMPONENTS = path.join(APP_DIR, 'components')
 
 /**
  * Files excluded from Phase-2b Swiss-discipline scanning.
- * SsoAccountBar.vue stays byte-identical with the portal widget and is not
- * restyled in this phase — do not add Phase-2b components here.
+ * Do not add components here without a documented reason; exclusions hide
+ * violations from the gate. SsoAccountBar.vue is no longer excluded —
+ * it is admin-owned and must comply with the Swiss design system.
  */
-const PHASE_2B_EXCLUDED = new Set(['SsoAccountBar.vue'])
+const PHASE_2B_EXCLUDED = new Set<string>()
 
 /** Every pattern banned by the Swiss design system. */
 const BANNED: readonly RegExp[] = [

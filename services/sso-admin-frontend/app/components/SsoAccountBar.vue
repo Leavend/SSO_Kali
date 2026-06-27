@@ -284,12 +284,12 @@ onUnmounted(() => {
 
 .sso-account-bar__trigger:hover,
 .sso-account-bar__trigger[aria-expanded='true'] {
-  border-color: color-mix(in srgb, var(--primary) 46%, var(--border));
-  color: var(--primary);
+  border-color: color-mix(in srgb, var(--accent) 46%, var(--border));
+  color: var(--accent);
 }
 
 .sso-account-bar__avatar {
-  font-size: var(--text-xs);
+  font-size: 0.75rem;
   font-weight: 900;
 }
 
@@ -302,10 +302,9 @@ onUnmounted(() => {
   width: min(320px, calc(100vw - 32px));
   gap: 10px;
   padding: 14px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
   border-radius: 16px;
   background: var(--card);
-  box-shadow: var(--shadow-modal);
 }
 
 .sso-account-bar__popover--apps {
@@ -349,8 +348,8 @@ onUnmounted(() => {
   width: 34px;
   height: 34px;
   border-radius: 10px;
-  background: color-mix(in srgb, var(--primary) 12%, transparent);
-  color: var(--primary);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
   font-weight: 900;
 }
 
@@ -367,14 +366,14 @@ onUnmounted(() => {
 
 .sso-account-bar__identity strong,
 .sso-account-bar__account strong {
-  font-size: var(--text-sm);
+  font-size: 0.875rem;
 }
 
 .sso-account-bar__identity span,
 .sso-account-bar__account span,
 .sso-account-bar__status {
-  color: var(--muted-foreground);
-  font-size: var(--text-xs);
+  color: var(--fg-3);
+  font-size: 0.75rem;
 }
 
 .sso-account-bar__action,
@@ -398,11 +397,11 @@ onUnmounted(() => {
 .sso-account-bar__app:hover,
 .sso-account-bar__action:hover,
 .sso-account-bar__account:hover {
-  background: color-mix(in srgb, var(--primary) 8%, transparent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
 }
 
 .sso-account-bar__action--danger {
-  color: var(--destructive);
+  color: var(--danger);
 }
 
 @media (max-width: 720px) {
