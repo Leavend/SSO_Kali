@@ -469,23 +469,50 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 - Consumes: SSR config from Task 0.2; Swiss tokens/utilities from Task 0.3.
 - Produces: `<NuxtLayout name="admin">` — the empty AdminShell with a `data-admin-shell` root, hairline sidebar/topbar landmarks, and a default `<slot/>` for pages; `app/pages/index.vue` scaffold landing rendering the literal text `Admin console`; a Vitest config scoped to Nuxt-era tests (`test/**`, `app/**`) that excludes the legacy `src/**` suite; the SSR smoke + token-leak gate at `test/ssr-smoke.spec.ts`. No nav items, no account bar, no domain logic.
 
+> **Toolchain prerequisite (resolved in `fix: align vite to 7.x …`).** `vite`
+> is pinned to `^7.3.3` in `package.json` to match `nuxt@4.4.8`'s declared dep.
+> A previous `vite@8` top-level pin made two vite majors coexist and broke the
+> in-process Nuxt build ("MagicString is not a constructor"). With a single vite
+> 7 the **in-process component build works** (`mountSuspended`), which Task 2a.0
+> and every 2b component spec depend on. See the "Canonical test patterns" note
+> at the end of this task before writing any later spec.
+
 - [ ] **Step 1: Create `vitest.config.ts` (Nuxt test harness, legacy `src/` excluded)**
+
+`defineVitestConfig` (v4.x) auto-splits into TWO vitest projects when the default
+`environment` is not `'nuxt'`: a `nuxt`-environment project that matches ONLY
+`**/*.nuxt.{test,spec}.*` (and `test/nuxt/**`), and a default project (jsdom
+here) for everything else. **Environment routing is therefore by FILENAME, not
+the `// @vitest-environment` pragma** (the auto-split projects override the
+pragma). Two extra knobs are load-bearing under vite 7 and are documented inline:
+the `externalizeForeignTestRunners` plugin (vite 7 import-analysis otherwise
+fails on `@nuxt/test-utils`' uninstalled `bun:test`/`@jest/globals`/
+`@cucumber/cucumber` dynamic imports — vite 8 externalised them implicitly) and
+`environmentOptions.nuxt.domEnvironment: 'jsdom'` (the nuxt project defaults its
+internal DOM to happy-dom). The e2e SSR smoke pre-builds via `globalSetup`
+(subprocess) — see Step 2.
 
 ```ts
 import { defineVitestConfig } from '@nuxt/test-utils/config'
+import type { Plugin } from 'vite'
 
-// Only Nuxt-era tests run during the migration. The legacy src/ Vitest suite
-// keeps running under the old toolchain and is re-tested per-domain as each
-// page is ported in later phases.
+const foreignTestRunners = new Set(['bun:test', '@jest/globals', '@cucumber/cucumber'])
+const externalizeForeignTestRunners: Plugin = {
+  name: 'sso-admin:externalize-foreign-test-runners',
+  enforce: 'pre',
+  resolveId(id) {
+    if (foreignTestRunners.has(id)) return { id, external: true }
+  },
+}
+
 export default defineVitestConfig({
+  plugins: [externalizeForeignTestRunners],
   test: {
-    // Default DOM environment so @vue/test-utils `mount` component specs (2a.7,
-    // 2a.8, all of 2b.3–2b.9) have `document`/`window`. Specs that need the Nuxt
-    // runtime (mountSuspended/renderSuspended) opt in per-file with the first-line
-    // pragma `// @vitest-environment nuxt`; e2e specs (@nuxt/test-utils/e2e
-    // setup + $fetch, e.g. the SSR smoke + leak gate) spawn a real server and are
-    // unaffected by the default DOM env.
+    // Subprocess Nuxt build for the e2e SSR smoke only (root cause in
+    // test/globalSetup.ts); the component/mountSuspended path builds in-process.
+    globalSetup: ['./test/globalSetup.ts'],
     environment: 'jsdom',
+    environmentOptions: { nuxt: { domEnvironment: 'jsdom' } },
     include: ['test/**/*.{test,spec}.ts', 'app/**/*.{test,spec}.ts'],
     exclude: ['node_modules', 'dist', '.nuxt', '.output', 'e2e', 'src'],
   },
@@ -494,26 +521,38 @@ export default defineVitestConfig({
 
 - [ ] **Step 2: Write the failing SSR smoke + leak-gate test**
 
-Create `test/ssr-smoke.spec.ts`:
+Create `test/ssr-smoke.spec.ts`. Two non-obvious requirements (both proven
+empirically): (1) call `setup()` directly in the **async `describe` body**, NOT
+in `beforeAll` — in @nuxt/test-utils v4, `setup()` registers its OWN `beforeAll`,
+so wrapping it nests the hook and it fires after the tests, leaving `$fetch`
+without a URL context. The async-describe form trips the `valid-describe-callback`
+lint rule, so it carries a single targeted `eslint-disable-next-line
+vitest/valid-describe-callback`. (2) Use `build: false` against the
+`globalSetup`-built `.output` and inject the canary as the server **env var**
+`NUXT_SESSION_ENCRYPTION_SECRET` — the e2e in-process full `buildNuxt` cannot run
+in the vitest worker (browser-first resolve.conditions → MagicString; jsdom
+globals → esbuild TextEncoder invariant; the `node` env can't be forced per-file).
 
 ```ts
-import { describe, it, expect, beforeAll } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { setup, $fetch } from '@nuxt/test-utils/e2e'
+import { resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-describe('Phase 0 SSR scaffold', () => {
-  beforeAll(async () => {
-    // Inject a canary into the PRIVATE runtimeConfig half. It must never reach
-    // the SSR HTML / __NUXT__ payload — this is the seed of the leak gate.
-    await setup({
-      server: true,
-      browser: false,
-      nuxtConfig: {
-        runtimeConfig: {
-          sessionEncryptionSecret: 'leak-canary-do-not-render',
-          public: { adminAppBaseUrl: 'http://admin.test' },
-        },
-      },
-    })
+const rootDir = resolve(fileURLToPath(import.meta.url), '../..')
+
+// eslint-disable-next-line vitest/valid-describe-callback
+describe('Phase 0 SSR scaffold', async () => {
+  await setup({
+    server: true,
+    build: false, // pre-built by test/globalSetup.ts; in-process build is blocked
+    browser: false,
+    nuxtConfig: { nitro: { output: { dir: resolve(rootDir, '.output') } } },
+    env: {
+      // Private-config leak canary, read by the spawned server at runtime.
+      NUXT_SESSION_ENCRYPTION_SECRET: 'leak-canary-do-not-render',
+      NUXT_PUBLIC_ADMIN_APP_BASE_URL: 'http://admin.test',
+    },
   })
 
   it('server-renders the empty admin shell', async () => {
@@ -530,6 +569,11 @@ describe('Phase 0 SSR scaffold', () => {
   })
 })
 ```
+
+`test/globalSetup.ts` runs `nuxt build` in a subprocess (clean module cache +
+real Node globals, so neither the MagicString nor the esbuild constraint
+applies) guarded by an atomic lock dir so the build runs exactly once across the
+auto-split projects.
 
 - [ ] **Step 3: Run the test to verify it fails**
 
@@ -632,6 +676,40 @@ never reaches the SSR payload). No domain logic.
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 ```
+
+> **Canonical test patterns (every later task follows these).** The harness was
+> hardened in the follow-up `fix: align vite to 7.x …` commit, which also added
+> `test/component-smoke.nuxt.spec.ts` to prove the in-process component path.
+> Environment is selected by FILENAME (the auto-split projects ignore the
+> `// @vitest-environment` pragma):
+>
+> - **(a) e2e SSR test** — plain `*.spec.ts` (default jsdom project). `setup()`
+>   from `@nuxt/test-utils/e2e` in the async `describe` body (carry the
+>   `eslint-disable-next-line vitest/valid-describe-callback`), `build: false`
+>   against the `globalSetup`-built `.output`, assert over `$fetch('/')`. The
+>   private-config leak gate injects its canary as a server env var. Reference:
+>   `test/ssr-smoke.spec.ts`.
+> - **(b) in-process component test** — name the file `*.nuxt.spec.ts` (or put it
+>   under `test/nuxt/`); it runs in the auto-created `nuxt` environment project.
+>   Use `mountSuspended` / `renderSuspended` from `@nuxt/test-utils/runtime`.
+>   Builds in-process, no pre-build. **This is the path Task 2a.0 and all of
+>   2b.3–2b.9 use.** Reference: `test/component-smoke.nuxt.spec.ts`:
+>
+>   ```ts
+>   // test/component-smoke.nuxt.spec.ts  (routed to the 'nuxt' env by filename)
+>   import { describe, it, expect } from 'vitest'
+>   import { mountSuspended } from '@nuxt/test-utils/runtime'
+>   import IndexPage from '~/pages/index.vue'
+>
+>   describe('in-process component (mountSuspended)', () => {
+>     it('mounts the real index page', async () => {
+>       const wrapper = await mountSuspended(IndexPage)
+>       expect(wrapper.text()).toContain('Admin console')
+>     })
+>   })
+>   ```
+> - **(c) pure unit test** (server utils / pure fns) — plain `*.spec.ts`, runs in
+>   the default jsdom project (DOM also available for `@vue/test-utils` `mount`).
 
 ---
 
