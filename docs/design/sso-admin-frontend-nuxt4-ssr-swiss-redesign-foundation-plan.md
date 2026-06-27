@@ -38,7 +38,7 @@ Every task's requirements implicitly include this section.
 
 **Interfaces:**
 - Consumes: nothing (first task).
-- Produces: npm scripts `dev` (`nuxt dev`), `build` (`nuxt build`), `preview`, `start`, `postinstall` (`nuxt prepare`), `typecheck`/`type-check` (`nuxt typecheck`), `test` (`vitest run`), `test:unit`, `test:e2e`, `lint`, `format`, `format:check`; the `nuxt` CLI available via `npx nuxt`. Keeps `pinia`, `reka-ui`, `lucide-vue-next`, `tailwindcss`, `@tailwindcss/vite`, `jose`, `redis`, `vue`. Adds dev deps `nuxt@^4.4.8`, `@pinia/nuxt@^0.11.2`, `@nuxt/test-utils@^3.19.2`.
+- Produces: npm scripts `dev` (`nuxt dev`), `build` (`nuxt build`), `preview`, `start`, `postinstall` (`nuxt prepare`), `typecheck`/`type-check` (`nuxt typecheck`), `test` (`vitest run`), `test:unit`, `test:e2e`, `lint`, `format`, `format:check`; the `nuxt` CLI available via `npx nuxt`. Keeps `pinia`, `reka-ui`, `lucide-vue-next`, `tailwindcss`, `@tailwindcss/vite`, `jose`, `redis`, `vue`. Adds dev deps `nuxt@^4.4.8`, `@pinia/nuxt@^0.11.2`, `@nuxt/test-utils@^4.0.3`.
 
 - [ ] **Step 1: Create the feature branch**
 
@@ -95,7 +95,7 @@ Replace the file with (legacy deps kept so the old `src/` SPA still type-checks/
     "vue-router": "^5.0.4"
   },
   "devDependencies": {
-    "@nuxt/test-utils": "^3.19.2",
+    "@nuxt/test-utils": "^4.0.3",
     "@pinia/nuxt": "^0.11.2",
     "@playwright/test": "^1.59.1",
     "@tsconfig/node24": "^24.0.4",
@@ -135,8 +135,8 @@ Expected: PASS — adds `nuxt`, `@pinia/nuxt`, `@nuxt/test-utils`. The `postinst
 
 - [ ] **Step 5: Verify Nuxt resolves (passing check)**
 
-Run: `npx nuxt --version`
-Expected: PASS — prints `Nuxt 4.4.x` (a 4.x version).
+Run: `npm ls nuxt`
+Expected: PASS — prints `└── nuxt@4.4.x` (a 4.x version). Note: `npx nuxt --version` prints the `@nuxt/cli` version (3.x), NOT the framework version — use `npm ls nuxt` to verify the framework.
 
 - [ ] **Step 6: Commit**
 
