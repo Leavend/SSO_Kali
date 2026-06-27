@@ -1,0 +1,69 @@
+/* Swiss token base for the admin control plane.
+   Single accent = Yves Klein Blue (#002fa7). Red is functional danger ONLY.
+   Hairline borders, sharp radii, one type family, no shadows/glass. */
+:root {
+  color-scheme: light;
+
+  /* Surface */
+  --bg: #ffffff;
+  --bg-2: #f7f7f8;
+  --card: #ffffff;
+
+  /* Ink */
+  --fg: #0a0a0a;
+  --fg-2: #4a4a4a;
+  --fg-3: #767676;
+
+  /* Border — 1px hairline is the primary structure (not shadows) */
+  --border: #e5e5e7;
+  --border-strong: #d0d0d3;
+
+  /* Single Swiss accent */
+  --accent: #002FA7;
+  --accent-fg: #ffffff;
+
+  /* Semantic state — red is destructive-only, distinct from the brand accent */
+  --danger: #E4002B;
+  --danger-fg: #ffffff;
+  --success: #0a7d33;
+  --warning: #b25e00;
+  --info: #0046b8;
+
+  /* Type — one family for display + body; mono reserved for raw IDs */
+  --font-sans: 'Söhne', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, 'JetBrains Mono', 'SFMono-Regular', Menlo, monospace;
+
+  /* Radius — sharp (rounded breaks Swiss) */
+  --r-sm: 0px;
+  --r-md: 2px;
+
+  /* Layout */
+  --topbar-h: 56px;
+  --sidebar-w: 264px;
+  --content-pad: 32px;
+}
+
+:root.dark,
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --bg: #0a0a0a;
+  --bg-2: #141414;
+  --card: #0f0f0f;
+
+  --fg: #fafafa;
+  --fg-2: #b5b5b5;
+  --fg-3: #8a8a8a;
+
+  --border: #2a2a2a;
+  --border-strong: #3a3a3a;
+
+  --accent: #5b7cff;
+  --accent-fg: #0a0a0a;
+
+  --danger: #ff5470;
+  --danger-fg: #0a0a0a;
+  --success: #45c46b;
+  --warning: #e0a040;
+  --info: #6aa3ff;
+}
