@@ -79,7 +79,7 @@ export function unauthorized(): AppResponse {
   return json(401, { error: 'no_session', message: 'No active SSO session.' })
 }
 
-export function send(res: ServerResponse, appResponse: AppResponse): void {
+function send(res: ServerResponse, appResponse: AppResponse): void {
   const headers = {
     'x-content-type-options': 'nosniff',
     'referrer-policy': 'same-origin',
