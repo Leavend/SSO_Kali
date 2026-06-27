@@ -8,6 +8,8 @@ describe('FOLIO-GRID: UiFolio', () => {
     const wrapper = mount(UiFolio, { props: { index: 2, total: 14, variant: 'count' } })
     expect(wrapper.get('.ui-folio').text()).toBe('02 / 14')
     expect(wrapper.get('.ui-folio').classes()).not.toContain('ui-folio--mono')
+    // Design differentiator: condensed treatment via --font-condensed + font-stretch
+    expect(wrapper.get('.ui-folio').classes()).toContain('ui-folio--condensed')
   })
 
   it('renders a raw ID in the mono variant', () => {
@@ -46,6 +48,18 @@ describe('FOLIO-GRID: UiDataList', () => {
     const folioCells = wrapper.findAll('.ui-tbl__folio-cell')
     expect(folioCells.map((c) => c.text())).toEqual(['01', '02'])
     expect(wrapper.get('.ui-folio--mono').text()).toBe('sess-abc')
+  })
+
+  it('cells carry data-label for the responsive stacked-card mode', () => {
+    const wrapper = mount(UiDataList, { props })
+    // Each data column td must have a data-label matching the column label
+    const eventCells = wrapper.findAll('tbody td[data-label="Event"]')
+    expect(eventCells.length).toBe(2)
+    const sessionCells = wrapper.findAll('tbody td[data-label="Session"]')
+    expect(sessionCells.length).toBe(2)
+    // Folio index td carries a label too
+    const folioCells = wrapper.findAll('tbody td[data-label="#"]')
+    expect(folioCells.length).toBe(2)
   })
 
   it('exposes keyboard-focusable pagination that emits next/previous', async () => {

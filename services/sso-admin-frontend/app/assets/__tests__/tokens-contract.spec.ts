@@ -47,6 +47,7 @@ describe('Swiss tokens.css contract', () => {
       '--r-full',
       '--ctl-h',
       '--font-sans',
+      '--font-condensed',
       '--font-mono',
     ]
     for (const token of required) {

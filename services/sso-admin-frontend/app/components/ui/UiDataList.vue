@@ -44,13 +44,15 @@ function cellText(row: UiDataListRow, key: string): string {
     <div class="ui-tbl-scroll">
       <table class="ui-tbl">
         <caption class="ui-tbl__caption">
-          <span class="ui-tbl__caption-text">{{ caption }}</span>
-          <UiFolio
-            class="ui-tbl__folio"
-            :index="rows.length"
-            :total="total ?? rows.length"
-            variant="count"
-          />
+          <span class="ui-tbl__caption-inner">
+            <span class="ui-tbl__caption-text">{{ caption }}</span>
+            <UiFolio
+              class="ui-tbl__folio"
+              :index="rows.length"
+              :total="total ?? rows.length"
+              variant="count"
+            />
+          </span>
         </caption>
         <thead>
           <tr>
@@ -68,12 +70,13 @@ function cellText(row: UiDataListRow, key: string): string {
         </thead>
         <tbody>
           <tr v-for="(row, rowIndex) in rows" :key="row.id">
-            <td v-if="folioIndex" class="ui-tbl__folio-cell">
+            <td v-if="folioIndex" class="ui-tbl__folio-cell" data-label="#">
               <UiFolio :index="rowIndex + 1" :pad="String(rows.length).length" />
             </td>
             <td
               v-for="column in columns"
               :key="column.key"
+              :data-label="column.label"
               :class="column.align === 'right' ? 'ui-tbl__cell--right' : undefined"
             >
               <slot :name="`cell(${column.key})`" :row="row">
@@ -85,7 +88,7 @@ function cellText(row: UiDataListRow, key: string): string {
                 <template v-else>{{ cellText(row, column.key) }}</template>
               </slot>
             </td>
-            <td v-if="$slots.actions" class="ui-tbl__cell--right">
+            <td v-if="$slots.actions" class="ui-tbl__cell--right" data-label="Actions">
               <slot name="actions" :row="row" />
             </td>
           </tr>
@@ -135,13 +138,15 @@ function cellText(row: UiDataListRow, key: string): string {
   font: 400 0.8125rem/1.4 var(--font-sans);
 }
 .ui-tbl__caption {
+  padding: 12px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.ui-tbl__caption-inner {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
-  padding: 12px 14px;
-  text-align: left;
-  border-bottom: 1px solid var(--border);
 }
 .ui-tbl__caption-text {
   font: 600 0.8125rem/1 var(--font-sans);
@@ -206,5 +211,61 @@ function cellText(row: UiDataListRow, key: string): string {
 .ui-tbl__page-btn:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
+}
+
+/* ---- Responsive stacked-card layout (small viewports) ---- */
+@media (max-width: 600px) {
+  .ui-tbl-scroll {
+    overflow-x: visible;
+  }
+  .ui-tbl,
+  .ui-tbl thead,
+  .ui-tbl tbody,
+  .ui-tbl th,
+  .ui-tbl td,
+  .ui-tbl tr {
+    display: block;
+  }
+  /* Visually hide header row but keep it accessible */
+  .ui-tbl thead {
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    height: 1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+  }
+  /* Each row becomes a card with hairline border — no shadow */
+  .ui-tbl tbody tr {
+    border: 1px solid var(--border);
+    margin-bottom: 8px;
+    background: var(--card);
+  }
+  .ui-tbl td {
+    border: none;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
+  }
+  .ui-tbl td:last-child {
+    border-bottom: none;
+  }
+  /* Inject column label from data-label attribute */
+  .ui-tbl td::before {
+    content: attr(data-label);
+    font: 600 0.6875rem/1 var(--font-sans);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--fg-3);
+    min-width: 8ch;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  /* Keep compact padding consistent in stacked mode */
+  .ui-tbl-shell--compact td {
+    padding-block: 7px;
+  }
 }
 </style>

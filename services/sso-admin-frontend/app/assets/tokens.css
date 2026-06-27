@@ -9,6 +9,7 @@
 :root {
   /* ---- Type (one family; mono only for raw IDs/correlation values) ---- */
   --font-sans: 'Söhne', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --font-condensed: 'Söhne Schmal', 'Roboto Condensed', 'Helvetica Neue', ui-sans-serif, sans-serif;
   --font-mono: 'Söhne Mono', ui-monospace, 'SF Mono', 'JetBrains Mono', monospace;
 
   /* ---- Radius (sharp) ---- */

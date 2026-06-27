@@ -36,10 +36,15 @@ const display = computed<string>(() => {
 })
 
 const isMono = computed<boolean>(() => props.variant === 'id')
+const isCondensed = computed<boolean>(() => !isMono.value)
 </script>
 
 <template>
-  <span class="ui-folio" :class="{ 'ui-folio--mono': isMono }">{{ display }}</span>
+  <span
+    class="ui-folio"
+    :class="{ 'ui-folio--mono': isMono, 'ui-folio--condensed': isCondensed }"
+    >{{ display }}</span
+  >
 </template>
 
 <style scoped>
@@ -50,8 +55,13 @@ const isMono = computed<boolean>(() => props.variant === 'id')
   color: var(--fg-2);
   white-space: nowrap;
 }
+.ui-folio--condensed {
+  font-family: var(--font-condensed);
+  font-stretch: 75%;
+}
 .ui-folio--mono {
   font-family: var(--font-mono);
+  font-stretch: normal;
   font-variant-numeric: normal;
   letter-spacing: 0;
   color: var(--fg);
