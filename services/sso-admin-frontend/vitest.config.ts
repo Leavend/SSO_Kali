@@ -82,7 +82,7 @@ export default defineVitestConfig({
     // happy-dom; pin it to jsdom (already a devDependency) so we keep a single
     // DOM implementation across both projects.
     environmentOptions: { nuxt: { domEnvironment: 'jsdom' } },
-    include: ['test/**/*.{test,spec}.ts', 'app/**/*.{test,spec}.ts'],
+    include: ['test/**/*.{test,spec}.ts', 'app/**/*.{test,spec}.ts', 'server/**/*.{test,spec}.ts'],
     exclude: ['node_modules', 'dist', '.nuxt', '.output', 'e2e', 'src'],
   },
 })
