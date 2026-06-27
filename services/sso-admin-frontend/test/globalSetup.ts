@@ -60,6 +60,19 @@ export async function setup() {
       stdio: 'inherit',
     })
     console.log('[globalSetup] Build complete.\n')
+
+    // Pre-build the §3.3 SSR token-leak render-gate fixture LAYER (Task 2c.1).
+    // It extends the real app and adds an authenticated sentinel session + a
+    // private runtimeConfig canary. Like the main app, its full vite build cannot
+    // run in-process under the vitest worker (MagicString / TextEncoder — see the
+    // module header), so it is built here in a subprocess and the gate runs
+    // setup({ build: false }) against test/fixtures/ssr-leak/.output.
+    console.log('[globalSetup] Building SSR token-leak fixture layer...')
+    execSync('node node_modules/.bin/nuxt build test/fixtures/ssr-leak', {
+      cwd: rootDir,
+      stdio: 'inherit',
+    })
+    console.log('[globalSetup] Fixture build complete.\n')
   }
   return () => {
     if (owner) rmSync(lockDir, { recursive: true, force: true })
