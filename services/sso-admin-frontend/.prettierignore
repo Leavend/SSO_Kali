@@ -8,3 +8,7 @@ coverage
 playwright-report
 test-results
 package-lock.json
+# Legacy SPA (frozen until cutover — do not reformat)
+src/
+# Legacy Playwright e2e suite (frozen until Nuxt e2e is wired up)
+e2e/

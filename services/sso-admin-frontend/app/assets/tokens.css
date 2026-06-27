@@ -19,11 +19,11 @@
   --border-strong: #d0d0d3;
 
   /* Single Swiss accent */
-  --accent: #002FA7;
+  --accent: #002fa7;
   --accent-fg: #ffffff;
 
   /* Semantic state — red is destructive-only, distinct from the brand accent */
-  --danger: #E4002B;
+  --danger: #e4002b;
   --danger-fg: #ffffff;
   --success: #0a7d33;
   --warning: #b25e00;

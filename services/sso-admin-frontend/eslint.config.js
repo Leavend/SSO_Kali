@@ -22,5 +22,17 @@ export default [
 
   ...pluginVue.configs['flat/essential'],
 
+  // Nuxt file-routing convention: pages and layouts are single-word by design
+  // (e.g. pages/index.vue, layouts/admin.vue). Disabling multi-word rule here
+  // is standard Nuxt practice — the file names are not component registration
+  // names, they are route/layout selectors.
+  {
+    name: 'nuxt/pages-layouts-naming',
+    files: ['app/pages/**/*.vue', 'app/layouts/**/*.vue'],
+    rules: {
+      'vue/multi-word-component-names': 'off',
+    },
+  },
+
   skipFormatting,
 ]
