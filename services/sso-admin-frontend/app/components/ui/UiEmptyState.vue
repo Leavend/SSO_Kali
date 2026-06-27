@@ -10,7 +10,7 @@ defineProps<Props>()
 </script>
 
 <template>
-  <section class="ui-empty" role="status">
+  <section class="ui-empty">
     <div class="ui-empty__icon" aria-hidden="true">
       <slot name="icon"><Inbox :size="24" /></slot>
     </div>

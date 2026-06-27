@@ -12,7 +12,6 @@ withDefaults(defineProps<Props>(), {
 
 <template>
   <div class="ui-skeleton" role="status" :aria-label="label">
-    <span class="sr-only">{{ label }}</span>
     <span
       v-for="index in rows"
       :key="index"

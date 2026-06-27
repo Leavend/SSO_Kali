@@ -38,7 +38,9 @@ const supportReference = computed<string | null>(() => formatSupportReference(pr
         <AlertTriangle v-else :size="28" />
       </div>
       <span class="ui-status-view__eyebrow">{{ eyebrow }}</span>
-      <h1 class="ui-status-view__title">{{ title }}</h1>
+      <component :is="standalone ? 'h1' : 'h2'" class="ui-status-view__title">{{
+        title
+      }}</component>
       <p class="ui-status-view__desc">{{ safeDescription }}</p>
       <dl v-if="supportReference" class="ui-status-view__evidence">
         <dt>{{ t('common.evidence.ref_code') }}</dt>

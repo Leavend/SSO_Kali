@@ -40,6 +40,32 @@ describe('Swiss status surfaces', () => {
     expect(wrapper.text()).toContain('REF-')
   })
 
+  it('UiStatusView uses h1 when standalone and h2 when embedded', () => {
+    const standalone = mount(UiStatusView, {
+      props: {
+        tone: 'error',
+        eyebrow: 'Error',
+        title: 'Oops',
+        description: 'Something went wrong.',
+        standalone: true,
+      },
+    })
+    expect(standalone.find('h1').exists()).toBe(true)
+    expect(standalone.find('h2').exists()).toBe(false)
+
+    const embedded = mount(UiStatusView, {
+      props: {
+        tone: 'error',
+        eyebrow: 'Error',
+        title: 'Oops',
+        description: 'Something went wrong.',
+        standalone: false,
+      },
+    })
+    expect(embedded.find('h2').exists()).toBe(true)
+    expect(embedded.find('h1').exists()).toBe(false)
+  })
+
   it('UiEmptyState shows title, description and an action slot', () => {
     const wrapper = mount(UiEmptyState, {
       props: { title: 'No audit events', description: 'Adjust filters and retry.' },
