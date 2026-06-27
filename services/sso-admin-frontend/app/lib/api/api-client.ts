@@ -76,13 +76,18 @@ export type ApiClient = {
   delete<T>(path: string, options?: Omit<RequestOptions, 'method' | 'body'>): Promise<T>
 }
 
-// baseFetch forwards the encrypted session cookie during SSR (useRequestFetch
-// binds the incoming request context) and uses the global $fetch on the client.
-// useRequestFetch() is typed as H3Event$Fetch | $Fetch — the H3Event$Fetch
-// union branch is a TypeScript artefact; at runtime both expose .raw() and are
-// $fetch-compatible, so the cast is safe.
+// baseFetch forwards the encrypted session cookie to the BFF during SSR and uses
+// the global $fetch on the client.
+//
+// The request-scoped fetch returned by useRequestFetch() (i.e. event.$fetch) does
+// forward the incoming headers, but it is a bare wrapper WITHOUT a `.raw` method,
+// which sendRequest() relies on (responseType/ignoreResponseError/status). So on
+// the server we instead build a full ofetch instance that (a) exposes `.raw` and
+// (b) forwards the incoming `cookie` header — the security-relevant context the
+// internal /api/admin/* proxy needs to resolve the encrypted session. On the
+// client, $fetch already carries the browser's cookies via credentials:'include'.
 function baseFetch(): typeof $fetch {
-  return import.meta.server ? (useRequestFetch() as unknown as typeof $fetch) : $fetch
+  return import.meta.server ? $fetch.create({ headers: useRequestHeaders(['cookie']) }) : $fetch
 }
 
 function buildHeaders(custom: Readonly<Record<string, string>> | undefined): Headers {
