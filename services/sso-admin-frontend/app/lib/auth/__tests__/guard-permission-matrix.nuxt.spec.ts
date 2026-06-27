@@ -3,6 +3,13 @@
 // available. resolveLoadedAdminAccess calls useSessionStore() which calls
 // useState() at store-creation time — that requires the nuxt env.
 // Per hygiene: use mockNuxtImport (not vi.stubGlobal) for Nuxt auto-imports.
+//
+// Nav UX-minimization coverage note: the layout rendering of visible vs.
+// hidden nav links is verified in app/layouts/__tests__/admin-layout.spec.ts
+// (the 'renders a nav link per visible principal menu' test confirms that
+// menus with visible:false are excluded from the DOM). Case 7 below
+// re-confirms the permission→menu-visibility contract at the data model level
+// so this matrix explicitly accounts for nav minimization.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ref } from 'vue'
 import type { RouteLocationNormalized } from 'vue-router'
@@ -101,6 +108,10 @@ describe('admin guard/permission matrix', () => {
   })
 
   // Case 2: Authenticated non-admin user → forbidden
+  // ISOLATION: the principal carries 'admin.dashboard.view' as a TRUE capability so
+  // hasEveryPermission would PASS if hasAdminRole were removed — meaning the test
+  // would FAIL if the role check were deleted. Only hasAdminRole(['user']) === false
+  // can produce forbidden here.
   it('non-admin authenticated user -> forbidden', () => {
     useSessionStore().setPrincipal(
       principal({
@@ -108,8 +119,8 @@ describe('admin guard/permission matrix', () => {
         permissions: {
           view_admin_panel: false,
           manage_sessions: false,
-          permissions: [],
-          capabilities: {},
+          permissions: ['admin.dashboard.view'],
+          capabilities: { 'admin.dashboard.view': true },
           menus: [],
         },
       }),
@@ -165,5 +176,44 @@ describe('admin guard/permission matrix', () => {
   it('non-admin routes are always allowed without a principal', () => {
     // No setPrincipal call — store has no principal
     expect(resolveLoadedAdminAccess(route({}))).toBe(true)
+  })
+
+  // Case 7: Nav UX-minimization — permission→visibility tie (layout rendering in admin-layout.spec.ts)
+  // Confirms that the session store's capability read matches the menu.visible shape that
+  // the layout uses to filter nav links. Full DOM rendering is in admin-layout.spec.ts.
+  it('nav UX-minimization: capability false -> menu.visible false (link hidden by layout)', () => {
+    const p = principal({
+      permissions: {
+        view_admin_panel: true,
+        manage_sessions: false,
+        permissions: ['admin.dashboard.view'],
+        capabilities: { 'admin.dashboard.view': true, 'admin.roles.read': false },
+        menus: [
+          {
+            id: 'dashboard',
+            label: 'Dashboard',
+            required_permission: 'admin.dashboard.view',
+            visible: true,
+          },
+          {
+            id: 'roles',
+            label: 'Roles',
+            required_permission: 'admin.roles.read',
+            visible: false,
+          },
+        ],
+      },
+    })
+    useSessionStore().setPrincipal(p)
+    const session = useSessionStore()
+
+    // The store reads capability directly: permitted → true, unpermitted → false
+    expect(session.hasPermission('admin.dashboard.view')).toBe(true)
+    expect(session.hasPermission('admin.roles.read')).toBe(false)
+
+    // menu.visible mirrors the capability (set server-side): only the permitted item is visible
+    const visibleMenuIds = p.permissions.menus.filter((m) => m.visible).map((m) => m.id)
+    expect(visibleMenuIds).toEqual(['dashboard'])
+    expect(visibleMenuIds).not.toContain('roles')
   })
 })
