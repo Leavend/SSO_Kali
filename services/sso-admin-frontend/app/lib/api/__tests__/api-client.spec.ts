@@ -15,7 +15,12 @@ function raw(body: string, init: RawInit = {}) {
 }
 
 function stubFetch(response: unknown) {
-  const rawMock = vi.fn<() => Promise<unknown>>().mockResolvedValue(response)
+  // Type the mock with the actual $fetch.raw call shape (url + options) so
+  // rawMock.mock.calls[0]?.[1] resolves as Record<string,unknown> rather than
+  // never (which vi.fn<() => ...> — a no-arg function — produces for index 1).
+  const rawMock = vi
+    .fn<(url: string, opts?: Record<string, unknown>) => Promise<unknown>>()
+    .mockResolvedValue(response)
   vi.stubGlobal('$fetch', Object.assign(vi.fn(), { raw: rawMock }))
   return rawMock
 }
