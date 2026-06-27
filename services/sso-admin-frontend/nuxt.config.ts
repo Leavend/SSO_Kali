@@ -11,6 +11,9 @@ export default defineNuxtConfig({
   compatibilityDate: '2026-06-27',
   devtools: { enabled: true },
   modules: ['@pinia/nuxt', 'reka-ui/nuxt'],
+  components: {
+    dirs: [{ path: '~/components', extensions: ['vue'] }],
+  },
   css: ['~/assets/main.css'],
   vite: {
     plugins: [tailwindcss()],
