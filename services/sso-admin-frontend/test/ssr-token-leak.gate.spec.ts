@@ -113,6 +113,8 @@ describe('SSR token-leak render gate (§3.3)', async () => {
     // ... and it renders through the admin layout (data-admin-shell SSR coverage,
     // restored from Task 2a.6 when the old index→shell smoke assertion was lost).
     expect(html).toContain('data-admin-shell')
+    // The summary path rendered the READY state (folio timestamp is verbatim).
+    expect(html).toContain('2026-06-28T14:32:15Z')
   })
 
   it('does not leak token/PII/secret values into the SSR HTML', async () => {
