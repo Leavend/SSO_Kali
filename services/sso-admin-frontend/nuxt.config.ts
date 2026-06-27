@@ -1,4 +1,5 @@
 import tailwindcss from '@tailwindcss/vite'
+import { adminCompression, adminRouteRules } from './nuxt-perf.config'
 
 // SSR Identity Provider admin control plane.
 // Secrets are read from their real deployment env-var names and kept in the
@@ -13,6 +14,10 @@ export default defineNuxtConfig({
   vite: {
     plugins: [tailwindcss()],
   },
+  nitro: {
+    compressPublicAssets: adminCompression,
+  },
+  routeRules: adminRouteRules,
   runtimeConfig: {
     adminOidcIssuer: process.env.ADMIN_OIDC_ISSUER ?? '',
     adminOidcPublicIssuer: process.env.ADMIN_OIDC_PUBLIC_ISSUER ?? '',
