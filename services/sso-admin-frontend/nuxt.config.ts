@@ -1,3 +1,4 @@
+/// <reference types="nuxt" />
 import tailwindcss from '@tailwindcss/vite'
 import { adminCompression, adminRouteRules } from './nuxt-perf.config'
 
@@ -32,7 +33,12 @@ export default defineNuxtConfig({
     ssoFreshAuthTtlSeconds: process.env.SSO_FRESH_AUTH_TTL_SECONDS ?? '',
     sessionEncryptionSecret: process.env.SESSION_ENCRYPTION_SECRET ?? '',
     public: {
-      adminAppBaseUrl: process.env.ADMIN_APP_BASE_URL ?? '',
+      adminAppBaseUrl: process.env.ADMIN_APP_BASE_URL ?? '', // NUXT_PUBLIC_ADMIN_APP_BASE_URL (kept)
+      basePath: process.env.NUXT_PUBLIC_BASE_PATH ?? '/__vue-preview', // NUXT_PUBLIC_BASE_PATH
+      ssoBaseUrl: process.env.NUXT_PUBLIC_SSO_BASE_URL ?? 'https://dev-sso.timeh.my.id', // NUXT_PUBLIC_SSO_BASE_URL
+      ssoWidgetBaseUrl: process.env.NUXT_PUBLIC_SSO_WIDGET_BASE_URL ?? '', // NUXT_PUBLIC_SSO_WIDGET_BASE_URL (same-origin default)
+      docsBaseUrl: process.env.NUXT_PUBLIC_DOCS_BASE_URL ?? 'https://docs.sso.timeh.my.id', // NUXT_PUBLIC_DOCS_BASE_URL
+      mockApi: process.env.NUXT_PUBLIC_MOCK_API ?? 'false', // NUXT_PUBLIC_MOCK_API
     },
   },
 })
