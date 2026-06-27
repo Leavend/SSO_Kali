@@ -118,6 +118,10 @@
     "error_title": "Dashboard admin belum bisa dimuat",
     "stale_banner": "Refresh terakhir gagal. Menampilkan snapshot terakhir yang berhasil.",
     "generated_at": "Dibuat pada",
+    "signed_in_as": "Masuk sebagai {name}",
+    "degraded_banner": "Sebagian counter gagal dimuat ({groups}). Menampilkan data yang tersedia.",
+    "metric_label": "Metrik",
+    "count_label": "Jumlah",
     "counters": {
       "users": {
         "title": "Pengguna",

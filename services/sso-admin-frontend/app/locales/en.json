@@ -118,6 +118,10 @@
     "error_title": "Admin dashboard could not be loaded",
     "stale_banner": "Latest refresh failed. Showing the last successful snapshot.",
     "generated_at": "Generated at",
+    "signed_in_as": "Signed in as {name}",
+    "degraded_banner": "Some counters failed to load ({groups}). Showing available data.",
+    "metric_label": "Metric",
+    "count_label": "Count",
     "counters": {
       "users": {
         "title": "Users",
