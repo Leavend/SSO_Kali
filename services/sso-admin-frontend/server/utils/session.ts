@@ -37,7 +37,7 @@ export type AuthTransaction = {
   readonly returnTo?: string
 }
 
-export async function getSession(request: IncomingMessage): Promise<PortalSession | null> {
+export async function resolveAdminSession(request: IncomingMessage): Promise<PortalSession | null> {
   const session = await readSession(request)
   if (!session || isSessionExpired(session.expiresAt)) return null
 
