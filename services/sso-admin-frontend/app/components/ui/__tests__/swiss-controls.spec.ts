@@ -57,6 +57,14 @@ describe('Swiss form controls', () => {
     expect(wrapper.emitted('update:modelValue')?.at(-1)).toEqual([true])
   })
 
+  it('UiSwitch aria-checked round-trip: reflects true when modelValue is true', () => {
+    const wrapper = mount(UiSwitch, {
+      props: { modelValue: true, label: 'Local account enabled' },
+    })
+    const sw = wrapper.get('[role="switch"]')
+    expect(sw.attributes('aria-checked')).toBe('true')
+  })
+
   it('UiTextarea forwards rows and emits the edited value', async () => {
     const wrapper = mount(UiTextarea, { props: { modelValue: '', rows: 6 } })
     const ta = wrapper.get('textarea')

@@ -78,8 +78,8 @@ const props = withDefaults(defineProps<Props>(), {
   border-color: var(--danger);
 }
 .ui-btn--danger:hover {
-  background: var(--danger-soft-fg);
-  border-color: var(--danger-soft-fg);
+  background: var(--danger-600);
+  border-color: var(--danger-600);
 }
 .ui-btn--ghost {
   color: var(--fg);

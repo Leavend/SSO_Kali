@@ -44,6 +44,7 @@
 
   /* ---- Functional semantics (state, never decoration) ---- */
   --danger: #e4002b;
+  --danger-600: #b3001f; /* hover / active — darker than --danger */
   --danger-fg: #ffffff;
   --danger-soft: #fce8ec;
   --danger-soft-fg: #b00020;
@@ -93,6 +94,7 @@
   --accent-ring: #5b82e0;
 
   --danger: #ff5470;
+  --danger-600: #e03355; /* hover / active — darker than --danger */
   --danger-fg: #0a0a0a;
   --danger-soft: #3a1620;
   --danger-soft-fg: #ff8fa3;

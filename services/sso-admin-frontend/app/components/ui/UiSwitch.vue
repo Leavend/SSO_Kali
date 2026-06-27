@@ -5,11 +5,15 @@ interface Props {
   readonly disabled?: boolean
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   disabled: false,
 })
 
 const emit = defineEmits<{ (event: 'update:modelValue', value: boolean): void }>()
+
+function handleLabelClick(): void {
+  if (!props.disabled) emit('update:modelValue', !props.modelValue)
+}
 </script>
 
 <template>
@@ -28,7 +32,7 @@ const emit = defineEmits<{ (event: 'update:modelValue', value: boolean): void }>
         <span class="ui-switch__thumb" />
       </span>
     </button>
-    <span class="ui-switch__label" @click="!disabled && emit('update:modelValue', !modelValue)">
+    <span class="ui-switch__label" @click="handleLabelClick()">
       {{ label }}
     </span>
   </div>

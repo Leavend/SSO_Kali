@@ -29,6 +29,7 @@ describe('Swiss tokens.css contract', () => {
       '--accent-soft',
       '--accent-soft-fg',
       '--accent-ring',
+      '--danger-600',
       '--danger-fg',
       '--danger-soft',
       '--danger-soft-fg',
