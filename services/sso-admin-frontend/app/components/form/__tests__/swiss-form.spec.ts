@@ -69,4 +69,45 @@ describe('Swiss form scaffolding', () => {
     expect(submit.attributes('aria-busy')).toBe('true')
     expect(submit.attributes('disabled')).toBeDefined()
   })
+
+  it('UiFormField exposes sr-only required text for AT when required, absent when not', () => {
+    const requiredWrapper = mount(UiFormField, {
+      props: { id: 'name', label: 'Name', required: true },
+      slots: { default: '<input id="name" />' },
+    })
+    const srSpan = requiredWrapper.find('.sr-only')
+    expect(srSpan.exists()).toBe(true)
+    expect(srSpan.text()).toBe('(required)')
+    expect(srSpan.attributes('aria-hidden')).toBeUndefined()
+
+    const optionalWrapper = mount(UiFormField, {
+      props: { id: 'bio', label: 'Bio', required: false },
+      slots: { default: '<input id="bio" />' },
+    })
+    expect(optionalWrapper.find('.sr-only').exists()).toBe(false)
+  })
+
+  it('FormPageShell active breadcrumb carries aria-current="page"', () => {
+    const wrapper = mount(FormPageShell, {
+      props: {
+        parentLabel: 'Clients',
+        activeLabel: 'New client',
+        title: 'New client',
+        submitLabel: 'Save',
+      },
+    })
+    const active = wrapper.find('.form-shell__breadcrumb-active')
+    expect(active.exists()).toBe(true)
+    expect(active.attributes('aria-current')).toBe('page')
+  })
+
+  it('UiFormField renders hint with stable id for aria-describedby wiring', () => {
+    const wrapper = mount(UiFormField, {
+      props: { id: 'slug', label: 'Slug', hint: 'URL-safe identifier' },
+      slots: { default: '<input id="slug" />' },
+    })
+    const hint = wrapper.find('#slug-hint')
+    expect(hint.exists()).toBe(true)
+    expect(hint.text()).toBe('URL-safe identifier')
+  })
 })

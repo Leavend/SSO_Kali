@@ -29,7 +29,7 @@ const emit = defineEmits<{ (event: 'submit'): void; (event: 'cancel'): void }>()
       <ol>
         <li>{{ parentLabel }}</li>
         <li aria-hidden="true"><ChevronRight :size="12" /></li>
-        <li class="form-shell__breadcrumb-active">{{ activeLabel }}</li>
+        <li class="form-shell__breadcrumb-active" aria-current="page">{{ activeLabel }}</li>
       </ol>
     </nav>
 

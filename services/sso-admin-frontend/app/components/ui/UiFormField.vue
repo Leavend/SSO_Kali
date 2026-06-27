@@ -18,7 +18,8 @@ withDefaults(defineProps<Props>(), {
   <div class="ui-field">
     <label class="ui-field__label" :for="id" :data-required="required ? 'true' : undefined">
       {{ label }}
-      <span v-if="required" aria-hidden="true">*</span>
+      <span v-if="required" aria-hidden="true">*</span
+      ><span v-if="required" class="sr-only"> (required)</span>
     </label>
     <slot />
     <p v-if="hint" :id="`${id}-hint`" class="ui-field__hint">{{ hint }}</p>
