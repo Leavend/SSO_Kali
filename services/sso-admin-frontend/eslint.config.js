@@ -7,7 +7,7 @@ import skipFormatting from 'eslint-config-prettier/flat'
 export default [
   {
     name: 'app/files-to-lint',
-    files: ['src/**/*.vue'],
+    files: ['src/**/*.vue', 'app/**/*.vue'],
     languageOptions: {
       parser: vueParser,
       parserOptions: {
