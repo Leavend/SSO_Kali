@@ -2,15 +2,42 @@ import { Readable } from 'node:stream'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PortalSession } from '../utils/session'
 import { publicSession } from '../utils/session'
-import type { ResolvedSsoSession } from '../utils/sso-session-resolver'
 
-// Mock resolveSsoSession so the middleware never touches real session storage,
-// makes HTTP calls (RP registration / refresh), or reads real cookies.
+// The session middleware is now a READ-ONLY principal projection: it calls the
+// refresh-free `resolveAdminSession` (decrypt + store read + expiry check) and
+// MUST NOT trigger token refresh, RP-session registration, or session-store
+// writes. Those side effects stay in the admin proxy via `resolveSsoSession`.
+//
+// Mock the read so the middleware never touches real session storage or cookies.
+vi.mock('../utils/session', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../utils/session')>()
+  return {
+    ...actual,
+    resolveAdminSession: vi.fn<(req: unknown) => Promise<PortalSession | null>>(),
+    // Spy on the Redis write so we can assert the middleware never writes.
+    replaceSession: vi.fn<typeof actual.replaceSession>(),
+  }
+})
+
+// The side-effecting collaborators the OLD middleware reached through
+// `resolveSsoSession`. The read-only middleware must NEVER invoke any of them;
+// mocking lets us assert they are not called.
 vi.mock('../utils/sso-session-resolver', () => ({
-  resolveSsoSession: vi.fn<(req: unknown) => Promise<ResolvedSsoSession | null>>(),
+  resolveSsoSession: vi.fn<(req: unknown) => Promise<unknown>>(),
+  sessionHeaders: vi.fn<() => Record<string, readonly string[]>>(() => ({})),
+}))
+vi.mock('../utils/session-refresh', () => ({
+  refreshPortalSession: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
+  sessionNeedsRefresh: vi.fn<(...args: unknown[]) => boolean>(),
+}))
+vi.mock('../utils/session-registration', () => ({
+  registerClientSession: vi.fn<(...args: unknown[]) => Promise<boolean>>(),
 }))
 
+import { resolveAdminSession, replaceSession } from '../utils/session'
 import { resolveSsoSession } from '../utils/sso-session-resolver'
+import { refreshPortalSession, sessionNeedsRefresh } from '../utils/session-refresh'
+import { registerClientSession } from '../utils/session-registration'
 import { attachSessionContext } from '../middleware/session'
 
 // ---------------------------------------------------------------------------
@@ -39,18 +66,9 @@ function baseSession(): PortalSession {
   }
 }
 
-function resolvedSession(overrides: Partial<ResolvedSsoSession> = {}): ResolvedSsoSession {
-  return {
-    sessionId: 'test-session-id',
-    session: baseSession(),
-    cookies: [],
-    ...overrides,
-  }
-}
-
 /**
- * Minimal H3-shaped event. Includes a `res` stub so that cookie-setting paths
- * in `appendEventCookie` can be exercised without touching a real HTTP socket.
+ * Minimal H3-shaped event. Includes a `res` stub so any accidental cookie-set
+ * would be observable; the read-only middleware must never touch it.
  */
 function fakeEvent() {
   const req = Readable.from([]) as Readable & { headers: Record<string, string> }
@@ -72,7 +90,7 @@ function fakeEvent() {
 
   return {
     node: { req, res },
-    context: {} as { session: PortalSession | null },
+    context: {} as { session: PortalSession | null; principalState: unknown },
   }
 }
 
@@ -98,7 +116,7 @@ describe('server session middleware', () => {
   // ── custody path: full session lives in event.context (server-only) ───────
 
   it('attaches the resolved session to event.context.session (server-only)', async () => {
-    vi.mocked(resolveSsoSession).mockResolvedValueOnce(resolvedSession())
+    vi.mocked(resolveAdminSession).mockResolvedValueOnce(baseSession())
 
     const event = fakeEvent()
     await attachSessionContext(event as never)
@@ -108,7 +126,7 @@ describe('server session middleware', () => {
   })
 
   it('event.context.session carries all token fields (confirming server-only custody)', async () => {
-    vi.mocked(resolveSsoSession).mockResolvedValueOnce(resolvedSession())
+    vi.mocked(resolveAdminSession).mockResolvedValueOnce(baseSession())
 
     const event = fakeEvent()
     await attachSessionContext(event as never)
@@ -121,35 +139,39 @@ describe('server session middleware', () => {
     expect(s?.sid).toBe('sid-value')
   })
 
-  // ── unauthenticated path: must not throw ──────────────────────────────────
-
-  it('sets event.context.session to null when no session is resolved (no throw)', async () => {
-    vi.mocked(resolveSsoSession).mockResolvedValueOnce(null)
-
-    const event = fakeEvent()
-    await expect(attachSessionContext(event as never)).resolves.toBeUndefined()
-    expect(event.context.session).toBeNull()
-  })
-
-  // ── cookie-forwarding: refresh re-mint cookies reach the response ─────────
-
-  it('sets resolver-returned cookies on the response (refresh re-mint path)', async () => {
-    const refreshCookie =
-      '__Host-sso-admin-session=newid; Max-Age=604800; Path=/; HttpOnly; Secure; SameSite=Strict'
-    vi.mocked(resolveSsoSession).mockResolvedValueOnce(
-      resolvedSession({ cookies: [refreshCookie] }),
-    )
+  it('attaches a token-free principalState alongside the server-only session', async () => {
+    vi.mocked(resolveAdminSession).mockResolvedValueOnce(baseSession())
 
     const event = fakeEvent()
     await attachSessionContext(event as never)
 
-    expect((event.node.res as ReturnType<typeof fakeEvent>['node']['res'])._cookies).toContain(
-      refreshCookie,
-    )
+    expect(event.context.principalState).toEqual(publicSession(baseSession()))
   })
 
-  it('does not mutate the response headers when the resolver returns no cookies', async () => {
-    vi.mocked(resolveSsoSession).mockResolvedValueOnce(resolvedSession({ cookies: [] }))
+  // ── READ-ONLY guarantee: no refresh / register / store-write side effects ─
+
+  it('uses the read-only resolveAdminSession path (no refresh/register/Redis-write)', async () => {
+    vi.mocked(resolveAdminSession).mockResolvedValueOnce(baseSession())
+
+    const event = fakeEvent()
+    await attachSessionContext(event as never)
+
+    // The read-only read is the only collaborator the middleware may invoke.
+    expect(vi.mocked(resolveAdminSession)).toHaveBeenCalledOnce()
+
+    // None of the side-effecting collaborators may run.
+    expect(vi.mocked(resolveSsoSession)).not.toHaveBeenCalled()
+    expect(vi.mocked(refreshPortalSession)).not.toHaveBeenCalled()
+    expect(vi.mocked(sessionNeedsRefresh)).not.toHaveBeenCalled()
+    expect(vi.mocked(registerClientSession)).not.toHaveBeenCalled()
+    expect(vi.mocked(replaceSession)).not.toHaveBeenCalled()
+
+    // No cookie may be minted/forwarded by the read-only middleware.
+    expect((event.node.res as ReturnType<typeof fakeEvent>['node']['res'])._cookies).toHaveLength(0)
+  })
+
+  it('never sets a response cookie (read-only: no refresh re-mint)', async () => {
+    vi.mocked(resolveAdminSession).mockResolvedValueOnce(baseSession())
 
     const event = fakeEvent()
     const setHeaderSpy = vi.spyOn(event.node.res, 'setHeader')
@@ -158,10 +180,32 @@ describe('server session middleware', () => {
     expect(setHeaderSpy).not.toHaveBeenCalled()
   })
 
+  // ── unauthenticated path: both null, must not throw ───────────────────────
+
+  it('sets session and principalState to null when no session is resolved (no throw)', async () => {
+    vi.mocked(resolveAdminSession).mockResolvedValueOnce(null)
+
+    const event = fakeEvent()
+    await expect(attachSessionContext(event as never)).resolves.toBeUndefined()
+    expect(event.context.session).toBeNull()
+    expect(event.context.principalState).toBeNull()
+  })
+
+  // ── fail-closed-graceful: a resolve error must not 500 the page render ─────
+
+  it('fails closed (both null) and does NOT throw when the read-only resolve throws', async () => {
+    vi.mocked(resolveAdminSession).mockRejectedValueOnce(new Error('redis down'))
+
+    const event = fakeEvent()
+    await expect(attachSessionContext(event as never)).resolves.toBeUndefined()
+    expect(event.context.session).toBeNull()
+    expect(event.context.principalState).toBeNull()
+  })
+
   // ── token-free projection: publicSession() must never expose tokens ───────
 
   it('publicSession() projection has NO accessToken', async () => {
-    vi.mocked(resolveSsoSession).mockResolvedValueOnce(resolvedSession())
+    vi.mocked(resolveAdminSession).mockResolvedValueOnce(baseSession())
     const event = fakeEvent()
     await attachSessionContext(event as never)
 
@@ -170,7 +214,7 @@ describe('server session middleware', () => {
   })
 
   it('publicSession() projection has NO refreshToken', async () => {
-    vi.mocked(resolveSsoSession).mockResolvedValueOnce(resolvedSession())
+    vi.mocked(resolveAdminSession).mockResolvedValueOnce(baseSession())
     const event = fakeEvent()
     await attachSessionContext(event as never)
 
@@ -179,7 +223,7 @@ describe('server session middleware', () => {
   })
 
   it('publicSession() projection has NO idToken', async () => {
-    vi.mocked(resolveSsoSession).mockResolvedValueOnce(resolvedSession())
+    vi.mocked(resolveAdminSession).mockResolvedValueOnce(baseSession())
     const event = fakeEvent()
     await attachSessionContext(event as never)
 
@@ -188,7 +232,7 @@ describe('server session middleware', () => {
   })
 
   it('publicSession() projection has NO sid', async () => {
-    vi.mocked(resolveSsoSession).mockResolvedValueOnce(resolvedSession())
+    vi.mocked(resolveAdminSession).mockResolvedValueOnce(baseSession())
     const event = fakeEvent()
     await attachSessionContext(event as never)
 
@@ -197,7 +241,7 @@ describe('server session middleware', () => {
   })
 
   it('publicSession() projection has NO sub (raw internal subject id)', async () => {
-    vi.mocked(resolveSsoSession).mockResolvedValueOnce(resolvedSession())
+    vi.mocked(resolveAdminSession).mockResolvedValueOnce(baseSession())
     const event = fakeEvent()
     await attachSessionContext(event as never)
 
@@ -209,7 +253,7 @@ describe('server session middleware', () => {
   // ── combined: tokens in context, absent from projection ──────────────────
 
   it('tokens present in event.context.session but absent from publicSession projection', async () => {
-    vi.mocked(resolveSsoSession).mockResolvedValueOnce(resolvedSession())
+    vi.mocked(resolveAdminSession).mockResolvedValueOnce(baseSession())
     const event = fakeEvent()
     await attachSessionContext(event as never)
 
@@ -226,14 +270,14 @@ describe('server session middleware', () => {
     expect(Object.keys(projection)).not.toContain('sid')
   })
 
-  // ── forwarding: resolveSsoSession is called with event.node.req ──────────
+  // ── forwarding: resolveAdminSession is called with event.node.req ─────────
 
-  it('passes event.node.req to resolveSsoSession', async () => {
-    vi.mocked(resolveSsoSession).mockResolvedValueOnce(null)
+  it('passes event.node.req to resolveAdminSession', async () => {
+    vi.mocked(resolveAdminSession).mockResolvedValueOnce(null)
     const event = fakeEvent()
     await attachSessionContext(event as never)
 
-    expect(vi.mocked(resolveSsoSession)).toHaveBeenCalledOnce()
-    expect(vi.mocked(resolveSsoSession)).toHaveBeenCalledWith(event.node.req)
+    expect(vi.mocked(resolveAdminSession)).toHaveBeenCalledOnce()
+    expect(vi.mocked(resolveAdminSession)).toHaveBeenCalledWith(event.node.req)
   })
 })

@@ -7,6 +7,10 @@ import type { PortalSession } from '../utils/session'
 // value allowed to cross to the client is event.context.principalState, which
 // MUST be token-free. The full SSR-render + window.__NUXT__ grep gate over a
 // representative authenticated page is Task 2c.1.
+//
+// The middleware resolves the session through the READ-ONLY `resolveAdminSession`
+// path: no token refresh, no RP-session registration, no store write, no cookie
+// mint — so a cookie-carrying request must produce no network side effects.
 
 const SENTINEL = {
   access: 'SENTINEL-ACCESS-TOKEN',
@@ -52,7 +56,7 @@ describe('server-only session token custody (Phase 1)', () => {
     vi.stubEnv('SSO_ADMIN_SESSION_REDIS_URL', '')
     vi.stubEnv('NODE_ENV', 'test')
     vi.setSystemTime(new Date('2026-06-01T00:00:00Z'))
-    // Silence best-effort RP session registration fetch; no server in test.
+    // The read-only resolve must make no network calls; a stub lets us assert it.
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }))
   })
 
@@ -63,7 +67,7 @@ describe('server-only session token custody (Phase 1)', () => {
   })
 
   it('keeps tokens on event.context.session and exposes only a token-free principalState', async () => {
-    const { sessionCookie } = await import('../utils/session')
+    const { sessionCookie, publicSession } = await import('../utils/session')
     const cookie = (await sessionCookie(sentinelSession())).split(';')[0]!
     const { attachSessionContext } = await import('../middleware/session')
     const event = fakeEvent(cookie)
@@ -74,14 +78,19 @@ describe('server-only session token custody (Phase 1)', () => {
     expect(event.context.session?.accessToken).toBe(SENTINEL.access)
     expect(event.context.session?.refreshToken).toBe(SENTINEL.refresh)
 
-    // Client projection MUST exist and MUST be token-free.
+    // Client projection MUST exist, MUST be token-free, and MUST equal the
+    // canonical token-free view.
     expect(event.context.principalState).toBeDefined()
+    expect(event.context.principalState).toEqual(publicSession(sentinelSession()))
     const serialized = JSON.stringify(event.context.principalState)
     expect(serialized).not.toContain(SENTINEL.access)
     expect(serialized).not.toContain(SENTINEL.refresh)
     expect(serialized).not.toContain(SENTINEL.id)
     expect(serialized).not.toContain(SENTINEL.sid)
     expect(serialized).not.toMatch(/accessToken|refreshToken|idToken/)
+
+    // Read-only guarantee: resolving the session triggers no refresh/register.
+    expect(vi.mocked(fetch)).not.toHaveBeenCalled()
   })
 
   it('sets principalState to null when there is no session', async () => {
