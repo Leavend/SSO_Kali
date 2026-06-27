@@ -1,29 +1,66 @@
 @import './tokens.css';
 @import 'tailwindcss';
 
+/* Dark mode: Tailwind dark: utilities match when <html class="dark"> —
+   consistent with the theme toggle (useTheme.ts) and `:root.dark` in tokens.css. */
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  /* ---- Surfaces ---- */
   --color-background: var(--bg);
   --color-background-2: var(--bg-2);
+  --color-card: var(--card);
+  --color-muted: var(--muted);
+  --color-muted-2: var(--muted-2);
+
+  /* ---- Ink ---- */
   --color-foreground: var(--fg);
   --color-foreground-2: var(--fg-2);
   --color-foreground-3: var(--fg-3);
-  --color-card: var(--card);
+
+  /* ---- Borders ---- */
   --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+
+  /* ---- Accent ---- */
   --color-accent: var(--accent);
+  --color-accent-600: var(--accent-600);
   --color-accent-foreground: var(--accent-fg);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-soft-fg: var(--accent-soft-fg);
+  --color-accent-ring: var(--accent-ring);
+
+  /* ---- Danger ---- */
   --color-danger: var(--danger);
   --color-danger-foreground: var(--danger-fg);
-  --color-success: var(--success);
-  --color-warning: var(--warning);
-  --color-info: var(--info);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-soft-fg: var(--danger-soft-fg);
 
+  /* ---- Success ---- */
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-success-soft-fg: var(--success-soft-fg);
+
+  /* ---- Warning ---- */
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-soft-fg: var(--warning-soft-fg);
+
+  /* ---- Info ---- */
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-info-soft-fg: var(--info-soft-fg);
+
+  /* ---- Typography ---- */
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
 
+  /* ---- Radius ---- */
+  --radius-xs: var(--r-xs);
   --radius-sm: var(--r-sm);
   --radius-md: var(--r-md);
+  --radius-lg: var(--r-lg);
+  --radius-full: var(--r-full);
 }
 
 html,
