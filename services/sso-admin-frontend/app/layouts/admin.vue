@@ -9,11 +9,28 @@ const visibleMenus = computed<readonly AdminPermissionMenu[]>(() =>
   (session.principal?.permissions.menus ?? []).filter((menu) => menu.visible),
 )
 
-function menuPath(menu: AdminPermissionMenu): string {
-  if (menu.id === 'dashboard') return '/dashboard'
-  if (menu.id === 'oidc-foundation') return '/oidc-foundation'
-  if (menu.id === 'audit') return '/observability'
-  return `/${menu.id}`
+// menu-id → named route map (mirrors the previous path mapping incl. audit→observability remap)
+const MENU_ROUTE_MAP: Readonly<Record<string, string>> = {
+  dashboard: 'admin.dashboard',
+  'oidc-foundation': 'admin.oidc-foundation',
+  audit: 'admin.observability', // remap: legacy audit id → admin.observability page
+  users: 'admin.users',
+  clients: 'admin.clients',
+  roles: 'admin.roles',
+  sessions: 'admin.sessions',
+  policy: 'admin.policy',
+  'external-idps': 'admin.external-idps',
+  ops: 'admin.ops',
+  'ip-access': 'admin.ip-access',
+  profile: 'admin.profile',
+  'sso-error-templates': 'admin.sso-error-templates',
+  'authentication-audit': 'admin.authentication-audit',
+}
+
+function menuRoute(menu: AdminPermissionMenu): { name: string } | string {
+  const name = MENU_ROUTE_MAP[menu.id]
+  // Fallback to path string for any menu item not yet in the route map
+  return name ? { name } : `/${menu.id}`
 }
 </script>
 
@@ -25,9 +42,9 @@ function menuPath(menu: AdminPermissionMenu): string {
         <NuxtLink
           v-for="menu in visibleMenus"
           :key="menu.id"
-          class="admin-nav__link"
+          class="admin-shell__nav-link"
           :data-menu-id="menu.id"
-          :to="menuPath(menu)"
+          :to="menuRoute(menu)"
         >
           {{ menu.label }}
         </NuxtLink>
@@ -80,11 +97,20 @@ function menuPath(menu: AdminPermissionMenu): string {
   flex: 1;
 }
 
-.admin-nav__link {
+.admin-shell__nav-link {
   padding: 8px 10px;
   color: inherit;
   text-decoration: none;
-  border-radius: 6px;
+  border-radius: var(--r-md, 2px);
+  border-left: 2px solid transparent; /* reserves space — prevents layout shift on active */
+}
+
+.admin-shell__nav-link.router-link-active,
+.admin-shell__nav-link.router-link-exact-active {
+  background: var(--bg);
+  font-weight: 600;
+  border-left-color: var(--accent);
+  color: var(--accent);
 }
 
 .admin-logout {
