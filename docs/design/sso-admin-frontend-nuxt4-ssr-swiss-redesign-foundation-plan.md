@@ -12688,3 +12688,24 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 - Absorbs the FIXES "FIX 1.15" directive: this is the concrete render-level gate that Task 1.15's header TODO deferred to "Phase 2"; Task 1.15's unit-level `event.context` custody check remains as its complement.
 - The `\d{10}` shape regex runs only against the PARSED payload (not the raw HTML) so hashed `_nuxt` asset URLs cannot cause false positives; the safe payload contains no 10/16/18-digit runs because the masked principal exposes no epochs or raw identifiers (the server-only `expiresAt` 10-digit epoch stays in `event.context`).
 - DRY/YAGNI: one `sentinels.ts` feeds injection + assertions; the fixture reuses the real app via a Nuxt layer (`extends`) rather than duplicating pages/components/routes.
+
+---
+
+## Foundation completion + handoff (2026-06-27)
+
+**Status: Foundation (Phases 0–2) COMPLETE** on branch `feat/admin-frontend-nuxt4-ssr-swiss-redesign`. 42 tasks implemented test-first, each reviewed (spec + quality); Phase-1 BFF passed a dedicated security gate (opus); the §3.3 SSR token-leak render gate passed (opus). Final integrated gate green: typecheck 0 · lint 0 · format · **285 tests** · build clean. Final whole-branch review (opus): foundation code production-grade, no-browser-token boundary holds end-to-end, Swiss-uniform.
+
+### MUST-FIX at CUTOVER (Phase 18 — a later plan; do NOT do before domains are ported)
+The deploy/build layer was intentionally NOT migrated (it's cutover scope per §10). Because `package.json` `build`/`start` are already Nuxt, the branch must stay OFF `main`/`deploy-main.yml` until cutover. At cutover, migrate together:
+1. `services/sso-admin-frontend/Dockerfile` — copy `.output` (not `dist`); `CMD ["node", ".output/server/index.mjs"]`; drop dead `VITE_*` build args.
+2. `.github/workflows/sso-admin-frontend.yml` — upload-artifact path `.output` (not `dist`); drop dead `VITE_ZITADEL_ISSUER_URL`.
+3. `docker-compose.main.yml` `x-sso-admin-frontend-env` — provide `NUXT_PUBLIC_BASE_PATH=/`, `NUXT_PUBLIC_SSO_BASE_URL`, `NUXT_PUBLIC_SSO_WIDGET_BASE_URL`, `NUXT_PUBLIC_DOCS_BASE_URL`, `NUXT_PUBLIC_MOCK_API` (the app reads `runtimeConfig.public.*`, overridden only by `NUXT_PUBLIC_*`; `VITE_*` no longer apply → else falls back to dev defaults).
+4. Remove legacy `src/` SPA + `src/server/` BFF; remove the `mock-api-client.parity.spec.ts` legacy-oracle test (depends on `src/`); remove the `src/`/`e2e/` `.prettierignore` exclusions.
+
+### LOW follow-ups (track; not blocking)
+- **principalState not consumed (missed optimization):** `server/middleware/session.ts` sets `event.context.principalState` but the guard hydrates via an SSR `/api/admin/me` round-trip, so the intended "no extra fetch" hydration isn't realized. Either seed `useState` from `principalState` via a plugin, or delete `principalState` + fix the stale comment. (Correctness fine; perf only.)
+- **Unused private `runtimeConfig`:** `nuxt.config.ts` declares the private OIDC/session keys but `server/utils/config.ts` reads `process.env` directly. Works (bare env names), but `NUXT_ADMIN_*` overrides would no-op — delete the unused private block or wire getConfig to runtimeConfig.
+- a11y/i18n polish: AppLauncher backdrop aria-label (use `aria-hidden`/distinct); EvidenceContextPanel 3 hardcoded labels → `t()`; a direct `useTheme` classList(.dark) toggle test; §3.3 PII shape-regex also over the visible HTML (exact values already checked both surfaces).
+
+### Next plans (writing-plans, one per phase)
+Phases 3–17: domain pages (dashboard → users → clients → observability → roles → policy → sessions → external-idps → ip-access → ops → authentication-audit → profile → oidc-foundation → sso-error-templates), each test-first with loading/empty/error/forbidden/success + privileged-action tests, building on the Swiss DS + Nitro BFF. Then Phase 18 cutover (above).
