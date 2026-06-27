@@ -64,41 +64,62 @@ const visibleMenus = computed<readonly AdminPermissionMenu[]>(() =>
   (session.principal?.permissions.menus ?? []).filter((menu) => menu.visible),
 )
 
-// Presentational nav grouping (Bontang shell). Maps each known menu id to a
-// section; ids without a mapping fall back to 'lainnya'. Sections render in
-// `MENU_GROUP_ORDER`; permission filtering still happens via `visibleMenus`.
-const MENU_GROUPS: Record<string, string> = {
-  dashboard: 'utama',
-  clients: 'utama',
-  users: 'utama',
-  sessions: 'utama',
-  policy: 'keamanan',
-  roles: 'keamanan',
-  'oidc-foundation': 'keamanan',
-  'external-idps': 'keamanan',
-  'ip-access': 'keamanan',
-  'sso-error-templates': 'keamanan',
-  audit: 'observabilitas',
-  'authentication-audit': 'observabilitas',
-  ops: 'observabilitas',
-  profile: 'observabilitas',
-}
+// Explicit nav layout (Bontang design): section order + the item order WITHIN
+// each section, by menu id. Backend menus not listed here fall to 'lainnya' so a
+// newly-added backend menu is surfaced rather than lost; `profile` is
+// intentionally absent from the nav — it is reached via the account card below
+// (see the `.admin-principal__meta` link).
+const MENU_LAYOUT: readonly { group: string; ids: readonly string[] }[] = [
+  { group: 'utama', ids: ['dashboard', 'clients', 'users', 'sessions'] },
+  {
+    group: 'keamanan',
+    ids: [
+      'policy',
+      'roles',
+      'ip-access',
+      'external-idps',
+      'oidc-foundation',
+      'sso-error-templates',
+    ],
+  },
+  { group: 'observabilitas', ids: ['audit', 'authentication-audit', 'ops'] },
+]
 
-const MENU_GROUP_ORDER = ['utama', 'keamanan', 'observabilitas', 'lainnya'] as const
-
-// Each grouped item carries its original `visibleMenus` index so the active-pill
-// lookup and `handleMenuClick(menu, index)` stay stable even though sections
-// reorder the rendered link order. Empty sections are dropped.
+// Build sections from the layout, preserving each menu's original `visibleMenus`
+// index so the active-pill lookup and `handleMenuClick(menu, index)` stay stable.
+// Visible menus not in the layout (except `profile`) land in 'lainnya' in backend
+// order, so a backend-new feature is surfaced rather than dropped.
 const groupedMenus = computed<
   readonly { group: string; items: readonly { menu: AdminPermissionMenu; index: number }[] }[]
 >(() => {
+  const byId = new Map(
+    visibleMenus.value.map(
+      (menu, index): [string, { menu: AdminPermissionMenu; index: number }] => [
+        menu.id,
+        { menu, index },
+      ],
+    ),
+  )
+  const used = new Set<string>()
   const groups: { group: string; items: { menu: AdminPermissionMenu; index: number }[] }[] = []
-  for (const group of MENU_GROUP_ORDER) {
-    const items = visibleMenus.value
-      .map((menu, index) => ({ menu, index }))
-      .filter(({ menu }) => (MENU_GROUPS[menu.id] ?? 'lainnya') === group)
-    if (items.length > 0) groups.push({ group, items })
+
+  for (const section of MENU_LAYOUT) {
+    const items: { menu: AdminPermissionMenu; index: number }[] = []
+    for (const id of section.ids) {
+      const entry = byId.get(id)
+      if (entry) {
+        items.push(entry)
+        used.add(id)
+      }
+    }
+    if (items.length > 0) groups.push({ group: section.group, items })
   }
+
+  const leftovers = visibleMenus.value
+    .map((menu, index) => ({ menu, index }))
+    .filter(({ menu }) => !used.has(menu.id) && menu.id !== 'profile')
+  if (leftovers.length > 0) groups.push({ group: 'lainnya', items: leftovers })
+
   return groups
 })
 
@@ -348,13 +369,19 @@ function expandAndFocusSearch(): void {
 function getMenuIndexByPath(path: string): number {
   let bestIdx = -1
   let bestLen = -1
-  visibleMenus.value.forEach((menu, i) => {
+  // Only rendered nav items can be the active pill target. Iterate the rendered
+  // (grouped) order so a non-nav menu like Profile never becomes the active
+  // index — otherwise updatePillPosition would hunt a link that is never
+  // rendered and loop on requestAnimationFrame.
+  for (const index of displayOrder.value) {
+    const menu = visibleMenus.value[index]
+    if (!menu) continue
     const mp = menuPath(menu)
     if ((path === mp || path.startsWith(mp + '/')) && mp.length > bestLen) {
-      bestIdx = i
+      bestIdx = index
       bestLen = mp.length
     }
-  })
+  }
   return bestIdx
 }
 
@@ -586,10 +613,15 @@ async function handleMenuClick(menu: AdminPermissionMenu, index: number) {
         class="admin-principal"
         :aria-label="t('admin.principal_label')"
       >
-        <div class="admin-principal__meta" style="display: grid; gap: 2px">
+        <RouterLink
+          class="admin-principal__meta admin-principal__meta--link"
+          :to="{ name: 'admin.profile' }"
+          :title="t('menu.profile')"
+          :aria-label="t('menu.profile')"
+        >
           <strong>{{ session.principal.display_name }}</strong>
           <span>{{ session.principal.email }}</span>
-        </div>
+        </RouterLink>
         <div class="admin-principal__preferences">
           <LocaleSwitcher :collapsed="isCollapsed" />
           <div class="admin-principal__actions">

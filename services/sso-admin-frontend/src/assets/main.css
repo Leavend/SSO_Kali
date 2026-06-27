@@ -533,6 +533,27 @@ select {
   background: transparent;
 }
 
+/* Account card is the Profile affordance (Bontang/Google pattern): the identity
+   block links to the profile route, so Profile is reachable without a nav item. */
+.admin-principal__meta--link {
+  display: grid;
+  gap: 2px;
+  padding: 6px 8px;
+  margin: -6px -8px;
+  border-radius: var(--r-sm);
+  text-decoration: none;
+  transition: background 0.16s ease;
+}
+
+.admin-principal__meta--link:hover {
+  background: var(--muted);
+}
+
+.admin-principal__meta--link:focus-visible {
+  outline: 2px solid var(--primary-ring);
+  outline-offset: 2px;
+}
+
 .admin-principal__preferences {
   display: contents;
 }
@@ -6417,4 +6438,129 @@ button.user-card-item {
   .tbl--clickable tbody tr {
     transition: none;
   }
+}
+
+/* ============================================================================
+   Dev-SSO · Admin Sidebar SKIN — selaraskan tampilan sidebar dengan desain Bontang
+   ----------------------------------------------------------------------------
+   CARA PAKAI (paling aman, tanpa sentuh logic):
+   Tempelkan SELURUH isi file ini di PALING BAWAH
+       services/sso-admin-frontend/src/assets/main.css
+   (rules ini memakai nama class yang SUDAH ada di AdminShellLayout.vue, dan
+    karena diletakkan paling akhir, otomatis menimpa skin lama — specificity sama,
+    urutan sumber menang. Tidak ada perubahan template/script/permission/test.)
+
+   Mode gelap & varian aksen otomatis ikut, karena semua nilai pakai token.
+   Setelah paste:  npm run lint && npm run build
+   ============================================================================ */
+
+/* ---- Permukaan sidebar: solid --bg-2 (bukan kaca), gutter scrollbar simetris
+        supaya ikon di mode rail benar-benar center ---- */
+.admin-sidebar {
+  gap: 14px;
+  background: var(--bg-2);
+  backdrop-filter: none;
+  scrollbar-gutter: stable both-edges;
+}
+
+/* ---- Item menu: tinggi 40, teks 13.5/600, jarak ikon konsisten ---- */
+.admin-nav {
+  gap: 3px;
+}
+.admin-nav__link {
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: var(--r-sm);
+  color: var(--fg-2);
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+.admin-nav__label {
+  gap: 11px;
+}
+.admin-nav__link:hover {
+  color: var(--fg);
+  background: transparent; /* hover ditangani pill/teks, bukan blok abu */
+}
+.admin-nav__link:hover .admin-nav__icon {
+  color: var(--fg);
+  opacity: 1;
+}
+
+/* ---- Ikon: warna penuh (tanpa redup 0.7) ---- */
+.admin-nav__icon {
+  opacity: 1;
+  color: var(--fg-3);
+}
+
+/* ---- PIL AKTIF: kartu terangkat putih + border + shadow halus
+        (GANTI gaya lama: isian indigo + garis aksen kiri) ---- */
+.admin-nav__pill {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-left: 1px solid var(--border); /* hapus aksen kiri 3px */
+  border-radius: var(--r-sm);
+  box-shadow: var(--shadow-sm);
+  transition:
+    top 0.32s cubic-bezier(0.5, 0.05, 0.2, 1),
+    height 0.32s cubic-bezier(0.5, 0.05, 0.2, 1),
+    opacity 0.2s ease;
+}
+
+/* ---- Teks + ikon item aktif: indigo (di atas kartu putih pill) ---- */
+.admin-nav__link--active,
+.admin-nav__link--active:hover {
+  color: var(--primary-soft-fg);
+  font-weight: 600;
+  background: transparent;
+}
+.admin-nav__link--active .admin-nav__icon,
+.admin-nav__link--active:hover .admin-nav__icon {
+  color: var(--primary);
+  opacity: 1;
+}
+
+/* ---- Label grup seksi (Utama / Keamanan / Observabilitas) ---- */
+.admin-nav__group {
+  color: var(--fg-3);
+  padding: 14px 12px 6px;
+}
+
+/* ---- Tautan Dokumentasi (eksternal) selaras item lain ---- */
+.admin-nav__link--external {
+  min-height: 40px;
+  padding: 0 12px;
+  margin-top: 4px;
+  border-radius: var(--r-sm);
+  color: var(--fg-2);
+}
+.admin-nav__link--external:hover {
+  color: var(--fg);
+  background: var(--muted);
+}
+
+/* ---- Kartu akun (principal): jadikan kartu bersih seperti desain
+        (hanya saat sidebar TERBUKA; di rail tetap minimal) ---- */
+.admin-control-plane:not(.admin-control-plane--collapsed) .admin-principal {
+  margin-top: 4px;
+  margin-bottom: 8px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-top: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--card);
+  box-shadow: var(--shadow-xs);
+}
+.admin-principal strong {
+  font-size: 13px;
+}
+.admin-principal span {
+  font-size: 11.5px;
+  color: var(--fg-3);
+}
+
+/* ---- Brand: pastikan judul tidak uppercase & eyebrow polos (jaga-jaga) ---- */
+.admin-brand strong {
+  text-transform: none;
 }

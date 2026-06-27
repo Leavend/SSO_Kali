@@ -8,6 +8,29 @@ import { useSessionStore } from '@/stores/session.store'
 import { useI18n } from '@/composables/useI18n'
 import type { AdminPrincipal } from '@/types/auth.types'
 
+// The shell's account card links to the `admin.profile` route by name, so any
+// real-router mount must register it. This wraps createRouter to guarantee that
+// route is present (appended once if a test didn't declare it) — keeping the
+// per-test route lists focused on what each test actually exercises.
+function adminTestRouter(options: Parameters<typeof createRouter>[0]) {
+  const routes = options.routes ?? []
+  const hasProfile = routes.some((route) => route.name === 'admin.profile')
+  return createRouter({
+    ...options,
+    routes: hasProfile
+      ? routes
+      : [
+          ...routes,
+          {
+            path: '/profile',
+            name: 'admin.profile',
+            component: { template: '<section />' },
+            meta: { requiresAdmin: true },
+          },
+        ],
+  })
+}
+
 const principal: AdminPrincipal = {
   subject_id: 'sub-admin',
   email: 'admin@example.com',
@@ -70,7 +93,7 @@ describe('AdminShellLayout', () => {
   })
 
   it('resyncs the active sidebar item when shell-first menus arrive after route render', async () => {
-    const router = createRouter({
+    const router = adminTestRouter({
       history: createMemoryHistory(),
       routes: [
         {
@@ -235,7 +258,7 @@ describe('AdminShellLayout', () => {
   })
 
   it('highlights the parent menu item for sub-routes (prefix-based matching)', async () => {
-    const router = createRouter({
+    const router = adminTestRouter({
       history: createMemoryHistory(),
       routes: [
         {
@@ -297,7 +320,7 @@ describe('AdminShellLayout', () => {
   })
 
   it('navigates to parent route when active menu is clicked from a sub-route, but returns early if already on parent route', async () => {
-    const router = createRouter({
+    const router = adminTestRouter({
       history: createMemoryHistory(),
       routes: [
         {
@@ -373,7 +396,7 @@ describe('AdminShellLayout', () => {
   })
 
   it('resyncs the active sidebar item when shell-first menus arrive after route render on a sub-route', async () => {
-    const router = createRouter({
+    const router = adminTestRouter({
       history: createMemoryHistory(),
       routes: [
         {
@@ -439,7 +462,7 @@ describe('AdminShellLayout', () => {
   })
 
   it('does not match /authentication-audit to /audit menu', async () => {
-    const router = createRouter({
+    const router = adminTestRouter({
       history: createMemoryHistory(),
       routes: [
         {
@@ -495,7 +518,7 @@ describe('AdminShellLayout', () => {
   })
 
   it('does not highlight Audit when path is /authentication-audit and only Audit menu exists', async () => {
-    const router = createRouter({
+    const router = adminTestRouter({
       history: createMemoryHistory(),
       routes: [
         {
@@ -545,7 +568,7 @@ describe('AdminShellLayout', () => {
   })
 
   it('positions the active menu pill correctly when menus are loaded asynchronously (TDD for cold refresh)', async () => {
-    const router = createRouter({
+    const router = adminTestRouter({
       history: createMemoryHistory(),
       routes: [
         {
@@ -631,7 +654,7 @@ describe('AdminShellLayout', () => {
     // Use a real router (like the pill tests) so RouterLink renders genuine <a>
     // elements that honour `v-show` — a previously installed router plugin makes
     // an object RouterLink stub unreliable across this suite.
-    const router = createRouter({
+    const router = adminTestRouter({
       history: createMemoryHistory(),
       routes: [
         {
@@ -720,7 +743,7 @@ describe('AdminShellLayout', () => {
   })
 
   it('positions the active menu pill correctly when menus are already loaded before mount (TDD for loaded state)', async () => {
-    const router = createRouter({
+    const router = adminTestRouter({
       history: createMemoryHistory(),
       routes: [
         {
@@ -818,7 +841,7 @@ describe('AdminShellLayout', () => {
     // visibleMenus index order. A positional `links[currentIndex]` lookup would
     // point the pill at roles; the active link must be resolved by its stable
     // menu index instead.
-    const router = createRouter({
+    const router = adminTestRouter({
       history: createMemoryHistory(),
       routes: [
         {
@@ -896,7 +919,7 @@ describe('AdminShellLayout', () => {
   })
 
   it('exposes each nav section as an accessible group labelled by its section header', async () => {
-    const router = createRouter({
+    const router = adminTestRouter({
       history: createMemoryHistory(),
       routes: [
         {
@@ -949,7 +972,7 @@ describe('AdminShellLayout', () => {
   })
 
   it('renders nav links in grouped display order — the permutation the pill animation steps along', async () => {
-    const router = createRouter({
+    const router = adminTestRouter({
       history: createMemoryHistory(),
       routes: [
         {
@@ -1015,5 +1038,119 @@ describe('AdminShellLayout', () => {
     expect(renderOrder).toEqual([0, 2, 1, 3])
     // A permutation of every visible index — each menu rendered exactly once.
     expect([...renderOrder].sort((a, b) => a - b)).toEqual([0, 1, 2, 3])
+  })
+
+  it('keeps Profile out of the nav and reachable only via the account-card link (FIX2 + FIX3 coupled)', async () => {
+    const router = adminTestRouter({
+      history: createMemoryHistory(),
+      routes: [
+        {
+          path: '/dashboard',
+          name: 'admin.dashboard',
+          component: { template: '<section />' },
+          meta: { requiresAdmin: true },
+        },
+        {
+          path: '/profile',
+          name: 'admin.profile',
+          component: { template: '<section />' },
+          meta: { requiresAdmin: true },
+        },
+      ],
+    })
+    await router.push('/dashboard')
+    await router.isReady()
+
+    const session = useSessionStore()
+    session.setPrincipal({
+      ...principal,
+      permissions: {
+        ...principal.permissions,
+        menus: [
+          {
+            id: 'dashboard',
+            label: 'Dashboard',
+            required_permission: 'admin.dashboard.view',
+            visible: true,
+          },
+          {
+            id: 'profile',
+            label: 'My Profile',
+            required_permission: 'profile.read',
+            visible: true,
+          },
+        ],
+      },
+    })
+
+    const wrapper = mount(AdminShellLayout, {
+      global: { plugins: [router], stubs: { RouterView: true } },
+    })
+    await nextTick()
+    await nextTick()
+
+    // Profile is NOT rendered as a nav link (FIX2 drops it from the layout).
+    expect(wrapper.findAll('.admin-nav__link[data-menu-index]')).toHaveLength(1)
+
+    // FIX3: the account card IS the Profile affordance — a link to admin.profile.
+    // (Guards MA-COUPLE: dropping the nav item without this would orphan Profile.)
+    const card = wrapper.get('.admin-principal__meta')
+    expect(card.element.tagName).toBe('A')
+    expect(card.attributes('href')).toBe('/profile')
+  })
+
+  it('resolves no active nav pill on the Profile route (Profile is not a nav item)', async () => {
+    const router = adminTestRouter({
+      history: createMemoryHistory(),
+      routes: [
+        {
+          path: '/dashboard',
+          name: 'admin.dashboard',
+          component: { template: '<section />' },
+          meta: { requiresAdmin: true },
+        },
+        {
+          path: '/profile',
+          name: 'admin.profile',
+          component: { template: '<section />' },
+          meta: { requiresAdmin: true },
+        },
+      ],
+    })
+    await router.push('/profile')
+    await router.isReady()
+
+    const session = useSessionStore()
+    session.setPrincipal({
+      ...principal,
+      permissions: {
+        ...principal.permissions,
+        menus: [
+          {
+            id: 'dashboard',
+            label: 'Dashboard',
+            required_permission: 'admin.dashboard.view',
+            visible: true,
+          },
+          {
+            id: 'profile',
+            label: 'My Profile',
+            required_permission: 'profile.read',
+            visible: true,
+          },
+        ],
+      },
+    })
+
+    const wrapper = mount(AdminShellLayout, {
+      global: { plugins: [router], stubs: { RouterView: true } },
+    })
+    await nextTick()
+    await nextTick()
+
+    // getMenuIndexByPath must ignore non-rendered menus (Profile), so currentIndex
+    // is -1 here — no active link and the pill stays hidden (no offscreen rAF hunt).
+    expect(wrapper.find('.admin-nav__link--active').exists()).toBe(false)
+    expect(wrapper.find('.admin-nav__pill').attributes('style')).toContain('opacity: 0')
   })
 })
