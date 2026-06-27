@@ -49,14 +49,15 @@ describe('Phase 0 SSR scaffold', async () => {
     },
   })
 
-  it('server-renders the empty admin shell', async () => {
-    const html = await $fetch('/')
-    expect(html).toContain('data-admin-shell')
-    expect(html).toContain('Admin console')
+  it('server-renders an unguarded redirect-target page', async () => {
+    // /forbidden is layout: false (no admin shell) and no requiresAdmin, so the
+    // guard passes without session bootstrap and Nitro renders the page directly.
+    const html = await $fetch('/forbidden')
+    expect(html).toContain('Access denied')
   })
 
   it('does not leak server-only runtimeConfig into the SSR payload', async () => {
-    const html = await $fetch('/')
+    const html = await $fetch('/forbidden')
     expect(html).not.toContain('leak-canary-do-not-render')
     expect(html).not.toContain('sessionEncryptionSecret')
     expect(html).not.toContain('adminOidcClientSecret')

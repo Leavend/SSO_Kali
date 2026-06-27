@@ -17,7 +17,7 @@
 import { describe, it, expect } from 'vitest'
 import { defineComponent, h } from 'vue'
 import { mountSuspended } from '@nuxt/test-utils/runtime'
-import IndexPage from '~/pages/index.vue'
+import ForbiddenPage from '~/pages/forbidden.vue'
 
 const Trivial = defineComponent({
   name: 'TrivialSwissButton',
@@ -33,9 +33,8 @@ describe('in-process component (mountSuspended)', () => {
     expect(wrapper.html()).toContain('class="btn btn--primary"')
   })
 
-  it('mounts the real index page and renders its heading', async () => {
-    const wrapper = await mountSuspended(IndexPage)
-    expect(wrapper.text()).toContain('Admin console')
-    expect(wrapper.html()).toContain('admin-landing__title')
+  it('mounts an unguarded redirect-target page and renders its heading', async () => {
+    const wrapper = await mountSuspended(ForbiddenPage)
+    expect(wrapper.text()).toContain('Access denied')
   })
 })

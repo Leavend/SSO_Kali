@@ -1,14 +1,8 @@
-<template>
-  <section class="admin-landing">
-    <h1 class="admin-landing__title">Admin console</h1>
-  </section>
-</template>
+<script setup lang="ts">
+definePageMeta({ name: 'admin.home', layout: false })
+await navigateTo('/dashboard', { replace: true })
+</script>
 
-<style scoped>
-.admin-landing__title {
-  font-family: var(--font-sans);
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--fg);
-}
-</style>
+<template>
+  <div />
+</template>
