@@ -42,7 +42,13 @@ describe('admin BFF session lifecycle', () => {
     const { sessionFromBootstrap, unixTime } = await import('../utils/session')
     const now = unixTime()
     const session = sessionFromBootstrap(
-      { accessToken: 'access-token', idToken: 'id-token', refreshToken: 'refresh-token', expiresAt: now + 3600, sid: 'sid-123' },
+      {
+        accessToken: 'access-token',
+        idToken: 'id-token',
+        refreshToken: 'refresh-token',
+        expiresAt: now + 3600,
+        sid: 'sid-123',
+      },
       principal(),
     )
 
@@ -58,7 +64,13 @@ describe('admin BFF session lifecycle', () => {
   it('publicSession excludes every token and the raw sid field', async () => {
     const { sessionFromBootstrap, publicSession } = await import('../utils/session')
     const session = sessionFromBootstrap(
-      { accessToken: 'access-token', idToken: 'id-token', refreshToken: 'refresh-token', expiresAt: 0, sid: 'sid-123' },
+      {
+        accessToken: 'access-token',
+        idToken: 'id-token',
+        refreshToken: 'refresh-token',
+        expiresAt: 0,
+        sid: 'sid-123',
+      },
       principal(),
     )
     const view = publicSession(session) as Record<string, unknown>
@@ -99,12 +111,19 @@ describe('admin BFF session lifecycle', () => {
       lastRefreshedAt: now,
     }
     expect(sessionCookieMaxAge({ ...base, absoluteExpiresAt: now + 100 })).toBe(100)
-    expect(sessionCookieMaxAge({ ...base, absoluteExpiresAt: now + 60 * 60 * 24 * 365 })).toBe(60 * 60 * 24 * 7)
+    expect(sessionCookieMaxAge({ ...base, absoluteExpiresAt: now + 60 * 60 * 24 * 365 })).toBe(
+      60 * 60 * 24 * 7,
+    )
   })
 
   it('round-trips an auth transaction through the encrypted __Host- tx cookie', async () => {
     const { transactionCookie, pullTransaction } = await import('../utils/session')
-    const cookie = transactionCookie({ state: 'st', nonce: 'no', codeVerifier: 've', returnTo: '/dashboard' })
+    const cookie = transactionCookie({
+      state: 'st',
+      nonce: 'no',
+      codeVerifier: 've',
+      returnTo: '/dashboard',
+    })
     const value = cookie.split(';')[0]
     const tx = pullTransaction(makeReq(value))
     expect(tx).toEqual({ state: 'st', nonce: 'no', codeVerifier: 've', returnTo: '/dashboard' })
@@ -113,7 +132,13 @@ describe('admin BFF session lifecycle', () => {
   it('persists a session in the in-memory store and reads it back by its opaque cookie id', async () => {
     const { sessionFromBootstrap, sessionCookie, readSession } = await import('../utils/session')
     const session = sessionFromBootstrap(
-      { accessToken: 'access-token', idToken: 'id-token', refreshToken: 'refresh-token', expiresAt: 0, sid: 'sid-123' },
+      {
+        accessToken: 'access-token',
+        idToken: 'id-token',
+        refreshToken: 'refresh-token',
+        expiresAt: 0,
+        sid: 'sid-123',
+      },
       principal(),
     )
     const cookie = (await sessionCookie(session)).split(';')[0]

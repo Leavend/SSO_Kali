@@ -32,7 +32,12 @@ const HOP_BY_HOP_RESPONSE_HEADERS = new Set([
  * cannot safely proxy every encoding Caddy may choose (notably zstd), so it
  * requests identity bodies from the backend and forwards plain JSON.
  */
-const HOP_BY_HOP_REQUEST_HEADERS = new Set(['host', 'connection', 'content-length', 'accept-encoding'])
+const HOP_BY_HOP_REQUEST_HEADERS = new Set([
+  'host',
+  'connection',
+  'content-length',
+  'accept-encoding',
+])
 const REQUEST_ID_HEADER = 'x-request-id'
 const MAX_REQUEST_ID_LENGTH = 128
 
@@ -130,6 +135,9 @@ function splitSetCookie(value: string): readonly string[] {
 
 export function deriveSupportReference(reqId: string | null | undefined): string | null {
   if (!reqId) return null
-  const normalized = reqId.trim().replace(/[^a-zA-Z0-9]/giu, '').toUpperCase()
+  const normalized = reqId
+    .trim()
+    .replace(/[^a-zA-Z0-9]/giu, '')
+    .toUpperCase()
   return normalized ? `REF-${normalized.slice(-8)}` : null
 }

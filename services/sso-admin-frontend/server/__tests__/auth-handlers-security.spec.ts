@@ -122,9 +122,8 @@ type LoginContext = {
 }
 
 async function loginAndPrepare(): Promise<LoginContext> {
-  const { handleLogin, handleCallback, handleCallbackSession } = await import(
-    '../utils/auth-handlers'
-  )
+  const { handleLogin, handleCallback, handleCallbackSession } =
+    await import('../utils/auth-handlers')
   const login = await handleLogin(
     new URL('https://admin-sso.example.test/auth/login?return_to=/dashboard'),
   )
@@ -354,9 +353,9 @@ describe('admin OIDC auth handler security invariants', () => {
       // Access token revoked via the authenticated logout endpoint.
       const accessRevoke = calls.find((c) => c.url === LOGOUT_URL)
       expect(accessRevoke?.init?.method).toBe('POST')
-      expect((accessRevoke?.init?.headers as Record<string, string> | undefined)?.Authorization).toBe(
-        'Bearer server-side-access-token',
-      )
+      expect(
+        (accessRevoke?.init?.headers as Record<string, string> | undefined)?.Authorization,
+      ).toBe('Bearer server-side-access-token')
 
       // Refresh token revoked via the confidential revocation endpoint.
       const refreshRevoke = calls.find((c) => c.url === REVOCATION_URL)
@@ -381,11 +380,16 @@ describe('admin OIDC auth handler security invariants', () => {
       const { handleCallbackSession, cookieHeader, nonce, state } = await loginAndPrepare()
       resolveIdToken({ sub: 'admin-subject', exp: 4_102_444_800, nonce, sid: 'sso-session-id' })
 
-      const response = await handleCallbackSession(requestWithBody(cookieHeader, { code: 'c', state }))
+      const response = await handleCallbackSession(
+        requestWithBody(cookieHeader, { code: 'c', state }),
+      )
 
       expect(response.status).toBe(200)
       const body = String(response.body)
-      expect(JSON.parse(body)).toMatchObject({ authenticated: true, post_login_redirect: '/dashboard' })
+      expect(JSON.parse(body)).toMatchObject({
+        authenticated: true,
+        post_login_redirect: '/dashboard',
+      })
       for (const secret of SECRETS) {
         expect(body).not.toContain(secret)
       }

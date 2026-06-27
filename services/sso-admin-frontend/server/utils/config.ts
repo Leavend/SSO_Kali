@@ -25,8 +25,7 @@ export function getConfig(): PortalConfig {
   // value at build vs runtime. Set ADMIN_OIDC_ISSUER explicitly in the BFF env.
   const base = env('ADMIN_OIDC_ISSUER') ?? env('VITE_SSO_BASE_URL') ?? 'http://localhost:8200'
   const publicBase = env('ADMIN_OIDC_PUBLIC_ISSUER') ?? base
-  const appBase =
-    env('VITE_ADMIN_BASE_URL') ?? env('ADMIN_APP_BASE_URL') ?? 'http://localhost:8080'
+  const appBase = env('VITE_ADMIN_BASE_URL') ?? env('ADMIN_APP_BASE_URL') ?? 'http://localhost:8080'
   const internalBase = env('SSO_INTERNAL_BASE_URL') ?? base
 
   return {
@@ -61,7 +60,10 @@ function sessionConfig(): Pick<
   PortalConfig,
   'sessionIdleTtlSeconds' | 'sessionAbsoluteTtlSeconds' | 'freshAuthTtlSeconds'
 > {
-  const sessionAbsoluteTtlSeconds = integerEnv('SSO_SESSION_ABSOLUTE_TTL_SECONDS', 60 * 60 * 24 * 30)
+  const sessionAbsoluteTtlSeconds = integerEnv(
+    'SSO_SESSION_ABSOLUTE_TTL_SECONDS',
+    60 * 60 * 24 * 30,
+  )
 
   return {
     sessionIdleTtlSeconds: integerEnv('SSO_SESSION_IDLE_TTL_SECONDS', 60 * 60 * 24 * 7),

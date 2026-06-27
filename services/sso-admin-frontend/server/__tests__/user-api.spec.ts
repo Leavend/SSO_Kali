@@ -130,10 +130,7 @@ describe('admin BFF user API', () => {
       vi.stubGlobal(
         'fetch',
         vi.fn(async () =>
-          Response.json(
-            { error: 'reauth_required', message: 'Token expired.' },
-            { status: 401 },
-          ),
+          Response.json({ error: 'reauth_required', message: 'Token expired.' }, { status: 401 }),
         ),
       )
 
@@ -163,12 +160,10 @@ describe('admin BFF user API', () => {
       const { revokeMySession } = await import('../utils/user-api')
       await revokeMySession(SESSION as any, 'sess-abc', { requestId: 'req-rs' })
 
-      expect(calls[0]?.url).toBe(
-        'https://internal.example.test/api/profile/sessions/sess-abc',
-      )
+      expect(calls[0]?.url).toBe('https://internal.example.test/api/profile/sessions/sess-abc')
       const headers = new Headers(calls[0]?.init?.headers)
       expect(headers.get('authorization')).toBe('Bearer tok-secret')
-      expect((calls[0]?.init as RequestInit).method).toBe('DELETE')
+      expect((calls[0]!.init as RequestInit).method).toBe('DELETE')
     })
   })
 

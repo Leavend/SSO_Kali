@@ -29,7 +29,7 @@ describe('admin BFF session crypto', () => {
     const { encryptSession, decryptSession } = await import('../utils/session-crypto')
     const ciphertext = encryptSession('top-secret')
     const raw = Buffer.from(ciphertext, 'base64url')
-    raw[raw.length - 1] = raw[raw.length - 1] ^ 0xff
+    raw[raw.length - 1] = raw[raw.length - 1]! ^ 0xff
     expect(decryptSession(raw.toString('base64url'))).toBeNull()
   })
 

@@ -289,7 +289,7 @@ describe('admin BFF session refresh', () => {
       const refreshed = await refreshPortalSession(baseSession) // no context
 
       expect(refreshed.accessToken).toBe('token-no-ctx')
-      expect(capturedHeaders?.get('x-request-id')).toBeNull()
+      expect(capturedHeaders!.get('x-request-id')).toBeNull()
     })
 
     it('preserves all unmodified session fields after refresh', async () => {
@@ -418,7 +418,7 @@ describe('admin BFF session refresh', () => {
       )
 
       const { refreshPortalSession } = await import('../utils/session-refresh')
-      await expect(refreshPortalSession(baseSession)).rejects.toThrow()
+      await expect(refreshPortalSession(baseSession)).rejects.toThrow('Refresh failed')
       expect(userinfoCalled).toBe(false)
     })
   })

@@ -57,15 +57,17 @@ describe('admin BFF session store', () => {
   })
 
   it('writes to Redis with an EX clamped to min(idle TTL, absolute remaining)', async () => {
-    const set = vi.fn(async () => 'OK')
+    const set = vi.fn<(key: string, value: string, options: { EX: number }) => Promise<string>>(
+      async () => 'OK',
+    )
     const fakeClient = {
-      on: vi.fn(),
-      connect: vi.fn(async () => undefined),
+      on: vi.fn<(event: string, listener: (...args: unknown[]) => void) => void>(),
+      connect: vi.fn<() => Promise<void>>(async () => undefined),
       set,
-      get: vi.fn(async () => null),
-      del: vi.fn(async () => 1),
+      get: vi.fn<(key: string) => Promise<null>>(async () => null),
+      del: vi.fn<(key: string) => Promise<number>>(async () => 1),
     }
-    vi.doMock('redis', () => ({ createClient: vi.fn(() => fakeClient) }))
+    vi.doMock('redis', () => ({ createClient: vi.fn<() => typeof fakeClient>(() => fakeClient) }))
     vi.stubEnv('SSO_ADMIN_SESSION_REDIS_URL', 'redis://localhost:6379/5')
 
     const { createSessionRecord, sessionStoreKey } = await import('../utils/session-store')
@@ -75,7 +77,7 @@ describe('admin BFF session store', () => {
     expect(set).toHaveBeenCalledTimes(1)
     const [key, value, options] = set.mock.calls[0]!
     expect(key).toBe(sessionStoreKey(id))
-    expect(JSON.parse(value as string).accessToken).toBe('a')
+    expect(JSON.parse(value).accessToken).toBe('a')
     expect(options).toEqual({ EX: 100 })
   })
 
@@ -90,20 +92,21 @@ describe('admin BFF session store', () => {
 
   it('readSessionRecord reads from Redis and prefers it over in-memory fallback', async () => {
     const redisSession = session({ accessToken: 'redis-token' })
-    const get = vi.fn(async () => JSON.stringify(redisSession))
+    const get = vi.fn<(key: string) => Promise<string>>(async () => JSON.stringify(redisSession))
     const fakeClient = {
-      on: vi.fn(),
-      connect: vi.fn(async () => undefined),
-      set: vi.fn(async () => 'OK'),
+      on: vi.fn<(event: string, listener: (...args: unknown[]) => void) => void>(),
+      connect: vi.fn<() => Promise<void>>(async () => undefined),
+      set: vi.fn<(key: string, value: string, options: { EX: number }) => Promise<string>>(
+        async () => 'OK',
+      ),
       get,
-      del: vi.fn(async () => 1),
+      del: vi.fn<(key: string) => Promise<number>>(async () => 1),
     }
-    vi.doMock('redis', () => ({ createClient: vi.fn(() => fakeClient) }))
+    vi.doMock('redis', () => ({ createClient: vi.fn<() => typeof fakeClient>(() => fakeClient) }))
     vi.stubEnv('SSO_ADMIN_SESSION_REDIS_URL', 'redis://localhost:6379/5')
 
-    const { createSessionRecord, readSessionRecord, sessionStoreKey } = await import(
-      '../utils/session-store'
-    )
+    const { createSessionRecord, readSessionRecord, sessionStoreKey } =
+      await import('../utils/session-store')
     // Put a different session in memory so we can verify Redis wins
     const id = await createSessionRecord(session({ accessToken: 'memory-token' }))
 
@@ -115,15 +118,17 @@ describe('admin BFF session store', () => {
   })
 
   it('replaceSessionRecord writes the session to Redis with a positive EX TTL', async () => {
-    const set = vi.fn(async () => 'OK')
+    const set = vi.fn<(key: string, value: string, options: { EX: number }) => Promise<string>>(
+      async () => 'OK',
+    )
     const fakeClient = {
-      on: vi.fn(),
-      connect: vi.fn(async () => undefined),
+      on: vi.fn<(event: string, listener: (...args: unknown[]) => void) => void>(),
+      connect: vi.fn<() => Promise<void>>(async () => undefined),
       set,
-      get: vi.fn(async () => null),
-      del: vi.fn(async () => 1),
+      get: vi.fn<(key: string) => Promise<null>>(async () => null),
+      del: vi.fn<(key: string) => Promise<number>>(async () => 1),
     }
-    vi.doMock('redis', () => ({ createClient: vi.fn(() => fakeClient) }))
+    vi.doMock('redis', () => ({ createClient: vi.fn<() => typeof fakeClient>(() => fakeClient) }))
     vi.stubEnv('SSO_ADMIN_SESSION_REDIS_URL', 'redis://localhost:6379/5')
 
     const { replaceSessionRecord, sessionStoreKey } = await import('../utils/session-store')
@@ -133,21 +138,23 @@ describe('admin BFF session store', () => {
     expect(set).toHaveBeenCalledTimes(1)
     const [key, value, options] = set.mock.calls[0]!
     expect(key).toBe(sessionStoreKey('replace-id'))
-    expect(JSON.parse(value as string).accessToken).toBe('a')
+    expect(JSON.parse(value).accessToken).toBe('a')
     expect(options).toMatchObject({ EX: expect.any(Number) })
-    expect((options as { EX: number }).EX).toBeGreaterThan(0)
+    expect(options.EX).toBeGreaterThan(0)
   })
 
   it('deleteSessionRecord calls client.del with the namespaced key', async () => {
-    const del = vi.fn(async () => 1)
+    const del = vi.fn<(key: string) => Promise<number>>(async () => 1)
     const fakeClient = {
-      on: vi.fn(),
-      connect: vi.fn(async () => undefined),
-      set: vi.fn(async () => 'OK'),
-      get: vi.fn(async () => null),
+      on: vi.fn<(event: string, listener: (...args: unknown[]) => void) => void>(),
+      connect: vi.fn<() => Promise<void>>(async () => undefined),
+      set: vi.fn<(key: string, value: string, options: { EX: number }) => Promise<string>>(
+        async () => 'OK',
+      ),
+      get: vi.fn<(key: string) => Promise<null>>(async () => null),
       del,
     }
-    vi.doMock('redis', () => ({ createClient: vi.fn(() => fakeClient) }))
+    vi.doMock('redis', () => ({ createClient: vi.fn<() => typeof fakeClient>(() => fakeClient) }))
     vi.stubEnv('SSO_ADMIN_SESSION_REDIS_URL', 'redis://localhost:6379/5')
 
     const { deleteSessionRecord, sessionStoreKey } = await import('../utils/session-store')

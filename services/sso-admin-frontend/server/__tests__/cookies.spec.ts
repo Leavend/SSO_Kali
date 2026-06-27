@@ -75,7 +75,10 @@ describe('admin BFF cookies', () => {
     expect(readEventCookie(event, SSO_PORTAL_SESSION_COOKIE)).toBe('abc')
     expect(readCookie(event.node.req, 'other')).toBe('1')
 
-    appendEventCookie(event, serializeCookie(SSO_PORTAL_SESSION_COOKIE, 'one', hostCookieOptions(1)))
+    appendEventCookie(
+      event,
+      serializeCookie(SSO_PORTAL_SESSION_COOKIE, 'one', hostCookieOptions(1)),
+    )
     appendEventCookie(event, serializeCookie(SSO_PORTAL_TX_COOKIE, 'two', hostCookieOptions(1)))
     const setCookie = resHeaders['set-cookie']
     expect(Array.isArray(setCookie)).toBe(true)

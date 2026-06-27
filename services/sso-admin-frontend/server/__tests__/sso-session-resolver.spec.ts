@@ -97,12 +97,16 @@ describe('admin BFF SSO session resolver', () => {
   })
 
   it('does not re-register a recently registered admin RP session on every request', async () => {
-    const fetchMock = vi.fn<() => Promise<Response>>(async () => Response.json({ registered: true }))
+    const fetchMock = vi.fn<() => Promise<Response>>(async () =>
+      Response.json({ registered: true }),
+    )
     vi.stubGlobal('fetch', fetchMock)
 
     const { sessionCookie } = await import('../utils/session')
     const { resolveSsoSession } = await import('../utils/sso-session-resolver')
-    const cookie = cookieHeader(await sessionCookie(baseSession({ rpSessionRegisteredAt: 1_779_839_900 })))
+    const cookie = cookieHeader(
+      await sessionCookie(baseSession({ rpSessionRegisteredAt: 1_779_839_900 })),
+    )
 
     const resolved = await resolveSsoSession(requestWithCookie(cookie))
 
@@ -142,9 +146,7 @@ describe('admin BFF SSO session resolver', () => {
 
     // absoluteExpiresAt is in the past — the session store will delete and return null
     const cookie = cookieHeader(
-      await sessionCookie(
-        baseSession({ absoluteExpiresAt: CURRENT_UNIX - 1 }),
-      ),
+      await sessionCookie(baseSession({ absoluteExpiresAt: CURRENT_UNIX - 1 })),
     )
 
     const resolved = await resolveSsoSession(requestWithCookie(cookie))
@@ -233,7 +235,9 @@ describe('admin BFF SSO session resolver', () => {
     const resolved = {
       sessionId: 'session-id',
       session: baseSession(),
-      cookies: ['__Host-sso-admin-session=abc; Max-Age=604800; Path=/; HttpOnly; Secure; SameSite=Strict'],
+      cookies: [
+        '__Host-sso-admin-session=abc; Max-Age=604800; Path=/; HttpOnly; Secure; SameSite=Strict',
+      ],
     }
 
     expect(sessionHeaders(resolved)).toEqual({
