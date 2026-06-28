@@ -19,6 +19,11 @@ const domainPages: ReadonlyArray<{ file: string; name: string; permissions: read
   { file: 'users/index.vue', name: 'admin.users', permissions: ['admin.users.read'] },
   { file: 'users/new.vue', name: 'admin.users.create', permissions: ['admin.users.write'] },
   {
+    file: 'users/[subjectId].vue',
+    name: 'admin.users.detail',
+    permissions: ['admin.users.read'],
+  },
+  {
     file: 'observability/index.vue',
     name: 'admin.observability',
     permissions: ['admin.observability.read'],

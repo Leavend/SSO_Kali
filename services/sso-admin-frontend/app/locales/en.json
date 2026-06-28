@@ -354,7 +354,22 @@
     "status_disabled": "Disabled",
     "status_deactivated": "Deactivated",
     "page_next": "Next",
-    "page_previous": "Previous"
+    "page_previous": "Previous",
+    "not_found_title": "User not found",
+    "not_found_desc": "The account for this link does not exist or has been removed.",
+    "field_nik": "NIK",
+    "field_nip": "NIP",
+    "field_nisn": "NISN",
+    "field_birth_date": "Birth date",
+    "mfa_enrolled": "MFA enrolled",
+    "mfa_methods": "MFA methods",
+    "login_ip": "Last login IP",
+    "last_seen": "Last seen",
+    "overview_title": "Account overview",
+    "security_title": "Security & MFA",
+    "roles_title": "Roles",
+    "col_session": "Session",
+    "btn_back": "Back to list"
   },
   "clients": {
     "eyebrow": "Client Management",

@@ -354,7 +354,22 @@
     "status_disabled": "Dinonaktifkan",
     "status_deactivated": "Deaktivasi",
     "page_next": "Berikutnya",
-    "page_previous": "Sebelumnya"
+    "page_previous": "Sebelumnya",
+    "not_found_title": "Pengguna tidak ditemukan",
+    "not_found_desc": "Akun untuk tautan ini tidak ada atau telah dihapus.",
+    "field_nik": "NIK",
+    "field_nip": "NIP",
+    "field_nisn": "NISN",
+    "field_birth_date": "Tanggal lahir",
+    "mfa_enrolled": "MFA terdaftar",
+    "mfa_methods": "Metode MFA",
+    "login_ip": "IP login terakhir",
+    "last_seen": "Terakhir aktif",
+    "overview_title": "Ringkasan akun",
+    "security_title": "Keamanan & MFA",
+    "roles_title": "Peran",
+    "col_session": "Sesi",
+    "btn_back": "Kembali ke daftar"
   },
   "clients": {
     "eyebrow": "Manajemen Klien",
