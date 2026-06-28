@@ -42,6 +42,22 @@ export type RoleGrantDiff = {
   readonly permission_slugs: readonly string[]
 }
 
+export type RolePermissionImpact = {
+  readonly affectedUsers: number
+  readonly addedCount: number
+  readonly removedCount: number
+}
+
+// Pure summary for the sync-confirm dialog: how many users are affected and how
+// many permissions are being added / removed for a given role × diff pair.
+export function describePermissionImpact(role: AdminRole, diff: RoleGrantDiff): RolePermissionImpact {
+  return {
+    affectedUsers: role.user_count,
+    addedCount: diff.added.length,
+    removedCount: diff.removed.length,
+  }
+}
+
 // Diff one role's original vs pending set. `permission_slugs` is the full sorted
 // pending set (the PUT-replace body — an empty array is a valid "clear all").
 export function diffRoleGrants(

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildRoleGrantMap,
+  describePermissionImpact,
   diffRoleGrants,
   isGranted,
   togglePendingGrant,
@@ -136,5 +137,24 @@ describe('diffRoleGrants', () => {
     expect(diff.added).toEqual([])
     expect(diff.changed).toBe(true)
     expect(diff.permission_slugs).toEqual([])
+  })
+})
+
+describe('describePermissionImpact', () => {
+  it('returns affectedUsers from role.user_count, addedCount and removedCount from diff lengths', () => {
+    const role = makeRole({ slug: 'editor', user_count: 42, users_count: 42 })
+    const diff = diffRoleGrants(
+      new Set(['admin.roles.read', 'admin.roles.write']),
+      new Set(['admin.roles.read', 'admin.users.read', 'admin.users.write']),
+    )
+    const impact = describePermissionImpact(role, diff)
+    expect(impact).toStrictEqual({ affectedUsers: 42, addedCount: 2, removedCount: 1 })
+  })
+
+  it('returns zeros for a role with no users and an unchanged diff', () => {
+    const role = makeRole({ slug: 'ghost', user_count: 0, users_count: 0 })
+    const diff = diffRoleGrants(new Set(['admin.roles.read']), new Set(['admin.roles.read']))
+    const impact = describePermissionImpact(role, diff)
+    expect(impact).toStrictEqual({ affectedUsers: 0, addedCount: 0, removedCount: 0 })
   })
 })
