@@ -37,6 +37,14 @@ function fetchDashboard(): Promise<string> {
   return $fetch('/dashboard')
 }
 
+function fetchUsersList(): Promise<string> {
+  return $fetch('/users')
+}
+
+function fetchUserDetail(): Promise<string> {
+  return $fetch('/users/sub-target-sentinel')
+}
+
 function extractPayload(html: string): string {
   const match = html.match(/<script[^>]*id="__NUXT_DATA__"[^>]*>([\s\S]*?)<\/script>/)
   if (!match?.[1]) {
@@ -48,7 +56,20 @@ function extractPayload(html: string): string {
 // Collect (rather than assert per-line) so the gate uses single-argument expect
 // (oxlint jest/valid-expect bans `expect(value, message)`); the returned label
 // array is itself the self-describing failure output via `.toEqual([])`.
-function collectSecretLeaks(haystack: string, where: string): readonly string[] {
+//
+// `allowSessionId` (default false): on the dashboard the sentinel `sid` is the
+// OIDC session id held in Nitro event.context — a server-only value the gate
+// proves never reaches the client, so the dashboard keeps the strict check. The
+// user-detail DTO carries a DEVICE session id (device_sessions row) which the
+// §3.3 decision treats as an allowed operational identifier — needed by the 4.11
+// session actions, displayed only via formatTechnicalPreview, NOT a credential —
+// so the users-page checks exempt it. Tokens/secrets/canary/raw-PII stay strict
+// in both contexts.
+function collectSecretLeaks(
+  haystack: string,
+  where: string,
+  { allowSessionId = false }: { allowSessionId?: boolean } = {},
+): readonly string[] {
   const leaks: string[] = []
   const reportContains = (needle: string, label: string): void => {
     if (haystack.includes(needle)) leaks.push(`${where} ${label}`)
@@ -61,7 +82,7 @@ function collectSecretLeaks(haystack: string, where: string): readonly string[] 
   reportContains(SENTINEL.access, 'leaks the access-token value')
   reportContains(SENTINEL.refresh, 'leaks the refresh-token value')
   reportContains(SENTINEL.id, 'leaks the id-token value')
-  reportContains(SENTINEL.sid, 'leaks the session-id (sid) value')
+  if (!allowSessionId) reportContains(SENTINEL.sid, 'leaks the session-id (sid) value')
   // OIDC token field NAMES (camelCase session shape + snake_case OIDC wire shape).
   reportMatches(
     /accessToken|refreshToken|idToken|access_token|refresh_token|id_token/,
@@ -128,5 +149,42 @@ describe('SSR token-leak render gate (§3.3)', async () => {
     const serialized = JSON.stringify(parsed)
     expect(collectSecretLeaks(serialized, '__NUXT__ payload')).toEqual([])
     expect(collectPiiShapeLeaks(serialized, '__NUXT__ payload')).toEqual([])
+  })
+
+  it('renders the users list + detail server-side in their ready (masked) state', async () => {
+    const listHtml = await fetchUsersList()
+    expect(listHtml).toContain('data-admin-shell')
+    expect(listHtml).toContain('Target User')
+
+    const detailHtml = await fetchUserDetail()
+    expect(detailHtml).toContain('data-admin-shell')
+    expect(detailHtml).toContain('Target User')
+    // The raw session id was rendered through formatTechnicalPreview, proving the
+    // page masks it (REF-4A1B9C0D is SENTINEL.sid normalized + sliced to 8).
+    expect(detailHtml).toContain('REF-4A1B9C0D')
+  })
+
+  it('does not leak token/PII/secret values into the users-page SSR HTML', async () => {
+    // allowSessionId: the user-detail DTO carries a DEVICE session id (allowed
+    // §3.3 operational identifier, masked to REF- for display); tokens/secrets/PII
+    // stay strict. The raw OIDC sid never reaches the client (dashboard proves it).
+    const listHtml = await fetchUsersList()
+    const detailHtml = await fetchUserDetail()
+    expect(collectSecretLeaks(listHtml, 'users-list SSR HTML', { allowSessionId: true })).toEqual(
+      [],
+    )
+    expect(
+      collectSecretLeaks(detailHtml, 'user-detail SSR HTML', { allowSessionId: true }),
+    ).toEqual([])
+  })
+
+  it('does not leak token/PII/secret values into the users-page hydration payload', async () => {
+    for (const html of [await fetchUsersList(), await fetchUserDetail()]) {
+      const serialized = JSON.stringify(JSON.parse(extractPayload(html)))
+      expect(
+        collectSecretLeaks(serialized, 'users __NUXT__ payload', { allowSessionId: true }),
+      ).toEqual([])
+      expect(collectPiiShapeLeaks(serialized, 'users __NUXT__ payload')).toEqual([])
+    }
   })
 })

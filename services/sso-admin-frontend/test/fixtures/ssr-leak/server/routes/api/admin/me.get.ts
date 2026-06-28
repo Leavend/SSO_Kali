@@ -28,13 +28,33 @@ export default defineEventHandler(() => {
       permissions: {
         view_admin_panel: true,
         manage_sessions: true,
-        permissions: ['admin.dashboard.view'],
-        capabilities: { 'admin.dashboard.view': true },
+        permissions: [
+          'admin.dashboard.view',
+          'admin.users.read',
+          'admin.users.write',
+          'admin.users.lock',
+          'admin.roles.read',
+          'admin.roles.write',
+        ],
+        capabilities: {
+          'admin.dashboard.view': true,
+          'admin.users.read': true,
+          'admin.users.write': true,
+          'admin.users.lock': true,
+          'admin.roles.read': true,
+          'admin.roles.write': true,
+        },
         menus: [
           {
             id: 'dashboard',
             label: 'Dashboard',
             required_permission: 'admin.dashboard.view',
+            visible: true,
+          },
+          {
+            id: 'users',
+            label: 'Users',
+            required_permission: 'admin.users.read',
             visible: true,
           },
         ],
