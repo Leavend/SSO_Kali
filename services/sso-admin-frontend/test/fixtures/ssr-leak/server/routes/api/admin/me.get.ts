@@ -35,6 +35,9 @@ export default defineEventHandler(() => {
           'admin.users.lock',
           'admin.roles.read',
           'admin.roles.write',
+          'admin.clients.read',
+          'admin.clients.write',
+          'admin.sessions.terminate',
         ],
         capabilities: {
           'admin.dashboard.view': true,
@@ -43,6 +46,9 @@ export default defineEventHandler(() => {
           'admin.users.lock': true,
           'admin.roles.read': true,
           'admin.roles.write': true,
+          'admin.clients.read': true,
+          'admin.clients.write': true,
+          'admin.sessions.terminate': true,
         },
         menus: [
           {
@@ -55,6 +61,12 @@ export default defineEventHandler(() => {
             id: 'users',
             label: 'Users',
             required_permission: 'admin.users.read',
+            visible: true,
+          },
+          {
+            id: 'clients',
+            label: 'Clients',
+            required_permission: 'admin.clients.read',
             visible: true,
           },
         ],

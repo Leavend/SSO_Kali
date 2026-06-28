@@ -14,6 +14,10 @@ export const SENTINEL = {
   refresh: 'SENTINEL-REFRESH-TOKEN-8b1d6e0a4c',
   id: 'SENTINEL-ID-TOKEN-5c2f9a8b3d',
   sid: 'SENTINEL-SID-7e4a1b9c0d',
+  // Plaintext client secret VALUE — exists only on a client-side create/rotate POST
+  // response, NEVER on event.context and NEVER in a list/detail DTO. The gate proves
+  // it never reaches SSR HTML / the payload (regression tripwire).
+  clientSecret: 'SENTINEL-CLIENT-SECRET-2a7f4b1e9c',
   // Raw government PII VALUES, shaped EXACTLY like real identifiers.
   nik: '3174091987654321', // 16 digits (NIK)
   nip: '198509152023011007', // 18 digits (NIP)

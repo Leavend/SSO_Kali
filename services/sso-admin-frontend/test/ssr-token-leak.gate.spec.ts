@@ -45,6 +45,14 @@ function fetchUserDetail(): Promise<string> {
   return $fetch('/users/sub-target-sentinel')
 }
 
+function fetchClientsList(): Promise<string> {
+  return $fetch('/clients')
+}
+
+function fetchClientDetail(): Promise<string> {
+  return $fetch('/clients/acme-portal')
+}
+
 function extractPayload(html: string): string {
   const match = html.match(/<script[^>]*id="__NUXT_DATA__"[^>]*>([\s\S]*?)<\/script>/)
   if (!match?.[1]) {
@@ -97,6 +105,15 @@ function collectSecretLeaks(
   reportMatches(
     /sessionEncryptionSecret|adminOidcClientSecret/,
     'leaks a private secret field name',
+  )
+  // Plaintext client-secret VALUE (one-time secret — never on the SSR path).
+  reportContains(SENTINEL.clientSecret, 'leaks the client-secret value')
+  // Client-secret + rotate-response plaintext field NAMES (snake_case wire +
+  // camelCase shapes). The masked list/detail DTOs carry only `has_secret_hash`,
+  // never these names; `client_id` and `has_secret_hash` are deliberately NOT matched.
+  reportMatches(
+    /client_secret|clientSecret|plaintext_secret|plaintext_once/,
+    'leaks a client-secret field name',
   )
 
   return leaks
@@ -186,5 +203,41 @@ describe('SSR token-leak render gate (§3.3)', async () => {
       ).toEqual([])
       expect(collectPiiShapeLeaks(serialized, 'users __NUXT__ payload')).toEqual([])
     }
+  })
+
+  it('renders the clients list + detail server-side in their ready (masked) state', async () => {
+    const listHtml = await fetchClientsList()
+    expect(listHtml).toContain('data-admin-shell')
+    expect(listHtml).toContain('Acme Portal')
+
+    const detailHtml = await fetchClientDetail()
+    expect(detailHtml).toContain('data-admin-shell')
+    expect(detailHtml).toContain('Acme Portal')
+    // The public client_id is allowed to render (it is a public identifier, not a secret).
+    expect(detailHtml).toContain('acme-portal')
+  })
+
+  it('does not leak token/secret/PII values into the clients-page SSR HTML', async () => {
+    const listHtml = await fetchClientsList()
+    const detailHtml = await fetchClientDetail()
+    expect(collectSecretLeaks(listHtml, 'clients-list SSR HTML')).toEqual([])
+    expect(collectSecretLeaks(detailHtml, 'client-detail SSR HTML')).toEqual([])
+  })
+
+  it('does not leak token/secret/PII values into the clients-page hydration payload', async () => {
+    for (const html of [await fetchClientsList(), await fetchClientDetail()]) {
+      const serialized = JSON.stringify(JSON.parse(extractPayload(html)))
+      expect(collectSecretLeaks(serialized, 'clients __NUXT__ payload')).toEqual([])
+      expect(collectPiiShapeLeaks(serialized, 'clients __NUXT__ payload')).toEqual([])
+    }
+  })
+
+  it('collectSecretLeaks is LIVE — it reports a planted client secret (negative control)', () => {
+    // Tripwire self-test: prove the detector is not vacuously green. A payload that
+    // embeds the sentinel secret value AND a client_secret field name MUST be
+    // reported — otherwise the `.toEqual([])` assertions above could pass even with
+    // a broken detector.
+    const planted = `{"client":{"client_secret":"${SENTINEL.clientSecret}"}}`
+    expect(collectSecretLeaks(planted, 'negative control')).not.toEqual([])
   })
 })
