@@ -360,10 +360,17 @@ async function submitProfile(): Promise<void> {
           @update:model-value="form.birth_date = $event"
         />
       </UiFormField>
-      <p v-if="profile.failure.value" data-testid="profile-error" role="alert">
-        {{ t('common.error_generic') }}
-        <span v-if="profileFailureRef" class="user-actions__ref">{{ profileFailureRef }}</span>
-      </p>
+      <div v-if="profile.failure.value" data-testid="profile-error" role="alert">
+        <p>{{ t('common.error_generic') }}</p>
+        <a
+          v-if="profile.stepUpUrl.value"
+          :href="profile.stepUpUrl.value"
+          data-testid="profile-stepup-link"
+          class="user-actions__stepup"
+          >{{ t('users.btn_step_up') }}</a
+        >
+        <p v-if="profileFailureRef" class="user-actions__ref">{{ profileFailureRef }}</p>
+      </div>
       <UiButton
         type="submit"
         :disabled="!isProfileDirty || isProfileInvalid || profile.isSubmitting.value"

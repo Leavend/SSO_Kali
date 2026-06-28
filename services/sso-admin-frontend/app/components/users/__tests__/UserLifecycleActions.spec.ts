@@ -335,4 +335,36 @@ describe('UserLifecycleActions — sync-profile failure (one representative case
     expect(w.emitted('done')).toBeUndefined()
     expect(isSubmitting.value).toBe(false)
   })
+
+  it('surfaces a sync-profile 428 step_up_required with re-auth link, safe copy, REF — no raw id leaks', async () => {
+    runImpl.mockImplementation(async () => {
+      failure.value = {
+        status: 'step_up_required',
+        requestId: 'req-profile-stepup-99',
+        auditEventId: null,
+        fieldErrors: {},
+        stepUpUrl: '/auth/login?prompt=login&max_age=0',
+      }
+      isSubmitting.value = false
+      return null
+    })
+    const w = mountActions()
+    await w.find('#profile-display-name').setValue('Renamed Operator')
+    await w.find('[data-testid="sync-profile-form"]').trigger('submit')
+    await w.vm.$nextTick()
+    expect(runImpl).toHaveBeenCalledTimes(1)
+    const error = w.find('[data-testid="profile-error"]')
+    expect(error.exists()).toBe(true)
+    expect(error.text()).toContain('common.error_generic')
+    expect(w.text()).toContain('REF-')
+    const link = w.find('[data-testid="profile-stepup-link"]')
+    expect(link.exists()).toBe(true)
+    expect(link.attributes('href')).toBe('/auth/login?prompt=login&max_age=0')
+    expect(link.text()).toContain('users.btn_step_up')
+    // PII/security discipline: no raw ids or ACR/trace leak
+    expect(w.text()).not.toContain('req-profile-stepup-99')
+    expect(w.text()).not.toMatch(/acr|urn:|stack|trace|eyJ/i)
+    expect(w.emitted('done')).toBeUndefined()
+    expect(isSubmitting.value).toBe(false)
+  })
 })
