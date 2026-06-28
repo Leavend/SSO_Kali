@@ -50,7 +50,10 @@ export type RolePermissionImpact = {
 
 // Pure summary for the sync-confirm dialog: how many users are affected and how
 // many permissions are being added / removed for a given role × diff pair.
-export function describePermissionImpact(role: AdminRole, diff: RoleGrantDiff): RolePermissionImpact {
+export function describePermissionImpact(
+  role: AdminRole,
+  diff: RoleGrantDiff,
+): RolePermissionImpact {
   return {
     affectedUsers: role.user_count,
     addedCount: diff.added.length,
