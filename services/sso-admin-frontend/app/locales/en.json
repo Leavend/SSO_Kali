@@ -505,7 +505,7 @@
     "val_not_available": "Not available",
     "ov_type": "Type",
     "ov_owner": "Owner",
-    "ov_secret_rotated": "Secret rotated",
+    "ov_secret_rotated": "Secret updated",
     "ov_secret_hash": "Secret hash",
     "lc_activated": "Activated",
     "lc_disabled": "Disabled",
@@ -563,7 +563,11 @@
     "status_active": "Active",
     "status_staged": "Staged",
     "status_disabled": "Disabled",
-    "status_decommissioned": "Decommissioned"
+    "status_decommissioned": "Decommissioned",
+    "status_unknown": "Unknown",
+    "not_found_title": "Client not found",
+    "not_found_desc": "The client for this link does not exist or has been removed.",
+    "btn_back": "Back to clients"
   },
   "sessions": {
     "title": "Sessions",

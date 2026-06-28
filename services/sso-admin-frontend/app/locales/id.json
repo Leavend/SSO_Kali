@@ -563,7 +563,11 @@
     "status_active": "Aktif",
     "status_staged": "Disiapkan",
     "status_disabled": "Dinonaktifkan",
-    "status_decommissioned": "Dihentikan"
+    "status_decommissioned": "Dihentikan",
+    "status_unknown": "Tidak diketahui",
+    "not_found_title": "Klien tidak ditemukan",
+    "not_found_desc": "Klien untuk tautan ini tidak ada atau telah dihapus.",
+    "btn_back": "Kembali ke klien"
   },
   "sessions": {
     "title": "Sesi",

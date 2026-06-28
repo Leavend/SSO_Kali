@@ -16,6 +16,11 @@ const domainPages: ReadonlyArray<{ file: string; name: string; permissions: read
   },
   { file: 'clients/index.vue', name: 'admin.clients', permissions: ['admin.clients.read'] },
   { file: 'clients/new.vue', name: 'admin.clients.create', permissions: ['admin.clients.write'] },
+  {
+    file: 'clients/[clientId].vue',
+    name: 'admin.clients.detail',
+    permissions: ['admin.clients.read'],
+  },
   { file: 'users/index.vue', name: 'admin.users', permissions: ['admin.users.read'] },
   { file: 'users/new.vue', name: 'admin.users.create', permissions: ['admin.users.write'] },
   {
