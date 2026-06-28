@@ -99,4 +99,8 @@ describe('admin route map', () => {
     expect(read('audit/index.vue')).toContain(`name: 'admin.observability'`)
     expect(read('audit/compliance.vue')).toContain(`name: 'admin.observability.compliance'`)
   })
+
+  it('cross-links the observability cockpit to the compliance console by named route', () => {
+    expect(read('observability/index.vue')).toContain(`name: 'admin.observability.compliance'`)
+  })
 })
