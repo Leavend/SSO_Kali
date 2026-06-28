@@ -222,6 +222,7 @@
     "edit_permissions_title": "Atur Permission Peran",
     "btn_save": "Simpan",
     "btn_cancel": "Batal",
+    "btn_step_up": "Autentikasi ulang",
     "label_name": "Nama Peran",
     "label_slug": "Slug Peran",
     "label_description": "Deskripsi",

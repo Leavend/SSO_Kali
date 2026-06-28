@@ -11,7 +11,15 @@ import {
   togglePendingGrant,
   type RoleGrantMap,
 } from '@/lib/roles/roles-matrix'
-import type { AdminPermission, AdminRole } from '@/types/users.types'
+import { usePrivilegedAction } from '@/composables/usePrivilegedAction'
+import { rolesApi } from '@/services/roles.api'
+import type {
+  AdminPermission,
+  AdminRole,
+  CreateRolePayload,
+  RoleMutationResponse,
+  UpdateRolePayload,
+} from '@/types/users.types'
 import UiSkeleton from '@/components/ui/UiSkeleton.vue'
 import UiStatusView from '@/components/ui/UiStatusView.vue'
 import UiEmptyState from '@/components/ui/UiEmptyState.vue'
@@ -20,6 +28,7 @@ import UiInput from '@/components/ui/UiInput.vue'
 import UiFolio from '@/components/ui/UiFolio.vue'
 import RolesTable from '@/components/roles/RolesTable.vue'
 import RoleMatrix from '@/components/roles/RoleMatrix.vue'
+import RoleFormDialog from '@/components/roles/RoleFormDialog.vue'
 
 definePageMeta({
   name: 'admin.roles',
@@ -93,6 +102,71 @@ const dirtyRoleSlugs = computed<readonly string[]>(() =>
 // aria-live region below — they do not add their own success markup.
 const successMessage = ref<string | null>(null)
 
+// --- Create + edit-metadata write flow (Task 7.8) ---------------------------
+// Both writes are privileged (ROLES_WRITE · :write freshness). Create and update
+// own SEPARATE usePrivilegedAction instances; `formAction` bridges whichever is
+// active to the single shared RoleFormDialog (its error/fieldErrors/stepUpUrl/
+// submitting), so the full failure matrix routes through one surface for both.
+const dialogOpen = ref(false)
+const dialogMode = ref<'create' | 'edit'>('create')
+const editingRole = ref<AdminRole | null>(null)
+
+const createAction = usePrivilegedAction<RoleMutationResponse>()
+const updateAction = usePrivilegedAction<RoleMutationResponse>()
+const formAction = computed(() => (dialogMode.value === 'create' ? createAction : updateAction))
+
+// Map the privileged-action field errors (Record<string,string[]>) → the dialog's
+// RoleFormFieldErrors (first message per field).
+const dialogFieldErrors = computed(() => {
+  const fe = formAction.value.fieldErrors.value
+  return {
+    slug: fe.slug?.[0],
+    name: fe.name?.[0],
+    description: fe.description?.[0],
+  }
+})
+
+// Safe, status-keyed copy — never a raw backend exception.
+const dialogError = computed<string | null>(() => {
+  switch (formAction.value.status.value) {
+    case 'forbidden':
+      return t('common.forbidden_desc')
+    case 'unauthenticated':
+      return t('common.session_expired_desc')
+    case 'step_up_required':
+      return t('roles.error_title')
+    case 'rate_limited':
+    case 'error':
+      return t('common.error_generic')
+    default:
+      return null
+  }
+})
+
+function closeDialog(): void {
+  dialogOpen.value = false
+}
+
+async function onDialogSubmit(payload: CreateRolePayload | UpdateRolePayload): Promise<void> {
+  if (dialogMode.value === 'create') {
+    const created = await createAction.run(() => rolesApi.store(payload as CreateRolePayload))
+    if (created) {
+      dialogOpen.value = false
+      successMessage.value = t('roles.roles_create_success')
+      await refresh()
+    }
+    return
+  }
+  const slug = editingRole.value?.slug
+  if (!slug) return
+  const updated = await updateAction.run(() => rolesApi.update(slug, payload as UpdateRolePayload))
+  if (updated) {
+    dialogOpen.value = false
+    successMessage.value = t('roles.roles_update_success')
+    await refresh()
+  }
+}
+
 function onMatrixToggle(payload: {
   roleSlug: string
   permissionSlug: string
@@ -110,10 +184,18 @@ function onMatrixToggle(payload: {
 // the matching handler (openCreate/openEdit · onMatrixSave · onDeleteRequested ·
 // onSelectRole) without renaming, so every @event binding keeps resolving.
 function openCreate(): void {
-  /* open create-role dialog (Task 7.8) */
+  createAction.reset()
+  successMessage.value = null
+  dialogMode.value = 'create'
+  editingRole.value = null
+  dialogOpen.value = true
 }
-function openEdit(_role: AdminRole): void {
-  /* open edit-metadata dialog (Task 7.8) */
+function openEdit(role: AdminRole): void {
+  updateAction.reset()
+  successMessage.value = null
+  dialogMode.value = 'edit'
+  editingRole.value = role
+  dialogOpen.value = true
 }
 function onManagePermissions(_role: AdminRole): void {
   /* Intentional no-op anchor this phase: the role × permission matrix below is the
@@ -287,6 +369,27 @@ async function onRefresh(): Promise<void> {
         @save="onMatrixSave"
       />
     </template>
+
+    <RoleFormDialog
+      :open="dialogOpen"
+      :mode="dialogMode"
+      :role="editingRole"
+      :create-title="t('roles.create_role_title')"
+      :edit-title="t('roles.edit_role_title')"
+      :slug-label="t('roles.label_slug')"
+      :name-label="t('roles.label_name')"
+      :description-label="t('roles.label_description')"
+      :save-label="t('roles.btn_save')"
+      :cancel-label="t('roles.btn_cancel')"
+      :step-up-label="t('roles.btn_step_up')"
+      :submitting="formAction.isSubmitting.value"
+      :field-errors="dialogFieldErrors"
+      :error-message="dialogError"
+      :request-id="formAction.requestId.value"
+      :step-up-url="formAction.stepUpUrl.value"
+      @submit="onDialogSubmit"
+      @cancel="closeDialog"
+    />
   </section>
 </template>
 

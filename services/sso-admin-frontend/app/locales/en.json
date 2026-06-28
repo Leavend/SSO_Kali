@@ -222,6 +222,7 @@
     "edit_permissions_title": "Manage Role Permissions",
     "btn_save": "Save",
     "btn_cancel": "Cancel",
+    "btn_step_up": "Re-authenticate",
     "label_name": "Role Name",
     "label_slug": "Role Slug",
     "label_description": "Description",
