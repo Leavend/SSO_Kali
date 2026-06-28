@@ -10,7 +10,7 @@ import UiStatusView from '@/components/ui/UiStatusView.vue'
 import UiEmptyState from '@/components/ui/UiEmptyState.vue'
 import UiStatusBadge from '@/components/ui/UiStatusBadge.vue'
 import UiDataList from '@/components/ui/UiDataList.vue'
-import type { AdminUserDetail, LoginContext, UserSession } from '@/types/users.types'
+import type { AdminUserDetail, LoginContext, RolesResponse, UserSession } from '@/types/users.types'
 import type { UserDetailViewState } from '@/lib/users/users-view-state'
 
 const user = ref<AdminUserDetail | null>(null)
@@ -54,6 +54,13 @@ vi.mock('@/stores/session.store', () => ({
     principal: { display_name: 'Admin Sentinel' },
     hasPermission: () => true,
   }),
+}))
+
+// The ready-state page now mounts UserRoleAssignment, which fires
+// useAsyncData('admin-roles-list', () => rolesApi.list()). Mock the service so the
+// 4.8 ready-state tests stay deterministic and never hit the real backend.
+vi.mock('@/services/roles.api', () => ({
+  rolesApi: { list: vi.fn<() => Promise<RolesResponse>>(async () => ({ roles: [] })) },
 }))
 
 // A raw session id that MUST NOT survive into the rendered tree — the page keys

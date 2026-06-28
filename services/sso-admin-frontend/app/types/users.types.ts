@@ -146,3 +146,23 @@ export type ReasonPayload = {
 export type AssignRolesPayload = {
   readonly role_slugs: readonly [string]
 }
+
+// GET /admin/api/roles — masked governance DTO (no token/secret/PII). Both
+// `user_count` and `users_count` are returned by the backend (same value); the
+// frontend treats them as interchangeable counters.
+export type AdminRole = {
+  readonly id: number
+  readonly slug: string
+  readonly name: string
+  readonly description: string | null
+  readonly is_system: boolean
+  readonly permissions: readonly {
+    readonly slug: string
+    readonly name: string
+    readonly category: string | null
+  }[]
+  readonly user_count: number
+  readonly users_count: number
+}
+
+export type RolesResponse = { readonly roles: readonly AdminRole[] }

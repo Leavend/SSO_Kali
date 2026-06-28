@@ -17,6 +17,7 @@ import UiDataList, {
 import UiFolio from '@/components/ui/UiFolio.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UserLifecycleActions from '@/components/users/UserLifecycleActions.vue'
+import UserRoleAssignment from '@/components/users/UserRoleAssignment.vue'
 
 definePageMeta({
   name: 'admin.users.detail',
@@ -249,6 +250,8 @@ async function onBack(): Promise<void> {
           </li>
         </ul>
         <p v-else class="user-detail__muted">—</p>
+
+        <UserRoleAssignment v-if="user" :user="user" @done="refresh" />
       </section>
 
       <section class="user-detail__panel" data-panel="sessions" aria-labelledby="sessions-heading">
