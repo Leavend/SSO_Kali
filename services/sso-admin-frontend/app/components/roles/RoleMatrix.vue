@@ -102,7 +102,8 @@ function saveEnabled(slug: string): boolean {
           v-if="!role.is_system"
           :data-testid="`role-cell-${role.slug}-${row.id}`"
           :model-value="granted(role.slug, row.id)"
-          :label="`${role.name}: ${row['permission']}`"
+          label=""
+          :aria-label="`${role.name}: ${row['permission']}`"
           :disabled="!canWrite"
           @update:model-value="onToggle(role.slug, row.id, $event)"
         />

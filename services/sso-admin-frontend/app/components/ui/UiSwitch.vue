@@ -2,6 +2,7 @@
 interface Props {
   readonly modelValue: boolean
   readonly label: string
+  readonly ariaLabel?: string
   readonly disabled?: boolean
 }
 
@@ -24,7 +25,7 @@ function handleLabelClick(): void {
       type="button"
       role="switch"
       :aria-checked="modelValue"
-      :aria-label="label"
+      :aria-label="ariaLabel ?? label"
       :disabled="disabled"
       @click="emit('update:modelValue', !modelValue)"
     >
@@ -32,7 +33,7 @@ function handleLabelClick(): void {
         <span class="ui-switch__thumb" />
       </span>
     </button>
-    <span class="ui-switch__label" @click="handleLabelClick()">
+    <span v-if="label" class="ui-switch__label" @click="handleLabelClick()">
       {{ label }}
     </span>
   </div>

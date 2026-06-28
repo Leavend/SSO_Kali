@@ -65,6 +65,22 @@ describe('Swiss form controls', () => {
     expect(sw.attributes('aria-checked')).toBe('true')
   })
 
+  it('UiSwitch ariaLabel overrides accessible name; visible span absent when label is empty', () => {
+    const wrapper = mount(UiSwitch, {
+      props: { modelValue: false, label: '', ariaLabel: 'Editor: Read roles' },
+    })
+    expect(wrapper.get('[role="switch"]').attributes('aria-label')).toBe('Editor: Read roles')
+    expect(wrapper.find('.ui-switch__label').exists()).toBe(false)
+  })
+
+  it('UiSwitch shows visible label span when label is non-empty, even with ariaLabel set', () => {
+    const wrapper = mount(UiSwitch, {
+      props: { modelValue: false, label: 'Enabled', ariaLabel: 'Verbose name' },
+    })
+    expect(wrapper.get('[role="switch"]').attributes('aria-label')).toBe('Verbose name')
+    expect(wrapper.get('.ui-switch__label').text()).toBe('Enabled')
+  })
+
   it('UiTextarea forwards rows and emits the edited value', async () => {
     const wrapper = mount(UiTextarea, { props: { modelValue: '', rows: 6 } })
     const ta = wrapper.get('textarea')

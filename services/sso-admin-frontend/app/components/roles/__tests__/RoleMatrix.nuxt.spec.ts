@@ -79,11 +79,13 @@ describe('RoleMatrix', () => {
     // every switch belongs to the custom column, never the system column
     const ids = switches.map((s) => s.attributes('data-testid'))
     expect(ids.every((id) => id?.startsWith('role-cell-editor-'))).toBe(true)
-    // a11y label names role + permission even though the column header repeats it
+    // a11y label names role + permission even though the column header repeats it;
+    // the visible label span must be absent (empty label → no visible verbose text)
     const readRolesSwitch = wrapper.get('[data-testid="role-cell-editor-roles.read"]')
     expect(readRolesSwitch.get('button[role="switch"]').attributes('aria-label')).toBe(
       'Editor: Read roles',
     )
+    expect(readRolesSwitch.find('.ui-switch__label').exists()).toBe(false)
     expect(readRolesSwitch.get('button[role="switch"]').attributes('aria-checked')).toBe('true')
     expect(
       wrapper
