@@ -344,7 +344,17 @@
     "reset_password_success_title": "Reset sandi diantrikan",
     "reset_password_success_desc": "Tautan reset sandi sedang diantrikan untuk dikirim ke email user.",
     "reset_password_failed_title": "Reset sandi gagal dikirim",
-    "reset_password_failed_desc": "Tautan reset sandi tersimpan tetapi gagal dikirim. Coba lagi."
+    "reset_password_failed_desc": "Tautan reset sandi tersimpan tetapi gagal dikirim. Coba lagi.",
+    "signed_in_as": "Masuk sebagai {name}",
+    "filter_status": "Saring status",
+    "filter_all": "Semua status",
+    "col_view": "Lihat",
+    "status_active": "Aktif",
+    "status_locked": "Terkunci",
+    "status_disabled": "Dinonaktifkan",
+    "status_deactivated": "Deaktivasi",
+    "page_next": "Berikutnya",
+    "page_previous": "Sebelumnya"
   },
   "clients": {
     "eyebrow": "Manajemen Klien",

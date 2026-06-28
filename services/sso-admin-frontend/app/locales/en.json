@@ -344,7 +344,17 @@
     "reset_password_success_title": "Password reset queued",
     "reset_password_success_desc": "Password reset link queued for delivery to the user's email.",
     "reset_password_failed_title": "Password reset delivery failed",
-    "reset_password_failed_desc": "Password reset token was saved but delivery failed. Please try again."
+    "reset_password_failed_desc": "Password reset token was saved but delivery failed. Please try again.",
+    "signed_in_as": "Signed in as {name}",
+    "filter_status": "Filter status",
+    "filter_all": "All statuses",
+    "col_view": "View",
+    "status_active": "Active",
+    "status_locked": "Locked",
+    "status_disabled": "Disabled",
+    "status_deactivated": "Deactivated",
+    "page_next": "Next",
+    "page_previous": "Previous"
   },
   "clients": {
     "eyebrow": "Client Management",
