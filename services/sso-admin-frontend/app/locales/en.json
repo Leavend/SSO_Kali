@@ -626,6 +626,50 @@
     "no_session_desc": "Select a session from the list to view activity details and termination controls."
   },
   "observability": {
+    "compliance": {
+      "eyebrow": "Compliance Evidence",
+      "title": "Audit Compliance",
+      "summary": "Retention windows, audit/evidence exports, and the data-subject-request queue.",
+      "signed_in_as": "Signed in as {name}",
+      "loading": "Loading compliance console",
+      "forbidden_title": "Compliance access denied",
+      "error_title": "Compliance console could not be loaded",
+      "stale_banner": "Showing the last successful snapshot — a background refresh failed.",
+      "retention": {
+        "title": "Retention status",
+        "generated_at": "Generated",
+        "category": "Category",
+        "window": "Window",
+        "schedule": "Schedule",
+        "last_pruned": "Last pruned",
+        "not_pruned": "Never run",
+        "candidate_rows": "Candidate rows",
+        "empty_title": "No retention evidence",
+        "empty_desc": "No retention windows have been recorded yet."
+      },
+      "export": { "title": "Export & evidence pack" },
+      "dsr": {
+        "title": "DSR queue",
+        "shown": "Shown",
+        "search_placeholder": "Search by request or account code",
+        "status_filter": "Filter by status",
+        "status": {
+          "all": "All statuses",
+          "submitted": "Submitted",
+          "approved": "Approved",
+          "rejected": "Rejected",
+          "fulfilled": "Fulfilled",
+          "cancelled": "Cancelled",
+          "on_hold": "On hold"
+        },
+        "empty_title": "No data-subject requests",
+        "empty_desc": "No DSR has been submitted for the current filter.",
+        "review_title": "Review request",
+        "review_desc": "Approve, reject, or fulfill this data-subject request.",
+        "page_previous": "Previous",
+        "page_next": "Next"
+      }
+    },
     "eyebrow": "Operations",
     "title": "Observability",
     "summary": "Service health, queue and authentication metrics, recent events, and trace availability.",

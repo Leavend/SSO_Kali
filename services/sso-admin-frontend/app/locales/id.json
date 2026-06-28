@@ -626,6 +626,50 @@
     "no_session_desc": "Pilih sesi dari daftar untuk melihat detail aktivitas dan kontrol terminasi."
   },
   "observability": {
+    "compliance": {
+      "eyebrow": "Bukti Kepatuhan",
+      "title": "Kepatuhan Audit",
+      "summary": "Jendela retensi, ekspor audit/bukti, dan antrean permintaan subjek data.",
+      "signed_in_as": "Masuk sebagai {name}",
+      "loading": "Memuat konsol kepatuhan",
+      "forbidden_title": "Akses kepatuhan ditolak",
+      "error_title": "Konsol kepatuhan tidak dapat dimuat",
+      "stale_banner": "Menampilkan snapshot sukses terakhir — refresh latar belakang gagal.",
+      "retention": {
+        "title": "Status retensi",
+        "generated_at": "Dibuat",
+        "category": "Kategori",
+        "window": "Jendela",
+        "schedule": "Jadwal",
+        "last_pruned": "Terakhir dipangkas",
+        "not_pruned": "Belum pernah",
+        "candidate_rows": "Baris kandidat",
+        "empty_title": "Tidak ada bukti retensi",
+        "empty_desc": "Belum ada jendela retensi yang tercatat."
+      },
+      "export": { "title": "Ekspor & paket bukti" },
+      "dsr": {
+        "title": "Antrean DSR",
+        "shown": "Ditampilkan",
+        "search_placeholder": "Cari berdasarkan permintaan atau kode akun",
+        "status_filter": "Saring berdasarkan status",
+        "status": {
+          "all": "Semua status",
+          "submitted": "Diajukan",
+          "approved": "Disetujui",
+          "rejected": "Ditolak",
+          "fulfilled": "Dipenuhi",
+          "cancelled": "Dibatalkan",
+          "on_hold": "Ditangguhkan"
+        },
+        "empty_title": "Tidak ada permintaan subjek data",
+        "empty_desc": "Tidak ada DSR yang diajukan untuk filter saat ini.",
+        "review_title": "Tinjau permintaan",
+        "review_desc": "Setujui, tolak, atau penuhi permintaan subjek data ini.",
+        "page_previous": "Sebelumnya",
+        "page_next": "Berikutnya"
+      }
+    },
     "eyebrow": "Operasi",
     "title": "Observabilitas",
     "summary": "Kesehatan layanan, metrik antrean dan autentikasi, peristiwa terbaru, dan ketersediaan trace.",
