@@ -178,8 +178,12 @@ describe('toClientCreatePayload', () => {
   })
 
   it('throws when client_type or category is unset', () => {
-    expect(() => toClientCreatePayload({ ...baseForm(), client_type: null }, ['openid'])).toThrow()
-    expect(() => toClientCreatePayload({ ...baseForm(), category: '' }, ['openid'])).toThrow()
+    expect(() => toClientCreatePayload({ ...baseForm(), client_type: null }, ['openid'])).toThrow(
+      'client_type is required',
+    )
+    expect(() => toClientCreatePayload({ ...baseForm(), category: '' }, ['openid'])).toThrow(
+      'category is required',
+    )
   })
 })
 
