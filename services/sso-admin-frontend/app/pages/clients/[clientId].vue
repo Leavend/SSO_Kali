@@ -13,6 +13,9 @@ import UiEmptyState from '@/components/ui/UiEmptyState.vue'
 import UiStatusBadge from '@/components/ui/UiStatusBadge.vue'
 import UiFolio from '@/components/ui/UiFolio.vue'
 import UiButton from '@/components/ui/UiButton.vue'
+import ClientMetadataForm from '@/components/clients/ClientMetadataForm.vue'
+import ClientUriPolicyForm from '@/components/clients/ClientUriPolicyForm.vue'
+import ClientScopePolicyForm from '@/components/clients/ClientScopePolicyForm.vue'
 
 definePageMeta({
   name: 'admin.clients.detail',
@@ -35,7 +38,8 @@ const { client, viewState, requestId, refresh } = useClientDetail(clientId)
 // never shows when the catalog is unreachable; it never blocks the read surface.
 const { scopes: scopeCatalog } = useScopeCatalog()
 
-// canWrite gates the (later-mounted) edit/action controls; this task ships none.
+// canWrite gates the inline edit forms (admin.clients.write); the forms own their
+// own usePrivilegedAction runner + :write step-up window.
 const canWrite = computed<boolean>(() => store.hasPermission('admin.clients.write'))
 
 const headerTitle = computed<string>(
@@ -72,10 +76,6 @@ async function onRefresh(): Promise<void> {
 async function onBack(): Promise<void> {
   await navigateTo({ name: 'admin.clients' })
 }
-
-// ponytail: canWrite is computed but used only as a mount-point gate comment for
-// 5.11–5.13; suppress the unused-variable lint warning by referencing it once.
-void canWrite.value
 </script>
 
 <template>
@@ -189,7 +189,7 @@ void canWrite.value
             </dd>
           </div>
         </dl>
-        <!-- 5.11 ClientMetadataForm mounts here when canWrite (admin.clients.write) -->
+        <ClientMetadataForm v-if="canWrite" :client="client" @done="refresh" />
       </section>
 
       <section class="client-detail__panel" data-panel="uris" aria-labelledby="uris-heading">
@@ -210,7 +210,7 @@ void canWrite.value
         <p class="client-detail__value">
           {{ client.backchannel_logout_uri || t('clients.val_not_set') }}
         </p>
-        <!-- 5.11 ClientUriPolicyForm mounts here when canWrite (admin.clients.write) -->
+        <ClientUriPolicyForm v-if="canWrite" :client="client" @done="refresh" />
       </section>
 
       <section class="client-detail__panel" data-panel="scopes" aria-labelledby="scopes-heading">
@@ -226,7 +226,12 @@ void canWrite.value
           </li>
         </ul>
         <p v-else class="client-detail__muted">{{ t('clients.no_scopes') }}</p>
-        <!-- 5.11 ClientScopePolicyForm mounts here when canWrite (admin.clients.write) -->
+        <ClientScopePolicyForm
+          v-if="canWrite"
+          :client="client"
+          :catalog="scopeCatalog"
+          @done="refresh"
+        />
       </section>
 
       <section
@@ -278,10 +283,15 @@ void canWrite.value
               <span v-else>{{ t('clients.val_not_set') }}</span>
             </dd>
           </div>
-          <div v-if="client.disabled_at" class="client-detail__field">
+          <div class="client-detail__field">
             <dt>{{ t('clients.lc_disabled') }}</dt>
             <dd>
-              <UiFolio :value="client.disabled_at" variant="timestamp" />
+              <UiFolio
+                v-if="client.disabled_at"
+                :value="client.disabled_at"
+                variant="timestamp"
+              />
+              <span v-else>{{ t('clients.val_not_set') }}</span>
             </dd>
           </div>
           <div class="client-detail__field">

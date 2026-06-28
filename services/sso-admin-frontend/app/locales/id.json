@@ -524,6 +524,8 @@
     "btn_save_metadata": "Simpan metadata",
     "btn_save_uri_policy": "Simpan URI policy",
     "btn_save_scope_policy": "Simpan scope policy",
+    "btn_step_up": "Autentikasi ulang",
+    "actions_none": "Anda tidak memiliki izin untuk menyunting klien ini.",
     "btn_rotate_secret": "Rotate secret",
     "btn_disable_client": "Disable client",
     "btn_decommission_client": "Decommission client",

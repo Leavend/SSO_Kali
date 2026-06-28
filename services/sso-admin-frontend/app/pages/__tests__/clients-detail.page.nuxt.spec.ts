@@ -2,13 +2,16 @@
 // (useRoute + useI18n + definePageMeta auto-imports). Data boundary + scope
 // catalog + session store are mocked so each ClientDetailViewState is deterministic.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import { mountSuspended } from '@nuxt/test-utils/runtime'
 import enLocale from '@/locales/en.json'
 import UiSkeleton from '@/components/ui/UiSkeleton.vue'
 import UiStatusView from '@/components/ui/UiStatusView.vue'
 import UiEmptyState from '@/components/ui/UiEmptyState.vue'
 import UiStatusBadge from '@/components/ui/UiStatusBadge.vue'
+import ClientMetadataForm from '@/components/clients/ClientMetadataForm.vue'
+import ClientUriPolicyForm from '@/components/clients/ClientUriPolicyForm.vue'
+import ClientScopePolicyForm from '@/components/clients/ClientScopePolicyForm.vue'
 import type { AdminClientDetail, ScopeCatalogEntry } from '@/types/clients.types'
 import type { ClientDetailViewState } from '@/lib/clients/clients-view-state'
 
@@ -43,10 +46,13 @@ vi.mock('@/composables/useScopeCatalog', () => ({
   useScopeCatalog: () => ({ scopes, pending: computed(() => false), error: computed(() => null) }),
 }))
 
+// Permission-aware session double: the write forms (Task 5.11) mount only under
+// admin.clients.write, so the mock reads a mutable allow-list per test.
+let permitted: string[] = []
 vi.mock('@/stores/session.store', () => ({
   useSessionStore: () => ({
     principal: { display_name: 'Admin Sentinel' },
-    hasPermission: () => true,
+    hasPermission: (p: string) => permitted.includes(p),
   }),
 }))
 
@@ -90,6 +96,9 @@ beforeEach(() => {
   viewState.value = 'loading'
   requestId.value = null
   scopes.value = []
+  // Default: full clients access so the read-surface tests render as before; the
+  // write-form tests narrow this per-case.
+  permitted = ['admin.clients.read', 'admin.clients.write']
   vi.clearAllMocks()
 })
 afterEach(() => vi.clearAllMocks())
@@ -216,13 +225,19 @@ describe('client detail page', () => {
     expect(lifecycle.text()).toContain('jit') // provisioning
   })
 
-  it('ready → hero exposes a consent-trail link; this surface has NO write control', async () => {
+  it('ready → hero exposes a consent-trail link; no destructive lifecycle control yet (5.12–5.13)', async () => {
     viewState.value = 'ready'
     client.value = READY_CLIENT
     const wrapper = await mountSuspended(ClientDetail)
     expect(wrapper.find('[data-consent-trail]').exists()).toBe(true)
-    // Read-only: no rotate/disable/decommission/delete/save controls yet (5.11–5.13).
-    expect(wrapper.text()).not.toMatch(/rotate|disable|decommission|delete|save/i)
+    // Task 5.11 ships the Save edit forms, so the old full-text scan is retargeted
+    // at INTERACTIVE elements (buttons + links): the destructive secret-rotation
+    // (5.12) and lifecycle (5.13) controls do NOT exist yet. Descriptive evidence
+    // copy like "Secret rotated" / "Disabled" in dt/dd labels is not a control.
+    const controls = [...wrapper.findAll('button'), ...wrapper.findAll('a')].map((el) => el.text())
+    for (const label of controls) {
+      expect(label).not.toMatch(/rotate|disable|decommission|delete/i)
+    }
   })
 
   it('never serializes a client secret value or field name into the SSR HTML', async () => {
@@ -232,5 +247,51 @@ describe('client detail page', () => {
     expect(html).not.toMatch(/client_secret|clientSecret/i)
     expect(html).not.toContain(SECRET_CANARY)
     expect(html).not.toMatch(/access_token|refresh_token|id_token|Bearer/)
+  })
+})
+
+describe('clients detail page — write forms (Task 5.11)', () => {
+  it('mounts the three edit forms when the operator may write', async () => {
+    permitted = ['admin.clients.read', 'admin.clients.write']
+    viewState.value = 'ready'
+    client.value = READY_CLIENT
+    scopes.value = CATALOG
+    const page = await mountSuspended(ClientDetail)
+    expect(page.findComponent(ClientMetadataForm).exists()).toBe(true)
+    expect(page.findComponent(ClientUriPolicyForm).exists()).toBe(true)
+    expect(page.findComponent(ClientScopePolicyForm).exists()).toBe(true)
+  })
+
+  it('hides the edit forms for a read-only operator', async () => {
+    permitted = ['admin.clients.read']
+    viewState.value = 'ready'
+    client.value = READY_CLIENT
+    const page = await mountSuspended(ClientDetail)
+    expect(page.findComponent(ClientMetadataForm).exists()).toBe(false)
+    expect(page.findComponent(ClientUriPolicyForm).exists()).toBe(false)
+    expect(page.findComponent(ClientScopePolicyForm).exists()).toBe(false)
+  })
+
+  it('refreshes detail when a form emits done', async () => {
+    permitted = ['admin.clients.read', 'admin.clients.write']
+    viewState.value = 'ready'
+    client.value = READY_CLIENT
+    const page = await mountSuspended(ClientDetail)
+    refreshMock.mockClear()
+    page.findComponent(ClientMetadataForm).vm.$emit('done')
+    await nextTick()
+    expect(refreshMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('never serialises a client secret or token field into the SSR HTML with forms mounted', async () => {
+    permitted = ['admin.clients.read', 'admin.clients.write']
+    viewState.value = 'ready'
+    client.value = READY_CLIENT
+    scopes.value = CATALOG
+    const html = (await mountSuspended(ClientDetail)).html()
+    expect(html).not.toMatch(/client_secret|clientSecret|access_token|accessToken|refresh_token/i)
+    expect(html).not.toContain(SECRET_CANARY)
+    // client_id is a public identifier and IS allowed to appear.
+    expect(html).toContain('selamat-kerja')
   })
 })
