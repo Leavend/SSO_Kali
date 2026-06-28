@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { buildAdminApiRequest } from '../utils/admin-proxy'
+import { buildProxyResponseHeaders } from '../utils/proxy-headers'
 import type { PortalSession } from '../utils/session'
 
 const session: PortalSession = {
@@ -96,6 +97,66 @@ describe('admin BFF API proxy', () => {
     expect(request.url).toBe('https://backend.internal/admin/api/observability/summary')
     expect(headers(request).get('Authorization')).toBe('Bearer access-token-admin')
     expect(headers(request).get('X-Request-Id')).toBe('req-observability')
+  })
+
+  it('allows GET /api/admin/audit/export through the proxy and preserves the export query', () => {
+    const request = buildAdminApiRequest({
+      internalBaseUrl: 'https://backend.internal',
+      pathname: '/api/admin/audit/export',
+      search: '?format=csv&from=2026-01-01&to=2026-01-31',
+      method: 'GET',
+      headers: { 'x-request-id': 'req-export' },
+      session,
+    })
+
+    expect(request.url).toBe(
+      'https://backend.internal/admin/api/audit/export?format=csv&from=2026-01-01&to=2026-01-31',
+    )
+    expect(headers(request).get('Authorization')).toBe('Bearer access-token-admin')
+  })
+
+  it('allows GET /api/admin/compliance/evidence-pack through the proxy', () => {
+    const request = buildAdminApiRequest({
+      internalBaseUrl: 'https://backend.internal',
+      pathname: '/api/admin/compliance/evidence-pack',
+      search: '?format=zip&correlation_id=corr-1',
+      method: 'GET',
+      headers: { 'x-request-id': 'req-evidence' },
+      session,
+    })
+
+    expect(request.url).toBe(
+      'https://backend.internal/admin/api/compliance/evidence-pack?format=zip&correlation_id=corr-1',
+    )
+    expect(headers(request).get('Authorization')).toBe('Bearer access-token-admin')
+  })
+
+  it('passes Content-Type/Content-Disposition through for a binary upstream and never logs the body (binary passthrough + no-body-logging, asserted not assumed)', () => {
+    // ponytail: the proxy fully buffers the download (Buffer.from(await
+    // response.arrayBuffer())) before returning it untouched — known ceiling;
+    // stream if export size grows. The header forwarder below is the ONLY proxy
+    // seam that processes a binary response, and it takes headers, never the body
+    // — so the binary bytes are structurally unreachable to any logger.
+    const consoleSpies = (['log', 'info', 'warn', 'error', 'debug'] as const).map((method) =>
+      vi.spyOn(console, method).mockImplementation(() => {}),
+    )
+    const upstream = new Headers()
+    upstream.set('Content-Type', 'application/zip')
+    upstream.set('Content-Disposition', 'attachment; filename="compliance-evidence-pack.zip"')
+    upstream.set('Content-Length', '40961') // framing header — must be stripped, not forwarded
+
+    const forwarded = buildProxyResponseHeaders(upstream)
+
+    expect(forwarded['content-type']).toBe('application/zip')
+    expect(forwarded['content-disposition']).toBe(
+      'attachment; filename="compliance-evidence-pack.zip"',
+    )
+    expect(forwarded['content-length']).toBeUndefined()
+    // No body (and no header forwarding) is ever written to a logger/console.
+    for (const spy of consoleSpies) {
+      expect(spy).not.toHaveBeenCalled()
+      spy.mockRestore()
+    }
   })
 
   it('rejects unlisted admin proxy paths before reaching the backend', () => {
