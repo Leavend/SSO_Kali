@@ -49,10 +49,11 @@ const dashboardSummary = {
   },
 }
 
-test.beforeEach(async ({ page }) => {
-  await page.addInitScript(() => {
-    window.localStorage.setItem('dev-sso-admin-locale', 'en')
-  })
+// useI18n resolves locale from the `admin_locale` cookie at SSR time (DEFAULT_LOCALE='id');
+// the legacy `dev-sso-admin-locale` localStorage bridge does not exist in the Nuxt stack, so
+// set the cookie on the context for the English-label selectors below to resolve.
+test.beforeEach(async ({ context, baseURL }) => {
+  await context.addCookies([{ name: 'admin_locale', value: 'en', url: baseURL! }])
 })
 
 test('renders permission-aware admin shell and dashboard summary evidence', async ({ page }) => {
