@@ -42,7 +42,7 @@ const runMock = vi.fn<(runner: () => Promise<unknown>) => Promise<unknown>>(asyn
     isSubmitting.value = false
   }
 })
-const resetMock = vi.fn(() => {
+const resetMock = vi.fn<() => void>(() => {
   status.value = 'idle'
   failure.value = null
 })
@@ -62,7 +62,7 @@ vi.mock('@/composables/usePrivilegedAction', () => ({
 
 // --- navigateTo -------------------------------------------------------------
 // vi.hoisted ensures navigateMock is created before mockNuxtImport's hoisted factory runs
-const navigateMock = vi.hoisted(() => vi.fn(async () => {}))
+const navigateMock = vi.hoisted(() => vi.fn<() => Promise<void>>(async () => {}))
 mockNuxtImport('navigateTo', () => navigateMock)
 
 function makeCreated(subjectId: string): CreateUserResponse {
