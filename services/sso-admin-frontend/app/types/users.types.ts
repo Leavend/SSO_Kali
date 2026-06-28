@@ -166,3 +166,36 @@ export type AdminRole = {
 }
 
 export type RolesResponse = { readonly roles: readonly AdminRole[] }
+
+// GET /admin/api/permissions — the permission catalog item. Distinct from the
+// inline AdminRole.permissions[] element ({ slug; name; category }): the catalog
+// item additionally carries `description`. Public governance config — no PII.
+export type AdminPermission = {
+  readonly slug: string
+  readonly name: string
+  readonly description: string | null
+  readonly category: string | null
+}
+
+export type PermissionsResponse = { readonly permissions: readonly AdminPermission[] }
+
+// POST /admin/api/roles
+export type CreateRolePayload = {
+  readonly slug: string
+  readonly name: string
+  readonly description?: string | null
+  readonly permission_slugs?: readonly string[]
+}
+
+// PATCH /admin/api/roles/{slug} — metadata only (name/description); slug immutable.
+export type UpdateRolePayload = {
+  readonly name?: string
+  readonly description?: string | null
+}
+
+// PUT /admin/api/roles/{slug}/permissions — full-replace permission set.
+export type SyncPermissionsPayload = { readonly permission_slugs: readonly string[] }
+
+export type RoleMutationResponse = { readonly role: AdminRole }
+
+export type RoleDeleteResponse = { readonly deleted: boolean; readonly role_slug: string }
