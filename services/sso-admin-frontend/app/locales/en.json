@@ -242,7 +242,16 @@
     "col_users": "Users",
     "col_status": "Status",
     "detail_desc": "Role detail and management actions",
-    "close_detail": "Close role detail"
+    "close_detail": "Close role detail",
+    "signed_in_as": "Signed in as {name}",
+    "search_placeholder": "Search roles",
+    "label_search": "Search roles",
+    "page_next": "Next",
+    "page_previous": "Previous",
+    "col_permission": "Permission",
+    "col_category": "Category",
+    "granted": "Granted",
+    "denied": "Denied"
   },
   "users": {
     "eyebrow": "User Lifecycle",

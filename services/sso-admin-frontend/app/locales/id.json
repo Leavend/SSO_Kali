@@ -242,7 +242,16 @@
     "col_users": "Pengguna",
     "col_status": "Status",
     "detail_desc": "Detail peran dan aksi pengelolaan",
-    "close_detail": "Tutup detail peran"
+    "close_detail": "Tutup detail peran",
+    "signed_in_as": "Masuk sebagai {name}",
+    "search_placeholder": "Cari peran",
+    "label_search": "Cari peran",
+    "page_next": "Berikutnya",
+    "page_previous": "Sebelumnya",
+    "col_permission": "Izin",
+    "col_category": "Kategori",
+    "granted": "Diberikan",
+    "denied": "Ditolak"
   },
   "users": {
     "eyebrow": "User Lifecycle",
