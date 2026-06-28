@@ -73,6 +73,8 @@ const ALLOWED_ADMIN_ROUTE_PATTERNS: readonly RegExp[] = [
   new RegExp(`^POST /api/admin/users/${SUBJECT_ID_PATTERN}/password-reset$`, 'u'),
   new RegExp(`^POST /api/admin/users/${SUBJECT_ID_PATTERN}/reset-mfa$`, 'u'),
   new RegExp(`^POST /api/admin/users/${SUBJECT_ID_PATTERN}/sync-profile$`, 'u'),
+  new RegExp(`^POST /api/admin/users/${SUBJECT_ID_PATTERN}/require-mfa$`, 'u'),
+  new RegExp(`^POST /api/admin/users/${SUBJECT_ID_PATTERN}/unrequire-mfa$`, 'u'),
   new RegExp(`^DELETE /api/admin/users/${SUBJECT_ID_PATTERN}/sessions$`, 'u'),
   new RegExp(`^PUT /api/admin/users/${SUBJECT_ID_PATTERN}/roles$`, 'u'),
   new RegExp(`^GET /api/admin/sessions/${SESSION_ID_PATTERN}$`, 'u'),

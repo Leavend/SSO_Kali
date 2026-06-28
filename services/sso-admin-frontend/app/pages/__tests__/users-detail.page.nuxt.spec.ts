@@ -219,4 +219,30 @@ describe('user detail page', () => {
     // No terminate/revoke control on this read-only surface (added in 4.11).
     expect(wrapper.text()).not.toMatch(/revoke|terminate/i)
   })
+
+  it('mounts the lifecycle actions and refreshes detail after a successful action', async () => {
+    viewState.value = 'ready'
+    user.value = READY_USER
+    loginContext.value = LOGIN
+    sessions.value = SESSIONS
+    const wrapper = await mountSuspended(UserDetail)
+    // Nuxt auto-registers the SFC under its path-prefixed name
+    // (components dir: users/UserLifecycleActions.vue → UsersUserLifecycleActions).
+    const actions = wrapper.findComponent({ name: 'UsersUserLifecycleActions' })
+    expect(actions.exists()).toBe(true)
+    actions.vm.$emit('done')
+    await wrapper.vm.$nextTick()
+    expect(refreshMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('never serializes raw NIK/NIP/NISN into the SSR HTML', async () => {
+    viewState.value = 'ready'
+    user.value = READY_USER
+    loginContext.value = LOGIN
+    sessions.value = SESSIONS
+    const html = (await mountSuspended(UserDetail)).html()
+    expect(html).not.toMatch(/\b\d{16}\b/) // raw NIK
+    expect(html).not.toMatch(/\b\d{18}\b/) // raw NIP
+    expect(html).not.toMatch(/\b\d{10}\b/) // raw NISN
+  })
 })

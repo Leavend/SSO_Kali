@@ -16,6 +16,7 @@ import UiDataList, {
 } from '@/components/ui/UiDataList.vue'
 import UiFolio from '@/components/ui/UiFolio.vue'
 import UiButton from '@/components/ui/UiButton.vue'
+import UserLifecycleActions from '@/components/users/UserLifecycleActions.vue'
 
 definePageMeta({
   name: 'admin.users.detail',
@@ -262,6 +263,13 @@ async function onBack(): Promise<void> {
           :total="sessionRows.length"
         />
         <p v-else class="user-detail__muted">{{ t('users.no_sessions') }}</p>
+      </section>
+
+      <section class="user-detail__panel" data-panel="actions" aria-labelledby="actions-heading">
+        <h2 id="actions-heading" class="user-detail__panel-title">
+          {{ t('users.lifecycle_title') }}
+        </h2>
+        <UserLifecycleActions :user="user" @done="refresh" />
       </section>
     </div>
   </section>

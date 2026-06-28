@@ -44,6 +44,32 @@ describe('admin BFF API proxy', () => {
     expect(headers(request).get('X-Request-Id')).toBe('req-1')
   })
 
+  it('allows POST /api/admin/users/:sub/require-mfa through the admin BFF API proxy', () => {
+    const request = buildAdminApiRequest({
+      internalBaseUrl: 'https://backend.internal',
+      pathname: '/api/admin/users/sub_admin/require-mfa',
+      search: '',
+      method: 'POST',
+      headers: { accept: 'application/json', 'x-request-id': 'req-rmfa' },
+      session,
+    })
+    expect(request.url).toBe('https://backend.internal/admin/api/users/sub_admin/require-mfa')
+    expect(headers(request).get('Authorization')).toBe('Bearer access-token-admin')
+  })
+
+  it('allows POST /api/admin/users/:sub/unrequire-mfa through the admin BFF API proxy', () => {
+    const request = buildAdminApiRequest({
+      internalBaseUrl: 'https://backend.internal',
+      pathname: '/api/admin/users/sub_admin/unrequire-mfa',
+      search: '',
+      method: 'POST',
+      headers: { accept: 'application/json', 'x-request-id': 'req-urmfa' },
+      session,
+    })
+    expect(request.url).toBe('https://backend.internal/admin/api/users/sub_admin/unrequire-mfa')
+    expect(headers(request).get('Authorization')).toBe('Bearer access-token-admin')
+  })
+
   it('keeps operational readiness mapped to the backend health endpoint', () => {
     const request = buildAdminApiRequest({
       internalBaseUrl: 'https://backend.internal/',
