@@ -553,7 +553,17 @@
     "sub_delete_title": "Hapus permanen client",
     "delete_hint": "Tindakan sangat destruktif: menghapus client secara permanen dari database. Tindakan ini tidak dapat dibatalkan.",
     "delete_placeholder": "Ketik client ID",
-    "delete_confirmation_error": "Ketik client ID untuk konfirmasi hapus permanen."
+    "delete_confirmation_error": "Ketik client ID untuk konfirmasi hapus permanen.",
+    "signed_in_as": "Masuk sebagai {name}",
+    "filter_status": "Saring berdasarkan status",
+    "filter_all": "Semua status",
+    "col_category": "Kategori",
+    "page_next": "Berikutnya",
+    "page_previous": "Sebelumnya",
+    "status_active": "Aktif",
+    "status_staged": "Disiapkan",
+    "status_disabled": "Dinonaktifkan",
+    "status_decommissioned": "Dihentikan"
   },
   "sessions": {
     "title": "Sesi",

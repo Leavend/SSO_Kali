@@ -553,7 +553,17 @@
     "sub_delete_title": "Permanently delete client",
     "delete_hint": "Highly destructive action: permanently deletes the client from the database. This cannot be undone.",
     "delete_placeholder": "Type client ID",
-    "delete_confirmation_error": "Type the client ID to confirm permanent deletion."
+    "delete_confirmation_error": "Type the client ID to confirm permanent deletion.",
+    "signed_in_as": "Signed in as {name}",
+    "filter_status": "Filter by status",
+    "filter_all": "All statuses",
+    "col_category": "Category",
+    "page_next": "Next",
+    "page_previous": "Previous",
+    "status_active": "Active",
+    "status_staged": "Staged",
+    "status_disabled": "Disabled",
+    "status_decommissioned": "Decommissioned"
   },
   "sessions": {
     "title": "Sessions",
