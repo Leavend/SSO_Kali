@@ -199,6 +199,38 @@ describe('admin BFF API proxy', () => {
     expect(request.init.method).toBe('POST')
   })
 
+  it('allows POST /api/admin/client-integrations/:id/activate through the admin BFF API proxy', () => {
+    const request = buildAdminApiRequest({
+      internalBaseUrl: 'https://backend.internal',
+      pathname: '/api/admin/client-integrations/newapp/activate',
+      search: '',
+      method: 'POST',
+      headers: { accept: 'application/json', 'x-request-id': 'req-activate' },
+      session,
+    })
+
+    expect(request.url).toBe(
+      'https://backend.internal/admin/api/client-integrations/newapp/activate',
+    )
+    expect(request.init.method).toBe('POST')
+    expect(headers(request).get('Authorization')).toBe('Bearer access-token-admin')
+  })
+
+  it('rejects POST /api/admin/clients — clients are created via client-integrations, not POST /clients', () => {
+    // The split path scheme: GET /clients is allow-listed (path is known) but POST
+    // is not — so the method, not the path, is the rejection reason.
+    expect(() =>
+      buildAdminApiRequest({
+        internalBaseUrl: 'https://backend.internal',
+        pathname: '/api/admin/clients',
+        search: '',
+        method: 'POST',
+        headers: { accept: 'application/json' },
+        session,
+      }),
+    ).toThrow('Admin API proxy method is not allowed.')
+  })
+
   it('allows POST /api/admin/client-integrations through the admin BFF API proxy', () => {
     const request = buildAdminApiRequest({
       internalBaseUrl: 'https://backend.internal',

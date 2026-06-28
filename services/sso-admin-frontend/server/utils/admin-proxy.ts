@@ -65,6 +65,7 @@ const ALLOWED_ADMIN_ROUTE_PATTERNS: readonly RegExp[] = [
   new RegExp(`^POST /api/admin/clients/${CLIENT_ID_PATTERN}/rotate-secret$`, 'u'),
   new RegExp(`^POST /api/admin/client-integrations/${CLIENT_ID_PATTERN}/disable$`, 'u'),
   new RegExp(`^POST /api/admin/client-integrations/${CLIENT_ID_PATTERN}/decommission$`, 'u'),
+  new RegExp(`^POST /api/admin/client-integrations/${CLIENT_ID_PATTERN}/activate$`, 'u'),
   new RegExp(`^GET /api/admin/users/${SUBJECT_ID_PATTERN}$`, 'u'),
   new RegExp(`^POST /api/admin/users/${SUBJECT_ID_PATTERN}/lock$`, 'u'),
   new RegExp(`^POST /api/admin/users/${SUBJECT_ID_PATTERN}/unlock$`, 'u'),
