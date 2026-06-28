@@ -230,6 +230,8 @@
     "confirm_delete_desc": "Apakah kamu yakin ingin menghapus peran {target}? Tindakan ini tidak dapat dibatalkan.",
     "confirm_sync_permissions_title": "Perbarui Permission Peran?",
     "confirm_sync_permissions_desc": "Apakah kamu yakin ingin memperbarui permission untuk peran {target}? Ini akan segera mengubah hak akses di backend.",
+    "impact_users_affected": "Ini mengubah kumpulan permission untuk {count} pengguna yang memegang peran ini.",
+    "self_affect_warn": "Anda saat ini memegang peran ini — menyimpan perubahan dapat mencabut akses konsol Anda sendiri.",
     "roles_create_success": "Peran berhasil dibuat.",
     "roles_update_success": "Peran berhasil diubah.",
     "roles_delete_success": "Peran berhasil dihapus.",

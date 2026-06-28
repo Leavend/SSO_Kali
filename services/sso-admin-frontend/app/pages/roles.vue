@@ -7,10 +7,12 @@ import { useRolesList } from '@/composables/useRolesList'
 import { usePermissionCatalog } from '@/composables/usePermissionCatalog'
 import {
   buildRoleGrantMap,
+  describePermissionImpact,
   diffRoleGrants,
   togglePendingGrant,
   type RoleGrantMap,
 } from '@/lib/roles/roles-matrix'
+import { resolveBootstrapFailure } from '@/lib/auth/admin-guard-resolver'
 import { usePrivilegedAction } from '@/composables/usePrivilegedAction'
 import { rolesApi } from '@/services/roles.api'
 import type {
@@ -29,6 +31,7 @@ import UiFolio from '@/components/ui/UiFolio.vue'
 import RolesTable from '@/components/roles/RolesTable.vue'
 import RoleMatrix from '@/components/roles/RoleMatrix.vue'
 import RoleFormDialog from '@/components/roles/RoleFormDialog.vue'
+import PrivilegedActionDialog from '@/components/users/PrivilegedActionDialog.vue'
 
 definePageMeta({
   name: 'admin.roles',
@@ -180,6 +183,63 @@ function onMatrixToggle(payload: {
   )
 }
 
+// --- Sync-permissions write flow (Task 7.9) ---------------------------------
+// The highest-impact role write: editing a role's permission set changes access
+// for everyone holding it, so RoleMatrix's save routes through the reused
+// PrivilegedActionDialog with a blast-radius impact summary before the PUT.
+const sync = usePrivilegedAction<RoleMutationResponse>()
+const syncTarget = ref<AdminRole | null>(null)
+
+// originalGrants (server snapshot) + pendingGrants + the read-only dirtyRoleSlugs
+// computed all come from above — reuse, do NOT re-declare.
+const syncDiff = computed(() =>
+  syncTarget.value
+    ? diffRoleGrants(
+        originalGrants.value.get(syncTarget.value.slug) ?? new Set<string>(),
+        pendingGrants.value.get(syncTarget.value.slug) ?? new Set<string>(),
+      )
+    : null,
+)
+
+// Self-lockout guard: is the edited role one the acting admin currently holds?
+const syncIsSelf = computed<boolean>(
+  () => syncTarget.value != null && (store.roles ?? []).includes(syncTarget.value.slug),
+)
+
+// Operational-write impact summary: role name + users touched, plus a distinct
+// self-warning line when the acting admin holds the role.
+const syncDescription = computed<string>(() => {
+  const role = syncTarget.value
+  const diff = syncDiff.value
+  if (!role || !diff) return ''
+  const impact = describePermissionImpact(role, diff)
+  const base = `${t('roles.confirm_sync_permissions_desc', { target: role.name })} ${t('roles.impact_users_affected', { count: impact.affectedUsers })}`
+  return syncIsSelf.value ? `${base} ${t('roles.self_affect_warn')}` : base
+})
+
+// Step-up drives its own link, never the generic error line.
+const syncErrorMessage = computed<string | null>(() =>
+  sync.failure.value && sync.failure.value.status !== 'step_up_required'
+    ? t('common.error_generic')
+    : null,
+)
+
+// Shared self-lockout re-verify. After a self-affecting mutation, re-confirm the
+// principal; if it dropped, route out via the bootstrap-failure resolver
+// (mirror UserRoleAssignment.vue).
+async function reverifySelf(): Promise<void> {
+  const ensure = await store.ensureSession(true)
+  if (ensure === 'authenticated') return
+  const resolution = resolveBootstrapFailure(
+    ensure,
+    useRoute().fullPath,
+    useRequestURL().origin,
+    useRuntimeConfig().public.basePath,
+  )
+  if (resolution.kind === 'login') await navigateTo(resolution.url, { external: true })
+  else if (resolution.kind === 'route') await navigateTo(resolution.to)
+}
+
 // Canonical handler names — declared ONCE here. Tasks 7.8–7.10 REPLACE the body of
 // the matching handler (openCreate/openEdit · onMatrixSave · onDeleteRequested ·
 // onSelectRole) without renaming, so every @event binding keeps resolving.
@@ -202,8 +262,33 @@ function onManagePermissions(_role: AdminRole): void {
      always-visible edit surface (toggle a cell, then save per role). No per-role
      focus state is wired in Phase 7. */
 }
-function onMatrixSave(_roleSlug: string): void {
-  /* open sync-permissions confirm (Task 7.9) */
+function onMatrixSave(roleSlug: string): void {
+  const role = (roles.value ?? []).find((r) => r.slug === roleSlug)
+  if (!role || role.is_system) return // system columns never reach save
+  sync.reset()
+  successMessage.value = null
+  syncTarget.value = role
+}
+
+async function onSyncConfirm(): Promise<void> {
+  const role = syncTarget.value
+  const diff = syncDiff.value
+  if (!role || !diff) return
+  const selfAffecting = syncIsSelf.value
+  const result = await sync.run(() =>
+    rolesApi.syncPermissions(role.slug, { permission_slugs: diff.permission_slugs }),
+  )
+  if (result === null) return // failure stays in the dialog (safe copy + REF + step-up)
+  await refresh()
+  pendingGrants.value = buildRoleGrantMap(roles.value ?? []) // reseed → dirtyRoleSlugs recomputes (read-only)
+  syncTarget.value = null
+  successMessage.value = t('roles.roles_permissions_success')
+  if (selfAffecting) await reverifySelf() // self-affecting: re-verify, re-route if the session dropped
+}
+
+function onSyncCancel(): void {
+  syncTarget.value = null
+  sync.reset()
 }
 function onDeleteRequested(_role: AdminRole): void {
   /* open delete confirm (Task 7.10) */
@@ -367,6 +452,22 @@ async function onRefresh(): Promise<void> {
         :can-write="canWrite"
         @toggle="onMatrixToggle"
         @save="onMatrixSave"
+      />
+
+      <PrivilegedActionDialog
+        v-if="syncTarget"
+        :open="syncTarget !== null"
+        :title="t('roles.confirm_sync_permissions_title')"
+        :description="syncDescription"
+        :confirm-label="t('roles.btn_save')"
+        :cancel-label="t('roles.btn_cancel')"
+        :danger="false"
+        :submitting="sync.isSubmitting.value"
+        :step-up-url="sync.stepUpUrl.value"
+        :error-message="syncErrorMessage"
+        :request-id="sync.requestId.value"
+        @confirm="onSyncConfirm"
+        @cancel="onSyncCancel"
       />
     </template>
 

@@ -230,6 +230,8 @@
     "confirm_delete_desc": "Are you sure you want to delete role {target}? This action is irreversible.",
     "confirm_sync_permissions_title": "Update Role Permissions?",
     "confirm_sync_permissions_desc": "Are you sure you want to update permissions for role {target}? This will instantly modify backend authorization claims.",
+    "impact_users_affected": "This changes the permission set for {count} users holding this role.",
+    "self_affect_warn": "You currently hold this role — saving this change can revoke your own console access.",
     "roles_create_success": "Role created successfully.",
     "roles_update_success": "Role updated successfully.",
     "roles_delete_success": "Role deleted successfully.",
