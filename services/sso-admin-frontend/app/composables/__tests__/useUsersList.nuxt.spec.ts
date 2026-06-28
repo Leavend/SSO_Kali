@@ -17,7 +17,7 @@ vi.mock('@/services/users.api', () => ({
 const data = ref<UserListResponse | null>(null)
 const pending = ref(false)
 const error = ref<unknown>(null)
-const refreshMock = vi.fn(async () => {})
+const refreshMock = vi.fn<() => Promise<void>>(async () => {})
 let capturedKey: string | null = null
 let capturedHandler: (() => unknown) | null = null
 
