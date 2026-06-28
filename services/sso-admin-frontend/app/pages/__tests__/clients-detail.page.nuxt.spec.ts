@@ -3,7 +3,7 @@
 // catalog + session store are mocked so each ClientDetailViewState is deterministic.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { computed, nextTick, ref } from 'vue'
-import { mountSuspended } from '@nuxt/test-utils/runtime'
+import { mockNuxtImport, mountSuspended } from '@nuxt/test-utils/runtime'
 import enLocale from '@/locales/en.json'
 import UiSkeleton from '@/components/ui/UiSkeleton.vue'
 import UiStatusView from '@/components/ui/UiStatusView.vue'
@@ -21,6 +21,14 @@ const viewState = ref<ClientDetailViewState>('loading')
 const requestId = ref<string | null>(null)
 const scopes = ref<readonly ScopeCatalogEntry[]>([])
 const refreshMock = vi.fn<() => Promise<void>>(async () => {})
+
+// navigateTo is a Nuxt auto-import; the page calls it after a successful delete
+// (onDeleted → list) and from onBack. mockNuxtImport hoists above the module body,
+// so the spy must be created in vi.hoisted to exist when the mock factory runs.
+const { navigateToMock } = vi.hoisted(() => ({
+  navigateToMock: vi.fn<(...args: unknown[]) => Promise<void> | void>(),
+}))
+mockNuxtImport('navigateTo', () => navigateToMock)
 
 // ponytail: pin locale to 'en' so assertions use literal English strings.
 // Default locale is 'id'; without this mock the spec would assert Indonesian.
@@ -226,7 +234,9 @@ describe('client detail page', () => {
     expect(lifecycle.text()).toContain('jit') // provisioning
   })
 
-  it('ready → consent-trail + secret-rotation control (5.12); no lifecycle control yet (5.13)', async () => {
+  it('ready → consent-trail + secret-rotation control; dual-gate hides lifecycle buttons without sessions.terminate', async () => {
+    // read+write but NOT sessions.terminate (default beforeEach perms): the
+    // dual-permission gate fails closed, so no destructive lifecycle button shows.
     viewState.value = 'ready'
     client.value = READY_CLIENT
     const wrapper = await mountSuspended(ClientDetail)
@@ -234,8 +244,8 @@ describe('client detail page', () => {
     // Task 5.12 lands the destructive secret-rotation control in the security tab.
     expect(wrapper.findComponent(ClientSecretRotation).exists()).toBe(true)
     expect(wrapper.find('[data-action="rotate-secret"]').exists()).toBe(true)
-    // The lifecycle (5.13) controls still do NOT exist yet. Descriptive evidence
-    // copy like "Disabled" in dt/dd labels is not a control.
+    // No lifecycle destructive controls without the second permission. Descriptive
+    // evidence copy like "Disabled" in dt/dd labels is not a control.
     const controls = [...wrapper.findAll('button'), ...wrapper.findAll('a')].map((el) => el.text())
     for (const label of controls) {
       expect(label).not.toMatch(/disable|decommission|delete/i)
@@ -295,5 +305,44 @@ describe('clients detail page — write forms (Task 5.11)', () => {
     expect(html).not.toContain(SECRET_CANARY)
     // client_id is a public identifier and IS allowed to appear.
     expect(html).toContain('selamat-kerja')
+  })
+})
+
+describe('clients detail page — lifecycle actions (Task 5.13)', () => {
+  // Nuxt auto-registers the SFC under its path-prefixed name
+  // (components dir: clients/ClientLifecycleActions.vue → ClientsClientLifecycleActions).
+  const LIFECYCLE = 'ClientsClientLifecycleActions'
+
+  it('mounts the lifecycle actions and refreshes detail after a successful action', async () => {
+    permitted = ['admin.clients.read', 'admin.clients.write', 'admin.sessions.terminate']
+    viewState.value = 'ready'
+    client.value = READY_CLIENT
+    const wrapper = await mountSuspended(ClientDetail)
+    const actions = wrapper.findComponent({ name: LIFECYCLE })
+    expect(actions.exists()).toBe(true)
+    refreshMock.mockClear()
+    actions.vm.$emit('done')
+    await nextTick()
+    expect(refreshMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('navigates back to the clients list after a successful delete', async () => {
+    permitted = ['admin.clients.read', 'admin.clients.write', 'admin.sessions.terminate']
+    viewState.value = 'ready'
+    client.value = READY_CLIENT
+    const wrapper = await mountSuspended(ClientDetail)
+    navigateToMock.mockClear()
+    wrapper.findComponent({ name: LIFECYCLE }).vm.$emit('deleted')
+    await nextTick()
+    expect(navigateToMock).toHaveBeenCalledWith({ name: 'admin.clients' })
+  })
+
+  it('never serializes a client_secret into the SSR HTML with the lifecycle surface mounted', async () => {
+    permitted = ['admin.clients.read', 'admin.clients.write', 'admin.sessions.terminate']
+    viewState.value = 'ready'
+    client.value = READY_CLIENT
+    const html = (await mountSuspended(ClientDetail)).html()
+    expect(html).not.toMatch(/client_secret|clientSecret/i)
+    expect(html).not.toContain(SECRET_CANARY)
   })
 })

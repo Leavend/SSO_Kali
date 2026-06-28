@@ -17,6 +17,7 @@ import ClientMetadataForm from '@/components/clients/ClientMetadataForm.vue'
 import ClientUriPolicyForm from '@/components/clients/ClientUriPolicyForm.vue'
 import ClientScopePolicyForm from '@/components/clients/ClientScopePolicyForm.vue'
 import ClientSecretRotation from '@/components/clients/ClientSecretRotation.vue'
+import ClientLifecycleActions from '@/components/clients/ClientLifecycleActions.vue'
 
 definePageMeta({
   name: 'admin.clients.detail',
@@ -76,6 +77,12 @@ async function onRefresh(): Promise<void> {
 
 async function onBack(): Promise<void> {
   await navigateTo({ name: 'admin.clients' })
+}
+
+// After a permanent delete the registration no longer exists — leave the detail
+// route entirely rather than refreshing into a not_found shell.
+function onDeleted(): void {
+  void navigateTo({ name: 'admin.clients' })
 }
 </script>
 
@@ -309,7 +316,9 @@ async function onBack(): Promise<void> {
             <dd>{{ client.provisioning ?? '—' }}</dd>
           </div>
         </dl>
-        <!-- 5.13 ClientLifecycleActions mounts here when canWrite + admin.sessions.terminate (step-up) -->
+        <!-- Self-gates on admin.clients.write + admin.sessions.terminate (dual gate);
+             activate/disable/decommission refresh detail, delete navigates to the list. -->
+        <ClientLifecycleActions :client="client" @done="refresh" @deleted="onDeleted" />
       </section>
     </div>
   </section>
