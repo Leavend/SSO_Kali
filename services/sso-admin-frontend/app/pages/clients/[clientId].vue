@@ -16,6 +16,7 @@ import UiButton from '@/components/ui/UiButton.vue'
 import ClientMetadataForm from '@/components/clients/ClientMetadataForm.vue'
 import ClientUriPolicyForm from '@/components/clients/ClientUriPolicyForm.vue'
 import ClientScopePolicyForm from '@/components/clients/ClientScopePolicyForm.vue'
+import ClientSecretRotation from '@/components/clients/ClientSecretRotation.vue'
 
 definePageMeta({
   name: 'admin.clients.detail',
@@ -260,7 +261,9 @@ async function onBack(): Promise<void> {
             </dd>
           </div>
         </dl>
-        <!-- 5.12 secret-rotation component mounts here when canWrite (admin.clients.write · step-up) -->
+        <!-- Self-gates the rotate button on admin.clients.write; the read-only
+             has_secret_hash / secret_rotated_at read-out above stays visible. -->
+        <ClientSecretRotation v-if="client" :client="client" @done="refresh" />
       </section>
 
       <section
@@ -286,11 +289,7 @@ async function onBack(): Promise<void> {
           <div class="client-detail__field">
             <dt>{{ t('clients.lc_disabled') }}</dt>
             <dd>
-              <UiFolio
-                v-if="client.disabled_at"
-                :value="client.disabled_at"
-                variant="timestamp"
-              />
+              <UiFolio v-if="client.disabled_at" :value="client.disabled_at" variant="timestamp" />
               <span v-else>{{ t('clients.val_not_set') }}</span>
             </dd>
           </div>

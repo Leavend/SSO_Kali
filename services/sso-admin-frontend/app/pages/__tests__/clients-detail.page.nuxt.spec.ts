@@ -12,6 +12,7 @@ import UiStatusBadge from '@/components/ui/UiStatusBadge.vue'
 import ClientMetadataForm from '@/components/clients/ClientMetadataForm.vue'
 import ClientUriPolicyForm from '@/components/clients/ClientUriPolicyForm.vue'
 import ClientScopePolicyForm from '@/components/clients/ClientScopePolicyForm.vue'
+import ClientSecretRotation from '@/components/clients/ClientSecretRotation.vue'
 import type { AdminClientDetail, ScopeCatalogEntry } from '@/types/clients.types'
 import type { ClientDetailViewState } from '@/lib/clients/clients-view-state'
 
@@ -225,18 +226,19 @@ describe('client detail page', () => {
     expect(lifecycle.text()).toContain('jit') // provisioning
   })
 
-  it('ready → hero exposes a consent-trail link; no destructive lifecycle control yet (5.12–5.13)', async () => {
+  it('ready → consent-trail + secret-rotation control (5.12); no lifecycle control yet (5.13)', async () => {
     viewState.value = 'ready'
     client.value = READY_CLIENT
     const wrapper = await mountSuspended(ClientDetail)
     expect(wrapper.find('[data-consent-trail]').exists()).toBe(true)
-    // Task 5.11 ships the Save edit forms, so the old full-text scan is retargeted
-    // at INTERACTIVE elements (buttons + links): the destructive secret-rotation
-    // (5.12) and lifecycle (5.13) controls do NOT exist yet. Descriptive evidence
-    // copy like "Secret rotated" / "Disabled" in dt/dd labels is not a control.
+    // Task 5.12 lands the destructive secret-rotation control in the security tab.
+    expect(wrapper.findComponent(ClientSecretRotation).exists()).toBe(true)
+    expect(wrapper.find('[data-action="rotate-secret"]').exists()).toBe(true)
+    // The lifecycle (5.13) controls still do NOT exist yet. Descriptive evidence
+    // copy like "Disabled" in dt/dd labels is not a control.
     const controls = [...wrapper.findAll('button'), ...wrapper.findAll('a')].map((el) => el.text())
     for (const label of controls) {
-      expect(label).not.toMatch(/rotate|disable|decommission|delete/i)
+      expect(label).not.toMatch(/disable|decommission|delete/i)
     }
   })
 
