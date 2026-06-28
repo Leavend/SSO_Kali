@@ -75,7 +75,7 @@ async function onBack(): Promise<void> {
 
 // ponytail: canWrite is computed but used only as a mount-point gate comment for
 // 5.11–5.13; suppress the unused-variable lint warning by referencing it once.
-void canWrite
+void canWrite.value
 </script>
 
 <template>
