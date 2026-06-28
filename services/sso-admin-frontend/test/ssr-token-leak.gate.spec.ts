@@ -53,6 +53,14 @@ function fetchClientDetail(): Promise<string> {
   return $fetch('/clients/acme-portal')
 }
 
+function fetchObservability(): Promise<string> {
+  return $fetch('/observability')
+}
+
+function fetchCompliance(): Promise<string> {
+  return $fetch('/observability/compliance')
+}
+
 function extractPayload(html: string): string {
   const match = html.match(/<script[^>]*id="__NUXT_DATA__"[^>]*>([\s\S]*?)<\/script>/)
   if (!match?.[1]) {
@@ -229,6 +237,55 @@ describe('SSR token-leak render gate (§3.3)', async () => {
       const serialized = JSON.stringify(JSON.parse(extractPayload(html)))
       expect(collectSecretLeaks(serialized, 'clients __NUXT__ payload')).toEqual([])
       expect(collectPiiShapeLeaks(serialized, 'clients __NUXT__ payload')).toEqual([])
+    }
+  })
+
+  it('renders the observability + compliance pages server-side in their ready (masked) state', async () => {
+    const cockpit = await fetchObservability()
+    expect(cockpit).toContain('data-admin-shell')
+    // The summary rendered the READY state (service name + folio timestamp verbatim).
+    expect(cockpit).toContain('IdP Backend')
+    expect(cockpit).toContain('2026-06-28T14:32:15Z')
+
+    const compliance = await fetchCompliance()
+    expect(compliance).toContain('data-admin-shell')
+    // Retention rendered READY ...
+    expect(compliance).toContain('Authentication audit events')
+    // ... and the DSR queue masked the opaque subject id through formatTechnicalPreview
+    // (REF-SRAURORA is 'sub-dsr-aurora' normalized + sliced to its last 8 chars).
+    expect(compliance).toContain('REF-SRAURORA')
+  })
+
+  it('does not leak token/PII/secret values into the observability/compliance SSR HTML', async () => {
+    const cockpit = await fetchObservability()
+    const compliance = await fetchCompliance()
+    expect(collectSecretLeaks(cockpit, 'observability SSR HTML')).toEqual([])
+    expect(collectSecretLeaks(compliance, 'compliance SSR HTML')).toEqual([])
+  })
+
+  it('does not leak token/PII/secret values into the observability/compliance hydration payload', async () => {
+    for (const html of [await fetchObservability(), await fetchCompliance()]) {
+      const serialized = JSON.stringify(JSON.parse(extractPayload(html)))
+      expect(collectSecretLeaks(serialized, 'observability __NUXT__ payload')).toEqual([])
+      expect(collectPiiShapeLeaks(serialized, 'observability __NUXT__ payload')).toEqual([])
+    }
+  })
+
+  it('strips the DSR free-text PII canary from the compliance SSR HTML and hydration payload (proves the Task-6.4 runtime strip, not a null fixture)', async () => {
+    // The DSR fixture row carries a NON-null reason/reviewer_notes/reviewer_subject_id
+    // canary (the shared presenter emits them). The service maps each row to the
+    // narrowed DTO at runtime, so the free-text reaches neither the SSR HTML nor
+    // __NUXT_DATA__ — a null fixture would pass even if that strip regressed, so the
+    // canary keeps the gate honest. (The token-name + digit-run collectors are
+    // structurally blind to free-text PII; these literal checks close that gap.)
+    const compliance = await fetchCompliance()
+    const payload = JSON.stringify(JSON.parse(extractPayload(compliance)))
+    for (const haystack of [compliance, payload]) {
+      expect(haystack).not.toContain('SSR_PII_CANARY')
+      expect(haystack).not.toContain('Budi Santoso')
+      expect(haystack).not.toContain('budi@example.gov')
+      expect(haystack).not.toContain('internal note')
+      expect(haystack).not.toContain('sub-reviewer-canary')
     }
   })
 

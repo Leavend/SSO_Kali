@@ -38,6 +38,7 @@ export default defineEventHandler(() => {
           'admin.clients.read',
           'admin.clients.write',
           'admin.sessions.terminate',
+          'admin.observability.read',
         ],
         capabilities: {
           'admin.dashboard.view': true,
@@ -49,6 +50,7 @@ export default defineEventHandler(() => {
           'admin.clients.read': true,
           'admin.clients.write': true,
           'admin.sessions.terminate': true,
+          'admin.observability.read': true,
         },
         menus: [
           {
@@ -67,6 +69,12 @@ export default defineEventHandler(() => {
             id: 'clients',
             label: 'Clients',
             required_permission: 'admin.clients.read',
+            visible: true,
+          },
+          {
+            id: 'observability',
+            label: 'Observability',
+            required_permission: 'admin.observability.read',
             visible: true,
           },
         ],
