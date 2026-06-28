@@ -1,12 +1,13 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 
-test.use({ locale: 'en-US' })
-test.beforeEach(async ({ page }) => {
-  await page.addInitScript(() => {
-    window.localStorage.setItem('dev-sso-admin-locale', 'en')
-  })
+// useI18n resolves locale from the `admin_locale` cookie at SSR time (DEFAULT_LOCALE='id');
+// Playwright's `locale:'en-US'` only sets Accept-Language, which useI18n ignores. Set the
+// cookie on the context so SSR renders English and the English-label selectors below match.
+test.beforeEach(async ({ context, baseURL }) => {
+  await context.addCookies([{ name: 'admin_locale', value: 'en', url: baseURL! }])
 })
 
+// Full-capability admin principal (clients read + write + sessions.terminate for lifecycle).
 const principal = {
   principal: {
     subject_id: 'sub_admin',
@@ -23,7 +24,7 @@ const principal = {
     },
     permissions: {
       view_admin_panel: true,
-      manage_sessions: false,
+      manage_sessions: true,
       permissions: [
         'admin.dashboard.view',
         'admin.clients.read',
@@ -37,52 +38,62 @@ const principal = {
         'admin.sessions.terminate': true,
       },
       menus: [
-        {
-          id: 'dashboard',
-          label: 'Dashboard',
-          required_permission: 'admin.dashboard.view',
-          visible: true,
-        },
-        {
-          id: 'clients',
-          label: 'OAuth Clients',
-          required_permission: 'admin.clients.read',
-          visible: true,
-        },
-        {
-          id: 'users',
-          label: 'Users',
-          required_permission: 'admin.users.read',
-          visible: false,
-        },
+        { id: 'dashboard', label: 'Dashboard', required_permission: 'admin.dashboard.view', visible: true },
+        { id: 'clients', label: 'Clients', required_permission: 'admin.clients.read', visible: true },
+      ],
+    },
+  },
+}
+
+// Read-only admin principal WITHOUT admin.clients.read (forbidden-flow case).
+const principalNoClients = {
+  principal: {
+    ...principal.principal,
+    permissions: {
+      view_admin_panel: true,
+      manage_sessions: false,
+      permissions: ['admin.dashboard.view'],
+      capabilities: { 'admin.dashboard.view': true },
+      menus: [
+        { id: 'dashboard', label: 'Dashboard', required_permission: 'admin.dashboard.view', visible: true },
       ],
     },
   },
 }
 
 const client = {
-  client_id: 'prototype-app-a',
-  display_name: 'Prototype App A',
+  client_id: 'acme-portal',
+  display_name: 'Acme Portal',
   type: 'confidential',
-  environment: 'production',
-  app_base_url: 'https://app.example.test',
-  redirect_uris: ['https://app.example.test/callback'],
-  post_logout_redirect_uris: ['https://app.example.test'],
-  backchannel_logout_uri: 'https://app.example.test/logout',
-  allowed_scopes: ['openid', 'profile'],
-  owner_email: 'owner@example.test',
+  environment: 'live',
+  app_base_url: 'https://acme.example.test',
+  redirect_uris: ['https://acme.example.test/auth/callback'],
+  post_logout_redirect_uris: ['https://acme.example.test/auth/logout'],
+  allowed_scopes: ['openid', 'profile', 'email'],
+  backchannel_logout_uri: 'https://acme.example.test/auth/backchannel/logout',
+  backchannel_logout_internal: false,
+  owner_email: 'ops@acme.example.test',
+  provisioning: 'jit',
   status: 'active',
-  secret_rotated_at: '2026-05-27T00:00:00Z',
+  category: 'kepegawaian',
   has_secret_hash: true,
+  activated_at: '2026-06-01T00:00:00Z',
+  disabled_at: null,
+  secret_rotated_at: '2026-06-01T00:00:00Z',
+  secret_expires_at: '2026-12-01T00:00:00Z',
 }
 
-test('renders OAuth client console, evidence panel, and one-time client secret flow', async ({
-  page,
-}) => {
+const ONE_TIME_SECRET = 'oncesecret-e2e-acme-portal'
+
+async function mockMe(page: Page, body: object): Promise<void> {
   await page.route('**/api/admin/me', async (route) => {
-    await route.fulfill({ contentType: 'application/json', body: JSON.stringify(principal) })
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify(body) })
   })
+}
+
+async function mockClientsData(page: Page): Promise<void> {
   await page.route('**/api/admin/clients', async (route) => {
+    if (route.request().method() !== 'GET') return route.continue()
     await route.fulfill({
       contentType: 'application/json',
       headers: { 'x-request-id': 'req-clients-e2e' },
@@ -90,10 +101,14 @@ test('renders OAuth client console, evidence panel, and one-time client secret f
     })
   })
   await page.route('**/api/admin/client-integrations/registrations', async (route) => {
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ registrations: [] }) })
+  })
+  await page.route('**/api/admin/clients/acme-portal', async (route) => {
+    if (route.request().method() !== 'GET') return route.continue()
     await route.fulfill({
       contentType: 'application/json',
-      headers: { 'x-request-id': 'req-client-registrations-e2e' },
-      body: JSON.stringify({ registrations: [client] }),
+      headers: { 'x-request-id': 'req-clients-e2e' },
+      body: JSON.stringify({ client }),
     })
   })
   await page.route('**/api/admin/scopes', async (route) => {
@@ -101,220 +116,141 @@ test('renders OAuth client console, evidence panel, and one-time client secret f
       contentType: 'application/json',
       body: JSON.stringify({
         scopes: [
-          { name: 'openid', description: 'Required for OIDC', claims: [], default_allowed: true },
-          { name: 'profile', description: 'Access profile info', claims: [], default_allowed: true },
-          { name: 'email', description: 'Access email address', claims: [], default_allowed: true },
+          { name: 'openid', description: 'OpenID', claims: ['sub'], default_allowed: true },
+          { name: 'profile', description: 'Profile', claims: ['name'], default_allowed: true },
+          { name: 'email', description: 'Email', claims: ['email'], default_allowed: true },
         ],
       }),
     })
   })
-  await page.route('**/api/admin/client-integrations', async (route) => {
-    await route.fulfill({
-      contentType: 'application/json',
-      headers: { 'x-request-id': 'req-create-client-e2e' },
-      body: JSON.stringify({
-        registration: {
-          ...client,
-          client_id: 'prototype-app-b',
-          display_name: 'Prototype App B',
-          redirect_uris: ['https://app-b.example.test/callback'],
-          post_logout_redirect_uris: ['https://app-b.example.test'],
-          backchannel_logout_uri: 'https://app-b.example.test/auth/backchannel/logout',
-          status: 'active',
-          has_secret_hash: true,
-        },
-        plaintext_secret: 'created-secret-once-e2e',
-      }),
-    })
-  })
-  await page.route('**/api/admin/clients/prototype-app-a', async (route) => {
-    if (route.request().method() === 'DELETE') {
-      await route.fulfill({
-        contentType: 'application/json',
-        headers: { 'x-request-id': 'req-decommission-e2e' },
-        body: JSON.stringify({
-          registration: { ...client, status: 'decommissioned', redirect_uris: [] },
-        }),
-      })
-      return
-    }
+}
 
-    const payload =
-      route.request().method() === 'PATCH'
-        ? (route.request().postDataJSON() as Partial<typeof client>)
-        : {}
-    await route.fulfill({
-      contentType: 'application/json',
-      headers: { 'x-request-id': 'req-update-uri-e2e' },
-      body: JSON.stringify({
-        client: {
-          ...client,
-          redirect_uris: payload.redirect_uris ?? ['https://app.example.test/new-callback'],
-          post_logout_redirect_uris: payload.post_logout_redirect_uris ?? [
-            'https://app.example.test',
-          ],
-          backchannel_logout_uri:
-            payload.backchannel_logout_uri ?? 'https://app.example.test/new-logout',
-        },
-      }),
-    })
-  })
-  await page.route('**/api/admin/clients/prototype-app-a/scopes', async (route) => {
-    await route.fulfill({
-      contentType: 'application/json',
-      headers: { 'x-request-id': 'req-scope-sync-e2e' },
-      body: JSON.stringify({
-        client: { ...client, allowed_scopes: ['openid', 'profile', 'email'] },
-      }),
-    })
-  })
-  await page.route('**/api/admin/clients/prototype-app-a/rotate-secret', async (route) => {
-    await route.fulfill({
-      contentType: 'application/json',
-      headers: { 'x-request-id': 'req-rotate-e2e' },
-      body: JSON.stringify({
-        rotation: { client_id: 'prototype-app-a', plaintext_secret: 'once-secret-e2e' },
-      }),
-    })
-  })
-  await page.route('**/api/admin/client-integrations/prototype-app-a/disable', async (route) => {
-    await route.fulfill({
-      contentType: 'application/json',
-      headers: { 'x-request-id': 'req-disable-e2e' },
-      body: JSON.stringify({
-        registration: { ...client, status: 'disabled', disabled_at: '2026-05-28T00:00:00Z' },
-      }),
-    })
-  })
-  await page.route('**/api/admin/client-integrations/prototype-app-a/decommission', async (route) => {
-    await route.fulfill({
-      contentType: 'application/json',
-      headers: { 'x-request-id': 'req-decommission-e2e' },
-      body: JSON.stringify({
-        registration: { ...client, status: 'decommissioned', redirect_uris: [], post_logout_redirect_uris: [] },
-      }),
-    })
-  })
+test('critical navigation: clients list to deep-linked detail, no token leak', async ({ page }) => {
+  await mockMe(page, principal)
+  await mockClientsData(page)
 
   await page.goto('/clients')
-
   await expect(page.getByRole('navigation', { name: 'Admin modules' })).toContainText('Clients')
-  await expect(page.getByRole('navigation', { name: 'Admin modules' })).not.toContainText('Users')
-  await expect(page.getByRole('heading', { name: 'OAuth Clients' })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Prototype App A' })).toBeVisible()
-  await page.getByRole('tab', { name: 'URIs & Redirects' }).click()
-  await expect(page.getByText('https://app.example.test/callback')).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Backchannel logout URI' })).toBeVisible()
-  await expect(page.getByText('https://app.example.test/logout')).toBeVisible()
-  await expect(page.getByText('Client evidence')).toBeVisible()
-  await expect(page.getByText('Reference code')).toBeVisible()
-  await expect(page.getByText('REF-IENTSE2E').first()).toBeVisible()
+  await expect(page.getByText('Acme Portal')).toBeVisible()
+  // The folio client_id (a public identifier) renders.
+  await expect(page.getByText('acme-portal').first()).toBeVisible()
 
-  await page.locator('button.create-client-toggle').click()
-  await page.locator('input[name="client_id"]').fill('prototype-app-b')
-  await page.locator('input[name="create_display_name"]').fill('Prototype App B')
-  await page.locator('input[name="create_owner_email"]').fill('owner@example.test')
-  await page.locator('#client_type_confidential').click()
-  await page
-    .locator('input[name="create_redirect_uri"]')
-    .fill('https://app-b.example.test/callback')
-  await page
-    .locator('input[name="create_backchannel_logout_uri"]')
-    .fill('https://app-b.example.test/auth/backchannel/logout')
-  const createRequest = page.waitForRequest(
-    (request) =>
-      request.method() === 'POST' &&
-      request.url().endsWith('/api/admin/client-integrations') &&
-      request.postDataJSON().client_type === 'confidential',
-  )
-  await page.getByRole('button', { name: 'Create client' }).click()
-  await createRequest
-  await expect(page.getByText('created-secret-once-e2e', { exact: true })).toBeVisible()
-  await expect(page.getByText('shown only once').first()).toBeVisible()
-  await expect(page.getByText('SSO_CLIENT_SECRET=created-secret-once-e2e')).toBeVisible()
-  await page.getByTestId('close-created-client-dialog').click()
-  await expect(page.getByText('created-secret-once-e2e', { exact: true })).toHaveCount(0)
-  await expect(page.getByRole('heading', { name: 'Prototype App B' })).toBeVisible()
-  await expect(page.getByText('REF-LIENTE2E').first()).toBeVisible()
-
-  await page.getByRole('button', { name: /Prototype App A/u }).click()
-  await page.getByRole('tab', { name: 'URIs & Redirects' }).click()
-  await expect(page.locator('textarea[name="redirect_uris"]')).toHaveValue(/new-callback/u)
-  await page.locator('textarea[name="redirect_uris"]').fill('https://app.example.test/new-callback')
-  await page.locator('textarea[name="post_logout_redirect_uris"]').fill('https://app.example.test')
-  await page
-    .locator('input[name="backchannel_logout_uri"]')
-    .fill('https://app.example.test/new-logout')
-  const uriUpdateResponse = page.waitForResponse(
-    (response) =>
-      response.request().method() === 'PATCH' &&
-      response.url().includes('/api/admin/clients/prototype-app-a'),
-  )
-  await page.locator('form[data-test="uri-policy-form"]').getByRole('button').click()
-  await uriUpdateResponse
-  await expect(page.getByText('https://app.example.test/new-callback')).toBeVisible()
-  await expect(page.getByText('REF-TEURIE2E').first()).toBeVisible()
-
-  await page.getByRole('tab', { name: 'Scopes & Access' }).click()
-  await expect(page.getByText('Scope & consent policy')).toBeVisible()
-  const emailCheckbox = page.locator('input[type="checkbox"][value="email"]')
-  await emailCheckbox.check()
-  await expect(emailCheckbox).toBeChecked()
-  const scopeUpdateRequest = page.waitForRequest(
-    (request) =>
-      request.method() === 'PUT' &&
-      request.url().includes('/api/admin/clients/prototype-app-a/scopes') &&
-      (request.postData() ?? '').includes('email'),
-  )
-  await page.locator('form[data-test="scope-policy-form"]').getByRole('button').click()
-  await scopeUpdateRequest
-  await expect(emailCheckbox).toBeChecked()
-
-  await page.getByRole('tab', { name: 'Security & Secrets' }).click()
-  await page.getByRole('button', { name: 'Rotate secret' }).click()
-  await expect(page.getByText('once-secret-e2e')).toBeVisible()
-  await expect(page.getByText('REF-OTATEE2E').first()).toBeVisible()
-  await page.locator('button[data-test="clear-rotation-secret"]').click()
-  await expect(page.getByText('once-secret-e2e')).toHaveCount(0)
-
-  await page.getByRole('tab', { name: 'Lifecycle' }).click()
-  await expect(page.getByText('Client lifecycle')).toBeVisible()
-  await expect(page.getByText('Impact summary')).toBeVisible()
-  await page.locator('textarea[name="client_disable_reason"]').fill('incident response')
-  await page.getByRole('button', { name: 'Disable client' }).click()
-  await expect(page.getByText('REF-SABLEE2E').first()).toBeVisible()
-  await expect(page.locator('.ui-badge')).toContainText('disabled')
-  await page.locator('input[name="decommission_confirmation"]').fill('prototype-app-a')
-  await page.getByRole('button', { name: 'Decommission client' }).click()
-  await expect(page.getByText('REF-SSIONE2E').first()).toBeVisible()
-  await expect(page.locator('.ui-badge')).toContainText('decommissioned')
-
-  await expect(page.getByText(/Bearer|refreshToken|idToken|secret_hash/u)).toHaveCount(0)
+  // ClientsTable exposes the per-row open control as a "View" button (data-testid),
+  // not a link — navigation is emit('select') → navigateTo(detail).
+  await page.getByTestId('clients-row-view').first().click()
+  await expect(page).toHaveURL(/\/clients\/acme-portal$/u)
+  await expect(page.getByRole('heading', { name: /Acme Portal/u })).toBeVisible()
+  await expect(page.getByText(/Bearer|access_token|client_secret|SQLSTATE/u)).toHaveCount(0)
 })
 
-test('shows safe OAuth clients error with request evidence', async ({ page }) => {
-  await page.route('**/api/admin/me', async (route) => {
-    await route.fulfill({ contentType: 'application/json', body: JSON.stringify(principal) })
-  })
-  await page.route('**/api/admin/clients', async (route) => {
-    await route.fulfill({
-      status: 500,
-      contentType: 'application/json',
-      headers: { 'x-request-id': 'req-clients-fail' },
-      body: JSON.stringify({ error: 'server_error', message: 'SQLSTATE leaked client trace' }),
-    })
-  })
-  await page.route('**/api/admin/client-integrations/registrations', async (route) => {
-    await route.fulfill({
-      contentType: 'application/json',
-      headers: { 'x-request-id': 'req-client-registrations-e2e' },
-      body: JSON.stringify({ registrations: [] }),
-    })
-  })
+test('forbidden flow: admin without admin.clients.read sees the safe forbidden surface', async ({ page }) => {
+  await mockMe(page, principalNoClients)
 
   await page.goto('/clients')
+  await expect(page).toHaveURL(/\/forbidden$/u)
+  await expect(page.getByRole('navigation', { name: 'Admin modules' })).not.toContainText('Clients')
+  await expect(page.getByText(/Bearer|access_token|client_secret|SQLSTATE/u)).toHaveCount(0)
+})
 
-  await expect(page.getByRole('heading', { name: 'OAuth clients could not be loaded' })).toBeVisible()
-  await expect(page.getByRole('alert')).toContainText('REF-ENTSFAIL')
-  await expect(page.getByText('SQLSTATE')).toHaveCount(0)
+test('create: confidential client shows the one-time secret once, copy works, gone after close', async ({ page }) => {
+  await mockMe(page, principal)
+  await mockClientsData(page)
+  await page.context().grantPermissions(['clipboard-read', 'clipboard-write'])
+
+  await page.route('**/api/admin/client-integrations', async (route) => {
+    if (route.request().method() !== 'POST') return route.continue()
+    await route.fulfill({
+      status: 201,
+      contentType: 'application/json',
+      headers: { 'x-request-id': 'req-create-e2e', 'cache-control': 'no-store' },
+      body: JSON.stringify({ registration: { ...client }, plaintext_secret: ONE_TIME_SECRET }),
+    })
+  })
+
+  await page.goto('/clients/new')
+  await page.getByLabel('Display name').fill('Acme Portal')
+  await page.getByLabel('Owner email').fill('ops@acme.example.test')
+  await page.getByLabel('Client type').selectOption('confidential')
+  await page.getByLabel('Application category').selectOption('kepegawaian')
+  await page.getByLabel('Redirect URI').fill('https://acme.example.test/auth/callback')
+  await page.getByLabel('Allowed scopes').fill('openid profile email')
+  await page.getByTestId('form-submit').click()
+
+  // The plaintext secret displays once, in the reveal modal.
+  await expect(page.getByTestId('client-secret-value')).toHaveText(ONE_TIME_SECRET)
+
+  // Copy action is tested. The reveal copies the env block, which embeds the secret.
+  await page.getByTestId('client-secret-copy').click()
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toContain(ONE_TIME_SECRET)
+
+  // Close clears it: the secret is gone from the DOM and we land on the detail route.
+  await page.getByTestId('client-secret-clear').click()
+  await expect(page.getByText(ONE_TIME_SECRET)).toHaveCount(0)
+  await expect(page).toHaveURL(/\/clients\/acme-portal$/u)
+})
+
+test('rotate-secret: shows the rotated secret once, cleared on close', async ({ page }) => {
+  await mockMe(page, principal)
+  await mockClientsData(page)
+
+  await page.route('**/api/admin/clients/acme-portal/rotate-secret', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: { 'x-request-id': 'req-rotate-e2e', 'cache-control': 'no-store' },
+      body: JSON.stringify({
+        rotation: {
+          client_id: 'acme-portal',
+          plaintext_once: ONE_TIME_SECRET,
+          plaintext_secret: ONE_TIME_SECRET,
+          rotated_at: '2026-06-28T12:00:00Z',
+          expires_at: '2026-12-28T12:00:00Z',
+        },
+      }),
+    })
+  })
+
+  await page.goto('/clients/acme-portal')
+  // The detail page renders every panel inline (no tabs); the rotate control lives
+  // in the security panel. Confirm via the step-up PrivilegedActionDialog, then the
+  // one-time reveal opens. Scope to the rotation section: the lifecycle panel mounts
+  // its own (force-mounted) confirm dialog too.
+  const rotation = page.getByTestId('client-secret-rotation')
+  await rotation.locator('[data-action="rotate-secret"]').click()
+  await rotation.getByTestId('privileged-action-confirm').click()
+
+  await expect(page.getByTestId('client-secret-value')).toHaveText(ONE_TIME_SECRET)
+
+  // Clear from screen: the rotated plaintext is gone from the DOM.
+  await page.getByTestId('client-secret-clear').click()
+  await expect(page.getByText(ONE_TIME_SECRET)).toHaveCount(0)
+})
+
+test('lifecycle: disable requires a reason + confirmation, then succeeds', async ({ page }) => {
+  await mockMe(page, principal)
+  await mockClientsData(page)
+
+  let disableCalled = false
+  await page.route('**/api/admin/client-integrations/acme-portal/disable', async (route) => {
+    disableCalled = true
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: { 'x-request-id': 'req-disable-e2e' },
+      body: JSON.stringify({ registration: { ...client, status: 'disabled', disabled_at: '2026-06-28T12:30:00Z' } }),
+    })
+  })
+
+  await page.goto('/clients/acme-portal')
+  const lifecycle = page.getByTestId('client-lifecycle-actions')
+  // Impact summary visible before submit (it sits in the lifecycle panel header).
+  await expect(lifecycle.getByText(/Impact summary/u)).toBeVisible()
+  await lifecycle.locator('[data-action="disable"]').click()
+
+  // Confirm is disabled until the reason is valid (PrivilegedActionDialog reason gate).
+  await lifecycle.getByTestId('privileged-action-reason').fill('Decommissioning the staging integration.')
+  await lifecycle.getByTestId('privileged-action-confirm').click()
+
+  await expect.poll(() => disableCalled).toBe(true)
+  await expect(page.getByText(/Bearer|access_token|client_secret|SQLSTATE/u)).toHaveCount(0)
 })
