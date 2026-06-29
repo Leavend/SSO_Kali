@@ -19,6 +19,7 @@ import type {
   AdminPermission,
   AdminRole,
   CreateRolePayload,
+  RoleDeleteResponse,
   RoleMutationResponse,
   UpdateRolePayload,
 } from '@/types/users.types'
@@ -240,6 +241,60 @@ async function reverifySelf(): Promise<void> {
   else if (resolution.kind === 'route') await navigateTo(resolution.to)
 }
 
+// --- Delete-role flow (Task 7.10) -------------------------------------------
+// The highest-privilege Roles write: the backend route sits in the session-
+// management group (ROLES_WRITE AND SESSIONS_TERMINATE + admin-session role +
+// :step_up). canDelete (the dual gate) is declared above and already passed to
+// RolesTable; RolesTable hides the per-row button on is_system. Delete routes
+// through the reused PrivilegedActionDialog (danger) + usePrivilegedAction.
+const deleteAction = usePrivilegedAction<RoleDeleteResponse>()
+const deleteTarget = ref<AdminRole | null>(null)
+
+// Self-lockout guard: is the role being deleted one the acting admin holds?
+const deleteIsSelf = computed<boolean>(
+  () => deleteTarget.value != null && (store.roles ?? []).includes(deleteTarget.value.slug),
+)
+
+// Confirm copy: target name + the user_count blast radius + (when self-affecting)
+// the shared self-warning line. user_count is honesty over the authoritative
+// backend gate (delete fails-closed 422 while the role still has users).
+const deleteDescription = computed<string>(() => {
+  const role = deleteTarget.value
+  if (!role) return ''
+  const parts = [
+    t('roles.confirm_delete_desc', { target: role.name }),
+    t('roles.delete_blast_radius', { count: role.user_count }),
+  ]
+  if (deleteIsSelf.value) parts.push(t('roles.self_affect_warn'))
+  return parts.join(' ')
+})
+
+// PrivilegedActionFailure carries no message — the dialog copy is status-mapped.
+// invalid (422) on delete can only mean "role still has assigned users" because
+// system roles never reach this button; step-up drives its own link, not an error.
+const deleteErrorMessage = computed<string | null>(() => {
+  const status = deleteAction.failure.value?.status
+  if (!status || status === 'step_up_required') return null
+  if (status === 'invalid') return t('roles.delete_failed_has_users')
+  return t('common.error_generic')
+})
+
+function onDeleteCancel(): void {
+  deleteTarget.value = null
+}
+
+async function onDeleteConfirm(): Promise<void> {
+  const role = deleteTarget.value
+  if (!role) return
+  const selfAffecting = deleteIsSelf.value
+  const result = await deleteAction.run(() => rolesApi.destroy(role.slug))
+  if (result === null) return // failure stays in the open dialog (error/step-up/REF)
+  deleteTarget.value = null
+  successMessage.value = t('roles.roles_delete_success')
+  await refresh()
+  if (selfAffecting) await reverifySelf() // deleting a role you hold can revoke your own access
+}
+
 // Canonical handler names — declared ONCE here. Tasks 7.8–7.10 REPLACE the body of
 // the matching handler (openCreate/openEdit · onMatrixSave · onDeleteRequested ·
 // onSelectRole) without renaming, so every @event binding keeps resolving.
@@ -290,8 +345,10 @@ function onSyncCancel(): void {
   syncTarget.value = null
   sync.reset()
 }
-function onDeleteRequested(_role: AdminRole): void {
-  /* open delete confirm (Task 7.10) */
+function onDeleteRequested(role: AdminRole): void {
+  deleteAction.reset()
+  successMessage.value = null
+  deleteTarget.value = role
 }
 function onSelectRole(_slug: string): void {
   /* open role detail drawer (deferred) */
@@ -468,6 +525,23 @@ async function onRefresh(): Promise<void> {
         :request-id="sync.requestId.value"
         @confirm="onSyncConfirm"
         @cancel="onSyncCancel"
+      />
+
+      <PrivilegedActionDialog
+        v-if="deleteTarget"
+        :open="deleteTarget !== null"
+        :title="t('roles.confirm_delete_title')"
+        :description="deleteDescription"
+        :confirm-label="t('common.btn_delete')"
+        :cancel-label="t('common.btn_cancel')"
+        danger
+        :submitting="deleteAction.isSubmitting.value"
+        :error-message="deleteErrorMessage"
+        :request-id="deleteAction.requestId.value"
+        :step-up-url="deleteAction.stepUpUrl.value"
+        :step-up-label="t('roles.step_up_cta')"
+        @confirm="onDeleteConfirm"
+        @cancel="onDeleteCancel"
       />
     </template>
 
