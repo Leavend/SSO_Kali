@@ -15,7 +15,15 @@ import UiButton from '@/components/ui/UiButton.vue'
 import UiStatusBadge from '@/components/ui/UiStatusBadge.vue'
 import UiDetailDrawer from '@/components/ui/UiDetailDrawer.vue'
 import ExternalIdpsTable from '@/components/external-idps/ExternalIdpsTable.vue'
-import type { ExternalIdentityProvider } from '@/types/external-idps.types'
+import ExternalIdpFormDialog from '@/components/external-idps/ExternalIdpFormDialog.vue'
+import { usePrivilegedAction } from '@/composables/usePrivilegedAction'
+import { externalIdpsApi } from '@/services/external-idps.api'
+import type {
+  ExternalIdentityProvider,
+  ExternalIdpCreatePayload,
+  ExternalIdpDetailResponse,
+  ExternalIdpUpdatePayload,
+} from '@/types/external-idps.types'
 
 definePageMeta({
   name: 'admin.external-idps',
@@ -67,12 +75,67 @@ async function onRefresh(): Promise<void> {
   await refresh()
 }
 
+const formOpen = ref(false)
+const formMode = ref<'create' | 'edit'>('create')
+const editingProvider = ref<ExternalIdentityProvider | null>(null)
+
+const createAction = usePrivilegedAction<ExternalIdpDetailResponse>()
+const updateAction = usePrivilegedAction<ExternalIdpDetailResponse>()
+const formAction = computed(() => (formMode.value === 'create' ? createAction : updateAction))
+
+// SAFE status-keyed copy — the 422 external_idp_invalid carries a raw SQL message
+// (duplicate-key QueryException) which MUST NOT be rendered; map to safe domain copy.
+const formError = computed<string | null>(() => {
+  const status = formAction.value.failure.value?.status
+  if (!status || status === 'step_up_required') return null
+  if (status === 'invalid')
+    return formMode.value === 'create'
+      ? t('external_idps.create_invalid')
+      : t('external_idps.update_invalid')
+  return t('common.error_generic')
+})
+
 // Handler bodies filled by later tasks (declared once; never renamed):
 function onCreateRequested(): void {
-  /* Task 10.8 */
+  createAction.reset()
+  successMessage.value = null
+  formMode.value = 'create'
+  editingProvider.value = null
+  formOpen.value = true
 }
-function onEditRequested(_provider: ExternalIdentityProvider): void {
-  /* Task 10.8 */
+function onEditRequested(provider: ExternalIdentityProvider): void {
+  updateAction.reset()
+  successMessage.value = null
+  formMode.value = 'edit'
+  editingProvider.value = provider
+  formOpen.value = true
+}
+function onFormCancel(): void {
+  formOpen.value = false
+}
+async function onFormSubmit(
+  payload: ExternalIdpCreatePayload | ExternalIdpUpdatePayload,
+): Promise<void> {
+  if (formMode.value === 'create') {
+    const result = await createAction.run(() =>
+      externalIdpsApi.create(payload as ExternalIdpCreatePayload),
+    )
+    if (result === null) return
+    formOpen.value = false
+    successMessage.value = t('external_idps.create_success')
+    await refresh()
+    return
+  }
+  const key = editingProvider.value?.provider_key
+  if (!key) return
+  const result = await updateAction.run(() =>
+    externalIdpsApi.update(key, payload as ExternalIdpUpdatePayload),
+  )
+  if (result === null) return
+  formOpen.value = false
+  selectedKey.value = null
+  successMessage.value = t('external_idps.update_success')
+  await refresh()
 }
 function onPreviewRequested(_provider: ExternalIdentityProvider): void {
   /* Task 10.9 */
@@ -301,9 +364,33 @@ function onDeleteRequested(_provider: ExternalIdentityProvider): void {
               </dd>
             </div>
           </dl>
+
+          <div v-if="canWrite || canDelete" class="idp-detail__actions">
+            <UiButton
+              v-if="canWrite"
+              variant="secondary"
+              size="sm"
+              data-testid="external-idp-edit"
+              @click="onEditRequested(selectedProvider)"
+            >
+              {{ t('common.btn_edit') }}
+            </UiButton>
+          </div>
         </div>
       </UiDetailDrawer>
     </template>
+
+    <ExternalIdpFormDialog
+      :open="formOpen"
+      :mode="formMode"
+      :provider="editingProvider"
+      :submitting="formAction.isSubmitting.value"
+      :error-message="formError"
+      :request-id="formAction.requestId.value"
+      :step-up-url="formAction.stepUpUrl.value"
+      @submit="onFormSubmit"
+      @cancel="onFormCancel"
+    />
   </section>
 </template>
 
@@ -387,5 +474,12 @@ function onDeleteRequested(_provider: ExternalIdentityProvider): void {
   font: 400 0.8125rem/1.4 var(--font-sans);
   color: var(--fg);
   overflow-wrap: anywhere;
+}
+.idp-detail__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
 }
 </style>
