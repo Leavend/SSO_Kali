@@ -39,6 +39,9 @@ export default defineEventHandler(() => {
           'admin.clients.write',
           'admin.sessions.terminate',
           'admin.observability.read',
+          'admin.security-policy.read',
+          'admin.security-policy.write',
+          'admin.security-policy.activate',
         ],
         capabilities: {
           'admin.dashboard.view': true,
@@ -51,6 +54,9 @@ export default defineEventHandler(() => {
           'admin.clients.write': true,
           'admin.sessions.terminate': true,
           'admin.observability.read': true,
+          'admin.security-policy.read': true,
+          'admin.security-policy.write': true,
+          'admin.security-policy.activate': true,
         },
         menus: [
           {

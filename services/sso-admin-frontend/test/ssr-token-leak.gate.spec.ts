@@ -65,6 +65,13 @@ function fetchRoles(): Promise<string> {
   return $fetch('/roles')
 }
 
+// Pin the SSR locale to English (admin_locale cookie, the same lever e2e/policy
+// uses) so the status-badge label asserted below renders as "Active" rather than
+// the default-locale "Aktif". The leak collectors are locale-independent.
+function fetchPolicy(): Promise<string> {
+  return $fetch('/policy', { headers: { cookie: 'admin_locale=en' } })
+}
+
 function extractPayload(html: string): string {
   const match = html.match(/<script[^>]*id="__NUXT_DATA__"[^>]*>([\s\S]*?)<\/script>/)
   if (!match?.[1]) {
@@ -296,6 +303,28 @@ describe('SSR token-leak render gate (§3.3)', async () => {
     const serialized = JSON.stringify(JSON.parse(extractPayload(html)))
     expect(collectSecretLeaks(serialized, 'roles __NUXT__ payload')).toEqual([])
     expect(collectPiiShapeLeaks(serialized, 'roles __NUXT__ payload')).toEqual([])
+  })
+
+  it('renders the policy versions + active config server-side in their ready (masked) state', async () => {
+    const html = await fetchPolicy()
+    expect(html).toContain('data-admin-shell')
+    // the active-config summary renders a payload key ...
+    expect(html).toContain('min_length')
+    // ... and the version table renders a status label, proving the surface mounted.
+    expect(html).toContain('Active')
+  })
+
+  it('does not leak token/secret/PII values into the policy-page SSR HTML', async () => {
+    // Strict — policy DTOs carry only non-secret config + an opaque ULID actor id.
+    const html = await fetchPolicy()
+    expect(collectSecretLeaks(html, 'policy SSR HTML')).toEqual([])
+  })
+
+  it('does not leak token/secret/PII values into the policy-page hydration payload', async () => {
+    const html = await fetchPolicy()
+    const serialized = JSON.stringify(JSON.parse(extractPayload(html)))
+    expect(collectSecretLeaks(serialized, 'policy __NUXT__ payload')).toEqual([])
+    expect(collectPiiShapeLeaks(serialized, 'policy __NUXT__ payload')).toEqual([])
   })
 
   it('strips the DSR free-text PII canary from the compliance SSR HTML and hydration payload (proves the Task-6.4 runtime strip, not a null fixture)', async () => {
