@@ -86,11 +86,11 @@ const selectedJson = computed<string>(() =>
   selectedPolicy.value ? JSON.stringify(selectedPolicy.value.payload, null, 2) : '',
 )
 
-// Single page-level success region — reused by propose/activate/rollback (8.7–8.9).
+// Single page-level success region — reused by propose/activate/rollback.
 const successMessage = ref<string | null>(null)
 
-// Propose (8.7): free-form payload editor → client parse-guard → reused
-// privileged-action dialog/runner. The backend re-validates payload => required|array.
+// Propose: free-form payload editor → client parse-guard → reused privileged-action
+// dialog/runner. The backend re-validates payload => required|array.
 const canWrite = computed<boolean>(() => store.hasPermission('admin.security-policy.write'))
 
 const proposeAction = usePrivilegedAction<PolicyMutationResponse>()
@@ -107,8 +107,8 @@ const proposeError = computed<string | null>(() => {
   return t('common.error_generic')
 })
 
-// Activate (8.8): promote a draft version to active through the reused privileged-
-// action matrix. Accent dialog (forward/operational), gated on the activate cap.
+// Activate: promote a draft version to active through the reused privileged-action
+// matrix. Accent dialog (forward/operational), gated on the activate cap.
 const canActivate = computed<boolean>(() => store.hasPermission('admin.security-policy.activate'))
 
 const activateAction = usePrivilegedAction<PolicyMutationResponse>()
@@ -133,9 +133,9 @@ const activateError = computed<string | null>(() => {
   return t('common.error_generic')
 })
 
-// Rollback (8.9): revert to a prior superseded version through the reused privileged-
-// action matrix. DANGER dialog — the single destructive (#E4002B) affordance in this
-// domain; gated on the same activate cap (rollback has no own permission).
+// Rollback: revert to a prior superseded version through the reused privileged-action
+// matrix. DANGER dialog — the single destructive (#E4002B) affordance in this domain;
+// gated on the same activate cap (rollback has no own permission).
 const rollbackAction = usePrivilegedAction<PolicyMutationResponse>()
 const rollbackTarget = ref<number | null>(null)
 const rollbackReason = ref('')
@@ -173,7 +173,7 @@ async function onRefresh(): Promise<void> {
   await refresh()
 }
 
-// Propose (8.7): parse-guard the textarea, then open the confirm dialog.
+// Propose: parse-guard the textarea, then open the confirm dialog.
 function onProposeSubmit(): void {
   const parsed = parsePolicyPayload(payloadText.value)
   if (!parsed.ok) {
@@ -341,27 +341,6 @@ async function onRollbackConfirm(): Promise<void> {
         </p>
       </section>
 
-      <section v-if="canWrite" class="policy__draft" aria-labelledby="policy-draft-title">
-        <h2 id="policy-draft-title" class="policy__h2">{{ t('policy.label_draft_payload') }}</h2>
-        <UiTextarea v-model="payloadText" :rows="6" data-testid="policy-draft-payload" />
-        <p
-          v-if="parseError"
-          class="policy__error"
-          role="alert"
-          data-testid="policy-draft-parse-error"
-        >
-          {{ parseError }}
-        </p>
-        <UiButton
-          variant="primary"
-          size="sm"
-          data-testid="policy-draft-submit"
-          @click="onProposeSubmit"
-        >
-          {{ t('policy.btn_create_draft') }}
-        </UiButton>
-      </section>
-
       <section class="policy__versions" aria-labelledby="policy-versions-title">
         <h2 id="policy-versions-title" class="policy__h2">{{ t('policy.versions_title') }}</h2>
         <PolicyVersionsTable
@@ -380,7 +359,7 @@ async function onRollbackConfirm(): Promise<void> {
         v-if="selectedPolicy"
         :open="selectedPolicy !== null"
         title-id="policy-detail-drawer"
-        :title="`${selectedPolicy.category} · v${selectedPolicy.version}`"
+        :title="`${t('policy.category_' + selectedPolicy.category)} · v${selectedPolicy.version}`"
         :description="t('policy.detail_desc')"
         :close-label="t('policy.close_detail')"
         wide
@@ -429,11 +408,42 @@ async function onRollbackConfirm(): Promise<void> {
       </UiDetailDrawer>
     </template>
 
+    <!-- Draft editor renders for BOTH empty (zero-version category) and ready states,
+         so a writer can bootstrap the FIRST draft of an unconfigured category — the
+         propose flow is the only path to a first version. Hidden in loading/forbidden/
+         unauthenticated/error (can't draft what you can't read). -->
+    <section
+      v-if="canWrite && (viewState === 'empty' || viewState === 'ready')"
+      class="policy__draft"
+      aria-labelledby="policy-draft-title"
+    >
+      <h2 id="policy-draft-title" class="policy__h2">{{ t('policy.label_draft_payload') }}</h2>
+      <UiTextarea v-model="payloadText" :rows="6" data-testid="policy-draft-payload" />
+      <p
+        v-if="parseError"
+        class="policy__error"
+        role="alert"
+        data-testid="policy-draft-parse-error"
+      >
+        {{ parseError }}
+      </p>
+      <UiButton
+        variant="primary"
+        size="sm"
+        data-testid="policy-draft-submit"
+        @click="onProposeSubmit"
+      >
+        {{ t('policy.btn_create_draft') }}
+      </UiButton>
+    </section>
+
     <PrivilegedActionDialog
       v-if="proposeOpen"
       :open="proposeOpen"
       :title="t('policy.confirm_propose_title')"
-      :description="t('policy.confirm_propose_desc', { category })"
+      :description="
+        t('policy.confirm_propose_desc', { category: t('policy.category_' + category) })
+      "
       :confirm-label="t('policy.btn_create_draft')"
       :cancel-label="t('common.btn_cancel')"
       :reason-label="t('policy.reason_label')"

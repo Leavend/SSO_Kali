@@ -100,6 +100,26 @@ describe('policy page — states', () => {
     expect(wrapper.text()).toContain(enLocale.policy.empty_title)
   })
 
+  it('lets a writer bootstrap the first draft from an EMPTY (zero-version) category', async () => {
+    // The propose flow is the only path to a first version, so the draft editor must
+    // be reachable on an unconfigured category — not only once a version exists.
+    permitted = ['admin.security-policy.read', 'admin.security-policy.write']
+    viewStateRef.value = 'empty'
+    policiesRef.value = []
+    const wrapper = await mountSuspended(PolicyPage)
+    expect(wrapper.text()).toContain(enLocale.policy.empty_title)
+    expect(wrapper.find('[data-testid="policy-draft-payload"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="policy-draft-submit"]').exists()).toBe(true)
+  })
+
+  it('hides the draft editor on an empty category for a read-only admin', async () => {
+    permitted = ['admin.security-policy.read']
+    viewStateRef.value = 'empty'
+    policiesRef.value = []
+    const wrapper = await mountSuspended(PolicyPage)
+    expect(wrapper.find('[data-testid="policy-draft-payload"]').exists()).toBe(false)
+  })
+
   it('renders the versions table in the ready state', async () => {
     const wrapper = await mountSuspended(PolicyPage)
     expect(wrapper.find('[data-testid="policy-version-select-7"]').exists()).toBe(true)
