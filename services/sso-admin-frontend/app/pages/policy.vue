@@ -3,7 +3,11 @@ import { computed, ref } from 'vue'
 import { useSessionStore } from '@/stores/session.store'
 import { useI18n } from '@/composables/useI18n'
 import { useSecurityPolicies } from '@/composables/useSecurityPolicies'
-import { POLICY_CATEGORIES, findActiveVersion } from '@/lib/policy/policy-helpers'
+import {
+  POLICY_CATEGORIES,
+  findActiveVersion,
+  parsePolicyPayload,
+} from '@/lib/policy/policy-helpers'
 import UiSkeleton from '@/components/ui/UiSkeleton.vue'
 import UiStatusView from '@/components/ui/UiStatusView.vue'
 import UiEmptyState from '@/components/ui/UiEmptyState.vue'
@@ -13,9 +17,17 @@ import UiFolio from '@/components/ui/UiFolio.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiStatusBadge from '@/components/ui/UiStatusBadge.vue'
 import UiDetailDrawer from '@/components/ui/UiDetailDrawer.vue'
+import UiTextarea from '@/components/ui/UiTextarea.vue'
 import PolicyVersionsTable from '@/components/policy/PolicyVersionsTable.vue'
+import PrivilegedActionDialog from '@/components/users/PrivilegedActionDialog.vue'
+import { usePrivilegedAction } from '@/composables/usePrivilegedAction'
 import { resolvePolicyStatusTone } from '@/lib/policy/policy-view-state'
-import type { SecurityPolicy, SecurityPolicyCategory } from '@/types/policy.types'
+import { policyApi } from '@/services/policy.api'
+import type {
+  PolicyMutationResponse,
+  SecurityPolicy,
+  SecurityPolicyCategory,
+} from '@/types/policy.types'
 
 definePageMeta({
   name: 'admin.policy',
@@ -76,6 +88,24 @@ const selectedJson = computed<string>(() =>
 // Single page-level success region — reused by propose/activate/rollback (8.7–8.9).
 const successMessage = ref<string | null>(null)
 
+// Propose (8.7): free-form payload editor → client parse-guard → reused
+// privileged-action dialog/runner. The backend re-validates payload => required|array.
+const canWrite = computed<boolean>(() => store.hasPermission('admin.security-policy.write'))
+
+const proposeAction = usePrivilegedAction<PolicyMutationResponse>()
+const payloadText = ref('{\n  "min_length": 14\n}')
+const parseError = ref<string | null>(null)
+const proposeOpen = ref(false)
+const proposeReason = ref('')
+const proposedPayload = ref<Record<string, unknown> | null>(null)
+
+const proposeError = computed<string | null>(() => {
+  const status = proposeAction.failure.value?.status
+  if (!status || status === 'step_up_required') return null
+  if (status === 'invalid') return t('policy.propose_invalid')
+  return t('common.error_generic')
+})
+
 function onSelectVersion(id: number): void {
   selectedId.value = id
 }
@@ -91,9 +121,37 @@ async function onRefresh(): Promise<void> {
   await refresh()
 }
 
-// Handler bodies filled by later tasks (declared once; never renamed):
+// Propose (8.7): parse-guard the textarea, then open the confirm dialog.
 function onProposeSubmit(): void {
-  /* Task 8.7 */
+  const parsed = parsePolicyPayload(payloadText.value)
+  if (!parsed.ok) {
+    parseError.value =
+      parsed.error === 'syntax' ? t('policy.payload_parse_error') : t('policy.payload_not_object')
+    return
+  }
+  parseError.value = null
+  proposedPayload.value = parsed.value
+  proposeReason.value = ''
+  proposeAction.reset()
+  successMessage.value = null
+  proposeOpen.value = true
+}
+
+function onProposeCancel(): void {
+  proposeOpen.value = false
+}
+
+async function onProposeConfirm(): Promise<void> {
+  const payload = proposedPayload.value
+  if (!payload) return
+  const reason = proposeReason.value.trim() || undefined
+  const result = await proposeAction.run(() =>
+    policyApi.propose(category.value, { payload, reason }),
+  )
+  if (result === null) return // failure stays in the open dialog
+  proposeOpen.value = false
+  successMessage.value = t('policy.propose_success')
+  await refresh()
 }
 function onActivateRequested(_version: number): void {
   /* Task 8.8 */
@@ -193,6 +251,27 @@ function onRollbackRequested(_version: number): void {
         </p>
       </section>
 
+      <section v-if="canWrite" class="policy__draft" aria-labelledby="policy-draft-title">
+        <h2 id="policy-draft-title" class="policy__h2">{{ t('policy.label_draft_payload') }}</h2>
+        <UiTextarea v-model="payloadText" :rows="6" data-testid="policy-draft-payload" />
+        <p
+          v-if="parseError"
+          class="policy__error"
+          role="alert"
+          data-testid="policy-draft-parse-error"
+        >
+          {{ parseError }}
+        </p>
+        <UiButton
+          variant="primary"
+          size="sm"
+          data-testid="policy-draft-submit"
+          @click="onProposeSubmit"
+        >
+          {{ t('policy.btn_create_draft') }}
+        </UiButton>
+      </section>
+
       <section class="policy__versions" aria-labelledby="policy-versions-title">
         <h2 id="policy-versions-title" class="policy__h2">{{ t('policy.versions_title') }}</h2>
         <PolicyVersionsTable
@@ -239,6 +318,25 @@ function onRollbackRequested(_version: number): void {
         </div>
       </UiDetailDrawer>
     </template>
+
+    <PrivilegedActionDialog
+      v-if="proposeOpen"
+      :open="proposeOpen"
+      :title="t('policy.confirm_propose_title')"
+      :description="t('policy.confirm_propose_desc', { category })"
+      :confirm-label="t('policy.btn_create_draft')"
+      :cancel-label="t('common.btn_cancel')"
+      :reason-label="t('policy.reason_label')"
+      :reason="proposeReason"
+      :submitting="proposeAction.isSubmitting.value"
+      :error-message="proposeError"
+      :request-id="proposeAction.requestId.value"
+      :step-up-url="proposeAction.stepUpUrl.value"
+      :step-up-label="t('policy.step_up_cta')"
+      @update:reason="proposeReason = $event"
+      @confirm="onProposeConfirm"
+      @cancel="onProposeCancel"
+    />
   </section>
 </template>
 
@@ -296,6 +394,11 @@ function onRollbackRequested(_version: number): void {
   margin: 0;
   font: 400 0.8125rem/1.5 var(--font-sans);
   color: var(--fg-3);
+}
+.policy__error {
+  margin: 0;
+  font: 500 0.8125rem/1.4 var(--font-sans);
+  color: var(--danger);
 }
 .policy-json {
   margin: 0;
