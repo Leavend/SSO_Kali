@@ -6,6 +6,7 @@ import { useI18n } from '@/composables/useI18n'
 import { useIpAccessRules } from '@/composables/useIpAccessRules'
 import { resolveModeTone } from '@/lib/ip-access/ip-access-view-state'
 import IpAccessRuleFormDialog from '@/components/ip-access/IpAccessRuleFormDialog.vue'
+import PrivilegedActionDialog from '@/components/users/PrivilegedActionDialog.vue'
 import { usePrivilegedAction } from '@/composables/usePrivilegedAction'
 import { ipAccessApi } from '@/services/ip-access.api'
 import type { IpAccessRuleCreatePayload, IpAccessRuleResponse } from '@/types/ip-access.types'
@@ -91,8 +92,45 @@ async function onFormSubmit(payload: IpAccessRuleCreatePayload): Promise<void> {
   successMessage.value = t('ip_access.create_success')
   await refresh()
 }
-function onDeleteRequested(_rule: IpAccessRule): void {
-  // ponytail: stub filled in Task 11.9
+const deleteAction = usePrivilegedAction<void>()
+const deleteTarget = ref<IpAccessRule | null>(null)
+
+const deleteDescription = computed<string>(() =>
+  deleteTarget.value
+    ? t('ip_access.confirm_delete_desc', {
+        mode: modeLabels.value[deleteTarget.value.mode] ?? deleteTarget.value.mode,
+        cidr: deleteTarget.value.cidr,
+      })
+    : '',
+)
+
+// SAFE status-keyed copy — a 422 may carry a raw DB/not-found message which MUST
+// NOT be rendered; map to safe domain copy.
+const deleteError = computed<string | null>(() => {
+  const status = deleteAction.failure.value?.status
+  if (!status || status === 'step_up_required') return null
+  if (status === 'invalid') return t('ip_access.delete_invalid')
+  return t('common.error_generic')
+})
+
+function onDeleteRequested(rule: IpAccessRule): void {
+  deleteAction.reset()
+  successMessage.value = null
+  deleteTarget.value = rule
+}
+function onDeleteCancel(): void {
+  deleteTarget.value = null
+}
+async function onDeleteConfirm(): Promise<void> {
+  const target = deleteTarget.value
+  if (!target) return
+  // run() resolves the runner's value: undefined on void success, null on failure.
+  const result = await deleteAction.run(() => ipAccessApi.remove(target.id))
+  if (result === null) return
+  deleteTarget.value = null
+  selectedId.value = null
+  successMessage.value = t('ip_access.delete_success')
+  await refresh()
 }
 </script>
 
@@ -259,6 +297,23 @@ function onDeleteRequested(_rule: IpAccessRule): void {
       :step-up-url="createAction.stepUpUrl.value"
       @submit="onFormSubmit"
       @cancel="onFormCancel"
+    />
+
+    <PrivilegedActionDialog
+      v-if="deleteTarget !== null"
+      :open="deleteTarget !== null"
+      :title="t('ip_access.confirm_delete_title')"
+      :description="deleteDescription"
+      :confirm-label="t('common.btn_delete')"
+      :cancel-label="t('common.btn_cancel')"
+      danger
+      :submitting="deleteAction.isSubmitting.value"
+      :error-message="deleteError"
+      :request-id="deleteAction.requestId.value"
+      :step-up-url="deleteAction.stepUpUrl.value"
+      :step-up-label="t('ip_access.step_up_cta')"
+      @confirm="onDeleteConfirm"
+      @cancel="onDeleteCancel"
     />
   </section>
 </template>
