@@ -997,7 +997,6 @@
     "list_caption": "IP access rules",
     "mode_allow": "Allow",
     "mode_block": "Block",
-    "col_expires": "Expires",
     "never": "Never",
     "ov_reason": "Reason",
     "ov_expires": "Expires",

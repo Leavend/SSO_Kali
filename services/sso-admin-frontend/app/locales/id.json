@@ -997,7 +997,6 @@
     "list_caption": "Aturan akses IP",
     "mode_allow": "Izinkan",
     "mode_block": "Blokir",
-    "col_expires": "Kedaluwarsa",
     "never": "Tidak ada",
     "ov_reason": "Alasan",
     "ov_expires": "Kedaluwarsa",

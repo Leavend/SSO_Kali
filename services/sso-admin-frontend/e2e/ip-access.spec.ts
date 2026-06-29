@@ -81,7 +81,8 @@ test('table: renders the IP access rules list with CIDR + mode label', async ({ 
   await mockMe(page, principal)
   await mockList(page)
   await page.goto('/ip-access')
-  await expect(page.getByTestId('ip-access-table')).toBeVisible()
+  // The row's CIDR select button proves the table mounted (no table-level testid).
+  await expect(page.getByTestId('ip-access-select-1')).toBeVisible()
   await expect(page.getByText('203.0.113.0/24')).toBeVisible()
   // mode badge renders a text label (never colour-only per Swiss rule).
   await expect(page.getByText('Block')).toBeVisible()
@@ -119,10 +120,12 @@ test('delete: double-gate confirm fires DELETE; cancel calls no API', async ({ p
     await r.fulfill({ status: 204, body: '' })
   })
   await page.goto('/ip-access')
-  await page.getByTestId('ip-access-delete-1').click()
+  // Delete lives inside the detail drawer — select the rule first to open it.
+  await page.getByTestId('ip-access-select-1').click()
+  await page.getByTestId('ip-access-delete').click()
   await page.getByTestId('privileged-action-cancel').click()
   expect(deleted).toBe(false)
-  await page.getByTestId('ip-access-delete-1').click()
+  await page.getByTestId('ip-access-delete').click()
   await page.getByTestId('privileged-action-confirm').click()
   await expect.poll(() => deleted).toBe(true)
 })
