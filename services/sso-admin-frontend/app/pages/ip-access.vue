@@ -5,6 +5,10 @@ import { useSessionStore } from '@/stores/session.store'
 import { useI18n } from '@/composables/useI18n'
 import { useIpAccessRules } from '@/composables/useIpAccessRules'
 import { resolveModeTone } from '@/lib/ip-access/ip-access-view-state'
+import IpAccessRuleFormDialog from '@/components/ip-access/IpAccessRuleFormDialog.vue'
+import { usePrivilegedAction } from '@/composables/usePrivilegedAction'
+import { ipAccessApi } from '@/services/ip-access.api'
+import type { IpAccessRuleCreatePayload, IpAccessRuleResponse } from '@/types/ip-access.types'
 import UiSkeleton from '@/components/ui/UiSkeleton.vue'
 import UiStatusView from '@/components/ui/UiStatusView.vue'
 import UiEmptyState from '@/components/ui/UiEmptyState.vue'
@@ -60,10 +64,32 @@ async function onRefresh(): Promise<void> {
   await refresh()
 }
 
-// Write handlers — declared as stubs here so the template binds a stable symbol;
-// bodies are implemented in Task 11.8 (create) and Task 11.9 (delete).
+const formOpen = ref(false)
+const createAction = usePrivilegedAction<IpAccessRuleResponse>()
+
+// SAFE status-keyed copy — a 422 may carry a raw DB/validation message which MUST
+// NOT be rendered; map to safe domain copy. step_up surfaces via the dialog link.
+const formError = computed<string | null>(() => {
+  const status = createAction.failure.value?.status
+  if (!status || status === 'step_up_required') return null
+  if (status === 'invalid') return t('ip_access.create_invalid')
+  return t('common.error_generic')
+})
+
 function onCreateRequested(): void {
-  // ponytail: stub filled in Task 11.8
+  createAction.reset()
+  successMessage.value = null
+  formOpen.value = true
+}
+function onFormCancel(): void {
+  formOpen.value = false
+}
+async function onFormSubmit(payload: IpAccessRuleCreatePayload): Promise<void> {
+  const result = await createAction.run(() => ipAccessApi.create(payload))
+  if (result === null) return // failure (invalid/step-up/error) stays in the dialog
+  formOpen.value = false
+  successMessage.value = t('ip_access.create_success')
+  await refresh()
 }
 function onDeleteRequested(_rule: IpAccessRule): void {
   // ponytail: stub filled in Task 11.9
@@ -224,6 +250,16 @@ function onDeleteRequested(_rule: IpAccessRule): void {
         </div>
       </UiDetailDrawer>
     </template>
+
+    <IpAccessRuleFormDialog
+      :open="formOpen"
+      :submitting="createAction.isSubmitting.value"
+      :error-message="formError"
+      :request-id="createAction.requestId.value"
+      :step-up-url="createAction.stepUpUrl.value"
+      @submit="onFormSubmit"
+      @cancel="onFormCancel"
+    />
   </section>
 </template>
 
