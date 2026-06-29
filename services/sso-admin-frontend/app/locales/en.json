@@ -954,7 +954,18 @@
     "update_invalid": "That provider could not be found or the change was rejected.",
     "create_success": "External provider created.",
     "update_success": "Provider configuration saved.",
-    "step_up_cta": "Re-authenticate to continue"
+    "step_up_cta": "Re-authenticate to continue",
+    "btn_preview": "Preview mapping",
+    "preview_title": "Preview claim mapping",
+    "preview_claims_label": "Sample claims (JSON)",
+    "preview_submit": "Run preview",
+    "preview_parse_error": "Sample claims must be a valid JSON object.",
+    "preview_safe": "Safe to link",
+    "preview_unsafe": "Not safe to link",
+    "preview_strategy": "Missing-email strategy",
+    "preview_mapped": "Mapped identity",
+    "preview_warnings": "Warnings",
+    "preview_errors": "Errors"
   },
   "ip_access": {
     "eyebrow": "Security",

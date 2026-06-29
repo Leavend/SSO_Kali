@@ -3,7 +3,7 @@ import { computed, ref } from 'vue'
 import { useSessionStore } from '@/stores/session.store'
 import { useI18n } from '@/composables/useI18n'
 import { useExternalIdpsList } from '@/composables/useExternalIdpsList'
-import { filterProviders } from '@/lib/external-idps/external-idps-list'
+import { filterProviders, parseClaimsJson } from '@/lib/external-idps/external-idps-list'
 import { resolveEnabledTone, resolveHealthTone } from '@/lib/external-idps/external-idps-view-state'
 import UiSkeleton from '@/components/ui/UiSkeleton.vue'
 import UiStatusView from '@/components/ui/UiStatusView.vue'
@@ -14,14 +14,20 @@ import UiFolio from '@/components/ui/UiFolio.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiStatusBadge from '@/components/ui/UiStatusBadge.vue'
 import UiDetailDrawer from '@/components/ui/UiDetailDrawer.vue'
+import UiDialog from '@/components/ui/UiDialog.vue'
+import UiTextarea from '@/components/ui/UiTextarea.vue'
 import ExternalIdpsTable from '@/components/external-idps/ExternalIdpsTable.vue'
 import ExternalIdpFormDialog from '@/components/external-idps/ExternalIdpFormDialog.vue'
+import MappingPreviewPanel from '@/components/external-idps/MappingPreviewPanel.vue'
 import { usePrivilegedAction } from '@/composables/usePrivilegedAction'
 import { externalIdpsApi } from '@/services/external-idps.api'
+import { formatSupportReference } from '@/lib/display-identifiers'
 import type {
   ExternalIdentityProvider,
   ExternalIdpCreatePayload,
   ExternalIdpDetailResponse,
+  ExternalIdpMappingPreview,
+  ExternalIdpMappingPreviewResponse,
   ExternalIdpUpdatePayload,
 } from '@/types/external-idps.types'
 
@@ -137,8 +143,41 @@ async function onFormSubmit(
   successMessage.value = t('external_idps.update_success')
   await refresh()
 }
-function onPreviewRequested(_provider: ExternalIdentityProvider): void {
-  /* Task 10.9 */
+const previewOpen = ref(false)
+const previewKey = ref<string | null>(null)
+const previewClaims = ref('{\n  "sub": "ext-user-123",\n  "email": "user@example.com"\n}')
+const previewParseError = ref<string | null>(null)
+const previewResult = ref<ExternalIdpMappingPreview | null>(null)
+const previewAction = usePrivilegedAction<ExternalIdpMappingPreviewResponse>()
+
+const previewError = computed<string | null>(() => {
+  const status = previewAction.failure.value?.status
+  if (!status || status === 'step_up_required') return null
+  return t('common.error_generic')
+})
+
+function onPreviewRequested(provider: ExternalIdentityProvider): void {
+  previewAction.reset()
+  previewParseError.value = null
+  previewResult.value = null
+  previewKey.value = provider.provider_key
+  previewOpen.value = true
+}
+function onPreviewCancel(): void {
+  previewOpen.value = false
+}
+async function onPreviewSubmit(): Promise<void> {
+  const key = previewKey.value
+  if (!key) return
+  const parsed = parseClaimsJson(previewClaims.value)
+  if (!parsed.ok) {
+    previewParseError.value = t('external_idps.preview_parse_error')
+    return
+  }
+  previewParseError.value = null
+  const result = await previewAction.run(() => externalIdpsApi.previewMapping(key, parsed.value))
+  if (result === null) return // failure (error/step-up/REF) stays in the dialog
+  previewResult.value = result.preview
 }
 function onDeleteRequested(_provider: ExternalIdentityProvider): void {
   /* Task 10.10 */
@@ -375,6 +414,15 @@ function onDeleteRequested(_provider: ExternalIdentityProvider): void {
             >
               {{ t('common.btn_edit') }}
             </UiButton>
+            <UiButton
+              v-if="canWrite"
+              variant="secondary"
+              size="sm"
+              data-testid="external-idp-preview"
+              @click="onPreviewRequested(selectedProvider)"
+            >
+              {{ t('external_idps.btn_preview') }}
+            </UiButton>
           </div>
         </div>
       </UiDetailDrawer>
@@ -391,6 +439,74 @@ function onDeleteRequested(_provider: ExternalIdentityProvider): void {
       @submit="onFormSubmit"
       @cancel="onFormCancel"
     />
+
+    <UiDialog
+      v-if="previewOpen"
+      :open="previewOpen"
+      title-id="external-idp-preview-dialog"
+      :title="t('external_idps.preview_title')"
+      :description="t('external_idps.preview_title')"
+      :close-label="t('external_idps.btn_cancel')"
+      wide
+      @close="onPreviewCancel"
+    >
+      <div class="idp-preview">
+        <UiFormField id="idp-preview-claims" :label="t('external_idps.preview_claims_label')">
+          <UiTextarea
+            id="idp-preview-claims"
+            v-model="previewClaims"
+            :rows="5"
+            data-testid="idp-preview-claims"
+          />
+        </UiFormField>
+        <p
+          v-if="previewParseError"
+          class="idp-preview__error"
+          role="alert"
+          data-testid="idp-preview-parse-error"
+        >
+          {{ previewParseError }}
+        </p>
+        <p
+          v-if="previewError"
+          class="idp-preview__error"
+          role="alert"
+          data-testid="idp-preview-error"
+        >
+          {{ previewError }}
+          <span v-if="previewAction.requestId.value" class="idp-preview__ref">{{
+            formatSupportReference(previewAction.requestId.value)
+          }}</span>
+        </p>
+        <a
+          v-if="previewAction.stepUpUrl.value"
+          class="idp-preview__step-up"
+          :href="previewAction.stepUpUrl.value"
+          data-testid="idp-preview-stepup"
+        >
+          {{ t('external_idps.step_up_cta') }}
+        </a>
+        <UiButton
+          variant="primary"
+          size="sm"
+          :disabled="previewAction.isSubmitting.value"
+          data-testid="idp-preview-submit"
+          @click="onPreviewSubmit"
+        >
+          {{ t('external_idps.preview_submit') }}
+        </UiButton>
+        <MappingPreviewPanel
+          v-if="previewResult"
+          :preview="previewResult"
+          :safe-label="t('external_idps.preview_safe')"
+          :unsafe-label="t('external_idps.preview_unsafe')"
+          :strategy-label="t('external_idps.preview_strategy')"
+          :mapped-label="t('external_idps.preview_mapped')"
+          :warnings-label="t('external_idps.preview_warnings')"
+          :errors-label="t('external_idps.preview_errors')"
+        />
+      </div>
+    </UiDialog>
   </section>
 </template>
 
@@ -481,5 +597,24 @@ function onDeleteRequested(_provider: ExternalIdentityProvider): void {
   gap: 8px;
   padding-top: 8px;
   border-top: 1px solid var(--border);
+}
+.idp-preview {
+  display: grid;
+  gap: 12px;
+}
+.idp-preview__error {
+  margin: 0;
+  font: 500 0.75rem/1.4 var(--font-sans);
+  color: var(--danger);
+}
+.idp-preview__ref {
+  margin-left: 6px;
+  font-family: var(--font-mono);
+  color: var(--fg-3);
+}
+.idp-preview__step-up {
+  font: 600 0.8125rem/1 var(--font-sans);
+  color: var(--accent);
+  text-decoration: underline;
 }
 </style>

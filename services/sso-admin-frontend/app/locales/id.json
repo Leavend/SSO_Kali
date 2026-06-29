@@ -954,7 +954,18 @@
     "update_invalid": "Provider tersebut tidak ditemukan atau perubahan ditolak.",
     "create_success": "Provider eksternal dibuat.",
     "update_success": "Konfigurasi provider disimpan.",
-    "step_up_cta": "Autentikasi ulang untuk melanjutkan"
+    "step_up_cta": "Autentikasi ulang untuk melanjutkan",
+    "btn_preview": "Pratinjau pemetaan",
+    "preview_title": "Pratinjau pemetaan klaim",
+    "preview_claims_label": "Contoh klaim (JSON)",
+    "preview_submit": "Jalankan pratinjau",
+    "preview_parse_error": "Contoh klaim harus berupa objek JSON yang valid.",
+    "preview_safe": "Aman untuk ditautkan",
+    "preview_unsafe": "Tidak aman untuk ditautkan",
+    "preview_strategy": "Strategi email kosong",
+    "preview_mapped": "Identitas terpetakan",
+    "preview_warnings": "Peringatan",
+    "preview_errors": "Kesalahan"
   },
   "ip_access": {
     "eyebrow": "Keamanan",
