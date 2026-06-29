@@ -965,7 +965,11 @@
     "preview_strategy": "Strategi email kosong",
     "preview_mapped": "Identitas terpetakan",
     "preview_warnings": "Peringatan",
-    "preview_errors": "Kesalahan"
+    "preview_errors": "Kesalahan",
+    "confirm_delete_title": "Hapus provider eksternal?",
+    "confirm_delete_desc": "Hapus permanen {name} dan putuskan tautan setiap pengguna yang berfederasi melaluinya. Tindakan ini tidak dapat dibatalkan.",
+    "delete_success": "Provider eksternal dihapus.",
+    "delete_invalid": "Provider tersebut tidak ditemukan, atau perubahan ditolak."
   },
   "ip_access": {
     "eyebrow": "Keamanan",

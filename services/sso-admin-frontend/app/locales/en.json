@@ -965,7 +965,11 @@
     "preview_strategy": "Missing-email strategy",
     "preview_mapped": "Mapped identity",
     "preview_warnings": "Warnings",
-    "preview_errors": "Errors"
+    "preview_errors": "Errors",
+    "confirm_delete_title": "Delete external provider?",
+    "confirm_delete_desc": "Permanently delete {name} and unlink every user federated through it. This cannot be undone.",
+    "delete_success": "External provider deleted.",
+    "delete_invalid": "That provider could not be found, or the change was rejected."
   },
   "ip_access": {
     "eyebrow": "Security",

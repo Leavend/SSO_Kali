@@ -19,6 +19,7 @@ import UiTextarea from '@/components/ui/UiTextarea.vue'
 import ExternalIdpsTable from '@/components/external-idps/ExternalIdpsTable.vue'
 import ExternalIdpFormDialog from '@/components/external-idps/ExternalIdpFormDialog.vue'
 import MappingPreviewPanel from '@/components/external-idps/MappingPreviewPanel.vue'
+import PrivilegedActionDialog from '@/components/users/PrivilegedActionDialog.vue'
 import { usePrivilegedAction } from '@/composables/usePrivilegedAction'
 import { externalIdpsApi } from '@/services/external-idps.api'
 import { formatSupportReference } from '@/lib/display-identifiers'
@@ -179,8 +180,41 @@ async function onPreviewSubmit(): Promise<void> {
   if (result === null) return // failure (error/step-up/REF) stays in the dialog
   previewResult.value = result.preview
 }
-function onDeleteRequested(_provider: ExternalIdentityProvider): void {
-  /* Task 10.10 */
+const deleteAction = usePrivilegedAction<void>()
+const deleteTarget = ref<ExternalIdentityProvider | null>(null)
+
+const deleteDescription = computed<string>(() =>
+  deleteTarget.value
+    ? t('external_idps.confirm_delete_desc', { name: deleteTarget.value.display_name })
+    : '',
+)
+// SAFE status-keyed copy — 422 external_idp_invalid (not-found) carries a raw
+// "not found"/SQL message which MUST NOT be rendered; map to safe domain copy.
+const deleteError = computed<string | null>(() => {
+  const status = deleteAction.failure.value?.status
+  if (!status || status === 'step_up_required') return null
+  if (status === 'invalid') return t('external_idps.delete_invalid')
+  return t('common.error_generic')
+})
+
+function onDeleteRequested(provider: ExternalIdentityProvider): void {
+  deleteAction.reset()
+  successMessage.value = null
+  deleteTarget.value = provider
+}
+function onDeleteCancel(): void {
+  deleteTarget.value = null
+}
+async function onDeleteConfirm(): Promise<void> {
+  const target = deleteTarget.value
+  if (!target) return
+  // run() resolves the runner's value: undefined on void success, null on failure.
+  const result = await deleteAction.run(() => externalIdpsApi.remove(target.provider_key))
+  if (result === null) return
+  deleteTarget.value = null
+  selectedKey.value = null
+  successMessage.value = t('external_idps.delete_success')
+  await refresh()
 }
 </script>
 
@@ -423,6 +457,15 @@ function onDeleteRequested(_provider: ExternalIdentityProvider): void {
             >
               {{ t('external_idps.btn_preview') }}
             </UiButton>
+            <UiButton
+              v-if="canDelete"
+              variant="danger"
+              size="sm"
+              data-testid="external-idp-delete"
+              @click="onDeleteRequested(selectedProvider)"
+            >
+              {{ t('common.btn_delete') }}
+            </UiButton>
           </div>
         </div>
       </UiDetailDrawer>
@@ -507,6 +550,23 @@ function onDeleteRequested(_provider: ExternalIdentityProvider): void {
         />
       </div>
     </UiDialog>
+
+    <PrivilegedActionDialog
+      v-if="deleteTarget !== null"
+      :open="deleteTarget !== null"
+      :title="t('external_idps.confirm_delete_title')"
+      :description="deleteDescription"
+      :confirm-label="t('common.btn_delete')"
+      :cancel-label="t('common.btn_cancel')"
+      danger
+      :submitting="deleteAction.isSubmitting.value"
+      :error-message="deleteError"
+      :request-id="deleteAction.requestId.value"
+      :step-up-url="deleteAction.stepUpUrl.value"
+      :step-up-label="t('external_idps.step_up_cta')"
+      @confirm="onDeleteConfirm"
+      @cancel="onDeleteCancel"
+    />
   </section>
 </template>
 
