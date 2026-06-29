@@ -4,6 +4,7 @@ import {
   describePermissionImpact,
   diffRoleGrants,
   isGranted,
+  reseedPendingGrants,
   togglePendingGrant,
   type RoleGrantMap,
 } from '../roles-matrix'
@@ -156,5 +157,41 @@ describe('describePermissionImpact', () => {
     const diff = diffRoleGrants(new Set(['admin.roles.read']), new Set(['admin.roles.read']))
     const impact = describePermissionImpact(role, diff)
     expect(impact).toStrictEqual({ affectedUsers: 0, addedCount: 0, removedCount: 0 })
+  })
+})
+
+describe('reseedPendingGrants', () => {
+  const grantMap = (entries: Record<string, readonly string[]>): RoleGrantMap =>
+    new Map(Object.entries(entries).map(([slug, perms]) => [slug, new Set(perms)]))
+
+  it('preserves an unsaved (dirty) column when another column is saved + refreshed', () => {
+    // Operator edited BOTH editor and auditor, then saved editor → the list refresh
+    // brings editor's new server set while auditor's column is untouched server-side.
+    const previous = grantMap({ editor: ['a'], auditor: ['a'] })
+    const next = grantMap({ editor: ['a', 'b'], auditor: ['a'] }) // editor saved server-side
+    const pending = grantMap({ editor: ['a', 'b'], auditor: ['a', 'c'] }) // auditor still dirty
+    const merged = reseedPendingGrants(next, previous, pending)
+    // auditor's unsaved 'c' survives the refresh ...
+    expect([...(merged.get('auditor') ?? [])].sort()).toEqual(['a', 'c'])
+    // ... and the saved editor column now matches the server set (clean).
+    expect([...(merged.get('editor') ?? [])].sort()).toEqual(['a', 'b'])
+  })
+
+  it('adopts the new server set for a clean column (genuine server-side change flows in)', () => {
+    const previous = grantMap({ editor: ['a'] })
+    const next = grantMap({ editor: ['a', 'b'] }) // changed server-side
+    const pending = grantMap({ editor: ['a'] }) // operator made no edit (clean)
+    const merged = reseedPendingGrants(next, previous, pending)
+    expect([...(merged.get('editor') ?? [])].sort()).toEqual(['a', 'b'])
+  })
+
+  it('includes a newly-added server role and never mutates its inputs', () => {
+    const previous = grantMap({ editor: ['a'] })
+    const next = grantMap({ editor: ['a'], newcomer: ['x'] })
+    const pending = grantMap({ editor: ['a'] })
+    const merged = reseedPendingGrants(next, previous, pending)
+    expect([...(merged.get('newcomer') ?? [])]).toEqual(['x'])
+    expect(merged).not.toBe(next)
+    expect([...(pending.get('editor') ?? [])]).toEqual(['a']) // inputs untouched
   })
 })

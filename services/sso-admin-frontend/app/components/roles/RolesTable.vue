@@ -131,7 +131,7 @@ function emitFor(slug: unknown, event: 'edit' | 'managePermissions' | 'delete'):
         >
           {{ rowText(row.role) }}
         </button>
-        <span class="roles-table__slug"><UiFolio :value="String(row.slug)" /></span>
+        <span class="roles-table__slug"><UiFolio :value="String(row.slug)" variant="id" /></span>
       </template>
 
       <template #cell(users)="{ row }">

@@ -9,6 +9,7 @@ import {
   buildRoleGrantMap,
   describePermissionImpact,
   diffRoleGrants,
+  reseedPendingGrants,
   togglePendingGrant,
   type RoleGrantMap,
 } from '@/lib/roles/roles-matrix'
@@ -81,10 +82,14 @@ const permissionList = computed<readonly AdminPermission[]>(() => permissions.va
 // is the in-flight edit map; dirtyRoleSlugs drives which column's Save is enabled.
 const originalGrants = computed<RoleGrantMap>(() => buildRoleGrantMap(roleList.value))
 const pendingGrants = ref<RoleGrantMap>(buildRoleGrantMap(roleList.value))
+// Reseed from the server snapshot on every list change (initial load, post-save
+// refresh, background stale refresh) but PRESERVE columns the operator has edited
+// but not yet saved — RoleMatrix has a per-role Save, so saving role A refreshes
+// the whole list and would otherwise silently drop role B's unsaved toggles.
 watch(
   originalGrants,
-  (next) => {
-    pendingGrants.value = next
+  (next, prev) => {
+    pendingGrants.value = prev ? reseedPendingGrants(next, prev, pendingGrants.value) : next
   },
   { immediate: true },
 )
@@ -334,8 +339,7 @@ async function onSyncConfirm(): Promise<void> {
     rolesApi.syncPermissions(role.slug, { permission_slugs: diff.permission_slugs }),
   )
   if (result === null) return // failure stays in the dialog (safe copy + REF + step-up)
-  await refresh()
-  pendingGrants.value = buildRoleGrantMap(roles.value ?? []) // reseed → dirtyRoleSlugs recomputes (read-only)
+  await refresh() // refresh reseeds pendingGrants via the originalGrants watch (other columns' edits preserved)
   syncTarget.value = null
   successMessage.value = t('roles.roles_permissions_success')
   if (selfAffecting) await reverifySelf() // self-affecting: re-verify, re-route if the session dropped
@@ -521,6 +525,7 @@ async function onRefresh(): Promise<void> {
         :danger="false"
         :submitting="sync.isSubmitting.value"
         :step-up-url="sync.stepUpUrl.value"
+        :step-up-label="t('roles.step_up_cta')"
         :error-message="syncErrorMessage"
         :request-id="sync.requestId.value"
         @confirm="onSyncConfirm"

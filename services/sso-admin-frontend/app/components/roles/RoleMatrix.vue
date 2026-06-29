@@ -107,12 +107,16 @@ function saveEnabled(slug: string): boolean {
           :disabled="!canWrite"
           @update:model-value="onToggle(role.slug, row.id, $event)"
         />
-        <UiStatusBadge
-          v-else
-          :data-testid="`role-cell-${role.slug}-${row.id}`"
-          :tone="granted(role.slug, row.id) ? 'success' : 'neutral'"
-          :label="granted(role.slug, row.id) ? grantedLabel : deniedLabel"
-        />
+        <template v-else>
+          <!-- sr-only context so a read-only badge cell is as self-describing to AT
+               as the editable switch cells (which carry the same aria-label). -->
+          <span class="sr-only">{{ `${role.name}: ${row['permission']}` }}</span>
+          <UiStatusBadge
+            :data-testid="`role-cell-${role.slug}-${row.id}`"
+            :tone="granted(role.slug, row.id) ? 'success' : 'neutral'"
+            :label="granted(role.slug, row.id) ? grantedLabel : deniedLabel"
+          />
+        </template>
       </template>
     </UiDataList>
 

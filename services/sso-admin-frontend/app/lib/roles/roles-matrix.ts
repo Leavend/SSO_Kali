@@ -61,6 +61,25 @@ export function describePermissionImpact(
   }
 }
 
+// Reseed the pending grant map from a fresh server snapshot while PRESERVING any
+// column the operator has edited-but-not-yet-saved (dirty against the previous
+// snapshot). The matrix has a per-role Save, so saving role A refreshes the whole
+// list — without this, that refresh would silently discard unsaved toggles on
+// every other role. A clean column adopts the new server set (so genuine
+// server-side changes still flow in); a dirty column keeps its pending edits.
+export function reseedPendingGrants(
+  next: RoleGrantMap,
+  previous: RoleGrantMap,
+  pending: RoleGrantMap,
+): RoleGrantMap {
+  const merged = new Map<string, ReadonlySet<string>>(next)
+  for (const [slug, pendingSet] of pending) {
+    const base = previous.get(slug) ?? new Set<string>()
+    if (diffRoleGrants(base, pendingSet).changed) merged.set(slug, pendingSet)
+  }
+  return merged
+}
+
 // Diff one role's original vs pending set. `permission_slugs` is the full sorted
 // pending set (the PUT-replace body — an empty array is a valid "clear all").
 export function diffRoleGrants(
