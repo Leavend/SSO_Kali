@@ -200,7 +200,21 @@
     "col_effective": "Effective",
     "col_status": "Status",
     "detail_desc": "Policy version payload and activation actions",
-    "close_detail": "Close policy version"
+    "close_detail": "Close policy version",
+    "signed_in_as": "Signed in as {name}",
+    "active_title": "Active configuration",
+    "active_none": "No active policy for this category.",
+    "label_actor": "Changed by",
+    "payload_label": "Payload",
+    "status_draft": "Draft",
+    "status_active": "Active",
+    "status_superseded": "Superseded",
+    "status_rolled_back": "Rolled back",
+    "category_password": "Password",
+    "category_mfa": "Multi-factor",
+    "category_session": "Session",
+    "category_lockout": "Lockout",
+    "category_legal_hold": "Legal hold"
   },
   "roles": {
     "eyebrow": "RBAC",

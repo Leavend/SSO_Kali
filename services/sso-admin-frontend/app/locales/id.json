@@ -200,7 +200,21 @@
     "col_effective": "Berlaku",
     "col_status": "Status",
     "detail_desc": "Payload versi policy dan aksi aktivasi",
-    "close_detail": "Tutup versi policy"
+    "close_detail": "Tutup versi policy",
+    "signed_in_as": "Masuk sebagai {name}",
+    "active_title": "Konfigurasi aktif",
+    "active_none": "Belum ada kebijakan aktif untuk kategori ini.",
+    "label_actor": "Diubah oleh",
+    "payload_label": "Muatan",
+    "status_draft": "Draf",
+    "status_active": "Aktif",
+    "status_superseded": "Digantikan",
+    "status_rolled_back": "Dikembalikan",
+    "category_password": "Kata sandi",
+    "category_mfa": "Multi-faktor",
+    "category_session": "Sesi",
+    "category_lockout": "Penguncian",
+    "category_legal_hold": "Penahanan hukum"
   },
   "roles": {
     "eyebrow": "RBAC",
