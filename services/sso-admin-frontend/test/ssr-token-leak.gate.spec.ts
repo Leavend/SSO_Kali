@@ -81,6 +81,11 @@ function fetchExternalIdps(): Promise<string> {
   return $fetch('/external-idps', { headers: { cookie: 'admin_locale=en' } })
 }
 
+function fetchIpAccess(): Promise<string> {
+  // admin_locale=en so the mode badge renders the English label under the gate.
+  return $fetch('/ip-access', { headers: { cookie: 'admin_locale=en' } })
+}
+
 function extractPayload(html: string): string {
   const match = html.match(/<script[^>]*id="__NUXT_DATA__"[^>]*>([\s\S]*?)<\/script>/)
   if (!match?.[1]) {
@@ -400,6 +405,29 @@ describe('SSR token-leak render gate (§3.3)', async () => {
       expect(haystack).not.toContain('internal note')
       expect(haystack).not.toContain('sub-reviewer-canary')
     }
+  })
+
+  it('renders the IP access rules server-side in their ready state', async () => {
+    const html = await fetchIpAccess()
+    expect(html).toContain('data-admin-shell')
+    // a CIDR + a mode label render, proving the table mounted (mode is shown as a
+    // STATUS label, never colour-alone).
+    expect(html).toContain('203.0.113.0/24')
+    expect(html).toContain('Block')
+  })
+
+  it('does not leak token/secret/PII values into the ip-access SSR HTML', async () => {
+    // Strict — the IP-access DTO carries only cidr/mode/reason/timestamps + an opaque
+    // actor subject id; no token, secret, session id, or gov-PII. NO allowSessionId.
+    const html = await fetchIpAccess()
+    expect(collectSecretLeaks(html, 'ip-access SSR HTML')).toEqual([])
+  })
+
+  it('does not leak token/secret/PII values into the ip-access hydration payload', async () => {
+    const html = await fetchIpAccess()
+    const serialized = JSON.stringify(JSON.parse(extractPayload(html)))
+    expect(collectSecretLeaks(serialized, 'ip-access __NUXT__ payload')).toEqual([])
+    expect(collectPiiShapeLeaks(serialized, 'ip-access __NUXT__ payload')).toEqual([])
   })
 
   it('collectSecretLeaks is LIVE — it reports a planted client secret (negative control)', () => {
