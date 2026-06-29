@@ -159,6 +159,7 @@ const previewError = computed<string | null>(() => {
 
 function onPreviewRequested(provider: ExternalIdentityProvider): void {
   previewAction.reset()
+  successMessage.value = null
   previewParseError.value = null
   previewResult.value = null
   previewKey.value = provider.provider_key

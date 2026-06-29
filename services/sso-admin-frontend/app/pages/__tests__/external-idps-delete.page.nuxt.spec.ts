@@ -120,6 +120,7 @@ describe('external-idps delete — double gate', () => {
       enLocale.external_idps.delete_invalid,
     )
     expect(wrapper.html()).not.toContain('External IdP not found.')
+    expect(wrapper.html()).not.toContain('req-422') // raw request id never rendered (only REF-)
     expect(refreshMock).not.toHaveBeenCalled()
   })
 
