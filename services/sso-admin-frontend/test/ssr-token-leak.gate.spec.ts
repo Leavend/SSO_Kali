@@ -91,6 +91,11 @@ function fetchOps(): Promise<string> {
   return $fetch('/ops', { headers: { cookie: 'admin_locale=en' } })
 }
 
+function fetchAuthAudit(): Promise<string> {
+  // admin_locale=en so the outcome badge renders the English label.
+  return $fetch('/authentication-audit', { headers: { cookie: 'admin_locale=en' } })
+}
+
 function extractPayload(html: string): string {
   const match = html.match(/<script[^>]*id="__NUXT_DATA__"[^>]*>([\s\S]*?)<\/script>/)
   if (!match?.[1]) {
@@ -461,6 +466,30 @@ describe('SSR token-leak render gate (§3.3)', async () => {
     expect(collectPiiShapeLeaks(serialized, 'ops __NUXT__ payload')).toEqual([])
     // proves parseOpsReadiness dropped external_idps before hydration
     expect(serialized).not.toContain('OPS-EXTERNAL-IDP-CANARY')
+  })
+
+  it('renders the authentication-audit list server-side in its ready state', async () => {
+    const html = await fetchAuthAudit()
+    expect(html).toContain('data-admin-shell')
+    expect(html).toContain('data-page="authentication-audit"')
+    // an event type + the (allowed) email render; outcome shown as a label, never colour-alone
+    expect(html).toContain('user.login')
+    expect(html).toContain('operator@dev-sso.local')
+    expect(html).toContain('Failed')
+  })
+
+  it('does not leak token/secret/PII values into the authentication-audit SSR HTML', async () => {
+    // Strict — the audit DTO carries email (allowed), ip, opaque ids, and a
+    // backend-redacted context; no token, secret, OIDC sid, or gov-PII. NO allowSessionId.
+    const html = await fetchAuthAudit()
+    expect(collectSecretLeaks(html, 'authentication-audit SSR HTML')).toEqual([])
+  })
+
+  it('does not leak token/secret/PII values into the authentication-audit hydration payload', async () => {
+    const html = await fetchAuthAudit()
+    const serialized = JSON.stringify(JSON.parse(extractPayload(html)))
+    expect(collectSecretLeaks(serialized, 'authentication-audit __NUXT__ payload')).toEqual([])
+    expect(collectPiiShapeLeaks(serialized, 'authentication-audit __NUXT__ payload')).toEqual([])
   })
 
   it('collectSecretLeaks is LIVE — it reports a planted client secret (negative control)', () => {
