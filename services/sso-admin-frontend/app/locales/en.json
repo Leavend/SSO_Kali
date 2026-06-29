@@ -650,7 +650,15 @@
     "confirm_revoke_title": "Revoke admin session?",
     "confirm_revoke_desc": "This will terminate admin session {id}.",
     "no_session_title": "No session selected",
-    "no_session_desc": "Select a session from the list to view activity details and termination controls."
+    "no_session_desc": "Select a session from the list to view activity details and termination controls.",
+    "signed_in_as": "Signed in as {name}",
+    "ov_email": "Email",
+    "ov_user_agent": "User agent",
+    "ov_created": "Created",
+    "ov_last_activity": "Last activity",
+    "terminate_success": "Session terminated.",
+    "self_affect_warn": "This is one of your own sessions — terminating it will sign you out.",
+    "step_up_cta": "Re-authenticate to continue"
   },
   "observability": {
     "compliance": {

@@ -650,7 +650,15 @@
     "confirm_revoke_title": "Cabut sesi admin?",
     "confirm_revoke_desc": "Tindakan ini akan menterminasi sesi admin {id}.",
     "no_session_title": "Belum ada sesi dipilih",
-    "no_session_desc": "Pilih sesi dari daftar untuk melihat detail aktivitas dan kontrol terminasi."
+    "no_session_desc": "Pilih sesi dari daftar untuk melihat detail aktivitas dan kontrol terminasi.",
+    "signed_in_as": "Masuk sebagai {name}",
+    "ov_email": "Email",
+    "ov_user_agent": "Agen pengguna",
+    "ov_created": "Dibuat",
+    "ov_last_activity": "Aktivitas terakhir",
+    "terminate_success": "Sesi dihentikan.",
+    "self_affect_warn": "Ini salah satu sesi Anda sendiri — menghentikannya akan mengeluarkan Anda.",
+    "step_up_cta": "Autentikasi ulang untuk melanjutkan"
   },
   "observability": {
     "compliance": {
