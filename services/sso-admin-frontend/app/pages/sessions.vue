@@ -3,7 +3,10 @@ import { computed, ref } from 'vue'
 import { useSessionStore } from '@/stores/session.store'
 import { useI18n } from '@/composables/useI18n'
 import { useSessionsList } from '@/composables/useSessionsList'
-import { filterSessions } from '@/lib/sessions/sessions-list'
+import { filterSessions, isOwnSession } from '@/lib/sessions/sessions-list'
+import { resolveBootstrapFailure } from '@/lib/auth/admin-guard-resolver'
+import { usePrivilegedAction } from '@/composables/usePrivilegedAction'
+import { sessionsApi } from '@/services/sessions.api'
 import UiSkeleton from '@/components/ui/UiSkeleton.vue'
 import UiStatusView from '@/components/ui/UiStatusView.vue'
 import UiEmptyState from '@/components/ui/UiEmptyState.vue'
@@ -14,7 +17,8 @@ import UiButton from '@/components/ui/UiButton.vue'
 import UiStatusBadge from '@/components/ui/UiStatusBadge.vue'
 import UiDetailDrawer from '@/components/ui/UiDetailDrawer.vue'
 import SessionsTable from '@/components/sessions/SessionsTable.vue'
-import type { AdminSession } from '@/types/sessions.types'
+import PrivilegedActionDialog from '@/components/users/PrivilegedActionDialog.vue'
+import type { AdminSession, SessionRevokeResponse } from '@/types/sessions.types'
 
 definePageMeta({
   name: 'admin.sessions',
@@ -60,9 +64,69 @@ async function onRefresh(): Promise<void> {
   await refresh()
 }
 
-// Handler body filled by Task 9.7 (declared once; never renamed):
-function onTerminateRequested(_session: AdminSession): void {
-  /* Task 9.7 */
+// --- Terminate-session privileged action -------------------------------------
+// The single destructive affordance in this domain (danger · #E4002B). Reuses the
+// privileged-action matrix wholesale (403/419/428/429/5xx → safe copy + REF + step-up);
+// terminate has no domain-specific error and no 404, so the only bespoke logic is the
+// self-lockout guard.
+const terminateAction = usePrivilegedAction<SessionRevokeResponse>()
+const terminateTarget = ref<AdminSession | null>(null)
+
+const terminateIsSelf = computed<boolean>(
+  () =>
+    terminateTarget.value != null &&
+    isOwnSession(terminateTarget.value, store.principal?.subject_id),
+)
+
+const terminateDescription = computed<string>(() => {
+  if (!terminateTarget.value) return ''
+  const base = t('sessions.terminate_hint')
+  return terminateIsSelf.value ? `${base} ${t('sessions.self_affect_warn')}` : base
+})
+
+// Step-up drives its own link; every other failure is safe-generic.
+const terminateError = computed<string | null>(() =>
+  terminateAction.failure.value && terminateAction.failure.value.status !== 'step_up_required'
+    ? t('common.error_generic')
+    : null,
+)
+
+// Shared self-lockout re-verify: after revoking one of the admin's own sessions,
+// re-confirm the principal; if it dropped (we revoked the current device), route out
+// via the bootstrap-failure resolver (mirror roles/policy reverifySelf).
+async function reverifySelf(): Promise<void> {
+  const ensure = await store.ensureSession(true)
+  if (ensure === 'authenticated') return
+  const resolution = resolveBootstrapFailure(
+    ensure,
+    useRoute().fullPath,
+    useRequestURL().origin,
+    useRuntimeConfig().public.basePath,
+  )
+  if (resolution.kind === 'login') await navigateTo(resolution.url, { external: true })
+  else if (resolution.kind === 'route') await navigateTo(resolution.to)
+}
+
+// Canonical handler — declared once in 9.6 as a stub; filled here (do NOT rename).
+function onTerminateRequested(session: AdminSession): void {
+  terminateAction.reset()
+  successMessage.value = null
+  terminateTarget.value = session
+}
+function onTerminateCancel(): void {
+  terminateTarget.value = null
+}
+async function onTerminateConfirm(): Promise<void> {
+  const target = terminateTarget.value
+  if (!target) return
+  const selfAffecting = terminateIsSelf.value // capture BEFORE run() nulls the target
+  const result = await terminateAction.run(() => sessionsApi.revoke(target.session_id))
+  if (result === null) return // failure stays in the open dialog (error/step-up/REF)
+  terminateTarget.value = null
+  selectedSessionId.value = null
+  successMessage.value = t('sessions.terminate_success')
+  await refresh()
+  if (selfAffecting) await reverifySelf() // revoking your own session can sign you out
 }
 </script>
 
@@ -212,9 +276,39 @@ function onTerminateRequested(_session: AdminSession): void {
               </dd>
             </div>
           </dl>
+
+          <div v-if="canTerminate" class="session-detail__actions">
+            <UiButton
+              variant="danger"
+              size="sm"
+              data-testid="session-terminate"
+              @click="onTerminateRequested(selectedSession)"
+            >
+              {{ t('sessions.btn_revoke') }}
+            </UiButton>
+          </div>
         </div>
       </UiDetailDrawer>
     </template>
+
+    <!-- Page-level danger confirm — outside the v-else so it survives the success
+         path closing the drawer; onTerminateConfirm dismisses it. -->
+    <PrivilegedActionDialog
+      v-if="terminateTarget !== null"
+      :open="terminateTarget !== null"
+      :title="t('sessions.confirm_revoke_title')"
+      :description="terminateDescription"
+      :confirm-label="t('sessions.btn_revoke')"
+      :cancel-label="t('common.btn_cancel')"
+      danger
+      :submitting="terminateAction.isSubmitting.value"
+      :error-message="terminateError"
+      :request-id="terminateAction.requestId.value"
+      :step-up-url="terminateAction.stepUpUrl.value"
+      :step-up-label="t('sessions.step_up_cta')"
+      @confirm="onTerminateConfirm"
+      @cancel="onTerminateCancel"
+    />
   </section>
 </template>
 
@@ -283,5 +377,9 @@ function onTerminateRequested(_session: AdminSession): void {
   margin: 2px 0 0;
   font: 400 0.8125rem/1.4 var(--font-sans);
   color: var(--fg);
+}
+.session-detail__actions {
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
 }
 </style>
