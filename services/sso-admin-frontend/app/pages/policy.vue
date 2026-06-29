@@ -5,6 +5,7 @@ import { useI18n } from '@/composables/useI18n'
 import { useSecurityPolicies } from '@/composables/useSecurityPolicies'
 import {
   POLICY_CATEGORIES,
+  describeTransitionImpact,
   findActiveVersion,
   parsePolicyPayload,
 } from '@/lib/policy/policy-helpers'
@@ -106,6 +107,32 @@ const proposeError = computed<string | null>(() => {
   return t('common.error_generic')
 })
 
+// Activate (8.8): promote a draft version to active through the reused privileged-
+// action matrix. Accent dialog (forward/operational), gated on the activate cap.
+const canActivate = computed<boolean>(() => store.hasPermission('admin.security-policy.activate'))
+
+const activateAction = usePrivilegedAction<PolicyMutationResponse>()
+const activateTarget = ref<number | null>(null)
+const activateReason = ref('')
+
+const activateDescription = computed<string>(() => {
+  if (activateTarget.value === null) return ''
+  const impact = describeTransitionImpact(activateTarget.value, activeVersion.value)
+  return impact.replacesActive
+    ? t('policy.transition_impact_replaces', {
+        version: impact.targetVersion,
+        active: impact.activeVersion,
+      })
+    : t('policy.transition_impact_first', { version: impact.targetVersion })
+})
+
+const activateError = computed<string | null>(() => {
+  const status = activateAction.failure.value?.status
+  if (!status || status === 'step_up_required') return null
+  if (status === 'invalid') return t('policy.error_invalid_transition')
+  return t('common.error_generic')
+})
+
 function onSelectVersion(id: number): void {
   selectedId.value = id
 }
@@ -153,8 +180,27 @@ async function onProposeConfirm(): Promise<void> {
   successMessage.value = t('policy.propose_success')
   await refresh()
 }
-function onActivateRequested(_version: number): void {
-  /* Task 8.8 */
+function onActivateRequested(version: number): void {
+  activateAction.reset()
+  successMessage.value = null
+  activateReason.value = ''
+  activateTarget.value = version
+}
+function onActivateCancel(): void {
+  activateTarget.value = null
+}
+async function onActivateConfirm(): Promise<void> {
+  const version = activateTarget.value
+  if (version === null) return
+  const reason = activateReason.value.trim() || undefined
+  const result = await activateAction.run(() =>
+    policyApi.activate(category.value, version, { reason }),
+  )
+  if (result === null) return // failure stays in the open dialog
+  activateTarget.value = null
+  selectedId.value = null
+  successMessage.value = t('policy.activate_success')
+  await refresh()
 }
 function onRollbackRequested(_version: number): void {
   /* Task 8.9 */
@@ -315,6 +361,17 @@ function onRollbackRequested(_version: number): void {
           </p>
           <h3 class="policy-detail__h3">{{ t('policy.payload_label') }}</h3>
           <pre class="policy-json">{{ selectedJson }}</pre>
+          <div class="policy-detail__actions">
+            <UiButton
+              v-if="canActivate && selectedPolicy.status === 'draft'"
+              variant="primary"
+              size="sm"
+              data-testid="policy-activate"
+              @click="onActivateRequested(selectedPolicy.version)"
+            >
+              {{ t('policy.btn_activate') }}
+            </UiButton>
+          </div>
         </div>
       </UiDetailDrawer>
     </template>
@@ -336,6 +393,25 @@ function onRollbackRequested(_version: number): void {
       @update:reason="proposeReason = $event"
       @confirm="onProposeConfirm"
       @cancel="onProposeCancel"
+    />
+
+    <PrivilegedActionDialog
+      v-if="activateTarget !== null"
+      :open="activateTarget !== null"
+      :title="t('policy.confirm_activate_title')"
+      :description="activateDescription"
+      :confirm-label="t('policy.btn_activate')"
+      :cancel-label="t('common.btn_cancel')"
+      :reason-label="t('policy.reason_label')"
+      :reason="activateReason"
+      :submitting="activateAction.isSubmitting.value"
+      :error-message="activateError"
+      :request-id="activateAction.requestId.value"
+      :step-up-url="activateAction.stepUpUrl.value"
+      :step-up-label="t('policy.step_up_cta')"
+      @update:reason="activateReason = $event"
+      @confirm="onActivateConfirm"
+      @cancel="onActivateCancel"
     />
   </section>
 </template>
@@ -429,5 +505,12 @@ function onRollbackRequested(_version: number): void {
   margin: 4px 0 0;
   font: 600 0.8125rem/1.2 var(--font-sans);
   color: var(--fg);
+}
+.policy-detail__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
 }
 </style>
