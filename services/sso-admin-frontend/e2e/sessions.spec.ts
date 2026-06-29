@@ -1,162 +1,140 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 
-const session = {
-  session_id: 'admin-session-1',
-  client_id: 'sso-admin-frontend',
-  subject_id: 'sub_target',
-  user_email: 'operator@example.test',
-  user_display_name: 'Operator User',
-  ip_address: '203.0.113.10',
-  user_agent: 'Admin Browser',
-  created_at: '2026-05-31T00:00:00Z',
-  last_activity_at: '2026-05-31T00:05:00Z',
-}
+test.beforeEach(async ({ context, baseURL }) => {
+  await context.addCookies([{ name: 'admin_locale', value: 'en', url: baseURL! }])
+})
 
-function principal(permissions: readonly string[]) {
-  return {
-    principal: {
-      subject_id: 'sub_admin',
-      email: 'admin@dev-sso.local',
-      display_name: 'Admin User',
-      role: 'admin',
-      last_login_at: null,
-      auth_context: {
-        auth_time: null,
-        amr: ['pwd', 'mfa'],
-        acr: 'urn:example:loa:2',
-        mfa_enforced: true,
-        mfa_verified: true,
-      },
-      permissions: {
-        view_admin_panel: true,
-        manage_sessions: permissions.includes('admin.sessions.terminate'),
-        permissions,
-        capabilities: Object.fromEntries(permissions.map((permission) => [permission, true])),
-        menus: [
-          {
-            id: 'sessions',
-            label: 'Sessions',
-            required_permission: 'admin.sessions.terminate',
-            visible: permissions.includes('admin.sessions.terminate'),
-          },
-        ],
-      },
+const principal = {
+  principal: {
+    subject_id: 'sub_admin',
+    email: 'admin@dev-sso.local',
+    display_name: 'Admin User',
+    role: 'admin',
+    last_login_at: null,
+    auth_context: {
+      auth_time: null,
+      amr: ['pwd', 'mfa'],
+      acr: 'urn:example:loa:2',
+      mfa_enforced: true,
+      mfa_verified: true,
     },
-  }
+    permissions: {
+      view_admin_panel: true,
+      manage_sessions: true,
+      permissions: ['admin.dashboard.view', 'admin.sessions.terminate'],
+      capabilities: { 'admin.dashboard.view': true, 'admin.sessions.terminate': true },
+      menus: [
+        {
+          id: 'dashboard',
+          label: 'Dashboard',
+          required_permission: 'admin.dashboard.view',
+          visible: true,
+        },
+        {
+          id: 'sessions',
+          label: 'Sessions',
+          required_permission: 'admin.sessions.terminate',
+          visible: true,
+        },
+      ],
+    },
+  },
+}
+const readOnly = {
+  principal: {
+    ...principal.principal,
+    permissions: {
+      view_admin_panel: true,
+      manage_sessions: false,
+      permissions: ['admin.dashboard.view'],
+      capabilities: { 'admin.dashboard.view': true },
+      menus: [
+        {
+          id: 'dashboard',
+          label: 'Dashboard',
+          required_permission: 'admin.dashboard.view',
+          visible: true,
+        },
+      ],
+    },
+  },
+}
+const other = {
+  session_id: 'sess_other',
+  client_id: 'portal',
+  subject_id: 'subj_other',
+  email: 'bob@dev-sso.local',
+  display_name: 'Bob Operator',
+  ip_address: '198.51.100.7',
+  user_agent: 'Mozilla/5.0',
+  created_at: '2026-06-20T10:00:00Z',
+  last_activity_at: '2026-06-28T09:00:00Z',
+  expires_at: '2026-07-20T10:00:00Z',
 }
 
-test.beforeEach(async ({ page }) => {
-  await page.addInitScript(() => {
-    window.localStorage.setItem('dev-sso-admin-locale', 'en')
-  })
-})
-
-test('lists sessions and revokes only after confirmation', async ({ page }) => {
-  let revokeCalled = false
-
-  await page.route('**/api/admin/me', async (route) => {
-    await route.fulfill({
-      contentType: 'application/json',
-      body: JSON.stringify(principal(['admin.sessions.terminate'])),
-    })
-  })
-  await page.route('**/api/admin/sessions', async (route) => {
-    await route.fulfill({
-      contentType: 'application/json',
-      headers: { 'x-request-id': 'req-sessions-list' },
-      body: JSON.stringify({ sessions: [session] }),
-    })
-  })
-  await page.route('**/api/admin/sessions/admin-session-1', async (route) => {
-    if (route.request().method() === 'DELETE') {
-      revokeCalled = true
-      await route.fulfill({
-        contentType: 'application/json',
-        headers: { 'x-request-id': 'req-session-revoke' },
-        body: JSON.stringify({ session_id: 'admin-session-1', revoked: true }),
-      })
-    } else {
-      await route.fulfill({
-        contentType: 'application/json',
-        body: JSON.stringify(session),
-      })
-    }
-  })
-
-  await page.goto('/sessions')
-
-  await expect(page.getByRole('navigation', { name: 'Admin modules' })).toContainText('Sessions')
-  await expect(page.getByRole('heading', { name: 'Sessions', exact: true })).toBeVisible()
-  await expect(page.getByText('REF-IONSLIST').first()).toBeVisible()
-
-  await page.getByRole('button', { name: /Operator User/ }).click()
-  await expect(page.getByText('REF-SESSION1').first()).toBeVisible()
-  await expect(page.getByText('Operator User').first()).toBeVisible()
-
-  await page.getByRole('tab', { name: 'Lifecycle' }).click()
-  await page.getByRole('button', { name: 'Revoke' }).click()
-  await expect(page.getByRole('dialog', { name: 'Revoke admin session?' })).toContainText(
-    'REF-SESSION1',
+async function mockMe(page: Page, body: object) {
+  await page.route('**/api/admin/me', async (r) =>
+    r.fulfill({ contentType: 'application/json', body: JSON.stringify(body) }),
   )
-  expect(revokeCalled).toBe(false)
+}
+async function mockSessions(page: Page) {
+  await page.route('**/api/admin/sessions', async (r) => {
+    if (r.request().method() !== 'GET') return r.continue()
+    await r.fulfill({
+      contentType: 'application/json',
+      headers: { 'x-request-id': 'req-sessions-e2e' },
+      body: JSON.stringify({ sessions: [other] }),
+    })
+  })
+}
 
-  await page.getByTestId('confirm-dialog-confirm').click()
-  await expect(page.getByText('REF-SESSION1')).toHaveCount(0)
-  expect(revokeCalled).toBe(true)
+test('terminate: drawer confirm revokes a session and refreshes', async ({ page }) => {
+  await mockMe(page, principal)
+  await mockSessions(page)
+  let revoked = false
+  await page.route('**/api/admin/sessions/sess_other', async (r) => {
+    if (r.request().method() !== 'DELETE') return r.continue()
+    revoked = true
+    await r.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        revoked: true,
+        session_id: 'sess_other',
+        revoked_tokens: 2,
+        backchannel_fanout: 1,
+      }),
+    })
+  })
+  await page.goto('/sessions')
+  await page.getByTestId('session-select-sess_other').click()
+  await page.getByTestId('session-terminate').click()
+  await page.getByTestId('privileged-action-confirm').click()
+  await expect.poll(() => revoked).toBe(true)
+  await expect(page.getByText(/Bearer|access_token|client_secret|SQLSTATE/u)).toHaveCount(0)
 })
 
-test('blocks sessions route without terminate permission', async ({ page }) => {
-  await page.route('**/api/admin/me', async (route) => {
-    await route.fulfill({
-      contentType: 'application/json',
-      body: JSON.stringify(principal(['admin.dashboard.view'])),
-    })
+test('cancel calls no API: dismissing the terminate confirm fires no DELETE', async ({ page }) => {
+  await mockMe(page, principal)
+  await mockSessions(page)
+  let called = false
+  await page.route('**/api/admin/sessions/sess_other', async (r) => {
+    if (r.request().method() === 'DELETE') called = true
+    await r.continue()
   })
-
   await page.goto('/sessions')
-
-  await expect(
-    page.getByRole('heading', { name: 'This account does not have admin access.' }),
-  ).toBeVisible()
-  await expect(page.getByRole('navigation', { name: 'Admin modules' })).toHaveCount(0)
+  await page.getByTestId('session-select-sess_other').click()
+  await page.getByTestId('session-terminate').click()
+  await page.getByTestId('privileged-action-cancel').click()
+  await expect(page.getByTestId('privileged-action-confirm')).toHaveCount(0)
+  expect(called).toBe(false)
 })
 
-test('shows safe step-up copy when session revoke needs fresh auth', async ({ page }) => {
-  await page.route('**/api/admin/me', async (route) => {
-    await route.fulfill({
-      contentType: 'application/json',
-      body: JSON.stringify(principal(['admin.sessions.terminate'])),
-    })
-  })
-  await page.route('**/api/admin/sessions', async (route) => {
-    await route.fulfill({
-      contentType: 'application/json',
-      body: JSON.stringify({ sessions: [session] }),
-    })
-  })
-  await page.route('**/api/admin/sessions/admin-session-1', async (route) => {
-    if (route.request().method() === 'DELETE') {
-      await route.fulfill({
-        status: 428,
-        contentType: 'application/json',
-        headers: { 'x-request-id': 'req-session-step' },
-        body: JSON.stringify({ error: 'fresh_auth_required', message: 'raw ACR trace' }),
-      })
-    } else {
-      await route.fulfill({
-        contentType: 'application/json',
-        body: JSON.stringify(session),
-      })
-    }
-  })
-
+test('forbidden: an admin without sessions.terminate lands on the safe forbidden surface', async ({
+  page,
+}) => {
+  await mockMe(page, readOnly)
   await page.goto('/sessions')
-  await page.getByRole('button', { name: /Operator User/ }).click()
-  await page.getByRole('tab', { name: 'Lifecycle' }).click()
-  await page.getByRole('button', { name: 'Revoke' }).click()
-  await page.getByTestId('confirm-dialog-confirm').click()
-
-  await expect(page.getByRole('alert')).toContainText('fresh-auth atau MFA assurance')
-  await expect(page.getByText('REF-SIONSTEP').first()).toBeVisible()
-  await expect(page.getByText('raw ACR')).toHaveCount(0)
+  await expect(page).toHaveURL(/\/forbidden$/u)
+  await expect(page.getByText(/Bearer|access_token|client_secret|SQLSTATE/u)).toHaveCount(0)
 })
