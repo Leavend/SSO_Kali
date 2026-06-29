@@ -51,7 +51,7 @@ const selectedSession = computed<AdminSession | null>(
   () => sessionList.value.find((s) => s.session_id === selectedSessionId.value) ?? null,
 )
 
-// Single page-level success region — reused by terminate (9.7).
+// Single page-level success region, reused by the terminate action.
 const successMessage = ref<string | null>(null)
 
 function onSelectSession(sessionId: string): void {
@@ -107,7 +107,7 @@ async function reverifySelf(): Promise<void> {
   else if (resolution.kind === 'route') await navigateTo(resolution.to)
 }
 
-// Canonical handler — declared once in 9.6 as a stub; filled here (do NOT rename).
+// Canonical terminate handler (do NOT rename — bound to the drawer Revoke affordance).
 function onTerminateRequested(session: AdminSession): void {
   terminateAction.reset()
   successMessage.value = null
