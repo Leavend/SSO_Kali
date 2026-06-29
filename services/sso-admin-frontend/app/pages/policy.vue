@@ -133,6 +133,31 @@ const activateError = computed<string | null>(() => {
   return t('common.error_generic')
 })
 
+// Rollback (8.9): revert to a prior superseded version through the reused privileged-
+// action matrix. DANGER dialog — the single destructive (#E4002B) affordance in this
+// domain; gated on the same activate cap (rollback has no own permission).
+const rollbackAction = usePrivilegedAction<PolicyMutationResponse>()
+const rollbackTarget = ref<number | null>(null)
+const rollbackReason = ref('')
+
+const rollbackDescription = computed<string>(() => {
+  if (rollbackTarget.value === null) return ''
+  const impact = describeTransitionImpact(rollbackTarget.value, activeVersion.value)
+  return impact.replacesActive
+    ? t('policy.transition_impact_replaces', {
+        version: impact.targetVersion,
+        active: impact.activeVersion,
+      })
+    : t('policy.transition_impact_first', { version: impact.targetVersion })
+})
+
+const rollbackError = computed<string | null>(() => {
+  const status = rollbackAction.failure.value?.status
+  if (!status || status === 'step_up_required') return null
+  if (status === 'invalid') return t('policy.error_invalid_transition')
+  return t('common.error_generic')
+})
+
 function onSelectVersion(id: number): void {
   selectedId.value = id
 }
@@ -202,8 +227,27 @@ async function onActivateConfirm(): Promise<void> {
   successMessage.value = t('policy.activate_success')
   await refresh()
 }
-function onRollbackRequested(_version: number): void {
-  /* Task 8.9 */
+function onRollbackRequested(version: number): void {
+  rollbackAction.reset()
+  successMessage.value = null
+  rollbackReason.value = ''
+  rollbackTarget.value = version
+}
+function onRollbackCancel(): void {
+  rollbackTarget.value = null
+}
+async function onRollbackConfirm(): Promise<void> {
+  const version = rollbackTarget.value
+  if (version === null) return
+  const reason = rollbackReason.value.trim() || undefined
+  const result = await rollbackAction.run(() =>
+    policyApi.rollback(category.value, version, { reason }),
+  )
+  if (result === null) return // failure stays in the open dialog
+  rollbackTarget.value = null
+  selectedId.value = null
+  successMessage.value = t('policy.rollback_success')
+  await refresh()
 }
 </script>
 
@@ -371,6 +415,15 @@ function onRollbackRequested(_version: number): void {
             >
               {{ t('policy.btn_activate') }}
             </UiButton>
+            <UiButton
+              v-if="canActivate && selectedPolicy.status === 'superseded'"
+              variant="danger"
+              size="sm"
+              data-testid="policy-rollback"
+              @click="onRollbackRequested(selectedPolicy.version)"
+            >
+              {{ t('policy.btn_rollback') }}
+            </UiButton>
           </div>
         </div>
       </UiDetailDrawer>
@@ -412,6 +465,26 @@ function onRollbackRequested(_version: number): void {
       @update:reason="activateReason = $event"
       @confirm="onActivateConfirm"
       @cancel="onActivateCancel"
+    />
+
+    <PrivilegedActionDialog
+      v-if="rollbackTarget !== null"
+      :open="rollbackTarget !== null"
+      :title="t('policy.confirm_rollback_title')"
+      :description="rollbackDescription"
+      :confirm-label="t('policy.btn_rollback')"
+      :cancel-label="t('common.btn_cancel')"
+      :reason-label="t('policy.reason_label')"
+      :reason="rollbackReason"
+      danger
+      :submitting="rollbackAction.isSubmitting.value"
+      :error-message="rollbackError"
+      :request-id="rollbackAction.requestId.value"
+      :step-up-url="rollbackAction.stepUpUrl.value"
+      :step-up-label="t('policy.step_up_cta')"
+      @update:reason="rollbackReason = $event"
+      @confirm="onRollbackConfirm"
+      @cancel="onRollbackCancel"
     />
   </section>
 </template>

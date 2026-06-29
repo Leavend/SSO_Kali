@@ -189,6 +189,8 @@
     "transition_impact_replaces": "Versi {version} akan menggantikan versi aktif {active}.",
     "transition_impact_first": "Versi {version} akan menjadi konfigurasi aktif.",
     "activate_success": "Versi kebijakan diaktifkan.",
+    "confirm_rollback_title": "Kembalikan ke versi ini?",
+    "rollback_success": "Kebijakan dikembalikan.",
     "error_invalid_transition": "Versi ini tidak dapat diaktifkan lagi.",
     "step_up_cta": "Autentikasi ulang untuk melanjutkan",
     "no_policy": "Belum ada versi policy.",

@@ -189,6 +189,8 @@
     "transition_impact_replaces": "Version {version} will replace the active version {active}.",
     "transition_impact_first": "Version {version} will become the active configuration.",
     "activate_success": "Policy version activated.",
+    "confirm_rollback_title": "Roll back to this version?",
+    "rollback_success": "Policy rolled back.",
     "error_invalid_transition": "This version can no longer be activated.",
     "step_up_cta": "Re-authenticate to continue",
     "no_policy": "No policy versions yet.",
