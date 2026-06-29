@@ -61,6 +61,10 @@ function fetchCompliance(): Promise<string> {
   return $fetch('/observability/compliance')
 }
 
+function fetchRoles(): Promise<string> {
+  return $fetch('/roles')
+}
+
 function extractPayload(html: string): string {
   const match = html.match(/<script[^>]*id="__NUXT_DATA__"[^>]*>([\s\S]*?)<\/script>/)
   if (!match?.[1]) {
@@ -269,6 +273,29 @@ describe('SSR token-leak render gate (§3.3)', async () => {
       expect(collectSecretLeaks(serialized, 'observability __NUXT__ payload')).toEqual([])
       expect(collectPiiShapeLeaks(serialized, 'observability __NUXT__ payload')).toEqual([])
     }
+  })
+
+  it('renders the roles list + matrix server-side in their ready (masked) state', async () => {
+    const html = await fetchRoles()
+    expect(html).toContain('data-admin-shell')
+    // A custom (editable) role column header renders ...
+    expect(html).toContain('Content Editor')
+    // ... and a permission row label renders, proving the role × permission matrix mounted.
+    expect(html).toContain('Manage users')
+  })
+
+  it('does not leak token/secret/PII values into the roles-page SSR HTML', async () => {
+    // Strict — the roles DTOs carry only slugs/names/descriptions/counts (no token,
+    // secret, session id, or PII), so NO allowSessionId exemption applies.
+    const html = await fetchRoles()
+    expect(collectSecretLeaks(html, 'roles SSR HTML')).toEqual([])
+  })
+
+  it('does not leak token/secret/PII values into the roles-page hydration payload', async () => {
+    const html = await fetchRoles()
+    const serialized = JSON.stringify(JSON.parse(extractPayload(html)))
+    expect(collectSecretLeaks(serialized, 'roles __NUXT__ payload')).toEqual([])
+    expect(collectPiiShapeLeaks(serialized, 'roles __NUXT__ payload')).toEqual([])
   })
 
   it('strips the DSR free-text PII canary from the compliance SSR HTML and hydration payload (proves the Task-6.4 runtime strip, not a null fixture)', async () => {
