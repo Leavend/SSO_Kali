@@ -86,6 +86,11 @@ function fetchIpAccess(): Promise<string> {
   return $fetch('/ip-access', { headers: { cookie: 'admin_locale=en' } })
 }
 
+function fetchOps(): Promise<string> {
+  // admin_locale=en so the readiness status badge renders the English label.
+  return $fetch('/ops', { headers: { cookie: 'admin_locale=en' } })
+}
+
 function extractPayload(html: string): string {
   const match = html.match(/<script[^>]*id="__NUXT_DATA__"[^>]*>([\s\S]*?)<\/script>/)
   if (!match?.[1]) {
@@ -428,6 +433,34 @@ describe('SSR token-leak render gate (§3.3)', async () => {
     const serialized = JSON.stringify(JSON.parse(extractPayload(html)))
     expect(collectSecretLeaks(serialized, 'ip-access __NUXT__ payload')).toEqual([])
     expect(collectPiiShapeLeaks(serialized, 'ip-access __NUXT__ payload')).toEqual([])
+  })
+
+  it('renders the ops readiness server-side in its ready state', async () => {
+    const html = await fetchOps()
+    expect(html).toContain('data-admin-shell')
+    expect(html).toContain('data-page="ops"')
+    // the service + a check label render (status shown as a label, never colour-alone)
+    expect(html).toContain('sso-backend')
+    expect(html).toContain('Database')
+  })
+
+  it('does not leak token/secret/PII values into the ops SSR HTML', async () => {
+    // Strict — the readiness DTO carries only a service name, booleans, and small
+    // queue counts; no token, secret, session id, or gov-PII. NO allowSessionId.
+    const html = await fetchOps()
+    expect(collectSecretLeaks(html, 'ops SSR HTML')).toEqual([])
+    // external_idps health map (incl. IdP endpoint config) is stripped at parse —
+    // its canary must never reach the SSR HTML.
+    expect(html).not.toContain('OPS-EXTERNAL-IDP-CANARY')
+  })
+
+  it('does not leak token/secret/PII values into the ops hydration payload', async () => {
+    const html = await fetchOps()
+    const serialized = JSON.stringify(JSON.parse(extractPayload(html)))
+    expect(collectSecretLeaks(serialized, 'ops __NUXT__ payload')).toEqual([])
+    expect(collectPiiShapeLeaks(serialized, 'ops __NUXT__ payload')).toEqual([])
+    // proves parseOpsReadiness dropped external_idps before hydration
+    expect(serialized).not.toContain('OPS-EXTERNAL-IDP-CANARY')
   })
 
   it('collectSecretLeaks is LIVE — it reports a planted client secret (negative control)', () => {

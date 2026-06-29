@@ -1,103 +1,21 @@
-import { expect, test } from '@playwright/test'
+import { test, expect } from '@playwright/test'
 
-const principal = {
-  principal: {
-    subject_id: 'sub_admin',
-    email: 'admin@dev-sso.local',
-    display_name: 'Admin User',
-    role: 'admin',
-    last_login_at: null,
-    auth_context: {
-      auth_time: null,
-      amr: ['pwd', 'mfa'],
-      acr: 'urn:example:loa:2',
-      mfa_enforced: true,
-      mfa_verified: true,
-    },
-    permissions: {
-      view_admin_panel: true,
-      manage_sessions: false,
-      permissions: ['admin.dashboard.view'],
-      capabilities: { 'admin.dashboard.view': true },
-      menus: [
-        {
-          id: 'dashboard',
-          label: 'Dashboard',
-          required_permission: 'admin.dashboard.view',
-          visible: true,
-        },
-        {
-          id: 'ops',
-          label: 'Ops',
-          required_permission: 'admin.dashboard.view',
-          visible: true,
-        },
-      ],
-    },
-  },
-}
-
-const readiness = {
-  service: 'sso-backend',
-  ready: true,
-  checks: {
-    database: true,
-    redis: true,
-    queue: { pending_jobs: 0, failed_jobs: 0, oldest_pending_age_seconds: null },
-  },
-}
-
-test.beforeEach(async ({ page }) => {
-  await page.addInitScript(() => {
-    window.localStorage.setItem('dev-sso-admin-locale', 'en')
-  })
-})
-
-test('renders ops readiness and evidence placeholders', async ({ page }) => {
-  await page.route('**/api/admin/me', async (route) => {
-    await route.fulfill({ contentType: 'application/json', body: JSON.stringify(principal) })
-  })
-  await page.route('**/api/admin/ops/readiness', async (route) => {
-    await route.fulfill({
-      contentType: 'application/json',
-      headers: { 'x-request-id': 'req-ops-e2e' },
-      body: JSON.stringify(readiness),
-    })
-  })
-
+// DEFERRED to Phase 18 cutover: playwright.config.ts is still legacy-SPA-wired
+// (ports 5173/4173, no Nuxt build:web; Nuxt serves on 3000). Authored now against
+// the shipped Nuxt routes so it becomes a real gate at cutover. Do NOT run as a
+// gate this phase.
+test('ops page shows readiness + drill evidence', async ({ page, context }) => {
+  await context.addCookies([
+    { name: 'admin_locale', value: 'en', url: 'http://localhost:3000' },
+  ])
   await page.goto('/ops')
 
-  await expect(page.getByRole('navigation', { name: 'Admin modules' })).toContainText('Ops')
-  await expect(page.getByRole('heading', { name: 'Ops Evidence', exact: true })).toBeVisible()
-  await expect(page.getByText('sso-backend', { exact: true })).toBeVisible()
-  await expect(page.getByText('ready')).toBeVisible()
-  await expect(page.getByText('JWKS rotation drill')).toBeVisible()
-  await expect(page.getByText('SIEM sink verification')).toBeVisible()
-  const evidencePanel = page
-    .getByRole('heading', { name: 'Ops evidence', exact: true })
-    .locator('..')
-  await expect(evidencePanel).toBeVisible()
-  await expect(evidencePanel).toContainText('Reference code')
-  await expect(evidencePanel).toContainText('REF-EQOPSE2E')
-  await expect(page.getByText(/Bearer|metrics token|secret|SQLSTATE/u)).toHaveCount(0)
-})
+  await expect(page.getByTestId('ops-readiness')).toBeVisible()
+  await expect(page.getByTestId('ops-readiness-status')).toContainText('Ready')
+  await expect(page.getByTestId('ops-check-database')).toBeVisible()
 
-test('shows safe ops error with request ID', async ({ page }) => {
-  await page.route('**/api/admin/me', async (route) => {
-    await route.fulfill({ contentType: 'application/json', body: JSON.stringify(principal) })
-  })
-  await page.route('**/api/admin/ops/readiness', async (route) => {
-    await route.fulfill({
-      status: 500,
-      contentType: 'application/json',
-      headers: { 'x-request-id': 'req-ops-fail' },
-      body: JSON.stringify({ error: 'server_error', message: 'raw metrics token leak' }),
-    })
-  })
-
-  await page.goto('/ops')
-
-  await expect(page.getByRole('heading', { name: 'Ops evidence could not be loaded' })).toBeVisible()
-  await expect(page.getByRole('alert')).toContainText('REF-QOPSFAIL')
-  await expect(page.getByText('raw metrics token')).toHaveCount(0)
+  await expect(page.getByTestId('ops-drills')).toBeVisible()
+  const runbook = page.getByTestId('ops-drill-runbook-jwks-rotation')
+  await expect(runbook).toHaveAttribute('rel', /noopener/)
+  await expect(runbook).toHaveAttribute('target', '_blank')
 })
