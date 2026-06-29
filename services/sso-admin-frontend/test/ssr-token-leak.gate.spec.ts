@@ -77,6 +77,10 @@ function fetchSessions(): Promise<string> {
   return $fetch('/sessions', { headers: { cookie: 'admin_locale=en' } })
 }
 
+function fetchExternalIdps(): Promise<string> {
+  return $fetch('/external-idps', { headers: { cookie: 'admin_locale=en' } })
+}
+
 function extractPayload(html: string): string {
   const match = html.match(/<script[^>]*id="__NUXT_DATA__"[^>]*>([\s\S]*?)<\/script>/)
   if (!match?.[1]) {
@@ -133,10 +137,11 @@ function collectSecretLeaks(
   // Plaintext client-secret VALUE (one-time secret — never on the SSR path).
   reportContains(SENTINEL.clientSecret, 'leaks the client-secret value')
   // Client-secret + rotate-response plaintext field NAMES (snake_case wire +
-  // camelCase shapes). The masked list/detail DTOs carry only `has_secret_hash`,
-  // never these names; `client_id` and `has_secret_hash` are deliberately NOT matched.
+  // camelCase shapes). The masked DTOs carry only the BOOLEAN status fields
+  // `has_secret_hash` (clients) / `has_client_secret` (external-idps) — never the
+  // value — so the `has_` prefix is excluded; `client_id` is also not matched.
   reportMatches(
-    /client_secret|clientSecret|plaintext_secret|plaintext_once/,
+    /(?<!has_)client_secret|(?<!has_)clientSecret|plaintext_secret|plaintext_once/,
     'leaks a client-secret field name',
   )
 
@@ -354,6 +359,29 @@ describe('SSR token-leak render gate (§3.3)', async () => {
       collectSecretLeaks(serialized, 'sessions __NUXT__ payload', { allowSessionId: true }),
     ).toEqual([])
     expect(collectPiiShapeLeaks(serialized, 'sessions __NUXT__ payload')).toEqual([])
+  })
+
+  it('renders the external providers list server-side in their ready (masked) state', async () => {
+    const html = await fetchExternalIdps()
+    expect(html).toContain('data-admin-shell')
+    // a provider display name + the "secret configured" status render — proving the
+    // table mounted and that has_client_secret is shown as a STATUS, not a value.
+    expect(html).toContain('Sentinel Federation')
+    expect(html).toContain('Acme')
+  })
+
+  it('does not leak token/secret/PII values into the external-idps SSR HTML', async () => {
+    // Strict — the provider DTO carries has_client_secret (a boolean), client_id/
+    // issuer/endpoints (public OIDC config), and no session id or gov-PII.
+    const html = await fetchExternalIdps()
+    expect(collectSecretLeaks(html, 'external-idps SSR HTML')).toEqual([])
+  })
+
+  it('does not leak token/secret/PII values into the external-idps hydration payload', async () => {
+    const html = await fetchExternalIdps()
+    const serialized = JSON.stringify(JSON.parse(extractPayload(html)))
+    expect(collectSecretLeaks(serialized, 'external-idps __NUXT__ payload')).toEqual([])
+    expect(collectPiiShapeLeaks(serialized, 'external-idps __NUXT__ payload')).toEqual([])
   })
 
   it('strips the DSR free-text PII canary from the compliance SSR HTML and hydration payload (proves the Task-6.4 runtime strip, not a null fixture)', async () => {
