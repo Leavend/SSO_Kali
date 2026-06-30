@@ -57,6 +57,8 @@ const successMessage = ref<string | null>(null)
 
 function onSelect(key: string): void {
   selectedKey.value = key
+  // Drop a stale success banner from a prior write when the operator moves on.
+  successMessage.value = null
 }
 function onCloseDrawer(): void {
   selectedKey.value = null

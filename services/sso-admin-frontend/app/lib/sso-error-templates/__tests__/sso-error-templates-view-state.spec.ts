@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { ApiError } from '@/lib/api/api-client'
 import {
+  mergeTemplatesByCode,
   resolveEnabledTone,
   resolveSsoErrorTemplatesViewState,
   templateKey,
@@ -75,5 +76,36 @@ describe('resolveEnabledTone / templateKey', () => {
   })
   it('builds a stable composite key from error_code + locale', () => {
     expect(templateKey(tpl({ error_code: 'mfa_required', locale: 'id' }))).toBe('mfa_required::id')
+  })
+})
+
+describe('mergeTemplatesByCode', () => {
+  it('groups each code as id-row then en-row', () => {
+    const idRows = [
+      tpl({ error_code: 'access_denied', locale: 'id' }),
+      tpl({ error_code: 'mfa_required', locale: 'id' }),
+    ]
+    const enRows = [
+      tpl({ error_code: 'access_denied', locale: 'en' }),
+      tpl({ error_code: 'mfa_required', locale: 'en' }),
+    ]
+    expect(mergeTemplatesByCode(idRows, enRows).map(templateKey)).toEqual([
+      'access_denied::id',
+      'access_denied::en',
+      'mfa_required::id',
+      'mfa_required::en',
+    ])
+  })
+  it('keeps an en-only code that has no id counterpart', () => {
+    const idRows = [tpl({ error_code: 'access_denied', locale: 'id' })]
+    const enRows = [
+      tpl({ error_code: 'access_denied', locale: 'en' }),
+      tpl({ error_code: 'session_expired', locale: 'en' }),
+    ]
+    expect(mergeTemplatesByCode(idRows, enRows).map(templateKey)).toEqual([
+      'access_denied::id',
+      'access_denied::en',
+      'session_expired::en',
+    ])
   })
 })

@@ -3,6 +3,7 @@ import { computed, type ComputedRef, type Ref } from 'vue'
 import { ApiError, getLastRequestId } from '@/lib/api/api-client'
 import { ssoErrorTemplatesApi } from '@/services/sso-error-templates.api'
 import {
+  mergeTemplatesByCode,
   resolveSsoErrorTemplatesViewState,
   type SsoErrorTemplatesViewState,
 } from '@/lib/sso-error-templates/sso-error-templates-view-state'
@@ -21,9 +22,17 @@ export type UseSsoErrorTemplatesReturn = {
 }
 
 export function useSsoErrorTemplates(): UseSsoErrorTemplatesReturn {
+  // The backend index returns one locale at a time, so fetch both and merge —
+  // the surface manages the `id` and `en` variant of every error code together.
   const { data, pending, error, refresh } = useAsyncData<SsoErrorTemplatesResponse>(
     'admin-sso-error-templates',
-    () => ssoErrorTemplatesApi.list(),
+    async () => {
+      const [idResponse, enResponse] = await Promise.all([
+        ssoErrorTemplatesApi.list('id'),
+        ssoErrorTemplatesApi.list('en'),
+      ])
+      return { templates: mergeTemplatesByCode(idResponse.templates, enResponse.templates) }
+    },
   )
 
   const templates = computed<readonly SsoErrorTemplate[] | null>(

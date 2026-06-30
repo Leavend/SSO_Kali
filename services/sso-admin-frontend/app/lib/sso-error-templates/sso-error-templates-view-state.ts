@@ -42,6 +42,29 @@ export function templateKey(template: Pick<SsoErrorTemplate, 'error_code' | 'loc
   return `${template.error_code}::${template.locale}`
 }
 
+// The backend index returns ONE locale per error code (filtered by `?locale`,
+// default 'id'); there is no "all locales" endpoint. To manage both language
+// variants on one surface the composable fetches each locale separately and
+// merges here, grouping the two rows of each code together (id row then en row)
+// so the table reads code-by-code. Defensive against either side missing a code.
+export function mergeTemplatesByCode(
+  idRows: readonly SsoErrorTemplate[],
+  enRows: readonly SsoErrorTemplate[],
+): SsoErrorTemplate[] {
+  const enByCode = new Map(enRows.map((t) => [t.error_code, t]))
+  const merged: SsoErrorTemplate[] = []
+  for (const idRow of idRows) {
+    merged.push(idRow)
+    const enRow = enByCode.get(idRow.error_code)
+    if (enRow) merged.push(enRow)
+  }
+  const idCodes = new Set(idRows.map((t) => t.error_code))
+  for (const enRow of enRows) {
+    if (!idCodes.has(enRow.error_code)) merged.push(enRow)
+  }
+  return merged
+}
+
 function errorStatus(error: unknown): number | null {
   if (error instanceof ApiError) return error.status
   if (typeof error === 'object' && error !== null) {
