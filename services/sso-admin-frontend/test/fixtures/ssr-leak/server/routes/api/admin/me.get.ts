@@ -47,6 +47,7 @@ export default defineEventHandler(() => {
           'admin.security-policy.write',
           'admin.security-policy.activate',
           'admin.authentication-audit.read',
+          'admin.sso-error-templates.write',
           'profile.read',
         ],
         capabilities: {
@@ -68,6 +69,7 @@ export default defineEventHandler(() => {
           'admin.security-policy.write': true,
           'admin.security-policy.activate': true,
           'admin.authentication-audit.read': true,
+          'admin.sso-error-templates.write': true,
           'profile.read': true,
         },
         menus: [

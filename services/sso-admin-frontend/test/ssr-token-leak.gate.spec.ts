@@ -106,6 +106,11 @@ function fetchOidcFoundation(): Promise<string> {
   return $fetch('/oidc-foundation', { headers: { cookie: 'admin_locale=en' } })
 }
 
+function fetchSsoErrorTemplates(): Promise<string> {
+  // admin_locale=en so the status badge renders the English label under the gate.
+  return $fetch('/sso-error-templates', { headers: { cookie: 'admin_locale=en' } })
+}
+
 function extractPayload(html: string): string {
   const match = html.match(/<script[^>]*id="__NUXT_DATA__"[^>]*>([\s\S]*?)<\/script>/)
   if (!match?.[1]) {
@@ -569,6 +574,30 @@ describe('SSR token-leak render gate (§3.3)', async () => {
       collectSecretLeaks(serialized, 'oidc-foundation __NUXT__ payload', { allowOidcDiscoveryVocabulary: true }),
     ).toEqual([])
     expect(collectPiiShapeLeaks(serialized, 'oidc-foundation __NUXT__ payload')).toEqual([])
+  })
+
+  it('renders the SSO error templates server-side in their ready state', async () => {
+    const html = await fetchSsoErrorTemplates()
+    expect(html).toContain('data-admin-shell')
+    expect(html).toContain('data-page="sso-error-templates"')
+    // an error code + a title render; enabled state shown as a label, never colour-alone
+    expect(html).toContain('access_denied')
+    expect(html).toContain('Access denied')
+    expect(html).toContain('Enabled')
+  })
+
+  it('does not leak token/secret/PII values into the sso-error-templates SSR HTML', async () => {
+    // STRICT — the error-template DTO is admin-authored end-user copy: no token,
+    // secret, OIDC sid, or government PII. NO exemption applies.
+    const html = await fetchSsoErrorTemplates()
+    expect(collectSecretLeaks(html, 'sso-error-templates SSR HTML')).toEqual([])
+  })
+
+  it('does not leak token/secret/PII values into the sso-error-templates hydration payload', async () => {
+    const html = await fetchSsoErrorTemplates()
+    const serialized = JSON.stringify(JSON.parse(extractPayload(html)))
+    expect(collectSecretLeaks(serialized, 'sso-error-templates __NUXT__ payload')).toEqual([])
+    expect(collectPiiShapeLeaks(serialized, 'sso-error-templates __NUXT__ payload')).toEqual([])
   })
 
   it('collectSecretLeaks is LIVE — it reports a planted client secret (negative control)', () => {
