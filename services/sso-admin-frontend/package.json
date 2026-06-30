@@ -16,7 +16,7 @@
     "test:e2e": "playwright test",
     "lint": "run-s lint:*",
     "lint:oxlint": "oxlint .",
-    "lint:eslint": "eslint \"src/**/*.vue\" \"app/**/*.vue\" --cache",
+    "lint:eslint": "eslint \"app/**/*.vue\" --cache",
     "format": "prettier --write --experimental-cli .",
     "format:check": "prettier --check --experimental-cli ."
   },
