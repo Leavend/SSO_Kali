@@ -1,13 +1,11 @@
 import { test, expect } from '@playwright/test'
+import { useEnglish } from './_support/e2e'
 
-// DEFERRED to Phase 18 cutover: playwright.config.ts is still legacy-SPA-wired
-// (ports 5173/4173, no Nuxt build:web; Nuxt serves on 3000). Authored now against
-// the shipped Nuxt routes so it becomes a real gate at cutover. Do NOT run as a
-// gate this phase.
-test('ops page shows readiness + drill evidence', async ({ page, context }) => {
-  await context.addCookies([
-    { name: 'admin_locale', value: 'en', url: 'http://localhost:3000' },
-  ])
+// Reads are served by the e2e Nitro layer (test/fixtures/e2e) under real SSR;
+// ops is read-only so no page.route is needed. admin.dashboard.view comes from
+// the default-full e2e principal.
+test('ops page shows readiness + drill evidence', async ({ page }) => {
+  await useEnglish(page)
   await page.goto('/ops')
 
   await expect(page.getByTestId('ops-readiness')).toBeVisible()

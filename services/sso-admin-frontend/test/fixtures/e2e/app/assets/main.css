@@ -1,0 +1,7 @@
+/* Re-export the real admin stylesheet so the parent layer's css entry
+   (`~/assets/main.css`, resolved against THIS fixture's srcDir) loads the real
+   tokens + Tailwind setup. The fixture adds no pages/layouts/components of its
+   own — those come from the extended app layer — it only needs this asset to
+   exist so the layer build resolves. Styling is incidental to the §3.3 gate,
+   which greps the SSR HTML + hydration payload, not the rendered CSS. */
+@import '../../../../../app/assets/main.css';
