@@ -90,14 +90,16 @@ it('does not publish live secrets or token literals in developer docs', function
         ->not->toMatch('/client_secret\s*=\s*[A-Za-z0-9_-]{24,}/');
 });
 
-it('points the admin clients page to the developer documentation index', function (): void {
+it('wires the admin frontend to the developer documentation index', function (): void {
+    // Admin cut over to Nuxt 4 (Phase 18): the docs-base-url wiring moved from the
+    // legacy SPA ClientsPage to app/config/adminEnvironment.ts; locales to app/locales.
     $root = dirname(base_path(), 2);
-    $clientsPage = $root.DIRECTORY_SEPARATOR.'services/sso-admin-frontend/src/features/clients/pages/ClientsPage.vue';
-    $idLocale = $root.DIRECTORY_SEPARATOR.'services/sso-admin-frontend/src/locales/id.json';
-    $enLocale = $root.DIRECTORY_SEPARATOR.'services/sso-admin-frontend/src/locales/en.json';
+    $docsConfig = $root.DIRECTORY_SEPARATOR.'services/sso-admin-frontend/app/config/adminEnvironment.ts';
+    $idLocale = $root.DIRECTORY_SEPARATOR.'services/sso-admin-frontend/app/locales/id.json';
+    $enLocale = $root.DIRECTORY_SEPARATOR.'services/sso-admin-frontend/app/locales/en.json';
 
-    expect($clientsPage)->toBeFile()
-        ->and((string) file_get_contents($clientsPage))->toContain('docsBaseUrl')
+    expect($docsConfig)->toBeFile()
+        ->and((string) file_get_contents($docsConfig))->toContain('docsBaseUrl')
         ->and((string) file_get_contents($idLocale))->toContain('Panduan Developer')
         ->and((string) file_get_contents($enLocale))->toContain('Developer Guide');
 });

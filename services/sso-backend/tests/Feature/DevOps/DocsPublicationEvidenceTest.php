@@ -60,16 +60,17 @@ it('copies docs/developers content in Dockerfile for single-source', function ()
 });
 
 it('configures admin frontend with docs base URL environment', function (): void {
+    // Admin cut over to Nuxt 4 (Phase 18): the docs base URL is RUNTIME config
+    // (NUXT_PUBLIC_DOCS_BASE_URL in compose), not a Vite build-time ARG/ENV.
     $compose = docsPublicationFile('docker-compose.main.yml');
 
     expect($compose)
-        ->toContain('VITE_DOCS_BASE_URL');
+        ->toContain('NUXT_PUBLIC_DOCS_BASE_URL');
 
     $dockerfile = docsPublicationFile('services/sso-admin-frontend/Dockerfile');
 
     expect($dockerfile)
-        ->toContain('ARG VITE_DOCS_BASE_URL')
-        ->toContain('ENV VITE_DOCS_BASE_URL');
+        ->not->toContain('VITE_DOCS_BASE_URL');
 });
 
 it('includes docs production smoke test in workflow', function (): void {
