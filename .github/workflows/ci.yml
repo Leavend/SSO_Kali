@@ -208,11 +208,8 @@ jobs:
           - name: sso-admin-frontend
             context: ./services/sso-admin-frontend
             dockerfile: ./services/sso-admin-frontend/Dockerfile
-            build-args: |
-              VITE_ADMIN_BASE_URL=https://admin-sso.timeh.my.id
-              VITE_PUBLIC_BASE_PATH=/
-              VITE_SSO_BASE_URL=https://sso.timeh.my.id
-              VITE_ZITADEL_ISSUER_URL=https://id.dev-sso.timeh.my.id
+            # Nuxt reads its public config at RUNTIME from container env; the
+            # image build takes no app build-args.
 
     steps:
       - uses: actions/checkout@v7
