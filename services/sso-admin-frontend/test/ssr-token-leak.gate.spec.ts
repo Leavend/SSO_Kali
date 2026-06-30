@@ -101,6 +101,11 @@ function fetchProfile(): Promise<string> {
   return $fetch('/profile', { headers: { cookie: 'admin_locale=en' } })
 }
 
+function fetchOidcFoundation(): Promise<string> {
+  // admin_locale=en so the status badges render the English labels.
+  return $fetch('/oidc-foundation', { headers: { cookie: 'admin_locale=en' } })
+}
+
 function extractPayload(html: string): string {
   const match = html.match(/<script[^>]*id="__NUXT_DATA__"[^>]*>([\s\S]*?)<\/script>/)
   if (!match?.[1]) {
@@ -121,10 +126,23 @@ function extractPayload(html: string): string {
 // session actions, displayed only via formatTechnicalPreview, NOT a credential —
 // so the users-page checks exempt it. Tokens/secrets/canary/raw-PII stay strict
 // in both contexts.
+//
+// `allowOidcDiscoveryVocabulary` (default false): the OIDC Foundation snapshot is
+// PUBLIC discovery metadata that legitimately contains the protocol terms
+// `id_token` (notably the always-present `id_token_signing_alg_values_supported`
+// field name) and `refresh_token` (a `grant_types_supported` value). Those are not
+// a leaked session — a real session leak shows the camelCase PortalSession shape
+// (accessToken/refreshToken/idToken), and the snapshot is metadata, never a token
+// RESPONSE. So the oidc-foundation checks drop ONLY the snake-case id_token/
+// refresh_token NAME match; the camelCase NAME match, `access_token`, every
+// token/secret/sid/canary VALUE, and the raw-PII checks all stay strict.
 function collectSecretLeaks(
   haystack: string,
   where: string,
-  { allowSessionId = false }: { allowSessionId?: boolean } = {},
+  {
+    allowSessionId = false,
+    allowOidcDiscoveryVocabulary = false,
+  }: { allowSessionId?: boolean; allowOidcDiscoveryVocabulary?: boolean } = {},
 ): readonly string[] {
   const leaks: string[] = []
   const reportContains = (needle: string, label: string): void => {
@@ -140,8 +158,12 @@ function collectSecretLeaks(
   reportContains(SENTINEL.id, 'leaks the id-token value')
   if (!allowSessionId) reportContains(SENTINEL.sid, 'leaks the session-id (sid) value')
   // OIDC token field NAMES (camelCase session shape + snake_case OIDC wire shape).
+  // On the oidc-foundation page the snake id_token/refresh_token are benign OIDC
+  // discovery vocabulary (see the header note); the camelCase shape stays strict.
   reportMatches(
-    /accessToken|refreshToken|idToken|access_token|refresh_token|id_token/,
+    allowOidcDiscoveryVocabulary
+      ? /accessToken|refreshToken|idToken|access_token/
+      : /accessToken|refreshToken|idToken|access_token|refresh_token|id_token/,
     'leaks a token field name',
   )
   // Raw government PII VALUES.
@@ -521,6 +543,32 @@ describe('SSR token-leak render gate (§3.3)', async () => {
     const serialized = JSON.stringify(JSON.parse(extractPayload(html)))
     expect(collectSecretLeaks(serialized, 'profile __NUXT__ payload')).toEqual([])
     expect(collectPiiShapeLeaks(serialized, 'profile __NUXT__ payload')).toEqual([])
+  })
+
+  it('renders the OIDC foundation snapshot server-side in its ready state', async () => {
+    const html = await fetchOidcFoundation()
+    expect(html).toContain('data-admin-shell')
+    expect(html).toContain('data-page="oidc-foundation"')
+    // the public discovery issuer + a JWKS key id render
+    expect(html).toContain('https://sso.example/oidc')
+    expect(html).toContain('key-sentinel-a')
+  })
+
+  it('does not leak token/secret/PII values into the oidc-foundation SSR HTML', async () => {
+    // Strict on every token/secret/sid/PII VALUE; the only exemption is the snake
+    // id_token/refresh_token NAME match, which is benign OIDC discovery vocabulary
+    // here (id_token_signing_alg_values_supported field + refresh_token grant type).
+    const html = await fetchOidcFoundation()
+    expect(collectSecretLeaks(html, 'oidc-foundation SSR HTML', { allowOidcDiscoveryVocabulary: true })).toEqual([])
+  })
+
+  it('does not leak token/secret/PII values into the oidc-foundation hydration payload', async () => {
+    const html = await fetchOidcFoundation()
+    const serialized = JSON.stringify(JSON.parse(extractPayload(html)))
+    expect(
+      collectSecretLeaks(serialized, 'oidc-foundation __NUXT__ payload', { allowOidcDiscoveryVocabulary: true }),
+    ).toEqual([])
+    expect(collectPiiShapeLeaks(serialized, 'oidc-foundation __NUXT__ payload')).toEqual([])
   })
 
   it('collectSecretLeaks is LIVE — it reports a planted client secret (negative control)', () => {
