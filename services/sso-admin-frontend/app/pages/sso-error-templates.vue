@@ -8,6 +8,7 @@ import {
   resolveEnabledTone,
   templateKey,
 } from '@/lib/sso-error-templates/sso-error-templates-view-state'
+import PrivilegedActionDialog from '@/components/users/PrivilegedActionDialog.vue'
 import SsoErrorTemplateFormDialog from '@/components/sso-error-templates/SsoErrorTemplateFormDialog.vue'
 import SsoErrorTemplatesTable from '@/components/sso-error-templates/SsoErrorTemplatesTable.vue'
 import UiSkeleton from '@/components/ui/UiSkeleton.vue'
@@ -97,6 +98,47 @@ async function onFormSubmit(payload: UpsertSsoErrorTemplatePayload): Promise<voi
   formOpen.value = false
   selectedKey.value = null
   successMessage.value = t('sso_templates.edit_success')
+  await refresh()
+}
+
+const resetAction = usePrivilegedAction<SsoErrorTemplateResponse>()
+const resetTarget = ref<SsoErrorTemplate | null>(null)
+
+const resetDescription = computed<string>(() =>
+  resetTarget.value
+    ? t('sso_templates.confirm_reset_desc', {
+        code: resetTarget.value.error_code,
+        locale: localeLabels.value[resetTarget.value.locale] ?? resetTarget.value.locale,
+      })
+    : '',
+)
+
+// SAFE status-keyed copy — never render a raw backend message on a 422/not-found.
+const resetError = computed<string | null>(() => {
+  const status = resetAction.failure.value?.status
+  if (!status || status === 'step_up_required') return null
+  if (status === 'invalid') return t('sso_templates.reset_invalid')
+  return t('common.error_generic')
+})
+
+function onResetRequested(template: SsoErrorTemplate): void {
+  resetAction.reset()
+  successMessage.value = null
+  resetTarget.value = template
+}
+function onResetCancel(): void {
+  resetTarget.value = null
+}
+async function onResetConfirm(): Promise<void> {
+  const target = resetTarget.value
+  if (!target) return
+  const result = await resetAction.run(() =>
+    ssoErrorTemplatesApi.reset(target.error_code, target.locale === 'en' ? 'en' : 'id'),
+  )
+  if (result === null) return
+  resetTarget.value = null
+  selectedKey.value = null
+  successMessage.value = t('sso_templates.reset_success')
   await refresh()
 }
 </script>
@@ -243,6 +285,14 @@ async function onFormSubmit(payload: UpsertSsoErrorTemplatePayload): Promise<voi
             >
               {{ t('sso_templates.btn_edit') }}
             </UiButton>
+            <UiButton
+              variant="secondary"
+              size="sm"
+              data-testid="sso-template-reset"
+              @click="onResetRequested(selectedTemplate)"
+            >
+              {{ t('sso_templates.btn_reset') }}
+            </UiButton>
           </div>
         </div>
       </UiDetailDrawer>
@@ -257,6 +307,22 @@ async function onFormSubmit(payload: UpsertSsoErrorTemplatePayload): Promise<voi
       :step-up-url="editAction.stepUpUrl.value"
       @submit="onFormSubmit"
       @cancel="onFormCancel"
+    />
+
+    <PrivilegedActionDialog
+      v-if="resetTarget !== null"
+      :open="resetTarget !== null"
+      :title="t('sso_templates.confirm_reset_title')"
+      :description="resetDescription"
+      :confirm-label="t('sso_templates.btn_reset')"
+      :cancel-label="t('common.btn_cancel')"
+      :submitting="resetAction.isSubmitting.value"
+      :error-message="resetError"
+      :request-id="resetAction.requestId.value"
+      :step-up-url="resetAction.stepUpUrl.value"
+      :step-up-label="t('sso_templates.step_up_cta')"
+      @confirm="onResetConfirm"
+      @cancel="onResetCancel"
     />
   </section>
 </template>

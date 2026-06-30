@@ -127,3 +127,32 @@ describe('sso-error-templates page — edit (PATCH)', () => {
     expect(refreshMock).toHaveBeenCalled()
   })
 })
+
+describe('sso-error-templates page — reset (POST)', () => {
+  it('resets via a non-destructive (accent, not danger) confirm dialog', async () => {
+    const wrapper = await mountSuspended(Page)
+    await wrapper.get('[data-testid="sso-templates-select-access_denied::en"]').trigger('click')
+    await flushPromises()
+    await wrapper.get('[data-testid="sso-template-reset"]').trigger('click')
+    await flushPromises()
+    const confirm = wrapper.find('[data-testid="privileged-action-confirm"]')
+    expect(confirm.exists()).toBe(true)
+    // Reset is a revert, not a delete — the confirm is primary (Klein accent),
+    // NOT the destructive #E4002B variant.
+    expect(confirm.classes()).toContain('ui-btn--primary')
+    expect(confirm.classes()).not.toContain('ui-btn--danger')
+  })
+
+  it('confirms reset via reset() and refreshes on success', async () => {
+    resetMock.mockResolvedValue({ template: TPL_EN })
+    const wrapper = await mountSuspended(Page)
+    await wrapper.get('[data-testid="sso-templates-select-access_denied::en"]').trigger('click')
+    await flushPromises()
+    await wrapper.get('[data-testid="sso-template-reset"]').trigger('click')
+    await flushPromises()
+    await wrapper.get('[data-testid="privileged-action-confirm"]').trigger('click')
+    await flushPromises()
+    expect(resetMock).toHaveBeenCalledWith('access_denied', 'en')
+    expect(refreshMock).toHaveBeenCalled()
+  })
+})
