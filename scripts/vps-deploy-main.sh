@@ -275,7 +275,7 @@ run_smoke_tests() {
   source "$ENV_FILE" || true
 
   local base_url="${SSO_INTERNAL_BASE_URL:-${SSO_BASE_URL:-${APP_URL:-}}}"
-  local frontend_asset admin_asset frontend_host admin_host admin_origin docs_host
+  local frontend_asset frontend_host admin_host admin_origin docs_host
   base_url="${base_url%/}"
   frontend_host="${SSO_DOMAIN:-$(host_from_url "${SSO_FRONTEND_URL:-https://sso.timeh.my.id}")}"
   admin_host="${SSO_ADMIN_DOMAIN:-admin-sso.timeh.my.id}"

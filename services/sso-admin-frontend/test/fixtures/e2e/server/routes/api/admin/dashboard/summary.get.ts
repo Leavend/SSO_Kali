@@ -13,7 +13,8 @@ export default defineEventHandler((event) => {
   const statusCode = statusCookie ? parseInt(statusCookie, 10) : 0
   if (statusCode >= 400) {
     setResponseStatus(event, statusCode)
-    // ponytail: stable request-id so the spec can assert REF-DASHFAIL
+    // The error VIEW + no-raw-internals invariant are asserted in e2e; the support
+    // REF is unit-covered (ApiError.requestId does not survive SSR serialization).
     setResponseHeader(event, 'x-request-id', 'e2e-dash-fail')
     return { error: 'e2e', message: 'e2e' }
   }
