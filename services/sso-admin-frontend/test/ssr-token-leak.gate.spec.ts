@@ -96,6 +96,11 @@ function fetchAuthAudit(): Promise<string> {
   return $fetch('/authentication-audit', { headers: { cookie: 'admin_locale=en' } })
 }
 
+function fetchProfile(): Promise<string> {
+  // admin_locale=en so the MFA posture badge renders the English label.
+  return $fetch('/profile', { headers: { cookie: 'admin_locale=en' } })
+}
+
 function extractPayload(html: string): string {
   const match = html.match(/<script[^>]*id="__NUXT_DATA__"[^>]*>([\s\S]*?)<\/script>/)
   if (!match?.[1]) {
@@ -490,6 +495,32 @@ describe('SSR token-leak render gate (§3.3)', async () => {
     const serialized = JSON.stringify(JSON.parse(extractPayload(html)))
     expect(collectSecretLeaks(serialized, 'authentication-audit __NUXT__ payload')).toEqual([])
     expect(collectPiiShapeLeaks(serialized, 'authentication-audit __NUXT__ payload')).toEqual([])
+  })
+
+  it('renders the admin profile server-side in its ready state', async () => {
+    const html = await fetchProfile()
+    expect(html).toContain('data-admin-shell')
+    expect(html).toContain('data-page="profile"')
+    // the masked principal renders: display name + the (allowed) email + the
+    // profile.read slug this phase grants (ties the assertion to Step 1's change)
+    expect(html).toContain('Admin Sentinel')
+    expect(html).toContain('admin@example.test')
+    expect(html).toContain('profile.read')
+  })
+
+  it('does not leak token/secret/PII values into the profile SSR HTML', async () => {
+    // Strict — the profile renders only the masked principal (email allowed; subject_id
+    // opaque; role/amr/acr/permission slugs non-sensitive). The admin's own tokens + OIDC
+    // sid live in event.context and must NOT reach the render. NO allowSessionId.
+    const html = await fetchProfile()
+    expect(collectSecretLeaks(html, 'profile SSR HTML')).toEqual([])
+  })
+
+  it('does not leak token/secret/PII values into the profile hydration payload', async () => {
+    const html = await fetchProfile()
+    const serialized = JSON.stringify(JSON.parse(extractPayload(html)))
+    expect(collectSecretLeaks(serialized, 'profile __NUXT__ payload')).toEqual([])
+    expect(collectPiiShapeLeaks(serialized, 'profile __NUXT__ payload')).toEqual([])
   })
 
   it('collectSecretLeaks is LIVE — it reports a planted client secret (negative control)', () => {

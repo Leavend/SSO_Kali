@@ -47,6 +47,7 @@ export default defineEventHandler(() => {
           'admin.security-policy.write',
           'admin.security-policy.activate',
           'admin.authentication-audit.read',
+          'profile.read',
         ],
         capabilities: {
           'admin.dashboard.view': true,
@@ -67,6 +68,7 @@ export default defineEventHandler(() => {
           'admin.security-policy.write': true,
           'admin.security-policy.activate': true,
           'admin.authentication-audit.read': true,
+          'profile.read': true,
         },
         menus: [
           {
