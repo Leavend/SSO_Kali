@@ -99,7 +99,7 @@ const ALLOWED_ADMIN_ROUTE_PATTERNS: readonly RegExp[] = [
   new RegExp(`^DELETE /api/admin/roles/${ROLE_SLUG_PATTERN}$`, 'u'),
   new RegExp(`^DELETE /api/admin/ip-access-rules/${NUMERIC_ID_PATTERN}$`, 'u'),
   new RegExp(`^GET /api/admin/sso-error-templates/${ERROR_TEMPLATE_KEY_PATTERN}$`, 'u'),
-  new RegExp(`^PUT /api/admin/sso-error-templates/${ERROR_TEMPLATE_KEY_PATTERN}$`, 'u'),
+  new RegExp(`^PATCH /api/admin/sso-error-templates/${ERROR_TEMPLATE_KEY_PATTERN}$`, 'u'),
   new RegExp(`^POST /api/admin/sso-error-templates/${ERROR_TEMPLATE_KEY_PATTERN}/reset$`, 'u'),
   new RegExp(`^GET /api/admin/external-idps/${PROVIDER_KEY_PATTERN}$`, 'u'),
   new RegExp(`^PATCH /api/admin/external-idps/${PROVIDER_KEY_PATTERN}$`, 'u'),

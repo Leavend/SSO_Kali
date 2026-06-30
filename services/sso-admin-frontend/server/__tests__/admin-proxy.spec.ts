@@ -463,6 +463,46 @@ describe('admin BFF API proxy', () => {
     expect(bodyStr).not.toContain('access-token-admin')
   })
 
+  it('allows PATCH /api/admin/sso-error-templates/:code and rejects the stale PUT verb', () => {
+    const request = buildAdminApiRequest({
+      internalBaseUrl: 'https://backend.internal',
+      pathname: '/api/admin/sso-error-templates/access_denied',
+      search: '',
+      method: 'PATCH',
+      headers: { accept: 'application/json', 'x-request-id': 'req-tpl' },
+      session,
+    })
+    expect(request.url).toBe('https://backend.internal/admin/api/sso-error-templates/access_denied')
+    expect(headers(request).get('Authorization')).toBe('Bearer access-token-admin')
+
+    // The backend route is PATCH — PUT must NOT pass the allow-list (path is known,
+    // so the policy reports a method violation, not a path violation).
+    expect(() =>
+      buildAdminApiRequest({
+        internalBaseUrl: 'https://backend.internal',
+        pathname: '/api/admin/sso-error-templates/access_denied',
+        search: '',
+        method: 'PUT',
+        headers: { accept: 'application/json' },
+        session,
+      }),
+    ).toThrow('Admin API proxy method is not allowed.')
+  })
+
+  it('allows POST /api/admin/sso-error-templates/:code/reset', () => {
+    const request = buildAdminApiRequest({
+      internalBaseUrl: 'https://backend.internal',
+      pathname: '/api/admin/sso-error-templates/access_denied/reset',
+      search: '',
+      method: 'POST',
+      headers: { accept: 'application/json' },
+      session,
+    })
+    expect(request.url).toBe(
+      'https://backend.internal/admin/api/sso-error-templates/access_denied/reset',
+    )
+  })
+
   it('does not include backend error details in the 502 response body', async () => {
     vi.resetModules()
     vi.doMock('../utils/sso-session-resolver', () => ({
