@@ -34,6 +34,7 @@ vi.mock('@/composables/useAuthAuditEvents', () => ({
     requestId: computed(() => null),
     pending: ref(false),
     hasMore: computed(() => hasMoreRef.value),
+    loadingMore: computed(() => false),
     search: searchMock,
     loadMore: loadMoreMock,
     refresh: vi.fn<() => Promise<void>>(async () => {}),

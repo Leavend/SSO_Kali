@@ -111,4 +111,34 @@ describe('useAuthAuditEvents', () => {
     expect(r.viewState.value).toBe('forbidden')
     expect(r.requestId.value).toBe('req-aa')
   })
+
+  it('ignores a concurrent loadMore (in-flight guard — no double-append)', async () => {
+    const r = useAuthAuditEvents()
+    dataRef.value = { events: [event('a')], pagination: { next_cursor: 'c1' } }
+    listMock.mockClear()
+    let resolveFetch!: (value: AuthAuditListResponse) => void
+    listMock.mockImplementationOnce(
+      () =>
+        new Promise<AuthAuditListResponse>((resolve) => {
+          resolveFetch = resolve
+        }),
+    )
+    const first = r.loadMore()
+    const second = r.loadMore() // blocked while the first is in flight
+    resolveFetch({ events: [event('b')], pagination: { next_cursor: null } })
+    await Promise.all([first, second])
+    expect(listMock).toHaveBeenCalledTimes(1)
+    expect(r.events.value).toEqual([event('a'), event('b')])
+    expect(r.loadingMore.value).toBe(false)
+  })
+
+  it('does not revert to the first-page cursor after a loadMore returns an empty page', async () => {
+    const r = useAuthAuditEvents()
+    dataRef.value = { events: [event('a')], pagination: { next_cursor: 'c1' } }
+    listMock.mockResolvedValueOnce({ events: [], pagination: { next_cursor: null } })
+    await r.loadMore()
+    // extraCursor is now null (consumed), so hasMore is false — it must NOT fall back
+    // to the first page's still-non-null 'c1' cursor.
+    expect(r.hasMore.value).toBe(false)
+  })
 })

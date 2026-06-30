@@ -36,7 +36,7 @@ await useAsyncData('admin-authentication-audit-principal', () => store.ensureSes
 // field; Reset/Filter then take over with the bar's draft.
 const clientIdQuery = typeof route.query.clientId === 'string' ? route.query.clientId : undefined
 
-const { events, viewState, requestId, isStale, hasMore, search, loadMore, refresh } =
+const { events, viewState, requestId, isStale, pending, hasMore, loadingMore, search, loadMore, refresh } =
   useAuthAuditEvents(clientIdQuery ? { client_id: clientIdQuery } : {})
 
 const eventList = computed<readonly AuthAuditEvent[]>(() => events.value ?? [])
@@ -102,7 +102,12 @@ async function onRefresh(): Promise<void> {
       </p>
     </header>
 
-    <AuthAuditFilterBar :labels="filterLabels" @search="onSearch" @reset="onReset" />
+    <AuthAuditFilterBar
+      :labels="filterLabels"
+      :submitting="pending"
+      @search="onSearch"
+      @reset="onReset"
+    />
 
     <UiSkeleton v-if="viewState === 'loading'" :rows="6" :label="t('auth_audit.loading')" />
 
@@ -166,7 +171,13 @@ async function onRefresh(): Promise<void> {
       />
 
       <div v-if="hasMore" class="auth-audit__more">
-        <UiButton variant="secondary" size="sm" data-testid="auth-audit-load-more" @click="onLoadMore">
+        <UiButton
+          variant="secondary"
+          size="sm"
+          data-testid="auth-audit-load-more"
+          :disabled="loadingMore"
+          @click="onLoadMore"
+        >
           {{ t('auth_audit.btn_load_more') }}
         </UiButton>
       </div>

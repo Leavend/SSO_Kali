@@ -20,6 +20,7 @@ export type UseAuthAuditEventsReturn = {
   readonly requestId: ComputedRef<string | null>
   readonly pending: Ref<boolean>
   readonly hasMore: ComputedRef<boolean>
+  readonly loadingMore: ComputedRef<boolean>
   readonly search: (filters: AuthAuditFilters) => Promise<void>
   readonly loadMore: () => Promise<void>
   readonly refresh: () => Promise<void>
@@ -33,7 +34,13 @@ export function useAuthAuditEvents(
   const filters = ref<AuthAuditFilters>({ ...initialFilters, limit: DEFAULT_AUTH_AUDIT_LIMIT })
   // Client-appended cursor pages (beyond the SSR first page) + the live cursor.
   const extraEvents = ref<readonly AuthAuditEvent[]>([])
-  const extraCursor = ref<string | null>(null)
+  // undefined = no loadMore yet (use the first page's cursor); after a loadMore it
+  // holds that response's next_cursor (possibly null), so an empty page can't revert
+  // hasMore back to the already-consumed first-page cursor.
+  const extraCursor = ref<string | null | undefined>(undefined)
+  // In-flight guard: a concurrent loadMore (rapid double-click) would otherwise read
+  // the same cursor twice and append the same page twice (duplicate rows / keys).
+  const isLoadingMore = ref(false)
 
   // First page runs during SSR so the masked event list hydrates as safe DTO only
   // (email allowed; no token/secret/gov-PII). Refetches on filter change.
@@ -48,14 +55,16 @@ export function useAuthAuditEvents(
     firstPage.value ? [...firstPage.value, ...extraEvents.value] : null,
   )
 
-  // After a loadMore the live cursor is extraCursor; before any loadMore it is the
-  // first page's next_cursor.
+  // After a loadMore the live cursor is extraCursor (set once a loadMore has run,
+  // even if it returned an empty page); before any loadMore it is the first page's
+  // next_cursor.
   const nextCursor = computed<string | null>(() =>
-    extraEvents.value.length > 0
+    extraCursor.value !== undefined
       ? extraCursor.value
       : (data.value?.pagination?.next_cursor ?? null),
   )
   const hasMore = computed<boolean>(() => Boolean(nextCursor.value))
+  const loadingMore = computed<boolean>(() => isLoadingMore.value)
 
   const viewState = computed<AuthAuditViewState>(() =>
     resolveAuthAuditViewState({
@@ -73,7 +82,8 @@ export function useAuthAuditEvents(
 
   function resetPages(): void {
     extraEvents.value = []
-    extraCursor.value = null
+    extraCursor.value = undefined
+    isLoadingMore.value = false
   }
 
   async function search(next: AuthAuditFilters): Promise<void> {
@@ -84,10 +94,15 @@ export function useAuthAuditEvents(
 
   async function loadMore(): Promise<void> {
     const cursor = nextCursor.value
-    if (!cursor) return
-    const response = await authAuditApi.listEvents({ ...filters.value, cursor })
-    extraEvents.value = [...extraEvents.value, ...response.events]
-    extraCursor.value = response.pagination?.next_cursor ?? null
+    if (isLoadingMore.value || !cursor) return
+    isLoadingMore.value = true
+    try {
+      const response = await authAuditApi.listEvents({ ...filters.value, cursor })
+      extraEvents.value = [...extraEvents.value, ...response.events]
+      extraCursor.value = response.pagination?.next_cursor ?? null
+    } finally {
+      isLoadingMore.value = false
+    }
   }
 
   return {
@@ -97,6 +112,7 @@ export function useAuthAuditEvents(
     requestId,
     pending,
     hasMore,
+    loadingMore,
     search,
     loadMore,
     refresh: async () => {
