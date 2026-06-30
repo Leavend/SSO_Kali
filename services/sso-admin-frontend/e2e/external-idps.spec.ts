@@ -1,146 +1,76 @@
 import { expect, test } from '@playwright/test'
+import { useEnglish, usePermissions } from './_support/e2e'
 
-const principal = {
-  principal: {
-    subject_id: 'sub_admin',
-    email: 'admin@dev-sso.local',
-    display_name: 'Admin User',
-    role: 'admin',
-    last_login_at: null,
-    auth_context: {
-      auth_time: null,
-      amr: ['pwd', 'mfa'],
-      acr: 'urn:example:loa:2',
-      mfa_enforced: true,
-      mfa_verified: true,
-    },
-    permissions: {
-      view_admin_panel: true,
-      manage_sessions: false,
-      permissions: [
-        'admin.dashboard.view',
-        'admin.external-idps.read',
-        'admin.external-idps.write',
-      ],
-      capabilities: {
-        'admin.dashboard.view': true,
-        'admin.external-idps.read': true,
-        'admin.external-idps.write': true,
-      },
-      menus: [
-        {
-          id: 'dashboard',
-          label: 'Dashboard',
-          required_permission: 'admin.dashboard.view',
-          visible: true,
-        },
-        {
-          id: 'external-idps',
-          label: 'External IdPs',
-          required_permission: 'admin.external-idps.read',
-          visible: true,
-        },
-      ],
-    },
-  },
-}
+// Initial-load GET /api/admin/external-idps is served SSR by the e2e Nitro layer
+// (test/fixtures/e2e/server/routes/api/admin/external-idps/index.get.ts).
+// Mutation routes (POST, DELETE) are client-side — page.route intercepts them.
+// The post-delete refresh() GET is also client-side and hits the layer directly.
 
-const provider = {
-  provider_key: 'google',
-  display_name: 'Google Workspace',
-  issuer: 'https://accounts.google.com',
-  metadata_url: 'https://accounts.google.com/.well-known/openid-configuration',
-  client_id: 'google-client',
-  authorization_endpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
-  token_endpoint: 'https://oauth2.googleapis.com/token',
-  userinfo_endpoint: 'https://openidconnect.googleapis.com/v1/userinfo',
-  jwks_uri: 'https://www.googleapis.com/oauth2/v3/certs',
-  allowed_algorithms: ['RS256'],
-  scopes: ['openid', 'profile', 'email'],
-  priority: 10,
-  enabled: true,
-  is_backup: false,
-  tls_validation_enabled: true,
-  signature_validation_enabled: true,
-  has_client_secret: true,
-  health_status: 'healthy',
-}
-
-test.beforeEach(async ({ page }) => {
-  await page.addInitScript(() => {
-    window.localStorage.setItem('dev-sso-admin-locale', 'en')
-  })
-})
-
-test('renders external IdP provider and mapping evidence', async ({ page }) => {
-  await page.route('**/api/admin/me', async (route) => {
-    await route.fulfill({ contentType: 'application/json', body: JSON.stringify(principal) })
-  })
-  await page.route('**/api/admin/external-idps', async (route) => {
-    await route.fulfill({
+test('create: open the form, submit, POST fires', async ({ page }) => {
+  await useEnglish(page)
+  // ponytail: no mockMe/mockList — layer provides full perms + sentinel-fed/acme-backup via SSR
+  let posted: unknown = null
+  await page.route('**/api/admin/external-idps', async (r) => {
+    if (r.request().method() !== 'POST') return r.continue()
+    posted = r.request().postDataJSON()
+    await r.fulfill({
+      status: 201,
       contentType: 'application/json',
-      headers: { 'x-request-id': 'req-idp-e2e' },
-      body: JSON.stringify({ providers: [provider] }),
-    })
-  })
-  await page.route('**/api/admin/external-idps/google/mapping-preview', async (route) => {
-    await route.fulfill({
-      contentType: 'application/json',
-      headers: { 'x-request-id': 'req-idp-e2e' },
       body: JSON.stringify({
-        preview: {
-          mapped: { subject_id: 'sub_123', email: 'admin@example.test' },
-          errors: [],
-          warnings: ['Email verified claim missing'],
-          missing_email_strategy: 'reject',
-          safe_to_link: true,
+        provider: {
+          provider_key: 'newidp',
+          display_name: 'New IdP',
+          issuer: 'https://new.test',
+          metadata_url: 'https://new.test/m',
+          client_id: 'newclient',
+          enabled: true,
+          has_client_secret: true,
+          health_status: 'healthy',
         },
       }),
     })
   })
-
   await page.goto('/external-idps')
-  await page.getByRole('tab', { name: 'Mapping & Rules' }).click()
-  await page.getByRole('button', { name: 'Preview mapping' }).click()
-
-  await expect(page.getByRole('navigation', { name: 'Admin modules' })).toContainText('External IDPs')
-  await expect(page.getByRole('heading', { name: 'External IdPs' })).toBeVisible()
-  const providerList = page.getByLabel('Daftar External IdP')
-  await expect(providerList).toContainText('Google Workspace')
-  await expect(providerList).toContainText('healthy')
-  await expect(page.getByText('Safe to link:')).toBeVisible()
-  await expect(page.getByText('Federation evidence')).toBeVisible()
-  await expect(page.getByText('Reference code')).toBeVisible()
-  await expect(page.getByText('REF-EQIDPE2E').first()).toBeVisible()
-  await expect(page.getByText(/Bearer|client_secret|access_token|SQLSTATE/u)).toHaveCount(0)
+  await page.getByTestId('external-idps-create').click()
+  await page.getByTestId('idp-field-provider_key').fill('newidp')
+  await page.getByTestId('idp-field-display_name').fill('New IdP')
+  await page.getByTestId('idp-field-issuer').fill('https://new.test')
+  await page.getByTestId('idp-field-metadata_url').fill('https://new.test/m')
+  await page.getByTestId('idp-field-client_id').fill('newclient')
+  await page.getByTestId('idp-field-client_secret').fill('s3cret')
+  await page.getByTestId('external-idp-form-submit').click()
+  await expect.poll(() => posted).not.toBeNull()
+  expect(posted).toMatchObject({ provider_key: 'newidp' })
+  await expect(page.getByText(/Bearer|access_token|client_secret/u)).toHaveCount(0)
 })
 
-test('shows safe step-up copy for provider disable', async ({ page }) => {
-  await page.route('**/api/admin/me', async (route) => {
-    await route.fulfill({ contentType: 'application/json', body: JSON.stringify(principal) })
+test('delete: drawer danger confirm fires DELETE; cancel calls no API', async ({ page }) => {
+  await useEnglish(page)
+  // ponytail: layer seeds sentinel-fed — align delete target to that provider_key
+  let deleted = false
+  await page.route('**/api/admin/external-idps/sentinel-fed', async (r) => {
+    if (r.request().method() !== 'DELETE') return r.continue()
+    deleted = true
+    await r.fulfill({ status: 204, body: '' })
   })
-  await page.route('**/api/admin/external-idps', async (route) => {
-    await route.fulfill({
-      contentType: 'application/json',
-      headers: { 'x-request-id': 'req-idp-step' },
-      body: JSON.stringify({ providers: [provider] }),
-    })
-  })
-  await page.route('**/api/admin/external-idps/google', async (route) => {
-    await route.fulfill({
-      status: 428,
-      contentType: 'application/json',
-      headers: { 'x-request-id': 'req-idp-step' },
-      body: JSON.stringify({ error: 'fresh_auth_required', message: 'raw ACR trace' }),
-    })
-  })
-
   await page.goto('/external-idps')
-  await page.getByRole('tab', { name: 'Configuration' }).click()
-  await page.getByLabel('Enabled').uncheck()
-  await page.getByRole('button', { name: 'Save changes' }).click()
+  await page.getByTestId('external-idp-select-sentinel-fed').click()
+  await page.getByTestId('external-idp-delete').click()
+  await page.getByTestId('privileged-action-cancel').click()
+  expect(deleted).toBe(false)
+  // The detail drawer stays open after a cancelled confirm — re-open the confirm
+  // from the still-open drawer (re-clicking the table row would be covered by it).
+  await page.getByTestId('external-idp-delete').click()
+  await page.getByTestId('privileged-action-confirm').click()
+  await expect.poll(() => deleted).toBe(true)
+})
 
-  await expect(page.getByText('fresh-auth atau MFA assurance')).toBeVisible()
-  await expect(page.getByText('REF-QIDPSTEP').first()).toBeVisible()
-  await expect(page.getByText('raw ACR')).toHaveCount(0)
+test('forbidden: an admin without external-idps.read sees the safe forbidden surface', async ({
+  page,
+}) => {
+  await useEnglish(page)
+  await usePermissions(page, ['admin.dashboard.view'])
+  await page.goto('/external-idps')
+  await expect(page).toHaveURL(/\/forbidden$/u)
+  await expect(page.getByText(/Bearer|access_token|client_secret/u)).toHaveCount(0)
 })

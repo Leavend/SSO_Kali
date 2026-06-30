@@ -1,0 +1,140 @@
+@import './tokens.css';
+@import 'tailwindcss';
+
+/* Dark mode: Tailwind dark: utilities match when <html class="dark"> —
+   consistent with the theme toggle (useTheme.ts) and `:root.dark` in tokens.css. */
+@custom-variant dark (&:is(.dark *));
+
+/* Map Tailwind v4 utility anchors onto the Swiss tokens (tokens.css).
+   Single accent: --color-primary and --color-accent both resolve to --accent.
+   Red is wired only to --color-destructive. No shadow/brand-gradient anchors. */
+@theme inline {
+  /* ---- Surfaces ---- */
+  --color-background: var(--bg);
+  --color-background-2: var(--bg-2);
+  --color-card: var(--card);
+  --color-card-foreground: var(--fg);
+  --color-popover: var(--card);
+  --color-popover-foreground: var(--fg);
+  --color-muted: var(--muted);
+  --color-muted-2: var(--muted-2);
+  --color-muted-foreground: var(--fg-2);
+
+  /* ---- Ink ---- */
+  --color-foreground: var(--fg);
+  --color-foreground-2: var(--fg-2);
+  --color-foreground-3: var(--fg-3);
+
+  /* ---- Borders / Input / Ring ---- */
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-input: var(--border);
+  --color-ring: var(--accent-ring);
+
+  /* ---- Primary (shadcn anchor → single Swiss accent) ---- */
+  --color-primary: var(--accent);
+  --color-primary-foreground: var(--accent-fg);
+
+  /* ---- Secondary ---- */
+  --color-secondary: var(--bg-2);
+  --color-secondary-foreground: var(--fg);
+
+  /* ---- Accent (same single accent; both --color-primary and --color-accent resolve here) ---- */
+  --color-accent: var(--accent);
+  --color-accent-600: var(--accent-600);
+  --color-accent-foreground: var(--accent-fg);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-soft-fg: var(--accent-soft-fg);
+  --color-accent-ring: var(--accent-ring);
+
+  /* ---- Destructive (shadcn anchor → Swiss danger) ---- */
+  --color-destructive: var(--danger);
+  --color-destructive-foreground: var(--danger-fg);
+
+  /* ---- Danger (extended semantic aliases) ---- */
+  --color-danger: var(--danger);
+  --color-danger-foreground: var(--danger-fg);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-soft-fg: var(--danger-soft-fg);
+
+  /* ---- Status ---- */
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-success-soft-fg: var(--success-soft-fg);
+
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-soft-fg: var(--warning-soft-fg);
+
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-info-soft-fg: var(--info-soft-fg);
+
+  /* ---- Typography ---- */
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+
+  /* ---- Radius ---- */
+  --radius-xs: var(--r-xs);
+  --radius-sm: var(--r-sm);
+  --radius-md: var(--r-md);
+  --radius-lg: var(--r-lg);
+  --radius-full: var(--r-full);
+
+  /* ---- Layout containers ---- */
+  --container-form: 48rem;
+  --container-page: 80rem;
+}
+
+/* Bridge vars consumed by Reka UI primitives that read shadcn-style names. */
+:root {
+  --background: var(--bg);
+  --foreground: var(--fg);
+  --radius: var(--r-md);
+  font-family: var(--font-sans);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  color: var(--fg);
+  background: var(--bg);
+}
+
+a {
+  color: inherit;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  border: 0;
+  clip: rect(0, 0, 0, 0);
+}
+
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}

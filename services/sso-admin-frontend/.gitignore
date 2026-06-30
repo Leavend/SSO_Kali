@@ -40,3 +40,9 @@ __screenshots__/
 
 test-results/
 playwright-report/
+
+# Nuxt
+.nuxt
+.output
+.nitro
+.data

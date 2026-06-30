@@ -1,0 +1,111 @@
+/* ============================================================================
+   sso-admin-frontend · Swiss design tokens
+   Single accent (Yves Klein Blue #002FA7). Red (#E4002B) is functional/
+   destructive only. 1px hairline borders carry structure — no shadows.
+   One type family; --font-mono reserved for raw IDs. Sharp radii (0–2px).
+   Dark mode: active via <html class="dark"> (canonical mechanism).
+   ============================================================================ */
+
+:root {
+  /* ---- Type (one family; mono only for raw IDs/correlation values) ---- */
+  --font-sans: 'Söhne', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --font-condensed: 'Söhne Schmal', 'Roboto Condensed', 'Helvetica Neue', ui-sans-serif, sans-serif;
+  --font-mono: 'Söhne Mono', ui-monospace, 'SF Mono', 'JetBrains Mono', monospace;
+
+  /* ---- Radius (sharp) ---- */
+  --r-xs: 0;
+  --r-sm: 2px;
+  --r-md: 2px;
+  --r-lg: 2px;
+  --r-full: 9999px; /* circular indicators only: status dots, avatars */
+
+  /* ---- Surfaces ---- */
+  --bg: #ffffff;
+  --bg-2: #f7f7f8;
+  --card: #ffffff;
+  --muted: #f2f2f3; /* hover surface */
+  --muted-2: #ebebed; /* pressed / nested surface */
+
+  /* ---- Ink ---- */
+  --fg: #0a0a0a;
+  --fg-2: #4a4a4a;
+  --fg-3: #767676;
+
+  /* ---- Hairline borders ---- */
+  --border: #e5e5e7;
+  --border-strong: #d4d4d8;
+
+  /* ---- Accent (single Swiss accent: interactive/brand) ---- */
+  --accent: #002fa7;
+  --accent-600: #00248c; /* hover / active */
+  --accent-fg: #ffffff; /* text/icon on solid accent */
+  --accent-soft: #eaeef8; /* accent tint surface (chip/selected row) */
+  --accent-soft-fg: #002fa7; /* text/links on tint or plain */
+  --accent-ring: #002fa7; /* focus outline colour */
+
+  /* ---- Functional semantics (state, never decoration) ---- */
+  --danger: #e4002b;
+  --danger-600: #b3001f; /* hover / active — darker than --danger */
+  --danger-fg: #ffffff;
+  --danger-soft: #fce8ec;
+  --danger-soft-fg: #b00020;
+  --success: #1e7a46;
+  --success-soft: #e7f2ec;
+  --success-soft-fg: #156238;
+  --warning: #9a6b00;
+  --warning-soft: #fbf1dd;
+  --warning-soft-fg: #7a5500;
+  --info: #0b5fb0;
+  --info-soft: #e6eff8;
+  --info-soft-fg: #0b4e8f;
+
+  /* ---- Control + layout dimensions ---- */
+  --ctl-h: 36px;
+  --topbar-h: 56px;
+  --sidebar-w: 256px;
+  --sidebar-w-rail: 64px;
+  --content-pad: 24px;
+  --gap: 16px;
+}
+
+/* ============================================================================
+   Restrained dark inversion — same hairline/grid language, status preserved.
+   Active via <html class="dark"> (single canonical mechanism matching the
+   theme toggle and the Tailwind dark: variant).
+   ============================================================================ */
+:root.dark {
+  --bg: #0a0a0a;
+  --bg-2: #141414;
+  --card: #101010;
+  --muted: #1a1a1a;
+  --muted-2: #242424;
+
+  --fg: #fafafa;
+  --fg-2: #b4b4b4;
+  --fg-3: #8a8a8a;
+
+  --border: #262628;
+  --border-strong: #3a3a3d;
+
+  --accent: #5b82e0;
+  --accent-600: #7196e8;
+  --accent-fg: #0a0a0a;
+  --accent-soft: #16213d;
+  --accent-soft-fg: #9db4f0;
+  --accent-ring: #5b82e0;
+
+  --danger: #ff5470;
+  --danger-600: #e03355; /* hover / active — darker than --danger */
+  --danger-fg: #0a0a0a;
+  --danger-soft: #3a1620;
+  --danger-soft-fg: #ff8fa3;
+  --success: #4fb07a;
+  --success-soft: #122a1d;
+  --success-soft-fg: #7fd3a1;
+  --warning: #d9a53a;
+  --warning-soft: #2e2410;
+  --warning-soft-fg: #e6c173;
+  --info: #5b9be0;
+  --info-soft: #11213a;
+  --info-soft-fg: #9cc2ef;
+}

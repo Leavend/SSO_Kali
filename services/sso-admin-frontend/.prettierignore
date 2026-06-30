@@ -1,0 +1,11 @@
+node_modules
+dist
+.nuxt
+.output
+.nitro
+.data
+coverage
+playwright-report
+test-results
+package-lock.json
+e2e/.nuxt

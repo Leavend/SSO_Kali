@@ -1,0 +1,611 @@
+/**
+ * §3.3 SSR token-leak render gate (the crown jewel).
+ *
+ * Renders a REAL authenticated admin page (the dashboard, through the admin
+ * layout) under full SSR with a mocked `event.context.session` carrying sentinel
+ * OIDC token VALUES (access / refresh / id / sid) and sentinel raw-PII VALUES
+ * shaped exactly like a NIK (16 digits), NIP (18 digits), and NISN (10 digits),
+ * plus a private `runtimeConfig` canary. It then asserts neither the rendered
+ * HTML nor the parsed Nuxt hydration payload (`__NUXT_DATA__`, the SSR-serialized
+ * form of `window.__NUXT__`) contains any of those token values/names, any of the
+ * raw-PII values/shapes, or the private canary. Tokens + raw PII must stay in
+ * Nitro `event.context` only; the admin's own `email` is an intentional safe
+ * display field and is deliberately NOT asserted absent.
+ *
+ * Harness (Task 0.4 constraint): the e2e in-process full build is blocked at the
+ * vitest-worker level, so the SSR-leak fixture LAYER is pre-built in a subprocess
+ * by test/globalSetup.ts and this spec runs `setup({ build: false })` against its
+ * pre-built `.output`. `setup()` is called directly inside the async `describe`
+ * callback (NOT in beforeAll): @nuxt/test-utils v4 registers its own beforeAll
+ * during collection, so wrapping it nests the hook and it fires after the tests,
+ * leaving `$fetch` without a URL context. Mirrors test/ssr-smoke.spec.ts.
+ */
+import { resolve } from 'node:path'
+import { describe, it, expect } from 'vitest'
+import { setup, $fetch } from '@nuxt/test-utils/e2e'
+import { SENTINEL, SSR_LEAK_CANARY } from './fixtures/ssr-leak/sentinels'
+
+// process.cwd() is the service root (services/sso-admin-frontend) when tests run
+// via `npm run test` — reliable in jsdom where import.meta.url is not file://
+// (mirrors app/pages/__tests__/route-map.spec.ts).
+const fixtureDir = resolve(process.cwd(), 'test', 'fixtures', 'ssr-leak')
+
+// The fixture's server-only Nuxt plugin injects an authenticated sentinel session
+// (tokens + raw PII) onto event.context for every SSR render, so /dashboard renders
+// as a signed-in admin. No cookie/credentials are needed.
+function fetchDashboard(): Promise<string> {
+  return $fetch('/dashboard')
+}
+
+function fetchUsersList(): Promise<string> {
+  return $fetch('/users')
+}
+
+function fetchUserDetail(): Promise<string> {
+  return $fetch('/users/sub-target-sentinel')
+}
+
+function fetchClientsList(): Promise<string> {
+  return $fetch('/clients')
+}
+
+function fetchClientDetail(): Promise<string> {
+  return $fetch('/clients/acme-portal')
+}
+
+function fetchObservability(): Promise<string> {
+  return $fetch('/observability')
+}
+
+function fetchCompliance(): Promise<string> {
+  return $fetch('/observability/compliance')
+}
+
+function fetchRoles(): Promise<string> {
+  return $fetch('/roles')
+}
+
+// Pin the SSR locale to English (admin_locale cookie, the same lever e2e/policy
+// uses) so the status-badge label asserted below renders as "Active" rather than
+// the default-locale "Aktif". The leak collectors are locale-independent.
+function fetchPolicy(): Promise<string> {
+  return $fetch('/policy', { headers: { cookie: 'admin_locale=en' } })
+}
+
+function fetchSessions(): Promise<string> {
+  // admin_locale=en so the status badge renders the English label under the gate.
+  return $fetch('/sessions', { headers: { cookie: 'admin_locale=en' } })
+}
+
+function fetchExternalIdps(): Promise<string> {
+  return $fetch('/external-idps', { headers: { cookie: 'admin_locale=en' } })
+}
+
+function fetchIpAccess(): Promise<string> {
+  // admin_locale=en so the mode badge renders the English label under the gate.
+  return $fetch('/ip-access', { headers: { cookie: 'admin_locale=en' } })
+}
+
+function fetchOps(): Promise<string> {
+  // admin_locale=en so the readiness status badge renders the English label.
+  return $fetch('/ops', { headers: { cookie: 'admin_locale=en' } })
+}
+
+function fetchAuthAudit(): Promise<string> {
+  // admin_locale=en so the outcome badge renders the English label.
+  return $fetch('/authentication-audit', { headers: { cookie: 'admin_locale=en' } })
+}
+
+function fetchProfile(): Promise<string> {
+  // admin_locale=en so the MFA posture badge renders the English label.
+  return $fetch('/profile', { headers: { cookie: 'admin_locale=en' } })
+}
+
+function fetchOidcFoundation(): Promise<string> {
+  // admin_locale=en so the status badges render the English labels.
+  return $fetch('/oidc-foundation', { headers: { cookie: 'admin_locale=en' } })
+}
+
+function fetchSsoErrorTemplates(): Promise<string> {
+  // admin_locale=en so the status badge renders the English label under the gate.
+  return $fetch('/sso-error-templates', { headers: { cookie: 'admin_locale=en' } })
+}
+
+function extractPayload(html: string): string {
+  const match = html.match(/<script[^>]*id="__NUXT_DATA__"[^>]*>([\s\S]*?)<\/script>/)
+  if (!match?.[1]) {
+    throw new Error('no __NUXT_DATA__ hydration payload found in SSR HTML')
+  }
+  return match[1]
+}
+
+// Collect (rather than assert per-line) so the gate uses single-argument expect
+// (oxlint jest/valid-expect bans `expect(value, message)`); the returned label
+// array is itself the self-describing failure output via `.toEqual([])`.
+//
+// `allowSessionId` (default false): on the dashboard the sentinel `sid` is the
+// OIDC session id held in Nitro event.context — a server-only value the gate
+// proves never reaches the client, so the dashboard keeps the strict check. The
+// user-detail DTO carries a DEVICE session id (device_sessions row) which the
+// §3.3 decision treats as an allowed operational identifier — needed by the 4.11
+// session actions, displayed only via formatTechnicalPreview, NOT a credential —
+// so the users-page checks exempt it. Tokens/secrets/canary/raw-PII stay strict
+// in both contexts.
+//
+// `allowOidcDiscoveryVocabulary` (default false): the OIDC Foundation snapshot is
+// PUBLIC discovery metadata that legitimately contains the protocol terms
+// `id_token` (notably the always-present `id_token_signing_alg_values_supported`
+// field name) and `refresh_token` (a `grant_types_supported` value). Those are not
+// a leaked session — a real session leak shows the camelCase PortalSession shape
+// (accessToken/refreshToken/idToken), and the snapshot is metadata, never a token
+// RESPONSE. So the oidc-foundation checks drop ONLY the snake-case id_token/
+// refresh_token NAME match; the camelCase NAME match, `access_token`, every
+// token/secret/sid/canary VALUE, and the raw-PII checks all stay strict.
+function collectSecretLeaks(
+  haystack: string,
+  where: string,
+  {
+    allowSessionId = false,
+    allowOidcDiscoveryVocabulary = false,
+  }: { allowSessionId?: boolean; allowOidcDiscoveryVocabulary?: boolean } = {},
+): readonly string[] {
+  const leaks: string[] = []
+  const reportContains = (needle: string, label: string): void => {
+    if (haystack.includes(needle)) leaks.push(`${where} ${label}`)
+  }
+  const reportMatches = (pattern: RegExp, label: string): void => {
+    if (pattern.test(haystack)) leaks.push(`${where} ${label}`)
+  }
+
+  // OIDC token VALUES.
+  reportContains(SENTINEL.access, 'leaks the access-token value')
+  reportContains(SENTINEL.refresh, 'leaks the refresh-token value')
+  reportContains(SENTINEL.id, 'leaks the id-token value')
+  if (!allowSessionId) reportContains(SENTINEL.sid, 'leaks the session-id (sid) value')
+  // OIDC token field NAMES (camelCase session shape + snake_case OIDC wire shape).
+  // On the oidc-foundation page the snake id_token/refresh_token are benign OIDC
+  // discovery vocabulary (see the header note); the camelCase shape stays strict.
+  reportMatches(
+    allowOidcDiscoveryVocabulary
+      ? /accessToken|refreshToken|idToken|access_token/
+      : /accessToken|refreshToken|idToken|access_token|refresh_token|id_token/,
+    'leaks a token field name',
+  )
+  // Raw government PII VALUES.
+  reportContains(SENTINEL.nik, 'leaks the raw NIK value')
+  reportContains(SENTINEL.nip, 'leaks the raw NIP value')
+  reportContains(SENTINEL.nisn, 'leaks the raw NISN value')
+  // Private runtimeConfig canary + private secret field names.
+  reportContains(SSR_LEAK_CANARY, 'leaks the runtimeConfig canary')
+  reportMatches(
+    /sessionEncryptionSecret|adminOidcClientSecret/,
+    'leaks a private secret field name',
+  )
+  // Plaintext client-secret VALUE (one-time secret — never on the SSR path).
+  reportContains(SENTINEL.clientSecret, 'leaks the client-secret value')
+  // Client-secret + rotate-response plaintext field NAMES (snake_case wire +
+  // camelCase shapes). The masked DTOs carry only the BOOLEAN status fields
+  // `has_secret_hash` (clients) / `has_client_secret` (external-idps) — never the
+  // value — so the `has_` prefix is excluded; `client_id` is also not matched.
+  reportMatches(
+    /(?<!has_)client_secret|(?<!has_)clientSecret|plaintext_secret|plaintext_once/,
+    'leaks a client-secret field name',
+  )
+
+  return leaks
+}
+
+function collectPiiShapeLeaks(payload: string, where: string): readonly string[] {
+  const leaks: string[] = []
+  // Word-bounded digit runs. 16/18/10 do not overlap: a 16-digit run is not a
+  // boundary-isolated 10-digit run, so the patterns are mutually exclusive.
+  if (/(?<!\d)\d{16}(?!\d)/.test(payload)) leaks.push(`${where} leaks a 16-digit NIK-shaped value`)
+  if (/(?<!\d)\d{18}(?!\d)/.test(payload)) leaks.push(`${where} leaks an 18-digit NIP-shaped value`)
+  if (/(?<!\d)\d{10}(?!\d)/.test(payload)) leaks.push(`${where} leaks a 10-digit NISN-shaped value`)
+  return leaks
+}
+
+// The async describe callback is required by @nuxt/test-utils v4 (see header):
+// setup() must register its own beforeAll during collection. This is the only
+// place the otherwise-correct valid-describe-callback rule is suppressed.
+// eslint-disable-next-line vitest/valid-describe-callback
+describe('SSR token-leak render gate (§3.3)', async () => {
+  await setup({
+    rootDir: fixtureDir,
+    server: true,
+    build: false,
+    browser: false,
+    // Point at the pre-built fixture output produced by test/globalSetup.ts.
+    nuxtConfig: { nitro: { output: { dir: resolve(fixtureDir, '.output') } } },
+  })
+
+  it('renders the authenticated dashboard server-side through the admin shell', async () => {
+    const html = await fetchDashboard()
+    // Representative authenticated page renders (safe channel works) ...
+    expect(html).toContain('data-page="dashboard"')
+    expect(html).toContain('Admin Sentinel')
+    // ... and it renders through the admin layout (data-admin-shell SSR coverage,
+    // restored from Task 2a.6 when the old index→shell smoke assertion was lost).
+    expect(html).toContain('data-admin-shell')
+    // The summary path rendered the READY state (folio timestamp is verbatim).
+    expect(html).toContain('2026-06-28T14:32:15Z')
+  })
+
+  it('does not leak token/PII/secret values into the SSR HTML', async () => {
+    const html = await fetchDashboard()
+    expect(collectSecretLeaks(html, 'SSR HTML')).toEqual([])
+  })
+
+  it('does not leak token/PII/secret values into the hydration payload', async () => {
+    const html = await fetchDashboard()
+    const parsed: unknown = JSON.parse(extractPayload(html))
+    const serialized = JSON.stringify(parsed)
+    expect(collectSecretLeaks(serialized, '__NUXT__ payload')).toEqual([])
+    expect(collectPiiShapeLeaks(serialized, '__NUXT__ payload')).toEqual([])
+  })
+
+  it('renders the users list + detail server-side in their ready (masked) state', async () => {
+    const listHtml = await fetchUsersList()
+    expect(listHtml).toContain('data-admin-shell')
+    expect(listHtml).toContain('Target User')
+
+    const detailHtml = await fetchUserDetail()
+    expect(detailHtml).toContain('data-admin-shell')
+    expect(detailHtml).toContain('Target User')
+    // The raw session id was rendered through formatTechnicalPreview, proving the
+    // page masks it (REF-4A1B9C0D is SENTINEL.sid normalized + sliced to 8).
+    expect(detailHtml).toContain('REF-4A1B9C0D')
+  })
+
+  it('does not leak token/PII/secret values into the users-page SSR HTML', async () => {
+    // allowSessionId: the user-detail DTO carries a DEVICE session id (allowed
+    // §3.3 operational identifier, masked to REF- for display); tokens/secrets/PII
+    // stay strict. The raw OIDC sid never reaches the client (dashboard proves it).
+    const listHtml = await fetchUsersList()
+    const detailHtml = await fetchUserDetail()
+    expect(collectSecretLeaks(listHtml, 'users-list SSR HTML', { allowSessionId: true })).toEqual(
+      [],
+    )
+    expect(
+      collectSecretLeaks(detailHtml, 'user-detail SSR HTML', { allowSessionId: true }),
+    ).toEqual([])
+  })
+
+  it('does not leak token/PII/secret values into the users-page hydration payload', async () => {
+    for (const html of [await fetchUsersList(), await fetchUserDetail()]) {
+      const serialized = JSON.stringify(JSON.parse(extractPayload(html)))
+      expect(
+        collectSecretLeaks(serialized, 'users __NUXT__ payload', { allowSessionId: true }),
+      ).toEqual([])
+      expect(collectPiiShapeLeaks(serialized, 'users __NUXT__ payload')).toEqual([])
+    }
+  })
+
+  it('renders the clients list + detail server-side in their ready (masked) state', async () => {
+    const listHtml = await fetchClientsList()
+    expect(listHtml).toContain('data-admin-shell')
+    expect(listHtml).toContain('Acme Portal')
+
+    const detailHtml = await fetchClientDetail()
+    expect(detailHtml).toContain('data-admin-shell')
+    expect(detailHtml).toContain('Acme Portal')
+    // The public client_id is allowed to render (it is a public identifier, not a secret).
+    expect(detailHtml).toContain('acme-portal')
+  })
+
+  it('does not leak token/secret/PII values into the clients-page SSR HTML', async () => {
+    const listHtml = await fetchClientsList()
+    const detailHtml = await fetchClientDetail()
+    expect(collectSecretLeaks(listHtml, 'clients-list SSR HTML')).toEqual([])
+    expect(collectSecretLeaks(detailHtml, 'client-detail SSR HTML')).toEqual([])
+  })
+
+  it('does not leak token/secret/PII values into the clients-page hydration payload', async () => {
+    for (const html of [await fetchClientsList(), await fetchClientDetail()]) {
+      const serialized = JSON.stringify(JSON.parse(extractPayload(html)))
+      expect(collectSecretLeaks(serialized, 'clients __NUXT__ payload')).toEqual([])
+      expect(collectPiiShapeLeaks(serialized, 'clients __NUXT__ payload')).toEqual([])
+    }
+  })
+
+  it('renders the observability + compliance pages server-side in their ready (masked) state', async () => {
+    const cockpit = await fetchObservability()
+    expect(cockpit).toContain('data-admin-shell')
+    // The summary rendered the READY state (service name + folio timestamp verbatim).
+    expect(cockpit).toContain('IdP Backend')
+    expect(cockpit).toContain('2026-06-28T14:32:15Z')
+
+    const compliance = await fetchCompliance()
+    expect(compliance).toContain('data-admin-shell')
+    // Retention rendered READY ...
+    expect(compliance).toContain('Authentication audit events')
+    // ... and the DSR queue masked the opaque subject id through formatTechnicalPreview
+    // (REF-SRAURORA is 'sub-dsr-aurora' normalized + sliced to its last 8 chars).
+    expect(compliance).toContain('REF-SRAURORA')
+  })
+
+  it('does not leak token/PII/secret values into the observability/compliance SSR HTML', async () => {
+    const cockpit = await fetchObservability()
+    const compliance = await fetchCompliance()
+    expect(collectSecretLeaks(cockpit, 'observability SSR HTML')).toEqual([])
+    expect(collectSecretLeaks(compliance, 'compliance SSR HTML')).toEqual([])
+  })
+
+  it('does not leak token/PII/secret values into the observability/compliance hydration payload', async () => {
+    for (const html of [await fetchObservability(), await fetchCompliance()]) {
+      const serialized = JSON.stringify(JSON.parse(extractPayload(html)))
+      expect(collectSecretLeaks(serialized, 'observability __NUXT__ payload')).toEqual([])
+      expect(collectPiiShapeLeaks(serialized, 'observability __NUXT__ payload')).toEqual([])
+    }
+  })
+
+  it('renders the roles list + matrix server-side in their ready (masked) state', async () => {
+    const html = await fetchRoles()
+    expect(html).toContain('data-admin-shell')
+    // A custom (editable) role column header renders ...
+    expect(html).toContain('Content Editor')
+    // ... and a permission row label renders, proving the role × permission matrix mounted.
+    expect(html).toContain('Manage users')
+  })
+
+  it('does not leak token/secret/PII values into the roles-page SSR HTML', async () => {
+    // Strict — the roles DTOs carry only slugs/names/descriptions/counts (no token,
+    // secret, session id, or PII), so NO allowSessionId exemption applies.
+    const html = await fetchRoles()
+    expect(collectSecretLeaks(html, 'roles SSR HTML')).toEqual([])
+  })
+
+  it('does not leak token/secret/PII values into the roles-page hydration payload', async () => {
+    const html = await fetchRoles()
+    const serialized = JSON.stringify(JSON.parse(extractPayload(html)))
+    expect(collectSecretLeaks(serialized, 'roles __NUXT__ payload')).toEqual([])
+    expect(collectPiiShapeLeaks(serialized, 'roles __NUXT__ payload')).toEqual([])
+  })
+
+  it('renders the policy versions + active config server-side in their ready (masked) state', async () => {
+    const html = await fetchPolicy()
+    expect(html).toContain('data-admin-shell')
+    // the active-config summary renders a payload key ...
+    expect(html).toContain('min_length')
+    // ... and the version table renders a status label, proving the surface mounted.
+    expect(html).toContain('Active')
+  })
+
+  it('does not leak token/secret/PII values into the policy-page SSR HTML', async () => {
+    // Strict — policy DTOs carry only non-secret config + an opaque ULID actor id.
+    const html = await fetchPolicy()
+    expect(collectSecretLeaks(html, 'policy SSR HTML')).toEqual([])
+  })
+
+  it('does not leak token/secret/PII values into the policy-page hydration payload', async () => {
+    const html = await fetchPolicy()
+    const serialized = JSON.stringify(JSON.parse(extractPayload(html)))
+    expect(collectSecretLeaks(serialized, 'policy __NUXT__ payload')).toEqual([])
+    expect(collectPiiShapeLeaks(serialized, 'policy __NUXT__ payload')).toEqual([])
+  })
+
+  it('renders the active sessions server-side in their ready (masked) state', async () => {
+    const html = await fetchSessions()
+    expect(html).toContain('data-admin-shell')
+    // a user display name + an IP from the fixture render, proving the table mounted.
+    expect(html).toContain('Sentinel Operator')
+    expect(html).toContain('203.0.113.45')
+  })
+
+  it('does not leak token/secret/PII values into the sessions-page SSR HTML', async () => {
+    // allowSessionId: the session DTO carries the operational session_id HANDLE (the
+    // terminate key, not a credential) — exempt it, but every other check stays strict.
+    const html = await fetchSessions()
+    expect(collectSecretLeaks(html, 'sessions SSR HTML', { allowSessionId: true })).toEqual([])
+  })
+
+  it('does not leak token/secret/PII values into the sessions-page hydration payload', async () => {
+    const html = await fetchSessions()
+    const serialized = JSON.stringify(JSON.parse(extractPayload(html)))
+    expect(
+      collectSecretLeaks(serialized, 'sessions __NUXT__ payload', { allowSessionId: true }),
+    ).toEqual([])
+    expect(collectPiiShapeLeaks(serialized, 'sessions __NUXT__ payload')).toEqual([])
+  })
+
+  it('renders the external providers list server-side in their ready (masked) state', async () => {
+    const html = await fetchExternalIdps()
+    expect(html).toContain('data-admin-shell')
+    // a provider display name + the "secret configured" status render — proving the
+    // table mounted and that has_client_secret is shown as a STATUS, not a value.
+    expect(html).toContain('Sentinel Federation')
+    expect(html).toContain('Acme')
+  })
+
+  it('does not leak token/secret/PII values into the external-idps SSR HTML', async () => {
+    // Strict — the provider DTO carries has_client_secret (a boolean), client_id/
+    // issuer/endpoints (public OIDC config), and no session id or gov-PII.
+    const html = await fetchExternalIdps()
+    expect(collectSecretLeaks(html, 'external-idps SSR HTML')).toEqual([])
+  })
+
+  it('does not leak token/secret/PII values into the external-idps hydration payload', async () => {
+    const html = await fetchExternalIdps()
+    const serialized = JSON.stringify(JSON.parse(extractPayload(html)))
+    expect(collectSecretLeaks(serialized, 'external-idps __NUXT__ payload')).toEqual([])
+    expect(collectPiiShapeLeaks(serialized, 'external-idps __NUXT__ payload')).toEqual([])
+  })
+
+  it('strips the DSR free-text PII canary from the compliance SSR HTML and hydration payload (proves the Task-6.4 runtime strip, not a null fixture)', async () => {
+    // The DSR fixture row carries a NON-null reason/reviewer_notes/reviewer_subject_id
+    // canary (the shared presenter emits them). The service maps each row to the
+    // narrowed DTO at runtime, so the free-text reaches neither the SSR HTML nor
+    // __NUXT_DATA__ — a null fixture would pass even if that strip regressed, so the
+    // canary keeps the gate honest. (The token-name + digit-run collectors are
+    // structurally blind to free-text PII; these literal checks close that gap.)
+    const compliance = await fetchCompliance()
+    const payload = JSON.stringify(JSON.parse(extractPayload(compliance)))
+    for (const haystack of [compliance, payload]) {
+      expect(haystack).not.toContain('SSR_PII_CANARY')
+      expect(haystack).not.toContain('Budi Santoso')
+      expect(haystack).not.toContain('budi@example.gov')
+      expect(haystack).not.toContain('internal note')
+      expect(haystack).not.toContain('sub-reviewer-canary')
+    }
+  })
+
+  it('renders the IP access rules server-side in their ready state', async () => {
+    const html = await fetchIpAccess()
+    expect(html).toContain('data-admin-shell')
+    // a CIDR + a mode label render, proving the table mounted (mode is shown as a
+    // STATUS label, never colour-alone).
+    expect(html).toContain('203.0.113.0/24')
+    expect(html).toContain('Block')
+  })
+
+  it('does not leak token/secret/PII values into the ip-access SSR HTML', async () => {
+    // Strict — the IP-access DTO carries only cidr/mode/reason/timestamps + an opaque
+    // actor subject id; no token, secret, session id, or gov-PII. NO allowSessionId.
+    const html = await fetchIpAccess()
+    expect(collectSecretLeaks(html, 'ip-access SSR HTML')).toEqual([])
+  })
+
+  it('does not leak token/secret/PII values into the ip-access hydration payload', async () => {
+    const html = await fetchIpAccess()
+    const serialized = JSON.stringify(JSON.parse(extractPayload(html)))
+    expect(collectSecretLeaks(serialized, 'ip-access __NUXT__ payload')).toEqual([])
+    expect(collectPiiShapeLeaks(serialized, 'ip-access __NUXT__ payload')).toEqual([])
+  })
+
+  it('renders the ops readiness server-side in its ready state', async () => {
+    const html = await fetchOps()
+    expect(html).toContain('data-admin-shell')
+    expect(html).toContain('data-page="ops"')
+    // the service + a check label render (status shown as a label, never colour-alone)
+    expect(html).toContain('sso-backend')
+    expect(html).toContain('Database')
+  })
+
+  it('does not leak token/secret/PII values into the ops SSR HTML', async () => {
+    // Strict — the readiness DTO carries only a service name, booleans, and small
+    // queue counts; no token, secret, session id, or gov-PII. NO allowSessionId.
+    const html = await fetchOps()
+    expect(collectSecretLeaks(html, 'ops SSR HTML')).toEqual([])
+    // external_idps health map (incl. IdP endpoint config) is stripped at parse —
+    // its canary must never reach the SSR HTML.
+    expect(html).not.toContain('OPS-EXTERNAL-IDP-CANARY')
+  })
+
+  it('does not leak token/secret/PII values into the ops hydration payload', async () => {
+    const html = await fetchOps()
+    const serialized = JSON.stringify(JSON.parse(extractPayload(html)))
+    expect(collectSecretLeaks(serialized, 'ops __NUXT__ payload')).toEqual([])
+    expect(collectPiiShapeLeaks(serialized, 'ops __NUXT__ payload')).toEqual([])
+    // proves parseOpsReadiness dropped external_idps before hydration
+    expect(serialized).not.toContain('OPS-EXTERNAL-IDP-CANARY')
+  })
+
+  it('renders the authentication-audit list server-side in its ready state', async () => {
+    const html = await fetchAuthAudit()
+    expect(html).toContain('data-admin-shell')
+    expect(html).toContain('data-page="authentication-audit"')
+    // an event type + the (allowed) email render; outcome shown as a label, never colour-alone
+    expect(html).toContain('user.login')
+    expect(html).toContain('operator@dev-sso.local')
+    expect(html).toContain('Failed')
+  })
+
+  it('does not leak token/secret/PII values into the authentication-audit SSR HTML', async () => {
+    // Strict — the audit DTO carries email (allowed), ip, opaque ids, and a
+    // backend-redacted context; no token, secret, OIDC sid, or gov-PII. NO allowSessionId.
+    const html = await fetchAuthAudit()
+    expect(collectSecretLeaks(html, 'authentication-audit SSR HTML')).toEqual([])
+  })
+
+  it('does not leak token/secret/PII values into the authentication-audit hydration payload', async () => {
+    const html = await fetchAuthAudit()
+    const serialized = JSON.stringify(JSON.parse(extractPayload(html)))
+    expect(collectSecretLeaks(serialized, 'authentication-audit __NUXT__ payload')).toEqual([])
+    expect(collectPiiShapeLeaks(serialized, 'authentication-audit __NUXT__ payload')).toEqual([])
+  })
+
+  it('renders the admin profile server-side in its ready state', async () => {
+    const html = await fetchProfile()
+    expect(html).toContain('data-admin-shell')
+    expect(html).toContain('data-page="profile"')
+    // the masked principal renders: display name + the (allowed) email + the
+    // profile.read slug this phase grants (ties the assertion to Step 1's change)
+    expect(html).toContain('Admin Sentinel')
+    expect(html).toContain('admin@example.test')
+    expect(html).toContain('profile.read')
+  })
+
+  it('does not leak token/secret/PII values into the profile SSR HTML', async () => {
+    // Strict — the profile renders only the masked principal (email allowed; subject_id
+    // opaque; role/amr/acr/permission slugs non-sensitive). The admin's own tokens + OIDC
+    // sid live in event.context and must NOT reach the render. NO allowSessionId.
+    const html = await fetchProfile()
+    expect(collectSecretLeaks(html, 'profile SSR HTML')).toEqual([])
+  })
+
+  it('does not leak token/secret/PII values into the profile hydration payload', async () => {
+    const html = await fetchProfile()
+    const serialized = JSON.stringify(JSON.parse(extractPayload(html)))
+    expect(collectSecretLeaks(serialized, 'profile __NUXT__ payload')).toEqual([])
+    expect(collectPiiShapeLeaks(serialized, 'profile __NUXT__ payload')).toEqual([])
+  })
+
+  it('renders the OIDC foundation snapshot server-side in its ready state', async () => {
+    const html = await fetchOidcFoundation()
+    expect(html).toContain('data-admin-shell')
+    expect(html).toContain('data-page="oidc-foundation"')
+    // the public discovery issuer + a JWKS key id render
+    expect(html).toContain('https://sso.example/oidc')
+    expect(html).toContain('key-sentinel-a')
+  })
+
+  it('does not leak token/secret/PII values into the oidc-foundation SSR HTML', async () => {
+    // Strict on every token/secret/sid/PII VALUE; the only exemption is the snake
+    // id_token/refresh_token NAME match, which is benign OIDC discovery vocabulary
+    // here (id_token_signing_alg_values_supported field + refresh_token grant type).
+    const html = await fetchOidcFoundation()
+    expect(collectSecretLeaks(html, 'oidc-foundation SSR HTML', { allowOidcDiscoveryVocabulary: true })).toEqual([])
+  })
+
+  it('does not leak token/secret/PII values into the oidc-foundation hydration payload', async () => {
+    const html = await fetchOidcFoundation()
+    const serialized = JSON.stringify(JSON.parse(extractPayload(html)))
+    expect(
+      collectSecretLeaks(serialized, 'oidc-foundation __NUXT__ payload', { allowOidcDiscoveryVocabulary: true }),
+    ).toEqual([])
+    expect(collectPiiShapeLeaks(serialized, 'oidc-foundation __NUXT__ payload')).toEqual([])
+  })
+
+  it('renders the SSO error templates server-side in their ready state', async () => {
+    const html = await fetchSsoErrorTemplates()
+    expect(html).toContain('data-admin-shell')
+    expect(html).toContain('data-page="sso-error-templates"')
+    // an error code + a title render; enabled state shown as a label, never colour-alone
+    expect(html).toContain('access_denied')
+    expect(html).toContain('Access denied')
+    expect(html).toContain('Enabled')
+  })
+
+  it('does not leak token/secret/PII values into the sso-error-templates SSR HTML', async () => {
+    // STRICT — the error-template DTO is admin-authored end-user copy: no token,
+    // secret, OIDC sid, or government PII. NO exemption applies.
+    const html = await fetchSsoErrorTemplates()
+    expect(collectSecretLeaks(html, 'sso-error-templates SSR HTML')).toEqual([])
+  })
+
+  it('does not leak token/secret/PII values into the sso-error-templates hydration payload', async () => {
+    const html = await fetchSsoErrorTemplates()
+    const serialized = JSON.stringify(JSON.parse(extractPayload(html)))
+    expect(collectSecretLeaks(serialized, 'sso-error-templates __NUXT__ payload')).toEqual([])
+    expect(collectPiiShapeLeaks(serialized, 'sso-error-templates __NUXT__ payload')).toEqual([])
+  })
+
+  it('collectSecretLeaks is LIVE — it reports a planted client secret (negative control)', () => {
+    // Tripwire self-test: prove the detector is not vacuously green. A payload that
+    // embeds the sentinel secret value AND a client_secret field name MUST be
+    // reported — otherwise the `.toEqual([])` assertions above could pass even with
+    // a broken detector.
+    const planted = `{"client":{"client_secret":"${SENTINEL.clientSecret}"}}`
+    expect(collectSecretLeaks(planted, 'negative control')).not.toEqual([])
+  })
+})

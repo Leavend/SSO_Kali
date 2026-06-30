@@ -1,98 +1,44 @@
 import process from 'node:process'
-import { defineConfig, devices, type PlaywrightTestConfig } from '@playwright/test'
+import { defineConfig, devices } from '@playwright/test'
 
-/**
- * Read environment variables from file.
- * https://github.com/motdotla/dotenv
- */
-// require('dotenv').config();
+// The e2e Nuxt LAYER (test/fixtures/e2e) extends the app and serves /api/admin/*
+// mock reads server-side, so real SSR renders ready pages with no backend. The
+// layer is built by the `test:e2e` script (nuxt build test/fixtures/e2e) BEFORE
+// playwright runs; webServer here just serves the prebuilt .output (fast start,
+// reuseExistingServer:false so a stale server is never silently reused).
+const PORT = 3000
+// localhost (not 127.0.0.1) so the specs' existing `url: 'http://localhost:3000'`
+// cookies ride the SSR document request.
+const BASE_URL = `http://localhost:${PORT}`
 
-const localProjects: NonNullable<PlaywrightTestConfig['projects']> = [
-  {
-    name: 'chrome',
-    use: {
-      ...devices['Desktop Chrome'],
-      channel: 'chrome',
-    },
-  },
-]
-
-const ciProjects: NonNullable<PlaywrightTestConfig['projects']> = [
-  {
-    name: 'chromium',
-    use: {
-      ...devices['Desktop Chrome'],
-    },
-  },
-  {
-    name: 'firefox',
-    use: {
-      ...devices['Desktop Firefox'],
-    },
-  },
-  {
-    name: 'webkit',
-    use: {
-      ...devices['Desktop Safari'],
-    },
-  },
-]
-
-/**
- * See https://playwright.dev/docs/test-configuration.
- */
 export default defineConfig({
   testDir: './e2e',
-  /* Maximum time one test can run for. */
   timeout: 30 * 1000,
-  expect: {
-    /**
-     * Maximum time expect() should wait for the condition to be met.
-     * For example in `await expect(locator).toHaveText();`
-     */
-    timeout: 5000,
-  },
-  /* Fail the build on CI if you accidentally left test.only in the source code. */
+  expect: { timeout: 5000 },
   forbidOnly: !!process.env.CI,
-  /* Retry on CI only */
-  retries: process.env.CI ? 2 : 0,
-  /* Opt out of parallel tests on CI. */
-  workers: process.env.CI ? 1 : undefined,
-  /* Reporter to use. See https://playwright.dev/docs/test-reporters */
+  // The e2e app is a single SSR server on :3000; high parallelism thrashes it and
+  // flakes timing-sensitive mutation/hydration tests. Serialize for a
+  // deterministic cutover gate, with one retry as a safety net.
+  retries: 1,
+  workers: 1,
   reporter: 'html',
-  /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
-    /* Maximum time each action such as `click()` can take. Defaults to 0 (no limit). */
+    baseURL: BASE_URL,
     actionTimeout: 0,
-    /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: process.env.CI ? 'http://localhost:4173' : 'http://localhost:5173',
-
-    /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
-
-    /* Only on CI systems run the tests headless */
-    headless: !!process.env.CI,
-    /* Run with consistent English locale */
+    headless: true,
     locale: 'en-US',
   },
-
-  /* Configure projects for major browsers */
-  projects: process.env.CI ? ciProjects : localProjects,
-
-  /* Folder for test artifacts such as screenshots, videos, traces, etc. */
-  // outputDir: 'test-results/',
-
-  /* Run your local dev server before starting the tests */
+  // Local uses the system Chrome channel (chromium binaries do not download on
+  // the maintainer machine); CI uses the bundled chromium.
+  projects: process.env.CI
+    ? [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }]
+    : [{ name: 'chrome', use: { ...devices['Desktop Chrome'], channel: 'chrome' } }],
   webServer: {
-    /**
-     * Use the dev server by default for faster feedback loop.
-     * Use the preview server on CI for more realistic testing.
-     * Playwright will re-use the local server if there is already a dev-server running.
-     */
-    command: process.env.CI
-      ? 'VITE_SSO_ENABLE_STEPUP_E2E_MOCK=true npm run build:web -- --mode e2e && npm run preview'
-      : 'VITE_SSO_ENABLE_STEPUP_E2E_MOCK=true npm run dev -- --mode e2e',
-    port: process.env.CI ? 4173 : 5173,
-    reuseExistingServer: !process.env.CI,
+    command: 'node test/fixtures/e2e/.output/server/index.mjs',
+    url: BASE_URL,
+    reuseExistingServer: false,
+    timeout: 60 * 1000,
+    env: { NUXT_PUBLIC_MOCK_API: 'false', PORT: String(PORT) },
   },
 })
