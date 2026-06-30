@@ -25,6 +25,8 @@ const ALL_PERMISSIONS = [
   'admin.security-policy.activate',
   'admin.authentication-audit.read',
   'admin.sso-error-templates.write',
+  'admin.audit.export',
+  'admin.dsr.review',
   'profile.read',
 ] as const
 

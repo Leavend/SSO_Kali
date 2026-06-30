@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { useEnglish } from './_support/e2e'
 
 // DEFERRED to Phase 18 cutover: playwright.config.ts is still legacy-SPA-wired
 // (ports 5173/4173, no Nuxt build:web; Nuxt serves on 3000). Authored now against
@@ -6,11 +7,8 @@ import { test, expect } from '@playwright/test'
 // gate this phase.
 test('authentication-audit page lists events, filters, and opens a detail drawer', async ({
   page,
-  context,
 }) => {
-  await context.addCookies([
-    { name: 'admin_locale', value: 'en', url: 'http://localhost:3000' },
-  ])
+  await useEnglish(page)
   await page.goto('/authentication-audit')
 
   await expect(page.getByTestId('auth-audit-filter-form')).toBeVisible()

@@ -1,66 +1,17 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test } from '@playwright/test'
+import { useEnglish, usePermissions } from './_support/e2e'
 
-// useI18n resolves locale from the `admin_locale` cookie at SSR time (DEFAULT_LOCALE='id');
-// Playwright's `locale:'en-US'` only sets Accept-Language, which useI18n ignores. Set the
-// cookie on the context so SSR renders English and the English-label selectors below match.
-test.beforeEach(async ({ context, baseURL }) => {
-  await context.addCookies([{ name: 'admin_locale', value: 'en', url: baseURL! }])
+// SSR reads (/api/admin/clients, /api/admin/clients/[id], /api/admin/scopes,
+// /api/admin/client-integrations/registrations) are served by the Nitro e2e layer
+// (test/fixtures/e2e). page.route() only intercepts client-side fetches; initial
+// page loads bypass it entirely. Mutations (POST/PATCH/DELETE) are still routed
+// here because those are always client-side.
+
+test.beforeEach(async ({ page }) => {
+  await useEnglish(page)
 })
 
-// Full-capability admin principal (clients read + write + sessions.terminate for lifecycle).
-const principal = {
-  principal: {
-    subject_id: 'sub_admin',
-    email: 'admin@dev-sso.local',
-    display_name: 'Admin User',
-    role: 'admin',
-    last_login_at: null,
-    auth_context: {
-      auth_time: null,
-      amr: ['pwd', 'mfa'],
-      acr: 'urn:example:loa:2',
-      mfa_enforced: true,
-      mfa_verified: true,
-    },
-    permissions: {
-      view_admin_panel: true,
-      manage_sessions: true,
-      permissions: [
-        'admin.dashboard.view',
-        'admin.clients.read',
-        'admin.clients.write',
-        'admin.sessions.terminate',
-      ],
-      capabilities: {
-        'admin.dashboard.view': true,
-        'admin.clients.read': true,
-        'admin.clients.write': true,
-        'admin.sessions.terminate': true,
-      },
-      menus: [
-        { id: 'dashboard', label: 'Dashboard', required_permission: 'admin.dashboard.view', visible: true },
-        { id: 'clients', label: 'Clients', required_permission: 'admin.clients.read', visible: true },
-      ],
-    },
-  },
-}
-
-// Read-only admin principal WITHOUT admin.clients.read (forbidden-flow case).
-const principalNoClients = {
-  principal: {
-    ...principal.principal,
-    permissions: {
-      view_admin_panel: true,
-      manage_sessions: false,
-      permissions: ['admin.dashboard.view'],
-      capabilities: { 'admin.dashboard.view': true },
-      menus: [
-        { id: 'dashboard', label: 'Dashboard', required_permission: 'admin.dashboard.view', visible: true },
-      ],
-    },
-  },
-}
-
+// Mutation response body — layer already returns the same shape for GET reads.
 const client = {
   client_id: 'acme-portal',
   display_name: 'Acme Portal',
@@ -85,50 +36,7 @@ const client = {
 
 const ONE_TIME_SECRET = 'oncesecret-e2e-acme-portal'
 
-async function mockMe(page: Page, body: object): Promise<void> {
-  await page.route('**/api/admin/me', async (route) => {
-    await route.fulfill({ contentType: 'application/json', body: JSON.stringify(body) })
-  })
-}
-
-async function mockClientsData(page: Page): Promise<void> {
-  await page.route('**/api/admin/clients', async (route) => {
-    if (route.request().method() !== 'GET') return route.continue()
-    await route.fulfill({
-      contentType: 'application/json',
-      headers: { 'x-request-id': 'req-clients-e2e' },
-      body: JSON.stringify({ clients: [client] }),
-    })
-  })
-  await page.route('**/api/admin/client-integrations/registrations', async (route) => {
-    await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ registrations: [] }) })
-  })
-  await page.route('**/api/admin/clients/acme-portal', async (route) => {
-    if (route.request().method() !== 'GET') return route.continue()
-    await route.fulfill({
-      contentType: 'application/json',
-      headers: { 'x-request-id': 'req-clients-e2e' },
-      body: JSON.stringify({ client }),
-    })
-  })
-  await page.route('**/api/admin/scopes', async (route) => {
-    await route.fulfill({
-      contentType: 'application/json',
-      body: JSON.stringify({
-        scopes: [
-          { name: 'openid', description: 'OpenID', claims: ['sub'], default_allowed: true },
-          { name: 'profile', description: 'Profile', claims: ['name'], default_allowed: true },
-          { name: 'email', description: 'Email', claims: ['email'], default_allowed: true },
-        ],
-      }),
-    })
-  })
-}
-
 test('critical navigation: clients list to deep-linked detail, no token leak', async ({ page }) => {
-  await mockMe(page, principal)
-  await mockClientsData(page)
-
   await page.goto('/clients')
   await expect(page.getByRole('navigation', { name: 'Admin modules' })).toContainText('Clients')
   await expect(page.getByText('Acme Portal')).toBeVisible()
@@ -144,19 +52,21 @@ test('critical navigation: clients list to deep-linked detail, no token leak', a
 })
 
 test('forbidden flow: admin without admin.clients.read sees the safe forbidden surface', async ({ page }) => {
-  await mockMe(page, principalNoClients)
+  // e2e_perms cookie scopes the layer me.get.ts to only dashboard.view; the clients
+  // route guard redirects to /forbidden because admin.clients.read is absent.
+  await usePermissions(page, ['admin.dashboard.view'])
 
   await page.goto('/clients')
   await expect(page).toHaveURL(/\/forbidden$/u)
-  await expect(page.getByRole('navigation', { name: 'Admin modules' })).not.toContainText('Clients')
+  // /forbidden is layout:false (no admin nav) — assert the forbidden surface itself.
+  await expect(page.getByRole('heading', { name: 'Access denied' })).toBeVisible()
   await expect(page.getByText(/Bearer|access_token|client_secret|SQLSTATE/u)).toHaveCount(0)
 })
 
 test('create: confidential client shows the one-time secret once, copy works, gone after close', async ({ page }) => {
-  await mockMe(page, principal)
-  await mockClientsData(page)
   await page.context().grantPermissions(['clipboard-read', 'clipboard-write'])
 
+  // POST is client-side; the SSR for /clients/new comes from the layer.
   await page.route('**/api/admin/client-integrations', async (route) => {
     if (route.request().method() !== 'POST') return route.continue()
     await route.fulfill({
@@ -190,9 +100,7 @@ test('create: confidential client shows the one-time secret once, copy works, go
 })
 
 test('rotate-secret: shows the rotated secret once, cleared on close', async ({ page }) => {
-  await mockMe(page, principal)
-  await mockClientsData(page)
-
+  // POST rotate is client-side; /clients/acme-portal initial SSR comes from the layer.
   await page.route('**/api/admin/clients/acme-portal/rotate-secret', async (route) => {
     await route.fulfill({
       status: 200,
@@ -227,9 +135,6 @@ test('rotate-secret: shows the rotated secret once, cleared on close', async ({ 
 })
 
 test('lifecycle: disable requires a reason + confirmation, then succeeds', async ({ page }) => {
-  await mockMe(page, principal)
-  await mockClientsData(page)
-
   let disableCalled = false
   await page.route('**/api/admin/client-integrations/acme-portal/disable', async (route) => {
     disableCalled = true

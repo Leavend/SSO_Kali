@@ -7,15 +7,20 @@ import { defineConfig, devices } from '@playwright/test'
 // playwright runs; webServer here just serves the prebuilt .output (fast start,
 // reuseExistingServer:false so a stale server is never silently reused).
 const PORT = 3000
-const BASE_URL = `http://127.0.0.1:${PORT}`
+// localhost (not 127.0.0.1) so the specs' existing `url: 'http://localhost:3000'`
+// cookies ride the SSR document request.
+const BASE_URL = `http://localhost:${PORT}`
 
 export default defineConfig({
   testDir: './e2e',
   timeout: 30 * 1000,
   expect: { timeout: 5000 },
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  // The e2e app is a single SSR server on :3000; high parallelism thrashes it and
+  // flakes timing-sensitive mutation/hydration tests. Serialize for a
+  // deterministic cutover gate, with one retry as a safety net.
+  retries: 1,
+  workers: 1,
   reporter: 'html',
   use: {
     baseURL: BASE_URL,

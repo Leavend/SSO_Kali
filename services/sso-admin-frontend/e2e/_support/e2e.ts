@@ -4,7 +4,7 @@ import type { Page } from '@playwright/test'
 // (the principal + locale are resolved during SSR, before any client JS). The
 // e2e layer's me.get.ts reads `e2e_perms`; useI18n.ts reads `admin_locale`.
 async function addCookie(page: Page, name: string, value: string): Promise<void> {
-  await page.context().addCookies([{ name, value, domain: '127.0.0.1', path: '/' }])
+  await page.context().addCookies([{ name, value, url: 'http://localhost:3000' }])
 }
 
 export async function useEnglish(page: Page): Promise<void> {
