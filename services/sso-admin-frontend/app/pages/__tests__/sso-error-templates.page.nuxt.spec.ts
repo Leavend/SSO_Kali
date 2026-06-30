@@ -94,3 +94,36 @@ describe('sso-error-templates page — read surface', () => {
     expect(drawer.text()).toContain('You do not have access.')
   })
 })
+
+describe('sso-error-templates page — edit (PATCH)', () => {
+  it('opens the prefilled edit dialog from the drawer when canWrite', async () => {
+    const wrapper = await mountSuspended(Page)
+    await wrapper.get('[data-testid="sso-templates-select-access_denied::en"]').trigger('click')
+    await flushPromises()
+    await wrapper.get('[data-testid="sso-template-edit"]').trigger('click')
+    expect(wrapper.find('[data-testid="sso-template-form"]').exists()).toBe(true)
+  })
+
+  it('hides the Edit affordance without write permission', async () => {
+    permitted = ['admin.security-policy.read']
+    const wrapper = await mountSuspended(Page)
+    await wrapper.get('[data-testid="sso-templates-select-access_denied::en"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.find('[data-testid="sso-template-edit"]').exists()).toBe(false)
+  })
+
+  it('submits an edit via update() and refreshes on success', async () => {
+    updateMock.mockResolvedValue({ template: TPL_EN })
+    const wrapper = await mountSuspended(Page)
+    await wrapper.get('[data-testid="sso-templates-select-access_denied::en"]').trigger('click')
+    await flushPromises()
+    await wrapper.get('[data-testid="sso-template-edit"]').trigger('click')
+    await wrapper.get('[data-testid="sso-template-form"]').trigger('submit')
+    await flushPromises()
+    expect(updateMock).toHaveBeenCalledWith(
+      'access_denied',
+      expect.objectContaining({ locale: 'en', title: 'Access denied' }),
+    )
+    expect(refreshMock).toHaveBeenCalled()
+  })
+})

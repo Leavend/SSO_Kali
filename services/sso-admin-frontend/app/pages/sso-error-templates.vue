@@ -8,6 +8,7 @@ import {
   resolveEnabledTone,
   templateKey,
 } from '@/lib/sso-error-templates/sso-error-templates-view-state'
+import SsoErrorTemplateFormDialog from '@/components/sso-error-templates/SsoErrorTemplateFormDialog.vue'
 import SsoErrorTemplatesTable from '@/components/sso-error-templates/SsoErrorTemplatesTable.vue'
 import UiSkeleton from '@/components/ui/UiSkeleton.vue'
 import UiStatusView from '@/components/ui/UiStatusView.vue'
@@ -15,7 +16,13 @@ import UiEmptyState from '@/components/ui/UiEmptyState.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiStatusBadge from '@/components/ui/UiStatusBadge.vue'
 import UiDetailDrawer from '@/components/ui/UiDetailDrawer.vue'
-import type { SsoErrorTemplate } from '@/types/sso-error-templates.types'
+import { usePrivilegedAction } from '@/composables/usePrivilegedAction'
+import { ssoErrorTemplatesApi } from '@/services/sso-error-templates.api'
+import type {
+  SsoErrorTemplate,
+  SsoErrorTemplateResponse,
+  UpsertSsoErrorTemplatePayload,
+} from '@/types/sso-error-templates.types'
 
 definePageMeta({
   name: 'admin.sso-error-templates',
@@ -58,6 +65,39 @@ async function onRefresh(): Promise<void> {
 }
 function yesNo(value: boolean): string {
   return value ? t('sso_templates.ov_yes') : t('sso_templates.ov_no')
+}
+
+const formOpen = ref(false)
+const editAction = usePrivilegedAction<SsoErrorTemplateResponse>()
+
+// SAFE status-keyed copy — a 422 may carry a raw DB/validation message which MUST
+// NOT be rendered; map to safe domain copy. step_up surfaces via the dialog link.
+const formError = computed<string | null>(() => {
+  const status = editAction.failure.value?.status
+  if (!status || status === 'step_up_required') return null
+  if (status === 'invalid') return t('sso_templates.edit_invalid')
+  return t('common.error_generic')
+})
+
+function onEditRequested(): void {
+  editAction.reset()
+  successMessage.value = null
+  formOpen.value = true
+}
+function onFormCancel(): void {
+  formOpen.value = false
+}
+async function onFormSubmit(payload: UpsertSsoErrorTemplatePayload): Promise<void> {
+  const target = selectedTemplate.value
+  if (!target) return
+  const result = await editAction.run(() =>
+    ssoErrorTemplatesApi.update(target.error_code, payload),
+  )
+  if (result === null) return // failure (invalid/step-up/error) stays in the dialog
+  formOpen.value = false
+  selectedKey.value = null
+  successMessage.value = t('sso_templates.edit_success')
+  await refresh()
 }
 </script>
 
@@ -194,9 +234,30 @@ function yesNo(value: boolean): string {
               <dd>{{ yesNo(selectedTemplate.alternative_login_allowed) }}</dd>
             </div>
           </dl>
+          <div v-if="canWrite" class="sso-detail__actions">
+            <UiButton
+              variant="primary"
+              size="sm"
+              data-testid="sso-template-edit"
+              @click="onEditRequested"
+            >
+              {{ t('sso_templates.btn_edit') }}
+            </UiButton>
+          </div>
         </div>
       </UiDetailDrawer>
     </template>
+
+    <SsoErrorTemplateFormDialog
+      :open="formOpen"
+      :template="selectedTemplate"
+      :submitting="editAction.isSubmitting.value"
+      :error-message="formError"
+      :request-id="editAction.requestId.value"
+      :step-up-url="editAction.stepUpUrl.value"
+      @submit="onFormSubmit"
+      @cancel="onFormCancel"
+    />
   </section>
 </template>
 
@@ -280,5 +341,12 @@ function yesNo(value: boolean): string {
   font: 400 0.8125rem/1.4 var(--font-sans);
   color: var(--fg);
   overflow-wrap: anywhere;
+}
+.sso-detail__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
 }
 </style>
