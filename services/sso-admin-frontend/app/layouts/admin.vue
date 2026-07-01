@@ -93,7 +93,7 @@ const groupedMenus = computed(() => {
   }
   for (const menu of visibleMenus.value) {
     const groupKey = MENU_GROUPS[menu.id] || 'lainnya'
-    groups[groupKey].push(menu)
+    groups[groupKey]!.push(menu)
   }
   return Object.entries(groups).filter(([_, items]) => items.length > 0)
 })
