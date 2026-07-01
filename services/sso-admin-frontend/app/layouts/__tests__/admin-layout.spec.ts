@@ -19,7 +19,7 @@ vi.mock('@/composables/useI18n', () => ({
   useI18n: () => ({
     t: (key: string) => key,
     locale: { value: 'en' },
-    setLocale: vi.fn(),
+    setLocale: vi.fn<() => void>(),
   }),
 }))
 
