@@ -178,14 +178,16 @@ function cancel(): void {
   display: grid;
   place-items: center;
   padding: 20px;
-  background: rgb(10 10 10 / 0.4);
+  background: rgba(9, 9, 11, 0.4);
+  backdrop-filter: blur(4px);
 }
 .confirm-dialog {
   width: min(460px, 100%);
-  padding: 20px;
+  padding: 24px;
   background: var(--card);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--r-md);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-lg);
 }
 .confirm-dialog:focus-visible {
   outline: 2px solid var(--accent);

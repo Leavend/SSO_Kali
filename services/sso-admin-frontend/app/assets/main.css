@@ -1,13 +1,11 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 @import './tokens.css';
 @import 'tailwindcss';
 
-/* Dark mode: Tailwind dark: utilities match when <html class="dark"> —
-   consistent with the theme toggle (useTheme.ts) and `:root.dark` in tokens.css. */
+/* Dark mode: Tailwind dark: utilities match when <html class="dark"> */
 @custom-variant dark (&:is(.dark *));
 
-/* Map Tailwind v4 utility anchors onto the Swiss tokens (tokens.css).
-   Single accent: --color-primary and --color-accent both resolve to --accent.
-   Red is wired only to --color-destructive. No shadow/brand-gradient anchors. */
+/* Map Tailwind v4 utility anchors onto our premium tokens (tokens.css). */
 @theme inline {
   /* ---- Surfaces ---- */
   --color-background: var(--bg);
@@ -31,7 +29,7 @@
   --color-input: var(--border);
   --color-ring: var(--accent-ring);
 
-  /* ---- Primary (shadcn anchor → single Swiss accent) ---- */
+  /* ---- Primary / Accent ---- */
   --color-primary: var(--accent);
   --color-primary-foreground: var(--accent-fg);
 
@@ -39,7 +37,7 @@
   --color-secondary: var(--bg-2);
   --color-secondary-foreground: var(--fg);
 
-  /* ---- Accent (same single accent; both --color-primary and --color-accent resolve here) ---- */
+  /* ---- Accent ---- */
   --color-accent: var(--accent);
   --color-accent-600: var(--accent-600);
   --color-accent-foreground: var(--accent-fg);
@@ -47,11 +45,11 @@
   --color-accent-soft-fg: var(--accent-soft-fg);
   --color-accent-ring: var(--accent-ring);
 
-  /* ---- Destructive (shadcn anchor → Swiss danger) ---- */
+  /* ---- Destructive ---- */
   --color-destructive: var(--danger);
   --color-destructive-foreground: var(--danger-fg);
 
-  /* ---- Danger (extended semantic aliases) ---- */
+  /* ---- Danger ---- */
   --color-danger: var(--danger);
   --color-danger-foreground: var(--danger-fg);
   --color-danger-soft: var(--danger-soft);
@@ -86,7 +84,7 @@
   --container-page: 80rem;
 }
 
-/* Bridge vars consumed by Reka UI primitives that read shadcn-style names. */
+/* Bridge vars consumed by Reka UI primitives (legacy support) */
 :root {
   --background: var(--bg);
   --foreground: var(--fg);
@@ -110,10 +108,14 @@ body {
   margin: 0;
   color: var(--fg);
   background: var(--bg);
+  font-family: var(--font-sans);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 a {
   color: inherit;
+  text-decoration: none;
+  transition: color 0.15s ease;
 }
 
 button,
@@ -136,5 +138,60 @@ select {
 
 :where(a, button, input, select, textarea, [tabindex]):focus-visible {
   outline: 2px solid var(--accent);
-  outline-offset: 1px;
+  outline-offset: 2px;
+}
+
+/* Custom Scrollbar Styles for Premium Feel */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: var(--r-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--fg-3);
+}
+
+/* Premium Card Style Utilities */
+.premium-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.premium-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-strong);
+}
+
+/* Base input field styling */
+.ui-input {
+  border-radius: var(--r-sm) !important;
+  border-color: var(--border-strong) !important;
+  transition: all 0.15s ease !important;
+}
+
+.ui-input:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px var(--accent-ring) !important;
+}
+
+/* Form block headers */
+.form-section-header {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  color: var(--fg);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+  margin-bottom: 16px;
 }

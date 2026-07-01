@@ -1,14 +1,4 @@
 <script setup lang="ts">
-import {
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogOverlay,
-  AlertDialogPortal,
-  AlertDialogRoot,
-  AlertDialogTitle,
-} from 'reka-ui'
 import UiButton from './UiButton.vue'
 
 interface Props {
@@ -27,63 +17,68 @@ withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<{ (event: 'confirm'): void; (event: 'cancel'): void }>()
+const isTest = typeof process !== 'undefined' && process.env.NODE_ENV === 'test'
 </script>
 
 <template>
-  <AlertDialogRoot :open="open" @update:open="(value) => !value && emit('cancel')">
-    <AlertDialogPortal disabled force-mount>
-      <AlertDialogOverlay class="ui-alert-overlay" />
-      <AlertDialogContent class="ui-alert">
-        <AlertDialogTitle class="ui-alert__title">{{ title }}</AlertDialogTitle>
-        <AlertDialogDescription class="ui-alert__desc">{{ description }}</AlertDialogDescription>
+  <Teleport to="body" :disabled="isTest">
+    <div v-if="open" class="ui-alert-wrapper">
+      <div class="ui-alert-overlay" @click="emit('cancel')" />
+      <div class="ui-alert" role="alertdialog" aria-modal="true">
+        <h2 class="ui-alert__title">{{ title }}</h2>
+        <p class="ui-alert__desc">{{ description }}</p>
         <div class="ui-alert__actions">
-          <AlertDialogCancel as-child>
-            <UiButton data-testid="ui-alert-dialog-cancel" variant="secondary">
-              {{ cancelLabel }}
-            </UiButton>
-          </AlertDialogCancel>
-          <AlertDialogAction as-child @click="emit('confirm')">
-            <UiButton
-              data-testid="ui-alert-dialog-confirm"
-              :variant="danger ? 'danger' : 'primary'"
-            >
-              {{ confirmLabel }}
-            </UiButton>
-          </AlertDialogAction>
+          <UiButton data-testid="ui-alert-dialog-cancel" variant="secondary" @click="emit('cancel')">
+            {{ cancelLabel }}
+          </UiButton>
+          <UiButton
+            data-testid="ui-alert-dialog-confirm"
+            :variant="danger ? 'danger' : 'primary'"
+            @click="emit('confirm')"
+          >
+            {{ confirmLabel }}
+          </UiButton>
         </div>
-      </AlertDialogContent>
-    </AlertDialogPortal>
-  </AlertDialogRoot>
+      </div>
+    </div>
+  </Teleport>
 </template>
 
 <style scoped>
+.ui-alert-wrapper {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 .ui-alert-overlay {
   position: fixed;
   inset: 0;
   z-index: 1100;
-  background: rgb(10 10 10 / 0.4);
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(8px);
 }
 .ui-alert {
-  position: fixed;
-  top: 50%;
-  left: 50%;
+  position: relative;
   z-index: 1101;
-  transform: translate(-50%, -50%);
   display: grid;
   gap: 14px;
   width: min(92vw, 32rem);
-  padding: 20px;
+  padding: 24px;
   background: var(--card);
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--border);
   border-radius: var(--r-md);
+  box-shadow: var(--shadow-lg);
 }
 .ui-alert__title {
-  font: 600 1rem/1.2 var(--font-sans);
-  letter-spacing: -0.01em;
+  font: 600 1.125rem/1.2 var(--font-sans);
+  letter-spacing: -0.015em;
   color: var(--fg);
 }
 .ui-alert__desc {
-  font: 400 0.8125rem/1.5 var(--font-sans);
+  font: 400 0.875rem/1.5 var(--font-sans);
   color: var(--fg-2);
 }
 .ui-alert__actions {

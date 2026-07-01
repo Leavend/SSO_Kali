@@ -4,16 +4,16 @@ import { describe, expect, it } from 'vitest'
 
 const tokens = (): string => readFileSync(path.resolve(__dirname, '../tokens.css'), 'utf8')
 
-describe('Swiss tokens.css contract', () => {
-  it('anchors the single Swiss palette', () => {
+describe('Modern Premium tokens.css contract', () => {
+  it('anchors the single premium palette', () => {
     const css = tokens()
-    expect(css).toMatch(/--accent:\s*#002FA7/i)
-    expect(css).toMatch(/--danger:\s*#E4002B/i)
-    expect(css).toMatch(/--bg:\s*#FFFFFF/i)
-    expect(css).toMatch(/--bg-2:\s*#F7F7F8/i)
-    expect(css).toMatch(/--card:\s*#FFFFFF/i)
-    expect(css).toMatch(/--fg:\s*#0A0A0A/i)
-    expect(css).toMatch(/--border:\s*#E5E5E7/i)
+    expect(css).toMatch(/--accent:\s*#4f46e5/i)
+    expect(css).toMatch(/--danger:\s*#ef4444/i)
+    expect(css).toMatch(/--bg:\s*#f8fafc/i)
+    expect(css).toMatch(/--bg-2:\s*#f1f5f9/i)
+    expect(css).toMatch(/--card:\s*#ffffff/i)
+    expect(css).toMatch(/--fg:\s*#0f172a/i)
+    expect(css).toMatch(/--border:\s*#e2e8f0/i)
   })
 
   it('defines every neutral/accent-tint token components reference', () => {
@@ -56,31 +56,25 @@ describe('Swiss tokens.css contract', () => {
     }
   })
 
-  it('uses one type family (Söhne/Helvetica Neue), no serif display', () => {
+  it('uses one type family (Plus Jakarta Sans), no serif display', () => {
     const css = tokens()
-    expect(css).toMatch(/--font-sans:[^;]*Söhne/)
-    expect(css).toMatch(/--font-sans:[^;]*Helvetica Neue/)
-    expect(css).not.toMatch(/Plus Jakarta/i)
+    expect(css).toMatch(/--font-sans:[^;]*Plus Jakarta Sans/)
     expect(css).not.toMatch(/Instrument Serif/i)
     expect(css).not.toMatch(/--font-serif/)
     // Ban generic `serif` keyword; sans-serif is allowed (the `-` is in [a-z-])
     expect(css).not.toMatch(/(?<![a-z-])serif/)
-    expect(css).not.toMatch(/fonts\.googleapis\.com/)
   })
 
-  it('bans soft-shadow, glass, glow and gradient brand tokens', () => {
+  it('defines shadows and support tokens', () => {
     const css = tokens()
-    const forbidden = [
+    const shadows = [
+      '--shadow-sm',
+      '--shadow-md',
       '--shadow-lg',
-      '--shadow-glass',
       '--shadow-glow',
-      '--brand-grad',
-      '--glass-bg',
-      'glow',
     ]
-    for (const banned of forbidden) {
-      // Assertion value contains the banned term so failures are self-describing
-      expect(css).not.toContain(banned)
+    for (const shadow of shadows) {
+      expect(css).toContain(shadow)
     }
   })
 

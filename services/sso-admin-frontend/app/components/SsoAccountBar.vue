@@ -302,9 +302,10 @@ onUnmounted(() => {
   width: min(320px, calc(100vw - 32px));
   gap: 10px;
   padding: 14px;
-  border: 1px solid var(--border-strong);
-  border-radius: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
   background: var(--card);
+  box-shadow: var(--shadow-lg);
 }
 
 .sso-account-bar__popover--apps {
@@ -321,9 +322,11 @@ onUnmounted(() => {
 .sso-account-bar__account,
 .sso-account-bar__action {
   min-width: 0;
-  border-radius: 10px;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
   color: var(--foreground);
   text-decoration: none;
+  transition: all 0.2s ease;
 }
 
 .sso-account-bar__app {
@@ -397,7 +400,8 @@ onUnmounted(() => {
 .sso-account-bar__app:hover,
 .sso-account-bar__action:hover,
 .sso-account-bar__account:hover {
-  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  background: var(--bg-2);
+  border-color: var(--border);
 }
 
 .sso-account-bar__action--danger {

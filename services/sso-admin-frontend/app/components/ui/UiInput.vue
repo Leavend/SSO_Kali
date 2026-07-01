@@ -45,8 +45,7 @@ const emit = defineEmits<{ (event: 'update:modelValue', value: string): void }>(
 }
 .ui-input:focus-visible {
   border-color: var(--accent);
-  outline: 2px solid var(--accent);
-  outline-offset: -1px;
+  box-shadow: 0 0 0 3px var(--accent-ring);
 }
 .ui-input:disabled {
   opacity: 0.55;

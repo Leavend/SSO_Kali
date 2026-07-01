@@ -152,24 +152,31 @@ function cellText(row: UiDataListRow, key: string): string {
   font: 600 0.8125rem/1 var(--font-sans);
   color: var(--fg);
 }
-/* Visible 1px modular grid: hairlines on every cell, vertical + horizontal. */
+/* Clean border-bottom only table styles with row hover states */
 .ui-tbl th,
 .ui-tbl td {
-  padding: 10px 14px;
+  padding: 12px 16px;
   text-align: left;
-  vertical-align: top;
-  border: 1px solid var(--border);
+  vertical-align: middle;
+  border-bottom: 1px solid var(--border);
 }
 .ui-tbl thead th {
   position: sticky;
   top: 0;
   z-index: 1;
-  font: 600 0.6875rem/1 var(--font-sans);
-  letter-spacing: 0.06em;
+  font: 600 0.75rem/1 var(--font-sans);
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--fg-3);
   background: var(--bg-2);
   white-space: nowrap;
+  border-bottom: 2px solid var(--border-strong);
+}
+.ui-tbl tbody tr {
+  transition: background-color 0.15s ease;
+}
+.ui-tbl tbody tr:hover {
+  background: var(--muted);
 }
 .ui-tbl tbody td {
   color: var(--fg);

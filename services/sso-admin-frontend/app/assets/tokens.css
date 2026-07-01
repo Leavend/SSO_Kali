@@ -1,111 +1,125 @@
 /* ============================================================================
-   sso-admin-frontend · Swiss design tokens
-   Single accent (Yves Klein Blue #002FA7). Red (#E4002B) is functional/
-   destructive only. 1px hairline borders carry structure — no shadows.
-   One type family; --font-mono reserved for raw IDs. Sharp radii (0–2px).
+   sso-admin-frontend · Modern Premium Design Tokens
+   Warm Slate & Indigo Palette with soft rounded border radius and soft shadows.
    Dark mode: active via <html class="dark"> (canonical mechanism).
    ============================================================================ */
 
 :root {
-  /* ---- Type (one family; mono only for raw IDs/correlation values) ---- */
-  --font-sans: 'Söhne', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  /* ---- Type (Plus Jakarta Sans/Inter fallback, Söhne/Helvetica) ---- */
+  --font-sans: 'Plus Jakarta Sans', 'Inter', 'Söhne', 'Helvetica Neue', Helvetica, Arial, sans-serif;
   --font-condensed: 'Söhne Schmal', 'Roboto Condensed', 'Helvetica Neue', ui-sans-serif, sans-serif;
-  --font-mono: 'Söhne Mono', ui-monospace, 'SF Mono', 'JetBrains Mono', monospace;
+  --font-mono: 'JetBrains Mono', 'Söhne Mono', ui-monospace, 'SF Mono', monospace;
 
-  /* ---- Radius (sharp) ---- */
-  --r-xs: 0;
-  --r-sm: 2px;
-  --r-md: 2px;
-  --r-lg: 2px;
+  /* ---- Radius (Premium Rounded) ---- */
+  --r-xs: 4px;
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
   --r-full: 9999px; /* circular indicators only: status dots, avatars */
 
+  /* ---- Shadows ---- */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.04), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+  --shadow-glow: 0 0 20px -3px rgba(79, 70, 229, 0.15);
+
   /* ---- Surfaces ---- */
-  --bg: #ffffff;
-  --bg-2: #f7f7f8;
+  --bg: #f8fafc; /* slate-50 */
+  --bg-2: #f1f5f9; /* slate-100 */
   --card: #ffffff;
-  --muted: #f2f2f3; /* hover surface */
-  --muted-2: #ebebed; /* pressed / nested surface */
+  --muted: #f1f5f9; /* hover surface */
+  --muted-2: #e2e8f0; /* pressed / nested surface */
 
   /* ---- Ink ---- */
-  --fg: #0a0a0a;
-  --fg-2: #4a4a4a;
-  --fg-3: #767676;
+  --fg: #0f172a; /* slate-900 */
+  --fg-2: #475569; /* slate-600 */
+  --fg-3: #94a3b8; /* slate-400 */
 
   /* ---- Hairline borders ---- */
-  --border: #e5e5e7;
-  --border-strong: #d4d4d8;
+  --border: #e2e8f0; /* slate-200 */
+  --border-strong: #cbd5e1; /* slate-300 */
 
-  /* ---- Accent (single Swiss accent: interactive/brand) ---- */
-  --accent: #002fa7;
-  --accent-600: #00248c; /* hover / active */
+  /* ---- Accent (Premium Indigo brand accent) ---- */
+  --accent: #4f46e5; /* indigo-600 */
+  --accent-600: #4338ca; /* indigo-700 */
   --accent-fg: #ffffff; /* text/icon on solid accent */
-  --accent-soft: #eaeef8; /* accent tint surface (chip/selected row) */
-  --accent-soft-fg: #002fa7; /* text/links on tint or plain */
-  --accent-ring: #002fa7; /* focus outline colour */
+  --accent-soft: #eef2ff; /* indigo-50 */
+  --accent-soft-fg: #4f46e5; /* text/links on tint */
+  --accent-ring: rgba(79, 70, 229, 0.15); /* focus outline colour */
 
-  /* ---- Functional semantics (state, never decoration) ---- */
-  --danger: #e4002b;
-  --danger-600: #b3001f; /* hover / active — darker than --danger */
+  /* ---- Functional semantics (state) ---- */
+  --danger: #ef4444; /* red-500 */
+  --danger-600: #dc2626; /* red-600 */
   --danger-fg: #ffffff;
-  --danger-soft: #fce8ec;
-  --danger-soft-fg: #b00020;
-  --success: #1e7a46;
-  --success-soft: #e7f2ec;
-  --success-soft-fg: #156238;
-  --warning: #9a6b00;
-  --warning-soft: #fbf1dd;
-  --warning-soft-fg: #7a5500;
-  --info: #0b5fb0;
-  --info-soft: #e6eff8;
-  --info-soft-fg: #0b4e8f;
+  --danger-soft: #fef2f2;
+  --danger-soft-fg: #ef4444;
+  
+  --success: #10b981; /* emerald-500 */
+  --success-soft: #ecfdf5;
+  --success-soft-fg: #10b981;
+  
+  --warning: #f59e0b; /* amber-500 */
+  --warning-soft: #fffbeb;
+  --warning-soft-fg: #d97706;
+  
+  --info: #3b82f6; /* blue-500 */
+  --info-soft: #eff6ff;
+  --info-soft-fg: #3b82f6;
 
   /* ---- Control + layout dimensions ---- */
-  --ctl-h: 36px;
-  --topbar-h: 56px;
-  --sidebar-w: 256px;
-  --sidebar-w-rail: 64px;
-  --content-pad: 24px;
-  --gap: 16px;
+  --ctl-h: 38px;
+  --topbar-h: 64px;
+  --sidebar-w: 264px;
+  --sidebar-w-rail: 72px;
+  --content-pad: 32px;
+  --gap: 20px;
 }
 
 /* ============================================================================
-   Restrained dark inversion — same hairline/grid language, status preserved.
-   Active via <html class="dark"> (single canonical mechanism matching the
-   theme toggle and the Tailwind dark: variant).
+   Restrained dark inversion — Zinc & Dark Indigo
+   Active via <html class="dark"> (single canonical mechanism).
    ============================================================================ */
 :root.dark {
-  --bg: #0a0a0a;
-  --bg-2: #141414;
-  --card: #101010;
-  --muted: #1a1a1a;
-  --muted-2: #242424;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.4);
+  --shadow-glow: 0 0 25px -3px rgba(129, 140, 248, 0.15);
+
+  --bg: #09090b; /* zinc-950 */
+  --bg-2: #18181b; /* zinc-900 */
+  --card: #18181b;
+  --muted: #27272a; /* zinc-800 */
+  --muted-2: #3f3f46; /* zinc-700 */
 
   --fg: #fafafa;
-  --fg-2: #b4b4b4;
-  --fg-3: #8a8a8a;
+  --fg-2: #a1a1aa; /* zinc-400 */
+  --fg-3: #52525b; /* zinc-600 */
 
-  --border: #262628;
-  --border-strong: #3a3a3d;
+  --border: #27272a; /* zinc-800 */
+  --border-strong: #3f3f46; /* zinc-700 */
 
-  --accent: #5b82e0;
-  --accent-600: #7196e8;
-  --accent-fg: #0a0a0a;
-  --accent-soft: #16213d;
-  --accent-soft-fg: #9db4f0;
-  --accent-ring: #5b82e0;
+  --accent: #818cf8; /* indigo-400 */
+  --accent-600: #6366f1; /* indigo-500 */
+  --accent-fg: #09090b;
+  --accent-soft: #1e1b4b; /* indigo-950 */
+  --accent-soft-fg: #c7d2fe; /* indigo-200 */
+  --accent-ring: rgba(129, 140, 248, 0.2);
 
-  --danger: #ff5470;
-  --danger-600: #e03355; /* hover / active — darker than --danger */
-  --danger-fg: #0a0a0a;
-  --danger-soft: #3a1620;
-  --danger-soft-fg: #ff8fa3;
-  --success: #4fb07a;
-  --success-soft: #122a1d;
-  --success-soft-fg: #7fd3a1;
-  --warning: #d9a53a;
-  --warning-soft: #2e2410;
-  --warning-soft-fg: #e6c173;
-  --info: #5b9be0;
-  --info-soft: #11213a;
-  --info-soft-fg: #9cc2ef;
+  --danger: #f87171; /* red-400 */
+  --danger-600: #ef4444;
+  --danger-fg: #09090b;
+  --danger-soft: #450a0a;
+  --danger-soft-fg: #f87171;
+  
+  --success: #34d399; /* emerald-400 */
+  --success-soft: #064e3b;
+  --success-soft-fg: #34d399;
+  
+  --warning: #fbbf24; /* amber-400 */
+  --warning-soft: #78350f;
+  --warning-soft-fg: #fbbf24;
+  
+  --info: #60a5fa; /* blue-400 */
+  --info-soft: #1e3a8a;
+  --info-soft-fg: #60a5fa;
 }

@@ -37,8 +37,8 @@ const { isDark, toggleTheme } = useTheme()
   color: var(--fg);
 }
 .ui-icon-button:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-ring);
 }
 @media (prefers-reduced-motion: reduce) {
   .ui-icon-button {

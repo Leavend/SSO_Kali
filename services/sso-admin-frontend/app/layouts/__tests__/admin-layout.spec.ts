@@ -15,6 +15,14 @@ vi.mock('@/stores/session.store', () => ({
   useSessionStore: vi.fn<() => { principal: AdminPrincipal | null }>(),
 }))
 
+vi.mock('@/composables/useI18n', () => ({
+  useI18n: () => ({
+    t: (key: string) => key,
+    locale: { value: 'en' },
+    setLocale: vi.fn(),
+  }),
+}))
+
 // ---------------------------------------------------------------------------
 // Fixture
 // ---------------------------------------------------------------------------

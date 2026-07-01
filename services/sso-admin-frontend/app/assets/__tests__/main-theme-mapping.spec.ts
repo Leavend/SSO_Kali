@@ -4,8 +4,8 @@ import { describe, expect, it } from 'vitest'
 
 const main = (): string => readFileSync(path.resolve(__dirname, '../main.css'), 'utf8')
 
-describe('Swiss main.css Tailwind mapping', () => {
-  it('imports Tailwind v4 and the Swiss tokens', () => {
+describe('Modern Premium main.css Tailwind mapping', () => {
+  it('imports Tailwind v4 and the modern tokens', () => {
     const css = main()
     expect(css).toMatch(/@import\s+['"]tailwindcss['"]/)
     expect(css).toMatch(/@import\s+['"]\.\/tokens\.css['"]/)
@@ -22,11 +22,9 @@ describe('Swiss main.css Tailwind mapping', () => {
     expect(css).toMatch(/--font-sans:\s*var\(--font-sans\)/)
   })
 
-  it('declares no shadow utility anchors and no second accent', () => {
+  it('declares no second brand accent color', () => {
     const css = main()
-    expect(css).not.toMatch(/--shadow-/)
     expect(css).not.toMatch(/--color-brand-/)
-    expect(css).not.toMatch(/backdrop-filter/)
   })
 
   it('defines the dark custom-variant using the .dark class', () => {

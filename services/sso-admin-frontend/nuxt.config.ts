@@ -10,7 +10,7 @@ export default defineNuxtConfig({
   srcDir: 'app/',
   compatibilityDate: '2026-06-27',
   devtools: { enabled: true },
-  modules: ['@pinia/nuxt', 'reka-ui/nuxt'],
+  modules: ['@pinia/nuxt'],
   components: {
     dirs: [{ path: '~/components', extensions: ['vue'] }],
   },

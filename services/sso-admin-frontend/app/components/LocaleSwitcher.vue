@@ -49,8 +49,8 @@ async function toggleLocale(): Promise<void> {
   background: var(--muted);
 }
 .admin-locale-switcher:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-ring);
 }
 .admin-locale-selected {
   color: var(--fg);

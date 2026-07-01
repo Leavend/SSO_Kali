@@ -122,7 +122,8 @@ onBeforeUnmount(() => {
   position: fixed;
   inset: 0;
   z-index: 1100;
-  background: rgb(10 10 10 / 0.4);
+  background: rgba(9, 9, 11, 0.4);
+  backdrop-filter: blur(4px);
 }
 .drawer-content {
   position: fixed;
@@ -135,7 +136,8 @@ onBeforeUnmount(() => {
   width: min(440px, 100vw);
   max-width: 100vw;
   background: var(--card);
-  border-left: 1px solid var(--border-strong);
+  border-left: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
 }
 .drawer-content--wide {
   width: min(680px, 100vw);
@@ -170,8 +172,8 @@ onBeforeUnmount(() => {
   color: var(--fg);
 }
 .drawer-close:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-ring);
 }
 .drawer-body {
   flex: 1 1 auto;

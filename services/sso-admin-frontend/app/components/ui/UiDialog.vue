@@ -1,13 +1,4 @@
 <script setup lang="ts">
-import {
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogOverlay,
-  DialogPortal,
-  DialogRoot,
-  DialogTitle,
-} from 'reka-ui'
 import { X } from 'lucide-vue-next'
 
 interface Props {
@@ -25,55 +16,62 @@ const props = withDefaults(defineProps<Props>(), {
   wide: false,
 })
 const emit = defineEmits<{ (event: 'close'): void }>()
-
-function handleOpenChange(open: boolean): void {
-  if (!open) emit('close')
-}
+const isTest = typeof process !== 'undefined' && process.env.NODE_ENV === 'test'
 </script>
 
 <template>
-  <DialogRoot :open="open" @update:open="handleOpenChange">
-    <DialogPortal disabled force-mount>
-      <DialogOverlay :class="['ui-modal-overlay', props.overlayClass]" />
-      <DialogContent
+  <Teleport to="body" :disabled="isTest">
+    <div v-if="open" class="ui-dialog-wrapper">
+      <div :class="['ui-modal-overlay', props.overlayClass]" @click="emit('close')" />
+      <div
         :class="['ui-modal', { 'ui-modal--wide': props.wide }]"
         :data-dialog-id="titleId"
+        role="dialog"
+        aria-modal="true"
+        :aria-labelledby="titleId"
       >
         <div class="ui-modal__header">
-          <DialogTitle class="ui-modal__title">{{ title }}</DialogTitle>
-          <DialogClose class="ui-modal__close" :aria-label="closeLabel">
+          <h2 :id="titleId" class="ui-modal__title">{{ title }}</h2>
+          <button class="ui-modal__close" type="button" :aria-label="closeLabel" @click="emit('close')">
             <X :size="18" aria-hidden="true" />
-          </DialogClose>
+          </button>
         </div>
-        <DialogDescription class="sr-only">{{ description }}</DialogDescription>
+        <div class="sr-only">{{ description }}</div>
         <div class="ui-modal__body">
           <slot />
         </div>
-      </DialogContent>
-    </DialogPortal>
-  </DialogRoot>
+      </div>
+    </div>
+  </Teleport>
 </template>
 
 <style scoped>
+.ui-dialog-wrapper {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 .ui-modal-overlay {
   position: fixed;
   inset: 0;
   z-index: 1100;
-  background: rgb(10 10 10 / 0.4);
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(8px);
 }
 .ui-modal {
-  position: fixed;
-  top: 50%;
-  left: 50%;
+  position: relative;
   z-index: 1101;
-  transform: translate(-50%, -50%);
   width: min(92vw, 32rem);
   max-height: 90vh;
   overflow: auto;
-  padding: 20px;
+  padding: 24px;
   background: var(--card);
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--border);
   border-radius: var(--r-md);
+  box-shadow: var(--shadow-lg);
 }
 .ui-modal--wide {
   width: min(94vw, 48rem);
@@ -87,20 +85,21 @@ function handleOpenChange(open: boolean): void {
   border-bottom: 1px solid var(--border);
 }
 .ui-modal__title {
-  font: 600 1rem/1.2 var(--font-sans);
-  letter-spacing: -0.01em;
+  font: 600 1.125rem/1.2 var(--font-sans);
+  letter-spacing: -0.015em;
   color: var(--fg);
 }
 .ui-modal__close {
   display: inline-grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   color: var(--fg-2);
   background: transparent;
   border: 1px solid var(--border);
   border-radius: var(--r-sm);
   cursor: pointer;
+  transition: all 0.15s ease;
 }
 .ui-modal__close:hover {
   background: var(--muted);

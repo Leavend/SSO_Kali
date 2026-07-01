@@ -59,8 +59,9 @@ function handleLabelClick(): void {
   flex-shrink: 0;
 }
 .ui-switch:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-ring);
+  border-radius: var(--r-full);
 }
 .ui-switch__track {
   display: flex;

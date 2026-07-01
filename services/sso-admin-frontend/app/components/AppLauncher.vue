@@ -342,22 +342,27 @@ onUnmounted(() => {
 .al-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 1px;
-  background: var(--border);
-  border: 1px solid var(--border);
+  gap: 8px;
+  background: transparent;
+  border: 0;
+  padding: 4px;
 }
 .al-tile {
   display: grid;
   justify-items: center;
   gap: 8px;
-  padding: 14px 6px;
-  border: 0;
-  background: var(--card);
+  padding: 12px 6px;
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  background: transparent;
   cursor: pointer;
-  transition: background 0.12s;
+  transition: all 0.2s ease;
 }
 .al-tile:hover {
-  background: var(--muted);
+  background: var(--bg-2);
+  border-color: var(--border);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 .al-tile:focus-visible {
   outline: 2px solid var(--accent);
@@ -372,10 +377,12 @@ onUnmounted(() => {
   background: var(--bg-2);
   border: 1px solid var(--border);
   border-radius: var(--r-sm);
+  transition: all 0.2s ease;
 }
 .al-tile:hover .al-ico {
   border-color: var(--accent);
   color: var(--accent);
+  background: var(--card);
 }
 .al-label {
   font: 500 0.6875rem/1.2 var(--font-sans);

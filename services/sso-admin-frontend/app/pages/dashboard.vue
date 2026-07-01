@@ -163,48 +163,70 @@ async function onRefresh(): Promise<void> {
 
 <style scoped>
 .dashboard {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 24px;
-  padding: 24px;
 }
 .dashboard__hero {
-  display: grid;
-  gap: 6px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--border);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 32px;
+  background: radial-gradient(circle at 95% 20%, rgba(79, 70, 229, 0.05), transparent 40%), var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+.dashboard__hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--accent);
 }
 .dashboard__eyebrow {
-  font: 600 0.6875rem/1 var(--font-sans);
-  letter-spacing: 0.08em;
+  font: 700 0.6875rem/1 var(--font-sans);
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--fg-3);
+  color: var(--accent);
 }
 .dashboard__title {
   margin: 0;
-  font: 600 1.5rem/1.2 var(--font-sans);
-  letter-spacing: -0.02em;
+  font: 800 1.75rem/1.2 var(--font-sans);
+  letter-spacing: -0.025em;
   color: var(--fg);
 }
 .dashboard__summary {
-  margin: 0;
-  max-width: 64ch;
+  margin: 4px 0 0;
+  max-width: 68ch;
   font: 400 0.875rem/1.6 var(--font-sans);
   color: var(--fg-2);
 }
 .dashboard__principal {
-  margin: 0;
-  font: 400 0.8125rem/1.5 var(--font-sans);
+  margin: 8px 0 0;
+  font: 600 0.775rem/1.5 var(--font-sans);
   color: var(--fg-2);
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  padding: 4px 12px;
+  border-radius: var(--r-full);
+  width: fit-content;
 }
 .dashboard__evidence {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 8px;
-  margin: 4px 0 0;
+  margin: 12px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
 }
 .dashboard__evidence dt {
-  font: 600 0.625rem/1 var(--font-sans);
-  letter-spacing: 0.06em;
+  font: 700 0.65rem/1 var(--font-sans);
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--fg-3);
 }
@@ -214,8 +236,8 @@ async function onRefresh(): Promise<void> {
 .dashboard__banner {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
+  gap: 10px;
+  padding: 12px 16px;
   font: 500 0.8125rem/1.4 var(--font-sans);
   color: var(--warning-soft-fg);
   background: var(--warning-soft);
@@ -224,7 +246,7 @@ async function onRefresh(): Promise<void> {
 }
 .dashboard__grid {
   display: grid;
-  gap: 20px;
+  gap: 24px;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
 }
 </style>

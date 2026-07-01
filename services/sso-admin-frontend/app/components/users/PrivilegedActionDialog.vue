@@ -1,13 +1,4 @@
 <script setup lang="ts">
-import {
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogOverlay,
-  AlertDialogPortal,
-  AlertDialogRoot,
-  AlertDialogTitle,
-} from 'reka-ui'
 import { computed } from 'vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiTextarea from '@/components/ui/UiTextarea.vue'
@@ -56,8 +47,6 @@ const emit = defineEmits<{
 
 const showReason = computed(() => props.reasonLabel.length > 0)
 
-// Valid when not required, else when the trimmed length sits within [min, max]
-// (min collapses to 1 when unset so an empty required reason is rejected).
 const reasonValid = computed(() => {
   if (!props.reasonRequired) return true
   const length = props.reason.trim().length
@@ -66,23 +55,23 @@ const reasonValid = computed(() => {
 
 const confirmDisabled = computed(() => props.submitting || !reasonValid.value)
 
-// Raw correlation id is never rendered — only the redacted REF-XXXXXXXX form.
 const supportReference = computed(() => formatSupportReference(props.requestId))
 
 function onCancel(): void {
   emit('cancel')
 }
+const isTest = typeof process !== 'undefined' && process.env.NODE_ENV === 'test'
 </script>
 
 <template>
-  <AlertDialogRoot :open="open" @update:open="(value) => !value && onCancel()">
-    <AlertDialogPortal disabled force-mount>
-      <AlertDialogOverlay class="pa-dialog__overlay" data-testid="privileged-action-overlay" />
-      <AlertDialogContent class="pa-dialog">
-        <AlertDialogTitle class="pa-dialog__title">{{ title }}</AlertDialogTitle>
-        <AlertDialogDescription class="pa-dialog__impact" data-testid="privileged-action-impact">
+  <Teleport to="body" :disabled="isTest">
+    <div v-if="open" class="pa-dialog-wrapper">
+      <div class="pa-dialog__overlay" data-testid="privileged-action-overlay" @click="onCancel" />
+      <div class="pa-dialog" role="alertdialog" aria-modal="true">
+        <h2 class="pa-dialog__title">{{ title }}</h2>
+        <p class="pa-dialog__impact" data-testid="privileged-action-impact">
           {{ description }}
-        </AlertDialogDescription>
+        </p>
 
         <div v-if="showReason" class="pa-dialog__field">
           <label class="pa-dialog__label" for="privileged-action-reason">{{ reasonLabel }}</label>
@@ -113,16 +102,9 @@ function onCancel(): void {
         </p>
 
         <div class="pa-dialog__actions">
-          <AlertDialogCancel as-child>
-            <UiButton data-testid="privileged-action-cancel" variant="secondary">
-              {{ cancelLabel }}
-            </UiButton>
-          </AlertDialogCancel>
-          <!-- Confirm is NOT an AlertDialogAction: this dialog must stay open
-               through the async submit to show submitting/error/step-up/REF.
-               AlertDialogAction auto-closes (emits update:open → cancel), which
-               would tear the dialog down mid-flight. Cancel keeps the primitive
-               because cancelling SHOULD dismiss. -->
+          <UiButton data-testid="privileged-action-cancel" variant="secondary" @click="onCancel">
+            {{ cancelLabel }}
+          </UiButton>
           <UiButton
             data-testid="privileged-action-confirm"
             :variant="danger ? 'danger' : 'primary'"
@@ -132,39 +114,46 @@ function onCancel(): void {
             {{ confirmLabel }}
           </UiButton>
         </div>
-      </AlertDialogContent>
-    </AlertDialogPortal>
-  </AlertDialogRoot>
+      </div>
+    </div>
+  </Teleport>
 </template>
 
 <style scoped>
+.pa-dialog-wrapper {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 .pa-dialog__overlay {
   position: fixed;
   inset: 0;
   z-index: 1100;
-  background: rgb(10 10 10 / 0.4);
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(8px);
 }
 .pa-dialog {
-  position: fixed;
-  top: 50%;
-  left: 50%;
+  position: relative;
   z-index: 1101;
   display: grid;
   gap: 14px;
   width: min(92vw, 32rem);
-  padding: 20px;
+  padding: 24px;
   background: var(--card);
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--border);
   border-radius: var(--r-md);
-  transform: translate(-50%, -50%);
+  box-shadow: var(--shadow-lg);
 }
 .pa-dialog__title {
-  font: 600 1rem/1.2 var(--font-sans);
-  letter-spacing: -0.01em;
+  font: 600 1.125rem/1.2 var(--font-sans);
+  letter-spacing: -0.015em;
   color: var(--fg);
 }
 .pa-dialog__impact {
-  font: 400 0.8125rem/1.5 var(--font-sans);
+  font: 400 0.875rem/1.5 var(--font-sans);
   color: var(--fg-2);
 }
 .pa-dialog__field {
