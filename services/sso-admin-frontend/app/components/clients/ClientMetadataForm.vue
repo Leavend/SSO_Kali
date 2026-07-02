@@ -122,7 +122,10 @@ async function submit(): Promise<void> {
   display: grid;
   gap: 12px;
   padding: 16px;
+  background: var(--card);
   border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-sm);
 }
 .client-form__title {
   margin: 0;
@@ -133,13 +136,14 @@ async function submit(): Promise<void> {
   display: grid;
   gap: 4px;
   padding: 12px;
-  border: 1px solid var(--danger);
-  border-radius: var(--r-sm);
+  background: var(--danger-soft);
+  border: 1px solid var(--danger-soft-border);
+  border-radius: var(--r-md);
 }
 .client-form__error p {
   margin: 0;
   font: 400 0.8125rem/1.5 var(--font-sans);
-  color: var(--danger);
+  color: var(--danger-soft-fg);
 }
 .client-form__stepup {
   font: 500 0.8125rem/1.4 var(--font-sans);
@@ -147,6 +151,6 @@ async function submit(): Promise<void> {
 }
 .client-form__ref {
   font-family: var(--font-mono);
-  color: var(--fg-3);
+  color: var(--danger-soft-fg);
 }
 </style>

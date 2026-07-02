@@ -360,7 +360,12 @@ async function submitProfile(): Promise<void> {
           @update:model-value="form.birth_date = $event"
         />
       </UiFormField>
-      <div v-if="profile.failure.value" data-testid="profile-error" role="alert">
+      <div
+        v-if="profile.failure.value"
+        data-testid="profile-error"
+        class="user-actions__failure"
+        role="alert"
+      >
         <p>{{ t('common.error_generic') }}</p>
         <a
           v-if="profile.stepUpUrl.value"
@@ -386,7 +391,10 @@ async function submitProfile(): Promise<void> {
   display: grid;
   gap: 16px;
   padding: 16px;
+  background: var(--card);
   border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-sm);
 }
 .user-actions__none {
   margin: 0;
@@ -407,13 +415,14 @@ async function submitProfile(): Promise<void> {
   display: grid;
   gap: 4px;
   padding: 12px;
-  border: 1px solid var(--danger);
-  border-radius: var(--r-sm);
+  background: var(--danger-soft);
+  border: 1px solid var(--danger-soft-border);
+  border-radius: var(--r-md);
 }
 .user-actions__failure p {
   margin: 0;
   font: 400 0.8125rem/1.5 var(--font-sans);
-  color: var(--danger);
+  color: var(--danger-soft-fg);
 }
 .user-actions__stepup {
   font: 500 0.8125rem/1.4 var(--font-sans);
@@ -421,7 +430,7 @@ async function submitProfile(): Promise<void> {
 }
 .user-actions__ref {
   font-family: var(--font-mono);
-  color: var(--fg-3);
+  color: var(--danger-soft-fg);
 }
 .user-actions__profile {
   display: grid;

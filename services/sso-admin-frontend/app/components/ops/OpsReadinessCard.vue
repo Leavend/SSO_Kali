@@ -89,6 +89,8 @@ const queueSummary = computed<string>(() => {
   padding: 20px;
   background: var(--card);
   border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-sm);
 }
 .ops-readiness__head {
   display: flex;

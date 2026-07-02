@@ -52,8 +52,9 @@ describe('Phase 0 SSR scaffold', async () => {
   it('server-renders an unguarded redirect-target page', async () => {
     // /forbidden is layout: false (no admin shell) and no requiresAdmin, so the
     // guard passes without session bootstrap and Nitro renders the page directly.
+    // Cookie-less request → default locale (id) catalog copy.
     const html = await $fetch('/forbidden')
-    expect(html).toContain('Access denied')
+    expect(html).toContain('Akun ini belum memiliki akses admin.')
   })
 
   it('does not leak server-only runtimeConfig into the SSR payload', async () => {

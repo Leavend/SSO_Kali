@@ -39,6 +39,19 @@
       "step_up_description": "Session admin masih aktif, tetapi akses admin membutuhkan jendela autentikasi yang fresh dan MFA assurance. Login ulang melalui portal SSO.",
       "step_up_action": "Autentikasi ulang",
       "secondary_action": "Kembali ke Portal SSO"
+    },
+    "error": {
+      "eyebrow": "Kesalahan Sistem",
+      "title": "Terjadi Kesalahan",
+      "description": "Konsol administrator mendeteksi kesalahan yang tidak terduga. Coba lagi, atau kembali ke portal SSO.",
+      "back_to_portal": "Kembali ke Portal SSO"
+    },
+    "api_unreachable": {
+      "eyebrow": "Koneksi",
+      "title": "Koneksi Terputus",
+      "description": "API Administrator tidak dapat dijangkau. Periksa koneksi internet Anda, lalu coba lagi.",
+      "retry": "Coba Lagi",
+      "back_to_portal": "Kembali ke Portal SSO"
     }
   },
   "language": {
@@ -673,7 +686,9 @@
         "empty_title": "Tidak ada bukti retensi",
         "empty_desc": "Belum ada jendela retensi yang tercatat."
       },
-      "export": { "title": "Ekspor & paket bukti" },
+      "export": {
+        "title": "Ekspor & paket bukti"
+      },
       "dsr": {
         "title": "Antrean DSR",
         "shown": "Ditampilkan",

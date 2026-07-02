@@ -373,8 +373,10 @@ function previousPage(): void {
   display: grid;
   gap: 14px;
   padding: 20px;
+  background: var(--card);
   border: 1px solid var(--border);
-  border-radius: var(--r-sm);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-sm);
 }
 .compliance__panel-head {
   display: flex;
@@ -425,7 +427,7 @@ function previousPage(): void {
   font: 500 0.8125rem/1.4 var(--font-sans);
   color: var(--warning-soft-fg);
   background: var(--warning-soft);
-  border: 1px solid var(--warning-soft-fg);
-  border-radius: var(--r-sm);
+  border: 1px solid var(--warning-soft-border);
+  border-radius: var(--r-md);
 }
 </style>

@@ -54,6 +54,8 @@ defineProps<{
   padding: 20px;
   background: var(--card);
   border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-sm);
 }
 .profile-card__head {
   display: flex;

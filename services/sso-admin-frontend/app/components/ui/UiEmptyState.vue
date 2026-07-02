@@ -26,23 +26,31 @@ defineProps<Props>()
 
 <style scoped>
 .ui-empty {
-  display: grid;
-  justify-items: start;
-  gap: 12px;
-  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 16px;
+  padding: 40px 24px;
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: var(--r-md);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm);
 }
 .ui-empty__icon {
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
-  color: var(--fg-2);
-  background: var(--bg-2);
-  border: 1px solid var(--border);
-  border-radius: var(--r-sm);
+  width: 48px;
+  height: 48px;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-soft-border);
+  border-radius: var(--r-md);
+}
+.ui-empty__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 .ui-empty__title {
   margin: 0;
@@ -50,13 +58,16 @@ defineProps<Props>()
   color: var(--fg);
 }
 .ui-empty__desc {
-  margin: 4px 0 0;
+  margin: 0;
+  max-width: 40ch;
   font: 400 0.8125rem/1.5 var(--font-sans);
   color: var(--fg-2);
 }
 .ui-empty__action {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 10px;
+  margin-top: 4px;
 }
 </style>

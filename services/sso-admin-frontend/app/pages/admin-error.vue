@@ -1,41 +1,28 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { useI18n } from '@/composables/useI18n'
+import { portalUrl } from '@/config/adminEnvironment'
+import UiButton from '@/components/ui/UiButton.vue'
+import UiStatusView from '@/components/ui/UiStatusView.vue'
 
 definePageMeta({
   name: 'admin.error',
   layout: false,
 })
 
+const { t } = useI18n()
 // Absolute escape to the SSO portal so an admin is not trapped on this origin.
-const config = useRuntimeConfig()
-const portalUrl = computed(() => {
-  const base = (config.public.ssoBaseUrl ?? '').replace(/\/$/u, '')
-  return base ? `${base}/home` : '/'
-})
+const portalHomeUrl = portalUrl()
 </script>
 
 <template>
-  <main class="standalone">
-    <h1>Something went wrong</h1>
-    <p>The admin console hit an unexpected error.</p>
-    <a :href="portalUrl">Back to SSO Portal</a>
-  </main>
+  <UiStatusView
+    tone="error"
+    :eyebrow="t('admin.error.eyebrow')"
+    :title="t('admin.error.title')"
+    :description="t('admin.error.description')"
+  >
+    <template #actions>
+      <UiButton :href="portalHomeUrl">{{ t('admin.error.back_to_portal') }}</UiButton>
+    </template>
+  </UiStatusView>
 </template>
-
-<style scoped>
-.standalone {
-  display: grid;
-  gap: 12px;
-  max-width: 32rem;
-  margin: 12vh auto;
-  padding: 24px;
-  font: 400 0.9375rem/1.5 var(--font-sans);
-}
-.standalone h1 {
-  font: 600 1.5rem/1.2 var(--font-sans);
-}
-.standalone a {
-  color: var(--accent);
-  text-decoration: underline;
-}
-</style>

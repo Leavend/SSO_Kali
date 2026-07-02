@@ -6,6 +6,8 @@ interface Props {
   readonly variant?: ButtonVariants['variant']
   readonly size?: ButtonVariants['size']
   readonly disabled?: boolean
+  /** When set, renders as an anchor (link) instead of a button. */
+  readonly href?: string
   readonly class?: string
 }
 
@@ -14,18 +16,24 @@ const props = withDefaults(defineProps<Props>(), {
   variant: 'primary',
   size: 'md',
   disabled: false,
+  href: undefined,
   class: undefined,
 })
 </script>
 
 <template>
-  <button
+  <!-- Single root so fallthrough listeners (e.g. @click) bind to the element;
+       an anchor when `href` is set, otherwise a button. -->
+  <component
+    :is="href ? 'a' : 'button'"
     :class="[buttonVariants({ variant: props.variant, size: props.size }), props.class]"
-    :type="type"
-    :disabled="disabled"
+    :href="href && !disabled ? href : undefined"
+    :type="href ? undefined : type"
+    :disabled="href ? undefined : disabled"
+    :aria-disabled="href && disabled ? 'true' : undefined"
   >
     <slot />
-  </button>
+  </component>
 </template>
 
 <style scoped>
@@ -51,7 +59,8 @@ const props = withDefaults(defineProps<Props>(), {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
-.ui-btn:disabled {
+.ui-btn:disabled,
+.ui-btn[aria-disabled='true'] {
   opacity: 0.5;
   pointer-events: none;
 }

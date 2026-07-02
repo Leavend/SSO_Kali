@@ -189,8 +189,12 @@ async function onConfirm(): Promise<void> {
 }
 .role-assignment__warn {
   margin: 0;
+  padding: 10px 14px;
   font: 500 0.8125rem/1.5 var(--font-sans);
-  color: var(--fg-2);
+  color: var(--warning-soft-fg);
+  background: var(--warning-soft);
+  border: 1px solid var(--warning-soft-border);
+  border-radius: var(--r-md);
 }
 .role-assignment__options {
   display: grid;

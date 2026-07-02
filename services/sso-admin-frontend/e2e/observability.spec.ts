@@ -27,7 +27,10 @@ test('forbidden flow: admin without admin.observability.read sees the safe forbi
   await page.goto('/observability')
   await expect(page).toHaveURL(/\/forbidden$/u)
   // /forbidden is layout:false (no admin nav) — assert the forbidden surface itself.
-  await expect(page.getByRole('heading', { name: 'Access denied' })).toBeVisible()
+  // useEnglish pins admin_locale=en, so the forbidden surface renders the en catalog.
+  await expect(
+    page.getByRole('heading', { name: 'This account does not have admin access.' }),
+  ).toBeVisible()
   await expect(page.getByText(/Bearer|access_token|SQLSTATE/u)).toHaveCount(0)
 })
 

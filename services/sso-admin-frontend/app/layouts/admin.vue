@@ -3,6 +3,12 @@ import { computed, ref } from 'vue'
 import { useSessionStore } from '@/stores/session.store'
 import type { AdminPermissionMenu } from '@/types/auth.types'
 import { useI18n } from '@/composables/useI18n'
+// Explicit imports (repo convention): auto-import registration does not survive
+// fixture-layer builds (test/fixtures/e2e, ssr-leak), which resolve the root
+// config's ~/components against the fixture srcDir.
+import LocaleSwitcher from '@/components/LocaleSwitcher.vue'
+import SsoAccountBar from '@/components/SsoAccountBar.vue'
+import UiThemeToggle from '@/components/ui/UiThemeToggle.vue'
 import {
   LayoutDashboard,
   User,

@@ -39,6 +39,19 @@
       "step_up_description": "The admin session is active, but admin access requires a fresh authentication window and MFA assurance. Sign in again through the SSO portal.",
       "step_up_action": "Re-authenticate",
       "secondary_action": "Back to SSO Portal"
+    },
+    "error": {
+      "eyebrow": "System Error",
+      "title": "Something went wrong",
+      "description": "The admin console hit an unexpected error. Try again, or go back to the SSO portal.",
+      "back_to_portal": "Back to SSO Portal"
+    },
+    "api_unreachable": {
+      "eyebrow": "Connection",
+      "title": "Admin API unreachable",
+      "description": "The admin API cannot be reached. Check your connection, then try again.",
+      "retry": "Try Again",
+      "back_to_portal": "Back to SSO Portal"
     }
   },
   "language": {
@@ -673,7 +686,9 @@
         "empty_title": "No retention evidence",
         "empty_desc": "No retention windows have been recorded yet."
       },
-      "export": { "title": "Export & evidence pack" },
+      "export": {
+        "title": "Export & evidence pack"
+      },
       "dsr": {
         "title": "DSR queue",
         "shown": "Shown",

@@ -299,8 +299,8 @@ async function onRefresh(): Promise<void> {
   font: 500 0.8125rem/1.4 var(--font-sans);
   color: var(--warning-soft-fg);
   background: var(--warning-soft);
-  border: 1px solid var(--warning-soft-fg);
-  border-radius: var(--r-sm);
+  border: 1px solid var(--warning-soft-border);
+  border-radius: var(--r-md);
 }
 .observability__grid {
   display: grid;

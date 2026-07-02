@@ -25,3 +25,12 @@ export function getAdminEnvironment(): AdminEnvironment {
     publicBasePath: pub.basePath,
   }
 }
+
+/**
+ * Absolute URL on the SSO portal origin. Falls back to this app's root when
+ * ssoBaseUrl is unset so an escape link never dead-ends on a broken href.
+ */
+export function portalUrl(path = '/home'): string {
+  const base = (getAdminEnvironment().ssoBaseUrl ?? '').replace(/\/$/u, '')
+  return base ? `${base}${path}` : '/'
+}

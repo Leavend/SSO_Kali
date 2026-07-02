@@ -189,7 +189,10 @@ function onCancel(): void {
   display: grid;
   gap: 12px;
   padding: 16px;
+  background: var(--card);
   border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-sm);
 }
 .client-actions__title {
   margin: 0;

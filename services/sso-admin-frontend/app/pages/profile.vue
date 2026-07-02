@@ -146,6 +146,7 @@ const securityLabels = computed<ProfileSecurityLabels>(() => ({
   color: var(--fg-2);
   background: var(--bg-2);
   border: 1px solid var(--border);
+  border-radius: var(--r-sm);
 }
 .profile__permissions-empty {
   margin: 0;

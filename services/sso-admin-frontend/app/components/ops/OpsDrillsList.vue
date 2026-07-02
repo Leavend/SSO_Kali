@@ -60,6 +60,8 @@ defineProps<{
   padding: 16px;
   background: var(--card);
   border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-sm);
 }
 .ops-drills__title {
   font: 600 0.875rem/1.3 var(--font-sans);
@@ -86,9 +88,5 @@ defineProps<{
   color: var(--accent);
   text-decoration: underline;
   text-underline-offset: 2px;
-}
-.ops-drills__link:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
 }
 </style>

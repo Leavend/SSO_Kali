@@ -34,7 +34,8 @@ describe('in-process component (mountSuspended)', () => {
   })
 
   it('mounts an unguarded redirect-target page and renders its heading', async () => {
+    // Cookie-less mount → default locale (id) catalog copy.
     const wrapper = await mountSuspended(ForbiddenPage)
-    expect(wrapper.text()).toContain('Access denied')
+    expect(wrapper.text()).toContain('Akun ini belum memiliki akses admin.')
   })
 })

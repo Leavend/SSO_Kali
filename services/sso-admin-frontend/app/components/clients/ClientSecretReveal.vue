@@ -107,8 +107,12 @@ function onClose(): void {
   gap: 14px;
 }
 .secret-reveal__warning {
+  padding: 10px 14px;
   font: 500 0.8125rem/1.5 var(--font-sans);
-  color: var(--danger);
+  color: var(--danger-soft-fg);
+  background: var(--danger-soft);
+  border: 1px solid var(--danger-soft-border);
+  border-radius: var(--r-md);
 }
 .secret-reveal__value {
   padding: 10px 12px;
@@ -117,7 +121,7 @@ function onClose(): void {
   word-break: break-all;
   background: var(--muted);
   border: 1px solid var(--border);
-  border-radius: var(--r-sm);
+  border-radius: var(--r-md);
 }
 .secret-reveal__env {
   padding: 12px;
@@ -126,7 +130,7 @@ function onClose(): void {
   color: var(--fg);
   background: var(--muted);
   border: 1px solid var(--border);
-  border-radius: var(--r-sm);
+  border-radius: var(--r-md);
 }
 .secret-reveal__feedback {
   font: 400 0.75rem/1.4 var(--font-sans);

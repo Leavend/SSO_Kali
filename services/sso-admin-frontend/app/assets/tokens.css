@@ -52,19 +52,25 @@
   --danger-600: #dc2626; /* red-600 */
   --danger-fg: #ffffff;
   --danger-soft: #fef2f2;
-  --danger-soft-fg: #ef4444;
-  
+  --danger-soft-fg: #b91c1c; /* red-700 — AA (4.5:1) as 13px text on danger-soft */
+
   --success: #10b981; /* emerald-500 */
   --success-soft: #ecfdf5;
   --success-soft-fg: #10b981;
-  
+
   --warning: #f59e0b; /* amber-500 */
   --warning-soft: #fffbeb;
-  --warning-soft-fg: #d97706;
-  
+  --warning-soft-fg: #92400e; /* amber-800 — AA (4.5:1) as 13px text on warning-soft */
+
   --info: #3b82f6; /* blue-500 */
   --info-soft: #eff6ff;
   --info-soft-fg: #3b82f6;
+
+  /* ---- Soft-surface hairlines (banner/chip borders; the mixed color resolves per theme) ---- */
+  --danger-soft-border: color-mix(in srgb, var(--danger) 20%, transparent);
+  --warning-soft-border: color-mix(in srgb, var(--warning) 20%, transparent);
+  --info-soft-border: color-mix(in srgb, var(--info) 20%, transparent);
+  --accent-soft-border: color-mix(in srgb, var(--accent) 20%, transparent);
 
   /* ---- Control + layout dimensions ---- */
   --ctl-h: 38px;

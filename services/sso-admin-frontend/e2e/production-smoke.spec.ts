@@ -14,7 +14,7 @@ import { useEnglish } from './_support/e2e'
 test('admin-api-unreachable page renders as a public layout:false page', async ({ page }) => {
   await page.goto('/admin-api-unreachable')
   await expect(page).toHaveURL(/\/admin-api-unreachable$/u)
-  await expect(page.getByRole('heading', { name: 'Admin API unreachable' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Koneksi Terputus' })).toBeVisible()
 })
 
 // Test 2 original: "stubbed OIDC admin session reaches dashboard with principal
